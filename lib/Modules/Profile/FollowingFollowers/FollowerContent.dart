@@ -122,7 +122,7 @@ class FollowerContent extends StatelessWidget {
                         height: 28,
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
-                          color: Colors.blueAccent,
+                          color: Colors.black,
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                         child: Padding(

@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Sizes.dart';
 import 'package:turqappv2/Modules/Social/Comments/PostCommentContent.dart';
 import 'package:turqappv2/Modules/Social/Comments/PostCommentController.dart';
 import 'package:turqappv2/Themes/AppColors.dart';
@@ -32,7 +31,7 @@ class PostComments extends StatefulWidget {
 class _PostCommentsState extends State<PostComments> {
   late final PostCommentController controller;
   final user = Get.find<FirebaseMyStore>();
-  final emojis = ["❤️", "🙌🏻", "🔥", "👏🏻", "😎", "👍🏻", "😍", "🥳"];
+  final emojis = ["😂", "😍", "🔥", "👏", "👍", "🙏", "😅", "❤️"];
   final textEditingController = TextEditingController();
   final focusNode = FocusNode();
 
@@ -84,17 +83,35 @@ class _PostCommentsState extends State<PostComments> {
                       child: controller.list.isNotEmpty
                           ? ListView.builder(
                               physics: const ClampingScrollPhysics(),
-                              padding: EdgeInsets.zero,
+                              padding: const EdgeInsets.only(top: 6, bottom: 4),
                               itemCount: controller.list.length,
                               itemBuilder: (ctx, i) => Column(
                                 children: [
                                   PostCommentContent(
                                     model: controller.list[i],
                                     postID: widget.postID,
+                                    onReplyTap: (commentId, nickname) {
+                                      controller.setReplyTarget(
+                                        commentId: commentId,
+                                        nickname: nickname,
+                                      );
+                                      final mention = '@$nickname ';
+                                      if (textEditingController.text != mention) {
+                                        textEditingController.text = mention;
+                                        textEditingController.selection =
+                                            TextSelection.fromPosition(
+                                          TextPosition(
+                                            offset: textEditingController.text.length,
+                                          ),
+                                        );
+                                      }
+                                      focusNode.requestFocus();
+                                      setState(() {});
+                                    },
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(
-                                        left: 60, top: 5, bottom: 5),
+                                        left: 58, top: 6, bottom: 6),
                                     child: SizedBox(
                                       height: 1,
                                       child: Divider(
@@ -134,8 +151,7 @@ class _PostCommentsState extends State<PostComments> {
                     // Emoji row
                     Container(
                       color: Colors.grey.withAlpha(0),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: emojis.map((e) {
@@ -144,15 +160,14 @@ class _PostCommentsState extends State<PostComments> {
                               textEditingController.text += e;
                               setState(() {});
                             },
-                            child:
-                                Text(e, style: const TextStyle(fontSize: 28)),
+                            child: Text(e, style: const TextStyle(fontSize: 24)),
                           );
                         }).toList(),
                       ),
                     ),
 
                     // Placeholder for space under the input row
-                    const SizedBox(height: 75),
+                    const SizedBox(height: 72),
                   ],
                 ),
               ),
@@ -170,13 +185,13 @@ class _PostCommentsState extends State<PostComments> {
       children: [
         // Drag handle
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.only(top: 10, bottom: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 height: 3,
-                width: 40,
+                width: 34,
                 decoration: BoxDecoration(
                   color: Colors.grey,
                   borderRadius: BorderRadius.all(Radius.circular(50)),
@@ -191,10 +206,11 @@ class _PostCommentsState extends State<PostComments> {
           "Yorumlar",
           style: TextStyle(
             color: AppColors.textBlack,
-            fontSize: FontSizes.size15,
+            fontSize: 16,
             fontFamily: AppFontFamilies.mbold,
           ),
         ),
+        const SizedBox(height: 4),
       ],
     );
   }
@@ -203,58 +219,130 @@ class _PostCommentsState extends State<PostComments> {
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 20,
+      bottom: 14,
       child: Container(
         color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.all(Radius.circular(50)),
               child: SizedBox(
-                width: 40,
-                height: 40,
+                width: 28,
+                height: 28,
                 child: user.pfImage.value.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: user.pfImage.value,
                         fit: BoxFit.cover,
                       )
-                    : const CupertinoActivityIndicator(),
+                    : const Icon(
+                        CupertinoIcons.person_fill,
+                        color: Colors.black54,
+                        size: 14,
+                      ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 70),
-                child: TextField(
-                  controller: textEditingController,
-                  focusNode: focusNode,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.newline,
-                  inputFormatters: [LengthLimitingTextInputFormatter(280)],
-                  decoration: InputDecoration(
-                    hintText:
-                        "${controller.postUserNickname.value} için yorum ekle..",
-                    hintStyle: const TextStyle(
-                      color: Colors.grey,
-                      fontFamily: "MontserratMedium",
-                      fontSize: 15,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Obx(() {
+                    if (controller.replyingToCommentId.value.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '@${controller.replyingToNickname.value} kullanıcısına yanıt',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontFamily: "MontserratMedium",
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              controller.clearReplyTarget();
+                              textEditingController.clear();
+                              setState(() {});
+                            },
+                            child: const Icon(
+                              CupertinoIcons.xmark_circle_fill,
+                              size: 14,
+                              color: Colors.black38,
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  }),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F6F8),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    border: InputBorder.none,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 62),
+                      child: TextField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        inputFormatters: [LengthLimitingTextInputFormatter(280)],
+                        decoration: const InputDecoration(
+                          hintText: "Bunun hakkında ne düşünüyorsun?",
+                          hintStyle: TextStyle(
+                            color: Colors.black45,
+                            fontFamily: "MontserratMedium",
+                            fontSize: 13,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontFamily: "MontserratMedium",
+                          height: 1.35,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
                   ),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium",
-                    height: 1.8,
-                  ),
-                  onChanged: (_) => setState(() {}),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 34,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black26),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                "GIF",
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 10,
+                  fontFamily: AppFontFamilies.mbold,
                 ),
               ),
             ),
             if (textEditingController.text.isNotEmpty)
-              GestureDetector(
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: GestureDetector(
                 onTap: () {
                   controller.yorumYap(
                     context,
@@ -267,8 +355,8 @@ class _PostCommentsState extends State<PostComments> {
                   setState(() {});
                 },
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(50),
@@ -276,9 +364,10 @@ class _PostCommentsState extends State<PostComments> {
                   child: const Icon(
                     Icons.send,
                     color: Colors.white,
-                    size: 20,
+                    size: 16,
                   ),
                 ),
+              ),
               ),
           ],
         ),

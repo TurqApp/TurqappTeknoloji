@@ -220,13 +220,23 @@ exports.onUserNotificationCreate = functions.firestore
         const type = String(data.type || "Posts");
         const fromUserID = String(data.fromUserID || "");
         const targetDocID = String(data.postID || "");
+        const cfg = await _loadNotificationPushConfig();
         // Self-notification push göndermeyelim.
         if (fromUserID && fromUserID === uid)
             return;
-        const userDoc = await db.collection("users").doc(uid).get();
-        const token = String(userDoc.data()?.token || "");
-        if (!token)
+        // Global veya tür bazlı kapalıysa push gönderme.
+        if (!cfg.enabled || !_isNotificationTypeEnabled(type, cfg.types))
             return;
+        const userDoc = await db.collection("users").doc(uid).get();
+        const userData = (userDoc.data() || {});
+        const token = String(userData.token ||
+            userData.fcmToken ||
+            userData.fcm_token ||
+            "");
+        if (!token) {
+            console.log("onUserNotificationCreate skip:no_token", { uid, type });
+            return;
+        }
         const title = String(data.title || "TurqApp");
         const body = String(data.body || _notificationBodyFromType(type));
         await admin.messaging().send({
@@ -256,11 +266,83 @@ exports.onUserNotificationCreate = functions.firestore
                 },
             },
         });
+        console.log("onUserNotificationCreate sent", { uid, type, tokenPresent: true });
     }
     catch (e) {
         console.error("onUserNotificationCreate error", e);
     }
 });
+const _defaultPushTypes = {
+    follow: true,
+    comment: true,
+    message: true,
+    like: true,
+    reshared_posts: true,
+    shared_as_posts: true,
+    posts: true,
+};
+async function _loadNotificationPushConfig() {
+    try {
+        const pushSnap = await db.doc("adminConfig/push").get();
+        const pushData = (pushSnap.data() || {});
+        // Primary schema (requested):
+        // adminConfig/push => { enabled, follow, comment, message, like, reshared_posts, shared_as_posts, posts }
+        const primaryEnabledRaw = pushData.enabled ?? true;
+        const primaryTypesRaw = pushData;
+        // Backward-compatible fallback schema:
+        // adminConfig/service => { notifications: { enabled, types: {...} } } or legacy keys.
+        const serviceSnap = await db.doc("adminConfig/service").get();
+        const serviceData = (serviceSnap.data() || {});
+        const notifications = (serviceData.notifications || {});
+        const fallbackTypesRaw = (notifications.types || serviceData.notificationTypes || {});
+        const fallbackEnabledRaw = notifications.enabled ?? serviceData.notificationsEnabled ?? true;
+        const normalizeBool = (value, fallback) => {
+            if (typeof value === "boolean")
+                return value;
+            return fallback;
+        };
+        return {
+            enabled: normalizeBool(primaryEnabledRaw, normalizeBool(fallbackEnabledRaw, true)),
+            types: {
+                follow: normalizeBool(primaryTypesRaw.follow, normalizeBool(fallbackTypesRaw.follow, _defaultPushTypes.follow)),
+                comment: normalizeBool(primaryTypesRaw.comment, normalizeBool(fallbackTypesRaw.comment, _defaultPushTypes.comment)),
+                message: normalizeBool(primaryTypesRaw.message, normalizeBool(fallbackTypesRaw.message, _defaultPushTypes.message)),
+                like: normalizeBool(primaryTypesRaw.like, normalizeBool(fallbackTypesRaw.like, _defaultPushTypes.like)),
+                reshared_posts: normalizeBool(primaryTypesRaw.reshared_posts, normalizeBool(fallbackTypesRaw.reshared_posts, _defaultPushTypes.reshared_posts)),
+                shared_as_posts: normalizeBool(primaryTypesRaw.shared_as_posts, normalizeBool(fallbackTypesRaw.shared_as_posts, _defaultPushTypes.shared_as_posts)),
+                posts: normalizeBool(primaryTypesRaw.posts, normalizeBool(fallbackTypesRaw.posts, _defaultPushTypes.posts)),
+            },
+        };
+    }
+    catch (e) {
+        console.error("_loadNotificationPushConfig error", e);
+        return { enabled: true, types: _defaultPushTypes };
+    }
+}
+function _isNotificationTypeEnabled(type, types) {
+    const t = String(type || "").toLowerCase();
+    switch (t) {
+        case "user":
+        case "follow":
+            return types.follow;
+        case "comment":
+            return types.comment;
+        case "chat":
+        case "message":
+            return types.message;
+        case "like":
+            return types.like;
+        case "reshared_posts":
+            return types.reshared_posts;
+        case "shared_as_posts":
+            return types.shared_as_posts;
+        case "posts":
+            return types.posts;
+        default:
+            // Tanınmayan tipleri güvenli tarafta bırak: push açık
+            return true;
+    }
+}
 function _notificationBodyFromType(type) {
     switch (type) {
         case "User":

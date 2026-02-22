@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Buttons/BackButtons.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/TagPosts.dart';
 import '../AgendaContent/AgendaContent.dart';
 import 'TopTagsContoller.dart';
@@ -16,7 +15,30 @@ class TopTags extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Öne Çıkanlar"),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(CupertinoIcons.back,
+                        size: 24, color: Colors.black),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      "Gündem",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontFamily: "MontserratBold",
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 68),
+                ],
+              ),
+            ),
             Expanded(
               child: RefreshIndicator(
                 backgroundColor: Colors.black,
@@ -102,8 +124,7 @@ class TopTags extends StatelessWidget {
           for (int i = 0; i < items.length; i++) ...[
             Builder(builder: (_) {
               final item = items[i];
-              final title =
-                  item.hasHashtag ? "#${item.hashtag}" : item.hashtag;
+              final title = item.hasHashtag ? "#${item.hashtag}" : item.hashtag;
               return Column(
                 children: [
                   GestureDetector(
@@ -117,43 +138,43 @@ class TopTags extends StatelessWidget {
                       child: SizedBox(
                         width: double.infinity,
                         child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "${i + 1} - Türkiye tarihinde gündemde",
-                                  style: const TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 14,
-                                    fontFamily: "Montserrat",
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${i + 1} - Türkiye tarihinde gündemde",
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 14,
+                                      fontFamily: "Montserrat",
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 18,
-                                    fontFamily: "MontserratBold",
-                                    height: 1.1,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    title,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 18,
+                                      fontFamily: "MontserratBold",
+                                      height: 1.1,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: Icon(
-                              CupertinoIcons.chevron_right,
-                              color: Colors.black38,
-                              size: 16,
-                            ),
-                          )
-                        ],
-                      ),
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Icon(
+                                CupertinoIcons.chevron_right,
+                                color: Colors.black38,
+                                size: 16,
+                              ),
+                            )
+                          ],
+                        ),
                       ),
                     ),
                   ),

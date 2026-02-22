@@ -299,10 +299,10 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                         decoration: BoxDecoration(
                                           color: controller.isFollowing.value
                                               ? Colors.white
-                                              : Colors.blueAccent,
+                                              : Colors.black,
                                           border: Border.all(
                                             width: 1,
-                                            color: Colors.blueAccent,
+                                            color: Colors.black,
                                           ),
                                           borderRadius:
                                               BorderRadius.circular(12),
@@ -874,7 +874,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                   ? null
                                                   : () async {
                                                       if (model.basvuruURL
-                                                              .isNotEmpty) {
+                                                          .isNotEmpty) {
                                                         String urlString =
                                                             model.basvuruURL;
                                                         if (!urlString

@@ -21,6 +21,7 @@ import '../../Core/Helpers/GlobalLoader/GlobalLoaderController.dart';
 import '../../Core/Helpers/UnreadMessagesController/UnreadMessagesController.dart';
 import '../Chat/ChatListing/ChatListing.dart';
 import '../InAppNotifications/InAppNotifications.dart';
+import '../InAppNotifications/InAppNotificationsController.dart';
 import '../RecommendedUserList/RecommendedUserList.dart';
 import '../RecommendedUserList/RecommendedUserListController.dart';
 import '../Story/StoryRow/StoryRowController.dart';
@@ -57,12 +58,30 @@ class AgendaView extends StatelessWidget {
     }
   }
 
+  InAppNotificationsController get notificationsController {
+    if (Get.isRegistered<InAppNotificationsController>()) {
+      return Get.find<InAppNotificationsController>();
+    } else {
+      return Get.put(InAppNotificationsController());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: topInset + 12,
+              color: Colors.white,
+            ),
+          ),
           SafeArea(
             top: false,
             bottom: false,
@@ -115,7 +134,8 @@ class AgendaView extends StatelessWidget {
                         };
                       }
 
-                      for (final reshareEntry in controller.feedReshareEntries) {
+                      for (final reshareEntry
+                          in controller.feedReshareEntries) {
                         final post = reshareEntry['post'] as PostsModel;
                         final idx = agendaIndexByDoc[post.docID];
                         if (idx == null || idx < 0) continue;
@@ -127,7 +147,8 @@ class AgendaView extends StatelessWidget {
 
                         final existing = displayByDoc[post.docID];
                         final existingTs = (existing?['timestamp'] ?? 0) as int;
-                        if (existing == null || reshareTimestamp >= existingTs) {
+                        if (existing == null ||
+                            reshareTimestamp >= existingTs) {
                           displayByDoc[post.docID] = {
                             'type': 'reshare',
                             'model': modelRef,
@@ -139,10 +160,11 @@ class AgendaView extends StatelessWidget {
                         }
                       }
 
-                      final List<Map<String, dynamic>> display =
-                          displayByDoc.values.toList()
-                            ..sort((a, b) => (b['timestamp'] as int)
-                                .compareTo(a['timestamp'] as int));
+                      final List<Map<String, dynamic>> display = displayByDoc
+                          .values
+                          .toList()
+                        ..sort((a, b) => (b['timestamp'] as int)
+                            .compareTo(a['timestamp'] as int));
 
                       return ListView.builder(
                         controller: controller.scrollController,
@@ -171,7 +193,8 @@ class AgendaView extends StatelessWidget {
                           final isReshare = (item['reshare'] == true);
                           final reshareUserID =
                               item['reshareUserID'] as String?;
-                          final agendaIndex = (item['agendaIndex'] ?? -1) as int;
+                          final agendaIndex =
+                              (item['agendaIndex'] ?? -1) as int;
                           final isCentered = centeredIndex == agendaIndex;
 
                           final List<Widget> columnChildren = [];
@@ -216,13 +239,15 @@ class AgendaView extends StatelessWidget {
 
                               if (info.visibleFraction >= 0.80) {
                                 // Video ekranın çoğunu kaplıyor - OYNAT
-                                if (controller.centeredIndex.value != modelIndex) {
+                                if (controller.centeredIndex.value !=
+                                    modelIndex) {
                                   controller.centeredIndex.value = modelIndex;
                                   controller.lastCenteredIndex = modelIndex;
                                 }
                               } else if (info.visibleFraction < 0.40) {
                                 // Video ekranın azını kaplıyor veya RecommendedUserList engelliyor - DURDUR
-                                if (controller.centeredIndex.value == modelIndex) {
+                                if (controller.centeredIndex.value ==
+                                    modelIndex) {
                                   controller.centeredIndex.value = -1;
                                 }
                               }
@@ -453,44 +478,21 @@ class AgendaView extends StatelessWidget {
                       size: 20,
                     ),
                     Obx(() {
-                      final count = unreadController.totalUnreadCount.value;
-
-                      if (count == 0) {
-                        return const SizedBox
-                            .shrink(); // 0 ise hiç göstermiyoruz
+                      final hasUnread =
+                          unreadController.totalUnreadCount.value > 0;
+                      if (!hasUnread) {
+                        return const SizedBox.shrink();
                       }
-
                       return Positioned(
-                        right: -5,
-                        top: -3,
+                        right: -2,
+                        top: -2,
                         child: Container(
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
+                          width: 10,
+                          height: 10,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppColors.primaryColor,
-                                AppColors.secondColor
-                              ],
-                            ),
+                            color: const Color(0xFF00C853),
                             shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(3),
-                          child: Center(
-                            child: Text(
-                              count > 99 ? '99+' : count.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: AppFontFamilies.mbold,
-                                height: 1.0,
-                              ),
-                            ),
+                            border: Border.all(color: Colors.white, width: 1.5),
                           ),
                         ),
                       );
@@ -510,10 +512,34 @@ class AgendaView extends StatelessWidget {
                     } catch (_) {}
                   });
                 },
-                child: const Icon(
-                  CupertinoIcons.bell,
-                  color: Colors.black,
-                  size: 20,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(
+                      CupertinoIcons.bell,
+                      color: Colors.black,
+                      size: 20,
+                    ),
+                    Obx(() {
+                      final hasUnread = notificationsController.unreadCount > 0;
+                      if (!hasUnread) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00C853),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ),
               // 12.pw,

@@ -7,6 +7,7 @@ import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/RozetContent.dart';
 import 'package:turqappv2/Models/MessageModel.dart';
+import 'package:turqappv2/Modules/Chat/ChatController.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/MessageContentController.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/PhotoShorts.dart';
@@ -29,11 +30,14 @@ class MessageContent extends StatelessWidget {
       required this.model,
       required this.isLastMessage});
   late final MessageContentController controller;
-  final explore = Get.find<ExploreController>();
+  late final ChatController chatController;
+  final ExploreController? explore =
+      Get.isRegistered<ExploreController>() ? Get.find<ExploreController>() : null;
   @override
   Widget build(BuildContext context) {
     controller = Get.put(MessageContentController(model: model, mainID: mainID),
         tag: model.docID);
+    chatController = Get.find<ChatController>(tag: mainID);
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15, bottom: 10),
       child: Column(
@@ -44,7 +48,7 @@ class MessageContent extends StatelessWidget {
         children: [
           if (model.lat != 0) locationBar(),
           if (model.imgs.isNotEmpty) imageList(),
-          if (model.metin != "") messageBubble(),
+          if (model.metin != "" || model.isUnsent) messageBubble(),
           if (model.kisiAdSoyad != "") contactInfoBar(),
           Obx(() {
             return postBody();
@@ -80,16 +84,14 @@ class MessageContent extends StatelessWidget {
                   controller.likeImage();
                 },
                 onLongPress: () {
-                  if (model.userID == FirebaseAuth.instance.currentUser!.uid) {
-                    controller.deleteMessage();
-                  }
+                  _openMessageActions();
                 },
                 child: Container(
                   decoration: BoxDecoration(
                     color:
                         model.userID == FirebaseAuth.instance.currentUser!.uid
                             ? Colors.blueAccent
-                            : Colors.grey.withAlpha(30),
+                            : const Color(0xFFF2F2F4),
                     borderRadius: BorderRadius.all(Radius.circular(18)),
                   ),
                   child: Stack(
@@ -100,22 +102,84 @@ class MessageContent extends StatelessWidget {
                           horizontal: 15,
                           vertical: 10,
                         ),
-                        child: Text(
-                          model.metin,
-                          style: TextStyle(
-                            color: model.userID ==
-                                    FirebaseAuth.instance.currentUser!.uid
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                            decoration: model.lat != 0
-                                ? TextDecoration.underline
-                                : TextDecoration.none, // 👈 Alt çizgi eklendi
-                            decorationColor: Colors
-                                .white, // 👈 Alt çizgi rengi (isteğe bağlı)
-                            decorationThickness: 1.5,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (model.replyText.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withAlpha(25),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  model.replyText,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: model.userID ==
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    fontSize: 12,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                              ),
+                            if (model.isForwarded)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 3),
+                                child: Text(
+                                  "İletildi",
+                                  style: TextStyle(
+                                    color: model.userID ==
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                    fontSize: 11,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                              ),
+                            Text(
+                              model.isUnsent
+                                  ? "Mesaj geri alındı"
+                                  : model.metin,
+                              style: TextStyle(
+                                color: model.userID ==
+                                        FirebaseAuth.instance.currentUser!.uid
+                                    ? Colors.white
+                                    : Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                                decoration: model.lat != 0
+                                    ? TextDecoration.underline
+                                    : TextDecoration.none,
+                                decorationColor: Colors.white,
+                                decorationThickness: 1.5,
+                              ),
+                            ),
+                            if (model.isEdited)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  "düzenlendi",
+                                  style: TextStyle(
+                                    color: model.userID ==
+                                            FirebaseAuth
+                                                .instance.currentUser!.uid
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                    fontSize: 10,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       if (model.begeniler
@@ -255,7 +319,7 @@ class MessageContent extends StatelessWidget {
                           }
                         },
                         onLongPress: () {
-                          controller.deleteMessage();
+                          _openMessageActions();
                         },
                         onDoubleTap: () {
                           controller.likeImage();
@@ -342,10 +406,7 @@ class MessageContent extends StatelessWidget {
                                 ));
                           },
                           onLongPress: () {
-                            if (model.userID ==
-                                FirebaseAuth.instance.currentUser!.uid) {
-                              controller.deleteSingleImage(img);
-                            }
+                            _openMessageActions();
                           },
                           child: Padding(
                             padding: EdgeInsets.only(bottom: isLast ? 0 : 15),
@@ -425,7 +486,7 @@ class MessageContent extends StatelessWidget {
               controller.showMapsSheet();
             },
             onLongPress: () {
-              controller.deleteMessage();
+              _openMessageActions();
             },
             onDoubleTap: () {
               controller.likeImage();
@@ -484,7 +545,7 @@ class MessageContent extends StatelessWidget {
             controller.addContact();
           },
           onLongPress: () {
-            controller.deleteMessage();
+            _openMessageActions();
           },
           child: Container(
             decoration: BoxDecoration(
@@ -557,6 +618,11 @@ class MessageContent extends StatelessWidget {
   Widget timeBar() {
     return Column(
       children: [
+        if (model.reactions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: _reactionBadges(),
+          ),
         SizedBox(height: model.imgs.length > 1 ? 10 : 7),
         Padding(
           padding:
@@ -603,6 +669,134 @@ class MessageContent extends StatelessWidget {
     );
   }
 
+  Widget _reactionBadges() {
+    final entries = model.reactions.entries
+        .where((e) => e.value.isNotEmpty)
+        .take(5)
+        .toList();
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
+      children: entries
+          .map(
+            (e) => Container(
+              margin: const EdgeInsets.only(right: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Text(
+                "${e.key} ${e.value.length}",
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 10,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  void _openReactionPicker() {
+    const emojis = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+    Get.bottomSheet(
+      SafeArea(
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: emojis
+                .map(
+                  (emoji) => GestureDetector(
+                    onTap: () async {
+                      Get.back();
+                      await chatController.toggleReaction(model, emoji);
+                    },
+                    child: Text(emoji, style: const TextStyle(fontSize: 28)),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openMessageActions() {
+    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
+    Get.bottomSheet(
+      SafeArea(
+        child: Container(
+          color: Colors.white,
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(CupertinoIcons.arrowshape_turn_up_left),
+                title: const Text("Yanıtla"),
+                onTap: () {
+                  Get.back();
+                  chatController.startReply(model);
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.smiley),
+                title: const Text("Tepki Ekle"),
+                subtitle: const Text("👍 ❤️ 😂 😮 😢 😡"),
+                onTap: () {
+                  Get.back();
+                  _openReactionPicker();
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.arrowshape_turn_up_right),
+                title: const Text("İlet"),
+                onTap: () {
+                  Get.back();
+                  chatController.openForwardPicker(model);
+                },
+              ),
+              if (isMine && !model.isUnsent && model.metin.trim().isNotEmpty)
+                ListTile(
+                  leading: const Icon(CupertinoIcons.pencil),
+                  title: const Text("Düzenle"),
+                  onTap: () {
+                    Get.back();
+                    chatController.startEdit(model);
+                  },
+                ),
+              if (isMine && !model.isUnsent)
+                ListTile(
+                  leading: const Icon(CupertinoIcons.delete, color: Colors.red),
+                  title: const Text("Herkesten Geri Al",
+                      style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    Get.back();
+                    await chatController.unsendMessage(model);
+                  },
+                ),
+              if (isMine)
+                ListTile(
+                  leading: const Icon(CupertinoIcons.trash, color: Colors.red),
+                  title: const Text("Sil", style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Get.back();
+                    controller.deleteMessage();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget postBody() {
     final post = controller.postModel.value;
 
@@ -618,7 +812,7 @@ class MessageContent extends StatelessWidget {
       children: [
         GestureDetector(
           onLongPress: () {
-            controller.deleteMessage();
+            _openMessageActions();
           },
           child: Container(
             width: 250,
@@ -706,12 +900,12 @@ class MessageContent extends StatelessWidget {
                             pmodel.img.isNotEmpty) {
                           Get.to(() => PhotoShorts(
                               startModel: pmodel,
-                              fetchedList: explore.explorePhotos));
+                              fetchedList: explore?.explorePhotos ?? []));
                         } else if (pmodel.floodCount <= 1 &&
                             pmodel.hasPlayableVideo) {
                           Get.to(() => SingleShortView(
                                 startModel: pmodel,
-                                startList: explore.exploreVideos..shuffle(),
+                                startList: (explore?.exploreVideos ?? [])..shuffle(),
                               ))?.then((_) {});
                         }
                       },
@@ -728,7 +922,7 @@ class MessageContent extends StatelessWidget {
                       } else if (pmodel.floodCount <= 1) {
                         Get.to(() => PhotoShorts(
                             startModel: pmodel,
-                            fetchedList: explore.explorePhotos));
+                            fetchedList: explore?.explorePhotos ?? []));
                       }
                     },
                     child: AspectRatio(
@@ -761,7 +955,7 @@ class MessageContent extends StatelessWidget {
                       } else if (pmodel.floodCount <= 1) {
                         Get.to(() => SingleShortView(
                               startModel: pmodel,
-                              startList: explore.exploreVideos..shuffle(),
+                              startList: (explore?.exploreVideos ?? [])..shuffle(),
                             ))?.then((_) {});
                       }
                     },

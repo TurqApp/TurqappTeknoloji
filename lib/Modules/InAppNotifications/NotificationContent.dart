@@ -16,19 +16,26 @@ import 'NotificationContentController.dart';
 
 class NotificationContent extends StatelessWidget {
   final NotificationModel model;
-  NotificationContent({super.key, required this.model});
+  final VoidCallback? onOpen;
   late final NotificationContentController controller;
+  NotificationContent({super.key, required this.model, this.onOpen}) {
+    controller = Get.put(
+      NotificationContentController(userID: model.userID),
+      tag: model.docID,
+    );
+  }
 
   String _buildPrimaryText() {
-    final base = model.desc.trim().isEmpty ? "senin gönderinle etkileşime geçti." : model.desc.trim();
+    final base = model.desc.trim().isEmpty
+        ? "senin gönderinle etkileşime geçti."
+        : model.desc.trim();
     return base.endsWith(".") ? base : "$base.";
   }
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(NotificationContentController(userID: model.userID),
-        tag: model.docID);
-    if (model.postType == "Posts" && controller.model.value.docID != model.postID) {
+    if (model.postType == "Posts" &&
+        controller.model.value.docID != model.postID) {
       controller.getPostData(model.postID);
     }
     // FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("Bildirimler").doc(model.docID).update(
@@ -38,45 +45,76 @@ class NotificationContent extends StatelessWidget {
     return Obx(() {
       return Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          Container(
+            margin: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            decoration: BoxDecoration(
+              color: model.isRead ? Colors.white : const Color(0xFFF4F8FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x1A000000)),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GestureDetector(
                   onTap: () {
+                    onOpen?.call();
                     if (model.userID !=
                         FirebaseAuth.instance.currentUser!.uid) {
                       Get.to(() => SocialProfile(userID: model.userID));
                     }
                   },
-                  child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.withAlpha(50))),
-                      child: controller.pfImage.value != ""
-                          ? ClipOval(
-                              child: SizedBox(
-                                width: 45,
-                                height: 45,
-                                child: CachedNetworkImage(
-                                  imageUrl: controller.pfImage.value,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            )
-                          : Center(
-                              child: CupertinoActivityIndicator(),
-                            )),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: Colors.grey.withAlpha(50))),
+                          child: controller.pfImage.value != ""
+                              ? ClipOval(
+                                  child: SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: CachedNetworkImage(
+                                      imageUrl: controller.pfImage.value,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                )
+                              : const Center(
+                                  child: Icon(
+                                    CupertinoIcons.person_fill,
+                                    size: 20,
+                                    color: Colors.black45,
+                                  ),
+                                )),
+                      if (!model.isRead)
+                        Positioned(
+                          right: -1,
+                          top: -1,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => yonlendirme(),
+                    onTap: () {
+                      onOpen?.call();
+                      yonlendirme();
+                    },
                     child: Container(
                       color: Colors.white.withAlpha(1),
                       child: Column(
@@ -89,26 +127,31 @@ class NotificationContent extends StatelessWidget {
                             children: [
                               Text(
                                 controller.nickname.value,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
+                                  fontSize: 14,
+                                  fontFamily: model.isRead
+                                      ? "MontserratSemiBold"
+                                      : "MontserratBold",
                                 ),
                               ),
                               RozetContent(size: 14, userID: controller.userID),
                               Text(
                                 _buildPrimaryText(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: 14,
-                                  fontFamily: "MontserratMedium",
+                                  fontSize: 13,
+                                  fontFamily: model.isRead
+                                      ? "MontserratMedium"
+                                      : "MontserratSemiBold",
+                                  height: 1.15,
                                 ),
                               ),
                               Text(
                                 "· ${timeAgoMetin(model.timeStamp)}",
                                 style: const TextStyle(
                                   color: Colors.grey,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                   fontFamily: "Montserrat",
                                 ),
                               ),
@@ -121,9 +164,9 @@ class NotificationContent extends StatelessWidget {
                                 model.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.grey.shade700,
-                                  fontSize: 12,
+                                style: const TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 11,
                                   fontFamily: "Montserrat",
                                 ),
                               ),
@@ -133,23 +176,25 @@ class NotificationContent extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: 10,
-                ),
+                const SizedBox(width: 8),
                 if (controller.model.value.img.isNotEmpty ||
                     controller.model.value.hasPlayableVideo)
                   GestureDetector(
-                    onTap: () => yonlendirme(),
+                    onTap: () {
+                      onOpen?.call();
+                      yonlendirme();
+                    },
                     child: ClipRRect(
-                      borderRadius: BorderRadius.all(Radius.circular(4)),
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
                       child: SizedBox(
-                        width: 50,
-                        height: 50,
+                        width: 44,
+                        height: 56,
                         child: CachedNetworkImage(
                           imageUrl: controller.model.value.thumbnail != ""
                               ? controller.model.value.thumbnail
                               : controller.model.value.img.first,
                           fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
                           key: ValueKey(controller.model.value.thumbnail),
                         ),
                       ),
@@ -160,28 +205,28 @@ class NotificationContent extends StatelessWidget {
                     onPressed: controller.followLoading.value
                         ? null
                         : () {
-                      if (controller.following.value) {
-                        noYesAlert(
-                          title: "Takibi Bırak",
-                          message:
-                              "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
-                          cancelText: "Vazgeç",
-                          yesText: "Takibi Bırak",
-                          onYesPressed: () {
-                            controller.toggleFollowStatus(model.userID);
+                            if (controller.following.value) {
+                              noYesAlert(
+                                title: "Takibi Bırak",
+                                message:
+                                    "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
+                                cancelText: "Vazgeç",
+                                yesText: "Takibi Bırak",
+                                onYesPressed: () {
+                                  controller.toggleFollowStatus(model.userID);
+                                },
+                              );
+                            } else {
+                              controller.toggleFollowStatus(model.userID);
+                            }
                           },
-                        );
-                      } else {
-                        controller.toggleFollowStatus(model.userID);
-                      }
-                    },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size(74, 32),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       backgroundColor: controller.following.value
                           ? Colors.grey.withAlpha(50)
-                          : Colors.blueAccent,
+                          : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -222,15 +267,6 @@ class NotificationContent extends StatelessWidget {
                     ),
                   )
               ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 66),
-            child: SizedBox(
-              height: 1,
-              child: Divider(
-                color: Colors.grey.withAlpha(50),
-              ),
             ),
           )
         ],

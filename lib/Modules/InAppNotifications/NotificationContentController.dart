@@ -23,8 +23,13 @@ class NotificationContentController extends GetxController {
         .doc(userID)
         .get()
         .then((doc) {
-      pfImage.value = doc.get("pfImage");
-      nickname.value = doc.get("nickname");
+      if (!doc.exists) {
+        pfImage.value = "";
+        nickname.value = "TurqApp";
+        return;
+      }
+      pfImage.value = (doc.data()?["pfImage"] ?? "").toString();
+      nickname.value = (doc.data()?["nickname"] ?? "TurqApp").toString();
     });
 
     FirebaseFirestore.instance

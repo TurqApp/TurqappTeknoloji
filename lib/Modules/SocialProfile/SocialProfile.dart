@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Helpers/RoadToTop/RoadToTop.dart';
 import 'package:turqappv2/Core/Helpers/ShowMapSheet.dart';
 import 'package:turqappv2/Core/RedirectionLink.dart';
 import 'package:turqappv2/Core/RozetContent.dart';
+import 'package:turqappv2/Core/Services/ConversationId.dart';
 import 'package:turqappv2/Models/PostsModel.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/AgendaContent.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/AboutProfile.dart';
@@ -25,8 +26,6 @@ import 'package:turqappv2/Modules/SocialProfile/SocialProfileController.dart';
 import 'package:turqappv2/Services/FirebaseMyStore.dart';
 import 'package:turqappv2/Themes/AppFonts.dart';
 import 'package:turqappv2/Utils/EmptyPadding.dart';
-import 'package:uuid/uuid.dart';
-import '../../Core/AppSnackbar.dart';
 import '../../Core/Helpers/SeenCountLabel.dart';
 import '../Chat/Chat.dart';
 import '../Chat/ChatListing/ChatListingController.dart';
@@ -1107,9 +1106,13 @@ class _SocialProfileState extends State<SocialProfile> {
                     );
                     print("SOHBET VARMIS");
                   } else {
+                    final chatId = buildConversationId(
+                      user.userID.value,
+                      widget.userID,
+                    );
                     Get.to(
                       () => ChatView(
-                        chatID: Uuid().v4(),
+                        chatID: chatId,
                         userID: widget.userID,
                         isNewChat: true,
                         openKeyboard: true,

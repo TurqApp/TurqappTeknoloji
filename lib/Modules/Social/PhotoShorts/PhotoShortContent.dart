@@ -410,13 +410,9 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    controller.userComments.isNotEmpty
-                        ? CupertinoIcons.bubble_right_fill
-                        : CupertinoIcons.bubble_right,
+                    CupertinoIcons.bubble_right,
                     color: widget.model.yorum == true
-                        ? (controller.userComments.isNotEmpty
-                            ? Colors.blueAccent
-                            : Colors.white)
+                        ? Colors.white
                         : Colors.grey.withAlpha(80),
                     size: 23,
                   ),
@@ -425,9 +421,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                     NumberFormatter.format(controller.commentCount.value),
                     style: TextStyle(
                       color: widget.model.yorum == true
-                          ? (controller.userComments.isNotEmpty
-                              ? Colors.blueAccent
-                              : Colors.white)
+                          ? Colors.white
                           : Colors.grey,
                       fontSize: 14,
                       fontFamily: AppFontFamilies.mmedium,

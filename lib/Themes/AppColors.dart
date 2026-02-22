@@ -5,7 +5,7 @@ class AppColors {
   static Color secondColor = Color(0xFF183351);
   static Color textBlack = Colors.black;
   static Color textWhite = Colors.white;
-  static Color textBlue = Colors.blueAccent;
+  static Color textBlue = Colors.black;
   static Color deleteText = Colors.red;
   static Color textPink = Colors.pink;
   static Color textIndigo = Colors.indigo;

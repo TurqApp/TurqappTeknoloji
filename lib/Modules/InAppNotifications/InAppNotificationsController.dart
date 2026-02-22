@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,8 @@ class InAppNotificationsController extends GetxController {
   PageController pageController = PageController(initialPage: 0);
   RxList<NotificationModel> list = <NotificationModel>[].obs;
   var complatedDataFetch = false.obs;
+  var busyMarkAllRead = false.obs;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _notificationSub;
 
   @override
   void onInit() {
@@ -25,43 +29,62 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> getData() async {
-    final snapshot = await FirebaseFirestore.instance
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      complatedDataFetch.value = true;
+      list.clear();
+      return;
+    }
+
+    _notificationSub?.cancel();
+    _notificationSub = FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(uid)
         .collection("notifications")
         .orderBy("timeStamp", descending: true)
-        .get();
+        .limit(300)
+        .snapshots()
+        .listen((snapshot) {
+      final allNotifications = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final hideByFlag = data["hideInAppInbox"] == true;
+            final hideByLegacyPostId =
+                (data["postID"] ?? "").toString() == "admin-manual-push";
+            return !hideByFlag && !hideByLegacyPostId;
+          })
+          .map((doc) {
+        final data = doc.data();
 
-    final allNotifications = snapshot.docs.map((doc) {
-      final data = doc.data();
+        // Yeni şema: type/fromUserID/postID/read/timeStamp
+        if (data.containsKey("type") || data.containsKey("fromUserID")) {
+          final type = (data["type"] ?? "").toString();
+          final postType = _postTypeFromType(type);
+          final title = (data["title"] ?? "").toString();
+          final body = (data["body"] ?? "").toString();
 
-      // Yeni şema: type/fromUserID/postID/read/timeStamp
-      if (data.containsKey("type") || data.containsKey("fromUserID")) {
-        final type = (data["type"] ?? "").toString();
-        final postType = _postTypeFromType(type);
+          return NotificationModel(
+            docID: doc.id,
+            isRead: (data["read"] ?? false) == true,
+            postID: (data["postID"] ?? "").toString(),
+            postType: postType,
+            thumbnail: (data["thumbnail"] ?? "").toString(),
+            timeStamp: data["timeStamp"] ?? 0,
+            title: title,
+            userID: (data["fromUserID"] ?? "").toString(),
+            desc: body.isNotEmpty ? body : _descFromType(type, title: title),
+          );
+        }
 
-        return NotificationModel(
-          docID: doc.id,
-          isRead: (data["read"] ?? false) == true,
-          postID: (data["postID"] ?? "").toString(),
-          postType: postType,
-          thumbnail: "",
-          timeStamp: data["timeStamp"] ?? 0,
-          title: "",
-          userID: (data["fromUserID"] ?? "").toString(),
-          desc: (data["body"] ?? "").toString().isNotEmpty
-              ? (data["body"] ?? "").toString()
-              : _descFromType(type),
-        );
-      }
+        // Eski şema desteği (geriye dönük)
+        return NotificationModel.fromJson(data, doc.id);
+      }).toList();
 
-      // Eski şema desteği (geriye dönük)
-      return NotificationModel.fromJson(data, doc.id);
-    }).toList();
-
-    // İşlem bittiğini işaretleyip tüm bildirimleri tek listede tutuyoruz
-    complatedDataFetch.value = true;
-    list.value = allNotifications;
+      complatedDataFetch.value = true;
+      list.value = allNotifications;
+    }, onError: (_) {
+      complatedDataFetch.value = true;
+    });
   }
 
   Future<void> delete(String docID) async {
@@ -76,6 +99,70 @@ class InAppNotificationsController extends GetxController {
     // Arayüz listesinden de kaldır
     list.removeWhere((n) => n.docID == docID);
   }
+
+  Future<void> markAsRead(String docID) async {
+    final idx = list.indexWhere((n) => n.docID == docID);
+    if (idx < 0 || list[idx].isRead) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    list[idx].isRead = true;
+    list.refresh();
+
+    try {
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .collection("notifications")
+          .doc(docID)
+          .set({"read": true}, SetOptions(merge: true));
+    } catch (_) {
+      list[idx].isRead = false;
+      list.refresh();
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    if (busyMarkAllRead.value) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    busyMarkAllRead.value = true;
+    final unread = list
+        .where((n) => !n.isRead)
+        .map((n) => n.docID)
+        .toList(growable: false);
+    if (unread.isEmpty) {
+      busyMarkAllRead.value = false;
+      return;
+    }
+
+    try {
+      for (var i = 0; i < unread.length; i += 450) {
+        final batch = FirebaseFirestore.instance.batch();
+        final chunk = unread.skip(i).take(450);
+        for (final docID in chunk) {
+          batch.set(
+            FirebaseFirestore.instance
+                .collection("users")
+                .doc(uid)
+                .collection("notifications")
+                .doc(docID),
+            {"read": true},
+            SetOptions(merge: true),
+          );
+        }
+        await batch.commit();
+      }
+      for (final item in list) {
+        item.isRead = true;
+      }
+      list.refresh();
+    } finally {
+      busyMarkAllRead.value = false;
+    }
+  }
+
+  int get unreadCount => list.where((n) => !n.isRead).length;
 
   Future<void> bildirimleriTopluSil() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -120,7 +207,18 @@ class InAppNotificationsController extends GetxController {
     }
   }
 
-  String _descFromType(String type) {
+  bool isMentionNotification(NotificationModel model) {
+    final desc = model.desc.toLowerCase();
+    final title = model.title.toLowerCase();
+    final isComment = model.postType == "Comment";
+    return desc.contains("@") ||
+        title.contains("@") ||
+        desc.contains("etiket") ||
+        title.contains("etiket") ||
+        isComment;
+  }
+
+  String _descFromType(String type, {String title = ""}) {
     switch (type) {
       case "like":
         return "gönderini beğendi";
@@ -141,4 +239,10 @@ class InAppNotificationsController extends GetxController {
     }
   }
 
+  @override
+  void onClose() {
+    _notificationSub?.cancel();
+    pageController.dispose();
+    super.onClose();
+  }
 }

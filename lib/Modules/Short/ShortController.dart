@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/PerformanceService.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -52,9 +54,23 @@ class ShortController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _applyUserCacheQuota();
     print('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
     // İlk sayfayı manuel yüklemede çağırılacak (ShortView'dan)
+  }
+
+  Future<void> _applyUserCacheQuota() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
+      final quotaGb = savedGb.clamp(2, 5);
+      if (Get.isRegistered<SegmentCacheManager>()) {
+        await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
+      }
+    } catch (e) {
+      print('Shorts cache quota apply error: $e');
+    }
   }
 
   @override
@@ -223,7 +239,8 @@ class ShortController extends GetxController {
       await Future.wait(futures);
       // Tüm preloaded videolara düşük buffer ayarla
       for (int i = 0; i < initialCount; i++) {
-        cache[i]?.setPreferredBufferDuration(2.0); // segment geçişlerini yumuşat
+        cache[i]
+            ?.setPreferredBufferDuration(2.0); // segment geçişlerini yumuşat
         _tiers[i] = _CacheTier.hot;
       }
       return;
@@ -534,7 +551,8 @@ class ShortController extends GetxController {
       if (adapter == null) continue;
       final distance = (i - currentIndex).abs();
       if (distance == 0) {
-        adapter.setPreferredBufferDuration(2.0); // Hızlı ama daha stabil ilk frame
+        adapter
+            .setPreferredBufferDuration(2.0); // Hızlı ama daha stabil ilk frame
       } else if (distance == 1) {
         adapter.setPreferredBufferDuration(2.0); // Komşu video hızlı geçiş
       } else {

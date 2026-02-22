@@ -12,20 +12,40 @@ class NotifyReader extends StatelessWidget {
   NotifyReader({super.key, required this.docID, required this.type});
   final controller = Get.put(NotifyReaderController());
 
+  void _routeByType() {
+    final rawType = type.trim();
+    final normalized = rawType.toLowerCase();
+
+    if (docID.trim().isEmpty) {
+      Get.back();
+      return;
+    }
+
+    if (normalized == "user" || normalized == "follow") {
+      controller.goToProfile(docID);
+      return;
+    }
+    if (normalized == "posts" ||
+        normalized == "like" ||
+        normalized == "reshared_posts" ||
+        normalized == "shared_as_posts") {
+      controller.goToPost(docID);
+      return;
+    }
+    if (normalized == "comment") {
+      controller.goToPostComments(docID);
+      return;
+    }
+    if (normalized == "chat" || normalized == "message") {
+      controller.goToChat(docID);
+      return;
+    }
+    Get.back();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (type == "User") {
-      controller.goToProfile(docID);
-    }
-    if (type == "Posts") {
-      controller.goToPost(docID);
-    }
-    if (type == "Comment") {
-      controller.goToPostComments(docID);
-    }
-    if (type == "Chat") {
-      controller.goToChat(docID);
-    }
+    _routeByType();
     return Scaffold(
       body: Center(child: CupertinoActivityIndicator()),
     );

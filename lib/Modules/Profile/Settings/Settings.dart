@@ -20,6 +20,8 @@ import 'package:turqappv2/Modules/Profile/LikedPosts/LikedPosts.dart';
 import 'package:turqappv2/Modules/Profile/Policies/Policies.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/SavedPosts.dart';
 import 'package:turqappv2/Modules/Profile/Settings/SettingsController.dart';
+import 'package:turqappv2/Modules/Profile/Settings/PermissionsView.dart';
+import 'package:turqappv2/Modules/Profile/Settings/AdminPushView.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/SocialMediaLinks.dart';
 import 'package:turqappv2/Modules/SignIn/SignIn.dart';
 import 'package:turqappv2/Services/FirebaseMyStore.dart';
@@ -123,6 +125,14 @@ class SettingsView extends StatelessWidget {
                       buildRow("Bağlantılar", CupertinoIcons.link, () {
                         Get.to(() => SocialMediaLinks());
                       }),
+                      buildRow(
+                        "İzinler",
+                        CupertinoIcons.lock_shield,
+                        () {
+                          Get.to(() => const PermissionsView());
+                        },
+                      ),
+                      _AdminPushMenuTile(buildRow: buildRow),
                       // buildRow("Dil", CupertinoIcons.globe, () {
                       //   Get.to(LangSelector());
                       // }),
@@ -546,19 +556,6 @@ class SettingsView extends StatelessWidget {
                 ),
               ),
               ListTile(
-                leading: const Icon(CupertinoIcons.delete_simple),
-                title: const Text("Cache Temizle"),
-                onTap: () async {
-                  Get.back();
-                  if (Get.isRegistered<SegmentCacheManager>()) {
-                    await Get.find<SegmentCacheManager>().clearAllCache();
-                    AppSnackbar("Tamam", "Cache temizlendi");
-                  } else {
-                    AppSnackbar("Bilgi", "Cache servisi hazır değil");
-                  }
-                },
-              ),
-              ListTile(
                 leading: const Icon(CupertinoIcons.arrow_counterclockwise),
                 title: const Text("Veri Sayaçlarını Sıfırla"),
                 onTap: () async {
@@ -628,6 +625,43 @@ class SettingsView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AdminPushMenuTile extends StatelessWidget {
+  const _AdminPushMenuTile({required this.buildRow});
+
+  final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;
+
+  Future<bool> _canShowAdminPushMenu() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return false;
+
+    final token = await currentUser.getIdTokenResult(true);
+    final isAdmin = token.claims?["admin"] == true;
+    if (!isAdmin) return false;
+
+    final adminCfg =
+        await FirebaseFirestore.instance.doc("adminConfig/admin").get();
+    final data = adminCfg.data() ?? <String, dynamic>{};
+    return data["pushSend"] == true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _canShowAdminPushMenu(),
+      builder: (context, snapshot) {
+        if (snapshot.data != true) {
+          return const SizedBox.shrink();
+        }
+        return buildRow(
+          "Yönetim / Push Gönder",
+          CupertinoIcons.paperplane,
+          () => Get.to(() => const AdminPushView()),
+        );
+      },
     );
   }
 }

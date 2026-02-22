@@ -25,6 +25,8 @@ class SegmentCacheManager extends GetxController {
   late String _cacheDir;
   CacheIndex _index = CacheIndex();
   final CacheMetrics metrics = CacheMetrics();
+  int? _userHardLimitBytes;
+  int? _userSoftLimitBytes;
 
   Timer? _persistTimer;
   bool _persistDirty = false;
@@ -49,9 +51,13 @@ class SegmentCacheManager extends GetxController {
       _index.entries.values.fold(0, (sum, e) => sum + e.cachedSegmentCount);
   List<String> get recentlyPlayed => List.unmodifiable(_recentlyPlayed);
   int get _softLimitBytes =>
-      _remote?.cacheSoftLimitBytes ?? CacheIndex.softLimitBytes;
+      _userSoftLimitBytes ??
+      _remote?.cacheSoftLimitBytes ??
+      CacheIndex.softLimitBytes;
   int get _hardLimitBytes =>
-      _remote?.cacheHardLimitBytes ?? CacheIndex.maxSizeBytes;
+      _userHardLimitBytes ??
+      _remote?.cacheHardLimitBytes ??
+      CacheIndex.maxSizeBytes;
   int get _recentPlayCount => _remote?.cacheRecentProtectCount ?? 3;
 
   VideoRemoteConfigService? get _remote {
@@ -423,6 +429,23 @@ class SegmentCacheManager extends GetxController {
     metrics.reset();
     await persistIndex();
     debugPrint('[CacheManager] All cache cleared');
+  }
+
+  /// Kullanıcı cache kotasını (GB) runtime'da uygular.
+  /// 2-5 GB aralığına clamp edilir, soft limit hard limit'in %85'i olur.
+  Future<void> setUserLimitGB(int gb) async {
+    final normalized = gb.clamp(2, 5);
+    final hard = normalized * 1024 * 1024 * 1024;
+    final soft = (hard * 0.85).round();
+
+    _userHardLimitBytes = hard;
+    _userSoftLimitBytes = soft;
+
+    if (_index.totalSizeBytes > soft) {
+      await evictIfNeeded(targetBytes: soft);
+    }
+
+    debugPrint('[CacheManager] User cache quota applied: ${normalized}GB');
   }
 
   // ──────────────────────────── Cleanup ────────────────────────────

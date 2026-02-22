@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/AppSnackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/NoYesAlert.dart';
 import 'package:turqappv2/Core/Buttons/BackButtons.dart';
 import 'package:turqappv2/Core/RozetContent.dart';
+import 'package:turqappv2/Core/Services/ConversationId.dart';
 import 'package:turqappv2/Core/TextStyles.dart';
 import 'package:turqappv2/Modules/Chat/Chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/ChatListingController.dart';
@@ -21,7 +22,6 @@ import 'package:turqappv2/Utils/EmptyPadding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/CreateTutoringView.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
 
 String? getCurrentUserId() {
   try {
@@ -440,9 +440,13 @@ class TutoringDetail extends StatelessWidget {
                                               ),
                                             );
                                           } else {
+                                            final chatId = buildConversationId(
+                                              currentUserId,
+                                              controller.tutoring.value.userID,
+                                            );
                                             Get.to(
                                               () => ChatView(
-                                                chatID: Uuid().v4(),
+                                                chatID: chatId,
                                                 userID: controller
                                                     .tutoring.value.userID,
                                                 isNewChat: true,

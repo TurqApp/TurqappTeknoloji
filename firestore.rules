@@ -11,6 +11,9 @@ service cloud.firestore {
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
+    function isAdmin() {
+      return isAuth() && request.auth.token.admin == true;
+    }
 
     // ──────────────────────────────────────────────
     // USERS
@@ -172,6 +175,25 @@ service cloud.firestore {
     match /Chat/{chatId} {
       allow read, write: if isAuth();
     }
+    match /conversations/{conversationId} {
+      function isParticipantFromResource() {
+        return isAuth() &&
+          request.auth.uid in resource.data.participants;
+      }
+      function isParticipantFromRequest() {
+        return isAuth() &&
+          request.resource.data.participants is list &&
+          request.auth.uid in request.resource.data.participants;
+      }
+
+      allow create: if isParticipantFromRequest();
+      allow read, update, delete: if isParticipantFromResource();
+
+      match /messages/{messageId} {
+        allow create: if isParticipantFromRequest();
+        allow read, update, delete: if isParticipantFromResource();
+      }
+    }
     match /Mesajlar/{chatId} {
       allow read, write: if isAuth();
       match /Chat/{msgId} {
@@ -282,6 +304,12 @@ service cloud.firestore {
     match /adminConfig/{docId} {
       allow read: if isAuth();
       allow write: if false; // Admin SDK only
+    }
+    match /adminConfig/{docId}/pushReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if false;
     }
     match /Analytics/{docId} {
       allow read: if false;

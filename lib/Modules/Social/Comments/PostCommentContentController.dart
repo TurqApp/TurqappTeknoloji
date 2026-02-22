@@ -49,8 +49,8 @@ class PostCommentContentController extends GetxController {
     }
   }
 
-  Future<void> deleteComment() async {
-    await Get.find<PostCommentController>(tag: postID)
+  Future<bool> deleteComment() async {
+    return await Get.find<PostCommentController>(tag: postID)
         .deleteComment(model.docID);
   }
 }

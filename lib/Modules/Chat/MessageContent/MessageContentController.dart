@@ -323,6 +323,7 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> deleteMessage() async {
+    if (model.source == "preview") return;
     await showActionSheet(
       title: "Mesajı Sil",
       message: "Bu mesajı silmek istediğinizden emin misiniz?",
@@ -336,15 +337,26 @@ class MessageContentController extends GetxController {
           'isDestructive': true,
           'color': Colors.red,
           'onPressed': () {
-            FirebaseFirestore.instance
-                .collection("Mesajlar")
-                .doc(mainID)
-                .collection("Chat")
-                .doc(model.docID)
-                .update({
-              "kullanicilar": FieldValue.arrayRemove(
-                  [FirebaseAuth.instance.currentUser!.uid])
-            });
+            if (model.source == "conversation") {
+              FirebaseFirestore.instance
+                  .collection("conversations")
+                  .doc(mainID)
+                  .collection("messages")
+                  .doc(model.rawDocID)
+                  .update({
+                "isDeleted": true,
+              });
+            } else {
+              FirebaseFirestore.instance
+                  .collection("Mesajlar")
+                  .doc(mainID)
+                  .collection("Chat")
+                  .doc(model.rawDocID)
+                  .update({
+                "kullanicilar": FieldValue.arrayRemove(
+                    [FirebaseAuth.instance.currentUser!.uid])
+              });
+            }
           },
         },
         {
@@ -352,12 +364,36 @@ class MessageContentController extends GetxController {
           'isDestructive': false,
           'color': Colors.red,
           'onPressed': () {
-            FirebaseFirestore.instance
-                .collection("Mesajlar")
-                .doc(mainID)
-                .collection("Chat")
-                .doc(model.docID)
-                .delete();
+            if (model.source == "conversation") {
+              FirebaseFirestore.instance
+                  .collection("conversations")
+                  .doc(mainID)
+                  .collection("messages")
+                  .doc(model.rawDocID)
+                  .update({
+                "unsent": true,
+                "text": "",
+                "mediaUrls": <String>[],
+                "isDeleted": false,
+              });
+            } else {
+              FirebaseFirestore.instance
+                  .collection("Mesajlar")
+                  .doc(mainID)
+                  .collection("Chat")
+                  .doc(model.rawDocID)
+                  .update({
+                "unsent": true,
+                "metin": "",
+                "imgs": <String>[],
+                "lat": 0,
+                "long": 0,
+                "postID": "",
+                "postType": "",
+                "kisiAdSoyad": "",
+                "kisiTelefon": "",
+              });
+            }
           },
         },
       ],
@@ -365,32 +401,39 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final docRef = FirebaseFirestore.instance
-        .collection("Mesajlar")
-        .doc(mainID)
-        .collection("Chat")
-        .doc(model.docID);
+    final docRef = model.source == "conversation"
+        ? FirebaseFirestore.instance
+            .collection("conversations")
+            .doc(mainID)
+            .collection("messages")
+            .doc(model.rawDocID)
+        : FirebaseFirestore.instance
+            .collection("Mesajlar")
+            .doc(mainID)
+            .collection("Chat")
+            .doc(model.rawDocID);
 
     final docSnapshot = await docRef.get();
 
     if (docSnapshot.exists) {
-      final currentLikes =
-          List<String>.from(docSnapshot.get("begeniler") ?? []);
+      final fieldName = model.source == "conversation" ? "likes" : "begeniler";
+      final currentLikes = List<String>.from(docSnapshot.get(fieldName) ?? []);
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
 
       if (currentLikes.contains(currentUserID)) {
         await docRef.update({
-          "begeniler": FieldValue.arrayRemove([currentUserID])
+          fieldName: FieldValue.arrayRemove([currentUserID])
         });
       } else {
         await docRef.update({
-          "begeniler": FieldValue.arrayUnion([currentUserID])
+          fieldName: FieldValue.arrayUnion([currentUserID])
         });
       }
     }
   }
 
   Future<void> deleteSingleImage(String imgUrl) async {
+    if (model.source == "preview") return;
     await noYesAlert(
       title: "Fotoğrafı Sil",
       message: "Bu fotoğrafı silmek istediğinizden emin misiniz?",
@@ -399,13 +442,18 @@ class MessageContentController extends GetxController {
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await FirebaseFirestore.instance
-            .collection("Mesajlar")
+            .collection(
+                model.source == "conversation" ? "conversations" : "Mesajlar")
             .doc(mainID)
-            .collection("Chat")
-            .doc(model.docID)
-            .update({
-          "imgs": FieldValue.arrayRemove([imgUrl])
-        });
+            .collection(model.source == "conversation" ? "messages" : "Chat")
+            .doc(model.rawDocID)
+            .update(model.source == "conversation"
+                ? {
+                    "mediaUrls": FieldValue.arrayRemove([imgUrl])
+                  }
+                : {
+                    "imgs": FieldValue.arrayRemove([imgUrl])
+                  });
       },
     );
   }

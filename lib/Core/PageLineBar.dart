@@ -15,6 +15,7 @@ class PageLineBar extends StatefulWidget {
   final List<String> barList;
   final String pageName;
   final int initialIndex;
+  final double fontSize;
   final PageController? pageController; // optional: direct control of PageView
 
   const PageLineBar({
@@ -22,6 +23,7 @@ class PageLineBar extends StatefulWidget {
     required this.barList,
     required this.pageName,
     this.initialIndex = 0,
+    this.fontSize = 15,
     this.pageController,
   });
 
@@ -90,7 +92,7 @@ class _PageLineBarState extends State<PageLineBar> {
                         item,
                         style: TextStyle(
                           color: Colors.black,
-                          fontSize: 15,
+                          fontSize: widget.fontSize,
                           fontFamily: controller.selection.value == index
                               ? AppFontFamilies.mbold
                               : AppFontFamilies.mmedium,
@@ -101,7 +103,7 @@ class _PageLineBarState extends State<PageLineBar> {
                       Container(
                         height: 3,
                         decoration: const BoxDecoration(
-                          color: Colors.blueAccent,
+                          color: Colors.black,
                           borderRadius: BorderRadius.all(Radius.circular(50)),
                         ),
                       ),

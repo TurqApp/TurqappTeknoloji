@@ -24,6 +24,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   bool _inited = false;
   static bool _bgRegistered = false;
+  StreamSubscription<String>? _tokenRefreshSub;
+  StreamSubscription<User?>? _authStateSub;
 
   Future<void> initialize() async {
     if (!_bgRegistered) {
@@ -33,21 +35,44 @@ class NotificationService {
     }
     await _requestPermission();
     await setupFlutterNotifications();
-    await _saveFCMToken();
+    _bindTokenSyncListeners();
+    await _syncCurrentToken();
     _setupMessageHandlers();
   }
 
-  Future<void> _saveFCMToken() async {
+  void _bindTokenSyncListeners() {
+    _tokenRefreshSub ??= _messaging.onTokenRefresh.listen((token) async {
+      await _persistToken(token);
+    });
+
+    _authStateSub ??=
+        FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user != null) {
+        await _syncCurrentToken();
+      }
+    });
+  }
+
+  Future<void> _syncCurrentToken() async {
+    final token = await _messaging.getToken();
+    if (token == null || token.isEmpty) return;
+    await _persistToken(token);
+  }
+
+  Future<void> _persistToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('fcm_token');
-    final token = await _messaging.getToken();
-    if (token != null && token != saved) {
-      if (FirebaseAuth.instance.currentUser != null) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({"token": token});
-      }
+    if (token.isEmpty) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection("users").doc(user.uid).set(
+        {"token": token, "fcmToken": token, "fcm_token": token},
+        SetOptions(merge: true),
+      );
+    }
+
+    if (token != saved) {
       await prefs.setString('fcm_token', token);
     }
   }
@@ -171,15 +196,37 @@ class NotificationService {
 
   Future<String?> _resolveUserIdByToken(String token) async {
     try {
-      final snap = await FirebaseFirestore.instance
+      final byToken = await FirebaseFirestore.instance
           .collection("users")
           .where("token", isEqualTo: token)
           .limit(1)
           .get();
-      if (snap.docs.isEmpty) return null;
-      return snap.docs.first.id;
+      if (byToken.docs.isNotEmpty) return byToken.docs.first.id;
+
+      final byFcmToken = await FirebaseFirestore.instance
+          .collection("users")
+          .where("fcmToken", isEqualTo: token)
+          .limit(1)
+          .get();
+      if (byFcmToken.docs.isNotEmpty) return byFcmToken.docs.first.id;
+
+      final byFcmTokenSnake = await FirebaseFirestore.instance
+          .collection("users")
+          .where("fcm_token", isEqualTo: token)
+          .limit(1)
+          .get();
+      if (byFcmTokenSnake.docs.isNotEmpty) return byFcmTokenSnake.docs.first.id;
+
+      return null;
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> dispose() async {
+    await _tokenRefreshSub?.cancel();
+    await _authStateSub?.cancel();
+    _tokenRefreshSub = null;
+    _authStateSub = null;
   }
 }

@@ -560,7 +560,7 @@ class ScholarshipsView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: _getFollowButtonColor(userData),
-              border: Border.all(width: 1, color: Colors.blueAccent),
+              border: Border.all(width: 1, color: Colors.black),
               borderRadius: BorderRadius.circular(12),
             ),
             child: isLoading
@@ -591,7 +591,7 @@ class ScholarshipsView extends StatelessWidget {
     final isFollowing =
         controller.followedUsers[userData?['userID']?.toString() ?? ''] ??
             false;
-    return isFollowing ? Colors.white : Colors.blueAccent;
+    return isFollowing ? Colors.white : Colors.black;
   }
 
   String _getFollowButtonText(Map<String, dynamic>? userData) {

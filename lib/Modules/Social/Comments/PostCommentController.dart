@@ -29,6 +29,8 @@ class PostCommentController extends GetxController {
 
   final RxList<PostCommentModel> list = <PostCommentModel>[].obs;
   final RxString postUserNickname = ''.obs;
+  final RxString replyingToCommentId = ''.obs;
+  final RxString replyingToNickname = ''.obs;
 
   StreamSubscription<List<PostCommentModel>>? _commentSub;
 
@@ -76,24 +78,46 @@ class PostCommentController extends GetxController {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
-    final commentId = await _interactionService.addComment(postID, trimmed);
+    final targetCommentId = replyingToCommentId.value.trim();
+    String? commentId;
+    if (targetCommentId.isNotEmpty) {
+      commentId = await _interactionService.addSubComment(
+        postID,
+        targetCommentId,
+        trimmed,
+      );
+    } else {
+      commentId = await _interactionService.addComment(postID, trimmed);
+    }
 
     if (commentId != null && onCommentCountChange != null) {
       onCommentCountChange!(true);
     }
 
+    clearReplyTarget();
     onComplete?.call();
   }
 
-  Future<void> deleteComment(String commentId) async {
+  Future<bool> deleteComment(String commentId) async {
     final success = await _interactionService.deleteComment(postID, commentId);
     if (success && onCommentCountChange != null) {
       onCommentCountChange!(false);
     }
+    return success;
   }
 
   Future<void> toggleCommentLike(String commentId) async {
     await _interactionService.toggleCommentLike(postID, commentId);
+  }
+
+  void setReplyTarget({required String commentId, required String nickname}) {
+    replyingToCommentId.value = commentId;
+    replyingToNickname.value = nickname.trim();
+  }
+
+  void clearReplyTarget() {
+    replyingToCommentId.value = '';
+    replyingToNickname.value = '';
   }
 
   @override

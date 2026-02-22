@@ -3,11 +3,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/TurqAppButton.dart';
+import 'package:turqappv2/Core/Services/ConversationId.dart';
 import 'package:turqappv2/Modules/Chat/Chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/ChatListingController.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/CreateChatContent/CreateChatContent.dart';
 import 'package:turqappv2/Modules/Chat/CreateChat/CreateChatController.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../Profile/FollowingFollowers/FollowingFollowersController.dart';
 
@@ -104,8 +104,12 @@ class CreateChat extends StatelessWidget {
                               isNewChat: false,
                             ));
                       } else {
+                        final chatId = buildConversationId(
+                          FirebaseAuth.instance.currentUser!.uid,
+                          controllerr.selected.value,
+                        );
                         Get.to(() => ChatView(
-                              chatID: Uuid().v4(),
+                              chatID: chatId,
                               userID: controllerr.selected.value,
                               isNewChat: true,
                             ));

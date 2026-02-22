@@ -1335,11 +1335,8 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget commentButton(BuildContext context) {
-    final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final bool hasCommented = controller.comments.contains(currentUserId);
     final bool canInteract = widget.model.yorum;
-    final Color displayColor =
-        canInteract ? (hasCommented ? Colors.pink : Colors.black) : Colors.grey;
+    final Color displayColor = canInteract ? Colors.black : Colors.grey;
 
     return AnimatedActionButton(
       enabled: canInteract,
@@ -1347,9 +1344,7 @@ class _AgendaContentState extends State<AgendaContent>
       onTap: canInteract ? controller.showPostCommentsBottomSheet : null,
       showTapArea: _showActionTapAreas,
       child: _iconAction(
-        icon: hasCommented
-            ? CupertinoIcons.bubble_left_fill
-            : CupertinoIcons.bubble_left,
+        icon: CupertinoIcons.bubble_left,
         color: displayColor,
         label: NumberFormatter.format(controller.commentCount.value),
         labelColor: displayColor,

@@ -5,9 +5,8 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:turqappv2/Models/OgrenciModel.dart';
-import 'package:uuid/uuid.dart';
+import 'package:turqappv2/Core/Services/ConversationId.dart';
 
-import '../../Core/AppSnackbar.dart';
 import '../Chat/ChatListing/ChatListingController.dart';
 
 class ShareGridController extends GetxController {
@@ -62,19 +61,56 @@ class ShareGridController extends GetxController {
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
+    final currentUID = FirebaseAuth.instance.currentUser!.uid;
+    final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
+
+    await FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(chatId)
+        .set({
+      "participants": [currentUID, userID],
+      "lastMessage": "Gönderi",
+      "lastMessageAt": FieldValue.serverTimestamp(),
+      "lastSenderId": currentUID,
+      "unread.$currentUID": 0,
+      "unread.$userID": FieldValue.increment(1),
+    }, SetOptions(merge: true));
+
+    await FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(chatId)
+        .collection("messages")
+        .add({
+      "senderId": currentUID,
+      "text": "",
+      "createdAt": FieldValue.serverTimestamp(),
+      "seenBy": [currentUID],
+      "type": "post",
+      "mediaUrls": [],
+      "likes": <String>[],
+      "isDeleted": false,
+      "isEdited": false,
+      "audioUrl": "",
+      "postRef": {
+        "postId": postID,
+        "postType": postType,
+        "previewText": "",
+        "previewImageUrl": "",
+      }
+    });
+
     if (sohbet != null) {
       sendMessageForStoryNotUse(
           sohbetID: sohbet.chatID, postID: postID, postType: postType);
     } else {
-      final newdocid = Uuid().v4();
-      FirebaseFirestore.instance.collection("Mesajlar").doc(newdocid).set({
+      FirebaseFirestore.instance.collection("Mesajlar").doc(chatId).set({
         "deleted": [],
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
         "userID1": FirebaseAuth.instance.currentUser!.uid,
         "userID2": userID
       }).whenComplete(() {
         sendMessageForStoryNotUse(
-            sohbetID: newdocid, postID: postID, postType: postType);
+            sohbetID: chatId, postID: postID, postType: postType);
       });
     }
     chatListingController.getList();

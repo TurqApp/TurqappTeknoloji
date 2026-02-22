@@ -60,14 +60,35 @@ class NotifyReaderController extends GetxController {
   /// Sohbet sayfasına git, geri dönülürse NavBarView'e atla
   Future<void> goToChat(String chatID) async {
     final currentUser = FirebaseAuth.instance.currentUser?.uid;
-    final doc = await FirebaseFirestore.instance
-        .collection("Mesajlar")
+    String otherUser = "";
+
+    final convDoc = await FirebaseFirestore.instance
+        .collection("conversations")
         .doc(chatID)
         .get();
 
-    final userID1 = doc.get("userID1") as String;
-    final userID2 = doc.get("userID2") as String;
-    final otherUser = (userID1 == currentUser) ? userID2 : userID1;
+    if (convDoc.exists) {
+      final participants =
+          List<String>.from(convDoc.data()?["participants"] ?? []);
+      otherUser = participants.firstWhere(
+        (id) => id != currentUser,
+        orElse: () => "",
+      );
+    }
+
+    if (otherUser.isEmpty) {
+      final legacyDoc = await FirebaseFirestore.instance
+          .collection("Mesajlar")
+          .doc(chatID)
+          .get();
+      if (!legacyDoc.exists) {
+        AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
+        return toNavbar();
+      }
+      final userID1 = legacyDoc.get("userID1") as String;
+      final userID2 = legacyDoc.get("userID2") as String;
+      otherUser = (userID1 == currentUser) ? userID2 : userID1;
+    }
 
     Get.to<ChatView>(() => ChatView(chatID: chatID, userID: otherUser))
         ?.then((_) => toNavbar());

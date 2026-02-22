@@ -1247,12 +1247,8 @@ class _ClassicContentState extends State<ClassicContent>
 
   Widget commentButton(BuildContext context) {
     return Obx(() {
-      final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
-      final bool hasCommented = controller.comments.contains(currentUserId);
       final bool canInteract = widget.model.yorum;
-      final Color displayColor = canInteract
-          ? (hasCommented ? Colors.pink : Colors.black)
-          : Colors.grey;
+      final Color displayColor = canInteract ? Colors.black : Colors.grey;
 
       return AnimatedActionButton(
         enabled: canInteract,
@@ -1266,9 +1262,7 @@ class _ClassicContentState extends State<ClassicContent>
               }
             : null,
         child: _iconAction(
-          icon: hasCommented
-              ? CupertinoIcons.bubble_left_fill
-              : CupertinoIcons.bubble_left,
+          icon: CupertinoIcons.bubble_left,
           color: displayColor,
           label: NumberFormatter.format(controller.commentCount.value),
           labelColor: displayColor,

@@ -98,7 +98,7 @@ class RecommendedUserContent extends StatelessWidget {
                 overflow: TextOverflow.fade,
                 maxLines: 1,
                 style: TextStyle(
-                    color: Colors.blueAccent,
+                    color: Colors.black54,
                     fontSize: 15,
                     fontFamily: "MontserratMedium"),
               ),
@@ -155,7 +155,7 @@ class RecommendedUserContent extends StatelessWidget {
                         height: 30,
                         alignment: Alignment.center,
                         decoration: const BoxDecoration(
-                            color: Colors.blueAccent,
+                            color: Colors.black,
                             borderRadius: BorderRadius.all(Radius.circular(8))),
                         child: isLoading
                             ? const SizedBox(

@@ -4,224 +4,135 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
 class UnreadMessagesController extends GetxController {
-  var totalUnreadCount = 0.obs; // This will now represent unread PEOPLE count, not message count
-  final Map<String, StreamSubscription<QuerySnapshot>?> _messageSubscriptions = {};
-  final Map<String, bool> _chatHasUnreadMessages = {}; // Track which chats have unread messages
-
-  // ⚠️ CRITICAL FIX: Prevent multiple startListeners calls
+  final totalUnreadCount = 0.obs;
+  StreamSubscription<QuerySnapshot>? _conversationSubscription;
+  StreamSubscription<QuerySnapshot>? _legacyAsUser1Subscription;
+  StreamSubscription<QuerySnapshot>? _legacyAsUser2Subscription;
   bool _listenersStarted = false;
+  final Map<String, int> _conversationUnreadByUser = {};
+  final Map<String, int> _legacyUnreadByUser = {};
 
   @override
   void onInit() {
     super.onInit();
-    print("[UnreadController] Starting initialization...");
-
-    // ⚠️ CRITICAL FIX: Only start listeners if user is logged in
-    final currentUID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUID != null) {
-      _setupRealTimeListeners();
-
-      // Debug: Test database structure (only in debug mode)
-      if (const bool.fromEnvironment('dart.vm.product') == false) {
-        _debugDatabaseStructure();
-      }
-    } else {
-      print("[UnreadController] ⏳ Waiting for user login before starting listeners");
+    if (FirebaseAuth.instance.currentUser?.uid != null) {
+      startListeners();
     }
   }
 
-  /// Call this method after user login to start listeners
   void startListeners() {
-    // ⚠️ CRITICAL FIX: Prevent multiple calls
-    if (_listenersStarted) {
-      print("[UnreadController] ⏭️ Listeners already started, skipping");
-      return;
-    }
+    if (_listenersStarted) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    print("[UnreadController] 🚀 Starting listeners after login");
     _listenersStarted = true;
-    _setupRealTimeListeners();
+    _conversationSubscription?.cancel();
+    _legacyAsUser1Subscription?.cancel();
+    _legacyAsUser2Subscription?.cancel();
+    _conversationSubscription = FirebaseFirestore.instance
+        .collection("conversations")
+        .where("participants", arrayContains: uid)
+        .snapshots()
+        .listen((snapshot) {
+      _conversationUnreadByUser.clear();
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
+        final value = unreadMap[uid];
+        final unread = value is int ? value : int.tryParse("$value") ?? 0;
+        if (unread <= 0) continue;
+        final participants = List<String>.from(data["participants"] ?? []);
+        final otherUid = participants.firstWhere(
+          (v) => v != uid,
+          orElse: () => doc.id,
+        );
+        _conversationUnreadByUser[otherUid] = unread;
+      }
+      _recomputeTotalUnread();
+    }, onError: (_) {
+      _conversationUnreadByUser.clear();
+      _recomputeTotalUnread();
+    });
+
+    _legacyAsUser1Subscription = FirebaseFirestore.instance
+        .collection("Mesajlar")
+        .where("userID1", isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) => _processLegacySnapshot(snapshot, uid),
+            onError: (_) {});
+
+    _legacyAsUser2Subscription = FirebaseFirestore.instance
+        .collection("Mesajlar")
+        .where("userID2", isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) => _processLegacySnapshot(snapshot, uid),
+            onError: (_) {});
   }
 
-  Future<void> _debugDatabaseStructure() async {
-    final currentUID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUID == null) return;
-
-    try {
-      print("[DEBUG] 🔬 Testing database structure for user: $currentUID");
-      
-      // Test: Get any message from any chat to see structure
-      final testQuery = await FirebaseFirestore.instance
-          .collection("Mesajlar")
-          .limit(1)
-          .get();
-
-      if (testQuery.docs.isNotEmpty) {
-        final chatDoc = testQuery.docs.first;
-        print("[DEBUG] 📋 Sample chat ID: ${chatDoc.id}");
-        print("[DEBUG] 📋 Sample chat data: ${chatDoc.data()}");
-        
-        // Test: Get any message from this chat
-        final messageQuery = await FirebaseFirestore.instance
-            .collection("Mesajlar")
-            .doc(chatDoc.id)
-            .collection("Chat")
-            .limit(3)
-            .get();
-            
-        print("[DEBUG] 📨 Found ${messageQuery.docs.length} sample messages in this chat");
-        for (var msgDoc in messageQuery.docs) {
-          final msgData = msgDoc.data();
-          print("[DEBUG] 📄 Message: ${msgDoc.id}");
-          print("[DEBUG] 📄 Fields: ${msgData.keys.toList()}");
-          print("[DEBUG] 📄 userID: '${msgData['userID']}'");
-          print("[DEBUG] 📄 isRead: '${msgData['isRead']}' (type: ${msgData['isRead'].runtimeType})");
-          if (msgData['metin'] != null && msgData['metin'].toString().isNotEmpty) {
-            print("[DEBUG] 📄 metin: '${msgData['metin'].toString().substring(0, msgData['metin'].toString().length.clamp(0, 30))}...'");
-          }
-          print("[DEBUG] 📄 ---");
-        }
+  void _processLegacySnapshot(
+    QuerySnapshot snapshot,
+    String currentUid,
+  ) {
+    for (final doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final user1 = (data["userID1"] ?? "").toString();
+      final user2 = (data["userID2"] ?? "").toString();
+      final otherUid = user1 == currentUid ? user2 : user1;
+      if (otherUid.isEmpty) continue;
+      final unread = _legacyUnreadCountFromRoot(data, currentUid);
+      if (unread > 0) {
+        _legacyUnreadByUser[otherUid] = unread;
       } else {
-        print("[DEBUG] ❌ No chats found in database");
+        _legacyUnreadByUser.remove(otherUid);
       }
-    } catch (e) {
-      print("[DEBUG] 💥 Database structure test failed: $e");
     }
+    _recomputeTotalUnread();
+  }
+
+  int _legacyUnreadCountFromRoot(
+    Map<String, dynamic> data,
+    String currentUid,
+  ) {
+    final forceUnread = Map<String, dynamic>.from(data["forceUnread"] ?? {});
+    if (forceUnread[currentUid] == true) {
+      return 1;
+    }
+    final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
+    final rawUnread = unreadMap[currentUid];
+    final unread =
+        rawUnread is int ? rawUnread : int.tryParse("$rawUnread") ?? 0;
+    return unread < 0 ? 0 : unread;
+  }
+
+  void _recomputeTotalUnread() {
+    final allUsers = <String>{
+      ..._conversationUnreadByUser.keys,
+      ..._legacyUnreadByUser.keys,
+    };
+    totalUnreadCount.value = allUsers
+        .where((u) =>
+            (_conversationUnreadByUser[u] ?? 0) > 0 ||
+            (_legacyUnreadByUser[u] ?? 0) > 0)
+        .length;
   }
 
   Future<void> refreshUnreadCount() async {
-    print("[UnreadController] Manual refresh triggered");
-    _cancelAllSubscriptions();
-    await Future.delayed(Duration(milliseconds: 500));
-    _setupRealTimeListeners();
-  }
-
-  void _setupRealTimeListeners() async {
-    final currentUID = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUID == null) {
-      print("[UnreadController] ❌ No current user found");
-      return;
-    }
-
-    print("[UnreadController] 🚀 Setting up listeners for user: $currentUID");
-
-    try {
-      print("[UnreadController] 📡 Querying chats where userID1 = $currentUID");
-      final snapshot1 = await FirebaseFirestore.instance
-          .collection("Mesajlar")
-          .where("userID1", isEqualTo: currentUID)
-          .orderBy("timeStamp", descending: true)
-          .get();
-
-      print("[UnreadController] 📡 Querying chats where userID2 = $currentUID");
-      final snapshot2 = await FirebaseFirestore.instance
-          .collection("Mesajlar")
-          .where("userID2", isEqualTo: currentUID)
-          .orderBy("timeStamp", descending: true)
-          .get();
-
-      print("[UnreadController] 📊 Query results: userID1=${snapshot1.docs.length}, userID2=${snapshot2.docs.length}");
-
-      List<QueryDocumentSnapshot> allChats = [];
-      allChats.addAll(snapshot1.docs);
-      allChats.addAll(snapshot2.docs);
-
-      print("[UnreadController] 📋 Total chats found: ${allChats.length}");
-
-      int validChatCount = 0;
-      for (var chatDoc in allChats) {
-        final chatData = chatDoc.data() as Map<String, dynamic>;
-        final deletedList = List<String>.from(chatData["deleted"] ?? []);
-        
-        print("[UnreadController] 🔍 Processing chat: ${chatDoc.id}");
-        print("[UnreadController] 📝 Chat data keys: ${chatData.keys.toList()}");
-        print("[UnreadController] 🗑️ Deleted list: $deletedList");
-        
-        // Skip if chat is deleted for current user
-        if (deletedList.contains(currentUID)) {
-          print("[UnreadController] ⏭️ Skipping deleted chat: ${chatDoc.id}");
-          continue;
-        }
-
-        validChatCount++;
-        print("[UnreadController] ✅ Valid chat #$validChatCount: ${chatDoc.id}");
-        _createMessageListener(chatDoc.id, currentUID);
-      }
-      
-      print("[UnreadController] 🎯 Setup complete: $validChatCount valid chats");
-    } catch (e) {
-      print("[UnreadController] 💥 Error setting up listeners: $e");
-      print("[UnreadController] 💥 Stack trace: ${StackTrace.current}");
-    }
-  }
-
-  void _createMessageListener(String chatID, String currentUID) {
-    print("[UnreadController] 🎧 Creating listener for chat: $chatID");
-    print("[UnreadController] 🔍 Query: userID != $currentUID AND isRead = false");
-
-    _messageSubscriptions[chatID] = FirebaseFirestore.instance
-        .collection("Mesajlar")
-        .doc(chatID)
-        .collection("Chat")
-        .where("userID", isNotEqualTo: currentUID)
-        .where("isRead", isEqualTo: false)
-        .orderBy("timeStamp", descending: true)
-        .limit(50)
-        .snapshots()
-        .listen(
-      (QuerySnapshot snapshot) {
-        final unreadCount = snapshot.docs.length;
-        final hasUnreadMessages = unreadCount > 0;
-        
-        print("[UnreadController] 📨 Chat $chatID: Found $unreadCount unread messages (has unread: $hasUnreadMessages)");
-        
-        // Update the chat's unread status
-        _chatHasUnreadMessages[chatID] = hasUnreadMessages;
-        
-        // Debug: Print first few message details
-        if (hasUnreadMessages) {
-          for (int i = 0; i < snapshot.docs.length && i < 2; i++) {
-            final msgData = snapshot.docs[i].data() as Map<String, dynamic>;
-            print("[UnreadController] 📄 Message ${i+1}: userID=${msgData['userID']}, isRead=${msgData['isRead']}, metin='${msgData['metin']?.toString().substring(0, msgData['metin']?.toString().length.clamp(0, 20) ?? 0)}...'");
-          }
-          
-          if (snapshot.docs.length > 2) {
-            print("[UnreadController] 📄 ... and ${snapshot.docs.length - 2} more messages");
-          }
-        }
-        
-        _updateTotalPeopleCount();
-      },
-      onError: (error) {
-        print("[UnreadController] 💥 Error in listener for chat $chatID: $error");
-      },
-    );
-  }
-
-  void _updateTotalPeopleCount() {
-    // Count how many chats have unread messages (= how many people have unread messages)
-    int peopleWithUnreadMessages = 0;
-    
-    for (String chatID in _chatHasUnreadMessages.keys) {
-      if (_chatHasUnreadMessages[chatID] == true) {
-        peopleWithUnreadMessages++;
-      }
-    }
-    
-    print("[UnreadController] 👥 People with unread messages: $peopleWithUnreadMessages out of ${_chatHasUnreadMessages.length} chats");
-    print("[UnreadController] 🔄 Updating totalUnreadCount from ${totalUnreadCount.value} to $peopleWithUnreadMessages");
-    totalUnreadCount.value = peopleWithUnreadMessages;
+    _conversationSubscription?.cancel();
+    _listenersStarted = false;
+    startListeners();
   }
 
   void _cancelAllSubscriptions() {
-    for (var subscription in _messageSubscriptions.values) {
-      subscription?.cancel();
-    }
-    _messageSubscriptions.clear();
-    _chatHasUnreadMessages.clear();
+    _conversationSubscription?.cancel();
+    _legacyAsUser1Subscription?.cancel();
+    _legacyAsUser2Subscription?.cancel();
+    _conversationSubscription = null;
+    _legacyAsUser1Subscription = null;
+    _legacyAsUser2Subscription = null;
+    _conversationUnreadByUser.clear();
+    _legacyUnreadByUser.clear();
     totalUnreadCount.value = 0;
-    _listenersStarted = false; // ⚠️ CRITICAL FIX: Reset flag to allow restart
-    print("[UnreadController] All subscriptions cancelled and counters reset");
+    _listenersStarted = false;
   }
 
   @override

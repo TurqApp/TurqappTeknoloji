@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/AppSnackbar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/RozetContent.dart';
 import 'package:turqappv2/Core/Sizes.dart';
@@ -13,7 +14,12 @@ import 'package:turqappv2/Themes/AppFonts.dart';
 import 'package:turqappv2/Utils/EmptyPadding.dart';
 
 class PostCommentContent extends StatelessWidget {
-  PostCommentContent({super.key, required this.model, required this.postID}) {
+  PostCommentContent({
+    super.key,
+    required this.model,
+    required this.postID,
+    this.onReplyTap,
+  }) {
     Get.put(
       PostCommentContentController(model: model, postID: postID),
       tag: model.docID,
@@ -22,6 +28,7 @@ class PostCommentContent extends StatelessWidget {
 
   final PostCommentModel model;
   final String postID;
+  final void Function(String commentId, String nickname)? onReplyTap;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,7 @@ class PostCommentContent extends StatelessWidget {
       final hasLiked =
           currentUID != null && controller.likes.contains(currentUID);
       return Padding(
-        padding: const EdgeInsets.only(left: 15, right: 15, bottom: 0),
+        padding: const EdgeInsets.only(left: 14, right: 10, bottom: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -43,22 +50,25 @@ class PostCommentContent extends StatelessWidget {
               },
               child: ClipOval(
                 child: SizedBox(
-                  width: 35,
-                  height: 35,
+                  width: 34,
+                  height: 34,
                   child: controller.pfImage.value.isNotEmpty
                       ? Image.network(
                           controller.pfImage.value,
                           fit: BoxFit.cover,
                         )
-                      : const Center(
-                          child: CupertinoActivityIndicator(
-                            color: Colors.black,
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(
+                            CupertinoIcons.person_fill,
+                            size: 16,
+                            color: Colors.black54,
                           ),
                         ),
                 ),
               ),
             ),
-            12.pw,
+            10.pw,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,61 +96,92 @@ class PostCommentContent extends StatelessWidget {
                       Text(
                         timeAgoMetin(model.timeStamp),
                         style: TextStyle(
-                          color: Colors.black,
-                          fontSize: FontSizes.dateTimeSize,
+                          color: Colors.black54,
+                          fontSize: 11,
+                          fontFamily: AppFontFamilies.mmedium,
                         ),
                       ),
                     ],
                   ),
-                  4.ph,
+                  2.ph,
                   Text(
                     model.text,
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: 15,
+                      fontSize: 14,
                       fontFamily: AppFontFamilies.mregular,
+                      height: 1.2,
                     ),
                   ),
-                  if (model.userID == currentUID)
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(4, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => _showDeleteSheet(context, controller),
-                      child: Text(
-                        'Sil',
-                        style: TextStyle(
-                          color: AppColors.deleteText,
-                          fontSize: FontSizes.dateTimeSize,
+                  4.ph,
+                  Row(
+                    children: [
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          onReplyTap?.call(
+                            model.docID,
+                            controller.nickname.value.trim().isEmpty
+                                ? 'kullanıcı'
+                                : controller.nickname.value.trim(),
+                          );
+                        },
+                        child: Text(
+                          'Yanıtla',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 12,
+                            fontFamily: AppFontFamilies.mmedium,
+                          ),
                         ),
                       ),
-                    ),
+                      if (model.userID == currentUID) ...[
+                        10.pw,
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _showActionsMenu(context, controller),
+                          child: Text(
+                            'Sil',
+                            style: TextStyle(
+                              color: AppColors.deleteText,
+                              fontSize: 12,
+                              fontFamily: AppFontFamilies.mmedium,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              onPressed: controller.toggleLike,
-              icon: Column(
-                children: [
-                  Icon(
-                    hasLiked
-                        ? CupertinoIcons.hand_thumbsup_fill
-                        : CupertinoIcons.hand_thumbsup,
-                    color: hasLiked ? Colors.blueAccent : Colors.black,
-                    size: 20,
-                  ),
-                  if (controller.likes.isNotEmpty)
-                    Text(
-                      controller.likes.length.toString(),
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: 'MontserratMedium',
-                      ),
+            SizedBox(
+              width: 30,
+              child: GestureDetector(
+                onTap: controller.toggleLike,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Kalp yok: referansa göre yalnızca beğeni (thumb) ikonu
+                    Icon(
+                      hasLiked
+                          ? CupertinoIcons.hand_thumbsup_fill
+                          : CupertinoIcons.hand_thumbsup,
+                      color: hasLiked ? Colors.blueAccent : Colors.black54,
+                      size: 18,
                     ),
-                ],
+                    if (controller.likes.isNotEmpty)
+                      Text(
+                        controller.likes.length.toString(),
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 11,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -149,94 +190,56 @@ class PostCommentContent extends StatelessWidget {
     });
   }
 
-  Future<void> _showDeleteSheet(
+  Future<void> _showActionsMenu(
       BuildContext context, PostCommentContentController controller) async {
-    showModalBottomSheet(
-      backgroundColor: Colors.white,
+    await showCupertinoModalPopup<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
-      ),
-      builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'Yorumunu Sil',
-                textAlign: TextAlign.center,
+      builder: (popupContext) {
+        return CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(popupContext);
+                AppSnackbar('Bilgi', 'Hikayeye ekleme yakında aktif.');
+              },
+              child: const Text(
+                'Hikayene ekleme yap',
                 style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: 'MontserratBold',
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                model.text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
                   fontFamily: 'MontserratMedium',
+                  fontSize: 16,
+                  color: Colors.black,
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'Vazgeç',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontFamily: 'MontserratMedium',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        await controller.deleteComment();
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'Sil',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'MontserratBold',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () async {
+                final ok = await controller.deleteComment();
+                if (popupContext.mounted) {
+                  Navigator.pop(popupContext);
+                }
+                if (!ok) {
+                  AppSnackbar('Hata', 'Yorum silinemedi.');
+                }
+              },
+              child: const Text(
+                'Sil',
+                style: TextStyle(
+                  fontFamily: 'MontserratBold',
+                  fontSize: 16,
+                ),
               ),
-            ],
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(popupContext),
+            child: const Text(
+              'Vazgeç',
+              style: TextStyle(
+                fontFamily: 'MontserratMedium',
+                fontSize: 16,
+              ),
+            ),
           ),
         );
       },

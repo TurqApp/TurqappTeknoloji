@@ -1,10 +1,12 @@
 import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/AppFonts.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/VideoStateManager.dart';
 import 'package:turqappv2/Modules/Splash/SplashView.dart';
@@ -17,6 +19,9 @@ late final Future<void> firebaseBootstrapFuture;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   // Native launch ekranını uzatmamak için Firebase'i arka planda başlat.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
@@ -69,10 +74,93 @@ class MyApp extends StatelessWidget {
         title: 'TurqApp',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          fontFamily: AppFontFamilies.mregular,
           scaffoldBackgroundColor: Colors.white,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.black,
+            primary: Colors.black,
+            secondary: Colors.black,
+            surface: Colors.white,
+            brightness: Brightness.light,
+          ),
+          cupertinoOverrideTheme: const CupertinoThemeData(
+            primaryColor: Colors.black,
+          ),
           textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
+          textTheme: const TextTheme(
+            bodySmall: TextStyle(
+              fontSize: 12,
+              fontFamily: AppFontFamilies.mregular,
+              color: Colors.black,
+            ),
+            bodyMedium: TextStyle(
+              fontSize: 14,
+              fontFamily: AppFontFamilies.mregular,
+              color: Colors.black,
+            ),
+            bodyLarge: TextStyle(
+              fontSize: 16,
+              fontFamily: AppFontFamilies.mregular,
+              color: Colors.black,
+            ),
+            titleSmall: TextStyle(
+              fontSize: 14,
+              fontFamily: AppFontFamilies.mmedium,
+              color: Colors.black,
+            ),
+            titleMedium: TextStyle(
+              fontSize: 16,
+              fontFamily: AppFontFamilies.mmedium,
+              color: Colors.black,
+            ),
+            titleLarge: TextStyle(
+              fontSize: 20,
+              fontFamily: AppFontFamilies.mbold,
+              color: Colors.black,
+            ),
+            labelLarge: TextStyle(
+              fontSize: 15,
+              fontFamily: AppFontFamilies.mmedium,
+              color: Colors.white,
+            ),
+          ),
           progressIndicatorTheme: const ProgressIndicatorThemeData(
             color: Colors.black,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+              disabledBackgroundColor: Colors.black26,
+              disabledForegroundColor: Colors.white70,
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black,
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+              side: const BorderSide(color: Colors.black),
+            ),
+          ),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
           ),
           appBarTheme: const AppBarTheme(
             systemOverlayStyle: SystemUiOverlayStyle(

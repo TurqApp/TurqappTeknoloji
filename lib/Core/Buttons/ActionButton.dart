@@ -76,7 +76,7 @@ class ActionButton extends StatelessWidget {
         () => Opacity(
           opacity: isPressed.value ? 0.5 : 1.0,
           child: FloatingActionButton(
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.black,
             shape: CircleBorder(),
             onPressed: () {},
             child: FutureBuilder<Map<String, bool>>(

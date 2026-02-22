@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/AppSnackbar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/UnreadMessagesController.dart';
+import 'package:turqappv2/Core/NotificationService.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaController.dart';
 import 'package:turqappv2/Modules/NavBar/NavBarView.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/StoryRowController.dart';
@@ -317,6 +318,7 @@ class SignInController extends GetxController
       // 🔥 CRITICAL: Initialize CurrentUserService with new user data
       print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
       await CurrentUserService.instance.initialize();
+      await NotificationService.instance.initialize();
 
       // Force refresh to load newly created user document
       await CurrentUserService.instance.forceRefresh();
@@ -550,6 +552,7 @@ class SignInController extends GetxController
       // 🔥 CRITICAL: Re-initialize CurrentUserService after password reset login
       print("🔄 CurrentUserService yeniden başlatılıyor...");
       await CurrentUserService.instance.initialize();
+      await NotificationService.instance.initialize();
       await CurrentUserService.instance.forceRefresh();
       print("✅ CurrentUserService başarıyla yüklendi");
 
@@ -649,6 +652,7 @@ class SignInController extends GetxController
       // 🔥 CRITICAL: Re-initialize CurrentUserService after login
       print("🔄 CurrentUserService yeniden başlatılıyor...");
       await CurrentUserService.instance.initialize();
+      await NotificationService.instance.initialize();
 
       // Force refresh to ensure latest data
       await CurrentUserService.instance.forceRefresh();
