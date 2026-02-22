@@ -124,6 +124,20 @@ class NavBarView extends StatelessWidget {
               ],
             ),
 
+            // Feed sekmesinde status bar altına beyaz zemin (üst katman)
+            if (controller.selectedIndex.value == 0)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: MediaQuery.of(context).padding.top - 3,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+
             // Opening overlay (first boot only)
             // const Positioned.fill(child: OpeningOverlay()),
 
