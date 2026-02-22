@@ -1,0 +1,81 @@
+// AgendaView.dart
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/BackButtons.dart';
+import 'package:turqappv2/Core/EmptyRow.dart';
+
+import '../../Agenda/AgendaContent/AgendaContent.dart';
+import 'ArchivesController.dart';
+
+class Archives extends StatelessWidget {
+  Archives({super.key});
+
+  final ArchiveController controller = Get.put(ArchiveController());
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: Obx(() {
+                final centeredIndex = controller.centeredIndex.value;
+                controller.lastCenteredIndex = centeredIndex;
+                return controller.list.isNotEmpty
+                    ? RefreshIndicator(
+                        backgroundColor: Colors.black,
+                        color: Colors.white,
+                        onRefresh: () => controller.fetchData(initial: true),
+                        child: ListView.builder(
+                        controller: controller.scrollController,
+                        itemCount: controller.list.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: BackButtons(text: "Arşiv"),
+                            );
+                          }
+
+                          final actualIndex = index - 1;
+
+                          final model = controller.list[actualIndex];
+                          final itemKey = controller.getAgendaKey(actualIndex);
+                          final isCentered =
+                              controller.centeredIndex.value == actualIndex;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 5),
+                            child: Column(
+                              children: [
+                                AgendaContent(
+                                  key: itemKey,
+                                  model: model,
+                                  isPreview: false,
+                                  shouldPlay: isCentered,
+                                  showArchivePost: true,
+                                ),
+                                const SizedBox(height: 2),
+                                Divider(color: Colors.grey.withAlpha(50)),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          );
+                        },
+                      ))
+                    : Column(
+                        children: [
+                          BackButtons(text: "Arşiv"),
+                          EmptyRow(text: "Sonuç Bulunamadı"),
+                        ],
+                      );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

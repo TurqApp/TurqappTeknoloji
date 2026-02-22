@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Restrict client access to PhoneAccounts. Admin SDK bypasses these rules.
+    match /PhoneAccounts/{phone} {
+      allow read: if false; // do not expose counts to clients
+
+      function isAuthed() {
+        return request.auth != null;
+      }
+
+      function isSelfAdd(prev, next) {
+        return next.count == prev.count + 1
+          && !(request.auth.uid in prev.accounts)
+          && (request.auth.uid in next.accounts)
+          && next.accounts.size() == prev.accounts.size() + 1
+          && (next.limit == prev.limit || next.limit == null)
+          && next.count <= (prev.limit != null ? prev.limit : 5);
+      }
+
+      function isSelfRemove(prev, next) {
+        return next.count == prev.count - 1
+          && (request.auth.uid in prev.accounts)
+          && !(request.auth.uid in next.accounts)
+          && next.accounts.size() == prev.accounts.size() - 1
+          && (next.limit == prev.limit || next.limit == null)
+          && next.count >= 0;
+      }
+
+      // Create: first user on this phone
+      allow create: if isAuthed()
+        && request.resource.data.count == 1
+        && request.resource.data.accounts.size() == 1
+        && (request.auth.uid in request.resource.data.accounts)
+        && (request.resource.data.limit == null || request.resource.data.limit >= 1)
+        && request.resource.data.phone == phone;
+
+      // Update: allow only self add/remove semantics
+      allow update: if isAuthed()
+        && (
+          isSelfAdd(resource.data, request.resource.data)
+          || isSelfRemove(resource.data, request.resource.data)
+        );
+
+      // Delete should not be done by clients
+      allow delete: if false;
+    }
+  }
+}
+

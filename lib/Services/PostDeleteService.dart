@@ -1,0 +1,198 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+
+import '../Models/PostsModel.dart';
+import '../Modules/Agenda/AgendaController.dart';
+import '../Modules/Explore/ExploreController.dart';
+import '../Modules/Profile/MyProfile/ProfileController.dart';
+import '../Modules/Short/ShortController.dart';
+
+/// Uygulama genelinde gönderi silme (soft delete) işlemini merkezileştirir.
+///
+/// - Firestore: Posts/{docID} üzerinde `deletedPost: true` ve
+///   `deletedPostTime: now` alanlarını günceller.
+/// - Sayaç: Görünür kök gönderi ve sahibi ise `counterOfPosts` değerini 1 azaltır.
+/// - UI/Store: Tüm ilgili listelerde modelin `deletedPost` alanını true yapar
+///   (yalnızca runtime; Firestore'a yazmaz) ve listeleri refresh eder.
+class PostDeleteService {
+  PostDeleteService._();
+  static final PostDeleteService instance = PostDeleteService._();
+
+  Future<void> softDelete(PostsModel model) async {
+    final firestore = FirebaseFirestore.instance;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    final postRef = firestore.collection('Posts').doc(model.docID);
+    // Ön kontrol: daha önce silinmiş mi?
+    bool alreadyDeleted = false;
+    try {
+      final preSnap = await postRef.get();
+      alreadyDeleted = (preSnap.data()?['deletedPost'] ?? false) == true;
+    } catch (_) {}
+
+    // 1) Firestore soft delete
+    await postRef.update({
+      'deletedPost': true,
+      'deletedPostTime': nowMs,
+    });
+
+    // 2) Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
+    try {
+      final me = FirebaseAuth.instance.currentUser?.uid;
+      final isVisibleRoot = (model.timeStamp <= nowMs) && !model.flood;
+      if (me != null && model.userID == me && isVisibleRoot) {
+        await firestore
+            .collection('users')
+            .doc(me)
+            .update({'counterOfPosts': FieldValue.increment(-1)});
+      }
+    } catch (_) {}
+
+    // 3) UI/Store tarafını güncelle
+    _updateStores(model.docID);
+
+    // 3.5) Bu gönderi yeniden paylaşıldıysa, tüm yeniden paylaşılan kopyaları kaldır
+    try {
+      await _cascadeDeleteReshares(model.docID);
+    } catch (e) {
+      // Sessiz geç
+      print('Cascade delete reshares error: $e');
+    }
+
+    // 4) Bu gönderiye ait beğeniler toplamını sahibi üzerinden düş (idempotent)
+    if (!alreadyDeleted) {
+      await _decrementOwnerLikeCounter(model);
+    }
+  }
+
+  Future<void> _cascadeDeleteReshares(String originalPostID) async {
+    final firestore = FirebaseFirestore.instance;
+    final mappingCol = firestore
+        .collection('Posts')
+        .doc(originalPostID)
+        .collection('reshares');
+
+    final snap = await mappingCol.get();
+    if (snap.docs.isEmpty) return;
+
+    for (final d in snap.docs) {
+      final uid = d.id;
+      // 1) Kullanıcının reshared_posts koleksiyonundan kaldır
+      try {
+        await firestore
+            .collection('users')
+            .doc(uid)
+            .collection('reshared_posts')
+            .doc(originalPostID)
+            .delete();
+      } catch (_) {}
+
+      // 2) Mapping dokümanını sil
+      try {
+        await mappingCol.doc(uid).delete();
+      } catch (_) {}
+    }
+  }
+
+  void _updateStores(String docID) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Agenda akışı
+    if (Get.isRegistered<AgendaController>()) {
+      final agenda = Get.find<AgendaController>();
+      final i = agenda.agendaList.indexWhere((e) => e.docID == docID);
+      if (i != -1) {
+        agenda.agendaList[i] = agenda.agendaList[i].copyWith(
+          deletedPost: true,
+          deletedPostTime: now,
+        );
+        agenda.agendaList.refresh();
+      }
+    }
+
+    // Explore listeleri
+    if (Get.isRegistered<ExploreController>()) {
+      final explore = Get.find<ExploreController>();
+      final i1 = explore.explorePosts.indexWhere((e) => e.docID == docID);
+      if (i1 != -1) {
+        explore.explorePosts[i1] = explore.explorePosts[i1]
+            .copyWith(deletedPost: true, deletedPostTime: now);
+      }
+      final i2 = explore.explorePhotos.indexWhere((e) => e.docID == docID);
+      if (i2 != -1) {
+        explore.explorePhotos[i2] = explore.explorePhotos[i2]
+            .copyWith(deletedPost: true, deletedPostTime: now);
+      }
+      final i3 = explore.exploreVideos.indexWhere((e) => e.docID == docID);
+      if (i3 != -1) {
+        explore.exploreVideos[i3] = explore.exploreVideos[i3]
+            .copyWith(deletedPost: true, deletedPostTime: now);
+      }
+      // Floods listesi
+      final i4 = explore.exploreFloods.indexWhere((e) => e.docID == docID);
+      if (i4 != -1) {
+        explore.exploreFloods[i4] = explore.exploreFloods[i4]
+            .copyWith(deletedPost: true, deletedPostTime: now);
+      }
+      explore.explorePosts.refresh();
+      explore.explorePhotos.refresh();
+      explore.exploreVideos.refresh();
+      explore.exploreFloods.refresh();
+    }
+
+    // Profil listeleri
+    if (Get.isRegistered<ProfileController>()) {
+      final prof = Get.find<ProfileController>();
+      final ip = prof.allPosts.indexWhere((e) => e.docID == docID);
+      if (ip != -1) {
+        prof.allPosts[ip] =
+            prof.allPosts[ip].copyWith(deletedPost: true, deletedPostTime: now);
+        prof.allPosts.refresh();
+      }
+      // Reshare listesi içerikten bağımsız olduğu için yerinde bırakıyoruz
+    }
+
+    // Shorts listesi
+    if (Get.isRegistered<ShortController>()) {
+      final shorts = Get.find<ShortController>();
+      final idx = shorts.shorts.indexWhere((e) => e.docID == docID);
+      if (idx != -1) {
+        shorts.shorts[idx] = shorts.shorts[idx]
+            .copyWith(deletedPost: true, deletedPostTime: now);
+        shorts.shorts.refresh();
+      }
+    }
+  }
+
+  Future<void> _decrementOwnerLikeCounter(PostsModel model) async {
+    try {
+      // Gönderiye ait toplam beğeni sayısı
+      final likesColl = FirebaseFirestore.instance
+          .collection('Posts')
+          .doc(model.docID)
+          .collection('likes');
+
+      int likeCount = 0;
+      try {
+        final agg = await likesColl.count().get();
+        likeCount = (agg.count ?? 0);
+      } catch (_) {
+        // Eski SDK'larda count() yoksa fallback
+        final qs = await likesColl.get();
+        likeCount = qs.docs.length;
+      }
+
+      if (likeCount <= 0) return;
+
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(model.userID);
+      final userSnap = await userRef.get();
+      final currentCount = (userSnap.data()?['counterOfLikes'] ?? 0) as int;
+      final dec = likeCount > currentCount ? currentCount : likeCount;
+      if (dec > 0) {
+        await userRef.update({'counterOfLikes': FieldValue.increment(-dec)});
+      }
+    } catch (_) {}
+  }
+}

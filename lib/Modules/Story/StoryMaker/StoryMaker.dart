@@ -1,0 +1,524 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/IconButtons.dart';
+import 'StoryMakerController.dart';
+import 'StoryVideo.dart';
+import 'TextEditorSheet.dart';
+
+class StoryMaker extends StatelessWidget {
+  final controller = Get.put(StoryMakerController());
+
+  StoryMaker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            topBar(),
+            Expanded(child: playground()),
+            bottomTools(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget playground() {
+    return Obx(() {
+      // zIndex'e göre sıralayıp çizin
+      final sorted = [...controller.elements];
+      sorted.sort((a, b) => a.zIndex.compareTo(b.zIndex));
+
+      return Container(
+        color: controller.color.value,
+        child: InteractiveViewer(
+          panEnabled: false,
+          scaleEnabled: false,
+          child: Stack(
+            children: [
+              // Elements
+              ...sorted.map(_buildInteractiveElement),
+
+              // Trash bin - sadece element sürüklenirken göster
+              if (controller.isDragging.value)
+                Positioned(
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _buildTrashBin(),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildInteractiveElement(StoryElement e) {
+    return Positioned(
+      left: e.position.dx,
+      top: e.position.dy,
+      child: GestureDetector(
+        onTapDown: (_) => controller.bringToFront(e),
+        onDoubleTap: () async {
+          // Metin için: silmek yerine düzenleme aç (Instagram benzeri)
+          if (e.type == StoryElementType.text) {
+            final res = await showModalBottomSheet<TextEditorResult>(
+              context: Get.context!,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => const TextEditorSheet(),
+            );
+            if (res != null && res.text.trim().isNotEmpty) {
+              controller.editTextElement(
+                element: e,
+                text: res.text.trim(),
+                textColor: res.textColor,
+                textBgColor: res.textBgColor,
+                hasTextBg: res.hasTextBg,
+                textAlign: res.textAlign,
+                fontWeight: res.fontWeight,
+                italic: res.italic,
+                underline: res.underline,
+                shadowBlur: res.shadowBlur,
+                shadowOpacity: res.shadowOpacity,
+              );
+            }
+          } else {
+            controller.removeElement(e);
+          }
+        },
+        onScaleStart: (details) {
+          e.initialFocalPoint = details.focalPoint;
+          e.initialPosition = e.position;
+          e.initialWidth = e.width;
+          e.initialHeight = e.height;
+          e.initialRotation = e.rotation;
+          e.initialFontSize = e.fontSize;
+          controller.isDragging.value = true;
+          controller.draggedElement = e;
+        },
+        onScaleUpdate: (details) {
+          // Boundary kontrolü
+          final screenWidth = Get.width;
+          final screenHeight = Get.height;
+
+          // drag
+          final dx = details.focalPoint.dx - e.initialFocalPoint!.dx;
+          final dy = details.focalPoint.dy - e.initialFocalPoint!.dy;
+
+          final newX = (e.initialPosition!.dx + dx)
+              .clamp(-e.width * 0.5, screenWidth - e.width * 0.5);
+          final newY = (e.initialPosition!.dy + dy)
+              .clamp(-e.height * 0.5, screenHeight - e.height * 0.5);
+          e.position = Offset(newX, newY);
+
+          // scale with limits
+          final scale = details.scale.clamp(0.3, 3.0);
+          e.width = e.initialWidth! * scale;
+          e.height = e.initialHeight! * scale;
+
+          // rotation
+          e.rotation = e.initialRotation! + details.rotation;
+
+          // fontSize update with bounds
+          if (e.type == StoryElementType.text) {
+            e.fontSize = (e.initialFontSize! * scale).clamp(12.0, 120.0);
+          }
+
+          // Çöp kutusunun pozisyonunu kontrol et - parmak pozisyonunu kullan
+          // Çöp kutusu bottom: 20'de konumlandırılmış, boyutu 90-110px
+          final trashBinCenterY =
+              screenHeight - 20 - 50; // bottom margin - yarı yükseklik
+          final trashBinCenterX = screenWidth / 2;
+          final trashBinRadius = 60; // Çöp kutusunun gerçek yarıçapı + margin
+
+          // Parmağın pozisyonu
+          final fingerX = details.focalPoint.dx;
+          final fingerY = details.focalPoint.dy;
+
+          // Son parmak pozisyonunu controller'da sakla
+          controller.lastFingerPosition = Offset(fingerX, fingerY);
+
+          // Parmak çöp kutusu alanında mı? (circular detection)
+          final distanceToTrash =
+              ((fingerX - trashBinCenterX) * (fingerX - trashBinCenterX) +
+                  (fingerY - trashBinCenterY) * (fingerY - trashBinCenterY));
+          final isOverTrash =
+              distanceToTrash < (trashBinRadius * trashBinRadius);
+
+          // Eğer önceden trash üzerinde değildi ama şimdi üzerindeyse haptic feedback ver
+          if (!controller.isElementOverTrash.value && isOverTrash) {
+            HapticFeedback.mediumImpact(); // Titreme efekti
+            controller.isElementOverTrash.value = true;
+          } else if (controller.isElementOverTrash.value && !isOverTrash) {
+            controller.isElementOverTrash.value = false;
+          }
+
+          controller.elements.refresh();
+        },
+        onScaleEnd: (details) {
+          controller.isDragging.value = false;
+
+          // Çöp kutusunun pozisyonunu kontrol et - parmak pozisyonunu kullan
+          final screenWidth = Get.width;
+          final screenHeight = Get.height;
+          final trashBinCenterY =
+              screenHeight - 20 - 50; // bottom margin - yarı yükseklik
+          final trashBinCenterX = screenWidth / 2;
+          final trashBinRadius = 60;
+
+          // Parmağın son pozisyonu (controller'dan al)
+          final lastPos = controller.lastFingerPosition;
+          if (lastPos == null) return; // Pozisyon yoksa çık
+
+          final fingerX = lastPos.dx;
+          final fingerY = lastPos.dy;
+
+          // Parmak çöp kutusu alanında mı?
+          final distanceToTrash =
+              ((fingerX - trashBinCenterX) * (fingerX - trashBinCenterX) +
+                  (fingerY - trashBinCenterY) * (fingerY - trashBinCenterY));
+          final isOverTrash =
+              distanceToTrash < (trashBinRadius * trashBinRadius);
+
+          if (isOverTrash) {
+            // Parmak çöp kutusuna bırakıldı, sil
+            HapticFeedback.heavyImpact(); // Güçlü titreme - silme başarılı
+            controller.removeElement(e);
+          }
+
+          controller.isElementOverTrash.value = false;
+          controller.draggedElement = null;
+          controller.lastFingerPosition = null;
+        },
+        child: Transform.rotate(
+          angle: e.rotation,
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: e.width,
+            height: e.height,
+            child: _buildElement(e),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildElement(StoryElement e) {
+    switch (e.type) {
+      case StoryElementType.image:
+        return Image.file(File(e.content), fit: BoxFit.cover);
+      case StoryElementType.gif:
+        return const SizedBox.shrink();
+      case StoryElementType.video:
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: StoryVideo(path: e.content, isMuted: e.isMuted),
+            ),
+            Positioned(
+              top: 20,
+              right: 15,
+              child: GestureDetector(
+                onTap: () => controller.toggleVideoMute(e),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white70, width: 1),
+                  ),
+                  child: Icon(
+                    e.isMuted
+                        ? CupertinoIcons.speaker_slash
+                        : CupertinoIcons.speaker_2,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      case StoryElementType.text:
+        final align = () {
+          switch (e.textAlign) {
+            case 'left':
+              return TextAlign.left;
+            case 'right':
+              return TextAlign.right;
+            case 'center':
+            default:
+              return TextAlign.center;
+          }
+        }();
+        final fw = e.fontWeight == 'bold' ? FontWeight.bold : FontWeight.w500;
+        final fs = e.italic ? FontStyle.italic : FontStyle.normal;
+        final deco =
+            e.underline ? TextDecoration.underline : TextDecoration.none;
+        return Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: e.hasTextBg
+              ? BoxDecoration(
+                  color: Color(e.textBgColor),
+                  borderRadius: BorderRadius.circular(10),
+                )
+              : null,
+          child: Text(
+            e.content,
+            textAlign: align,
+            style: TextStyle(
+              color: Color(e.textColor),
+              fontSize: e.fontSize,
+              fontWeight: fw,
+              fontStyle: fs,
+              decoration: deco,
+              fontFamily: "MontserratMedium",
+              height: 1.2,
+              shadows: e.hasTextBg
+                  ? null
+                  : [
+                      Shadow(
+                        blurRadius: e.shadowBlur,
+                        color: Colors.black.withOpacity(e.shadowOpacity),
+                        offset: const Offset(1, 1),
+                      ),
+                    ],
+            ),
+            maxLines: null,
+            overflow: TextOverflow.visible,
+          ),
+        );
+      case StoryElementType.drawing:
+        return Image.file(
+          File(e.content),
+          fit: BoxFit.cover,
+        );
+      case StoryElementType.sticker:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+    }
+  }
+
+  Widget topBar() {
+    return Container(
+      padding: const EdgeInsets.only(bottom: 12, left: 8, right: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Sol taraf - Back + Undo/Redo
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () => Get.back(),
+                icon: Icon(CupertinoIcons.arrow_left,
+                    color: Colors.white, size: 24),
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+              ),
+              Obx(() => IconButton(
+                    onPressed:
+                        controller.canUndo.value ? controller.undo : null,
+                    icon: Icon(CupertinoIcons.arrow_uturn_left,
+                        color: controller.canUndo.value
+                            ? Colors.white
+                            : Colors.grey,
+                        size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(minWidth: 35, minHeight: 35),
+                  )),
+              Obx(() => IconButton(
+                    onPressed:
+                        controller.canRedo.value ? controller.redo : null,
+                    icon: Icon(CupertinoIcons.arrow_uturn_right,
+                        color: controller.canRedo.value
+                            ? Colors.white
+                            : Colors.grey,
+                        size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(minWidth: 35, minHeight: 35),
+                  )),
+            ],
+          ),
+
+          Text("Hikaye Oluştur",
+              style: TextStyle(
+                  fontSize: 16,
+                  fontFamily: "MontserratMedium",
+                  color: Colors.white)),
+
+          // Sağ taraf - Share button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                onPressed: () => controller.onSaveStoryPressed(),
+                child: Text("Paylaş",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontFamily: "MontserratMedium")),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget bottomTools(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: TextButton(
+              style: IconButtons.storyButtons,
+              onPressed: () => controller.pickImage(),
+              child: Icon(CupertinoIcons.photo, color: Colors.white, size: 25),
+            ),
+          ),
+          Expanded(
+            child: TextButton(
+              style: IconButtons.storyButtons,
+              onPressed: () => controller.pickVideo(),
+              child: Icon(CupertinoIcons.play_circle,
+                  color: Colors.white, size: 25),
+            ),
+          ),
+          // Expanded(
+          //   child: TextButton(
+          //     style: IconButtons.storyButtons,
+          //     onPressed: () async {
+          //       final res = await showModalBottomSheet<TextEditorResult>(
+          //         context: Get.context!,
+          //         isScrollControlled: true,
+          //         backgroundColor: Colors.transparent,
+          //         builder: (ctx) => const TextEditorSheet(),
+          //       );
+          //       if (res != null && res.text.trim().isNotEmpty) {
+          //         controller.addStyledTextElement(
+          //           res.text.trim(),
+          //           textColor: res.textColor,
+          //           textBgColor: res.textBgColor,
+          //           hasTextBg: res.hasTextBg,
+          //           textAlign: res.textAlign,
+          //           fontWeight: res.fontWeight,
+          //           italic: res.italic,
+          //           underline: res.underline,
+          //           shadowBlur: res.shadowBlur,
+          //           shadowOpacity: res.shadowOpacity,
+          //         );
+          //       }
+          //     },
+          //     child: Icon(CupertinoIcons.text_cursor,
+          //         color: Colors.white, size: 25),
+          //   ),
+          // ),
+          Expanded(child: Obx(() {
+            return IconButton(
+              icon: Icon(
+                CupertinoIcons.music_note_2,
+                color: controller.isMusicPlaying.value
+                    ? Colors.blueAccent
+                    : Colors.white,
+                size: 30,
+              ),
+              onPressed: () {
+                if (controller.isMusicPlaying.value) {
+                  controller.pauseMusic();
+                } else {
+                  controller.selectMusic();
+                }
+              },
+            );
+          })),
+          Expanded(
+            child: Obx(() {
+              return TextButton(
+                style: IconButtons.storyButtons,
+                onPressed: () => controller.changeCircleColor(),
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: controller.color.value,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrashBin() {
+    return Obx(() {
+      final isOverTrash = controller.isElementOverTrash.value;
+
+      return AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        width: isOverTrash ? 110 : 90,
+        height: isOverTrash ? 110 : 90,
+        decoration: BoxDecoration(
+          color: isOverTrash
+              ? Colors.red.withOpacity(0.8)
+              : Colors.black.withOpacity(0.7),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isOverTrash ? Colors.red[300]! : Colors.white,
+            width: 2,
+          ),
+          boxShadow: isOverTrash
+              ? [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.3),
+                    blurRadius: 40,
+                    spreadRadius: 10,
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+        ),
+        child: Icon(
+          CupertinoIcons.delete,
+          color: Colors.white,
+          size: isOverTrash ? 42 : 36,
+        ),
+      );
+    });
+  }
+}

@@ -1,0 +1,53 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/AppSnackbar.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SinavModel.dart';
+
+class DenemeGridController extends GetxController {
+  var pfImage = ''.obs;
+  var nickname = ''.obs;
+  var toplamBasvuru = 0.obs;
+  var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
+  var examTime = 0.obs;
+  var isLoadingProfile = true.obs;
+  var isLoadingApplicants = true.obs;
+  final int fifteenMinutes = 15 * 60 * 1000;
+
+  void initData(SinavModel model) {
+    examTime.value = model.timeStamp.toInt();
+    fetchProfileData(model.userID);
+    fetchApplicantCount(model.docID);
+  }
+
+  Future<void> fetchProfileData(String userID) async {
+    isLoadingProfile.value = true;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get();
+      pfImage.value = doc.get("pfImage") ?? '';
+      nickname.value = doc.get("nickname") ?? '';
+    } catch (e) {
+      AppSnackbar("Hata", "Profil bilgileri yüklenemedi.");
+    } finally {
+      isLoadingProfile.value = false;
+    }
+  }
+
+  Future<void> fetchApplicantCount(String docID) async {
+    isLoadingApplicants.value = true;
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Sinavlar")
+          .doc(docID)
+          .collection("Basvurular")
+          .get();
+      toplamBasvuru.value = snapshot.docs.length;
+    } catch (e) {
+      AppSnackbar("Hata", "Başvuru sayısı yüklenemedi.");
+    } finally {
+      isLoadingApplicants.value = false;
+    }
+  }
+}

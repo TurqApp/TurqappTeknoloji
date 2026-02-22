@@ -1,0 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - lib_backup_20260216_094009/**
+    - assets_backup_20260216_093819/**
+    - build/**
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    avoid_print: false

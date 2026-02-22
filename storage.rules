@@ -1,0 +1,71 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Authenticated users can read all files
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // User profile images
+    match /users/{uid}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == uid
+                   && request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+
+    // Post HLS segments and thumbnails - public read for CDN caching
+    match /Posts/{postId}/hls/{allPaths=**} {
+      allow read;
+      allow write: if false; // Cloud Function only
+    }
+    match /Posts/{postId}/thumbnail.jpg {
+      allow read;
+      allow write: if false; // Cloud Function only
+    }
+
+    // Post media (images, videos)
+    match /Posts/{postId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.resource.size < 200 * 1024 * 1024; // 200MB video limit
+    }
+
+    // Story media
+    match /Stories/{uid}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+
+    // Chat media
+    match /Chat/{chatId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.resource.size < 25 * 1024 * 1024; // 25MB limit
+    }
+    match /Mesajlar/{chatId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.resource.size < 25 * 1024 * 1024;
+    }
+
+    // Public assets (logo, default avatar, etc.)
+    match /public/{allPaths=**} {
+      allow read;
+      allow write: if false;
+    }
+
+    // Root-level assets (avatar2.png, logoblack.png)
+    match /{fileName} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // Default: deny
+    match /{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+  }
+}

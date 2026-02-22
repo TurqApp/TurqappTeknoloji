@@ -1,0 +1,41 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "turqappteknoloji",
+          "appId": "1:7235832399:android:f5b07965c1cb59db8ff83a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "turqappteknoloji",
+          "appId": "1:7235832399:ios:30eba95b973fe1da8ff83a",
+          "uploadDebugSymbols": true,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "turqappteknoloji",
+          "configurations": {
+            "android": "1:7235832399:android:f5b07965c1cb59db8ff83a",
+            "ios": "1:7235832399:ios:30eba95b973fe1da8ff83a"
+          }
+        }
+      }
+    }
+  }
+}

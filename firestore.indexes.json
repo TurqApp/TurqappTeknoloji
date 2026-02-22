@@ -1,0 +1,104 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "deletedPost", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "video", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "floodCount", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" },
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" },
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "video", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Mesajlar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID1", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Mesajlar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID2", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Stories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BireyselBurslar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "begeniler", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "BireyselBurslar",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kaydedenler", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

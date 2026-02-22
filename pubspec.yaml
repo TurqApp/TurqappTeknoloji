@@ -1,0 +1,113 @@
+name: turqappv2
+description: "getx"
+publish_to: "none" 
+
+version: 1.1.4+14
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+
+  cupertino_icons: ^1.0.8
+  get: ^4.7.3
+  svg_flutter: ^0.0.1
+  cloud_firestore: ^6.1.2
+  cloud_functions: ^6.0.6
+  firebase_auth: ^6.1.4
+  firebase_core: ^4.4.0
+  firebase_storage: ^13.0.6
+  cached_network_image: ^3.4.1
+  http: ^1.6.0
+  geolocator: ^14.0.2
+  geocoding: ^4.0.0
+  video_player: ^2.10.1
+  visibility_detector: ^0.4.0+2
+  pull_down_button: ^0.10.2
+  url_launcher: ^6.3.2
+  shimmer: ^3.0.0
+  uuid: ^4.5.2
+  share_plus: ^12.0.1
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  intl: ^0.20.2
+  pinch_zoom: ^2.0.1
+  audio_video_progress_bar: ^2.0.3
+  qr_flutter: ^4.1.0
+  permission_handler: ^12.0.1
+  image: ^4.7.2
+  mobile_scanner: ^7.1.4
+  saver_gallery: ^4.1.0
+  image_picker: ^1.2.1
+  crop_your_image: ^2.0.0
+  carousel_slider: ^5.1.2
+  latlong2: ^0.9.1
+  google_maps_flutter: ^2.14.2
+  contact_add: ^0.0.3
+  flutter_contacts: ^1.1.9+2
+  audioplayers: ^6.5.1
+  easy_video_editor: ^0.1.3
+  nsfw_detector_flutter: ^1.0.5
+  device_info_plus: ^12.3.0
+  flex_color_picker: ^3.8.0
+  video_thumbnail: ^0.5.6
+  flutter_image_compress: ^2.4.0
+  video_compress: ^3.1.4
+  dio: ^5.9.1
+  shared_preferences: ^2.5.4
+  flutter_local_notifications: ^20.1.0
+  firebase_messaging: ^16.1.1
+  googleapis_auth: ^2.0.0
+  app_tracking_transparency: ^2.0.6+1
+  google_mobile_ads: ^7.0.0
+  flutter_reorderable_grid_view: ^5.5.2
+  package_info_plus: ^9.0.0
+  flutter_staggered_grid_view: ^0.7.0
+  connectivity_plus: ^6.1.5
+  firebase_crashlytics: ^5.0.7
+  firebase_performance: ^0.11.1+4
+  firebase_remote_config: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/fonts/
+    - assets/images/
+    - assets/dummy/
+    - assets/slider/
+    - assets/data/Countries.json
+    - assets/data/CityDistrict.json
+    - assets/data/MiddleSchool.json
+    - assets/data/HighSchool.json
+    - assets/data/HigherEducation.json
+    - assets/data/Dormitory.json
+    - assets/bursSablonlar/
+    - assets/tutorings/
+    - assets/education/
+    - assets/logo/
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat.otf
+    - family: MontserratBold
+      fonts:
+        - asset: assets/fonts/MontserratBold.otf
+    - family: MontserratMedium
+      fonts:
+        - asset: assets/fonts/MontserratMedium.otf
+    - family: Noe
+      fonts:
+        - asset: assets/fonts/noe.ttf

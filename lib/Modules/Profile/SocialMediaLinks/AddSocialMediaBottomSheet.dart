@@ -1,0 +1,337 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/AppSnackbar.dart';
+import 'package:turqappv2/Core/Buttons/TurqAppButton.dart';
+
+import 'SocialMediaLinksController.dart';
+
+class AddSocialMediaBottomSheet extends StatelessWidget {
+  final controller = Get.put(SocialMediaController());
+
+  AddSocialMediaBottomSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 15),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Bağlantı Ekle",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 15),
+
+          // Sosyal medya ikonları yatay scroll
+          SizedBox(
+            height: 54,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: controller.sosyal.length,
+              itemBuilder: (context, index) {
+                final item = controller.sosyal[index];
+                return Obx(
+                  () => GestureDetector(
+                    onTap: () {
+                      controller.selected.value = item;
+                      controller.textController.text = item.capitalize!;
+                      controller.urlController.text = item == "whatsApp"
+                          ? "https://wa.me/+90"
+                          : item != "TurqApp"
+                              ? "https://${item.toLowerCase()}.com/"
+                              : "";
+                    },
+                    child: Container(
+                      margin:
+                          EdgeInsets.only(right: 10, left: index == 0 ? 15 : 0),
+                      padding: EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: controller.selected.value == item
+                              ? Colors.blueAccent
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset("assets/icons/${item}_s.webp"),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          SizedBox(height: 12),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Column(
+                    children: [
+                      Obx(() {
+                        return GestureDetector(
+                          onTap: () {
+                            controller.pickImage(context);
+                          },
+                          child: controller.selected.value != ""
+                              ? GestureDetector(
+                                  onTap: () {
+                                    controller.selected.value = "";
+                                    controller.imageFile.value = null;
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(
+                                        color: Colors.grey.withOpacity(0.4),
+                                        width: 2,
+                                      ),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(50),
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(50),
+                                      ),
+                                      child: SizedBox(
+                                        width: 70,
+                                        height: 70,
+                                        child: controller.selected.value != ""
+                                            ? Image.asset(
+                                                "assets/icons/${controller.selected.value}_s.webp",
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Center(
+                                                child: Icon(
+                                                  Icons.add,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : GestureDetector(
+                                  onTap: () {
+                                    controller.pickImage(context);
+                                  },
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(50),
+                                    ),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 70,
+                                          height: 70,
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(50),
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.add,
+                                              size: 30,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                        if (controller.imageFile.value != null)
+                                          SizedBox(
+                                            width: 70,
+                                            height: 70,
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.all(
+                                                Radius.circular(75),
+                                              ),
+                                              child: Image.file(
+                                                controller.imageFile.value!,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                        );
+                      }),
+                      SizedBox(height: 4),
+                      Text(
+                        controller.selected.value,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 40,
+                          child: TextField(
+                            controller: controller.textController,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(20),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: "Başlık",
+                              hintStyle: TextStyle(
+                                color: Colors.grey,
+                                fontFamily: "MontserratBold",
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
+                            ),
+                          ),
+                        ),
+
+                        // inside your Column where the URL TextField lives:
+
+                        Obx(() {
+                          final isTurq = controller.selected.value == "TurqApp";
+                          return SizedBox(
+                            height: 40,
+                            child: TextField(
+                              controller: controller.urlController,
+                              keyboardType: isTurq
+                                  ? TextInputType.text
+                                  : TextInputType.url,
+                              decoration: InputDecoration(
+                                hintText: isTurq ? "Kullanıcı adı" : "https://",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 20),
+
+          Obx(() {
+            return controller.enableSave.value
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        TurqAppButton(
+                          onTap: () async {
+                            controller.isUploading.value = true;
+
+                            try {
+                              final docID = DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .toString();
+                              final ref = FirebaseFirestore.instance
+                                  .collection("users")
+                                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                                  .collection("SosyalMedyaLinkleri")
+                                  .doc(docID);
+
+                              await ref.set({
+                                "title": controller.textController.text.trim(),
+                                "url": controller.urlController.text.trim(),
+                                "sira": controller.list.length + 1,
+                                "logo": "",
+                              });
+
+                              String logoURL = "";
+                              if (controller.selected.value.isNotEmpty) {
+                                logoURL = await controller.uploadAssetImage(
+                                    "assets/icons/${controller.selected.value}_s.webp",
+                                    docID);
+                              } else if (controller.imageFile.value != null) {
+                                logoURL = await controller.uploadFileImage(
+                                    controller.imageFile.value!, docID);
+                              }
+
+                              if (logoURL.isNotEmpty) {
+                                await ref.update({"logo": logoURL});
+                              }
+
+                              await controller.getData();
+                              controller.resetFields();
+                              Get.back();
+                            } catch (e) {
+                              AppSnackbar("Hata", "Bir sorun oluştu.");
+                            } finally {
+                              controller.isUploading.value = false;
+                            }
+                          },
+                        ),
+                        if (controller.isUploading.value)
+                          Positioned.fill(
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
+                  )
+                : SizedBox.shrink();
+          }),
+
+          SizedBox(height: 15),
+        ],
+      ),
+    );
+  }
+}

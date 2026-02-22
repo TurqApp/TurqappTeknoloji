@@ -1,0 +1,257 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/NoYesAlert.dart';
+import 'package:turqappv2/Core/Functions.dart';
+import 'package:turqappv2/Core/RozetContent.dart';
+import 'package:turqappv2/Models/NotificationModel.dart';
+import 'package:turqappv2/Modules/Explore/ExploreController.dart';
+import 'package:turqappv2/Modules/Short/SingleShortView.dart';
+import 'package:turqappv2/Modules/Social/PhotoShorts/PhotoShorts.dart';
+import 'package:turqappv2/Modules/SocialProfile/SocialProfile.dart';
+
+import 'NotificationContentController.dart';
+
+class NotificationContent extends StatelessWidget {
+  final NotificationModel model;
+  NotificationContent({super.key, required this.model});
+  late final NotificationContentController controller;
+
+  String _buildPrimaryText() {
+    final base = model.desc.trim().isEmpty ? "senin gönderinle etkileşime geçti." : model.desc.trim();
+    return base.endsWith(".") ? base : "$base.";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    controller = Get.put(NotificationContentController(userID: model.userID),
+        tag: model.docID);
+    if (model.postType == "Posts" && controller.model.value.docID != model.postID) {
+      controller.getPostData(model.postID);
+    }
+    // FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).collection("Bildirimler").doc(model.docID).update(
+    //     {
+    //       "postID" : "f4932ae6-19e8-4633-91bf-9f0d5d35f388"
+    //     });
+    return Obx(() {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (model.userID !=
+                        FirebaseAuth.instance.currentUser!.uid) {
+                      Get.to(() => SocialProfile(userID: model.userID));
+                    }
+                  },
+                  child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.withAlpha(50))),
+                      child: controller.pfImage.value != ""
+                          ? ClipOval(
+                              child: SizedBox(
+                                width: 45,
+                                height: 45,
+                                child: CachedNetworkImage(
+                                  imageUrl: controller.pfImage.value,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: CupertinoActivityIndicator(),
+                            )),
+                ),
+                SizedBox(
+                  width: 10,
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => yonlendirme(),
+                    child: Container(
+                      color: Colors.white.withAlpha(1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 3,
+                            runSpacing: 1,
+                            children: [
+                              Text(
+                                controller.nickname.value,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratBold",
+                                ),
+                              ),
+                              RozetContent(size: 14, userID: controller.userID),
+                              Text(
+                                _buildPrimaryText(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                              Text(
+                                "· ${timeAgoMetin(model.timeStamp)}",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                  fontFamily: "Montserrat",
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (model.title.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                model.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey.shade700,
+                                  fontSize: 12,
+                                  fontFamily: "Montserrat",
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 10,
+                ),
+                if (controller.model.value.img.isNotEmpty ||
+                    controller.model.value.hasPlayableVideo)
+                  GestureDetector(
+                    onTap: () => yonlendirme(),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.all(Radius.circular(4)),
+                      child: SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CachedNetworkImage(
+                          imageUrl: controller.model.value.thumbnail != ""
+                              ? controller.model.value.thumbnail
+                              : controller.model.value.img.first,
+                          fit: BoxFit.cover,
+                          key: ValueKey(controller.model.value.thumbnail),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (model.postType == "User")
+                  TextButton(
+                    onPressed: controller.followLoading.value
+                        ? null
+                        : () {
+                      if (controller.following.value) {
+                        noYesAlert(
+                          title: "Takibi Bırak",
+                          message:
+                              "${controller.nickname.value} kullanıcısını takipten çıkmak istediğinizden emin misiniz?",
+                          cancelText: "Vazgeç",
+                          yesText: "Takibi Bırak",
+                          onYesPressed: () {
+                            controller.toggleFollowStatus(model.userID);
+                          },
+                        );
+                      } else {
+                        controller.toggleFollowStatus(model.userID);
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size(74, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: controller.following.value
+                          ? Colors.grey.withAlpha(50)
+                          : Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      child: Center(
+                        child: Obx(() {
+                          if (controller.followLoading.value) {
+                            return SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  controller.following.value
+                                      ? Colors.black
+                                      : Colors.white,
+                                ),
+                              ),
+                            );
+                          }
+                          return Text(
+                            controller.following.value
+                                ? "Takibi Bırak"
+                                : "Takip Et",
+                            style: TextStyle(
+                              color: controller.following.value
+                                  ? Colors.black
+                                  : Colors.white,
+                              fontSize: 12,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  )
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 66),
+            child: SizedBox(
+              height: 1,
+              child: Divider(
+                color: Colors.grey.withAlpha(50),
+              ),
+            ),
+          )
+        ],
+      );
+    });
+  }
+
+  void yonlendirme() async {
+    final store = Get.find<ExploreController>();
+    if (model.postType == "User") {
+      Get.to(() => SocialProfile(userID: model.userID));
+    } else {
+      if (controller.model.value.img.isNotEmpty) {
+        Get.to(() => PhotoShorts(
+            fetchedList: store.explorePhotos,
+            startModel: controller.model.value));
+      } else if (controller.model.value.hasPlayableVideo) {
+        Get.to(() => SingleShortView(
+            startModel: controller.model.value,
+            startList: store.exploreVideos..shuffle()));
+      }
+    }
+  }
+}

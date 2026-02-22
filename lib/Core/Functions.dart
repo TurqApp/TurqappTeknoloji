@@ -1,0 +1,309 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+String kacGunKaldi(int timestampMillis) {
+  final hedefTarih = DateTime.fromMillisecondsSinceEpoch(timestampMillis);
+  final simdi = DateTime.now();
+  final fark = hedefTarih.difference(simdi).inDays;
+
+  if (fark > 0) {
+    return "$fark gün kaldı";
+  } else if (fark == 0) {
+    return "Bugün!";
+  } else {
+    return "${fark.abs()} gün geçti";
+  }
+}
+
+List<String> parseStringList(dynamic data) {
+  if (data == null) return [];
+  if (data is List) return data.cast<String>();
+  if (data is String) return [data];
+  return [];
+}
+
+String timeAgoMetin(num timestamp) {
+  DateTime now = DateTime.now();
+  DateTime dateTime =
+      DateTime.fromMillisecondsSinceEpoch(timestamp.toInt()).toLocal();
+  Duration difference = now.difference(dateTime);
+
+  if (difference.inSeconds < 60) {
+    return "Az önce";
+  } else if (difference.inMinutes < 60) {
+    return "${difference.inMinutes}dk önce";
+  } else if (difference.inHours < 24) {
+    return "${difference.inHours}sa önce";
+  } else if (difference.inDays < 7) {
+    return "${difference.inDays}g önce";
+  } else {
+    int totalDays = difference.inDays;
+    int weeks = (totalDays / 7).floor();
+    int months = (totalDays / 30).floor();
+
+    if (months >= 3) {
+      String day = dateTime.day.toString().padLeft(2, '0');
+      String month = dateTime.month.toString().padLeft(2, '0');
+      String year = dateTime.year.toString();
+      return "$day.$month.$year";
+    } else {
+      if (weeks == 0) {
+        return "Bu hafta";
+      } else {
+        return "$weeks hafta önce";
+      }
+    }
+  }
+}
+
+Future<void> getDeviceInfo() async {
+  final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+
+  if (FirebaseAuth.instance.currentUser != null){
+
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .set({
+        "device": "Android ${androidInfo.model}",
+        "deviceVersion": androidInfo.version.release,
+      }, SetOptions(merge: true));
+      print(
+        "Android Device Info: Model: ${androidInfo.model} - Version: ${androidInfo.version.release} - Name: ${androidInfo.name}",
+      );
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
+      print(iosInfo.systemName);
+      print(iosInfo.modelName);
+      print(iosInfo.systemVersion);
+
+      FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .set({
+        "device": "Apple ${iosInfo.modelName}",
+        "deviceVersion": iosInfo.systemVersion,
+      }, SetOptions(merge: true));
+    }
+  }
+}
+
+String formatTimeStampAyYil(String timestamp) {
+  // Timestamp'i int olarak al ve DateTime'a çevir
+  DateTime date = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
+
+  // Türkçe ay adları
+  List<String> turkishMonths = [
+    "Ocak",
+    "Şubat",
+    "Mart",
+    "Nisan",
+    "Mayıs",
+    "Haziran",
+    "Temmuz",
+    "Ağustos",
+    "Eylül",
+    "Ekim",
+    "Kasım",
+    "Aralık",
+  ];
+
+  // Ay ve yıl bilgilerini al
+  String month = turkishMonths[date.month - 1];
+  String year = date.year.toString();
+
+  // Formatlı string döndür
+  return "$month $year";
+}
+
+String getRemainingTimeText(int millis) {
+  DateTime releaseDate = DateTime.fromMillisecondsSinceEpoch(millis);
+  Duration remaining = releaseDate.difference(DateTime.now());
+
+  int days = remaining.inDays;
+  int hours = remaining.inHours % 24;
+  int minutes = remaining.inMinutes % 60;
+  int seconds = remaining.inSeconds % 60;
+
+  // Eğer 24 saatten fazla varsa, sadece gün sayısını göster
+  if (remaining.inDays > 0) {
+    String dayStr = days.toString().padLeft(2, '0');
+    return '$dayStr Gün Kaldı';
+  }
+  // Eğer 1 saatten fazla varsa, sadece saat sayısını göster
+  else if (remaining.inHours > 0) {
+    String hourStr = hours.toString().padLeft(2, '0');
+    return '$hourStr Saat Kaldı';
+  }
+  // Eğer 1 saatin altında kalmışsa, dakika ve saniye gösterebiliriz
+  else if (remaining.inMinutes > 0) {
+    String minuteStr = minutes.toString().padLeft(2, '0');
+    return '$minuteStr Dakika Kaldı';
+  }
+  // Eğer 1 dakikadan az kalmışsa, saniye sayısını göster
+  else {
+    String secondStr = seconds.toString().padLeft(2, '0');
+    return '$secondStr Saniye Kaldı';
+  }
+}
+
+void showAlertDialog(BuildContext context, String title, String desc) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (BuildContext context) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontFamily: "MontserratBold",
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              desc,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 15,
+                fontFamily: "MontserratMedium",
+              ),
+            ),
+            SizedBox(height: 20),
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                height: 50,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+                child: Text(
+                  "Tamam",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+String capitalize(String s) {
+  return s
+      .replaceAll(RegExp(' +'), ' ')
+      .split(' ')
+      .map(
+        (str) =>
+            str.isNotEmpty
+                ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
+                : '',
+      )
+      .join(' ');
+}
+
+String calculateDiscountedPrice(String priceStr, int discount) {
+  try {
+    // "35.245 TL" -> "35245"
+    final cleanStr = priceStr.replaceAll(".", "").replaceAll(" TL", "");
+    final originalPrice = int.parse(cleanStr);
+    final discountedPrice = (originalPrice * (100 - discount) / 100).round();
+    return "${_formatPrice(discountedPrice)} TL";
+  } catch (e) {
+    return priceStr; // Hatalıysa orijinal fiyatı döndür
+  }
+}
+
+String _formatPrice(int value) {
+  final str = value.toString();
+  final buffer = StringBuffer();
+  for (int i = 0; i < str.length; i++) {
+    final reversedIndex = str.length - i - 1;
+    buffer.write(str[i]);
+    if (reversedIndex % 3 == 0 && i != str.length - 1) {
+      buffer.write(".");
+    }
+  }
+  return buffer.toString();
+}
+
+void sendRequest(String otpCode, String phoneNumber) async {
+  String xml =
+      """<?xml version="1.0"?><mainbody><header><usercode>3326062598</usercode><password>BursCity42@</password><msgheader>TurqApp</msgheader></header><body><msg><![CDATA[$otpCode TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>$phoneNumber</no></body></mainbody>""";
+
+  Uri url = Uri.parse("https://api.netgsm.com.tr/sms/send/otp");
+  try {
+    var response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/xml'},
+      body: utf8.encode(xml),
+    );
+
+    if (response.statusCode == 200) {
+      print("NETGSM ${utf8.decode(response.bodyBytes)}");
+      print("OTPFROMNETGSM $otpCode");
+    } else {
+      print("Error: ${response.statusCode}");
+    }
+  } catch (error) {
+    print("Error: $error");
+  }
+}
+
+void closeKeyboard(BuildContext context) {
+  FocusScopeNode currentFocus = FocusScope.of(context);
+
+  if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+    currentFocus.focusedChild!.unfocus();
+  }
+}
+
+int generateRandomNumber(int min, int max) {
+  final random = Random();
+  return min + random.nextInt(max - min);
+}
+
+String getMusicNameFromURL(String url) {
+  if (url.isEmpty) {
+    return "Her anına uygun müzik, Spotify’da!";
+  }
+
+  Uri uri = Uri.parse(url);
+  return uri.pathSegments.isNotEmpty
+      ? uri.pathSegments.last
+          .replaceAll("storymusics/", "")
+          .replaceAll("GecmisMuzikler/", "")
+          .replaceAll("demovideos/", "")
+          .replaceAll("shorts/", "")
+          .replaceAll(".mp3", "")
+          .replaceAll(".m4a", "")
+          .replaceAll(".mp4", "")
+      : "Her anına uygun müzik, Spotify’da!";
+}

@@ -1,0 +1,396 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ──────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
+    }
+
+    // ──────────────────────────────────────────────
+    // USERS
+    // ──────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+
+      // Takipciler (followers)
+      match /Takipciler/{followerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth();
+        allow delete: if isAuth() && (request.auth.uid == followerId || request.auth.uid == uid);
+      }
+
+      // TakipEdilenler (following)
+      match /TakipEdilenler/{followingId} {
+        allow read: if isAuth();
+        allow create, update: if isOwner(uid);
+        allow delete: if isOwner(uid);
+      }
+
+      // Notifications
+      match /notifications/{notifId} {
+        allow read: if isOwner(uid);
+        allow create: if isAuth();
+        allow update, delete: if isOwner(uid);
+      }
+
+      // User interaction subcollections
+      match /liked_posts/{postId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+      match /saved_posts/{postId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+      match /commented_posts/{postId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+      match /reshared_posts/{postId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+
+      // DeletedStories archive
+      match /DeletedStories/{storyId} {
+        allow read: if isOwner(uid);
+        allow write: if false; // Admin SDK only
+      }
+
+      // Stats (follow rate limiting)
+      match /Stats/{statId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Analytics subcollections
+      match /{analyticsCollection}/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // POSTS
+    // ──────────────────────────────────────────────
+    match /Posts/{postId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth();
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      // Likes
+      match /likes/{likeId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth();
+        allow delete: if isAuth() && request.auth.uid == likeId;
+      }
+
+      // Comments
+      match /comments/{commentId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update: if isAuth() && resource.data.userID == request.auth.uid;
+        allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+        // Sub-comments (replies)
+        match /sub_comments/{replyId} {
+          allow read: if isAuth();
+          allow create: if isAuth();
+          allow update: if isAuth() && resource.data.userID == request.auth.uid;
+          allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+        }
+      }
+
+      // Saveds
+      match /saveds/{savedId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && request.auth.uid == savedId;
+      }
+
+      // Reshares
+      match /reshares/{reshareId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && request.auth.uid == reshareId;
+      }
+
+      // Reporters
+      match /reporters/{reporterId} {
+        allow read: if false;
+        allow create: if isAuth() && request.auth.uid == reporterId;
+        allow delete: if false;
+      }
+
+      // Viewers
+      match /viewers/{viewerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth();
+        allow delete: if false;
+      }
+      match /Viewers/{viewerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth();
+        allow delete: if false;
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // STORIES
+    // ──────────────────────────────────────────────
+    match /Stories/{storyId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+
+      match /likes/{likeId} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
+      match /viewers/{viewerId} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
+    }
+    match /stories/{storyId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // CHAT / MESSAGING
+    // ──────────────────────────────────────────────
+    match /Chat/{chatId} {
+      allow read, write: if isAuth();
+    }
+    match /Mesajlar/{chatId} {
+      allow read, write: if isAuth();
+      match /Chat/{msgId} {
+        allow read, write: if isAuth();
+      }
+    }
+
+    // ──────────────────────────────────────────────
+    // EDUCATION
+    // ──────────────────────────────────────────────
+    match /SoruBankasi/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+      match /{sub=**} {
+        allow read, write: if isAuth();
+      }
+    }
+    match /BireyselBurslar/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /Testler/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+      match /{sub=**} {
+        allow read, write: if isAuth();
+      }
+    }
+    match /Sinavlar/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+      match /{sub=**} {
+        allow read, write: if isAuth();
+      }
+    }
+    match /CikmisSorular/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /CikmisSorularGecmisi/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /KitapcikCevaplari/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /CevapAnahtarlari/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /Sorular/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /OptikKodlar/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /Kitapciklar/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /SinaviBitenler/{docId} {
+      allow read, write: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // JOBS
+    // ──────────────────────────────────────────────
+    match /IsBul/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /SavedIsBul/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /OzelDersVerenler/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // NOTIFICATIONS
+    // ──────────────────────────────────────────────
+    match /Bildirimler/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // REPORTING
+    // ──────────────────────────────────────────────
+    match /Sikayetler/{docId} {
+      allow read: if false;
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+    match /Basvurular/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // ADMIN / CONFIG
+    // ──────────────────────────────────────────────
+    // NOTE: Firestore rules path parser can fail on non-ASCII path literals.
+    // Keep support for "Yönetim" collection via wildcard segment match.
+    match /{adminCollection}/{docId} {
+      allow read: if isAuth() && adminCollection == "Yönetim";
+      allow write: if false; // Admin SDK only
+    }
+    match /adminConfig/{docId} {
+      allow read: if isAuth();
+      allow write: if false; // Admin SDK only
+    }
+    match /Analytics/{docId} {
+      allow read: if false;
+      allow write: if isAuth();
+    }
+
+    // ──────────────────────────────────────────────
+    // PHONE ACCOUNTS (from phone_accounts.rules)
+    // ──────────────────────────────────────────────
+    match /PhoneAccounts/{phone} {
+      allow read: if false;
+
+      function isSelfAdd(prev, next) {
+        return next.count == prev.count + 1
+          && !(request.auth.uid in prev.accounts)
+          && (request.auth.uid in next.accounts)
+          && next.accounts.size() == prev.accounts.size() + 1
+          && (next.limit == prev.limit || next.limit == null)
+          && next.count <= (prev.limit != null ? prev.limit : 5);
+      }
+      function isSelfRemove(prev, next) {
+        return next.count == prev.count - 1
+          && (request.auth.uid in prev.accounts)
+          && !(request.auth.uid in next.accounts)
+          && next.accounts.size() == prev.accounts.size() - 1
+          && (next.limit == prev.limit || next.limit == null)
+          && next.count >= 0;
+      }
+
+      allow create: if isAuth()
+        && request.resource.data.count == 1
+        && request.resource.data.accounts.size() == 1
+        && (request.auth.uid in request.resource.data.accounts)
+        && (request.resource.data.limit == null || request.resource.data.limit >= 1)
+        && request.resource.data.phone == phone;
+      allow update: if isAuth()
+        && (isSelfAdd(resource.data, request.resource.data)
+            || isSelfRemove(resource.data, request.resource.data));
+      allow delete: if false;
+    }
+
+    // ──────────────────────────────────────────────
+    // MISCELLANEOUS
+    // ──────────────────────────────────────────────
+    match /Hashtags/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /tags/{docId} {
+      allow read: if isAuth();
+      allow write: if false;
+      match /posts/{postId} {
+        allow read: if isAuth();
+        allow write: if false;
+      }
+    }
+    match /HashTags/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /TurqAppVerified/{docId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+    match /SosyalMedyaLinkleri/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /Sosyal/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /Applications/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /CV/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /HiddenPosts/{docId} {
+      allow read: if false;
+      allow write: if isAuth();
+    }
+    match /ProfileVisits/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /Saved/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /Yanitlar/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /Yorumlar/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+    match /usernames/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if false;
+    }
+    match /Cevaplayanlar/{docId} {
+      allow read, write: if isAuth();
+    }
+    match /List/{docId} {
+      allow read: if isAuth();
+      allow write: if isAuth();
+    }
+  }
+}

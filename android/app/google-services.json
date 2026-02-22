@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "7235832399",
+    "project_id": "turqappteknoloji",
+    "storage_bucket": "turqappteknoloji.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:7235832399:android:f5b07965c1cb59db8ff83a",
+        "android_client_info": {
+          "package_name": "com.turqapp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6I8_TtqE8iMARFZClNIxjlEnmi3-hhOI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

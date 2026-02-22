@@ -1,0 +1,3894 @@
+[
+  {
+    "il": "Adana",
+    "ilce": "Aladağ"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Ceyhan"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Çukurova"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Feke"
+  },
+  {
+    "il": "Adana",
+    "ilce": "İmamoğlu"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Karaisalı"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Karataş"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Kozan"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Pozantı"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Saimbeyli"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Sarıçam"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Seyhan"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Tufanbeyli"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Yumurtalık"
+  },
+  {
+    "il": "Adana",
+    "ilce": "Yüreğir"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Besni"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Çelikhan"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Gerger"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Gölbaşı"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Kahta"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Samsat"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Sincik"
+  },
+  {
+    "il": "Adıyaman",
+    "ilce": "Tut"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Başmakçı"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Bayat"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Bolvadin"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Çay"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Çobanlar"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Dazkırı"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Dinar"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Emirdağ"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Evciler"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Hocalar"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "İhsaniye"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "İscehisar"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Kızılören"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Sandıklı"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Sinanpaşa"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Sultandağı"
+  },
+  {
+    "il": "Afyonkarahisar",
+    "ilce": "Şuhut"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Diyadin"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Doğubayazıt"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Eleşkirt"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Hamur"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Patnos"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Taşlıçay"
+  },
+  {
+    "il": "Ağrı",
+    "ilce": "Tutak"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Ağaçören"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Eskil"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Gülağaç"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Güzelyurt"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Ortaköy"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Sarıyahşi"
+  },
+  {
+    "il": "Aksaray",
+    "ilce": "Sultanhanı"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Göynücek"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Gümüşhacıköy"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Hamamözü"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Merzifon"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Suluova"
+  },
+  {
+    "il": "Amasya",
+    "ilce": "Taşova"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Akyurt"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Altındağ"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Ayaş"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Bala"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Beypazarı"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Çamlıdere"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Çankaya"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Çubuk"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Elmadağ"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Etimesgut"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Evren"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Gölbaşı"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Güdül"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Haymana"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Kahramankazan"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Kalecik"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Keçiören"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Kızılcahamam"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Mamak"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Nallıhan"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Polatlı"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Pursaklar"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Sincan"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Şereflikoçhisar"
+  },
+  {
+    "il": "Ankara",
+    "ilce": "Yenimahalle"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Akseki"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Aksu"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Alanya"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Demre"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Döşemealtı"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Elmalı"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Finike"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Gazipaşa"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Gündoğmuş"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "İbradi"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Kaş"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Kemer"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Kepez"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Konyaaltı"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Korkuteli"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Kumluca"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Manavgat"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Muratpaşa"
+  },
+  {
+    "il": "Antalya",
+    "ilce": "Serik"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Çıldır"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Damal"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Göle"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Hanak"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Ardahan",
+    "ilce": "Posof"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Ardanuç"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Arhavi"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Borçka"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Hopa"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Kemalpaşa"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Murgul"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Şavşat"
+  },
+  {
+    "il": "Artvin",
+    "ilce": "Yusufeli"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Bozdoğan"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Buharkent"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Çine"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Didim"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Efeler"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Germencik"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "İncirliova"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Karacasu"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Karpuzlu"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Koçarlı"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Köşk"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Kuşadası"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Kuyucak"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Nazilli"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Söke"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Sultanhisar"
+  },
+  {
+    "il": "Aydın",
+    "ilce": "Yenipazar"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Altıeylül"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Ayvalık"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Balya"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Bandırma"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Bigadiç"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Burhaniye"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Dursunbey"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Edremit"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Erdek"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Gömeç"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Gönen"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Havran"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "İvrindi"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Karesi"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Kepsut"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Manyas"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Marmara"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Savaştepe"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Sındırgı"
+  },
+  {
+    "il": "Balıkesir",
+    "ilce": "Susurluk"
+  },
+  {
+    "il": "Bartın",
+    "ilce": "Amasra"
+  },
+  {
+    "il": "Bartın",
+    "ilce": "Kurucaşile"
+  },
+  {
+    "il": "Bartın",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bartın",
+    "ilce": "Ulus"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Beşiri"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Gercüş"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Hasankeyf"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Kozluk"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Batman",
+    "ilce": "Sason"
+  },
+  {
+    "il": "Bayburt",
+    "ilce": "Aydıntepe"
+  },
+  {
+    "il": "Bayburt",
+    "ilce": "Demirözü"
+  },
+  {
+    "il": "Bayburt",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Bozüyük"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Gölpazarı"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "İnhisar"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Osmaneli"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Pazaryeri"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Söğüt"
+  },
+  {
+    "il": "Bilecik",
+    "ilce": "Yenipazar"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Adaklı"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Genç"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Karlıova"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Kiğı"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Solhan"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Yayladere"
+  },
+  {
+    "il": "Bingöl",
+    "ilce": "Yedisu"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Adilcevaz"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Ahlat"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Güroymak"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Hizan"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Mutki"
+  },
+  {
+    "il": "Bitlis",
+    "ilce": "Tatvan"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Dörtdivan"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Gerede"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Göynük"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Kıbrıscık"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Mengen"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Mudurnu"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Seben"
+  },
+  {
+    "il": "Bolu",
+    "ilce": "Yeniçağa"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Ağlasun"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Altınyayla"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Bucak"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Çavdır"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Çeltikçi"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Gölhisar"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Karamanlı"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Kemer"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Tefenni"
+  },
+  {
+    "il": "Burdur",
+    "ilce": "Yeşilova"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Büyükorhan"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Gemlik"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Gürsu"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Harmancık"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "İnegöl"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "İznik"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Karacabey"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Keles"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Kestel"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "M.Kemalpaşa"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Mudanya"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Nilüfer"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Orhaneli"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Orhangazi"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Osmangazi"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Yenişehir"
+  },
+  {
+    "il": "Bursa",
+    "ilce": "Yıldırım"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Ayvacık"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Bayramiç"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Biga"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Bozcaada"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Çan"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Eceabat"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Ezine"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Gelibolu"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Gökçeada"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Lapseki"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Çanakkale",
+    "ilce": "Yenice"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Atkaracalar"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Bayramören"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Çerkeş"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Eldivan"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Ilgaz"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Kızılırmak"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Korgun"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Kurşunlu"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Orta"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Şabanözü"
+  },
+  {
+    "il": "Çankırı",
+    "ilce": "Yapraklı"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Alaca"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Bayat"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Boğazkale"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Dodurga"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "İskilip"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Kargı"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Laçin"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Mecitözü"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Oğuzlar"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Ortaköy"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Osmancık"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Sungurlu"
+  },
+  {
+    "il": "Çorum",
+    "ilce": "Uğurludağ"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Acıpayam"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Babadağ"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Baklan"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Bekilli"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Beyağaç"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Bozkurt"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Buldan"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Çal"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Çameli"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Çardak"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Çivril"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Güney"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Honaz"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Kale"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Merkezefendi"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Pamukkale"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Sarayköy"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Serinhisar"
+  },
+  {
+    "il": "Denizli",
+    "ilce": "Tavas"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Bağlar"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Bismil"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Çermik"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Çınar"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Çüngüş"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Dicle"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Eğil"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Ergani"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Hani"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Hazro"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Kayapınar"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Kocaköy"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Kulp"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Lice"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Silvan"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Sur"
+  },
+  {
+    "il": "Diyarbakır",
+    "ilce": "Yenişehir"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Akçakoca"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Cumayeri"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Çilimli"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Gölyaka"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Gümüşova"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Kaynaşlı"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Düzce",
+    "ilce": "Yığılca"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Enez"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Havsa"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "İpsala"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Keşan"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Lalapaşa"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Meriç"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Süloğlu"
+  },
+  {
+    "il": "Edirne",
+    "ilce": "Uzunköprü"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Ağın"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Alacakaya"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Arıcak"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Baskil"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Karakoçan"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Keban"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Kovancılar"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Maden"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Palu"
+  },
+  {
+    "il": "Elazığ",
+    "ilce": "Sivrice"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Çayırlı"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "İliç"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Kemah"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Kemaliye"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Otlukbeli"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Refahiye"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Tercan"
+  },
+  {
+    "il": "Erzincan",
+    "ilce": "Üzümlü"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Aşkale"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Aziziye"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Çat"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Hınıs"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Horasan"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "İspir"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Karaçoban"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Karayazı"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Köprüköy"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Narman"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Oltu"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Olur"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Palandöken"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Pasinler"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Pazaryolu"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Şenkaya"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Tekman"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Tortum"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Uzundere"
+  },
+  {
+    "il": "Erzurum",
+    "ilce": "Yakutiye"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Alpu"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Beylikova"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Çifteler"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Günyüzü"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Han"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "İnönü"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Mahmudiye"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Mihalgazi"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Mihalıççık"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Odunpazarı"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Sarıcakaya"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Seyitgazi"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Sivrihisar"
+  },
+  {
+    "il": "Eskişehir",
+    "ilce": "Tepebaşı"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Araban"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "İslahiye"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Karkamış"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Nizip"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Nurdağı"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Oğuzeli"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Şahinbey"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Şehitkamil"
+  },
+  {
+    "il": "Gaziantep",
+    "ilce": "Yavuzeli"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Alucra"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Bulancak"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Çamoluk"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Çanakçı"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Dereli"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Doğankent"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Espiye"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Eynesil"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Görele"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Güce"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Keşap"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Piraziz"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Şebinkarahisar"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Tirebolu"
+  },
+  {
+    "il": "Giresun",
+    "ilce": "Yağlıdere"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Kelkit"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Köse"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Kürtün"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Şiran"
+  },
+  {
+    "il": "Gümüşhane",
+    "ilce": "Torul"
+  },
+  {
+    "il": "Hakkari",
+    "ilce": "Çukurca"
+  },
+  {
+    "il": "Hakkari",
+    "ilce": "Derecik"
+  },
+  {
+    "il": "Hakkari",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Hakkari",
+    "ilce": "Şemdinli"
+  },
+  {
+    "il": "Hakkari",
+    "ilce": "Yüksekova"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Altınözü"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Antakya"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Arsuz"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Belen"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Defne"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Dörtyol"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Erzin"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Hassa"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "İskenderun"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Kırıkhan"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Kumlu"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Payas"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Reyhanlı"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Samandağ"
+  },
+  {
+    "il": "Hatay",
+    "ilce": "Yayladağı"
+  },
+  {
+    "il": "Iğdır",
+    "ilce": "Aralık"
+  },
+  {
+    "il": "Iğdır",
+    "ilce": "Karakoyunlu"
+  },
+  {
+    "il": "Iğdır",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Iğdır",
+    "ilce": "Tuzluca"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Aksu"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Atabey"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Eğirdir"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Gelendost"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Gönen"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Keçiborlu"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Senirkent"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Sütçüler"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Şarkikaraağaç"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Uluborlu"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Yalvaç"
+  },
+  {
+    "il": "Isparta",
+    "ilce": "Yenişarbademli"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Adalar"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Arnavutköy"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Ataşehir"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Avcılar"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Bağcılar"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Bahçelievler"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Bakırköy"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Başakşehir"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Bayrampaşa"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Beşiktaş"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Beykoz"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Beylikdüzü"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Beyoğlu"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Büyükçekmece"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Çatalca"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Çekmeköy"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Esenler"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Esenyurt"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Eyüpsultan"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Fatih"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Gaziosmanpaşa"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Güngören"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Kadıköy"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Kağıthane"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Kartal"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Küçükçekmece"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Maltepe"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Pendik"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Sancaktepe"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Sarıyer"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Silivri"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Sultanbeyli"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Sultangazi"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Şile"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Şişli"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Tuzla"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Ümraniye"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Üsküdar"
+  },
+  {
+    "il": "İstanbul",
+    "ilce": "Zeytinburnu"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Aliağa"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Balçova"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Bayındır"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Bayraklı"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Bergama"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Beydağ"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Bornova"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Buca"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Çeşme"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Çiğli"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Dikili"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Foça"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Gaziemir"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Güzelbahçe"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Karabağlar"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Karaburun"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Karşıyaka"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Kemalpaşa"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Kınık"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Kiraz"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Konak"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Menderes"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Menemen"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Narlıdere"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Ödemiş"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Seferihisar"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Selçuk"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Tire"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Torbalı"
+  },
+  {
+    "il": "İzmir",
+    "ilce": "Urla"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Afşin"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Andırın"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Çağlayancerit"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Dulkadiroğlu"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Ekinözü"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Elbistan"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Göksun"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Nurhak"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Onikişubat"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Pazarcık"
+  },
+  {
+    "il": "Kahramanmaraş",
+    "ilce": "Türkoğlu"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Eflani"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Eskipazar"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Ovacık"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Safranbolu"
+  },
+  {
+    "il": "Karabük",
+    "ilce": "Yenice"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Ayrancı"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Başyayla"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Ermenek"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Kazımkarabekir"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Karaman",
+    "ilce": "Sarıveliler"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Akyaka"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Arpaçay"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Digor"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Kağızman"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Sarıkamış"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Selim"
+  },
+  {
+    "il": "Kars",
+    "ilce": "Susuz"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Abana"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Ağlı"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Araç"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Azdavay"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Bozkurt"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Cide"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Çatalzeytin"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Daday"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Devrekani"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Doğanyurt"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Hanönü"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "İhsangazi"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "İnebolu"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Küre"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Pınarbaşı"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Seydiler"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Şenpazar"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Taşköprü"
+  },
+  {
+    "il": "Kastamonu",
+    "ilce": "Tosya"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Akkışla"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Bünyan"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Develi"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Felahiye"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Hacılar"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "İncesu"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Kocasinan"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Melikgazi"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Özvatan"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Pınarbaşı"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Sarıoğlan"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Sarız"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Talas"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Tomarza"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Yahyalı"
+  },
+  {
+    "il": "Kayseri",
+    "ilce": "Yeşilhisar"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Bahşılı"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Balışeyh"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Çelebi"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Delice"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Karakeçili"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Keskin"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Sulakyurt"
+  },
+  {
+    "il": "Kırıkkale",
+    "ilce": "Yahşihan"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Babaeski"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Demirköy"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Kofçaz"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Lüleburgaz"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Pehlivanköy"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Pınarhisar"
+  },
+  {
+    "il": "Kırklareli",
+    "ilce": "Vize"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Akçakent"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Akpınar"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Boztepe"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Çiçekdağı"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Kaman"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kırşehir",
+    "ilce": "Mucur"
+  },
+  {
+    "il": "Kilis",
+    "ilce": "Elbeyli"
+  },
+  {
+    "il": "Kilis",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kilis",
+    "ilce": "Musabeyli"
+  },
+  {
+    "il": "Kilis",
+    "ilce": "Polateli"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Başiskele"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Çayırova"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Darıca"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Derince"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Dilovası"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Gebze"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Gölcük"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "İzmit"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Kandıra"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Karamürsel"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Kartepe"
+  },
+  {
+    "il": "Kocaeli",
+    "ilce": "Körfez"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Ahırlı"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Akören"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Akşehir"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Altınekin"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Beyşehir"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Bozkır"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Cihanbeyli"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Çeltik"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Çumra"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Derbent"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Derebucak"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Doğanhisar"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Emirgazi"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Ereğli"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Güneysınır"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Hadim"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Halkapınar"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Hüyük"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Ilgın"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Kadınhanı"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Karapınar"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Karatay"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Kulu"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Meram"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Sarayönü"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Selçuklu"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Seydişehir"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Taşkent"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Tuzlukçu"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Yalıhüyük"
+  },
+  {
+    "il": "Konya",
+    "ilce": "Yunak"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Altıntaş"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Aslanapa"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Çavdarhisar"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Domaniç"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Dumlupınar"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Emet"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Gediz"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Hisarcık"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Pazarlar"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Simav"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Şaphane"
+  },
+  {
+    "il": "Kütahya",
+    "ilce": "Tavşanlı"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Akçadağ"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Arapgir"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Arguvan"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Battalgazi"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Darende"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Doğanşehir"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Doğanyol"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Hekimhan"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Kale"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Kuluncak"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Pütürge"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Yazıhan"
+  },
+  {
+    "il": "Malatya",
+    "ilce": "Yeşilyurt"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Ahmetli"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Akhisar"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Alaşehir"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Demirci"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Gölmarmara"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Gördes"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Kırkağaç"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Köprübaşı"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Kula"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Salihli"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Sarıgöl"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Saruhanlı"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Selendi"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Soma"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Şehzadeler"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Turgutlu"
+  },
+  {
+    "il": "Manisa",
+    "ilce": "Yunusemre"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Artuklu"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Dargeçit"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Derik"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Kızıltepe"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Mazıdağı"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Midyat"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Nusaybin"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Ömerli"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Savur"
+  },
+  {
+    "il": "Mardin",
+    "ilce": "Yeşilli"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Akdeniz"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Anamur"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Aydıncık"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Bozyazı"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Çamlıyayla"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Erdemli"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Gülnar"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Mezitli"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Mut"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Silifke"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Tarsus"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Toroslar"
+  },
+  {
+    "il": "Mersin",
+    "ilce": "Yenişehir"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Bodrum"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Dalaman"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Datça"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Fethiye"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Kavaklıdere"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Köyceğiz"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Marmaris"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Menteşe"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Milas"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Ortaca"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Seydikemer"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Ula"
+  },
+  {
+    "il": "Muğla",
+    "ilce": "Yatağan"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Bulanık"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Hasköy"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Korkut"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Malazgirt"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Muş",
+    "ilce": "Varto"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Acıgöl"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Avanos"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Derinkuyu"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Gülşehir"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Hacıbektaş"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Kozaklı"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Nevşehir",
+    "ilce": "Ürgüp"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Altunhisar"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Bor"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Çamardı"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Çiftlik"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Niğde",
+    "ilce": "Ulukışla"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Akkuş"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Altınordu"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Aybastı"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Çamaş"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Çatalpınar"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Çaybaşı"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Fatsa"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Gölköy"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Gülyalı"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Gürgentepe"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "İkizce"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Kabadüz"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Kabataş"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Korgan"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Kumru"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Mesudiye"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Perşembe"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Ulubey"
+  },
+  {
+    "il": "Ordu",
+    "ilce": "Ünye"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Bahçe"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Düziçi"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Hasanbeyli"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Kadirli"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Sumbas"
+  },
+  {
+    "il": "Osmaniye",
+    "ilce": "Toprakkale"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Ardeşen"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Çamlıhemşin"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Çayeli"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Derepazarı"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Fındıklı"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Güneysu"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Hemşin"
+  },
+  {
+    "il": "Rize",
+    "ilce": "İkizdere"
+  },
+  {
+    "il": "Rize",
+    "ilce": "İyidere"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Kalkandere"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Rize",
+    "ilce": "Pazar"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Adapazarı"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Akyazı"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Arifiye"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Erenler"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Ferizli"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Geyve"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Hendek"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Karapürçek"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Karasu"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Kaynarca"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Kocaali"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Pamukova"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Sapanca"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Serdivan"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Söğütlü"
+  },
+  {
+    "il": "Sakarya",
+    "ilce": "Taraklı"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "19 Mayıs"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Alaçam"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Asarcık"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Atakum"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Ayvacık"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Bafra"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Canik"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Çarşamba"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Havza"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "İlkadım"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Kavak"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Ladik"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Salıpazarı"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Tekkeköy"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Terme"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Vezirköprü"
+  },
+  {
+    "il": "Samsun",
+    "ilce": "Yakakent"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Baykan"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Eruh"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Kurtalan"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Pervari"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Şirvan"
+  },
+  {
+    "il": "Siirt",
+    "ilce": "Tillo"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Ayancık"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Boyabat"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Dikmen"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Durağan"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Erfelek"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Gerze"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Saraydüzü"
+  },
+  {
+    "il": "Sinop",
+    "ilce": "Türkeli"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Akıncılar"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Altınyayla"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Divriği"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Doğanşar"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Gemerek"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Gölova"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Gürün"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Hafik"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "İmranlı"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Kangal"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Koyulhisar"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Suşehri"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Şarkışla"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Ulaş"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Yıldızeli"
+  },
+  {
+    "il": "Sivas",
+    "ilce": "Zara"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Akçakale"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Birecik"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Bozova"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Ceylanpınar"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Eyyübiye"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Halfeti"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Haliliye"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Harran"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Hilvan"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Karaköprü"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Siverek"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Suruç"
+  },
+  {
+    "il": "Şanlıurfa",
+    "ilce": "Viranşehir"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Beytüşşebap"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Cizre"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Güçlükonak"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "İdil"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Silopi"
+  },
+  {
+    "il": "Şırnak",
+    "ilce": "Uludere"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Çerkezköy"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Çorlu"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Ergene"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Hayrabolu"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Kapaklı"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Malkara"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Marmaraereğlisi"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Muratlı"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Saray"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Süleymanpaşa"
+  },
+  {
+    "il": "Tekirdağ",
+    "ilce": "Şarköy"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Almus"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Artova"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Başçiftlik"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Erbaa"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Niksar"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Pazar"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Reşadiye"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Sulusaray"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Turhal"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Yeşilyurt"
+  },
+  {
+    "il": "Tokat",
+    "ilce": "Zile"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Akçaabat"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Araklı"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Arsin"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Beşikdüzü"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Çarşıbaşı"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Çaykara"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Dernekpazarı"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Düzköy"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Hayrat"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Köprübaşı"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Maçka"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Of"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Ortahisar"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Sürmene"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Şalpazarı"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Tonya"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Vakfıkebir"
+  },
+  {
+    "il": "Trabzon",
+    "ilce": "Yomra"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Çemişgezek"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Hozat"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Mazgirt"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Nazımiye"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Ovacık"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Pertek"
+  },
+  {
+    "il": "Tunceli",
+    "ilce": "Pülümür"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Banaz"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Eşme"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Karahallı"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Sivaslı"
+  },
+  {
+    "il": "Uşak",
+    "ilce": "Ulubey"
+  },
+  {
+    "il": "Van",
+    "ilce": "Bahçesaray"
+  },
+  {
+    "il": "Van",
+    "ilce": "Başkale"
+  },
+  {
+    "il": "Van",
+    "ilce": "Çaldıran"
+  },
+  {
+    "il": "Van",
+    "ilce": "Çatak"
+  },
+  {
+    "il": "Van",
+    "ilce": "Edremit"
+  },
+  {
+    "il": "Van",
+    "ilce": "Erciş"
+  },
+  {
+    "il": "Van",
+    "ilce": "Gevaş"
+  },
+  {
+    "il": "Van",
+    "ilce": "Gürpınar"
+  },
+  {
+    "il": "Van",
+    "ilce": "İpekyolu"
+  },
+  {
+    "il": "Van",
+    "ilce": "Muradiye"
+  },
+  {
+    "il": "Van",
+    "ilce": "Özalp"
+  },
+  {
+    "il": "Van",
+    "ilce": "Saray"
+  },
+  {
+    "il": "Van",
+    "ilce": "Tuşba"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Altınova"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Armutlu"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Çınarcık"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Çiftlikköy"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Yalova",
+    "ilce": "Termal"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Akdağmadeni"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Aydıncık"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Boğazlıyan"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Çandır"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Çayıralan"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Çekerek"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Kadışehri"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Merkez"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Saraykent"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Sarıkaya"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Sorgun"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Şefaatli"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Yenifakılı"
+  },
+  {
+    "il": "Yozgat",
+    "ilce": "Yerköy"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Alaplı"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Çaycuma"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Devrek"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Ereğli"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Gökçebey"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Kilimli"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Kozlu"
+  },
+  {
+    "il": "Zonguldak",
+    "ilce": "Merkez"
+  }
+]
