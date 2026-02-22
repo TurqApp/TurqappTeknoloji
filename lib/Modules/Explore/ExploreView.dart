@@ -15,6 +15,7 @@ import '../../Services/FirebaseMyStore.dart';
 import '../Agenda/TagPosts/TagMediaWidgets.dart';
 import '../Agenda/TagPosts/TagPosts.dart';
 import '../Agenda/FloodListing/FloodListing.dart';
+import 'SearchedUser/SearchUserContent.dart';
 import 'ExploreController.dart';
 
 class StaggeredTile {
@@ -109,8 +110,13 @@ class ExploreView extends StatelessWidget {
                                           fontSize: 15,
                                           fontFamily: "MontserratMedium"),
                                       onChanged: (v) {
+                                        controller.searchText.value = v;
                                         if (v.isEmpty) {
                                           controller.searchedList.clear();
+                                          controller.searchedHashtags.clear();
+                                          controller.searchedTags.clear();
+                                          controller.showAllRecent.value =
+                                              false;
                                         } else {
                                           controller.search(v);
                                         }
@@ -127,6 +133,11 @@ class ExploreView extends StatelessWidget {
                             onTap: () {
                               controller.searchFocus.unfocus();
                               controller.searchController.clear();
+                              controller.searchText.value = "";
+                              controller.searchedList.clear();
+                              controller.searchedHashtags.clear();
+                              controller.searchedTags.clear();
+                              controller.showAllRecent.value = false;
                               controller.isKeyboardOpen.value = false;
                               closeKeyboard(context);
                             },
@@ -507,86 +518,74 @@ class ExploreView extends StatelessWidget {
                     )
                   else
                     Expanded(
-                        child: ListView.builder(
-                      itemCount: controller.searchedList.length,
-                      itemBuilder: (context, index) {
-                        final user = controller.searchedList[index];
-                        return TextButton(
-                          style: TextButton.styleFrom(
-                            padding:
-                                EdgeInsets.zero, // Varsayılan padding'i kaldır
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero),
-                            backgroundColor:
-                                Colors.transparent, // Arka plan yok
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: () {
-                            Get.to(() => SocialProfile(userID: user.userID));
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 15, vertical: 7),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    ClipOval(
-                                      child: SizedBox(
-                                        width: 40,
-                                        height: 40,
-                                        child: CachedNetworkImage(
-                                          imageUrl: user.pfImage,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                "${user.firstName} ${user.lastName}",
-                                                style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 13,
-                                                    fontFamily:
-                                                        "MontserratBold"),
-                                              ),
-                                              RozetContent(
-                                                  size: 15, userID: user.userID)
-                                            ],
+                      child: ListView(
+                        children: controller.searchText.value.trim().isEmpty
+                            ? [
+                                Obx(() {
+                                  final recent = user.lastSearchedUserList;
+                                  if (recent.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Column(
+                                    children: recent
+                                        .map(
+                                          (m) => SearchUserContent(
+                                            model: m,
+                                            isSearch: false,
                                           ),
-                                          Text(
-                                            user.nickname,
-                                            style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 13,
-                                                fontFamily: "MontserratMedium"),
-                                          )
-                                        ],
-                                      ),
-                                    )
-                                  ],
+                                        )
+                                        .toList(),
+                                  );
+                                }),
+                              ]
+                            : [
+                                ...controller.searchedHashtags.map((tag) {
+                            final title = "#${tag.hashtag}";
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(CupertinoIcons.number,
+                                  color: Colors.black87, size: 20),
+                              title: Text(
+                                title,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontFamily: "MontserratSemiBold",
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 50),
-                                  child: SizedBox(
-                                    height: 2,
-                                    child: Divider(
-                                        color: Colors.grey.withAlpha(20)),
+                              ),
+                              onTap: () => Get.to(() => TagPosts(tag: tag.hashtag)),
+                              trailing: const Icon(CupertinoIcons.arrow_turn_up_left,
+                                  color: Colors.black45, size: 18),
+                            );
+                          }),
+                                ...controller.searchedTags.map((tag) {
+                            final title = tag.hashtag;
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(CupertinoIcons.tag,
+                                  color: Colors.black87, size: 20),
+                              title: Text(
+                                title,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontFamily: "MontserratSemiBold",
+                                ),
+                              ),
+                              onTap: () => Get.to(() => TagPosts(tag: tag.hashtag)),
+                              trailing: const Icon(CupertinoIcons.arrow_turn_up_left,
+                                  color: Colors.black45, size: 18),
+                            );
+                          }),
+                                ...controller.searchedList.map(
+                                  (u) => SearchUserContent(
+                                    model: u,
+                                    isSearch: true,
                                   ),
                                 )
                               ],
-                            ),
-                          ),
-                        );
-                      },
-                    ))
+                      ),
+                    )
                 ],
               );
             }),

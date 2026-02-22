@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Models/HashtagModel.dart';
 import 'package:turqappv2/Models/OgrenciModel.dart';
@@ -16,7 +18,11 @@ class ExploreController extends GetxController {
 
   final TextEditingController searchController = TextEditingController();
   final FocusNode searchFocus = FocusNode();
+  RxString searchText = "".obs;
   RxList<OgrenciModel> searchedList = <OgrenciModel>[].obs;
+  RxList<HashtagModel> searchedHashtags = <HashtagModel>[].obs;
+  RxList<HashtagModel> searchedTags = <HashtagModel>[].obs;
+  RxBool showAllRecent = false.obs;
   RxBool isKeyboardOpen = false.obs;
   final scrollController = ScrollController();
   RxList<HashtagModel> trendingTags = <HashtagModel>[].obs;
@@ -60,6 +66,7 @@ class ExploreController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _applyUserCacheQuota();
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
     fetchTrendingTags();
     fetchExplorePosts(); // İlk sekme hızlı açılsın
@@ -121,12 +128,35 @@ class ExploreController extends GetxController {
 
       if (isKeyboardOpen.value == false) {
         searchController.clear();
+        searchText.value = "";
+        searchedList.clear();
+        searchedHashtags.clear();
+        searchedTags.clear();
+        showAllRecent.value = false;
       }
 
       if (searchFocus.hasFocus == false) {
         searchController.clear();
+        searchText.value = "";
+        searchedList.clear();
+        searchedHashtags.clear();
+        searchedTags.clear();
+        showAllRecent.value = false;
       }
     });
+  }
+
+  Future<void> _applyUserCacheQuota() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
+      final quotaGb = savedGb.clamp(2, 5);
+      if (Get.isRegistered<SegmentCacheManager>()) {
+        await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
+      }
+    } catch (e) {
+      print('Explore cache quota apply error: $e');
+    }
   }
 
   void _bindFollowingListener() {
@@ -498,7 +528,8 @@ class ExploreController extends GetxController {
             postCount: exploreFloods.length,
             feedMode: 'explore_flood',
           );
-          print('[FLOODS] serverQuery page=${pagesFetched + 1} fetched=${snap.docs.length}');
+          print(
+              '[FLOODS] serverQuery page=${pagesFetched + 1} fetched=${snap.docs.length}');
         } catch (e) {
           // Fallback: client-side filtre
           print('[FLOODS] server filter failed; fallback. err=$e');
@@ -517,7 +548,8 @@ class ExploreController extends GetxController {
             postCount: exploreFloods.length,
             feedMode: 'explore_flood_fallback',
           );
-          print('[FLOODS] fallback page=${pagesFetched + 1} fetched=${snap.docs.length}');
+          print(
+              '[FLOODS] fallback page=${pagesFetched + 1} fetched=${snap.docs.length}');
         }
         if (snap.docs.isEmpty) {
           noMoreServerPages = true;
@@ -563,7 +595,8 @@ class ExploreController extends GetxController {
         final beforePrivacy = batch.length;
         batch = await _filterByPrivacy(batch);
         final removedByPrivacy = beforePrivacy - batch.length;
-        print('[FLOODS] keptAfterFilters=${batch.length} notRoot=$notRoot noMedia=$noMedia notSeries=$notSeries dup=$duplicates removedByTimeOrDeleted=$removedByTimeOrDeleted removedByPrivacy=$removedByPrivacy');
+        print(
+            '[FLOODS] keptAfterFilters=${batch.length} notRoot=$notRoot noMedia=$noMedia notSeries=$notSeries dup=$duplicates removedByTimeOrDeleted=$removedByTimeOrDeleted removedByPrivacy=$removedByPrivacy');
         if (batch.isNotEmpty) {
           batch.shuffle();
           accumulated.addAll(batch);
@@ -580,13 +613,15 @@ class ExploreController extends GetxController {
         exploreFloods.addAll(prioritized);
         _floodsEmptyScans = 0;
         floodsHasMore.value = !noMoreServerPages; // sunucu bitti mi?
-        print('[FLOODS] appended=${accumulated.length} total=${exploreFloods.length} hasMore=${floodsHasMore.value}');
+        print(
+            '[FLOODS] appended=${accumulated.length} total=${exploreFloods.length} hasMore=${floodsHasMore.value}');
       } else {
         _floodsEmptyScans++;
         if (_floodsEmptyScans >= 2 || noMoreServerPages) {
           floodsHasMore.value = false;
         }
-        print('[FLOODS] no new items. emptyScans=$_floodsEmptyScans hasMore=${floodsHasMore.value}');
+        print(
+            '[FLOODS] no new items. emptyScans=$_floodsEmptyScans hasMore=${floodsHasMore.value}');
       }
     } catch (e) {
       print("fetchfloods error: $e");
@@ -662,6 +697,100 @@ class ExploreController extends GetxController {
     return sorted;
   }
 
+  Future<dynamic> _callTypesenseCallable(
+      String callableName, Map<String, dynamic> payload) async {
+    final targets = <FirebaseFunctions>[
+      FirebaseFunctions.instance,
+      FirebaseFunctions.instanceFor(region: 'us-central1'),
+      FirebaseFunctions.instanceFor(region: 'europe-west1'),
+    ];
+
+    Object? lastError;
+    for (final fn in targets) {
+      try {
+        final result = await fn.httpsCallable(callableName).call(payload);
+        return result.data;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError ?? Exception('typesense_callable_failed');
+  }
+
+  Future<void> search(String query) async {
+    final nick = query.trim();
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+    if (nick.isEmpty) {
+      searchedList.clear();
+      searchedHashtags.clear();
+      searchedTags.clear();
+      showAllRecent.value = false;
+      return;
+    }
+
+    try {
+      final results = await Future.wait([
+        _callTypesenseCallable('f15_searchTagsCallable', {
+          'q': nick,
+          'limit': 20,
+          'page': 1,
+        }),
+        if (nick.length >= 2)
+          _callTypesenseCallable('f15_searchUsersCallable', {
+            'q': nick,
+            'limit': 20,
+            'page': 1,
+          })
+        else
+          Future.value({'hits': []}),
+      ]);
+
+      final tagData = (results[0] as Map?) ?? {};
+      final userData = (results[1] as Map?) ?? {};
+
+      final rawTagHits = (tagData['hits'] as List?) ?? const [];
+      final rawUserHits = (userData['hits'] as List?) ?? const [];
+
+      final allTagHits = rawTagHits
+          .whereType<Map>()
+          .map((e) {
+            final tag = (e['tag'] ?? '').toString().trim();
+            final count = (e['count'] as num?) ?? 0;
+            final hasHashtag = e['hasHashtag'] == true;
+            return HashtagModel(
+              hashtag: tag,
+              count: count,
+              hasHashtag: hasHashtag,
+            );
+          })
+          .where((e) => e.hashtag.isNotEmpty)
+          .toList();
+
+      searchedHashtags.value =
+          allTagHits.where((e) => e.hasHashtag).take(3).toList();
+      searchedTags.value = allTagHits.where((e) => !e.hasHashtag).take(3).toList();
+
+      final users = <OgrenciModel>[];
+      for (final row in rawUserHits.whereType<Map>()) {
+        final uid = (row['id'] ?? '').toString();
+        if (uid.isEmpty || uid == currentUserId) continue;
+        users.add(OgrenciModel(
+          userID: uid,
+          nickname: (row['nickname'] ?? '').toString(),
+          firstName: (row['firstName'] ?? '').toString(),
+          lastName: (row['lastName'] ?? '').toString(),
+          pfImage: (row['pfImage'] ?? '').toString(),
+        ));
+      }
+      searchedList.value = users;
+    } catch (e) {
+      print("❌ Typesense arama hatası: $e");
+      searchedList.clear();
+      searchedHashtags.clear();
+      searchedTags.clear();
+    }
+  }
+
   @override
   void onClose() {
     exploreScroll.dispose();
@@ -672,63 +801,13 @@ class ExploreController extends GetxController {
     pageController.dispose();
     super.onClose();
   }
-
-  Future<void> search(String nick) async {
-    final lowerQuery = searchController.text.toLowerCase();
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isGreaterThanOrEqualTo: nick)
-          .limit(5)
-          .get();
-      final List<OgrenciModel> temp = [];
-
-      for (var doc in snap.docs) {
-        if (!doc.exists) continue;
-        final data = doc.data();
-
-        // Zorunlu alanlar kontrolü
-        final nick = (data["nickname"] ?? "").toString().toLowerCase();
-        final first = (data["firstName"] ?? "").toString().toLowerCase();
-        final last = (data["lastName"] ?? "").toString().toLowerCase();
-        final fullName = "$first $last";
-
-        if (doc.id == currentUserId) continue;
-        print("bulundu $nick");
-        if (nick.contains(lowerQuery) ||
-            first.contains(lowerQuery) ||
-            last.contains(lowerQuery) ||
-            fullName.contains(lowerQuery)) {
-          temp.add(OgrenciModel(
-            userID: doc.id,
-            nickname: data["nickname"] ?? "",
-            firstName: data["firstName"] ?? "",
-            lastName: data["lastName"] ?? "",
-            pfImage: data["pfImage"] ?? "",
-          ));
-        }
-      }
-
-      searchedList.value = temp;
-    } catch (e) {
-      print("❌ Arama hatası: $e");
-      searchedList.clear();
-    }
-  }
-
   void goToPage(int index) {
     selection.value = index;
     if (index == 0 && trendingTags.isEmpty) {
       fetchTrendingTags();
-    } else if (index == 1 &&
-        explorePosts.isEmpty &&
-        !exploreIsLoading.value) {
+    } else if (index == 1 && explorePosts.isEmpty && !exploreIsLoading.value) {
       fetchExplorePosts();
-    } else if (index == 2 &&
-        exploreFloods.isEmpty &&
-        !floodsIsLoading.value) {
+    } else if (index == 2 && exploreFloods.isEmpty && !floodsIsLoading.value) {
       fetchFloods();
     }
 
