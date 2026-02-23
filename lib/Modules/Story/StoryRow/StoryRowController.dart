@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../Core/Services/PerformanceService.dart';
+import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Services/FirebaseMyStore.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/StoryModel.dart';
@@ -16,6 +21,8 @@ class StoryRowController extends GetxController {
   final int fullLimit = 100;
   bool _backgroundScheduled = false;
   final RxBool isLoading = false.obs;
+  static const Duration _miniCacheTtl = Duration(minutes: 45);
+  String? _miniCachePath;
 
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
@@ -31,6 +38,8 @@ class StoryRowController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    unawaited(_initMiniCache());
+    unawaited(_loadStoriesFromMiniCache());
     // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
     _bindFollowingListener();
     // Arka planda tam listeyi genişlet (düşük öncelik)
@@ -114,6 +123,10 @@ class StoryRowController extends GetxController {
     try {
       if (!silentLoad) {
         isLoading.value = true;
+      }
+      if (!ContentPolicy.isConnected) {
+        await _loadStoriesFromMiniCache(allowExpired: true);
+        return;
       }
       final lim = limit ?? initialLimit;
 
@@ -291,7 +304,6 @@ class StoryRowController extends GetxController {
           }
         }
 
-        print("✅ All stories seen for ${u.nickname} (Controller)");
         return true; // Tüm hikayeler izlenmiş
       }
 
@@ -309,6 +321,7 @@ class StoryRowController extends GetxController {
         ...unseen,
         ...seen,
       ];
+      unawaited(_saveStoriesToMiniCache(users));
 
       // Kendi süresi dolmuş hikayelerini arşivle ve kaldır
       if (myUid != null) {
@@ -316,6 +329,9 @@ class StoryRowController extends GetxController {
       }
     } catch (e) {
       print("📚 LoadStories error: $e");
+      if (users.isEmpty) {
+        await _loadStoriesFromMiniCache(allowExpired: true);
+      }
     } finally {
       loadWatch.stop();
       if (cacheFirst) {
@@ -330,12 +346,80 @@ class StoryRowController extends GetxController {
     }
   }
 
+  Future<void> _initMiniCache() async {
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final storyDir = Directory('${dir.path}/story_mini_cache');
+      if (!await storyDir.exists()) {
+        await storyDir.create(recursive: true);
+      }
+      _miniCachePath = '${storyDir.path}/story_row.json';
+    } catch (e) {
+      print('Story mini cache init error: $e');
+    }
+  }
+
+  Future<void> _saveStoriesToMiniCache(List<StoryUserModel> list) async {
+    if (list.isEmpty) return;
+    if (_miniCachePath == null) await _initMiniCache();
+    final path = _miniCachePath;
+    if (path == null) return;
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final payload = {
+        'savedAt': now,
+        'users': list.map((u) => u.toCacheMap()).toList(),
+      };
+      final file = File(path);
+      final tmp = File('$path.tmp');
+      await tmp.writeAsString(jsonEncode(payload), flush: true);
+      await tmp.rename(file.path);
+    } catch (e) {
+      print('Story mini cache save error: $e');
+    }
+  }
+
+  Future<void> _loadStoriesFromMiniCache({bool allowExpired = false}) async {
+    if (_miniCachePath == null) await _initMiniCache();
+    final path = _miniCachePath;
+    if (path == null) return;
+    try {
+      final file = File(path);
+      if (!await file.exists()) return;
+      final raw = await file.readAsString();
+      if (raw.trim().isEmpty) return;
+      final data = jsonDecode(raw);
+      if (data is! Map) return;
+      final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
+      if (!allowExpired && savedAt > 0) {
+        final age = DateTime.now()
+            .difference(DateTime.fromMillisecondsSinceEpoch(savedAt));
+        if (age > _miniCacheTtl) return;
+      }
+      final usersJson =
+          (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final loaded = usersJson
+          .map(StoryUserModel.fromCacheMap)
+          .where((u) => u.userID.isNotEmpty)
+          .toList();
+      if (loaded.isNotEmpty) {
+        users.assignAll(loaded);
+      }
+    } catch (e) {
+      print('Story mini cache load error: $e');
+    }
+  }
+
   void _scheduleBackgroundFullLoad() {
     if (_backgroundScheduled) return;
+    if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) return;
     _backgroundScheduled = true;
-    Future.delayed(const Duration(seconds: 2), () async {
+    Future.delayed(const Duration(seconds: 12), () async {
       try {
-        await loadStories(limit: fullLimit);
+        if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.story)) {
+          return;
+        }
+        await loadStories(limit: fullLimit, silentLoad: true);
       } catch (_) {}
       _backgroundScheduled = false;
     });

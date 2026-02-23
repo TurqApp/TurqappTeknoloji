@@ -14,4 +14,24 @@ class StoryUserModel {
     required this.userID,
     required this.stories,
   });
+
+  Map<String, dynamic> toCacheMap() => {
+        'nickname': nickname,
+        'pfImage': pfImage,
+        'fullName': fullName,
+        'userID': userID,
+        'stories': stories.map((e) => e.toCacheMap()).toList(),
+      };
+
+  factory StoryUserModel.fromCacheMap(Map<String, dynamic> map) {
+    final rawStories =
+        (map['stories'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    return StoryUserModel(
+      nickname: (map['nickname'] ?? '').toString(),
+      pfImage: (map['pfImage'] ?? '').toString(),
+      fullName: (map['fullName'] ?? '').toString(),
+      userID: (map['userID'] ?? '').toString(),
+      stories: rawStories.map(StoryModel.fromCacheMap).toList(),
+    );
+  }
 }

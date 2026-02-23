@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,9 @@ import 'package:turqappv2/Models/PostsModel.dart';
 import 'package:turqappv2/Services/FirebaseMyStore.dart';
 import 'package:turqappv2/Services/ReshareHelper.dart';
 import '../../Core/Services/VideoStateManager.dart';
+import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
+import '../../Core/Services/IndexPool/index_pool_store.dart';
+import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../NavBar/NavBarController.dart';
 import 'AgendaContent/AgendaContentController.dart';
 
@@ -27,6 +31,9 @@ class AgendaController extends GetxController {
   final pauseAll = false.obs;
   late NavBarController navBarController;
   final RxSet<String> highlightDocIDs = <String>{}.obs;
+  Timer? _visibilityDebounce;
+  Timer? _feedPrefetchDebounce;
+  final Map<int, double> _visibleFractions = <int, double>{};
 
   // Video içerik ekrana sadece HLS hazır olduğunda düşsün.
   bool _isRenderablePost(PostsModel post) {
@@ -47,6 +54,7 @@ class AgendaController extends GetxController {
     final follows = followingIDs.contains(post.userID);
     return isMine || follows;
   }
+
   final RxSet<String> followingIDs = <String>{}.obs;
   final RxMap<String, int> myReshares =
       <String, int>{}.obs; // postID -> reshare timestamp
@@ -68,7 +76,12 @@ class AgendaController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Main.dart'ta zaten postlar yüklendiği için burada yükleme yapma
+    // Liste boşsa ilk yüklemeyi geciktirmeden başlat.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (agendaList.isEmpty && !isLoading.value) {
+        unawaited(fetchAgendaBigData(initial: true));
+      }
+    });
     scrollController.addListener(_onScroll);
     navBarController = Get.find<NavBarController>();
     myStore = Get.find<FirebaseMyStore>();
@@ -92,6 +105,7 @@ class AgendaController extends GetxController {
           videoManager.playOnlyThis(firstPost.docID);
         }
       }
+      _scheduleFeedPrefetch();
     });
   }
 
@@ -121,14 +135,86 @@ class AgendaController extends GetxController {
           videoManager.pauseAllVideos();
         }
       }
+
+      _scheduleFeedPrefetch();
     });
+  }
+
+  void _scheduleFeedPrefetch() {
+    _feedPrefetchDebounce?.cancel();
+    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 220), () {
+      _updateFeedPrefetchQueue();
+    });
+  }
+
+  void _updateFeedPrefetchQueue() {
+    if (agendaList.isEmpty) return;
+    final videoPosts = agendaList.where((p) => p.hasPlayableVideo).toList();
+    if (videoPosts.isEmpty) return;
+
+    final int safeCurrent = centeredIndex.value < 0
+        ? 0
+        : centeredIndex.value.clamp(0, videoPosts.length - 1);
+    final docIds = videoPosts.map((p) => p.docID).toList();
+
+    try {
+      Get.find<PrefetchScheduler>().updateFeedQueue(docIds, safeCurrent);
+    } catch (_) {}
+  }
+
+  /// Uygulama açıkken dışarıdan tetiklenen hafif cache ısınması.
+  void ensureFeedCacheWarm() {
+    _scheduleFeedPrefetch();
   }
 
   @override
   void onClose() {
+    _visibilityDebounce?.cancel();
+    _feedPrefetchDebounce?.cancel();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
     super.onClose();
+  }
+
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (modelIndex < 0 || modelIndex >= agendaList.length) return;
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+    }
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(const Duration(milliseconds: 120), () {
+      _applyVisibilityDecision();
+    });
+  }
+
+  void _applyVisibilityDecision() {
+    final current = centeredIndex.value;
+    int bestIndex = -1;
+    double bestFraction = 0.0;
+
+    _visibleFractions.forEach((idx, fraction) {
+      if (fraction > bestFraction) {
+        bestFraction = fraction;
+        bestIndex = idx;
+      }
+    });
+
+    // Ekranda en görünür post oynasın.
+    // Header + padding nedeniyle 0.55 pratik ve stabil eşik.
+    if (bestIndex >= 0 && bestFraction >= 0.55) {
+      if (current != bestIndex) {
+        centeredIndex.value = bestIndex;
+        lastCenteredIndex = bestIndex;
+      }
+      return;
+    }
+
+    // Hiçbir post yeterince görünmüyorsa durdur.
+    if (current != -1 && (bestIndex == -1 || bestFraction < 0.20)) {
+      centeredIndex.value = -1;
+    }
   }
 
   void _bindFollowingListener() {
@@ -234,6 +320,7 @@ class AgendaController extends GetxController {
     }
     if (unique.isNotEmpty) {
       agendaList.addAll(unique);
+      _scheduleFeedPrefetch();
     }
   }
 
@@ -338,8 +425,8 @@ class AgendaController extends GetxController {
         // print("quick cache fill error: $e");
       }
 
-      // İlk yüklemede reshare eventlerini de getir
-      await _fetchAndMergeReshareEvents();
+      // İlk yüklemede reshare eventlerini arka planda getir (feed'i bloklamasın)
+      unawaited(_fetchAndMergeReshareEvents());
     }
 
     // Eğer shuffle edilmiş postlar varsa onlardan devam et
@@ -397,6 +484,7 @@ class AgendaController extends GetxController {
       // Yazarların gizlilik durumlarını çek ve gizli profilleri filtrele
       final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
       Map<String, bool> userPrivacy = {};
+      Map<String, Map<String, dynamic>> userMeta = {};
       if (uniqueUserIDs.isNotEmpty) {
         // whereIn 10 eleman sınırı — fetchLimit zaten 10
         final usersSnap = await FirebaseFirestore.instance
@@ -404,8 +492,10 @@ class AgendaController extends GetxController {
             .where(FieldPath.documentId, whereIn: uniqueUserIDs)
             .get();
         for (final d in usersSnap.docs) {
-          final gizli = (d.data()['gizliHesap'] ?? false) == true;
+          final data = d.data();
+          final gizli = (data['gizliHesap'] ?? false) == true;
           userPrivacy[d.id] = gizli;
+          userMeta[d.id] = data;
         }
       }
 
@@ -425,6 +515,7 @@ class AgendaController extends GetxController {
       lastDoc = snap.docs.isNotEmpty ? snap.docs.last : null;
 
       if (visibleItems.isNotEmpty) {
+        unawaited(_saveFeedPostsToPool(visibleItems, userMeta));
         // Yeni eklenecekler içinde "zamanlıydı ve yeni görünür oldu" olanları vurgula
         final existingIDs = agendaList.map((e) => e.docID).toSet();
         final toAdd = <PostsModel>[];
@@ -475,6 +566,9 @@ class AgendaController extends GetxController {
 
   // Cache-first: başlangıçta cache'te varsa hızlıca ilk 10 gönderiyi doldur
   Future<void> _tryQuickFillFromCache() async {
+    await _tryQuickFillFromPool();
+    if (agendaList.isNotEmpty) return;
+
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     Query query = FirebaseFirestore.instance
         .collection("Posts")
@@ -529,8 +623,10 @@ class AgendaController extends GetxController {
         filtered.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
-      // Fetch reshare events for quick cache items as well
-      fetchResharesForPosts(toAdd, perPostLimit: 1);
+      // Reshare'leri gecikmeli getir (açılışta bant genişliğini kritik sorgulara bırak)
+      Future.delayed(const Duration(seconds: 2), () {
+        fetchResharesForPosts(toAdd, perPostLimit: 1);
+      });
 
       // 🎯 INSTAGRAM STYLE: Cache'den yüklendiğinde de ilk videoyu centered yap
       if (agendaList.isNotEmpty) {
@@ -544,8 +640,179 @@ class AgendaController extends GetxController {
     }
   }
 
+  Future<void> _tryQuickFillFromPool() async {
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    final pool = Get.find<IndexPoolStore>();
+    final fromPool = await pool.loadPosts(
+      IndexPoolKind.feed,
+      limit: ContentPolicy.feedInitialFromPool,
+    );
+    if (fromPool.isEmpty) return;
+
+    // Pool'dan gelen postları validasyonsuz hızlıca göster.
+    // Basit senkron filtre: silinmiş/gizlenmiş postları çıkar.
+    final quickFiltered = fromPool.where((post) {
+      if (hiddenPosts.contains(post.docID)) return false;
+      if (post.deletedPost == true) return false;
+      if (!_isRenderablePost(post)) return false;
+      return true;
+    }).toList();
+
+    if (quickFiltered.isEmpty) return;
+
+    _addUniqueToAgenda(quickFiltered);
+
+    // Arka planda: validasyon + gizlilik kontrolü + reshare
+    unawaited(_postPoolFillCleanup(fromPool, quickFiltered));
+
+    if (agendaList.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          centeredIndex.value = 0;
+          lastCenteredIndex = 0;
+        }
+      });
+    }
+  }
+
+  /// Pool fill sonrası arka planda: validasyon, gizlilik prune, reshare fetch
+  Future<void> _postPoolFillCleanup(
+      List<PostsModel> originalPool, List<PostsModel> shown) async {
+    try {
+      // Validasyon: silinmiş/arşivlenmiş postları pool'dan temizle
+      final valid = await _validatePoolPostsAndPrune(originalPool);
+      final validIds = valid.map((p) => p.docID).toSet();
+
+      // Toplu gizlilik kontrolü (whereIn ile, tek tek değil)
+      final uniqueUserIDs = valid.map((e) => e.userID).toSet().toList();
+      final Map<String, bool> userPrivacy = {};
+      for (final chunk in _chunkList(uniqueUserIDs, 10)) {
+        try {
+          final usersSnap = await FirebaseFirestore.instance
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+          for (final d in usersSnap.docs) {
+            final gizli = (d.data()['gizliHesap'] ?? false) == true;
+            userPrivacy[d.id] = gizli;
+            _userPrivacyCache[d.id] = gizli;
+          }
+        } catch (_) {}
+      }
+
+      final String? me = FirebaseAuth.instance.currentUser?.uid;
+
+      // Gösterilen ama aslında geçersiz/gizli olan postları feed'den kaldır
+      final toRemove = <String>[];
+      for (final post in shown) {
+        if (!validIds.contains(post.docID)) {
+          toRemove.add(post.docID);
+          continue;
+        }
+        final isPrivate = userPrivacy[post.userID] ?? false;
+        if (isPrivate) {
+          final isMine = me != null && post.userID == me;
+          final follows = followingIDs.contains(post.userID);
+          if (!isMine && !follows) {
+            toRemove.add(post.docID);
+          }
+        }
+      }
+
+      if (toRemove.isNotEmpty) {
+        agendaList.removeWhere((p) => toRemove.contains(p.docID));
+      }
+
+      // Reshare'leri gecikmeli getir (bant genişliği çakışmasını önle)
+      Future.delayed(const Duration(seconds: 2), () {
+        fetchResharesForPosts(
+            agendaList.take(10).toList(), perPostLimit: 1);
+      });
+    } catch (_) {}
+  }
+
+  Future<List<PostsModel>> _validatePoolPostsAndPrune(
+      List<PostsModel> posts) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+
+    final postIds =
+        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
+    final userIds =
+        posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
+
+    final validPostIds = <String>{};
+    for (final chunk in _chunkList(postIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('Posts')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      for (final d in snap.docs) {
+        final data = d.data();
+        final deleted = (data['deletedPost'] ?? false) == true;
+        final archived = (data['arsiv'] ?? false) == true;
+        final timeStamp =
+            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
+        if (!deleted && !archived && timeStamp <= nowMs) {
+          validPostIds.add(d.id);
+        }
+      }
+    }
+
+    final validUserIds = <String>{};
+    for (final chunk in _chunkList(userIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in snap.docs) {
+        validUserIds.add(d.id);
+      }
+    }
+
+    final valid = posts
+        .where((p) =>
+            validPostIds.contains(p.docID) && validUserIds.contains(p.userID))
+        .toList();
+    if (valid.length == posts.length) return valid;
+
+    final invalidIds = posts
+        .where((p) =>
+            !validPostIds.contains(p.docID) || !validUserIds.contains(p.userID))
+        .map((p) => p.docID)
+        .toList();
+    if (invalidIds.isNotEmpty && Get.isRegistered<IndexPoolStore>()) {
+      await Get.find<IndexPoolStore>()
+          .removePosts(IndexPoolKind.feed, invalidIds);
+    }
+
+    return valid;
+  }
+
+  Future<void> _saveFeedPostsToPool(
+    List<PostsModel> posts,
+    Map<String, Map<String, dynamic>> userMeta,
+  ) async {
+    if (posts.isEmpty) return;
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    await Get.find<IndexPoolStore>().savePosts(
+      IndexPoolKind.feed,
+      posts,
+      userMeta: userMeta,
+    );
+  }
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
+  }
+
   Future<void> refreshAgenda() async {
-    print("refreshAgenda çağrıldı");
     isLoading.value = true;
     try {
       if (scrollController.hasClients) {
@@ -561,12 +828,9 @@ class AgendaController extends GetxController {
       // 🎯 INSTAGRAM STYLE: Refresh sırasında centered index'i sıfırla
       centeredIndex.value = -1;
 
-      print("agendaList temizlendi, refresh fetch başlıyor");
       await _fetchRefreshShuffledLast100();
       // Reshare eventlerini de dahil et
       await _fetchAndMergeReshareEvents();
-      print(
-          "fetchRandomizedAgendaData çağrısı bitti. agendaList uzunluk: ${agendaList.length}");
     } catch (e) {
       print("refreshAgenda error: $e");
     } finally {
@@ -597,8 +861,7 @@ class AgendaController extends GetxController {
         .get();
 
     final items = snap.docs
-        .map((doc) =>
-            PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
         .where((p) => p.timeStamp <= nowMs)
         .where((p) => p.deletedPost != true)
         .toList();
@@ -899,7 +1162,8 @@ class AgendaController extends GetxController {
 
       // Takip edilen kullanıcıların reshare eventleri
       if (followingIDs.isNotEmpty) {
-        for (final followedUserId in followingIDs.take(20)) { // İlk 20 takip edilen
+        for (final followedUserId in followingIDs.take(20)) {
+          // İlk 20 takip edilen
           try {
             final userReshareSnap = await FirebaseFirestore.instance
                 .collection('users')
@@ -935,15 +1199,15 @@ class AgendaController extends GetxController {
               );
             }
           } catch (e) {
-            debugPrint('Reshare fetch unexpected error user=$followedUserId: $e');
+            debugPrint(
+                'Reshare fetch unexpected error user=$followedUserId: $e');
           }
         }
       }
 
       // Reshare eventlerdeki postları getir ve feed reshare entries'e ekle
-      final Set<String> resharedPostIds = allReshareEvents
-          .map((e) => e['postID'] as String)
-          .toSet();
+      final Set<String> resharedPostIds =
+          allReshareEvents.map((e) => e['postID'] as String).toSet();
 
       if (resharedPostIds.isNotEmpty) {
         final List<String> postIdsList = resharedPostIds.toList();
@@ -1060,9 +1324,8 @@ class AgendaController extends GetxController {
           'originalUserID': post.originalUserID.isNotEmpty
               ? post.originalUserID
               : post.userID,
-          'originalPostID': post.originalPostID.isNotEmpty
-              ? post.originalPostID
-              : post.docID,
+          'originalPostID':
+              post.originalPostID.isNotEmpty ? post.originalPostID : post.docID,
         };
 
         // En üste ekle
@@ -1074,11 +1337,15 @@ class AgendaController extends GetxController {
   }
 
   // Scroll pozisyonunu koruyarak reshare entry ekle
-  Future<void> addNewReshareEntryWithoutScroll(String postId, String reshareUserID) async {
+  Future<void> addNewReshareEntryWithoutScroll(
+      String postId, String reshareUserID) async {
     try {
       // Mevcut scroll pozisyonunu kaydet
-      final currentOffset = scrollController.hasClients ? scrollController.offset : 0.0;
-      final currentPixelRange = scrollController.hasClients ? scrollController.position.maxScrollExtent : 0.0;
+      final currentOffset =
+          scrollController.hasClients ? scrollController.offset : 0.0;
+      final currentPixelRange = scrollController.hasClients
+          ? scrollController.position.maxScrollExtent
+          : 0.0;
 
       // İlgili post'u bul
       final post = agendaList.firstWhereOrNull((p) => p.docID == postId);
@@ -1121,9 +1388,8 @@ class AgendaController extends GetxController {
           'originalUserID': post.originalUserID.isNotEmpty
               ? post.originalUserID
               : post.userID,
-          'originalPostID': post.originalPostID.isNotEmpty
-              ? post.originalPostID
-              : post.docID,
+          'originalPostID':
+              post.originalPostID.isNotEmpty ? post.originalPostID : post.docID,
         };
 
         // En üste ekle
@@ -1142,7 +1408,6 @@ class AgendaController extends GetxController {
           );
         }
       });
-
     } catch (e) {
       print('addNewReshareEntryWithoutScroll error: $e');
     }
@@ -1160,5 +1425,4 @@ class AgendaController extends GetxController {
       print('removeReshareEntry error: $e');
     }
   }
-
 }

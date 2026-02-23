@@ -16,10 +16,10 @@ import 'package:turqappv2/Core/NotificationService.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Modules/Maintenance/MaintenanceView.dart';
 import 'package:turqappv2/Modules/NavBar/NavBarView.dart';
 import 'package:turqappv2/Modules/SignIn/SignIn.dart';
-import 'package:turqappv2/Themes/AppColors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -51,19 +51,14 @@ class SplashView extends StatefulWidget {
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView>
-    with SingleTickerProviderStateMixin {
-  static const Duration _syncStartupMaxWait = Duration(seconds: 6);
-  static const Duration _syncMinSplashDuration = Duration(milliseconds: 1800);
-  static const Duration _syncMinLaunchToNavDuration =
-      Duration(milliseconds: 5000);
-  static const int _minFeedPostsForNav = 6;
+class _SplashViewState extends State<SplashView> {
+  static const Duration _syncStartupMaxWait = Duration(milliseconds: 900);
+  static const Duration _syncMinSplashDuration = Duration(milliseconds: 120);
+  static const Duration _syncMinLaunchToNavDuration = Duration.zero;
+  static const int _minFeedPostsForNav = 3;
   static const int _minStoryUsersForNav = 1;
-  static const int _minShortsForNav = 3;
+  static const int _minShortsForNav = 1;
 
-  late final AnimationController _controller;
-  late final Animation<double> _scale;
-  late final Animation<double> _fade;
   bool _minimumStartupPrepared = false;
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
@@ -71,11 +66,6 @@ class _SplashViewState extends State<SplashView>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 2))
-          ..repeat(reverse: true);
-    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
     final splashInitDelta =
         DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
@@ -95,24 +85,40 @@ class _SplashViewState extends State<SplashView>
   Future<void> _initApp() async {
     final startupStopwatch = Stopwatch()..start();
     try {
-      // Firebase başlatımı artık runApp sonrasına taşındı.
-      await firebaseBootstrapFuture;
-
-      // Firestore settings ilk erişimden önce set edilmeli.
-      await FirestoreConfig.initialize();
+      // Firebase + SharedPreferences + AudioContext paralel başlat
+      // En yavaş olan toplam süreyi belirler (sıralı değil)
+      late final SharedPreferences prefs;
+      await Future.wait([
+        firebaseBootstrapFuture.then((_) => FirestoreConfig.initialize()),
+        SharedPreferences.getInstance().then((v) => prefs = v),
+        _initAudioContext().catchError((_) {}),
+      ]);
 
       // ⚡ Kalan işleri paralel başlat — en yavaş olan süreyi belirler
-      late final bool shouldLockApp;
+      bool shouldLockApp = false;
       late final bool isFirstLaunch;
       final userService = CurrentUserService.instance;
       Get.put(userService);
 
-      await Future.wait([
-        _initAudioContext(),
-        _handleFirstLaunchAuthCleanup().then((v) => isFirstLaunch = v),
-        _checkLockApp().then((v) => shouldLockApp = v),
-        userService.initialize(), // Cache'den ~10ms, sync arka planda
-      ]);
+      if (Platform.isIOS) {
+        // iOS'ta nav öncesi bloklamayı azalt:
+        // lock check + user init arka planda yürüsün.
+        unawaited(_checkLockApp(prefs: prefs).then((v) async {
+          if (!mounted) return;
+          if (v) {
+            Get.offAll(() => const MaintenanceView());
+          }
+        }));
+        isFirstLaunch = await _handleFirstLaunchAuthCleanup(prefs: prefs)
+            .timeout(const Duration(milliseconds: 350), onTimeout: () => false);
+        unawaited(userService.initialize());
+      } else {
+        await Future.wait([
+          _handleFirstLaunchAuthCleanup(prefs: prefs).then((v) => isFirstLaunch = v),
+          _checkLockApp(prefs: prefs).then((v) => shouldLockApp = v),
+          userService.initialize(), // Cache'den ~10ms, sync arka planda
+        ]);
+      }
 
       // 🔥 Bakım modu kontrolü
       if (shouldLockApp) {
@@ -127,8 +133,17 @@ class _SplashViewState extends State<SplashView>
       // Login kullanıcıda: feed açılmadan önce minimum hazırlık (timeout'lu)
       final bool loggedIn = FirebaseAuth.instance.currentUser != null;
       if (loggedIn) {
-        await _prepareSynchronizedStartupBeforeNav(
-            isFirstLaunch: isFirstLaunch);
+        if (Platform.isIOS) {
+          // iOS'ta açılışı bloklamayalım; veri hazırlığı arka planda sürsün.
+          _minimumStartupPrepared = true; // Çift tetiklemeyi engelle: _backgroundInit tekrar _runCriticalWarmStartLoads çağırmasın
+          unawaited(_prepareSynchronizedStartupBeforeNav(
+              isFirstLaunch: isFirstLaunch));
+        } else {
+          await Future.any([
+            _prepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch),
+            Future.delayed(const Duration(milliseconds: 700)),
+          ]);
+        }
       }
 
       // 🚀 Ağır işleri arka plana at — navigasyonu BLOKLAMA
@@ -162,15 +177,29 @@ class _SplashViewState extends State<SplashView>
       final bool loggedIn = FirebaseAuth.instance.currentUser != null;
       if (loggedIn) {
         // Kritik warm start: feed + story + önerilen kullanıcıları erken hazırla
+        // WiFi ve mobil veri fark etmez — _runCriticalWarmStartLoads içinde
+        // zaten onWiFi'ye göre limit ayarlanıyor.
         if (!_minimumStartupPrepared) {
-          Future.delayed(Duration(milliseconds: isFirstLaunch ? 250 : 600), () {
-            unawaited(_runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
-          });
+          final criticalDelay = Platform.isIOS
+              ? Duration.zero
+              : Duration(milliseconds: isFirstLaunch ? 250 : 600);
+          if (criticalDelay == Duration.zero) {
+            unawaited(
+                _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
+          } else {
+            Future.delayed(criticalDelay, () {
+              unawaited(
+                  _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
+            });
+          }
         }
 
         // Genişletilmiş warm start: kısa süre sonra derinleşsin
+        final bool onWiFi = _isOnWiFiNow();
         Future.delayed(Duration(seconds: isFirstLaunch ? 5 : 8), () {
-          unawaited(_runWarmStartLoads(isFirstLaunch: isFirstLaunch));
+          if (onWiFi) {
+            unawaited(_runWarmStartLoads(isFirstLaunch: isFirstLaunch));
+          }
         });
       }
 
@@ -265,9 +294,9 @@ class _SplashViewState extends State<SplashView>
   }
 
   void _registerDependencies() {
-    // Network & Offline servisleri
-    Get.put(NetworkAwarenessService());
-    Get.put(OfflineModeService.instance);
+    // Network & Offline servisleri — lazy: ilk erişimde init olur, navigasyonu bloklamaz
+    Get.lazyPut(() => NetworkAwarenessService());
+    Get.lazyPut(() => OfflineModeService.instance);
 
     Get.put(GlobalLoaderController());
     Get.put(FirebaseMyStore());
@@ -283,6 +312,9 @@ class _SplashViewState extends State<SplashView>
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController());
+    if (!Get.isRegistered<IndexPoolStore>()) {
+      Get.put(IndexPoolStore(), permanent: true);
+    }
   }
 
   Future<void> _runCriticalWarmStartLoads({required bool isFirstLaunch}) async {
@@ -292,44 +324,51 @@ class _SplashViewState extends State<SplashView>
       final agendaController = Get.find<AgendaController>();
       final recommended = Get.find<RecommendedUserListController>();
 
-      // İlk kurulumda daha küçük hedefle hızlı başlangıç
-      try {
-        final shorts = Get.find<ShortController>();
-        // Kritik: Short ekranına ilk girişte spinner dönmemesi için
-        // ilk batch + ilk birkaç adapter preload'u bekle.
-        await shorts.backgroundPreload().timeout(
-              Duration(seconds: onWiFi ? 4 : 2),
-              onTimeout: () {},
+      // Paralel: shorts + story + feed + recommended aynı anda başlasın
+      await Future.wait([
+        // Shorts
+        (() async {
+          try {
+            final shorts = Get.find<ShortController>();
+            await shorts.backgroundPreload().timeout(
+                  Duration(seconds: onWiFi ? 4 : 2),
+                  onTimeout: () {},
+                );
+            shorts.warmStart(
+              targetCount:
+                  onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
+              maxPages: onWiFi ? 2 : 1,
             );
-        shorts.warmStart(
-          targetCount:
-              onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
-          maxPages: onWiFi ? 2 : 1,
-        );
-      } catch (_) {}
-
-      await _forceLoadStoriesSync(
-        storyController,
-        limit: onWiFi ? (isFirstLaunch ? 20 : 30) : (isFirstLaunch ? 10 : 16),
-      );
-
-      try {
-        await agendaController
-            .fetchAgendaBigData(initial: true)
-            .timeout(const Duration(seconds: 3));
-        await _ensureMinimumFeedPosts(
-          agendaController,
-          minPosts: onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
-          maxExtraFetch: onWiFi ? 2 : 1,
-        );
-      } catch (_) {}
-
-      try {
-        await recommended.ensureLoaded(
-          limit:
-              onWiFi ? (isFirstLaunch ? 140 : 220) : (isFirstLaunch ? 80 : 120),
-        );
-      } catch (_) {}
+          } catch (_) {}
+        })(),
+        // Stories
+        _forceLoadStoriesSync(
+          storyController,
+          limit: onWiFi ? (isFirstLaunch ? 20 : 30) : (isFirstLaunch ? 10 : 16),
+        ),
+        // Feed
+        (() async {
+          try {
+            await agendaController
+                .fetchAgendaBigData(initial: true)
+                .timeout(const Duration(seconds: 3));
+            await _ensureMinimumFeedPosts(
+              agendaController,
+              minPosts: onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
+              maxExtraFetch: onWiFi ? 2 : 1,
+            );
+          } catch (_) {}
+        })(),
+        // Recommended users
+        (() async {
+          try {
+            await recommended.ensureLoaded(
+              limit:
+                  onWiFi ? (isFirstLaunch ? 140 : 220) : (isFirstLaunch ? 80 : 120),
+            );
+          } catch (_) {}
+        })(),
+      ]);
 
       // Açılışta profil isim/avatar geç gelmesin: hafif metadata + avatar warmup.
       unawaited(_warmUserMetaAndAvatars(
@@ -364,13 +403,13 @@ class _SplashViewState extends State<SplashView>
 
   Future<void> _prepareMinimumStartupBeforeNav(
       {required bool isFirstLaunch}) async {
-    const timeout = Duration(seconds: 5);
+    const timeout = Duration(milliseconds: 1000);
 
     try {
       await Future.any([
         _prepareMinimumStartupCore(
           isFirstLaunch: isFirstLaunch,
-          onWiFi: true,
+          onWiFi: _isOnWiFiNow(),
         ),
         Future.delayed(timeout),
       ]);
@@ -390,7 +429,9 @@ class _SplashViewState extends State<SplashView>
     debugPrint(
         '[StartupSync] phase=minimum_ready elapsed=${syncWatch.elapsedMilliseconds}ms');
 
-    await _waitForCriticalDataReadiness(timeout: _syncStartupMaxWait);
+    // Kritik veriyi nav öncesi bekletme: feed ekranı erkenden açılsın.
+    // Hazır olma kontrolü arka planda devam eder.
+    unawaited(_waitForCriticalDataReadiness(timeout: _syncStartupMaxWait));
     await _ensureMinLaunchToNavDuration();
     debugPrint(
         '[StartupSync] phase=critical_ready elapsed=${syncWatch.elapsedMilliseconds}ms');
@@ -448,19 +489,21 @@ class _SplashViewState extends State<SplashView>
     required bool isFirstLaunch,
     required bool onWiFi,
   }) async {
-    try {
-      await _initCacheProxy().timeout(
-        onWiFi ? const Duration(seconds: 3) : const Duration(seconds: 2),
-        onTimeout: () {},
-      );
-    } catch (_) {}
-
-    try {
-      await _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch).timeout(
-        onWiFi ? const Duration(seconds: 2) : const Duration(seconds: 1),
-        onTimeout: () {},
-      );
-    } catch (_) {}
+    // Paralel: cache proxy + warm start aynı anda başlasın
+    await Future.wait([
+      _initCacheProxy()
+          .timeout(
+            onWiFi ? const Duration(seconds: 3) : const Duration(seconds: 2),
+            onTimeout: () {},
+          )
+          .catchError((_) {}),
+      _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch)
+          .timeout(
+            onWiFi ? const Duration(seconds: 2) : const Duration(seconds: 1),
+            onTimeout: () {},
+          )
+          .catchError((_) {}),
+    ]);
   }
 
   Future<void> _ensureMinimumFeedPosts(
@@ -568,9 +611,8 @@ class _SplashViewState extends State<SplashView>
   /// This prevents auto-login when user deletes and reinstalls the app.
   /// Firebase Auth persists session in device keychain/keystore even after uninstall,
   /// but SharedPreferences gets cleared. We use this difference to detect fresh installs.
-  Future<bool> _handleFirstLaunchAuthCleanup() async {
+  Future<bool> _handleFirstLaunchAuthCleanup({required SharedPreferences prefs}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       const String firstLaunchKey = 'app_has_launched_before';
 
       final bool hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
@@ -610,19 +652,11 @@ class _SplashViewState extends State<SplashView>
   }
 
   /// 🔥 Early lockApp check - Debug/TestFlight bypass + cache
-  Future<bool> _checkLockApp() async {
+  Future<bool> _checkLockApp({required SharedPreferences prefs}) async {
     try {
       if (kDebugMode) return false;
 
-      // TestFlight kontrolü
-      final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      final bool isTestFlight = packageInfo.packageName.contains(".beta") ||
-          packageInfo.packageName.contains("TestFlight") ||
-          packageInfo.buildSignature.contains("TestFlight");
-      if (isTestFlight) return false;
-
-      // Cache'den hızlı karar — son 1 saat içinde kontrol edildiyse Firestore'a gitme
-      final prefs = await SharedPreferences.getInstance();
+      // Cache'den hızlı karar — PackageInfo platform channel çağrısından ÖNCE kontrol et
       final cachedLock = prefs.getBool('lockApp_cached');
       final cachedTime = prefs.getInt('lockApp_timestamp') ?? 0;
       final age = DateTime.now().millisecondsSinceEpoch - cachedTime;
@@ -633,6 +667,13 @@ class _SplashViewState extends State<SplashView>
         unawaited(_refreshLockAppCache(prefs));
         return !cachedLock;
       }
+
+      // Cache yoksa TestFlight kontrolü yap (PackageInfo platform channel çağrısı)
+      final PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      final bool isTestFlight = packageInfo.packageName.contains(".beta") ||
+          packageInfo.packageName.contains("TestFlight") ||
+          packageInfo.buildSignature.contains("TestFlight");
+      if (isTestFlight) return false;
 
       // Cache yok veya eski — Firestore'dan çek (timeout ile)
       final doc = await _getLockConfigDoc().timeout(const Duration(seconds: 3),
@@ -649,8 +690,7 @@ class _SplashViewState extends State<SplashView>
           'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
       return !lockApp;
     } on TimeoutException {
-      // Timeout — cache varsa kullan, yoksa aç
-      final prefs = await SharedPreferences.getInstance();
+      // Timeout — cache varsa kullan, yoksa aç (prefs zaten parametre olarak geldi)
       final cachedLock = prefs.getBool('lockApp_cached');
       return cachedLock != null ? !cachedLock : false;
     } catch (e) {
@@ -678,43 +718,22 @@ class _SplashViewState extends State<SplashView>
 
   @override
   void dispose() {
-    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primaryColor, AppColors.secondColor],
-          ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fade,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.95, end: 1.05).animate(_scale),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'TurqApp',
-                    style: TextStyle(
-                      fontFamily: 'Noe',
-                      fontSize: 36,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      backgroundColor: Colors.white,
+      body: const Center(
+        child: Text(
+          'TurqApp',
+          style: TextStyle(
+            // İlk frame'de özel font yükünü azalt.
+            fontFamily: 'MontserratBold',
+            fontSize: 36,
+            letterSpacing: 1.4,
+            color: Colors.black,
           ),
         ),
       ),

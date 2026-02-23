@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Models/HashtagModel.dart';
 import 'package:turqappv2/Models/OgrenciModel.dart';
@@ -69,7 +73,7 @@ class ExploreController extends GetxController {
     _applyUserCacheQuota();
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
     fetchTrendingTags();
-    fetchExplorePosts(); // İlk sekme hızlı açılsın
+    unawaited(_quickFillExploreFromPoolAndBootstrap());
     _bindFollowingListener();
     exploreScroll.addListener(() {
       if (exploreScroll.position.pixels >=
@@ -175,7 +179,7 @@ class ExploreController extends GetxController {
           .collection('TakipEdilenler')
           .get(); // ✅ get() instead of snapshots()
 
-      followingIDs.value = snap.docs.map((d) => d.id).toSet();
+      followingIDs.assignAll(snap.docs.map((d) => d.id).toSet());
     } catch (e) {
       print('Error fetching following IDs: $e');
     }
@@ -256,6 +260,7 @@ class ExploreController extends GetxController {
 
         final prioritized = _prioritizeCachedVideos(uniqueAccumulated);
         explorePosts.addAll(prioritized);
+        unawaited(_saveExplorePostsToPool(prioritized));
         _exploreEmptyScans = 0;
       } else if (pagesFetched >= maxPages && exploreHasMore.value) {
         exploreHasMore.value = false;
@@ -269,6 +274,109 @@ class ExploreController extends GetxController {
       print("fetchExplorePosts error: $e");
     }
     exploreIsLoading.value = false;
+  }
+
+  Future<void> _quickFillExploreFromPoolAndBootstrap() async {
+    await _tryQuickFillExploreFromPool();
+    if (explorePosts.isEmpty) {
+      await fetchExplorePosts();
+    } else {
+      unawaited(fetchExplorePosts());
+    }
+  }
+
+  Future<void> _tryQuickFillExploreFromPool() async {
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    final pool = Get.find<IndexPoolStore>();
+    final fromPool = await pool.loadPosts(
+      IndexPoolKind.explore,
+      limit: ContentPolicy.mobileWarmWindow,
+    );
+    if (fromPool.isEmpty) return;
+    final filtered = fromPool
+        .where((p) => p.hasPlayableVideo)
+        .where((p) => p.deletedPost != true)
+        .toList();
+    if (filtered.isEmpty) return;
+    final valid = await _validatePoolPostsAndPrune(filtered);
+    if (valid.isEmpty) return;
+    explorePosts.assignAll(valid);
+  }
+
+  Future<void> _saveExplorePostsToPool(List<PostsModel> posts) async {
+    if (posts.isEmpty) return;
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    await Get.find<IndexPoolStore>().savePosts(IndexPoolKind.explore, posts);
+  }
+
+  Future<List<PostsModel>> _validatePoolPostsAndPrune(
+      List<PostsModel> posts) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    if (!Get.isRegistered<IndexPoolStore>()) return posts;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final postIds =
+        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
+    final userIds =
+        posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
+
+    final validPostIds = <String>{};
+    for (final chunk in _chunkList(postIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('Posts')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in snap.docs) {
+        final data = d.data();
+        final deleted = (data['deletedPost'] ?? false) == true;
+        final archived = (data['arsiv'] ?? false) == true;
+        final ts =
+            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
+        if (!deleted && !archived && ts <= nowMs) {
+          validPostIds.add(d.id);
+        }
+      }
+    }
+
+    final validUserIds = <String>{};
+    for (final chunk in _chunkList(userIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in snap.docs) {
+        validUserIds.add(d.id);
+      }
+    }
+
+    final valid = posts
+        .where((p) =>
+            validPostIds.contains(p.docID) && validUserIds.contains(p.userID))
+        .toList();
+
+    if (valid.length != posts.length) {
+      final invalidIds = posts
+          .where((p) =>
+              !validPostIds.contains(p.docID) ||
+              !validUserIds.contains(p.userID))
+          .map((p) => p.docID)
+          .toList();
+      if (invalidIds.isNotEmpty) {
+        await Get.find<IndexPoolStore>()
+            .removePosts(IndexPoolKind.explore, invalidIds);
+      }
+    }
+    return valid;
+  }
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
   }
 
   Future<void> fetchTrendingTags() async {
@@ -768,7 +876,8 @@ class ExploreController extends GetxController {
 
       searchedHashtags.value =
           allTagHits.where((e) => e.hasHashtag).take(3).toList();
-      searchedTags.value = allTagHits.where((e) => !e.hasHashtag).take(3).toList();
+      searchedTags.value =
+          allTagHits.where((e) => !e.hasHashtag).take(3).toList();
 
       final users = <OgrenciModel>[];
       for (final row in rawUserHits.whereType<Map>()) {
@@ -801,6 +910,7 @@ class ExploreController extends GetxController {
     pageController.dispose();
     super.onClose();
   }
+
   void goToPage(int index) {
     selection.value = index;
     if (index == 0 && trendingTags.isEmpty) {

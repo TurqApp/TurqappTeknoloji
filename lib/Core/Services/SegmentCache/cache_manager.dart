@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/VideoRemoteConfigService.dart';
 
 import 'cache_metrics.dart';
@@ -33,6 +34,8 @@ class SegmentCacheManager extends GetxController {
 
   /// Son N oynatılan video — eviction'da korunur.
   final List<String> _recentlyPlayed = [];
+  final Map<String, double> _lastPersistedProgress = {};
+  final Map<String, DateTime> _lastPersistedProgressAt = {};
 
   /// Başlatma: cache dizinini oluştur, index'i disk'ten yükle, recovery çalıştır.
   Future<void> init() async {
@@ -40,7 +43,8 @@ class SegmentCacheManager extends GetxController {
     _cacheDir = '${appDir.path}/hls_cache';
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
-    await _recoverIndex();
+    // Recovery pahalı olabildiği için açılışı bloklamadan arka planda çalıştır.
+    unawaited(_recoverIndex());
     metrics.startPeriodicLog();
   }
 
@@ -69,20 +73,15 @@ class SegmentCacheManager extends GetxController {
 
   // ──────────────────────────── Cache Okuma ────────────────────────────
 
-  /// Segment disk'te varsa File döner, yoksa null.
+  /// Segment index'te varsa File döner, yoksa null.
+  /// Disk varlığını senkron kontrol ETMEZ — index'e güvenir (startup recovery zaten tutarlılık sağlıyor).
+  /// Bu sayede segment serving yolunda senkron I/O olmaz, segment geçişlerinde takılma azalır.
   File? getSegmentFile(String docID, String segmentKey) {
     final entry = _index.entries[docID];
     if (entry == null) return null;
     final seg = entry.segments[segmentKey];
     if (seg == null) return null;
-    final file = File(seg.diskPath);
-    if (file.existsSync()) return file;
-    // Index'te var ama disk'te yok — temizle
-    entry.segments.remove(segmentKey);
-    entry.totalSizeBytes -= seg.sizeBytes;
-    _index.totalSizeBytes -= seg.sizeBytes;
-    _markDirty();
-    return null;
+    return File(seg.diskPath);
   }
 
   /// m3u8 playlist disk'te varsa File döner, yoksa null.
@@ -114,9 +113,11 @@ class SegmentCacheManager extends GetxController {
     final file = File('$_cacheDir/$relativePath');
     await file.parent.create(recursive: true);
 
-    // Geçici dosyaya yaz, sonra rename (crash-safe)
+    // Geçici dosyaya yaz, sonra rename.
+    // flush: false — senkron disk fsync oynatma sırasında segment geçişlerinde takılma üretiyordu.
+    // OS kendi buffer'ından yazacak; crash durumunda recovery zaten var.
     final tmpFile = File('${file.path}.tmp');
-    await tmpFile.writeAsBytes(bytes, flush: true);
+    await tmpFile.writeAsBytes(bytes, flush: false);
     await tmpFile.rename(file.path);
 
     // Eski segment varsa boyutunu düş
@@ -147,11 +148,11 @@ class SegmentCacheManager extends GetxController {
 
     _markDirty();
 
-    // Hard/soft limit aşıldıysa eviction tetikle
+    // Hard/soft limit aşıldıysa eviction tetikle — arka planda, segment serving'i BLOKLAMA
     if (_index.totalSizeBytes > _hardLimitBytes) {
-      await evictIfNeeded(targetBytes: _hardLimitBytes);
+      unawaited(evictIfNeeded(targetBytes: _hardLimitBytes));
     } else if (_index.totalSizeBytes > _softLimitBytes) {
-      await evictIfNeeded(targetBytes: _softLimitBytes);
+      unawaited(evictIfNeeded(targetBytes: _softLimitBytes));
     }
 
     return file;
@@ -162,7 +163,7 @@ class SegmentCacheManager extends GetxController {
     final file = File('$_cacheDir/$relativePath');
     await file.parent.create(recursive: true);
     final tmpFile = File('${file.path}.tmp');
-    await tmpFile.writeAsString(content, flush: true);
+    await tmpFile.writeAsString(content, flush: false);
     await tmpFile.rename(file.path);
     return file;
   }
@@ -212,12 +213,26 @@ class SegmentCacheManager extends GetxController {
   void updateWatchProgress(String docID, double progress) {
     final entry = _index.entries[docID];
     if (entry == null) return;
-    entry.watchProgress = progress.clamp(0.0, 1.0);
+    final normalized = progress.clamp(0.0, 1.0);
+    entry.watchProgress = normalized;
     entry.lastAccessedAt = DateTime.now();
-    if (progress >= 0.9 && entry.state == VideoCacheState.playing) {
+    if (normalized >= 0.9 && entry.state == VideoCacheState.playing) {
       entry.state = VideoCacheState.watched;
     }
-    _markDirty();
+
+    // Index yazımını agresif azalt: %3 değişim veya 6 sn'de bir.
+    final lastProgress = _lastPersistedProgress[docID] ?? -1.0;
+    final lastAt = _lastPersistedProgressAt[docID];
+    final now = DateTime.now();
+    final changedEnough = (normalized - lastProgress).abs() >= 0.03;
+    final timeEnough = lastAt == null || now.difference(lastAt).inSeconds >= 6;
+    final reachedEdge = normalized >= 0.98 || normalized <= 0.02;
+
+    if (changedEnough || timeEnough || reachedEdge) {
+      _lastPersistedProgress[docID] = normalized;
+      _lastPersistedProgressAt[docID] = now;
+      _markDirty();
+    }
   }
 
   /// Erişim zamanını güncelle (cache hit'lerde).
@@ -233,6 +248,11 @@ class SegmentCacheManager extends GetxController {
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? _softLimitBytes;
     while (_index.totalSizeBytes > target) {
+      final int cachedVideoCount =
+          _index.entries.values.where((e) => e.cachedSegmentCount > 0).length;
+      if (cachedVideoCount <= ContentPolicy.minGlobalCachedVideos) {
+        break;
+      }
       final candidate = _findEvictionCandidate();
       if (candidate == null) break; // Silinecek aday kalmadı
       await _evictEntry(candidate);
@@ -429,6 +449,38 @@ class SegmentCacheManager extends GetxController {
     metrics.reset();
     await persistIndex();
     debugPrint('[CacheManager] All cache cleared');
+  }
+
+  /// Kullanıcının tükettiği (izlenen) içerikleri cache'ten temizler.
+  /// - watched state olanlar
+  /// - veya progress eşik üstü olanlar
+  Future<void> clearConsumedCache({double progressThreshold = 0.50}) async {
+    final toRemove = <VideoCacheEntry>[];
+    for (final entry in _index.entries.values) {
+      final segmentRatio = entry.totalSegmentCount > 0
+          ? (entry.cachedSegmentCount / entry.totalSegmentCount)
+          : 0.0;
+      final consumed = entry.state == VideoCacheState.watched ||
+          entry.watchProgress >= progressThreshold ||
+          segmentRatio >= progressThreshold;
+      if (!consumed) continue;
+      if (entry.state == VideoCacheState.playing) continue;
+      toRemove.add(entry);
+    }
+
+    if (toRemove.isEmpty) return;
+
+    for (final entry in toRemove) {
+      await _evictEntry(entry);
+    }
+
+    _recentlyPlayed.removeWhere(
+      (docID) => !_index.entries.containsKey(docID),
+    );
+
+    debugPrint(
+      '[CacheManager] Consumed cache cleared: ${toRemove.length} entries',
+    );
   }
 
   /// Kullanıcı cache kotasını (GB) runtime'da uygular.

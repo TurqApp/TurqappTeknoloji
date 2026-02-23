@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:math' as math;
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/PerformanceService.dart';
@@ -16,6 +17,11 @@ import '../../Models/PostsModel.dart';
 /// range bazlı (±7 etrafında) preload & prune desteği sunan controller
 /// + AKILLI DİNAMİK KARIŞTIRMA SİSTEMİ
 class ShortController extends GetxController {
+  static const bool _verboseShortLogs = false;
+  void _log(String message) {
+    if (_verboseShortLogs) debugPrint(message);
+  }
+
   final RxList<PostsModel> shorts = <PostsModel>[].obs;
   final Map<int, HLSVideoAdapter> cache = {};
   final Map<int, _CacheTier> _tiers = {};
@@ -32,6 +38,12 @@ class ShortController extends GetxController {
       defaultTargetPlatform == TargetPlatform.android ? 0 : 5;
   static final int _maxPlayers =
       defaultTargetPlatform == TargetPlatform.android ? 2 : 10;
+  static final double _activeBufferSeconds =
+      defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
+  static final double _neighborBufferSeconds =
+      defaultTargetPlatform == TargetPlatform.android ? 2.0 : 2.4;
+  static final double _prepBufferSeconds =
+      defaultTargetPlatform == TargetPlatform.android ? 1.8 : 2.1;
 
   // Dinamik yükleme durumları
   final int pageSize = 20;
@@ -39,9 +51,6 @@ class ShortController extends GetxController {
   final RxBool hasMore = true.obs;
   final RxBool isRefreshing = false.obs; // Yenileme durumu
   QueryDocumentSnapshot<Map<String, dynamic>>? _lastDoc;
-
-  // Basit shuffle kontrolü
-  final Random _random = Random();
 
   // Basit yapı - davranış analizi kaldırıldı
 
@@ -55,7 +64,7 @@ class ShortController extends GetxController {
   void onInit() {
     super.onInit();
     _applyUserCacheQuota();
-    print('[Shorts] 🔄 ShortController.onInit() called');
+    _log('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
     // İlk sayfayı manuel yüklemede çağırılacak (ShortView'dan)
   }
@@ -69,13 +78,13 @@ class ShortController extends GetxController {
         await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
       }
     } catch (e) {
-      print('Shorts cache quota apply error: $e');
+      _log('Shorts cache quota apply error: $e');
     }
   }
 
   @override
   void onClose() {
-    print('[Shorts] ❌ ShortController.onClose() called');
+    _log('[Shorts] ❌ ShortController.onClose() called');
     clearCache();
     _followingSub?.cancel();
     super.onClose();
@@ -105,7 +114,7 @@ class ShortController extends GetxController {
         ..clear()
         ..addAll(qs.docs.map((d) => d.id));
     } catch (e) {
-      print('following fetch error: $e');
+      _log('following fetch error: $e');
     }
   }
 
@@ -208,7 +217,7 @@ class ShortController extends GetxController {
       return _backgroundPreloadFuture;
     }
 
-    print(
+    _log(
         '[Shorts] 🚀 Background preload başlatılıyor (disk cache destekli)...');
 
     final future = _runBackgroundPreload();
@@ -226,7 +235,7 @@ class ShortController extends GetxController {
 
   Future<void> _runBackgroundPreload() async {
     if (shorts.isNotEmpty) {
-      print(
+      _log(
           '[Shorts] 🔄 Liste zaten mevcut (${shorts.length} video), ilk 5 preload');
       // İlk 3 videoyu preload et
       final initialCount = math.min(_initialPreloadCount, shorts.length);
@@ -239,8 +248,7 @@ class ShortController extends GetxController {
       await Future.wait(futures);
       // Tüm preloaded videolara düşük buffer ayarla
       for (int i = 0; i < initialCount; i++) {
-        cache[i]
-            ?.setPreferredBufferDuration(2.0); // segment geçişlerini yumuşat
+        cache[i]?.setPreferredBufferDuration(_neighborBufferSeconds);
         _tiers[i] = _CacheTier.hot;
       }
       return;
@@ -248,12 +256,12 @@ class ShortController extends GetxController {
 
     // İlk yükleme
     try {
-      print('[Shorts] 📱 İlk defa yükleme yapılıyor...');
+      _log('[Shorts] 📱 İlk defa yükleme yapılıyor...');
       await loadInitialShorts();
 
       if (shorts.isNotEmpty) {
         final initialCount = math.min(_initialPreloadCount, shorts.length);
-        print('[Shorts] ⚡ İlk $initialCount video preload ediliyor...');
+        _log('[Shorts] ⚡ İlk $initialCount video preload ediliyor...');
         final futures = <Future>[];
         for (int i = 0; i < initialCount; i++) {
           if (!cache.containsKey(i)) {
@@ -262,14 +270,14 @@ class ShortController extends GetxController {
         }
         await Future.wait(futures);
         for (int i = 0; i < initialCount; i++) {
-          cache[i]?.setPreferredBufferDuration(2.0);
+          cache[i]?.setPreferredBufferDuration(_neighborBufferSeconds);
           _tiers[i] = _CacheTier.hot;
         }
-        print(
+        _log(
             '[Shorts] ✅ Background preload tamamlandı - ilk $initialCount video hazır');
       }
     } catch (e) {
-      print('[Shorts] ❌ Background preload hatası: $e');
+      _log('[Shorts] ❌ Background preload hatası: $e');
     }
   }
 
@@ -293,10 +301,10 @@ class ShortController extends GetxController {
       );
       cacheTarget[index] = adapter;
 
-      print('[Shorts] ✅ Video $index HLS adapter hazır');
+      _log('[Shorts] ✅ Video $index HLS adapter hazır');
       return adapter;
     } catch (e) {
-      print('[Shorts] ❌ Video $index preload hatası: $e');
+      _log('[Shorts] ❌ Video $index preload hatası: $e');
     }
 
     return null;
@@ -314,7 +322,7 @@ class ShortController extends GetxController {
       return;
     }
 
-    print('[Shorts] 🔄 Refresh başlatıldı');
+    _log('[Shorts] 🔄 Refresh başlatıldı');
     isRefreshing.value = true;
 
     try {
@@ -326,7 +334,7 @@ class ShortController extends GetxController {
       final result = await _fetchPage();
 
       if (result.posts.isEmpty) {
-        print('[Shorts] ⚠️ Refresh sonucu boş - mevcut liste korunuyor');
+        _log('[Shorts] ⚠️ Refresh sonucu boş - mevcut liste korunuyor');
         hasMore.value = result.hasMore;
         return;
       }
@@ -361,7 +369,7 @@ class ShortController extends GetxController {
 
       // Ek arka plan preload kapalı: sadece aktif video cache'te kalsın.
     } catch (e) {
-      print('[Shorts] ❌ Refresh hatası: $e');
+      _log('[Shorts] ❌ Refresh hatası: $e');
       hasMore.value = true;
     } finally {
       isRefreshing.value = false;
@@ -370,47 +378,52 @@ class ShortController extends GetxController {
 
   /// Başlangıç yüklemesi (state reset + ilk sayfa)
   Future<void> loadInitialShorts() async {
-    print(
+    _log(
         '[Shorts] loadInitialShorts - BAŞLADI (global shuffle completed: $_globalShuffleCompleted)');
-    print(
+    _log(
         '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}');
 
     // Sadece gerçekten boşsa sıfırla
     if (shorts.isEmpty) {
-      print('[Shorts] Liste boş - sıfırlama yapılıyor');
+      await _tryQuickFillFromPool();
+      if (shorts.isNotEmpty) {
+        await preloadRange(0, range: 0);
+        return;
+      }
+      _log('[Shorts] Liste boş - sıfırlama yapılıyor');
       isLoading.value = false;
       hasMore.value = true;
       _lastDoc = null;
       clearCache();
-      print('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
       await _loadNextPage();
     } else {
-      print('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
+      _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
       // Mevcut listeyi koruyoruz, sadece eksik cache'leri preload et
       await preloadRange(0, range: 0);
     }
 
-    print(
+    _log(
         '[Shorts] loadInitialShorts - TAMAMLANDI, shorts.length: ${shorts.length}');
-    print(
+    _log(
         '[Shorts] Current shorts list IDs AFTER: ${shorts.map((s) => s.docID).take(5).toList()}');
   }
 
   /// Sonsuz kaydırma için sonraki sayfa
   Future<void> loadMoreIfNeeded(int currentIndex) async {
-    print(
+    _log(
         '[Shorts] loadMoreIfNeeded called - currentIndex: $currentIndex, shorts.length: ${shorts.length}, isLoading: ${isLoading.value}, hasMore: ${hasMore.value}');
     if (isLoading.value || !hasMore.value) {
-      print(
+      _log(
           '[Shorts] loadMoreIfNeeded BLOCKED - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}');
       return;
     }
     // Sona yaklaşınca getir
     if (currentIndex >= shorts.length - 3) {
-      print('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
+      _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
       await _loadNextPage();
     } else {
-      print(
+      _log(
           '[Shorts] loadMoreIfNeeded - Not yet time to load (need ${shorts.length - 3} but at $currentIndex)');
     }
   }
@@ -440,7 +453,7 @@ class ShortController extends GetxController {
 
   /// Posts query: en yeni -> eski, arsiv=false, deletedPost=false, zaman geldi
   Future<void> _loadNextPage() async {
-    print(
+    _log(
         '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}');
     if (isLoading.value || !hasMore.value) return;
     isLoading.value = true;
@@ -453,7 +466,7 @@ class ShortController extends GetxController {
       if (result.posts.isEmpty) {
         hasMore.value = result.hasMore;
         if (!result.hasMore) {
-          print('[Shorts] Yeni sayfa bulunamadı, hasMore=false');
+          _log('[Shorts] Yeni sayfa bulunamadı, hasMore=false');
         }
         return;
       }
@@ -466,15 +479,17 @@ class ShortController extends GetxController {
           final shuffled = List<PostsModel>.from(incoming);
           shuffled.shuffle();
           shorts.addAll(shuffled);
+          unawaited(_saveShortsToPool(shuffled));
           _globalShuffleCompleted = true;
         } else {
           shorts.addAll(incoming);
+          unawaited(_saveShortsToPool(incoming));
         }
       }
 
       hasMore.value = result.hasMore;
     } catch (e) {
-      print('loadNextPage error: $e');
+      _log('loadNextPage error: $e');
     } finally {
       isLoading.value = false;
     }
@@ -517,9 +532,9 @@ class ShortController extends GetxController {
   Future<void> updateCacheTiers(int currentIndex) async {
     if (shorts.isEmpty) return;
 
-    final hotStart = max(0, currentIndex - _hotBehind);
-    final hotEnd = min(shorts.length - 1, currentIndex + _hotAhead);
-    final warmStart = max(0, currentIndex - _warmBehind);
+    final hotStart = math.max(0, currentIndex - _hotBehind);
+    final hotEnd = math.min(shorts.length - 1, currentIndex + _hotAhead);
+    final warmStart = math.max(0, currentIndex - _warmBehind);
 
     // HOT indekslerini belirle
     final hotIndices = <int>{};
@@ -551,12 +566,11 @@ class ShortController extends GetxController {
       if (adapter == null) continue;
       final distance = (i - currentIndex).abs();
       if (distance == 0) {
-        adapter
-            .setPreferredBufferDuration(2.0); // Hızlı ama daha stabil ilk frame
+        adapter.setPreferredBufferDuration(_activeBufferSeconds);
       } else if (distance == 1) {
-        adapter.setPreferredBufferDuration(2.0); // Komşu video hızlı geçiş
+        adapter.setPreferredBufferDuration(_neighborBufferSeconds);
       } else {
-        adapter.setPreferredBufferDuration(2.0); // Hazırlık
+        adapter.setPreferredBufferDuration(_prepBufferSeconds);
       }
     }
 
@@ -659,6 +673,109 @@ class ShortController extends GetxController {
         loop: true,
       );
     }
+  }
+
+  Future<void> _tryQuickFillFromPool() async {
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    final pool = Get.find<IndexPoolStore>();
+    final fromPool = await pool.loadPosts(
+      IndexPoolKind.shortFullscreen,
+      limit: ContentPolicy.mobileWarmWindow,
+    );
+    if (fromPool.isEmpty) return;
+
+    final filtered = fromPool
+        .where((p) => p.hasPlayableVideo)
+        .where((p) => p.deletedPost != true)
+        .toList();
+    if (filtered.isEmpty) return;
+
+    final valid = await _validatePoolPostsAndPrune(filtered);
+    if (valid.isEmpty) return;
+
+    shorts.assignAll(valid);
+    hasMore.value = true;
+  }
+
+  Future<void> _saveShortsToPool(List<PostsModel> posts) async {
+    if (posts.isEmpty) return;
+    if (!Get.isRegistered<IndexPoolStore>()) return;
+    await Get.find<IndexPoolStore>().savePosts(
+      IndexPoolKind.shortFullscreen,
+      posts,
+    );
+  }
+
+  Future<List<PostsModel>> _validatePoolPostsAndPrune(
+      List<PostsModel> posts) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    if (!Get.isRegistered<IndexPoolStore>()) return posts;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final postIds =
+        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
+    final userIds =
+        posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
+
+    final validPostIds = <String>{};
+    for (final chunk in _chunkList(postIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('Posts')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in snap.docs) {
+        final data = d.data();
+        final deleted = (data['deletedPost'] ?? false) == true;
+        final archived = (data['arsiv'] ?? false) == true;
+        final isPlayable = (data['playbackUrl'] ?? '').toString().isNotEmpty &&
+            (data['videoHLSMasterUrl'] ?? '').toString().isNotEmpty;
+        final ts =
+            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
+        if (!deleted && !archived && isPlayable && ts <= nowMs) {
+          validPostIds.add(d.id);
+        }
+      }
+    }
+
+    final validUserIds = <String>{};
+    for (final chunk in _chunkList(userIds.toList(), 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final d in snap.docs) {
+        validUserIds.add(d.id);
+      }
+    }
+
+    final valid = posts
+        .where((p) =>
+            validPostIds.contains(p.docID) && validUserIds.contains(p.userID))
+        .toList();
+
+    if (valid.length != posts.length) {
+      final invalidIds = posts
+          .where((p) =>
+              !validPostIds.contains(p.docID) ||
+              !validUserIds.contains(p.userID))
+          .map((p) => p.docID)
+          .toList();
+      if (invalidIds.isNotEmpty) {
+        await Get.find<IndexPoolStore>()
+            .removePosts(IndexPoolKind.shortFullscreen, invalidIds);
+      }
+    }
+    return valid;
+  }
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
   }
 }
 

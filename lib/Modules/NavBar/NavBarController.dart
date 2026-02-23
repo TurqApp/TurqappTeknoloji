@@ -7,8 +7,12 @@ import 'package:turqappv2/Core/AppSnackbar.dart';
 import 'package:turqappv2/Utils/EmptyPadding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
+import 'dart:async';
 
 import '../Short/ShortController.dart';
+import '../Agenda/AgendaController.dart';
+import '../Story/StoryRow/StoryRowController.dart';
+import '../../Core/Services/ContentPolicy/content_policy.dart';
 
 typedef TextUpdate = String;
 
@@ -16,7 +20,8 @@ class NavBarController extends GetxController
     with SingleGetTickerProviderMixin {
   var selectedIndex = 0.obs;
   var showBar = true.obs;
-  ShortController? _shortCtrl; // ⚠️ CRITICAL FIX: Make nullable for safe lazy init
+  ShortController?
+      _shortCtrl; // ⚠️ CRITICAL FIX: Make nullable for safe lazy init
   final String fullText = "TurqApp";
 
   // ⚠️ CRITICAL FIX: Safe getter for ShortController
@@ -44,6 +49,8 @@ class NavBarController extends GetxController
 
   // ⚠️ CRITICAL FIX: Track disposal state to prevent animation errors
   bool _isDisposed = false;
+  bool _proactiveShortPreloadStarted = false;
+  Timer? _backgroundCacheTimer;
 
   @override
   void onInit() {
@@ -75,7 +82,12 @@ class NavBarController extends GetxController
     });
 
     _runAcilisAnimation();
-    checkAppVersion();
+    // Açılış akışını bloklamasın; version kontrolünü gecikmeli başlat.
+    Future.delayed(const Duration(seconds: 12), () {
+      if (!_isDisposed) {
+        checkAppVersion();
+      }
+    });
 
     // ⚠️ CRITICAL FIX: Safely initialize ShortController
     try {
@@ -83,6 +95,41 @@ class NavBarController extends GetxController
     } catch (e) {
       print('[NavBar] ShortController preload error: $e');
     }
+
+    _startBackgroundCacheLoop();
+  }
+
+  void _startBackgroundCacheLoop() {
+    _backgroundCacheTimer?.cancel();
+    _backgroundCacheTimer =
+        Timer.periodic(const Duration(seconds: 20), (_) async {
+      if (_isDisposed) return;
+      if (!ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+        return;
+      }
+
+      try {
+        if (Get.isRegistered<AgendaController>()) {
+          Get.find<AgendaController>().ensureFeedCacheWarm();
+        }
+      } catch (_) {}
+
+      try {
+        if (Get.isRegistered<ShortController>()) {
+          shortCtrl.warmStart(targetCount: 8, maxPages: 2);
+        }
+      } catch (_) {}
+
+      try {
+        if (Get.isRegistered<StoryRowController>()) {
+          await Get.find<StoryRowController>().loadStories(
+            limit: 30,
+            cacheFirst: true,
+            silentLoad: true,
+          );
+        }
+      } catch (_) {}
+    });
   }
 
   Future<void> _runAcilisAnimation() async {
@@ -111,6 +158,9 @@ class NavBarController extends GetxController
     // ⚠️ CRITICAL FIX: Mark as disposed first to stop animations
     _isDisposed = true;
 
+    _backgroundCacheTimer?.cancel();
+    _backgroundCacheTimer = null;
+
     // Dispose animation controllers safely
     try {
       typingController.value.dispose();
@@ -135,6 +185,14 @@ class NavBarController extends GetxController
 
   void changeIndex(int index) {
     selectedIndex.value = index;
+  }
+
+  Future<void> ensureProactiveShortPreloadStarted() async {
+    if (_proactiveShortPreloadStarted) return;
+    _proactiveShortPreloadStarted = true;
+    try {
+      await shortCtrl.backgroundPreload();
+    } catch (_) {}
   }
 
   Future<void> checkAppVersion() async {
@@ -176,12 +234,7 @@ class NavBarController extends GetxController
       }
     } catch (e) {
       print("❌ Version kontrolü hatası: $e");
-      // Hata durumunda production'da güvenli tarafta kal
-      if (!kDebugMode) {
-        print(
-            "🛡️ Production'da hata nedeniyle güncelleme diyalogu gösteriliyor");
-        _showUpdateDialog();
-      }
+      // Fail-open: ağ/izin/Firestore hatasında kullanıcıyı kilitleme.
     }
   }
 
