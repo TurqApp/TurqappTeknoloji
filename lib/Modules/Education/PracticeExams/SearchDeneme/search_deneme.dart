@@ -1,0 +1,142 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SearchDeneme/search_deneme_controller.dart';
+
+class SearchDeneme extends StatelessWidget {
+  const SearchDeneme({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final SearchDenemeController controller = Get.put(SearchDenemeController());
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "Deneme Sınavı Ara"),
+            Container(
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
+                child: Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: Colors.black),
+                        Expanded(
+                          child: TextField(
+                            controller: controller.searchController,
+                            focusNode: controller.focusNode,
+                            onChanged: controller.filterSearchResults,
+                            decoration: const InputDecoration(
+                              hintText: 'Ara',
+                              hintStyle: TextStyle(color: Colors.grey),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(
+                    child: CupertinoActivityIndicator(radius: 20),
+                  );
+                }
+                if (controller.filteredList.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.quiz_outlined,
+                            size: 60,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "Hiçbir Deneme Sınavı Bulunamadı",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 20,
+                              fontFamily: "MontserratBold",
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            controller.searchController.text.isEmpty
+                                ? "Sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir."
+                                : "Arama kriterlerinize uygun deneme sınavı bulunamadı. Lütfen farklı bir arama terimi deneyin.",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                              fontFamily: "MontserratMedium",
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return RefreshIndicator(
+                  color: Colors.white,
+                  backgroundColor: Colors.black,
+                  onRefresh: controller.getData,
+                  child: Container(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10.0,
+                          mainAxisSpacing: 10.0,
+                          childAspectRatio: 2.0 / 4,
+                        ),
+                        itemCount: controller.filteredList.length,
+                        itemBuilder: (context, index) {
+                          return DenemeGrid(
+                            model: controller.filteredList[index],
+                            getData: controller.getData,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

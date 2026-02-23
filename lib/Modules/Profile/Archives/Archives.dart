@@ -1,11 +1,11 @@
 // AgendaView.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/BackButtons.dart';
-import 'package:turqappv2/Core/EmptyRow.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/empty_row.dart';
 
-import '../../Agenda/AgendaContent/AgendaContent.dart';
-import 'ArchivesController.dart';
+import '../../Agenda/AgendaContent/agenda_content.dart';
+import 'archives_controller.dart';
 
 class Archives extends StatelessWidget {
   Archives({super.key});

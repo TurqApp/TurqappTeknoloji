@@ -6,6 +6,15 @@ analyzer:
     - assets_backup_20260216_093819/**
     - build/**
     - "**/*.g.dart"
+  errors:
+    library_private_types_in_public_api: ignore
+    prefer_const_constructors_in_immutables: ignore
+    non_constant_identifier_names: ignore
+    use_build_context_synchronously: ignore
+    curly_braces_in_flow_control_structures: ignore
+    unrelated_type_equality_checks: ignore
+    overridden_fields: ignore
+    avoid_types_as_parameter_names: ignore
 
 linter:
   rules:

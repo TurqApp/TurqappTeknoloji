@@ -7,11 +7,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Themes/AppFonts.dart';
+import 'package:turqappv2/Themes/app_fonts.dart';
 import 'firebase_options.dart';
-import 'package:turqappv2/Core/Services/VideoStateManager.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
-import 'package:turqappv2/Modules/Splash/SplashView.dart';
+import 'package:turqappv2/Modules/Splash/splash_view.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
@@ -85,7 +85,8 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  static const double _globalTopGap = 8.0;
+  static const double _globalTopGapAndroid = 8.0;
+  static const double _globalTopGapIOS = -2.0; // iOS'ta 10px daha az boşluk
 
   @override
   Widget build(BuildContext context) {
@@ -204,11 +205,12 @@ class MyApp extends StatelessWidget {
         ),
         builder: (ctx, child) {
           final mq = MediaQuery.of(ctx);
+          final topGap = GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
           final adjustedPadding = mq.padding.copyWith(
-            top: mq.padding.top + _globalTopGap,
+            top: mq.padding.top + topGap,
           );
           final adjustedViewPadding = mq.viewPadding.copyWith(
-            top: mq.viewPadding.top + _globalTopGap,
+            top: mq.viewPadding.top + topGap,
           );
           return MediaQuery(
             data: mq.copyWith(

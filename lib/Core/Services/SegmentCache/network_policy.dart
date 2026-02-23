@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'cache_manager.dart';
-import '../NetworkAwarenessService.dart';
+import '../network_awareness_service.dart';
 
 /// Cache sistemi için ağ politikası.
 /// NetworkAwarenessService'i sarmalayarak cache-specific kararlar verir.

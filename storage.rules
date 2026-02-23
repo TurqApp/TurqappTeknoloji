@@ -31,8 +31,13 @@ service firebase.storage {
                    && request.resource.size < 200 * 1024 * 1024; // 200MB video limit
     }
 
-    // Story media
+    // Story media (legacy uppercase + current lowercase)
     match /Stories/{uid}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+    match /stories/{uid}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isAuth() && request.auth.uid == uid
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit

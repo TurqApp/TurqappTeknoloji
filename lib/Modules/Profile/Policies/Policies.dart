@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/BackButtons.dart';
-import 'package:turqappv2/Core/PageLineBar.dart';
-import 'package:turqappv2/Modules/Profile/Policies/PoliciesController.dart';
-import 'package:turqappv2/Utils/EmptyPadding.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Modules/Profile/Policies/policies_controller.dart';
+import 'package:turqappv2/Utils/empty_padding.dart';
 
 class Policies extends StatelessWidget {
   Policies({super.key});

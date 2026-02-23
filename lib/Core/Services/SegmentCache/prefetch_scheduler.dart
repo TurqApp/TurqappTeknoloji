@@ -4,9 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:turqappv2/Core/Services/VideoRemoteConfigService.dart';
+import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
-import '../NetworkAwarenessService.dart';
+import '../network_awareness_service.dart';
 import 'cache_manager.dart';
 import 'download_worker.dart';
 import 'm3u8_parser.dart';

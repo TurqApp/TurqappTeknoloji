@@ -127,7 +127,9 @@ class _HLSPlayerExampleState extends State<HLSPlayerExample> {
                         style: const TextStyle(fontSize: 12),
                       ),
                       value: index,
+                      // ignore: deprecated_member_use
                       groupValue: _currentVideoIndex,
+                      // ignore: deprecated_member_use
                       onChanged: (value) {
                         if (value != null) _changeVideo(value);
                       },
@@ -237,7 +239,9 @@ class _HLSPlayerExampleState extends State<HLSPlayerExample> {
                           _controller.setMuted(!_controller.isMuted);
                         },
                         icon: Icon(
-                          _controller.isMuted ? Icons.volume_off : Icons.volume_up,
+                          _controller.isMuted
+                              ? Icons.volume_off
+                              : Icons.volume_up,
                         ),
                         label: Text(
                           _controller.isMuted ? 'Sesi Aç' : 'Sesi Kapat',
@@ -276,7 +280,8 @@ class _HLSPlayerExampleState extends State<HLSPlayerExample> {
                               StreamBuilder<Duration>(
                                 stream: _controller.onPositionChanged,
                                 builder: (context, snapshot) {
-                                  final position = snapshot.data ?? Duration.zero;
+                                  final position =
+                                      snapshot.data ?? Duration.zero;
                                   return _buildInfoRow(
                                     'Pozisyon',
                                     _formatDuration(position),
@@ -287,7 +292,8 @@ class _HLSPlayerExampleState extends State<HLSPlayerExample> {
                               StreamBuilder<Duration>(
                                 stream: _controller.onDurationChanged,
                                 builder: (context, snapshot) {
-                                  final duration = snapshot.data ?? Duration.zero;
+                                  final duration =
+                                      snapshot.data ?? Duration.zero;
                                   return _buildInfoRow(
                                     'Süre',
                                     _formatDuration(duration),

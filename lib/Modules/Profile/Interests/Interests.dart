@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/BackButtons.dart';
-import 'package:turqappv2/Core/Buttons/TurqAppButton.dart';
-import 'package:turqappv2/Core/InterestsList.dart';
-import 'package:turqappv2/Modules/Profile/Interests/InterestController.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/interests_list.dart';
+import 'package:turqappv2/Modules/Profile/Interests/interest_controller.dart';
 
 class Interests extends StatelessWidget {
   Interests({super.key});

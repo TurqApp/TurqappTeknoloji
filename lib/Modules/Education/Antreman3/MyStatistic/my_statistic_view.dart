@@ -1,0 +1,212 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/formatters.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Modules/Education/Antreman3/MyStatistic/my_statistic_controller.dart';
+import 'package:turqappv2/Services/firebase_my_store.dart';
+
+class MyStatisticView extends StatelessWidget {
+  MyStatisticView({super.key});
+
+  final MyStatisticController controller = Get.put(MyStatisticController());
+  final user = Get.find<FirebaseMyStore>();
+  static const List<Color> _statColors = [
+    // Mevcutlar…
+    Color(0xFF1E88E5),
+    Color(0xFFF4511E),
+    Color(0xFFE91E63),
+    Color(0xFF43A047),
+    Color(0xFFFB8C00),
+    Color(0xFF8E24AA),
+    Color(0xFF00897B),
+    Color(0xFFFFC107),
+    Color(0xFF3949AB),
+    Color(0xFFD32F2F),
+
+    // Yeni eklemeler:
+    Color(0xFF303F9F),
+    Color(0xFF03A9F4),
+    Color(0xFFCDDC39),
+    Color(0xFF795548),
+    Color(0xFF607D8B),
+    Color(0xFFE64A19),
+    Color(0xFF512DA8),
+    Color(0xFF0097A7),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Obx(() {
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                BackButtons(text: "İstatistikler"),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
+                    children: [
+                      // Kullanıcı kartı
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(20),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blueAccent),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Row(
+                            children: [
+                              ClipOval(
+                                child: SizedBox(
+                                  width: 50,
+                                  height: 50,
+                                  child: user.pfImage.value != ""
+                                      ? CachedNetworkImage(
+                                          imageUrl: user.pfImage.value,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : const Center(
+                                          child: CupertinoActivityIndicator(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "${user.firstName.value} ${user.lastName.value}",
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratBold",
+                                          ),
+                                        ),
+                                        RozetContent(
+                                          size: 15,
+                                          userID: FirebaseAuth
+                                              .instance.currentUser!.uid,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user.nickname.value,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 13,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                "Siz",
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          "İstatistiksel bilgiler son 60 gününüzü baz alarak güncellenmektedir",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Renk paletinden sırasıyla 0, 1, 2 indexlerini kullanıyoruz:
+                      _statItem(535000, "Profil Ziyareti", 0),
+                      _statItem(86, "Gönderi Görüntülemesi Yüzdesi", 2,
+                          isPercentage: true),
+                      _statItem(234000, "Gönderi Görüntülemesi", 1),
+                      _statItem(18, "Takipçi Artışı Yüzdeliği", 6,
+                          isPercentage: true),
+                      _statItem(123000, "Takipçi Artışı", 8),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _statItem(
+    num value,
+    String title,
+    int colorIndex, {
+    bool isPercentage = false,
+  }) {
+    final bgColor = _statColors[colorIndex % _statColors.length];
+
+    // Görünecek metin: yüzde ise “%” ekle, değilse NumberFormatter ile binlik ayracı kullan
+    final displayText = isPercentage
+        ? "${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)}%"
+        : NumberFormatter.format(value.toInt());
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          child: Column(
+            children: [
+              Text(
+                displayText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontFamily: "MontserratBold",
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

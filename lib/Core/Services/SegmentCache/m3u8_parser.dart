@@ -1,6 +1,7 @@
 /// Basit M3U8 (HLS) playlist parser.
 /// Master playlist'ten variant'ları, variant playlist'ten segment URI'lerini çıkarır.
 /// Harici paket gerekmez — satır bazlı parse.
+library;
 
 class M3U8Variant {
   final String uri;

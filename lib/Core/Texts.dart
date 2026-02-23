@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Sizes.dart';
-import 'package:turqappv2/Themes/AppFonts.dart';
+import 'package:turqappv2/Core/sizes.dart';
+import 'package:turqappv2/Themes/app_fonts.dart';
 
 class Texts {
 

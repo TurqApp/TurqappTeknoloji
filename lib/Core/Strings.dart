@@ -1,4 +1,4 @@
-import '../Models/ReportModel.dart';
+import '../Models/report_model.dart';
 
 List<ReportModel> reportSelections = [
   ReportModel(

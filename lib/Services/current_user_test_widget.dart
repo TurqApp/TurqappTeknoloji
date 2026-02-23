@@ -3,7 +3,7 @@
 // Kullanım: Herhangi bir sayfaya ekleyebilirsin
 
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/AppSnackbar.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 

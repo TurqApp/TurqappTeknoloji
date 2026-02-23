@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
-import 'package:turqappv2/Core/Services/VideoRemoteConfigService.dart';
+import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import 'cache_metrics.dart';
 import 'models.dart';

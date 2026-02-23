@@ -10,8 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:turqappv2/Models/ReportModel.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:turqappv2/Models/report_model.dart';
 import 'dart:ui' as ui;
 
 List<String> bursKosullari = [
@@ -1312,7 +1311,7 @@ Future<String> calculateDistanceToTarget(
 ) async {
   try {
     Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
 
     double userLatitude = position.latitude;

@@ -1,4 +1,4 @@
-// 📁 lib/Modules/Agenda/Common/AgendaSpacing.dart
+// 📁 lib/Modules/Agenda/Common/agenda_spacing.dart
 // 📐 Professional responsive spacing system for agenda posts
 // Eliminates magic numbers and enables dynamic, device-aware layouts
 

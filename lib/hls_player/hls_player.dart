@@ -38,7 +38,6 @@ class HLSPlayer extends StatefulWidget {
 }
 
 class _HLSPlayerState extends State<HLSPlayer> {
-  int? _viewId;
   bool _isInitialized = false;
 
   @override
@@ -67,7 +66,6 @@ class _HLSPlayerState extends State<HLSPlayer> {
   }
 
   void _onPlatformViewCreated(int viewId) {
-    _viewId = viewId;
     _isInitialized = true;
     widget.controller.initialize(viewId);
     _loadVideo();
@@ -250,9 +248,9 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withValues(alpha: 0.3),
                   Colors.transparent,
-                  Colors.black.withOpacity(0.5),
+                  Colors.black.withValues(alpha: 0.5),
                 ],
               ),
             ),
@@ -320,7 +318,7 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                                     min: 0.0,
                                     max: durationSeconds > 0 ? durationSeconds : 1.0,
                                     activeColor: Colors.white,
-                                    inactiveColor: Colors.white.withOpacity(0.3),
+                                    inactiveColor: Colors.white.withValues(alpha: 0.3),
                                     onChangeStart: (_) {
                                       setState(() {
                                         _isDragging = true;

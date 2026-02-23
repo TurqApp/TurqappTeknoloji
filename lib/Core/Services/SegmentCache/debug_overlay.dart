@@ -63,9 +63,9 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.75),
+          color: Colors.black.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green.withOpacity(0.5)),
+          border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
         ),
         child: _expanded
             ? _buildExpanded(cache.metrics, cache)

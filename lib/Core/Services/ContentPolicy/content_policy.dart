@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/NetworkAwarenessService.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 enum ContentScreenKind {
   feed,

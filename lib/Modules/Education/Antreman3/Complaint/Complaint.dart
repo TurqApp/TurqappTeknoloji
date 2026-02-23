@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/AppSnackbar.dart';
-import 'package:turqappv2/Core/TextStyles.dart';
-import 'package:turqappv2/Models/Education/QuestionBankModel.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Models/Education/question_bank_model.dart';
 
 class Complaint {
   final String postID;

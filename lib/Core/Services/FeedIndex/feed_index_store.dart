@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
-import 'package:turqappv2/Models/PostsModel.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 
 class FeedIndexEntry {
   final String docID;

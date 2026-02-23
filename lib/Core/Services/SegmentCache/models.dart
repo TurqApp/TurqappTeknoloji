@@ -1,4 +1,5 @@
 /// HLS segment cache data modelleri.
+library;
 
 enum VideoCacheState {
   uncached,

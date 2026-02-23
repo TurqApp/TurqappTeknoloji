@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/AppSnackbar.dart';
-import 'package:turqappv2/Modules/Profile/Cv/CvController.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/Profile/Cv/cv_controller.dart';
 
 class Cv extends StatelessWidget {
   final CvController controller = Get.put(CvController());
@@ -135,7 +135,7 @@ class Cv extends StatelessWidget {
                 height: 50,
                 alignment: Alignment.centerLeft,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 child: Padding(
@@ -170,7 +170,7 @@ class Cv extends StatelessWidget {
                 height: 50,
                 alignment: Alignment.centerLeft,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 child: Padding(
@@ -206,7 +206,7 @@ class Cv extends StatelessWidget {
           height: 50,
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
           child: Padding(
@@ -234,7 +234,7 @@ class Cv extends StatelessWidget {
           height: 50,
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
           child: Padding(
@@ -267,7 +267,7 @@ class Cv extends StatelessWidget {
           height: 50,
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
           child: Padding(
@@ -296,7 +296,7 @@ class Cv extends StatelessWidget {
           alignment: Alignment.topLeft,
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.all(Radius.circular(12)),
           ),
           child: TextField(

@@ -40,7 +40,7 @@ exports.cleanupExpiredStories = functions.pubsub
     const now = Date.now();
     const cutoff = now - 24 * 60 * 60 * 1000; // 24h in ms
     const snap = await db
-        .collection("Stories")
+        .collection("stories")
         .where("createdAt", "<=", cutoff)
         .limit(500)
         .get();
@@ -76,7 +76,7 @@ exports.cleanupExpiredStories = functions.pubsub
 // FIRESTORE TRIGGER: When a story is deleted without client-side archival, archive it.
 // Note: v2 onDocumentDeleted provides the old data; here we simulate with onDelete + data in value before delete.
 exports.archiveOnStoryDelete = functions.firestore
-    .document("Stories/{storyId}")
+    .document("stories/{storyId}")
     .onDelete(async (snap, context) => {
     const data = snap.data();
     if (!data)

@@ -1,0 +1,264 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Modules/Education/Tests/TestEntry/test_entry_controller.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
+
+class TestEntry extends StatelessWidget {
+  const TestEntry({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = Get.put(TestEntryController());
+
+    return Scaffold(
+      body: SafeArea(
+        child: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Column(
+              children: [
+                BackButtons(text: "Teste Katıl"),
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: ListView(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.1),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(8),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                  ),
+                                  child: TextField(
+                                    cursorColor: Colors.black,
+                                    controller: controller.textController,
+                                    focusNode: controller.focusNode,
+                                    onChanged: controller.onTextChanged,
+                                    onSubmitted: controller.onTextSubmitted,
+                                    decoration: const InputDecoration(
+                                      icon: Icon(
+                                        AppIcons.search,
+                                        color: Colors.pink,
+                                      ),
+                                      hintText: "Test ID Ara",
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey,
+                                        fontFamily: "Montserrat",
+                                        fontSize: 15,
+                                      ),
+                                      border: InputBorder.none,
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                      fontFamily: "Montserrat",
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              const Text(
+                                "Öğretmeniniz tarafından size iletilen Test ID değerini buraya girerek teste başlayabilirsiniz.",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Obx(
+                                () => controller.isLoading.value
+                                    ? const Center(
+                                        child: CupertinoActivityIndicator(
+                                          radius: 20,
+                                          color: Colors.black,
+                                        ),
+                                      )
+                                    : controller.model.value == null &&
+                                            controller.textController.text
+                                                    .length >=
+                                                10
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(15),
+                                            child: Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: const [
+                                                  Icon(
+                                                    Icons.info_outline,
+                                                    color: Colors.black,
+                                                    size: 40,
+                                                  ),
+                                                  SizedBox(height: 10),
+                                                  Text(
+                                                    "Test bulunamadı.\nGirilen Test ID ile eşleşen bir test bulunamadı.",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontSize: 15,
+                                                      fontFamily: "Montserrat",
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        : controller.model.value != null
+                                            ? SizedBox(
+                                                height: 75,
+                                                child: Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    SizedBox(
+                                                      height: 75,
+                                                      width: 75,
+                                                      child: AspectRatio(
+                                                        aspectRatio: 1,
+                                                        child: controller
+                                                                .model
+                                                                .value!
+                                                                .img
+                                                                .isNotEmpty
+                                                            ? Image.network(
+                                                                controller.model
+                                                                    .value!.img,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                              )
+                                                            : const Center(
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                  color: Colors
+                                                                      .indigo,
+                                                                  strokeWidth:
+                                                                      0.5,
+                                                                ),
+                                                              ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            "${controller.model.value!.testTuru} Testi",
+                                                            maxLines: 1,
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.black,
+                                                              fontSize: 18,
+                                                              fontFamily:
+                                                                  "MontserratBold",
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            controller
+                                                                .model
+                                                                .value!
+                                                                .aciklama,
+                                                            maxLines: 2,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.black,
+                                                              fontSize: 15,
+                                                              fontFamily:
+                                                                  "MontserratMedium",
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            controller.model
+                                                                .value!.dersler
+                                                                .join(", "),
+                                                            maxLines: 2,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style:
+                                                                const TextStyle(
+                                                              color: Colors
+                                                                  .blueAccent,
+                                                              fontSize: 15,
+                                                              fontFamily:
+                                                                  "MontserratMedium",
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Obx(
+              () => controller.model.value != null
+                  ? GestureDetector(
+                      onTap: () => controller.joinTest(context),
+                      child: const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: SizedBox(
+                          height: 50,
+                          child: Material(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Test'e Katıl",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

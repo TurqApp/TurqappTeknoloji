@@ -3,14 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:turqappv2/Core/RozetContent.dart';
-import 'package:turqappv2/Modules/Chat/ChatController.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Chat/MessageContent/MessageContent.dart';
-import 'package:turqappv2/Modules/SocialProfile/SocialProfile.dart';
-import 'package:turqappv2/Utils/EmptyPadding.dart';
+import 'package:turqappv2/Modules/Chat/MessageContent/message_content.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Utils/empty_padding.dart';
 
-import 'LocationShareView/LocationShareViewChat.dart';
+import 'LocationShareView/location_share_view_chat.dart';
 
 class ChatView extends StatelessWidget {
   final String chatID;
@@ -76,10 +76,38 @@ class ChatView extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 10),
                           itemCount: controller.messages.isEmpty
                               ? 1
-                              : controller.messages.length + 1,
+                              : controller.messages.length +
+                                  1 +
+                                  ((controller.hasMoreOlder.value ||
+                                          controller.isLoadingOlder.value)
+                                      ? 1
+                                      : 0),
                           itemBuilder: (context, index) {
-                            final isIntroItem = controller.messages.isEmpty ||
-                                index == controller.messages.length;
+                            if (controller.messages.isNotEmpty &&
+                                index == controller.messages.length) {
+                              return Obx(
+                                () => controller.isLoadingOlder.value
+                                    ? const Padding(
+                                        padding:
+                                            EdgeInsets.symmetric(vertical: 10),
+                                        child: Center(
+                                          child: CupertinoActivityIndicator(
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox(height: 6),
+                              );
+                            }
+
+                            final introIndex = controller.messages.isEmpty
+                                ? 0
+                                : controller.messages.length +
+                                    ((controller.hasMoreOlder.value ||
+                                            controller.isLoadingOlder.value)
+                                        ? 1
+                                        : 0);
+                            final isIntroItem = index == introIndex;
                             if (isIntroItem) {
                               return _buildProfileIntro(
                                 bottomSpacing: const SizedBox(height: 24),
@@ -288,14 +316,23 @@ class ChatView extends StatelessWidget {
                               RozetContent(size: 16, userID: userID),
                             ],
                           ),
-                          Text(
-                            "@${controller.nickname.value}",
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 11,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
+                          Obx(() => controller.isOtherTyping.value
+                              ? const Text(
+                                  "yazıyor...",
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 11,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                )
+                              : Text(
+                                  "@${controller.nickname.value}",
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 11,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                )),
                         ],
                       ),
                     ),
@@ -303,14 +340,6 @@ class ChatView extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(CupertinoIcons.phone, color: Colors.black),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(CupertinoIcons.video_camera, color: Colors.black),
           ),
         ],
       ),
@@ -450,235 +479,333 @@ class ChatView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(() {
-              final editing = controller.editingMessage.value;
-              final replying = controller.replyingTo.value;
-              if (editing == null && replying == null) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        editing != null
-                            ? "Düzenleniyor: ${editing.metin}"
-                            : "Yanıtlanıyor: ${replying?.metin ?? ''}",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: controller.clearComposerAction,
-                      child: const Icon(CupertinoIcons.xmark, size: 16),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            Row(
-              children: [
-                PullDownButton(
-                  itemBuilder: (context) => [
-                    PullDownMenuItem(
-                      onTap: () {
-                        controller.pickCameraImage();
-                      },
-                      title: 'Fotoğraf Çek',
-                      icon: CupertinoIcons.camera,
-                    ),
-                    PullDownMenuItem(
-                      onTap: () {
-                        controller.pickImage();
-                      },
-                      title: 'Fotoğraf Yükle',
-                      icon: CupertinoIcons.photo_on_rectangle,
-                    ),
-                    PullDownMenuItem(
-                      onTap: () {
-                        Get.to(() => LocationShareViewChat(
-                              chatID: controller.chatID,
-                            ));
-                      },
-                      title: 'Konum Paylaş',
-                      icon: CupertinoIcons.location,
-                    ),
-                    PullDownMenuItem(
-                      onTap: () {
-                        controller.selectContact();
-                      },
-                      title: 'Kişi Seç',
-                      icon: CupertinoIcons.person_2,
-                    ),
-                  ],
-                  buttonBuilder: (context, showMenu) => CupertinoButton(
-                    onPressed: showMenu,
-                    padding: EdgeInsets.zero,
-                    child: Container(
-                      width: 35,
-                      height: 35,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.all(Radius.circular(50)),
-                      ),
-                      child: const Icon(CupertinoIcons.camera_fill,
-                          color: Colors.white, size: 18),
-                    ),
+        child: Obx(() {
+          // Recording UI
+          if (controller.isRecording.value) {
+            return _buildRecordingRow();
+          }
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Obx(() {
+                final editing = controller.editingMessage.value;
+                final replying = controller.replyingTo.value;
+                if (editing == null && replying == null) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-                SizedBox(width: 7),
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: 70,
-                      minHeight: 35,
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(50)),
-                        border: Border.all(color: Colors.grey.withAlpha(70)),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Obx(
-                        () => TextField(
-                          focusNode: controller.focus,
-                          controller: controller.textEditingController,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: controller.editingMessage.value != null
-                                ? "Mesajı düzenle"
-                                : "Mesaj",
-                            hintStyle: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 15,
-                              fontFamily: "Montserrat",
-                            ),
-                            isCollapsed: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 5),
-                          ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          editing != null
+                              ? "Düzenleniyor: ${editing.metin}"
+                              : "Yanıtlanıyor: ${replying?.metin ?? ''}",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.black,
-                            fontSize: 15,
+                            fontSize: 12,
                             fontFamily: "MontserratMedium",
                           ),
-                          onChanged: (val) {
-                            controller.textMesage.value = val;
-                          },
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: controller.clearComposerAction,
+                        child: const Icon(CupertinoIcons.xmark, size: 16),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              Row(
+                children: [
+                  PullDownButton(
+                    itemBuilder: (context) => [
+                      PullDownMenuItem(
+                        onTap: () {
+                          controller.pickCameraImage();
+                        },
+                        title: 'Fotoğraf Çek',
+                        icon: CupertinoIcons.camera,
+                      ),
+                      PullDownMenuItem(
+                        onTap: () {
+                          controller.pickImage();
+                        },
+                        title: 'Fotoğraf Yükle',
+                        icon: CupertinoIcons.photo_on_rectangle,
+                      ),
+                      PullDownMenuItem(
+                        onTap: () {
+                          controller.pickCameraVideo();
+                        },
+                        title: 'Video Çek',
+                        icon: CupertinoIcons.videocam,
+                      ),
+                      PullDownMenuItem(
+                        onTap: () {
+                          controller.pickVideo();
+                        },
+                        title: 'Video Seç',
+                        icon: CupertinoIcons.film,
+                      ),
+                      PullDownMenuItem(
+                        onTap: () {
+                          Get.to(() => LocationShareViewChat(
+                                chatID: controller.chatID,
+                              ));
+                        },
+                        title: 'Konum Paylaş',
+                        icon: CupertinoIcons.location,
+                      ),
+                      PullDownMenuItem(
+                        onTap: () {
+                          controller.selectContact();
+                        },
+                        title: 'Kişi Seç',
+                        icon: CupertinoIcons.person_2,
+                      ),
+                    ],
+                    buttonBuilder: (context, showMenu) => CupertinoButton(
+                      onPressed: showMenu,
+                      padding: EdgeInsets.zero,
+                      child: Container(
+                        width: 35,
+                        height: 35,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          borderRadius: BorderRadius.all(Radius.circular(50)),
+                        ),
+                        child: const Icon(CupertinoIcons.camera_fill,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 7),
+                  Expanded(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxHeight: 70,
+                        minHeight: 35,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(50)),
+                          border: Border.all(color: Colors.grey.withAlpha(70)),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Obx(
+                          () => TextField(
+                            focusNode: controller.focus,
+                            controller: controller.textEditingController,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: controller.editingMessage.value != null
+                                  ? "Mesajı düzenle"
+                                  : "Mesaj",
+                              hintStyle: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 15,
+                                fontFamily: "Montserrat",
+                              ),
+                              isCollapsed: true,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 5),
+                            ),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratMedium",
+                            ),
+                            onChanged: (val) {
+                              controller.textMesage.value = val;
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(width: 7),
-                Obx(() {
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (controller.textMesage.value != "" ||
-                          controller.images.isNotEmpty ||
-                          controller.editingMessage.value != null)
-                        if (controller.uploadPercent.value != 0 &&
-                            controller.uploadPercent.value != 100)
-                          SizedBox(
-                            width: 35,
-                            height: 35,
-                            child: Center(
-                              child: CupertinoActivityIndicator(
-                                color: Colors.black,
-                              ),
-                            ),
-                          )
-                        else
-                          GestureDetector(
-                            onTap: () {
-                              if (controller.selection.value == 0) {
-                                controller.sendMessage();
-                              } else if (controller.selection.value == 1) {
-                                controller.uploadImageToStorage();
-                              }
-                            },
-                            child: Container(
+                  SizedBox(width: 7),
+                  Obx(() {
+                    // Uploading state (video, voice, image)
+                    if (controller.isUploading.value) {
+                      return SizedBox(
+                        width: 35,
+                        height: 35,
+                        child: Center(
+                          child: CupertinoActivityIndicator(
+                            color: Colors.black,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (controller.textMesage.value != "" ||
+                            controller.images.isNotEmpty ||
+                            controller.editingMessage.value != null)
+                          if (controller.uploadPercent.value != 0 &&
+                              controller.uploadPercent.value != 100)
+                            SizedBox(
                               width: 35,
                               height: 35,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(50),
+                              child: Center(
+                                child: CupertinoActivityIndicator(
+                                  color: Colors.black,
                                 ),
                               ),
-                              child: Icon(
-                                Icons.send,
-                                color: Colors.white,
-                                size: 18,
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () {
+                                if (controller.selection.value == 0) {
+                                  controller.sendMessage();
+                                } else if (controller.selection.value == 1) {
+                                  controller.uploadImageToStorage();
+                                }
+                              },
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(50),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
-                            ),
-                          )
-                      else
-                        Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(CupertinoIcons.mic,
-                                  color: Colors.black, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 26, minHeight: 26),
-                            ),
-                            IconButton(
-                              onPressed: controller.pickImage,
-                              icon: const Icon(CupertinoIcons.photo,
-                                  color: Colors.black, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 26, minHeight: 26),
-                            ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(CupertinoIcons.smiley,
-                                  color: Colors.black, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 26, minHeight: 26),
-                            ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: const Icon(CupertinoIcons.plus_circle,
-                                  color: Colors.black, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                  minWidth: 26, minHeight: 26),
-                            ),
-                          ],
-                        ),
-                    ],
-                  );
-                }),
-              ],
-            ),
-          ],
-        ),
+                            )
+                        else
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  controller.startVoiceRecording();
+                                },
+                                icon: const Icon(CupertinoIcons.mic,
+                                    color: Colors.black, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 26, minHeight: 26),
+                              ),
+                              IconButton(
+                                onPressed: controller.pickImage,
+                                icon: const Icon(CupertinoIcons.photo,
+                                    color: Colors.black, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 26, minHeight: 26),
+                              ),
+                              IconButton(
+                                onPressed: () {},
+                                icon: const Icon(CupertinoIcons.smiley,
+                                    color: Colors.black, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 26, minHeight: 26),
+                              ),
+                              IconButton(
+                                onPressed: () {},
+                                icon: const Icon(CupertinoIcons.plus_circle,
+                                    color: Colors.black, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 26, minHeight: 26),
+                              ),
+                            ],
+                          ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ],
+          );
+        }),
       ),
+    );
+  }
+
+  Widget _buildRecordingRow() {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () {
+            controller.cancelVoiceRecording();
+          },
+          child: Container(
+            width: 35,
+            height: 35,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: const Icon(CupertinoIcons.xmark,
+                color: Colors.black, size: 18),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: const BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Obx(() {
+            final secs = controller.recordingDuration.value;
+            final m = (secs ~/ 60).toString().padLeft(1, '0');
+            final s = (secs % 60).toString().padLeft(2, '0');
+            return Text(
+              "Kayıt yapılıyor... $m:$s",
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 14,
+                fontFamily: "MontserratMedium",
+              ),
+            );
+          }),
+        ),
+        GestureDetector(
+          onTap: () {
+            controller.stopVoiceRecording();
+          },
+          child: Container(
+            width: 35,
+            height: 35,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.circular(50),
+            ),
+            child: const Icon(Icons.send, color: Colors.white, size: 18),
+          ),
+        ),
+      ],
     );
   }
 }
