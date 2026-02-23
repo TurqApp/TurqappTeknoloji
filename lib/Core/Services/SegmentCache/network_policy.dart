@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'cache_manager.dart';
 import '../NetworkAwarenessService.dart';
 
 /// Cache sistemi için ağ politikası.
@@ -22,9 +24,24 @@ class CacheNetworkPolicy {
   /// SADECE Wi-Fi'de true — mobil veride cache miss olursa CDN'e gitmez.
   static bool get canFetchOnDemand {
     try {
-      return Get.find<NetworkAwarenessService>().isOnWiFi;
+      final net = Get.find<NetworkAwarenessService>();
+      if (net.isOnWiFi) return true;
+
+      // Mobilde istisna: keş 50 videonun altındaysa, izlenen videodan
+      // gelen anlık segment isteğine izin ver (izledikçe keş dolsun).
+      if (net.isOnCellular) {
+        // Cache manager henüz ayağa kalkmadıysa bootstrap için izin ver.
+        if (!Get.isRegistered<SegmentCacheManager>()) {
+          return true;
+        }
+        final cache = Get.find<SegmentCacheManager>();
+        return cache.cachedVideoCount < ContentPolicy.minGlobalCachedVideos;
+      }
+      // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
+      return net.isConnected;
     } catch (_) {
-      return false;
+      // Fail-open: policy servisleri geç yüklenirse oynatma kilitlenmesin.
+      return true;
     }
   }
 
@@ -34,7 +51,7 @@ class CacheNetworkPolicy {
     try {
       return Get.find<NetworkAwarenessService>().isConnected;
     } catch (_) {
-      return false;
+      return true;
     }
   }
 

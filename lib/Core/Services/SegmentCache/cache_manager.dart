@@ -51,6 +51,8 @@ class SegmentCacheManager extends GetxController {
   String get cacheDir => _cacheDir;
   int get entryCount => _index.entries.length;
   int get totalSizeBytes => _index.totalSizeBytes;
+  int get cachedVideoCount =>
+      _index.entries.values.where((e) => e.cachedSegmentCount > 0).length;
   int get totalSegmentCount =>
       _index.entries.values.fold(0, (sum, e) => sum + e.cachedSegmentCount);
   List<String> get recentlyPlayed => List.unmodifiable(_recentlyPlayed);
@@ -248,22 +250,28 @@ class SegmentCacheManager extends GetxController {
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? _softLimitBytes;
     while (_index.totalSizeBytes > target) {
-      final int cachedVideoCount =
-          _index.entries.values.where((e) => e.cachedSegmentCount > 0).length;
       if (cachedVideoCount <= ContentPolicy.minGlobalCachedVideos) {
         break;
       }
-      final candidate = _findEvictionCandidate();
+      final candidate = _findEvictionCandidate(preferLowQuality: true);
       if (candidate == null) break; // Silinecek aday kalmadı
       await _evictEntry(candidate);
     }
   }
 
-  VideoCacheEntry? _findEvictionCandidate() {
+  VideoCacheEntry? _findEvictionCandidate({bool preferLowQuality = false}) {
     VideoCacheEntry? worst;
     double worstScore = double.infinity;
 
-    for (final entry in _index.entries.values) {
+    Iterable<VideoCacheEntry> candidates = _index.entries.values;
+    if (preferLowQuality) {
+      final lowQuality = candidates.where(_isLowQualityEntry).toList();
+      if (lowQuality.isNotEmpty) {
+        candidates = lowQuality;
+      }
+    }
+
+    for (final entry in candidates) {
       final score = _evictionScore(entry);
       if (score < worstScore) {
         worstScore = score;
@@ -313,6 +321,20 @@ class SegmentCacheManager extends GetxController {
     }
 
     return score;
+  }
+
+  bool _isLowQualityEntry(VideoCacheEntry entry) {
+    if (entry.state == VideoCacheState.playing) return false;
+    if (entry.cachedSegmentCount <= 2) return true;
+    if (entry.totalSegmentCount <= 0) return entry.cachedSegmentCount <= 3;
+    final ratio = entry.cachedSegmentCount / entry.totalSegmentCount;
+    if (ratio < 0.20) return true;
+    if (entry.watchProgress <= 0.10 &&
+        entry.state == VideoCacheState.partial &&
+        entry.cachedSegmentCount <= 3) {
+      return true;
+    }
+    return false;
   }
 
   Future<void> _evictEntry(VideoCacheEntry entry) async {

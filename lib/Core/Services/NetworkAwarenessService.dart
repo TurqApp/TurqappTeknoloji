@@ -176,16 +176,18 @@ class NetworkAwarenessService extends GetxController {
 
   /// Update network type
   void _updateNetworkType(List<ConnectivityResult> results) {
-    final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
-    switch (result) {
-      case ConnectivityResult.wifi:
-        _currentNetwork.value = NetworkType.wifi;
-        break;
-      case ConnectivityResult.mobile:
-        _currentNetwork.value = NetworkType.cellular;
-        break;
-      default:
-        _currentNetwork.value = NetworkType.none;
+    // iOS'ta sonuç listesi [vpn, wifi] gibi gelebiliyor.
+    // first'e bakmak yanlış şekilde offline kararına yol açıyordu.
+    if (results.contains(ConnectivityResult.wifi) ||
+        results.contains(ConnectivityResult.ethernet)) {
+      _currentNetwork.value = NetworkType.wifi;
+    } else if (results.contains(ConnectivityResult.mobile)) {
+      _currentNetwork.value = NetworkType.cellular;
+    } else if (results.any((r) => r != ConnectivityResult.none)) {
+      // bluetooth/vpn/other benzeri bağlı durumları offline sayma.
+      _currentNetwork.value = NetworkType.wifi;
+    } else {
+      _currentNetwork.value = NetworkType.none;
     }
 
     // Prefetch scheduler'ı bilgilendir

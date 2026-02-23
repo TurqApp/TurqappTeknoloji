@@ -46,7 +46,27 @@ post_install do |installer|
       # some third-party pods (e.g., share_plus/libwebp). Disable for Pods.
       config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
       config.build_settings['CLANG_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+      config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
       config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'
+      warning_flags = config.build_settings['WARNING_CFLAGS'] || '$(inherited)'
+      warning_flags = [warning_flags] unless warning_flags.is_a?(Array)
+      unless warning_flags.include?('-Wno-quoted-include-in-framework-header')
+        warning_flags << '-Wno-quoted-include-in-framework-header'
+      end
+      config.build_settings['WARNING_CFLAGS'] = warning_flags
+
+      other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+      other_cflags = [other_cflags] unless other_cflags.is_a?(Array)
+      unless other_cflags.include?('-Wno-error=quoted-include-in-framework-header')
+        other_cflags << '-Wno-error=quoted-include-in-framework-header'
+      end
+      config.build_settings['OTHER_CFLAGS'] = other_cflags
+
+      if target.name == 'sqflite_darwin'
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+      end
     end
   end
 end
