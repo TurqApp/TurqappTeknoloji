@@ -348,7 +348,7 @@ class MessageContentController extends GetxController {
               });
             } else {
               FirebaseFirestore.instance
-                  .collection("Mesajlar")
+                  .collection("message")
                   .doc(mainID)
                   .collection("Chat")
                   .doc(model.rawDocID)
@@ -378,7 +378,7 @@ class MessageContentController extends GetxController {
               });
             } else {
               FirebaseFirestore.instance
-                  .collection("Mesajlar")
+                  .collection("message")
                   .doc(mainID)
                   .collection("Chat")
                   .doc(model.rawDocID)
@@ -408,7 +408,7 @@ class MessageContentController extends GetxController {
             .collection("messages")
             .doc(model.rawDocID)
         : FirebaseFirestore.instance
-            .collection("Mesajlar")
+            .collection("message")
             .doc(mainID)
             .collection("Chat")
             .doc(model.rawDocID);
@@ -443,7 +443,7 @@ class MessageContentController extends GetxController {
       onYesPressed: () async {
         await FirebaseFirestore.instance
             .collection(
-                model.source == "conversation" ? "conversations" : "Mesajlar")
+                model.source == "conversation" ? "conversations" : "message")
             .doc(mainID)
             .collection(model.source == "conversation" ? "messages" : "Chat")
             .doc(model.rawDocID)

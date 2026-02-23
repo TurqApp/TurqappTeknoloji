@@ -45,15 +45,13 @@ class InAppNotificationsController extends GetxController {
         .limit(300)
         .snapshots()
         .listen((snapshot) {
-      final allNotifications = snapshot.docs
-          .where((doc) {
-            final data = doc.data();
-            final hideByFlag = data["hideInAppInbox"] == true;
-            final hideByLegacyPostId =
-                (data["postID"] ?? "").toString() == "admin-manual-push";
-            return !hideByFlag && !hideByLegacyPostId;
-          })
-          .map((doc) {
+      final allNotifications = snapshot.docs.where((doc) {
+        final data = doc.data();
+        final hideByFlag = data["hideInAppInbox"] == true;
+        final hideByLegacyPostId =
+            (data["postID"] ?? "").toString() == "admin-manual-push";
+        return !hideByFlag && !hideByLegacyPostId;
+      }).map((doc) {
         final data = doc.data();
 
         // Yeni şema: type/fromUserID/postID/read/timeStamp
@@ -100,6 +98,29 @@ class InAppNotificationsController extends GetxController {
     list.removeWhere((n) => n.docID == docID);
   }
 
+  Future<void> deleteMany(List<String> docIDs) async {
+    if (docIDs.isEmpty) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final uniqueIds = docIDs.toSet().toList(growable: false);
+
+    for (var i = 0; i < uniqueIds.length; i += 450) {
+      final batch = FirebaseFirestore.instance.batch();
+      final chunk = uniqueIds.skip(i).take(450);
+      for (final docID in chunk) {
+        batch.delete(
+          FirebaseFirestore.instance
+              .collection("users")
+              .doc(uid)
+              .collection("notifications")
+              .doc(docID),
+        );
+      }
+      await batch.commit();
+    }
+    list.removeWhere((n) => uniqueIds.contains(n.docID));
+  }
+
   Future<void> markAsRead(String docID) async {
     final idx = list.indexWhere((n) => n.docID == docID);
     if (idx < 0 || list[idx].isRead) return;
@@ -119,6 +140,49 @@ class InAppNotificationsController extends GetxController {
     } catch (_) {
       list[idx].isRead = false;
       list.refresh();
+    }
+  }
+
+  Future<void> markManyAsRead(List<String> docIDs) async {
+    if (docIDs.isEmpty) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final uniqueIds = docIDs.toSet().toList(growable: false);
+
+    final changed = <int>[];
+    for (var i = 0; i < list.length; i++) {
+      if (!uniqueIds.contains(list[i].docID) || list[i].isRead) continue;
+      list[i].isRead = true;
+      changed.add(i);
+    }
+    if (changed.isNotEmpty) {
+      list.refresh();
+    }
+
+    try {
+      for (var i = 0; i < uniqueIds.length; i += 450) {
+        final batch = FirebaseFirestore.instance.batch();
+        final chunk = uniqueIds.skip(i).take(450);
+        for (final docID in chunk) {
+          batch.set(
+            FirebaseFirestore.instance
+                .collection("users")
+                .doc(uid)
+                .collection("notifications")
+                .doc(docID),
+            {"read": true},
+            SetOptions(merge: true),
+          );
+        }
+        await batch.commit();
+      }
+    } catch (_) {
+      for (final idx in changed) {
+        list[idx].isRead = false;
+      }
+      if (changed.isNotEmpty) {
+        list.refresh();
+      }
     }
   }
 

@@ -51,18 +51,27 @@ class NavBarView extends StatelessWidget {
       unreadController.startListeners();
     }
 
-    // Short controller hazır olduktan sonra preload'u gecikmesiz başlat
+    // Short preload sadece bir kez tetiklensin (rebuild spam'i engelle)
     if (Get.isRegistered<ShortController>()) {
-      final shortController = Get.find<ShortController>();
-      shortController.backgroundPreload().then((_) {
-        print('[NavBar] Proaktif Short preload tamamlandı');
-      }).catchError((e) {
-        print('[NavBar] Proaktif Short preload hatası: $e');
-      });
+      controller.ensureProactiveShortPreloadStarted();
     }
   }
 
   late final AnimationController animationController;
+
+  Widget _buildSelectedPage() {
+    final hasEducation = settingController.educationScreenIsOn.value;
+    final selected = controller.selectedIndex.value;
+
+    if (selected == 0) return AgendaView();
+    if (selected == 1) return ExploreView();
+    if (selected == 2) return Container(); // shorts placeholder
+    if (hasEducation) {
+      if (selected == 3) return EducationView();
+      return ProfileView();
+    }
+    return ProfileView();
+  }
 
   Future<bool> _handleBackNavigation() async {
     final hasEducation = settingController.educationScreenIsOn.value;
@@ -84,14 +93,6 @@ class NavBarView extends StatelessWidget {
     double fontSize = (Get.width / targetCharCount) * 1.3;
     return Obx(() {
       // Define pages and icons
-      final pages = [
-        // Hikayeler MyApp başlamadan önce yüklendiği için direkt göster
-        AgendaView(),
-        ExploreView(),
-        Container(), // placeholder for shorts
-        if (settingController.educationScreenIsOn.value) EducationView(),
-        ProfileView(),
-      ];
       final icons = [
         'assets/icons/house',
         'assets/icons/search',
@@ -101,217 +102,228 @@ class NavBarView extends StatelessWidget {
       ];
 
       return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) async {
-            if (didPop) return;
-            final shouldPop = await _handleBackNavigation();
-            if (shouldPop) {
-              SystemNavigator.pop();
-            }
-          },
-          child: Scaffold(
-            resizeToAvoidBottomInset: false,
-            body: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-            // Current page
-            Column(
-              children: [
-                const OfflineIndicator(),
-                Expanded(
-                  child: pages[controller.selectedIndex.value],
-                ),
-              ],
-            ),
-
-            // Feed sekmesinde status bar altına beyaz zemin (üst katman)
-            if (controller.selectedIndex.value == 0)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: IgnorePointer(
-                  child: Container(
-                    height: MediaQuery.of(context).padding.top - 3,
-                    color: Colors.white,
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldPop = await _handleBackNavigation();
+          if (shouldPop) {
+            SystemNavigator.pop();
+          }
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              // Current page
+              Column(
+                children: [
+                  const OfflineIndicator(),
+                  Expanded(
+                    child: _buildSelectedPage(),
                   ),
-                ),
+                ],
               ),
 
-            // Opening overlay (first boot only)
-            // const Positioned.fill(child: OpeningOverlay()),
-
-            AnimatedOpacity(
-              opacity: controller.showBar.value ? 1 : 0.2,
-              duration: const Duration(milliseconds: 200),
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  12,
-                  0,
-                  12,
-                  math.max(
-                    0.0,
-                    math.max(8.0, MediaQuery.of(context).viewPadding.bottom) - 10,
+              // Feed sekmesinde status bar altına beyaz zemin (üst katman)
+              if (controller.selectedIndex.value == 0)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: MediaQuery.of(context).padding.top - 3,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.88),
-                        border: Border.all(
-                          color: Colors.black.withOpacity(0.06),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x22000000),
-                            blurRadius: 20,
-                            offset: Offset(0, 6),
+
+              // Opening overlay (first boot only)
+              // const Positioned.fill(child: OpeningOverlay()),
+
+              AnimatedOpacity(
+                opacity: controller.showBar.value ? 1 : 0.2,
+                duration: const Duration(milliseconds: 200),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    12,
+                    0,
+                    12,
+                    math.max(
+                      0.0,
+                      math.max(8.0, MediaQuery.of(context).viewPadding.bottom) -
+                          10,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.88),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.06),
                           ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: List.generate(icons.length, (i) {
-                          final isSelected = controller.selectedIndex.value == i;
-                          return TextButton(
-                            style: ButtonStyle(
-                              overlayColor:
-                                  WidgetStateProperty.all(Colors.transparent),
-                              padding: WidgetStateProperty.all(EdgeInsets.zero),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x22000000),
+                              blurRadius: 20,
+                              offset: Offset(0, 6),
                             ),
-                            onPressed: () async {
-                        // Eğer zaten AgendaView (index 0) aktifken House ikonuna basılırsa, en üste kaydır
-                        if (i == 0 && controller.selectedIndex.value == 0) {
-                          if (Get.isRegistered<AgendaController>()) {
-                            final agendaCtrl = Get.find<AgendaController>();
-                            if (agendaCtrl.scrollController.hasClients) {
-                              agendaCtrl.scrollController.animateTo(
-                                0,
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeOut,
-                              );
-                              return;
-                            }
-                          }
-                          // Kayıtlı controller yoksa normal akışa düşer
-                        }
-                        // Explore sayfasındayken search ikonuna tekrar basılırsa: mevcut sekmenin en üstüne kaydır
-                        if (i == 1 && controller.selectedIndex.value == 1) {
-                          if (Get.isRegistered<ExploreController>()) {
-                            final explore = Get.find<ExploreController>();
-                            int tab = 0;
-                            try {
-                              tab = Get.find<PageLineBarController>(
-                                      tag: 'Explore')
-                                  .selection
-                                  .value;
-                            } catch (_) {}
-                            ScrollController? sc;
-                            switch (tab) {
-                              case 0:
-                                sc = explore.exploreScroll;
-                                break;
-                              case 1:
-                                sc = explore.floodsScroll;
-                                break;
-                              case 2:
-                                sc = explore.videoScroll;
-                                break;
-                              case 3:
-                                sc = explore.photoScroll;
-                                break;
-                              default:
-                                sc = explore.exploreScroll;
-                            }
-                            if (sc.hasClients) {
-                              sc.animateTo(0,
-                                  duration: const Duration(milliseconds: 500),
-                                  curve: Curves.easeOut);
-                              return;
-                            }
-                          }
-                          // controller kayıtlı değilse normal akış
-                        }
-                        if (i != 2) {
-                          if (i ==
-                              (settingController.educationScreenIsOn.value
-                                  ? 3
-                                  : 2)) {
-                            FocusScope.of(context).unfocus();
-                            controller.changeIndex(i);
-                          } else {
-                            controller.changeIndex(i);
-                          }
-                        } else {
-                          // Short ikonuna tıklandığında background preload başlat
-                          final shortController = Get.find<ShortController>();
-
-                          try {
-                            await shortController.backgroundPreload();
-                            print('[NavBar] Short preload tamamlandı');
-                          } catch (e) {
-                            print('[NavBar] Short preload hatası: $e');
-                          }
-
-                          await Get.to(() => const ShortView());
-                        }
-                            },
-                            child: Builder(builder: (_) {
-                              if (icons[i] == 'profile_dynamic') {
-                                return Obx(() {
-                                  final img = userStore.pfImage.value;
-                                  final uploading =
-                                      controller.uploadingPosts.value;
-                                  const double size = 28;
-                                  return AnimatedBuilder(
-                                    animation:
-                                        controller.animationController.value,
-                                    builder: (_, __) {
-                                      // Slightly faster sweep rotation
-                                      final angle = controller
-                                              .animationController.value.value *
-                                          2 *
-                                          math.pi *
-                                          3;
-                                      return _AvatarWithRing(
-                                        imageUrl: img,
-                                        size: size,
-                                        isSelected: isSelected,
-                                        uploading: uploading,
-                                        angle: angle,
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: List.generate(icons.length, (i) {
+                            final isSelected =
+                                controller.selectedIndex.value == i;
+                            return TextButton(
+                              style: ButtonStyle(
+                                overlayColor:
+                                    WidgetStateProperty.all(Colors.transparent),
+                                padding:
+                                    WidgetStateProperty.all(EdgeInsets.zero),
+                              ),
+                              onPressed: () async {
+                                // Eğer zaten AgendaView (index 0) aktifken House ikonuna basılırsa, en üste kaydır
+                                if (i == 0 &&
+                                    controller.selectedIndex.value == 0) {
+                                  if (Get.isRegistered<AgendaController>()) {
+                                    final agendaCtrl =
+                                        Get.find<AgendaController>();
+                                    if (agendaCtrl
+                                        .scrollController.hasClients) {
+                                      agendaCtrl.scrollController.animateTo(
+                                        0,
+                                        duration:
+                                            const Duration(milliseconds: 500),
+                                        curve: Curves.easeOut,
                                       );
-                                    },
-                                  );
-                                });
-                              }
-                              return SvgPicture.asset(
-                                '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
-                                height: i <= 1 ? 25 : 28,
-                                color: isSelected
-                                    ? Colors.black
-                                    : Colors.black.withOpacity(0.5),
-                              );
-                            }),
-                          );
-                        }),
+                                      return;
+                                    }
+                                  }
+                                  // Kayıtlı controller yoksa normal akışa düşer
+                                }
+                                // Explore sayfasındayken search ikonuna tekrar basılırsa: mevcut sekmenin en üstüne kaydır
+                                if (i == 1 &&
+                                    controller.selectedIndex.value == 1) {
+                                  if (Get.isRegistered<ExploreController>()) {
+                                    final explore =
+                                        Get.find<ExploreController>();
+                                    int tab = 0;
+                                    try {
+                                      tab = Get.find<PageLineBarController>(
+                                              tag: 'Explore')
+                                          .selection
+                                          .value;
+                                    } catch (_) {}
+                                    ScrollController? sc;
+                                    switch (tab) {
+                                      case 0:
+                                        sc = explore.exploreScroll;
+                                        break;
+                                      case 1:
+                                        sc = explore.floodsScroll;
+                                        break;
+                                      case 2:
+                                        sc = explore.videoScroll;
+                                        break;
+                                      case 3:
+                                        sc = explore.photoScroll;
+                                        break;
+                                      default:
+                                        sc = explore.exploreScroll;
+                                    }
+                                    if (sc.hasClients) {
+                                      sc.animateTo(0,
+                                          duration:
+                                              const Duration(milliseconds: 500),
+                                          curve: Curves.easeOut);
+                                      return;
+                                    }
+                                  }
+                                  // controller kayıtlı değilse normal akış
+                                }
+                                if (i != 2) {
+                                  if (i ==
+                                      (settingController
+                                              .educationScreenIsOn.value
+                                          ? 3
+                                          : 2)) {
+                                    FocusScope.of(context).unfocus();
+                                    controller.changeIndex(i);
+                                  } else {
+                                    controller.changeIndex(i);
+                                  }
+                                } else {
+                                  // Short ikonuna tıklandığında background preload başlat
+                                  final shortController =
+                                      Get.find<ShortController>();
+
+                                  try {
+                                    await shortController.backgroundPreload();
+                                  } catch (_) {}
+
+                                  await Get.to(() => const ShortView());
+                                }
+                              },
+                              child: Builder(builder: (_) {
+                                if (icons[i] == 'profile_dynamic') {
+                                  return Obx(() {
+                                    final img = userStore.pfImage.value;
+                                    final uploading =
+                                        controller.uploadingPosts.value;
+                                    const double size = 28;
+                                    return AnimatedBuilder(
+                                      animation:
+                                          controller.animationController.value,
+                                      builder: (_, __) {
+                                        // Slightly faster sweep rotation
+                                        final angle = controller
+                                                .animationController
+                                                .value
+                                                .value *
+                                            2 *
+                                            math.pi *
+                                            3;
+                                        return _AvatarWithRing(
+                                          imageUrl: img,
+                                          size: size,
+                                          isSelected: isSelected,
+                                          uploading: uploading,
+                                          angle: angle,
+                                        );
+                                      },
+                                    );
+                                  });
+                                }
+                                return SvgPicture.asset(
+                                  '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
+                                  height: i <= 1 ? 25 : 28,
+                                  color: isSelected
+                                      ? Colors.black
+                                      : Colors.black.withOpacity(0.5),
+                                );
+                              }),
+                            );
+                          }),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-              ],
-            ),
+            ],
           ),
-        );
+        ),
+      );
     });
   }
 }

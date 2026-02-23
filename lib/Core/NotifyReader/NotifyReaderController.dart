@@ -78,7 +78,7 @@ class NotifyReaderController extends GetxController {
 
     if (otherUser.isEmpty) {
       final legacyDoc = await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(chatID)
           .get();
       if (!legacyDoc.exists) {

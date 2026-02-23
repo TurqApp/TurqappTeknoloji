@@ -55,14 +55,14 @@ class UnreadMessagesController extends GetxController {
     });
 
     _legacyAsUser1Subscription = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID1", isEqualTo: uid)
         .snapshots()
         .listen((snapshot) => _processLegacySnapshot(snapshot, uid),
             onError: (_) {});
 
     _legacyAsUser2Subscription = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID2", isEqualTo: uid)
         .snapshots()
         .listen((snapshot) => _processLegacySnapshot(snapshot, uid),

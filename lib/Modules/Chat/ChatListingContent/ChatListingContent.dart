@@ -70,7 +70,7 @@ class ChatListingContent extends StatelessWidget {
       }, SetOptions(merge: true));
     } else {
       await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(model.chatID)
           .set({
         "forceUnread.$_uid": true,
@@ -82,7 +82,7 @@ class ChatListingContent extends StatelessWidget {
 
   Future<void> _togglePinned() async {
     final newValue = !model.isPinned;
-    final collection = model.isConversation ? "conversations" : "Mesajlar";
+    final collection = model.isConversation ? "conversations" : "message";
     await FirebaseFirestore.instance
         .collection(collection)
         .doc(model.chatID)
@@ -96,7 +96,7 @@ class ChatListingContent extends StatelessWidget {
 
   Future<void> _toggleMuted() async {
     final newValue = !model.isMuted;
-    final collection = model.isConversation ? "conversations" : "Mesajlar";
+    final collection = model.isConversation ? "conversations" : "message";
     await FirebaseFirestore.instance
         .collection(collection)
         .doc(model.chatID)
@@ -135,8 +135,7 @@ class ChatListingContent extends StatelessWidget {
     } catch (_) {}
 
     try {
-      final legacyById =
-          await db.collection("Mesajlar").doc(model.chatID).get();
+      final legacyById = await db.collection("message").doc(model.chatID).get();
       if (legacyById.exists) {
         await legacyById.reference
             .set({"archived.$_uid": true}, SetOptions(merge: true));
@@ -162,7 +161,7 @@ class ChatListingContent extends StatelessWidget {
 
     try {
       final legacy1 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: _uid)
           .where("userID2", isEqualTo: model.userID)
           .get();
@@ -175,7 +174,7 @@ class ChatListingContent extends StatelessWidget {
 
     try {
       final legacy2 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: model.userID)
           .where("userID2", isEqualTo: _uid)
           .get();
@@ -218,7 +217,7 @@ class ChatListingContent extends StatelessWidget {
     } catch (_) {}
 
     try {
-      await db.collection("Mesajlar").doc(model.chatID).set({
+      await db.collection("message").doc(model.chatID).set({
         "archived.$_uid": false,
       }, SetOptions(merge: true));
     } catch (_) {}
@@ -240,7 +239,7 @@ class ChatListingContent extends StatelessWidget {
 
     try {
       final legacy1 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: _uid)
           .where("userID2", isEqualTo: model.userID)
           .get();
@@ -252,7 +251,7 @@ class ChatListingContent extends StatelessWidget {
 
     try {
       final legacy2 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: model.userID)
           .where("userID2", isEqualTo: _uid)
           .get();
@@ -289,7 +288,7 @@ class ChatListingContent extends StatelessWidget {
       }, SetOptions(merge: true));
     } else {
       await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(model.chatID)
           .set({
         "deleted": FieldValue.arrayUnion([_uid]),
@@ -436,7 +435,7 @@ class ChatListingContent extends StatelessWidget {
                             .set({"unread.$_uid": 0}, SetOptions(merge: true));
                       } else {
                         await FirebaseFirestore.instance
-                            .collection("Mesajlar")
+                            .collection("message")
                             .doc(model.chatID)
                             .set({"forceUnread.$_uid": false},
                                 SetOptions(merge: true));

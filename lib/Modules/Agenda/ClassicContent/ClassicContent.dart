@@ -636,6 +636,34 @@ class _ClassicContentState extends State<ClassicContent>
                 child: Texts.colorfulFloodForVideo,
               ),
 
+            if (isVideoFromCache)
+              Positioned(
+                left: 8,
+                bottom: (widget.model.floodCount > 1) ? 26 : 8,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.circle, size: 8, color: Colors.red),
+                      SizedBox(width: 4),
+                      Text(
+                        'Kes',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             Positioned(
               bottom: 8,
               right: 8,

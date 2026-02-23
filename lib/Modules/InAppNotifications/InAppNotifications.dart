@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/EmptyRow.dart';
 import 'package:turqappv2/Core/PageLineBar.dart';
+import 'package:turqappv2/Models/NotificationModel.dart';
 import 'package:turqappv2/Modules/InAppNotifications/NotificationContent.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/RecommendedUserListController.dart';
 
@@ -305,10 +306,12 @@ class InAppNotifications extends StatelessWidget {
           ),
         ),
       );
-      for (var n in unread) {
+      final unreadGroups = _groupByUser(unread);
+      for (final g in unreadGroups) {
+        final n = g.primary;
         widgets.add(
           Dismissible(
-            key: ValueKey(n.docID),
+            key: ValueKey("unread_${n.docID}_${g.docIDs.length}"),
             direction: DismissDirection.endToStart,
             background: Container(
               color: Colors.red,
@@ -316,10 +319,10 @@ class InAppNotifications extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: const Icon(Icons.delete, color: Colors.white),
             ),
-            onDismissed: (_) => controller.delete(n.docID),
+            onDismissed: (_) => controller.deleteMany(g.docIDs),
             child: NotificationContent(
-              model: n,
-              onOpen: () => controller.markAsRead(n.docID),
+              model: _presentationModel(g),
+              onOpen: () => controller.markManyAsRead(g.docIDs),
             ),
           ),
         );
@@ -327,9 +330,10 @@ class InAppNotifications extends StatelessWidget {
     }
 
     String? currentSection;
-    for (var n in read) {
-      final section =
-          _sectionTitle((n.timeStamp is num ? n.timeStamp : 0).toInt());
+    final readGroups = _groupByUser(read);
+    for (final g in readGroups) {
+      final n = g.primary;
+      final section = _sectionTitle(n.timeStamp.toInt());
       if (currentSection != section) {
         currentSection = section;
         widgets.add(
@@ -349,7 +353,7 @@ class InAppNotifications extends StatelessWidget {
 
       widgets.add(
         Dismissible(
-          key: ValueKey(n.docID),
+          key: ValueKey("read_${n.docID}_${g.docIDs.length}"),
           direction: DismissDirection.endToStart,
           background: Container(
             color: Colors.red,
@@ -357,15 +361,53 @@ class InAppNotifications extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: const Icon(Icons.delete, color: Colors.white),
           ),
-          onDismissed: (_) => controller.delete(n.docID),
+          onDismissed: (_) => controller.deleteMany(g.docIDs),
           child: NotificationContent(
-            model: n,
-            onOpen: () => controller.markAsRead(n.docID),
+            model: _presentationModel(g),
+            onOpen: () => controller.markManyAsRead(g.docIDs),
           ),
         ),
       );
     }
     return widgets;
+  }
+
+  List<_NotificationGroup> _groupByUser(List<dynamic> source) {
+    final ordered = source.cast<NotificationModel>();
+    final byUser = <String, _NotificationGroup>{};
+    final order = <String>[];
+
+    for (final n in ordered) {
+      final userKey = n.userID.trim().isEmpty ? "unknown_${n.docID}" : n.userID;
+      final existing = byUser[userKey];
+      if (existing == null) {
+        byUser[userKey] =
+            _NotificationGroup(primary: n, docIDs: [n.docID], count: 1);
+        order.add(userKey);
+      } else {
+        existing.docIDs.add(n.docID);
+        existing.count += 1;
+      }
+    }
+
+    return order.map((k) => byUser[k]!).toList(growable: false);
+  }
+
+  NotificationModel _presentationModel(_NotificationGroup g) {
+    if (g.count <= 1) return g.primary;
+    final base = g.primary;
+    final extra = g.count - 1;
+    return NotificationModel(
+      docID: base.docID,
+      isRead: base.isRead,
+      postID: base.postID,
+      postType: base.postType,
+      thumbnail: base.thumbnail,
+      timeStamp: base.timeStamp,
+      title: base.title,
+      userID: base.userID,
+      desc: "${base.desc} ve $extra bildirim daha",
+    );
   }
 
   String _sectionTitle(int ts) {
@@ -379,4 +421,16 @@ class InAppNotifications extends StatelessWidget {
     if (d.isAfter(startYesterday)) return "Dün";
     return "Daha eski";
   }
+}
+
+class _NotificationGroup {
+  final NotificationModel primary;
+  final List<String> docIDs;
+  int count;
+
+  _NotificationGroup({
+    required this.primary,
+    required this.docIDs,
+    required this.count,
+  });
 }

@@ -52,6 +52,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır
   HLSVideoAdapter? get videoController => _videoAdapter;
 
+  bool get isVideoFromCache {
+    if (!widget.model.hasPlayableVideo) return false;
+    try {
+      if (!Get.isRegistered<SegmentCacheManager>()) return false;
+      final entry = Get.find<SegmentCacheManager>().getEntry(widget.model.docID);
+      if (entry == null) return false;
+      return entry.cachedSegmentCount > 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 🎯 INSTAGRAM STYLE: Buffer BEKLEMEDEN direkt oynat
   bool get enableBufferedAutoplay => false;
 
@@ -74,7 +86,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       controller.arsiv.value = false;
     }
 
-    if (widget.model.hasPlayableVideo) {
+    // iOS'ta aynı anda çok sayıda native player açılması "ses var görüntü yok"
+    // ve raster crash'e yol açabiliyor. Player'ı yalnızca oynatma gerektiğinde aç.
+    if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       _initVideoController();
     }
 
@@ -138,16 +152,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.shouldPlay != widget.shouldPlay) {
-      if (_videoAdapter != null) {
-        if (widget.shouldPlay) {
-          _videoAdapter?.play();
-          // Cache state machine: playing olarak işaretle
-          try {
-            Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
-          } catch (_) {}
-        } else {
-          _safePauseVideo();
+      if (widget.shouldPlay) {
+        if (_videoAdapter == null && widget.model.hasPlayableVideo) {
+          _initVideoController();
         }
+        _videoAdapter?.play();
+        // Cache state machine: playing olarak işaretle
+        try {
+          Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
+        } catch (_) {}
+      } else {
+        _safePauseVideo();
       }
     }
   }

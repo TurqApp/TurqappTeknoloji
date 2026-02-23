@@ -194,7 +194,7 @@ service cloud.firestore {
         allow read, update, delete: if isParticipantFromResource();
       }
     }
-    match /Mesajlar/{chatId} {
+    match /message/{chatId} {
       allow read, write: if isAuth();
       match /Chat/{msgId} {
         allow read, write: if isAuth();

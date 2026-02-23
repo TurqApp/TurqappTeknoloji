@@ -88,7 +88,7 @@ class ChatListingContentController extends GetxController {
     final currentUID = FirebaseAuth.instance.currentUser!.uid;
 
     _legacyRootSubscription = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(model.chatID)
         .snapshots()
         .listen((snapshot) {
@@ -108,7 +108,7 @@ class ChatListingContentController extends GetxController {
 
   Future<void> getLastMessage() async {
     FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(model.chatID)
         .collection("Chat")
         .orderBy("timeStamp", descending: true)

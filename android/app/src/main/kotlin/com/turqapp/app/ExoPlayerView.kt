@@ -32,7 +32,7 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 6000
+    private var preferredMaxBufferMs: Long = 15000
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -90,14 +90,14 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            val maxBufferMs = preferredMaxBufferMs.coerceIn(4000, 20000).toInt()
-            val minBufferMs = (maxBufferMs * 0.5).toInt().coerceAtLeast(2500)
+            val maxBufferMs = preferredMaxBufferMs.coerceIn(10000, 30000).toInt()
+            val minBufferMs = (maxBufferMs * 0.5).toInt().coerceAtLeast(5000)
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    minBufferMs, // minBufferMs: segment geçişlerinde daha stabil
-                    maxBufferMs, // maxBufferMs: dinamik kontrol
-                    700,         // bufferForPlaybackMs: ilk play'de güvenli tampon
-                    1400         // bufferForPlaybackAfterRebufferMs
+                    minBufferMs, // minBufferMs: segment geçişlerinde yeterli tampon
+                    maxBufferMs, // maxBufferMs: segment sınırında boşalma olmasın
+                    1000,        // bufferForPlaybackMs: ilk play'de güvenli tampon
+                    2000         // bufferForPlaybackAfterRebufferMs: rebuffer sonrası daha temkinli
                 )
                 .build()
 

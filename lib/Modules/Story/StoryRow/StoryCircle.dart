@@ -126,18 +126,6 @@ class _StoryCircleState extends State<StoryCircle> {
 
                     final highlight = hasStory && !allSeen;
 
-                    // Debug: Circle durumunu log et
-                    if (hasStory) {
-                      final readListStatus =
-                          userStore.readStories.contains(widget.model.userID)
-                              ? 'IN_LIST'
-                              : 'NOT_IN_LIST';
-                      final lastSeenTime =
-                          userStore.readStoriesTimes[widget.model.userID];
-                      print(
-                          "🔵 Circle Status - User: ${widget.model.nickname}\nStories: ${widget.model.stories.length}\nAll Seen: $allSeen\nHighlight: $highlight\nRead Status: $readListStatus\nLast Seen: $lastSeenTime");
-                    }
-
                     Widget avatarImage() {
                       // Use CachedUserAvatar for all users (instant for current user)
                       final imageUrl = isMe

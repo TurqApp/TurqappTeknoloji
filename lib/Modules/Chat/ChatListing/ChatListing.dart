@@ -36,7 +36,8 @@ class ChatListing extends StatelessWidget {
     wrote = true;
 
     try {
-      final convById = await db.collection("conversations").doc(item.chatID).get();
+      final convById =
+          await db.collection("conversations").doc(item.chatID).get();
       if (convById.exists) {
         await convById.reference
             .set({"archived.$_uid": true}, SetOptions(merge: true));
@@ -45,7 +46,7 @@ class ChatListing extends StatelessWidget {
     } catch (_) {}
 
     try {
-      final legacyById = await db.collection("Mesajlar").doc(item.chatID).get();
+      final legacyById = await db.collection("message").doc(item.chatID).get();
       if (legacyById.exists) {
         await legacyById.reference
             .set({"archived.$_uid": true}, SetOptions(merge: true));
@@ -59,7 +60,8 @@ class ChatListing extends StatelessWidget {
           .where("participants", arrayContains: _uid)
           .get();
       for (final doc in convCandidates.docs) {
-        final participants = List<String>.from(doc.data()["participants"] ?? []);
+        final participants =
+            List<String>.from(doc.data()["participants"] ?? []);
         if (participants.contains(item.userID)) {
           await doc.reference
               .set({"archived.$_uid": true}, SetOptions(merge: true));
@@ -70,7 +72,7 @@ class ChatListing extends StatelessWidget {
 
     try {
       final legacy1 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: _uid)
           .where("userID2", isEqualTo: item.userID)
           .get();
@@ -83,7 +85,7 @@ class ChatListing extends StatelessWidget {
 
     try {
       final legacy2 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: item.userID)
           .where("userID2", isEqualTo: _uid)
           .get();
@@ -124,7 +126,7 @@ class ChatListing extends StatelessWidget {
     } catch (_) {}
 
     try {
-      await db.collection("Mesajlar").doc(item.chatID).set({
+      await db.collection("message").doc(item.chatID).set({
         "archived.$_uid": false,
       }, SetOptions(merge: true));
       wrote = true;
@@ -136,7 +138,8 @@ class ChatListing extends StatelessWidget {
           .where("participants", arrayContains: _uid)
           .get();
       for (final doc in convCandidates.docs) {
-        final participants = List<String>.from(doc.data()["participants"] ?? []);
+        final participants =
+            List<String>.from(doc.data()["participants"] ?? []);
         if (participants.contains(item.userID)) {
           await doc.reference
               .set({"archived.$_uid": false}, SetOptions(merge: true));
@@ -147,7 +150,7 @@ class ChatListing extends StatelessWidget {
 
     try {
       final legacy1 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: _uid)
           .where("userID2", isEqualTo: item.userID)
           .get();
@@ -160,7 +163,7 @@ class ChatListing extends StatelessWidget {
 
     try {
       final legacy2 = await db
-          .collection("Mesajlar")
+          .collection("message")
           .where("userID1", isEqualTo: item.userID)
           .where("userID2", isEqualTo: _uid)
           .get();
@@ -184,7 +187,7 @@ class ChatListing extends StatelessWidget {
           .set({"archived.$_uid": true}, SetOptions(merge: true));
     } else {
       await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(item.chatID)
           .set({
         "deleted": FieldValue.arrayUnion([_uid])
@@ -389,7 +392,8 @@ class ChatListing extends StatelessWidget {
                                     model: item,
                                     isSearchResult: isSearching,
                                     isArchiveTab:
-                                        controller.selectedTab.value == "archive",
+                                        controller.selectedTab.value ==
+                                            "archive",
                                   ),
                                 );
                               },
@@ -509,8 +513,8 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
                   widget.openedId.value != widget.tileId) {
                 widget.openedId.value = widget.tileId;
               }
-              final next =
-                  (_offsetX + (details.primaryDelta ?? 0)).clamp(-reveal, reveal);
+              final next = (_offsetX + (details.primaryDelta ?? 0))
+                  .clamp(-reveal, reveal);
               setState(() => _offsetX = next);
             },
             onHorizontalDragEnd: (_) {
@@ -538,7 +542,7 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
               transform: Matrix4.translationValues(_offsetX, 0, 0),
               child: Container(
                 color: Colors.white,
-              child: widget.child,
+                child: widget.child,
               ),
             ),
           ),
@@ -548,7 +552,7 @@ class _SwipeActionTileState extends State<_SwipeActionTile> {
               top: 0,
               bottom: 0,
               width: reveal,
-                child: Material(
+              child: Material(
                 color: widget.isArchiveTab
                     ? const Color(0xFF2D8CFF)
                     : Colors.black,

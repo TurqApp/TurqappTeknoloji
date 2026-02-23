@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Themes/AppFonts.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/VideoStateManager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Modules/Splash/SplashView.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -16,23 +18,42 @@ final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
 late final Future<void> firebaseBootstrapFuture;
+// ignore: unused_element
+AppLifecycleListener? _appLifecycleListener;
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([
+  SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // Native launch ekranını uzatmamak için Firebase'i arka planda başlat.
-  firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
+  // Native launch ekranını uzatmamak için Firebase bootstrap'ı
+  // ilk frame sonrasına ertelenir.
+  final bootstrapCompleter = Completer<void>();
+  firebaseBootstrapFuture = bootstrapCompleter.future;
 
   // VideoStateManager lazy olarak yüklensin
   Get.lazyPut(() => VideoStateManager());
 
   runApp(const MyApp());
 
+  _appLifecycleListener = AppLifecycleListener(
+    onPause: _clearConsumedCacheIfNeeded,
+    onDetach: _clearConsumedCacheIfNeeded,
+  );
+
   // İlk frame'i geciktirmemek için sistem UI ayarlarını sonrasına bırak.
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    _bootstrapFirebaseAndCrashlytics()
+        .then((_) {
+          if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
+        })
+        .catchError((e, st) {
+          if (!bootstrapCompleter.isCompleted) {
+            bootstrapCompleter.completeError(e, st);
+          }
+        });
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -40,6 +61,14 @@ void main() async {
       systemNavigationBarContrastEnforced: false,
     ));
   });
+}
+
+void _clearConsumedCacheIfNeeded() {
+  try {
+    if (Get.isRegistered<SegmentCacheManager>()) {
+      unawaited(Get.find<SegmentCacheManager>().clearConsumedCache());
+    }
+  } catch (_) {}
 }
 
 Future<void> _bootstrapFirebaseAndCrashlytics() async {
@@ -208,9 +237,9 @@ class MyApp extends StatelessWidget {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  Listener(
                     behavior: HitTestBehavior.translucent,
-                    onTap: () {
+                    onPointerDown: (_) {
                       final currentFocus = FocusScope.of(ctx);
                       if (!currentFocus.hasPrimaryFocus) {
                         currentFocus.unfocus();

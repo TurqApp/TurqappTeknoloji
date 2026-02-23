@@ -101,7 +101,7 @@ class ChatListingController extends GetxController {
       }
 
       final snap = await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(item.chatID)
           .collection("Chat")
           .orderBy("timeStamp", descending: true)
@@ -297,7 +297,7 @@ class ChatListingController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     final snap1 = await FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID1", isEqualTo: uid)
         .get();
     for (var doc in snap1.docs) {
@@ -340,7 +340,7 @@ class ChatListingController extends GetxController {
     }
 
     final snap2 = await FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID2", isEqualTo: uid)
         .get();
     for (var doc in snap2.docs) {
@@ -421,13 +421,13 @@ class ChatListingController extends GetxController {
     });
 
     _legacyListenerAsUser1 = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID1", isEqualTo: uid)
         .snapshots()
         .listen((_) => getList());
 
     _legacyListenerAsUser2 = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .where("userID2", isEqualTo: uid)
         .snapshots()
         .listen((_) => getList());

@@ -402,7 +402,24 @@ class _AgendaContentState extends State<AgendaContent>
                                 },
                                 child: Builder(builder: (_) {
                                   if (videoController == null) {
-                                    return const SizedBox.shrink();
+                                    final thumb = widget.model.thumbnail;
+                                    if (thumb.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Image.network(
+                                      thumb,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                        if (loadingProgress == null) {
+                                          return child;
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const SizedBox.shrink(),
+                                    );
                                   }
                                   return videoController!.buildPlayer(
                                     key: ValueKey(
@@ -488,6 +505,42 @@ class _AgendaContentState extends State<AgendaContent>
                                         ?.then((_) => videoController?.play());
                                   },
                                   child: Texts.colorfulFloodLeftSide,
+                                ),
+                              ),
+
+                            if (isVideoFromCache)
+                              Positioned(
+                                left: 8,
+                                bottom:
+                                    (widget.model.flood == false &&
+                                            widget.model.floodCount > 1)
+                                        ? 26
+                                        : 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.circle,
+                                        size: 8,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Kes',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             // Ses butonu

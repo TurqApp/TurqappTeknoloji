@@ -10,13 +10,16 @@ import AVFoundation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GMSServices.provideAPIKey("<REDACTED_GOOGLE_MAPS_API_KEY>")
-
     GeneratedPluginRegistrant.register(with: self)
 
     // Register native HLS player plugin
     if let registrar = self.registrar(forPlugin: "HLSPlayerPlugin") {
       HLSPlayerPlugin.register(with: registrar)
+    }
+
+    // Google Maps API key — ilk frame'i bloklamadan arka planda başlat
+    DispatchQueue.main.async {
+      GMSServices.provideAPIKey("<REDACTED_GOOGLE_MAPS_API_KEY>")
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

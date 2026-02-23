@@ -68,6 +68,8 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Feed açıldığında unread listener kesin aktif olsun (idempotent guard var)
+    unreadController.startListeners();
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: Colors.white,
@@ -169,7 +171,7 @@ class AgendaView extends StatelessWidget {
                       return ListView.builder(
                         controller: controller.scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
-                        cacheExtent: 1000.0,
+                        cacheExtent: GetPlatform.isIOS ? 180.0 : 420.0,
                         padding: EdgeInsets.only(
                           bottom: kBottomNavigationBarHeight + 16,
                         ),
@@ -232,25 +234,10 @@ class AgendaView extends StatelessWidget {
                             onVisibilityChanged: (info) {
                               final modelIndex = agendaIndex;
                               if (modelIndex < 0) return;
-
-                              // 🎯 INSTAGRAM STYLE: Fiziksel görünürlük = gerçek kontrol
-                              // %80+ görünür -> Video OYNAT (merkeze yakın)
-                              // %40- görünür -> Video DURDUR (ekrandan uzak/RecommendedUserList kapatmış)
-
-                              if (info.visibleFraction >= 0.80) {
-                                // Video ekranın çoğunu kaplıyor - OYNAT
-                                if (controller.centeredIndex.value !=
-                                    modelIndex) {
-                                  controller.centeredIndex.value = modelIndex;
-                                  controller.lastCenteredIndex = modelIndex;
-                                }
-                              } else if (info.visibleFraction < 0.40) {
-                                // Video ekranın azını kaplıyor veya RecommendedUserList engelliyor - DURDUR
-                                if (controller.centeredIndex.value ==
-                                    modelIndex) {
-                                  controller.centeredIndex.value = -1;
-                                }
-                              }
+                              controller.onPostVisibilityChanged(
+                                modelIndex,
+                                info.visibleFraction,
+                              );
                             },
                             child: buildPostContent(),
                           );
@@ -469,36 +456,35 @@ class AgendaView extends StatelessWidget {
                     } catch (_) {}
                   });
                 },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(
-                      CupertinoIcons.mail,
-                      color: Colors.black,
-                      size: 20,
-                    ),
-                    Obx(() {
-                      final hasUnread =
-                          unreadController.totalUnreadCount.value > 0;
-                      if (!hasUnread) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned(
-                        right: -2,
-                        top: -2,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00C853),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.5),
+                child: Obx(() {
+                  final hasUnread = unreadController.totalUnreadCount.value > 0;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        CupertinoIcons.mail,
+                        color:
+                            hasUnread ? const Color(0xFF00C853) : Colors.black,
+                        size: 20,
+                      ),
+                      if (hasUnread)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00C853),
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: Colors.white, width: 1.5),
+                            ),
                           ),
                         ),
-                      );
-                    }),
-                  ],
-                ),
+                    ],
+                  );
+                }),
               ),
               12.pw,
               GestureDetector(

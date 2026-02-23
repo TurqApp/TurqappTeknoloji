@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -23,9 +24,20 @@ class PrefetchScheduler extends GetxController {
   static const int _fallbackBreadthSegments = 2;
   static const int _fallbackDepthCount = 3;
   static const int _fallbackMaxConcurrent = 2;
+  static const int _fallbackFeedFullWindow = 5;
+  static const int _fallbackFeedPrepWindow = 8;
+  static const int _fallbackFeedPrepSegments = 2;
+  static const int _wifiMinBreadthCount = 10;
+  static const int _wifiMinBreadthSegments = 3;
+  static const int _wifiMinDepthCount = 5;
+  static const int _wifiMinMaxConcurrent = 4;
+  static const int _wifiMinFeedFullWindow = 10;
+  static const int _wifiMinFeedPrepWindow = 20;
+  static const int _wifiMinFeedPrepSegments = 4;
 
   final List<_PrefetchJob> _queue = [];
   bool _paused = false;
+  bool _mobileSeedMode = false;
   int _activeDownloads = 0;
   int _pendingDownloadBytes = 0;
   DownloadWorker? _worker;
@@ -35,13 +47,69 @@ class PrefetchScheduler extends GetxController {
   int get activeDownloads => _activeDownloads;
   int get queueSize => _queue.length;
   bool get isPaused => _paused;
-  int get _breadthCount =>
-      _remote?.prefetchBreadthCount ?? _fallbackBreadthCount;
-  int get _breadthSegments =>
-      _remote?.prefetchBreadthSegments ?? _fallbackBreadthSegments;
-  int get _depthCount => _remote?.prefetchDepthCount ?? _fallbackDepthCount;
-  int get _maxConcurrent =>
-      _remote?.prefetchMaxConcurrent ?? _fallbackMaxConcurrent;
+  bool get _isOnWiFi {
+    try {
+      if (Get.isRegistered<NetworkAwarenessService>()) {
+        return Get.find<NetworkAwarenessService>().isOnWiFi;
+      }
+    } catch (_) {}
+    return CacheNetworkPolicy.canPrefetch;
+  }
+
+  int get _breadthCount {
+    final base = _remote?.prefetchBreadthCount ?? _fallbackBreadthCount;
+    return _isOnWiFi
+        ? base < _wifiMinBreadthCount
+            ? _wifiMinBreadthCount
+            : base
+        : base;
+  }
+
+  int get _breadthSegments {
+    final base = _remote?.prefetchBreadthSegments ?? _fallbackBreadthSegments;
+    return _isOnWiFi
+        ? base < _wifiMinBreadthSegments
+            ? _wifiMinBreadthSegments
+            : base
+        : base;
+  }
+
+  int get _depthCount {
+    final base = _remote?.prefetchDepthCount ?? _fallbackDepthCount;
+    return _isOnWiFi
+        ? base < _wifiMinDepthCount
+            ? _wifiMinDepthCount
+            : base
+        : base;
+  }
+
+  int get _maxConcurrent {
+    if (_mobileSeedMode) return 1;
+    final base = _remote?.prefetchMaxConcurrent ?? _fallbackMaxConcurrent;
+    return _isOnWiFi
+        ? base < _wifiMinMaxConcurrent
+            ? _wifiMinMaxConcurrent
+            : base
+        : base;
+  }
+
+  int get _feedFullWindow => _isOnWiFi
+      ? (_fallbackFeedFullWindow < _wifiMinFeedFullWindow
+          ? _wifiMinFeedFullWindow
+          : _fallbackFeedFullWindow)
+      : _fallbackFeedFullWindow;
+
+  int get _feedPrepWindow => _isOnWiFi
+      ? (_fallbackFeedPrepWindow < _wifiMinFeedPrepWindow
+          ? _wifiMinFeedPrepWindow
+          : _fallbackFeedPrepWindow)
+      : _fallbackFeedPrepWindow;
+
+  int get _feedPrepSegments => _isOnWiFi
+      ? (_fallbackFeedPrepSegments < _wifiMinFeedPrepSegments
+          ? _wifiMinFeedPrepSegments
+          : _fallbackFeedPrepSegments)
+      : _fallbackFeedPrepSegments;
 
   VideoRemoteConfigService? get _remote {
     if (Get.isRegistered<VideoRemoteConfigService>()) {
@@ -53,13 +121,16 @@ class PrefetchScheduler extends GetxController {
   /// Video listesi ve aktif index güncellendiğinde çağrılır.
   /// Sadece Wi-Fi'de prefetch kuyruğu oluşturur.
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
-    if (!CacheNetworkPolicy.canPrefetch) {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+
+    _mobileSeedMode =
+        _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
+
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
       pause();
       return;
     }
-
-    final cacheManager = _getCacheManager();
-    if (cacheManager == null) return;
 
     _queue.clear();
 
@@ -114,6 +185,57 @@ class PrefetchScheduler extends GetxController {
     _processQueue();
   }
 
+  /// Feed için agresif prefetch:
+  /// 1) current dahil ilk 5 postu TAM cache
+  /// 2) sonraki pencerede (varsayılan 8) ilk birkaç segmenti hazırlık
+  Future<void> updateFeedQueue(List<String> docIDs, int currentIndex) async {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+
+    _mobileSeedMode =
+        _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
+
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+      pause();
+      return;
+    }
+    if (docIDs.isEmpty) return;
+
+    _queue.clear();
+
+    final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+    final fullEnd =
+        (safeCurrent + _feedFullWindow - 1).clamp(0, docIDs.length - 1);
+    final prepEnd = (fullEnd + _feedPrepWindow).clamp(0, docIDs.length - 1);
+
+    // Öncelik 0: ekranda gösterilecek ilk pencere TAM cache
+    for (int i = safeCurrent; i <= fullEnd; i++) {
+      final docID = docIDs[i];
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.isFullyCached) continue;
+      _queue.add(_PrefetchJob(
+        docID: docID,
+        maxSegments: -1,
+        priority: 0,
+      ));
+    }
+
+    // Öncelik 1: sonraki pencere hazırlık (ilk segmentler)
+    for (int i = fullEnd + 1; i <= prepEnd; i++) {
+      final docID = docIDs[i];
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.isFullyCached) continue;
+      _queue.add(_PrefetchJob(
+        docID: docID,
+        maxSegments: _feedPrepSegments,
+        priority: 1,
+      ));
+    }
+
+    _queue.sort((a, b) => a.priority.compareTo(b.priority));
+    _processQueue();
+  }
+
   /// Mobil veriye geçildiğinde çağrılır.
   /// Aktif indirmeleri de iptal eder (isolate kill + restart).
   void pause() {
@@ -142,7 +264,7 @@ class PrefetchScheduler extends GetxController {
   // ──────────────────────────── Queue Processing ────────────────────────────
 
   Future<void> _processQueue() async {
-    if (!CacheNetworkPolicy.canPrefetch) {
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
       pause();
       return;
     }
@@ -163,7 +285,7 @@ class PrefetchScheduler extends GetxController {
   }
 
   Future<void> _processJob(_PrefetchJob job) async {
-    if (!CacheNetworkPolicy.canPrefetch) {
+    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
       pause();
       return;
     }
@@ -240,9 +362,40 @@ class PrefetchScheduler extends GetxController {
         }
       }
 
-      // maxSegments kadar indir
-      final toDownload =
-          job.maxSegments > 0 ? uncached.take(job.maxSegments) : uncached;
+      final entryForPolicy = cacheManager.getEntry(job.docID);
+      final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
+      final isUnwatched = watchedProgress <= 0.01;
+
+      // İZLENMEYEN: mevcut agresif davranış korunur (tam cache olabilir).
+      // İZLENEN: tüm segmentler asla inmez, ilerleyici ve sınırlı indirilir.
+      final Iterable<String> toDownload;
+      if (_mobileSeedMode && isUnwatched) {
+        final mobileOrdered = _pickMobileSeedSegments(
+          docID: job.docID,
+          segmentUris: segmentUris,
+          variantDir: variantDir,
+          cacheManager: cacheManager,
+        );
+        final int mobileCap = job.maxSegments > 0
+            ? job.maxSegments
+            : mobileOrdered.length;
+        toDownload = mobileOrdered.take(mobileCap);
+      } else if (isUnwatched) {
+        toDownload =
+            job.maxSegments > 0 ? uncached.take(job.maxSegments) : uncached;
+      } else {
+        final preferred = _pickWatchedPrioritySegments(
+          docID: job.docID,
+          segmentUris: segmentUris,
+          variantDir: variantDir,
+          cacheManager: cacheManager,
+          watchProgress: watchedProgress,
+        );
+        final int watchedCap = job.maxSegments > 0
+            ? math.min(job.maxSegments, 3)
+            : 3; // watched videoda full asla indirme
+        toDownload = preferred.take(watchedCap);
+      }
 
       for (final segUri in toDownload) {
         if (_paused) break;
@@ -262,6 +415,108 @@ class PrefetchScheduler extends GetxController {
     } catch (e) {
       debugPrint('[Prefetch] Job failed for ${job.docID}: $e');
     }
+  }
+
+  bool _shouldEnableMobileSeedMode({
+    required List<String> docIDs,
+    required SegmentCacheManager cacheManager,
+  }) {
+    if (!CacheNetworkPolicy.isOnCellular) return false;
+    if (docIDs.isEmpty) return false;
+
+    // Keş havuzu boşsa (listede segmenti olan hiçbir entry yoksa) aç.
+    for (final docID in docIDs.take(20)) {
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.cachedSegmentCount > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Iterable<String> _pickMobileSeedSegments({
+    required String docID,
+    required List<String> segmentUris,
+    required String variantDir,
+    required SegmentCacheManager cacheManager,
+  }) {
+    if (segmentUris.isEmpty) return const <String>[];
+
+    final ordered = <String>[];
+    final seen = <int>{};
+    final total = segmentUris.length;
+
+    // Seri kural: 1-4, 2-5, 3-6, ...
+    for (int n = 1; n <= total; n++) {
+      for (final seg in <int>[n, n + 3]) {
+        if (seg > total) continue;
+        final idx = seg - 1;
+        if (!seen.add(idx)) continue;
+        final uri = segmentUris[idx];
+        final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+        if (cacheManager.getSegmentFile(docID, key) == null) {
+          ordered.add(uri);
+        }
+      }
+    }
+    return ordered;
+  }
+
+  Iterable<String> _pickWatchedPrioritySegments({
+    required String docID,
+    required List<String> segmentUris,
+    required String variantDir,
+    required SegmentCacheManager cacheManager,
+    required double watchProgress,
+  }) {
+    if (segmentUris.isEmpty) return const <String>[];
+
+    final total = segmentUris.length;
+    final watchedSeg = _estimateWatchedSegment(
+      watchProgress: watchProgress,
+      totalSegments: total,
+    );
+
+    // Kural:
+    // 1. segment izlenirken 3. segment
+    // 2. segment izlenirken 5. segment
+    // 3. segment izlenirken 6. segment
+    // 4. segment izlenirken 7. segment
+    // sonrası seri devam.
+    final baseTarget = watchedSeg <= 1 ? 3 : watchedSeg + 3;
+
+    final ordered = <String>[];
+    final seen = <int>{};
+    for (int seg = baseTarget; seg <= total; seg++) {
+      final idx = seg - 1;
+      if (!seen.add(idx)) continue;
+      final uri = segmentUris[idx];
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) == null) {
+        ordered.add(uri);
+      }
+    }
+
+    // Eğer tercih edilen pencerede hiç yoksa, boş dönme: mevcut uncached'ten devam et.
+    if (ordered.isNotEmpty) return ordered;
+
+    for (int idx = 0; idx < total; idx++) {
+      final uri = segmentUris[idx];
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) == null) {
+        ordered.add(uri);
+      }
+    }
+    return ordered;
+  }
+
+  int _estimateWatchedSegment({
+    required double watchProgress,
+    required int totalSegments,
+  }) {
+    final p = watchProgress.clamp(0.0, 1.0);
+    final raw = (p * totalSegments).floor();
+    return raw.clamp(1, totalSegments);
   }
 
   void _onDownloadResult(DownloadResult result) {

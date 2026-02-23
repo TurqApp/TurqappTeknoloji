@@ -91,8 +91,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
-            // Çok düşük başlangıç buffer'ı segment sınırında mikro takılma üretiyor.
-            playerItem?.preferredForwardBufferDuration = 2.0
+            // Segment geçişlerinde takılma olmaması için yeterli forward buffer.
+            // 2s çok düşüktü — segment sınırında buffer boşalıyordu.
+            playerItem?.preferredForwardBufferDuration = 6.0
         }
 
         // Create player

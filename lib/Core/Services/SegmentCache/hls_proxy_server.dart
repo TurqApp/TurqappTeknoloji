@@ -100,14 +100,19 @@ class HLSProxyServer extends GetxController {
     // Disk cache kontrol
     final cached = cacheManager?.getPlaylistFile(relativePath);
     if (cached != null) {
-      final content = await cached.readAsString();
-      request.response
-        ..statusCode = HttpStatus.ok
-        ..headers.contentType = ContentType('application', 'vnd.apple.mpegurl')
-        ..headers.set('Access-Control-Allow-Origin', '*')
-        ..write(content)
-        ..close();
-      return;
+      try {
+        final content = await cached.readAsString();
+        request.response
+          ..statusCode = HttpStatus.ok
+          ..headers.contentType = ContentType('application', 'vnd.apple.mpegurl')
+          ..headers.set('Access-Control-Allow-Origin', '*')
+          ..headers.set('Connection', 'keep-alive')
+          ..write(content)
+          ..close();
+        return;
+      } catch (_) {
+        // Disk okuma hatası — CDN'den çek
+      }
     }
 
     // CDN'den çek — playlist küçük, cellular'da da izin ver
@@ -174,18 +179,24 @@ class HLSProxyServer extends GetxController {
         // Cache hit kontrol
         final cached = cacheManager.getSegmentFile(docID, segmentKey);
         if (cached != null) {
-          final bytes = await cached.readAsBytes();
-          metrics?.recordHit(bytes.length);
-          cacheManager.touchEntry(docID);
+          try {
+            final bytes = await cached.readAsBytes();
+            metrics?.recordHit(bytes.length);
+            cacheManager.touchEntry(docID);
 
-          request.response
-            ..statusCode = HttpStatus.ok
-            ..headers.contentType = ContentType('video', 'mp2t')
-            ..headers.set('Access-Control-Allow-Origin', '*')
-            ..headers.contentLength = bytes.length
-            ..add(bytes)
-            ..close();
-          return;
+            request.response
+              ..statusCode = HttpStatus.ok
+              ..headers.contentType = ContentType('video', 'mp2t')
+              ..headers.set('Access-Control-Allow-Origin', '*')
+              ..headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+              ..headers.set('Connection', 'keep-alive')
+              ..headers.contentLength = bytes.length
+              ..add(bytes)
+              ..close();
+            return;
+          } catch (_) {
+            // Disk'te dosya yok/bozuk — cache miss gibi davran, CDN'den çek
+          }
         }
       }
     }
@@ -229,6 +240,8 @@ class HLSProxyServer extends GetxController {
         ..statusCode = HttpStatus.ok
         ..headers.contentType = ContentType('video', 'mp2t')
         ..headers.set('Access-Control-Allow-Origin', '*')
+        ..headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+        ..headers.set('Connection', 'keep-alive')
         ..headers.contentLength = bytes.length
         ..add(bytes)
         ..close();

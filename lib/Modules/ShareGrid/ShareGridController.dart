@@ -103,7 +103,7 @@ class ShareGridController extends GetxController {
       sendMessageForStoryNotUse(
           sohbetID: sohbet.chatID, postID: postID, postType: postType);
     } else {
-      FirebaseFirestore.instance.collection("Mesajlar").doc(chatId).set({
+      FirebaseFirestore.instance.collection("message").doc(chatId).set({
         "deleted": [],
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
         "userID1": FirebaseAuth.instance.currentUser!.uid,
@@ -152,13 +152,13 @@ class ShareGridController extends GetxController {
       };
 
       FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(sohbetID)
           .collection("Chat")
           .add(mesajData)
           .then((_) {
         FirebaseFirestore.instance
-            .collection("Mesajlar")
+            .collection("message")
             .doc(sohbetID)
             .update({"timeStamp": DateTime.now().millisecondsSinceEpoch});
       });

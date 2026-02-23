@@ -66,7 +66,7 @@ class ChatController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      await FirebaseFirestore.instance.collection("Mesajlar").doc(chatID).set({
+      await FirebaseFirestore.instance.collection("message").doc(chatID).set({
         "forceUnread.$uid": false,
         "unread.$uid": 0,
       }, SetOptions(merge: true));
@@ -118,7 +118,7 @@ class ChatController extends GetxController {
     _conversationStream?.cancel();
 
     _legacyStream = FirebaseFirestore.instance
-        .collection('Mesajlar')
+        .collection('message')
         .doc(chatID)
         .collection('Chat')
         .orderBy("timeStamp", descending: true)
@@ -141,7 +141,7 @@ class ChatController extends GetxController {
       final convRef =
           FirebaseFirestore.instance.collection("conversations").doc(chatID);
       final legacyRef =
-          FirebaseFirestore.instance.collection("Mesajlar").doc(chatID);
+          FirebaseFirestore.instance.collection("message").doc(chatID);
 
       final convDoc = await convRef.get();
       if (convDoc.exists) {
@@ -196,7 +196,7 @@ class ChatController extends GetxController {
       if ((data["userID"] ?? "") != currentUID && (data["isRead"] == false)) {
         hadUnreadFromOther = true;
         FirebaseFirestore.instance
-            .collection('Mesajlar')
+            .collection('message')
             .doc(chatID)
             .collection('Chat')
             .doc(doc.id)
@@ -205,7 +205,7 @@ class ChatController extends GetxController {
     }
 
     if (hadUnreadFromOther) {
-      FirebaseFirestore.instance.collection("Mesajlar").doc(chatID).set({
+      FirebaseFirestore.instance.collection("message").doc(chatID).set({
         "unread.$currentUID": 0,
         "forceUnread.$currentUID": false,
       }, SetOptions(merge: true));
@@ -438,7 +438,7 @@ class ChatController extends GetxController {
       );
 
       await FirebaseFirestore.instance
-          .collection("Mesajlar")
+          .collection("message")
           .doc(chatID)
           .collection("Chat")
           .add(mesajData);
@@ -446,10 +446,7 @@ class ChatController extends GetxController {
 
 // timestamp güncelleme
       try {
-        await FirebaseFirestore.instance
-            .collection("Mesajlar")
-            .doc(chatID)
-            .set({
+        await FirebaseFirestore.instance.collection("message").doc(chatID).set({
           "timeStamp": DateTime.now().millisecondsSinceEpoch,
           "lastMessage": previewText,
           "deleted": [],
@@ -520,7 +517,7 @@ class ChatController extends GetxController {
     }
 
     final ref = FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(chatID)
         .collection("Chat")
         .doc(model.rawDocID);
@@ -557,7 +554,7 @@ class ChatController extends GetxController {
     }
 
     await FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(chatID)
         .collection("Chat")
         .doc(model.rawDocID)
@@ -589,7 +586,7 @@ class ChatController extends GetxController {
     }
 
     await FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(chatID)
         .collection("Chat")
         .doc(model.rawDocID)
@@ -733,7 +730,7 @@ class ChatController extends GetxController {
 
     final legacyChatId = buildConversationId(currentUID, targetUserId);
     await FirebaseFirestore.instance
-        .collection("Mesajlar")
+        .collection("message")
         .doc(legacyChatId)
         .set({
       "deleted": [],
