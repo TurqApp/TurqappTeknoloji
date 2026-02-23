@@ -64,8 +64,9 @@ post_install do |installer|
       config.build_settings['OTHER_CFLAGS'] = other_cflags
 
       if target.name == 'sqflite_darwin'
-        config.build_settings['DEFINES_MODULE'] = 'NO'
-        config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+        # sqflite_darwin Swift/ObjC import zinciri için module açık olmalı.
+        config.build_settings['DEFINES_MODULE'] = 'YES'
+        config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
       end
     end
   end

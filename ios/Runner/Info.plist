@@ -27,7 +27,7 @@
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
 	<key>FLTEnableImpeller</key>
-	<true/>
+	<false/>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-4558422035199571~1475411033</string>
 	<key>LSRequiresIPhoneOS</key>
