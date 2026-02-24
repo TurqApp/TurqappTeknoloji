@@ -76,11 +76,33 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final error = details.exception;
+    final stack = details.stack;
+    if (_isFirestoreConfigError(error)) {
+      debugPrint('Ignored non-fatal firestore error: $error');
+      return;
+    }
+    FirebaseCrashlytics.instance.recordFlutterError(details);
+    if (stack != null) {
+      debugPrintStack(stackTrace: stack);
+    }
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    if (_isFirestoreConfigError(error)) {
+      debugPrint('Ignored platform firestore error: $error');
+      return true;
+    }
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
     return true;
   };
+}
+
+bool _isFirestoreConfigError(Object error) {
+  final text = error.toString().toLowerCase();
+  return text.contains('cloud_firestore/permission-denied') ||
+      text.contains('cloud_firestore/failed-precondition') ||
+      text.contains('requires an index');
 }
 
 class MyApp extends StatelessWidget {

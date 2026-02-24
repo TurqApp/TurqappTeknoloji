@@ -2,15 +2,26 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:pull_down_button/pull_down_button.dart';
+import 'dart:io';
+import 'dart:math' as math;
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/message_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
+import 'package:video_player/video_player.dart';
 
 import 'LocationShareView/location_share_view_chat.dart';
+
+const List<Color> _chatBackgroundPalette = [
+  Color(0xFFEFF5FB),
+  Color(0xFFE7F7F1),
+  Color(0xFFFBEFE8),
+  Color(0xFFF9ECF5),
+  Color(0xFFF1ECFB),
+  Color(0xFFE6F5F1),
+];
 
 class ChatView extends StatelessWidget {
   final String chatID;
@@ -25,17 +36,18 @@ class ChatView extends StatelessWidget {
     this.isNewChat,
     this.openKeyboard,
   });
-  late final ChatController controller;
+  ChatController get controller => Get.isRegistered<ChatController>(tag: chatID)
+      ? Get.find<ChatController>(tag: chatID)
+      : Get.put(
+          ChatController(chatID: chatID, userID: userID),
+          tag: chatID,
+        );
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(
-      ChatController(chatID: chatID, userID: userID),
-      tag: chatID,
-    );
-
-    // 🔥 Ekran çizildikten sonra odakla
-    if (openKeyboard == true) {
+    // İlk açılışta sadece bir kez odakla (her rebuild'de klavye zıplamasını engeller)
+    if (openKeyboard == true && controller.didAutoFocusOnce == false) {
+      controller.didAutoFocusOnce = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         controller.focus.requestFocus();
       });
@@ -47,7 +59,7 @@ class ChatView extends StatelessWidget {
           return Stack(
             children: [
               if (controller.selection.value == 0)
-                buildChat()
+                buildChat(context)
               else if (controller.selection.value == 1)
                 buildImagePreview(),
             ],
@@ -57,118 +69,349 @@ class ChatView extends StatelessWidget {
     );
   }
 
-  Widget buildChat() {
+  Widget buildChat(BuildContext context) {
     return Column(
       children: [
         _buildTopBar(),
         Obx(() {
+          final bgColor =
+              _chatBackgroundPalette[controller.chatBgPaletteIndex.value];
           return Expanded(
-            child: Stack(
-              children: [
-                Column(
-                  children: [
-                    Expanded(
-                      child: NotificationListener<ScrollEndNotification>(
-                        onNotification: (_) => false,
-                        child: ListView.builder(
-                          reverse: true,
-                          controller: controller.scrollController,
-                          padding: const EdgeInsets.only(bottom: 10),
-                          itemCount: controller.messages.isEmpty
-                              ? 1
-                              : controller.messages.length +
-                                  1 +
-                                  ((controller.hasMoreOlder.value ||
-                                          controller.isLoadingOlder.value)
-                                      ? 1
-                                      : 0),
-                          itemBuilder: (context, index) {
-                            if (controller.messages.isNotEmpty &&
-                                index == controller.messages.length) {
-                              return Obx(
-                                () => controller.isLoadingOlder.value
-                                    ? const Padding(
+            child: GestureDetector(
+              behavior: HitTestBehavior.deferToChild,
+              onLongPress: () {
+                FocusScope.of(context).unfocus();
+                _showBackgroundPalette(context);
+              },
+              child: Stack(
+                children: [
+                  Container(
+                    color: bgColor,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: NotificationListener<ScrollEndNotification>(
+                            onNotification: (_) => false,
+                            child: ListView.builder(
+                              reverse: true,
+                              controller: controller.scrollController,
+                              padding: const EdgeInsets.only(bottom: 10),
+                              itemCount: controller.messages.isEmpty
+                                  ? 1
+                                  : controller.messages.length +
+                                      1 +
+                                      ((controller.hasMoreOlder.value ||
+                                              controller.isLoadingOlder.value)
+                                          ? 1
+                                          : 0),
+                              itemBuilder: (context, index) {
+                                if (controller.messages.isNotEmpty &&
+                                    index == controller.messages.length) {
+                                  return Obx(
+                                    () => controller.isLoadingOlder.value
+                                        ? const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                vertical: 10),
+                                            child: Center(
+                                              child: CupertinoActivityIndicator(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox(height: 6),
+                                  );
+                                }
+
+                                final introIndex = controller.messages.isEmpty
+                                    ? 0
+                                    : controller.messages.length +
+                                        ((controller.hasMoreOlder.value ||
+                                                controller.isLoadingOlder.value)
+                                            ? 1
+                                            : 0);
+                                final isIntroItem = index == introIndex;
+                                if (isIntroItem) {
+                                  return _buildProfileIntro(
+                                    bottomSpacing: const SizedBox(height: 24),
+                                  );
+                                }
+                                final message = controller.messages[index];
+                                final isLast = index == 0;
+                                final shouldShowDateSeparator =
+                                    index == controller.messages.length - 1 ||
+                                        !_isSameDay(
+                                          message.timeStamp.toInt(),
+                                          controller
+                                              .messages[index + 1].timeStamp
+                                              .toInt(),
+                                        );
+                                final dateSeparatorText =
+                                    shouldShowDateSeparator
+                                        ? _formatDateSeparator(
+                                            message.timeStamp.toInt())
+                                        : null;
+
+                                return Obx(() {
+                                  final isSelection =
+                                      controller.isSelectionMode.value;
+                                  final isSelected = controller
+                                      .selectedMessageIds
+                                      .contains(message.rawDocID);
+                                  return Dismissible(
+                                    key: ValueKey(
+                                        "reply_${message.rawDocID}_${message.timeStamp}_${message.userID}"),
+                                    direction: isSelection
+                                        ? DismissDirection.none
+                                        : DismissDirection.horizontal,
+                                    dismissThresholds: const {
+                                      DismissDirection.startToEnd: 0.22,
+                                      DismissDirection.endToStart: 0.22,
+                                    },
+                                    background: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Padding(
                                         padding:
-                                            EdgeInsets.symmetric(vertical: 10),
-                                        child: Center(
-                                          child: CupertinoActivityIndicator(
-                                            color: Colors.grey,
+                                            const EdgeInsets.only(left: 12),
+                                        child: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.07),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            CupertinoIcons.reply_thick_solid,
+                                            color: Colors.black54,
+                                            size: 18,
                                           ),
                                         ),
-                                      )
-                                    : const SizedBox(height: 6),
-                              );
-                            }
-
-                            final introIndex = controller.messages.isEmpty
-                                ? 0
-                                : controller.messages.length +
-                                    ((controller.hasMoreOlder.value ||
-                                            controller.isLoadingOlder.value)
-                                        ? 1
-                                        : 0);
-                            final isIntroItem = index == introIndex;
-                            if (isIntroItem) {
-                              return _buildProfileIntro(
-                                bottomSpacing: const SizedBox(height: 24),
-                              );
-                            }
-                            final message = controller.messages[index];
-                            final isLast = index == 0;
-
-                            return MessageContent(
-                              mainID: controller.chatID,
-                              model: message,
-                              isLastMessage: isLast,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Obx(
-                  () => controller.showScrollDownButton.value
-                      ? Positioned(
-                          bottom: 15,
-                          right: 15,
-                          child: GestureDetector(
-                            onTap: () {
-                              controller.scrollToBottom();
-                            },
-                            child: Opacity(
-                              opacity: 0.5,
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue,
-                                  borderRadius: BorderRadius.circular(50),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 6,
-                                      offset: Offset(2, 2),
+                                      ),
                                     ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_downward,
-                                  color: Colors.white,
-                                  size: 35,
+                                    secondaryBackground: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 12),
+                                        child: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.07),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            CupertinoIcons.check_mark_circled,
+                                            color: Colors.black54,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    confirmDismiss: (direction) async {
+                                      if (direction ==
+                                          DismissDirection.startToEnd) {
+                                        controller.startReply(message);
+                                      } else if (direction ==
+                                          DismissDirection.endToStart) {
+                                        controller.startSelectionMode(
+                                            message.rawDocID);
+                                      }
+                                      return false;
+                                    },
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: isSelection
+                                          ? () => controller
+                                              .toggleSelection(message.rawDocID)
+                                          : null,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (isSelection)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 12, right: 6, top: 8),
+                                              child: Icon(
+                                                isSelected
+                                                    ? CupertinoIcons
+                                                        .checkmark_circle_fill
+                                                    : CupertinoIcons.circle,
+                                                size: 22,
+                                                color: isSelected
+                                                    ? Colors.black
+                                                    : Colors.black38,
+                                              ),
+                                            ),
+                                          Expanded(
+                                            child: IgnorePointer(
+                                              ignoring: isSelection,
+                                              child: MessageContent(
+                                                mainID: controller.chatID,
+                                                model: message,
+                                                isLastMessage: isLast,
+                                                dateSeparatorText:
+                                                    dateSeparatorText,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Obx(
+                    () => controller.showScrollDownButton.value
+                        ? Positioned(
+                            bottom: 15,
+                            right: 15,
+                            child: GestureDetector(
+                              onTap: () {
+                                controller.scrollToBottom();
+                              },
+                              child: Opacity(
+                                opacity: 0.5,
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(50),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 6,
+                                        offset: Offset(2, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.arrow_downward,
+                                    color: Colors.white,
+                                    size: 35,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
           );
         }),
         buildInputRow(),
       ],
     );
+  }
+
+  Future<void> _showBackgroundPalette(BuildContext context) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1F000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_chatBackgroundPalette.length, (index) {
+                final color = _chatBackgroundPalette[index];
+                final isSelected = controller.chatBgPaletteIndex.value == index;
+                return GestureDetector(
+                  onTap: () async {
+                    await controller.setChatBackgroundPreference(index);
+                    if (ctx.mounted) {
+                      Navigator.of(ctx).pop();
+                    }
+                  },
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? Colors.black : Colors.black12,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  bool _isSameDay(int aMs, int bMs) {
+    final a = DateTime.fromMillisecondsSinceEpoch(aMs);
+    final b = DateTime.fromMillisecondsSinceEpoch(bMs);
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _formatDateSeparator(int ms) {
+    const months = [
+      '',
+      'Oca',
+      'Şub',
+      'Mar',
+      'Nis',
+      'May',
+      'Haz',
+      'Tem',
+      'Ağu',
+      'Eyl',
+      'Eki',
+      'Kas',
+      'Ara'
+    ];
+    const weekdaysShort = ['', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    const weekdaysLong = [
+      '',
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar'
+    ];
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(d.year, d.month, d.day);
+    final diffDays = today.difference(target).inDays;
+
+    if (diffDays == 0) return 'Bugün';
+    if (diffDays == 1) return 'Dün';
+    if (diffDays > 1 && diffDays <= 6) return weekdaysLong[d.weekday];
+
+    return '${d.day} ${months[d.month]} ${weekdaysShort[d.weekday]}';
   }
 
   Widget _buildProfileIntro({Widget? bottomSpacing}) {
@@ -197,62 +440,112 @@ class ChatView extends StatelessWidget {
             RozetContent(size: 20, userID: userID),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Text(
-          controller.fullName.value.trimRight(),
+          controller.fullName.value.trim().isEmpty
+              ? controller.nickname.value
+              : controller.fullName.value.trim(),
           style: const TextStyle(
             color: Colors.black,
-            fontSize: 15,
+            fontSize: 29,
             fontFamily: "MontserratBold",
           ),
         ),
+        const SizedBox(height: 2),
         Text(
-          controller.nickname.value,
+          controller.nickname.value.startsWith("@")
+              ? controller.nickname.value
+              : "@${controller.nickname.value}",
           style: const TextStyle(
             color: Colors.grey,
-            fontSize: 12,
+            fontSize: 15,
             fontFamily: "MontserratMedium",
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25),
-          child: Text(
-            controller.bio.value,
+        const SizedBox(height: 8),
+        Obx(
+          () => Text(
+            "${controller.followersCount.value} takipçi · ${controller.followingCount.value} takip · ${controller.postCount.value} gönderi",
             textAlign: TextAlign.center,
-            maxLines: 3,
             style: const TextStyle(
-              color: Colors.black,
-              fontSize: 12,
+              color: Colors.black87,
+              fontSize: 14,
               fontFamily: "MontserratMedium",
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () {
-            if (userID != FirebaseAuth.instance.currentUser!.uid) {
-              Get.to(() => SocialProfile(userID: userID));
-            }
-          },
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.pinkAccent,
-              borderRadius: BorderRadius.all(Radius.circular(50)),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 15,
-                vertical: 5,
+        if (controller.bio.value.trim().isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Text(
+              controller.bio.value.trim(),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 13,
+                fontFamily: "Montserrat",
               ),
-              child: Text(
-                "Profili Görüntüle",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    if (userID != FirebaseAuth.instance.currentUser!.uid) {
+                      Get.to(() => SocialProfile(userID: userID));
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xffF1F3F5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    minimumSize: const Size.fromHeight(36),
+                  ),
+                  child: const Text(
+                    "Profili gör",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: "MontserratBold",
+                    ),
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    if (userID != FirebaseAuth.instance.currentUser!.uid) {
+                      Get.to(() => SocialProfile(userID: userID));
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xffF1F3F5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    minimumSize: const Size.fromHeight(36),
+                  ),
+                  child: const Text(
+                    "Topluluğu görüntüle",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: "MontserratBold",
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         bottomSpacing ?? const SizedBox.shrink(),
@@ -261,89 +554,121 @@ class ChatView extends StatelessWidget {
   }
 
   Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: Get.back,
-            icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+    return Obx(() {
+      if (controller.isSelectionMode.value) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: controller.stopSelectionMode,
+                icon: const Icon(CupertinoIcons.xmark, color: Colors.black),
+              ),
+              Expanded(
+                child: Text(
+                  "${controller.selectedMessageIds.length} Mesaj Seçildi",
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: Obx(
-              () => GestureDetector(
-                onTap: () {
-                  Get.to(() => SocialProfile(userID: userID));
-                },
-                child: Row(
-                  children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 34,
-                        height: 34,
-                        child: controller.pfImage.value != ""
-                            ? CachedNetworkImage(
-                                imageUrl: controller.pfImage.value,
-                                fit: BoxFit.cover,
-                              )
-                            : const Center(
-                                child: CupertinoActivityIndicator(
-                                  color: Colors.grey,
-                                ),
-                              ),
-                      ),
-                    ),
-                    8.pw,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  controller.fullName.value.trim().isEmpty
-                                      ? controller.nickname.value
-                                      : controller.fullName.value.trim(),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 16,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                              ),
-                              RozetContent(size: 16, userID: userID),
-                            ],
-                          ),
-                          Obx(() => controller.isOtherTyping.value
-                              ? const Text(
-                                  "yazıyor...",
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 11,
-                                    fontFamily: "MontserratMedium",
-                                  ),
+        );
+      }
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: Get.back,
+              icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+            ),
+            Expanded(
+              child: Obx(
+                () => GestureDetector(
+                  onTap: () {
+                    Get.to(() => SocialProfile(userID: userID));
+                  },
+                  child: Row(
+                    children: [
+                      ClipOval(
+                        child: SizedBox(
+                          width: 34,
+                          height: 34,
+                          child: controller.pfImage.value != ""
+                              ? CachedNetworkImage(
+                                  imageUrl: controller.pfImage.value,
+                                  fit: BoxFit.cover,
                                 )
-                              : Text(
-                                  "@${controller.nickname.value}",
-                                  style: const TextStyle(
+                              : const Center(
+                                  child: CupertinoActivityIndicator(
                                     color: Colors.grey,
-                                    fontSize: 11,
-                                    fontFamily: "MontserratMedium",
                                   ),
-                                )),
-                        ],
+                                ),
+                        ),
                       ),
-                    ),
-                  ],
+                      8.pw,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    controller.fullName.value.trim().isEmpty
+                                        ? controller.nickname.value
+                                        : controller.fullName.value.trim(),
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontFamily: "MontserratBold",
+                                    ),
+                                  ),
+                                ),
+                                RozetContent(size: 16, userID: userID),
+                              ],
+                            ),
+                            Obx(() => controller.isOtherTyping.value
+                                ? const Text(
+                                    "yazıyor...",
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 11,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  )
+                                : Text(
+                                    "@${controller.nickname.value}",
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 11,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  )),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
+            GestureDetector(
+              onTap: controller.openCustomCameraCapture,
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(CupertinoIcons.camera, color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget buildImagePreview() {
@@ -359,7 +684,7 @@ class ChatView extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () {
-                      controller.selection.value = 0;
+                      controller.clearPendingMedia();
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.all(12),
@@ -372,28 +697,10 @@ class ChatView extends StatelessWidget {
                       size: 25,
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      controller.uploadImageToStorage();
-                    },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.all(12),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(
-                      "Gönder",
-                      style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
                 ],
               ),
               Text(
-                "Fotoğraflar",
+                controller.pendingVideo.value != null ? "Video" : "Fotoğraflar",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -404,6 +711,32 @@ class ChatView extends StatelessWidget {
           ),
         ),
         Obx(() {
+          final pendingVideo = controller.pendingVideo.value;
+          if (pendingVideo != null) {
+            return Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _PendingVideoPreview(file: pendingVideo),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
           return Expanded(
             child: PageView.builder(
               controller: controller.pageController,
@@ -421,53 +754,57 @@ class ChatView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 15),
           child: SizedBox(
             height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: controller.images.length,
-              itemBuilder: (context, index) {
-                return Obx(
-                  () => GestureDetector(
-                    onTap: () {
-                      controller.pageController.animateToPage(
-                        index,
-                        duration: Duration(milliseconds: 300),
-                        curve: Curves.easeIn,
-                      );
-                      controller.currentPage.value =
-                          index; // bunu da mutlaka ekle
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: 4,
-                        left: index == 0 ? 15 : 0,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.all(Radius.circular(4)),
-                          border: Border.all(
-                            color: controller.currentPage.value == index
-                                ? Colors.blueAccent
-                                : Colors.transparent,
-                            width: 4,
-                          ),
+            child: Obx(() {
+              if (controller.pendingVideo.value != null) {
+                return const SizedBox.shrink();
+              }
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: controller.images.length,
+                itemBuilder: (context, index) {
+                  return Obx(
+                    () => GestureDetector(
+                      onTap: () {
+                        controller.pageController.animateToPage(
+                          index,
+                          duration: Duration(milliseconds: 300),
+                          curve: Curves.easeIn,
+                        );
+                        controller.currentPage.value = index;
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: 4,
+                          left: index == 0 ? 15 : 0,
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.all(Radius.circular(4)),
-                          child: SizedBox(
-                            width: 45,
-                            height: 45,
-                            child: Image.file(
-                              controller.images[index],
-                              fit: BoxFit.cover,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(4)),
+                            border: Border.all(
+                              color: controller.currentPage.value == index
+                                  ? Colors.blueAccent
+                                  : Colors.transparent,
+                              width: 4,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.all(Radius.circular(4)),
+                            child: SizedBox(
+                              width: 45,
+                              height: 45,
+                              child: Image.file(
+                                controller.images[index],
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              );
+            }),
           ),
         ),
         buildInputRow(),
@@ -480,6 +817,36 @@ class ChatView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: SafeArea(
         child: Obx(() {
+          if (controller.isSelectionMode.value) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: controller.selectedMessageIds.isEmpty
+                        ? null
+                        : controller.deleteSelectedMessages,
+                    icon: const Icon(CupertinoIcons.trash, color: Colors.black),
+                  ),
+                  const Spacer(),
+                  Text(
+                    "${controller.selectedMessageIds.length} Mesaj Seçildi",
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
           // Recording UI
           if (controller.isRecording.value) {
             return _buildRecordingRow();
@@ -493,28 +860,160 @@ class ChatView extends StatelessWidget {
                 if (editing == null && replying == null) {
                   return const SizedBox.shrink();
                 }
+                late final bool previewIsVideo;
+                late final bool previewIsImage;
+                late final bool previewIsAudio;
+                late final bool previewIsLocation;
+                late final bool previewIsPost;
+                late final bool previewIsContact;
+                late final String previewThumb;
+                late final String previewLabel;
+                late final String previewText;
+
+                if (editing != null) {
+                  previewIsVideo = false;
+                  previewIsImage = false;
+                  previewIsAudio = false;
+                  previewIsLocation = false;
+                  previewIsPost = false;
+                  previewIsContact = false;
+                  previewThumb = "";
+                  previewLabel = "Mesaj düzenleniyor";
+                  previewText = editing.metin;
+                } else {
+                  final replyModel = replying!;
+                  previewIsVideo = replyModel.video.isNotEmpty;
+                  previewIsImage =
+                      replyModel.video.isEmpty && replyModel.imgs.isNotEmpty;
+                  previewIsAudio = replyModel.sesliMesaj.isNotEmpty;
+                  previewIsLocation =
+                      replyModel.lat != 0 || replyModel.long != 0;
+                  previewIsPost = replyModel.postID.trim().isNotEmpty;
+                  previewIsContact = replyModel.kisiAdSoyad.trim().isNotEmpty;
+                  previewThumb = previewIsImage
+                      ? replyModel.imgs.first
+                      : (previewIsVideo ? replyModel.videoThumbnail : "");
+                  previewLabel = previewIsVideo
+                      ? "Video"
+                      : previewIsImage
+                          ? "Fotoğraf"
+                          : previewIsAudio
+                              ? "Ses"
+                              : previewIsLocation
+                                  ? "Konum"
+                                  : previewIsPost
+                                      ? "Gönderi"
+                                      : previewIsContact
+                                          ? "Kişi"
+                                          : "Yanıt";
+                  previewText = replyModel.metin.trim().isNotEmpty
+                      ? replyModel.metin
+                      : previewLabel;
+                }
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
                   decoration: BoxDecoration(
                     color: Colors.black.withAlpha(12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          editing != null
-                              ? "Düzenleniyor: ${editing.metin}"
-                              : "Yanıtlanıyor: ${replying?.metin ?? ''}",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
+                      Container(
+                        width: 3,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade700,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (previewThumb.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: SizedBox(
+                              width: 30,
+                              height: 30,
+                              child: CachedNetworkImage(
+                                imageUrl: previewThumb,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           ),
+                        )
+                      else if (previewIsVideo)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            CupertinoIcons.play_circle_fill,
+                            color: Colors.black54,
+                            size: 16,
+                          ),
+                        )
+                      else if (previewIsAudio)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            CupertinoIcons.mic_fill,
+                            color: Colors.black54,
+                            size: 16,
+                          ),
+                        )
+                      else if (previewIsLocation)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            CupertinoIcons.location_fill,
+                            color: Colors.black54,
+                            size: 16,
+                          ),
+                        )
+                      else if (previewIsPost)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            CupertinoIcons.doc_fill,
+                            color: Colors.black54,
+                            size: 16,
+                          ),
+                        )
+                      else if (previewIsContact)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            CupertinoIcons.person_crop_circle_fill,
+                            color: Colors.black54,
+                            size: 16,
+                          ),
+                        ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              previewLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 11,
+                                fontFamily: "MontserratSemiBold",
+                              ),
+                            ),
+                            Text(
+                              previewText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 11,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       GestureDetector(
@@ -527,70 +1026,6 @@ class ChatView extends StatelessWidget {
               }),
               Row(
                 children: [
-                  PullDownButton(
-                    itemBuilder: (context) => [
-                      PullDownMenuItem(
-                        onTap: () {
-                          controller.pickCameraImage();
-                        },
-                        title: 'Fotoğraf Çek',
-                        icon: CupertinoIcons.camera,
-                      ),
-                      PullDownMenuItem(
-                        onTap: () {
-                          controller.pickImage();
-                        },
-                        title: 'Fotoğraf Yükle',
-                        icon: CupertinoIcons.photo_on_rectangle,
-                      ),
-                      PullDownMenuItem(
-                        onTap: () {
-                          controller.pickCameraVideo();
-                        },
-                        title: 'Video Çek',
-                        icon: CupertinoIcons.videocam,
-                      ),
-                      PullDownMenuItem(
-                        onTap: () {
-                          controller.pickVideo();
-                        },
-                        title: 'Video Seç',
-                        icon: CupertinoIcons.film,
-                      ),
-                      PullDownMenuItem(
-                        onTap: () {
-                          Get.to(() => LocationShareViewChat(
-                                chatID: controller.chatID,
-                              ));
-                        },
-                        title: 'Konum Paylaş',
-                        icon: CupertinoIcons.location,
-                      ),
-                      PullDownMenuItem(
-                        onTap: () {
-                          controller.selectContact();
-                        },
-                        title: 'Kişi Seç',
-                        icon: CupertinoIcons.person_2,
-                      ),
-                    ],
-                    buttonBuilder: (context, showMenu) => CupertinoButton(
-                      onPressed: showMenu,
-                      padding: EdgeInsets.zero,
-                      child: Container(
-                        width: 35,
-                        height: 35,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          borderRadius: BorderRadius.all(Radius.circular(50)),
-                        ),
-                        child: const Icon(CupertinoIcons.camera_fill,
-                            color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 7),
                   Expanded(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(
@@ -657,6 +1092,7 @@ class ChatView extends StatelessWidget {
                       children: [
                         if (controller.textMesage.value != "" ||
                             controller.images.isNotEmpty ||
+                            controller.pendingVideo.value != null ||
                             controller.editingMessage.value != null)
                           if (controller.uploadPercent.value != 0 &&
                               controller.uploadPercent.value != 100)
@@ -672,10 +1108,13 @@ class ChatView extends StatelessWidget {
                           else
                             GestureDetector(
                               onTap: () {
-                                if (controller.selection.value == 0) {
-                                  controller.sendMessage();
-                                } else if (controller.selection.value == 1) {
+                                if (controller.pendingVideo.value != null) {
+                                  controller.uploadPendingVideoToStorage();
+                                } else if (controller.images.isNotEmpty ||
+                                    controller.selection.value == 1) {
                                   controller.uploadImageToStorage();
+                                } else {
+                                  controller.sendMessage();
                                 }
                               },
                               child: Container(
@@ -710,23 +1149,29 @@ class ChatView extends StatelessWidget {
                               ),
                               IconButton(
                                 onPressed: controller.pickImage,
-                                icon: const Icon(CupertinoIcons.photo,
+                                icon: const Icon(
+                                    CupertinoIcons.photo_on_rectangle,
+                                    color: Colors.black,
+                                    size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 26, minHeight: 26),
+                              ),
+                              IconButton(
+                                onPressed: controller.pickVideo,
+                                icon: const Icon(CupertinoIcons.play_circle,
                                     color: Colors.black, size: 20),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
                                     minWidth: 26, minHeight: 26),
                               ),
                               IconButton(
-                                onPressed: () {},
-                                icon: const Icon(CupertinoIcons.smiley,
-                                    color: Colors.black, size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 26, minHeight: 26),
-                              ),
-                              IconButton(
-                                onPressed: () {},
-                                icon: const Icon(CupertinoIcons.plus_circle,
+                                onPressed: () {
+                                  Get.to(() => LocationShareViewChat(
+                                        chatID: controller.chatID,
+                                      ));
+                                },
+                                icon: const Icon(CupertinoIcons.location,
                                     color: Colors.black, size: 20),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(
@@ -761,8 +1206,8 @@ class ChatView extends StatelessWidget {
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(50),
             ),
-            child: const Icon(CupertinoIcons.xmark,
-                color: Colors.black, size: 18),
+            child:
+                const Icon(CupertinoIcons.xmark, color: Colors.black, size: 18),
           ),
         ),
         const SizedBox(width: 12),
@@ -806,6 +1251,108 @@ class ChatView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PendingVideoPreview extends StatefulWidget {
+  final File file;
+  const _PendingVideoPreview({required this.file});
+
+  @override
+  State<_PendingVideoPreview> createState() => _PendingVideoPreviewState();
+}
+
+class _PendingVideoPreviewState extends State<_PendingVideoPreview> {
+  late final VideoPlayerController _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.file(widget.file)
+      ..setLooping(true)
+      ..initialize().then((_) {
+        if (!mounted) return;
+        _controller.play();
+        setState(() => _initialized = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized) {
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: CupertinoActivityIndicator(color: Colors.black),
+        ),
+      );
+    }
+
+    final ratio = _controller.value.aspectRatio == 0
+        ? (9 / 16)
+        : _controller.value.aspectRatio;
+
+    return GestureDetector(
+      onTap: () {
+        if (_controller.value.isPlaying) {
+          _controller.pause();
+        } else {
+          _controller.play();
+        }
+        setState(() {});
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : MediaQuery.of(context).size.width - 72;
+          const maxHeight = 220.0;
+          final computedHeight = availableWidth / ratio;
+          final targetHeight = math.min(computedHeight, maxHeight);
+          final targetWidth = targetHeight * ratio;
+
+          return Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: targetWidth,
+                height: targetHeight,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned.fill(
+                      child: VideoPlayer(_controller),
+                    ),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _controller.value.isPlaying
+                            ? CupertinoIcons.pause_fill
+                            : CupertinoIcons.play_fill,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

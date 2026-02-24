@@ -10,14 +10,15 @@ class SearchUserContentController extends GetxController {
   SearchUserContentController({required this.userID});
   Future<void> goToProfile() async {
     if (isNavigated.value) return; // tekrar giriş engeli
+    if (userID.trim().isEmpty) return;
     isNavigated.value = true;
-
-    // Sayfa kapandığında isNavigated'ı sıfırla
-    await Get.to(() => SocialProfile(userID: userID));
-
-    isNavigated.value = false;
-
     try {
+      // Sayfa kapandığında isNavigated sıfırlanır (finally)
+      await Get.to(
+        () => SocialProfile(userID: userID),
+        preventDuplicates: false,
+      );
+
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
       await FirebaseFirestore.instance
           .collection("users")
@@ -27,17 +28,15 @@ class SearchUserContentController extends GetxController {
       });
 
       Get.find<FirebaseMyStore>().getUserData();
-    } catch (e) {
-      // Hata durumunda da sıfırla
+    } catch (_) {
+    } finally {
       isNavigated.value = false;
     }
   }
+
   void removeFromLastSearch() {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(currentUserID)
-        .update({
+    FirebaseFirestore.instance.collection("users").doc(currentUserID).update({
       "lastSearchList": FieldValue.arrayRemove([userID])
     });
     Get.find<FirebaseMyStore>().lastSearchList.remove(userID);

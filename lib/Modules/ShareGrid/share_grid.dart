@@ -68,9 +68,12 @@ class ShareGrid extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Obx(() {
+                          final isSelected =
+                              controller.selectedUser.value?.userID ==
+                                  model.userID;
                           return GestureDetector(
                             onTap: () {
-                              if (controller.selectedUser.value != null) {
+                              if (isSelected) {
                                 controller.selectedUser.value = null;
                               } else {
                                 controller.selectedUser.value = model;
@@ -80,10 +83,9 @@ class ShareGrid extends StatelessWidget {
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                      color:
-                                          controller.selectedUser.value == model
-                                              ? Colors.green
-                                              : Colors.transparent,
+                                      color: isSelected
+                                          ? Colors.green
+                                          : Colors.transparent,
                                       width: 4)),
                               child: ClipOval(
                                 child: SizedBox(
@@ -92,6 +94,14 @@ class ShareGrid extends StatelessWidget {
                                   child: CachedNetworkImage(
                                     imageUrl: model.pfImage,
                                     fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        CupertinoIcons.person_fill,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -115,20 +125,20 @@ class ShareGrid extends StatelessWidget {
             );
           }),
         ),
-        Obx(() {
-          return controller.selectedUser.value != null
-              ? Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: TurqAppButton(
-                    borderRadiusAll: 50,
-                    onTap: () {
-                      controller.sendIt();
-                    },
-                    text: "Gönder",
-                  ),
-                )
-              : SizedBox();
-        })
+        Padding(
+          padding: const EdgeInsets.all(15),
+          child: Obx(() {
+            final hasSelection = controller.selectedUser.value != null;
+            return TurqAppButton(
+              borderRadiusAll: 50,
+              bgColor: hasSelection ? Colors.black : Colors.grey.shade400,
+              onTap: () {
+                controller.sendIt();
+              },
+              text: "Gönder",
+            );
+          }),
+        )
       ],
     );
   }

@@ -57,8 +57,121 @@ const buildForceKeyFrames = (
 };
 
 /**
- * Storage trigger: posts/{docID}/video.mp4 yüklendiğinde tetiklenir.
- * Video'yu HLS formatına dönüştürür ve Firestore'u günceller.
+ * Video tipi bilgisi: path pattern'e göre belirlenir.
+ */
+interface VideoTarget {
+  type: "post" | "chat" | "story";
+  /** Temp dizin ve log için kullanılan benzersiz ID */
+  id: string;
+  /** HLS dosyalarının Storage'daki hedef dizini */
+  hlsOutputPrefix: string;
+  /** Firestore doküman yolu */
+  firestoreDoc: string;
+  /** Firestore'a yazılacak tamamlanma verileri */
+  buildSuccessData: (hlsUrl: string, hlsSegmentCount: number, thumbnailUrl: string) => Record<string, unknown>;
+  /** Firestore'a yazılacak hata verileri */
+  buildFailData: () => Record<string, unknown>;
+  /** Firestore'a yazılacak processing verileri */
+  buildProcessingData: () => Record<string, unknown>;
+  /** Thumbnail üretilip Storage'a yüklensin mi? */
+  generateThumbnail: boolean;
+  /** Thumbnail Storage yolu (generateThumbnail true ise) */
+  thumbnailStoragePath?: string;
+}
+
+function resolveTarget(filePath: string): VideoTarget | null {
+  // Pattern 1: Posts (mevcut)
+  const postMatch = filePath.match(/^posts\/([^/]+)\/video[^/]*\.mp4$/i);
+  if (postMatch) {
+    const docID = postMatch[1];
+    return {
+      type: "post",
+      id: docID,
+      hlsOutputPrefix: `Posts/${docID}/hls`,
+      firestoreDoc: `Posts/${docID}`,
+      generateThumbnail: true,
+      thumbnailStoragePath: `Posts/${docID}/thumbnail.jpg`,
+      buildProcessingData: () => ({
+        hlsStatus: "processing",
+        isUploading: true,
+        hlsUpdatedAt: Date.now(),
+      }),
+      buildSuccessData: (hlsUrl, hlsSegmentCount, thumbnailUrl) => ({
+        hlsMasterUrl: hlsUrl,
+        hlsSegmentCount,
+        hlsStatus: "ready",
+        isUploading: false,
+        hlsUpdatedAt: Date.now(),
+        video: hlsUrl,
+        thumbnail: thumbnailUrl,
+      }),
+      buildFailData: () => ({
+        hlsStatus: "failed",
+        isUploading: false,
+        hlsUpdatedAt: Date.now(),
+      }),
+    };
+  }
+
+  // Pattern 2: Chat mesaj videosu
+  const chatMatch = filePath.match(
+    /^ChatAssets\/([^/]+)\/messages\/([^/]+)\/video\.mp4$/i
+  );
+  if (chatMatch) {
+    const chatID = chatMatch[1];
+    const msgID = chatMatch[2];
+    return {
+      type: "chat",
+      id: `chat_${chatID}_${msgID}`,
+      hlsOutputPrefix: `ChatAssets/${chatID}/messages/${msgID}/hls`,
+      firestoreDoc: `conversations/${chatID}/messages/${msgID}`,
+      generateThumbnail: false,
+      buildProcessingData: () => ({
+        hlsStatus: "processing",
+      }),
+      buildSuccessData: (hlsUrl) => ({
+        videoUrl: hlsUrl,
+        hlsMasterUrl: hlsUrl,
+        hlsStatus: "ready",
+      }),
+      buildFailData: () => ({
+        hlsStatus: "failed",
+      }),
+    };
+  }
+
+  // Pattern 3: Story videosu
+  const storyMatch = filePath.match(
+    /^stories\/([^/]+)\/([^/]+)\/video\.mp4$/i
+  );
+  if (storyMatch) {
+    const uid = storyMatch[1];
+    const storyID = storyMatch[2];
+    return {
+      type: "story",
+      id: `story_${storyID}`,
+      hlsOutputPrefix: `stories/${uid}/${storyID}/hls`,
+      firestoreDoc: `stories/${storyID}`,
+      generateThumbnail: false,
+      buildProcessingData: () => ({
+        hlsStatus: "processing",
+      }),
+      buildSuccessData: (hlsUrl) => ({
+        hlsVideoUrl: hlsUrl,
+        hlsStatus: "ready",
+      }),
+      buildFailData: () => ({
+        hlsStatus: "failed",
+      }),
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Storage trigger: video yüklendiğinde tetiklenir.
+ * Posts, Chat mesajları ve Story videoları için HLS dönüşümü yapar.
  */
 export const onVideoUpload = functions
   .runWith({ memory: "2GB", timeoutSeconds: 540 })
@@ -67,26 +180,22 @@ export const onVideoUpload = functions
     const filePath = object.name;
     if (!filePath) return;
 
-    // Sadece posts/{docID}/video*.mp4 dosyalarını işle
-    const match = filePath.match(/^posts\/([^/]+)\/video[^/]*\.mp4$/i);
-    if (!match) return;
+    const target = resolveTarget(filePath);
+    if (!target) return;
 
-    const docID = match[1];
     const bucket = storage.bucket(object.bucket);
 
-    console.log(`[HLS] Processing video for post: ${docID}`);
+    console.log(
+      `[HLS] Processing video for ${target.type}: ${target.id}`
+    );
 
     // Firestore'da processing durumunu set et.
-    // Not: Bazı akışlarda video upload, post dokümanından önce gelebilir.
-    // update() NOT_FOUND verir; merge set ile race condition kırılır.
-    await db.doc(`Posts/${docID}`).set(
-      {
-        hlsStatus: "processing",
-        isUploading: true,
-        hlsUpdatedAt: Date.now(),
-      },
+    await db.doc(target.firestoreDoc).set(
+      target.buildProcessingData(),
       { merge: true }
     );
+
+    const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
 
     try {
       // Segment konfigürasyonu oku
@@ -99,7 +208,6 @@ export const onVideoUpload = functions
       );
 
       // Temp dizini oluştur
-      const tempDir = path.join(os.tmpdir(), `hls_${docID}`);
       fs.mkdirSync(tempDir, { recursive: true });
 
       const inputPath = path.join(tempDir, "input.mp4");
@@ -200,12 +308,12 @@ export const onVideoUpload = functions
 
       // HLS dosyalarını Storage'a yükle
       const hlsFiles = fs.readdirSync(outputDir);
-      const hlsSegmentCount = hlsFiles.filter((file) =>
-        file.startsWith("seg_") && file.endsWith(".ts")
+      const hlsSegmentCount = hlsFiles.filter(
+        (file) => file.startsWith("seg_") && file.endsWith(".ts")
       ).length;
       const uploadPromises = hlsFiles.map((file) => {
         const localPath = path.join(outputDir, file);
-        const remotePath = `Posts/${docID}/hls/${file}`;
+        const remotePath = `${target.hlsOutputPrefix}/${file}`;
         return bucket.upload(localPath, {
           destination: remotePath,
           metadata: {
@@ -217,64 +325,59 @@ export const onVideoUpload = functions
       });
       await Promise.all(uploadPromises);
 
-      // Thumbnail üret (1. saniyeden frame)
-      const thumbnailPath = path.join(tempDir, "thumbnail.jpg");
-      try {
-        await execFileAsync("ffmpeg", [
-          "-i",
-          inputPath,
-          "-ss",
-          "1",
-          "-vframes",
-          "1",
-          "-q:v",
-          "2",
-          thumbnailPath,
-        ]);
+      // Thumbnail üret (sadece post tipi için)
+      let thumbnailUrl = "";
+      if (target.generateThumbnail && target.thumbnailStoragePath) {
+        const thumbnailPath = path.join(tempDir, "thumbnail.jpg");
+        try {
+          await execFileAsync("ffmpeg", [
+            "-i",
+            inputPath,
+            "-ss",
+            "1",
+            "-vframes",
+            "1",
+            "-q:v",
+            "2",
+            thumbnailPath,
+          ]);
 
-        await bucket.upload(thumbnailPath, {
-          destination: `Posts/${docID}/thumbnail.jpg`,
-          metadata: { contentType: "image/jpeg" },
-        });
-      } catch (thumbErr) {
-        console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);
+          await bucket.upload(thumbnailPath, {
+            destination: target.thumbnailStoragePath,
+            metadata: { contentType: "image/jpeg" },
+          });
+          thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
+        } catch (thumbErr) {
+          console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);
+        }
       }
 
       // Firestore güncelle
-      const hlsUrl = `https://${CDN_DOMAIN}/Posts/${docID}/hls/master.m3u8`;
-      const thumbnailUrl = `https://${CDN_DOMAIN}/Posts/${docID}/thumbnail.jpg`;
+      const hlsUrl = `https://${CDN_DOMAIN}/${target.hlsOutputPrefix}/master.m3u8`;
 
-      await db.doc(`Posts/${docID}`).set(
-        {
-          hlsMasterUrl: hlsUrl,
-          hlsSegmentCount,
-          hlsStatus: "ready",
-          isUploading: false,
-          hlsUpdatedAt: Date.now(),
-          video: hlsUrl,
-          thumbnail: thumbnailUrl,
-        },
+      await db.doc(target.firestoreDoc).set(
+        target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl),
         { merge: true }
       );
 
-      console.log(`[HLS] Complete for ${docID}. HLS URL: ${hlsUrl}`);
+      console.log(
+        `[HLS] Complete for ${target.type}:${target.id}. HLS URL: ${hlsUrl}`
+      );
 
       // Temp dosyaları temizle
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
-      console.error(`[HLS] Error processing ${docID}:`, error);
+      console.error(
+        `[HLS] Error processing ${target.type}:${target.id}:`,
+        error
+      );
 
-      await db.doc(`Posts/${docID}`).set(
-        {
-          hlsStatus: "failed",
-          isUploading: false,
-          hlsUpdatedAt: Date.now(),
-        },
+      await db.doc(target.firestoreDoc).set(
+        target.buildFailData(),
         { merge: true }
       );
 
       // Temp temizle
-      const tempDir = path.join(os.tmpdir(), `hls_${docID}`);
       if (fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }

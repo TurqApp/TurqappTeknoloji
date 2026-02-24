@@ -11,6 +11,7 @@ import 'dart:async';
 
 import '../Short/short_controller.dart';
 import '../Agenda/agenda_controller.dart';
+import '../Explore/explore_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 
@@ -183,7 +184,13 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
   }
 
   void changeIndex(int index) {
+    final previous = selectedIndex.value;
     selectedIndex.value = index;
+
+    if (previous == 1 && index != 1 && Get.isRegistered<ExploreController>()) {
+      // Keşfet'ten çıkarken resetle; geri dönünce Gündem ile açılır.
+      Get.find<ExploreController>().resetSearchToDefault();
+    }
   }
 
   Future<void> ensureProactiveShortPreloadStarted() async {

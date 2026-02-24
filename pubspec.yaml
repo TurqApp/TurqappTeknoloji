@@ -44,6 +44,7 @@ dependencies:
   mobile_scanner: ^7.1.4
   saver_gallery: ^4.1.0
   image_picker: ^1.2.1
+  camera: ^0.11.0+2
   crop_your_image: ^2.0.0
   carousel_slider: ^5.1.2
   latlong2: ^0.9.1

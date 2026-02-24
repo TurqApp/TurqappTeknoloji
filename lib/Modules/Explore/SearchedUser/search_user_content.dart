@@ -1,113 +1,190 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
-import 'search_user_content_controller.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/firebase_my_store.dart';
 
 class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
   final bool isSearch;
 
-  const SearchUserContent({super.key, required this.model, required this.isSearch});
+  const SearchUserContent(
+      {super.key, required this.model, required this.isSearch});
+
+  Future<String> _resolveTargetUid() async {
+    var targetUid = model.userID.trim();
+    if (targetUid.isNotEmpty) return targetUid;
+    final nick = model.nickname.trim();
+    if (nick.isEmpty) return "";
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection("users")
+          .where("nickname", isEqualTo: nick)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) {
+        return snap.docs.first.id;
+      }
+    } catch (_) {}
+    return "";
+  }
+
+  Future<void> _saveRecentIfNeeded(String targetUid) async {
+    try {
+      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserID == null || currentUserID.isEmpty) return;
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(currentUserID)
+          .update({
+        "lastSearchList": FieldValue.arrayUnion([targetUid])
+      });
+      if (Get.isRegistered<FirebaseMyStore>()) {
+        final store = Get.find<FirebaseMyStore>();
+        if (!store.lastSearchList.contains(targetUid)) {
+          store.lastSearchList.add(targetUid);
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _removeRecent() async {
+    final targetUid = await _resolveTargetUid();
+    if (targetUid.isEmpty) return;
+    try {
+      final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserID != null && currentUserID.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(currentUserID)
+            .update({
+          "lastSearchList": FieldValue.arrayRemove([targetUid])
+        });
+      }
+    } catch (_) {}
+    if (Get.isRegistered<FirebaseMyStore>()) {
+      final store = Get.find<FirebaseMyStore>();
+      store.lastSearchList.remove(targetUid);
+      store.lastSearchedUserList.removeWhere((u) => u.userID == targetUid);
+    }
+    if (Get.isRegistered<ExploreController>()) {
+      Get.find<ExploreController>().isSearchMode.value = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(
-      SearchUserContentController(userID: model.userID),
-      tag: model.userID,
-      permanent: false,
-    );
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 7, top: 7),
-          child: GestureDetector(
-            onTap: controller.goToProfile,
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.withAlpha(50)),
-                  ),
-                  child: ClipOval(
-                    child: model.pfImage != ""
-                        ? SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CachedNetworkImage(
-                        imageUrl: model.pfImage,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                        : const SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: CupertinoActivityIndicator(color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              model.nickname,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
-                            ),
-
-                            RozetContent(size: 14, userID: model.userID)
-                          ],
+          padding:
+              const EdgeInsets.only(left: 15, right: 15, bottom: 7, top: 7),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final targetUid = await _resolveTargetUid();
+                    if (targetUid.isEmpty) return;
+                    Get.to(
+                      () => SocialProfile(userID: targetUid),
+                      preventDuplicates: false,
+                    );
+                    await _saveRecentIfNeeded(targetUid);
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.withAlpha(50)),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          "${model.firstName.trimRight()} ${model.lastName.trimRight()}",
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                            fontFamily: "MontserratMedium",
+                        child: ClipOval(
+                          child: model.pfImage != ""
+                              ? SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: CachedNetworkImage(
+                                    imageUrl: model.pfImage,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Center(
+                                    child: CupertinoActivityIndicator(
+                                        color: Colors.grey),
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    model.nickname,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  ),
+                                  RozetContent(size: 14, userID: model.userID)
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                "${model.firstName.trimRight()} ${model.lastName.trimRight()}",
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                if (!isSearch)
-                  TextButton(
-                    onPressed: controller.removeFromLastSearch,
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.all(10),
-                      minimumSize: const Size(4, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.xmark,
-                      size: 20,
-                      color: Colors.grey,
-                    ),
-                  )
-                else Icon(
+              ),
+              if (!isSearch)
+                TextButton(
+                  onPressed: _removeRecent,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.all(10),
+                    minimumSize: const Size(4, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.xmark,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
+                )
+              else
+                Icon(
                   CupertinoIcons.chevron_right,
                   color: Colors.blueAccent,
                   size: 15,
                 )
-              ],
-            ),
+            ],
           ),
         ),
         Padding(

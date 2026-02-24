@@ -28,6 +28,7 @@ class ExploreController extends GetxController {
   RxList<HashtagModel> searchedTags = <HashtagModel>[].obs;
   RxBool showAllRecent = false.obs;
   RxBool isKeyboardOpen = false.obs;
+  RxBool isSearchMode = false.obs;
   final scrollController = ScrollController();
   RxList<HashtagModel> trendingTags = <HashtagModel>[].obs;
 
@@ -129,23 +130,8 @@ class ExploreController extends GetxController {
 
     searchFocus.addListener(() {
       isKeyboardOpen.value = searchFocus.hasFocus;
-
-      if (isKeyboardOpen.value == false) {
-        searchController.clear();
-        searchText.value = "";
-        searchedList.clear();
-        searchedHashtags.clear();
-        searchedTags.clear();
-        showAllRecent.value = false;
-      }
-
-      if (searchFocus.hasFocus == false) {
-        searchController.clear();
-        searchText.value = "";
-        searchedList.clear();
-        searchedHashtags.clear();
-        searchedTags.clear();
-        showAllRecent.value = false;
+      if (searchFocus.hasFocus) {
+        isSearchMode.value = true;
       }
     });
   }
@@ -881,7 +867,14 @@ class ExploreController extends GetxController {
 
       final users = <OgrenciModel>[];
       for (final row in rawUserHits.whereType<Map>()) {
-        final uid = (row['id'] ?? '').toString();
+        final uid = (row['id'] ??
+                row['userID'] ??
+                row['uid'] ??
+                row['docID'] ??
+                row['userId'] ??
+                '')
+            .toString()
+            .trim();
         if (uid.isEmpty || uid == currentUserId) continue;
         users.add(OgrenciModel(
           userID: uid,
@@ -897,6 +890,22 @@ class ExploreController extends GetxController {
       searchedList.clear();
       searchedHashtags.clear();
       searchedTags.clear();
+    }
+  }
+
+  void resetSearchToDefault() {
+    searchFocus.unfocus();
+    searchController.clear();
+    searchText.value = "";
+    searchedList.clear();
+    searchedHashtags.clear();
+    searchedTags.clear();
+    showAllRecent.value = false;
+    isKeyboardOpen.value = false;
+    isSearchMode.value = false;
+    selection.value = 0;
+    if (pageController.hasClients) {
+      pageController.jumpToPage(0);
     }
   }
 

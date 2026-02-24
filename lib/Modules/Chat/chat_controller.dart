@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
@@ -18,7 +20,9 @@ import 'package:uuid/uuid.dart';
 import 'package:record/record.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../Core/Camera/chat_camera_capture_view.dart';
 import '../../Core/blocked_texts.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
 import '../../Models/message_model.dart';
@@ -31,6 +35,9 @@ class ChatController extends GetxController {
   var token = "".obs;
   var fullName = "".obs;
   var bio = "".obs;
+  var followersCount = 0.obs;
+  var followingCount = 0.obs;
+  var postCount = 0.obs;
   var selection = 0.obs;
   var textMesage = ''.obs;
   var uploadPercent = 0.0.obs;
@@ -39,12 +46,16 @@ class ChatController extends GetxController {
   ScrollController scrollController = ScrollController();
   PageController pageController = PageController();
   FocusNode focus = FocusNode();
+  bool didAutoFocusOnce = false;
   var currentPage = 0.obs;
   final picker = ImagePicker();
   RxList<File> images = <File>[].obs;
+  final Rx<File?> pendingVideo = Rx<File?>(null);
   final replyingTo = Rxn<MessageModel>();
   final editingMessage = Rxn<MessageModel>();
   Timer? _messageSyncTimer;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _messagesSubscription;
   DateTime? _lastServerSyncAt;
   bool _isMessageSyncing = false;
   bool _isLoadingOlder = false;
@@ -58,6 +69,9 @@ class ChatController extends GetxController {
   var isLoadingOlder = false.obs;
   var hasMoreOlder = true.obs;
   var isOtherTyping = false.obs;
+  var chatBgPaletteIndex = 0.obs;
+  final RxBool isSelectionMode = false.obs;
+  final RxSet<String> selectedMessageIds = <String>{}.obs;
   var isUploading = false.obs;
   var isRecording = false.obs;
   var recordingDuration = 0.obs;
@@ -66,6 +80,7 @@ class ChatController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _typingStream;
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _recordingPath;
+  static const int _localChatWindowLimit = 180;
 
   NetworkAwarenessService? get _network =>
       Get.isRegistered<NetworkAwarenessService>()
@@ -77,15 +92,78 @@ class ChatController extends GetxController {
 
   Duration get _serverSyncGap {
     if (_isOffline) return const Duration(days: 1);
-    return _isOnWiFi ? const Duration(seconds: 3) : const Duration(seconds: 8);
+    return _isOnWiFi
+        ? const Duration(seconds: 12)
+        : const Duration(seconds: 30);
   }
 
   ChatController({required this.chatID, required this.userID});
+
+  Future<void> _upsertLegacyMessageHead({
+    required String lastMessage,
+    required int timestampMs,
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid.isEmpty) return;
+    await FirebaseFirestore.instance.collection("message").doc(chatID).set({
+      "deleted": <String>[],
+      "timeStamp": timestampMs,
+      "userID1": currentUid,
+      "userID2": userID,
+      "participants": [currentUid, userID],
+      "lastMessage": lastMessage,
+      "lastSenderId": currentUid,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _appendLegacyChatMessage({
+    required String text,
+    required List<String> imageUrls,
+    required String videoUrl,
+    required String videoThumbnail,
+    required String audioUrl,
+    required int audioDurationMs,
+    required LatLng? latLng,
+    required String? kisiAdSoyad,
+    required String? kisiTelefon,
+    required String? postID,
+    required String? postType,
+    required String? gif,
+    required int timeStampMs,
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid.isEmpty) return;
+    await FirebaseFirestore.instance
+        .collection("message")
+        .doc(chatID)
+        .collection("Chat")
+        .add({
+      "timeStamp": timeStampMs,
+      "userID": currentUid,
+      "metin": text,
+      "imgs": gif != null && gif.isNotEmpty ? [gif] : imageUrls,
+      "video": videoUrl,
+      "videoThumbnail": videoThumbnail,
+      "sesliMesaj": audioUrl,
+      "audioDurationMs": audioDurationMs,
+      "lat": latLng?.latitude ?? 0,
+      "long": latLng?.longitude ?? 0,
+      "kisiAdSoyad": kisiAdSoyad ?? "",
+      "kisiTelefon": kisiTelefon ?? "",
+      "postID": postID ?? "",
+      "postType": postType ?? "",
+      "isRead": false,
+      "begeniler": <String>[],
+      "kullanicilar": <String>[],
+    });
+  }
 
   @override
   void onInit() {
     super.onInit();
     getUserData();
+    _loadLocalConversationWindow();
+    loadChatBackgroundPreference();
     getData();
     _clearConversationUnread();
     textEditingController.addListener(() {
@@ -118,6 +196,7 @@ class ChatController extends GetxController {
   @override
   void onClose() {
     _messageSyncTimer?.cancel();
+    _messagesSubscription?.cancel();
     _typingStream?.cancel();
     _typingDebounce?.cancel();
     _recordingTimer?.cancel();
@@ -127,13 +206,40 @@ class ChatController extends GetxController {
   }
 
   void getUserData() async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
-    nickname.value = doc.get("nickname");
-    pfImage.value = doc.get("pfImage");
-    fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
-    bio.value = doc.get("bio");
-    token.value = doc.get("token");
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get();
+      final data = doc.data() ?? <String, dynamic>{};
+
+      nickname.value = (data["nickname"] ?? "").toString();
+      pfImage.value = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
+      token.value = (data["token"] ?? "").toString();
+
+      final firstName = (data["firstName"] ?? "").toString().trim();
+      final lastName = (data["lastName"] ?? "").toString().trim();
+      final full = "$firstName $lastName".trim();
+      fullName.value = full.isNotEmpty
+          ? full
+          : (data["fullName"] ?? nickname.value).toString();
+      bio.value = (data["bio"] ?? "").toString();
+
+      followersCount.value = _asInt(
+          data["followersCount"] ?? data["takipci"] ?? data["followerCount"]);
+      followingCount.value = _asInt(
+          data["followingCount"] ?? data["takip"] ?? data["followCount"]);
+      postCount.value =
+          _asInt(data["postCount"] ?? data["gonderi"] ?? data["postsCount"]);
+    } catch (_) {}
+  }
+
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is List) return value.length;
+    return 0;
   }
 
   void scrollToBottom() {
@@ -153,9 +259,11 @@ class ChatController extends GetxController {
     if (uid == null) return;
     final text = textEditingController.text;
     if (text.isNotEmpty) {
-      FirebaseFirestore.instance.collection("conversations").doc(chatID).set({
-        "typing.$uid": DateTime.now().millisecondsSinceEpoch,
-      }, SetOptions(merge: true));
+      try {
+        FirebaseFirestore.instance.collection("conversations").doc(chatID).set({
+          "typing.$uid": DateTime.now().millisecondsSinceEpoch,
+        }, SetOptions(merge: true));
+      } catch (_) {}
       _typingDebounce?.cancel();
       _typingDebounce = Timer(const Duration(seconds: 2), () {
         _clearTyping();
@@ -168,10 +276,12 @@ class ChatController extends GetxController {
   void _clearTyping() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatID)
-        .set({"typing.$uid": 0}, SetOptions(merge: true));
+    try {
+      FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatID)
+          .set({"typing.$uid": 0}, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   void _listenTypingState() {
@@ -191,11 +301,67 @@ class ChatController extends GetxController {
 
   void getData() {
     _messageSyncTimer?.cancel();
+    _messagesSubscription?.cancel();
 
-    _loadInitialMessages(forceServer: true);
-    _messageSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // İlk açılışta cache-first: ekrandaki mesajlar anında local cache'ten gelsin.
+    _loadInitialMessages(forceServer: false);
+    _listenRealtimeMessages();
+    _messageSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       _syncMessages(forceServer: false);
     });
+  }
+
+  Future<void> loadChatBackgroundPreference() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatID)
+          .get();
+      final data = doc.data() ?? <String, dynamic>{};
+      final raw = (data["chatBg.$uid"] ?? data["chatBgIndex"]) as dynamic;
+      int idx = 0;
+      if (raw is int) {
+        idx = raw;
+      } else if (raw is num) {
+        idx = raw.toInt();
+      } else if (raw is String) {
+        idx = int.tryParse(raw) ?? 0;
+      }
+      if (idx < 0) idx = 0;
+      if (idx > 5) idx = 5;
+      chatBgPaletteIndex.value = idx;
+    } catch (_) {}
+  }
+
+  Future<void> setChatBackgroundPreference(int index) async {
+    if (index < 0 || index > 5) return;
+    chatBgPaletteIndex.value = index;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatID)
+          .set({
+        "chatBg.$uid": index,
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  void _listenRealtimeMessages() {
+    _messagesSubscription = FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(chatID)
+        .collection("messages")
+        .orderBy("createdAt", descending: true)
+        .limit(_syncHeadSize)
+        .snapshots()
+        .listen((snapshot) {
+      _applyConversationSnapshot(snapshot.docs, replace: false);
+      _refreshMergedMessages();
+    }, onError: (_) {});
   }
 
   Future<void> _loadInitialMessages({required bool forceServer}) async {
@@ -300,6 +466,33 @@ class ChatController extends GetxController {
     }
   }
 
+  Future<void> jumpToMessageByRawId(String rawId) async {
+    if (rawId.trim().isEmpty) return;
+
+    int index = messages.indexWhere((m) => m.rawDocID == rawId);
+    var attempts = 0;
+    while (index < 0 && attempts < 4 && hasMoreOlder.value) {
+      await loadOlderMessages();
+      index = messages.indexWhere((m) => m.rawDocID == rawId);
+      attempts++;
+    }
+
+    if (index < 0) {
+      AppSnackbar("Bilgi", "Yanıtlanan mesaj bulunamadı");
+      return;
+    }
+
+    if (!scrollController.hasClients) return;
+    final position = scrollController.position;
+    final target =
+        (index * 120.0).clamp(0.0, position.maxScrollExtent).toDouble();
+    await scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOut,
+    );
+  }
+
   void _updateHasMoreOlder() {
     hasMoreOlder.value = _conversationHasMore;
   }
@@ -354,6 +547,65 @@ class ChatController extends GetxController {
     editingMessage.value = null;
   }
 
+  void startSelectionMode([String? rawId]) {
+    isSelectionMode.value = true;
+    if (rawId != null && rawId.isNotEmpty) {
+      toggleSelection(rawId);
+    }
+  }
+
+  void stopSelectionMode() {
+    isSelectionMode.value = false;
+    selectedMessageIds.clear();
+  }
+
+  void toggleSelection(String rawId) {
+    if (rawId.isEmpty) return;
+    final next = Set<String>.from(selectedMessageIds);
+    if (next.contains(rawId)) {
+      next.remove(rawId);
+    } else {
+      next.add(rawId);
+    }
+    selectedMessageIds
+      ..clear()
+      ..addAll(next);
+    if (selectedMessageIds.isEmpty) {
+      isSelectionMode.value = false;
+    } else {
+      isSelectionMode.value = true;
+    }
+  }
+
+  Future<void> deleteSelectedMessages() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || selectedMessageIds.isEmpty) return;
+    try {
+      final convRef =
+          FirebaseFirestore.instance.collection("conversations").doc(chatID);
+      final batch = FirebaseFirestore.instance.batch();
+      for (final rawId in selectedMessageIds) {
+        final ref = convRef.collection("messages").doc(rawId);
+        batch.set(
+          ref,
+          {
+            "deletedFor": FieldValue.arrayUnion([uid])
+          },
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+      final toRemove = Set<String>.from(selectedMessageIds);
+      _conversationMessages
+          .removeWhere((_, m) => toRemove.contains(m.rawDocID));
+      selectedMessageIds.clear();
+      isSelectionMode.value = false;
+      _refreshMergedMessages();
+    } catch (e) {
+      AppSnackbar("Hata", "Mesajlar silinemedi");
+    }
+  }
+
   void _applyConversationSnapshot(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
     required bool replace,
@@ -366,6 +618,11 @@ class ChatController extends GetxController {
     for (final doc in docs) {
       final data = doc.data();
       final senderId = data["senderId"] ?? "";
+      final deletedFor = List<String>.from(data["deletedFor"] ?? []);
+      if (deletedFor.contains(currentUID)) {
+        _conversationMessages.remove("conv_${doc.id}");
+        continue;
+      }
       final seenBy = List<String>.from(data["seenBy"] ?? []);
       final status = data["status"] ?? "";
       final model = MessageModel.fromConversationSnapshot(doc);
@@ -402,7 +659,7 @@ class ChatController extends GetxController {
       if (unseenRawDocIds.isNotEmpty) {
         batch.set(convRef, {"unread.$currentUID": 0}, SetOptions(merge: true));
       }
-      batch.commit();
+      batch.commit().catchError((_) => null);
     }
   }
 
@@ -410,6 +667,119 @@ class ChatController extends GetxController {
     final merged = <MessageModel>[..._conversationMessages.values];
     merged.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     messages.value = merged;
+    unawaited(_saveLocalConversationWindow(merged));
+  }
+
+  String get _localChatWindowKey => "chat_window_cache_$chatID";
+
+  Future<void> _loadLocalConversationWindow() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_localChatWindowKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+
+      final restored = <MessageModel>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final m = _deserializeLocalMessage(Map<String, dynamic>.from(item));
+        if (m != null) restored.add(m);
+      }
+      if (restored.isEmpty) return;
+      restored.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+      messages.value = restored;
+    } catch (_) {}
+  }
+
+  Future<void> _saveLocalConversationWindow(List<MessageModel> input) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = input.take(_localChatWindowLimit).toList();
+      final payload = list.map(_serializeLocalMessage).toList();
+      await prefs.setString(_localChatWindowKey, jsonEncode(payload));
+    } catch (_) {}
+  }
+
+  Map<String, dynamic> _serializeLocalMessage(MessageModel m) {
+    return {
+      "docID": m.docID,
+      "rawDocID": m.rawDocID,
+      "source": m.source,
+      "timeStamp": m.timeStamp,
+      "userID": m.userID,
+      "lat": m.lat,
+      "long": m.long,
+      "postType": m.postType,
+      "postID": m.postID,
+      "imgs": m.imgs,
+      "video": m.video,
+      "isRead": m.isRead,
+      "kullanicilar": m.kullanicilar,
+      "begeniler": m.begeniler,
+      "metin": m.metin,
+      "sesliMesaj": m.sesliMesaj,
+      "kisiAdSoyad": m.kisiAdSoyad,
+      "kisiTelefon": m.kisiTelefon,
+      "isEdited": m.isEdited,
+      "isUnsent": m.isUnsent,
+      "isForwarded": m.isForwarded,
+      "replyMessageId": m.replyMessageId,
+      "replySenderId": m.replySenderId,
+      "replyText": m.replyText,
+      "replyType": m.replyType,
+      "reactions": m.reactions,
+      "status": m.status,
+      "videoThumbnail": m.videoThumbnail,
+      "audioDurationMs": m.audioDurationMs,
+    };
+  }
+
+  MessageModel? _deserializeLocalMessage(Map<String, dynamic> data) {
+    try {
+      return MessageModel(
+        docID: (data["docID"] ?? "").toString(),
+        rawDocID: (data["rawDocID"] ?? "").toString(),
+        source: (data["source"] ?? "conversation").toString(),
+        timeStamp: data["timeStamp"] is num ? data["timeStamp"] as num : 0,
+        userID: (data["userID"] ?? "").toString(),
+        lat: data["lat"] is num ? data["lat"] as num : 0,
+        long: data["long"] is num ? data["long"] as num : 0,
+        postType: (data["postType"] ?? "").toString(),
+        postID: (data["postID"] ?? "").toString(),
+        imgs: List<String>.from(data["imgs"] ?? const []),
+        video: (data["video"] ?? "").toString(),
+        isRead: data["isRead"] == true,
+        kullanicilar: List<String>.from(data["kullanicilar"] ?? const []),
+        metin: (data["metin"] ?? "").toString(),
+        sesliMesaj: (data["sesliMesaj"] ?? "").toString(),
+        kisiAdSoyad: (data["kisiAdSoyad"] ?? "").toString(),
+        kisiTelefon: (data["kisiTelefon"] ?? "").toString(),
+        begeniler: List<String>.from(data["begeniler"] ?? const []),
+        isEdited: data["isEdited"] == true,
+        isUnsent: data["isUnsent"] == true,
+        isForwarded: data["isForwarded"] == true,
+        replyMessageId: (data["replyMessageId"] ?? "").toString(),
+        replySenderId: (data["replySenderId"] ?? "").toString(),
+        replyText: (data["replyText"] ?? "").toString(),
+        replyType: (data["replyType"] ?? "").toString(),
+        reactions: Map<String, List<String>>.from(
+          (data["reactions"] as Map? ?? {}).map(
+            (k, v) => MapEntry(
+              k.toString(),
+              List<String>.from(v ?? const []),
+            ),
+          ),
+        ),
+        status: (data["status"] ?? "").toString(),
+        videoThumbnail: (data["videoThumbnail"] ?? "").toString(),
+        audioDurationMs: data["audioDurationMs"] is num
+            ? (data["audioDurationMs"] as num).toInt()
+            : 0,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> sendMessage({
@@ -424,10 +794,15 @@ class ChatController extends GetxController {
     String? videoThumbnail,
     String? audioUrl,
     int? audioDurationMs,
+    String? textOverride,
+    String? replyTextOverride,
+    String? replyTypeOverride,
+    String? replySenderIdOverride,
+    String? replyMessageIdOverride,
   }) async {
     print("🚀 sendMessage BAŞLADI");
 
-    final text = textEditingController.text.trim();
+    final text = (textOverride ?? textEditingController.text).trim();
     print("✏️ Mesaj text: '$text'");
 
     // 1. Küfür kontrolü
@@ -485,6 +860,51 @@ class ChatController extends GetxController {
       print("🔔 Notif body: $notifBody");
 
       final now = DateTime.now();
+      final hasExternalReply = (replyTextOverride ?? "").trim().isNotEmpty;
+      final replyTextFinal = (replyTextOverride ?? "").trim();
+      final replyTypeFinal = (replyTypeOverride ?? "text").trim();
+      final replySenderFinal =
+          (replySenderIdOverride ?? FirebaseAuth.instance.currentUser!.uid)
+              .trim();
+      final replyMessageFinal =
+          (replyMessageIdOverride ?? "preview_${now.microsecondsSinceEpoch}")
+              .trim();
+
+      String inferredReplyText = "";
+      String inferredReplyType = "text";
+      String inferredReplyTarget = "";
+      final repliedModel = replyingTo.value;
+      if (!hasExternalReply && repliedModel != null) {
+        inferredReplyTarget = repliedModel.rawDocID;
+        if (repliedModel.video.isNotEmpty) {
+          inferredReplyType = "video";
+          inferredReplyText = "🎥 Video";
+          inferredReplyTarget = repliedModel.video;
+        } else if (repliedModel.imgs.isNotEmpty) {
+          inferredReplyType = "media";
+          inferredReplyText = "📷 Fotoğraf";
+          inferredReplyTarget = repliedModel.imgs.first;
+        } else if (repliedModel.sesliMesaj.isNotEmpty) {
+          inferredReplyType = "audio";
+          inferredReplyText = "🎤 Ses";
+        } else if (repliedModel.lat != 0 || repliedModel.long != 0) {
+          inferredReplyType = "location";
+          inferredReplyText = "📍 Konum";
+        } else if (repliedModel.postID.trim().isNotEmpty) {
+          inferredReplyType = "post";
+          inferredReplyText = "🔗 Gönderi";
+          inferredReplyTarget = repliedModel.postID.trim();
+        } else if (repliedModel.kisiAdSoyad.trim().isNotEmpty) {
+          inferredReplyType = "contact";
+          inferredReplyText = "👤 Kişi";
+        } else {
+          inferredReplyType = "text";
+          inferredReplyText = repliedModel.metin.trim().isNotEmpty
+              ? repliedModel.metin
+              : "Mesaj";
+        }
+      }
+
       final messageType = _resolveMessageType(
         text: text,
         imageUrls: imageUrls,
@@ -532,28 +952,23 @@ class ChatController extends GetxController {
             "previewText": "",
             "previewImageUrl": "",
           },
-        if (replyingTo.value != null)
+        if (hasExternalReply)
           "replyTo": {
-            "messageId": replyingTo.value!.rawDocID,
+            "messageId": replyMessageFinal,
+            "senderId": replySenderFinal,
+            "text": replyTextFinal,
+            "type": replyTypeFinal.isEmpty ? "text" : replyTypeFinal,
+          },
+        if (!hasExternalReply && replyingTo.value != null)
+          "replyTo": {
+            "messageId": inferredReplyTarget,
             "senderId": replyingTo.value!.userID,
-            "text": replyingTo.value!.metin,
-            "type": replyingTo.value!.postType.isNotEmpty
-                ? replyingTo.value!.postType
-                : "text",
+            "text": inferredReplyText,
+            "type": inferredReplyType,
           },
       };
 
       print("🗂 Mesaj data hazır, firestore'a ekleniyor...");
-
-// Notif
-      NotificationService.instance.sendNotification(
-        token: token.value,
-        title: nickname.value,
-        body: notifBody,
-        docID: chatID,
-        type: "Chat",
-      );
-      print("🔔 Notification gönderildi");
 
       final previewText = _buildLastMessageText(
         text: text,
@@ -569,7 +984,8 @@ class ChatController extends GetxController {
       try {
         final convRef =
             FirebaseFirestore.instance.collection("conversations").doc(chatID);
-        await convRef.collection("messages").add(conversationMessageData);
+        // IMPORTANT: Parent conversation must exist (with participants)
+        // before writing into subcollection messages (Firestore rules).
         await convRef.set({
           "participants": [FirebaseAuth.instance.currentUser!.uid, userID],
           "lastMessage": previewText,
@@ -581,13 +997,67 @@ class ChatController extends GetxController {
           "unread.${FirebaseAuth.instance.currentUser!.uid}": 0,
           "unread.$userID": FieldValue.increment(1),
         }, SetOptions(merge: true));
+        final addedRef =
+            await convRef.collection("messages").add(conversationMessageData);
+
+        // Legacy mirror: keep "message" collection in sync as well.
+        try {
+          await _upsertLegacyMessageHead(
+            lastMessage: previewText,
+            timestampMs: now.millisecondsSinceEpoch,
+          );
+          await _appendLegacyChatMessage(
+            text: text,
+            imageUrls: imageUrls ?? const <String>[],
+            videoUrl: videoUrl ?? "",
+            videoThumbnail: videoThumbnail ?? "",
+            audioUrl: audioUrl ?? "",
+            audioDurationMs: audioDurationMs ?? 0,
+            latLng: latLng,
+            kisiAdSoyad: kisiAdSoyad,
+            kisiTelefon: kisiTelefon,
+            postID: postID,
+            postType: postType,
+            gif: gif,
+            timeStampMs: now.millisecondsSinceEpoch,
+          );
+        } catch (_) {}
+
+        print("✅ Firestore yazımı başarılı");
+
+        // Anında UI güncellemesi: sunucu sync beklemeden mesaj listesine düşür.
+        try {
+          final optimistic = MessageModel.fromConversationSnapshot(
+            await addedRef.get(),
+          );
+          _conversationMessages[optimistic.docID] = optimistic;
+          _refreshMergedMessages();
+        } catch (_) {
+          // Optimistic UI başarısız olsa bile mesaj gönderildi, sync ile gelecek.
+          _syncMessages(forceServer: true);
+        }
+
+        // Notifikasyon gönder (hata olursa mesaj zaten gönderildi)
+        try {
+          NotificationService.instance.sendNotification(
+            token: token.value,
+            title: nickname.value,
+            body: notifBody,
+            docID: chatID,
+            type: "Chat",
+          );
+          print("🔔 Notification gönderildi");
+        } catch (_) {}
       } catch (e, s) {
         print("🔥 HATA: conversation yazımı başarısız: $e");
         print(s);
+        AppSnackbar("Hata", "Mesaj gönderilemedi. Lütfen tekrar dene.");
       }
 
       print("🧹 TextEditingController temizleniyor...");
-      textEditingController.clear();
+      if (textOverride == null) {
+        textEditingController.clear();
+      }
       clearComposerAction();
       if (Get.isRegistered<ChatListingController>()) {
         Get.find<ChatListingController>().getList();
@@ -596,6 +1066,29 @@ class ChatController extends GetxController {
     } else {
       print("❗️Hiçbir mesaj gönderme koşulu sağlanmadı, mesaj gönderilmiyor.");
     }
+  }
+
+  Future<void> sendExternalText(String text) async {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+    await sendMessage(textOverride: clean);
+  }
+
+  Future<void> sendExternalReplyText(
+    String text, {
+    required String replyText,
+    required String replyType,
+    required String replyTarget,
+  }) async {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+    await sendMessage(
+      textOverride: clean,
+      replyTextOverride: replyText,
+      replyTypeOverride: replyType,
+      replySenderIdOverride: FirebaseAuth.instance.currentUser?.uid ?? "",
+      replyMessageIdOverride: replyTarget,
+    );
   }
 
   Future<void> toggleReaction(MessageModel model, String emoji) async {
@@ -807,6 +1300,7 @@ class ChatController extends GetxController {
 
     // 3) Her şey temizse state'i set et
     images.value = files;
+    pendingVideo.value = null;
     selection.value = 1;
   }
 
@@ -830,6 +1324,7 @@ class ChatController extends GetxController {
 
     // Temizse ekle
     images.value = [file];
+    pendingVideo.value = null;
     selection.value = 1;
   }
 
@@ -843,30 +1338,43 @@ class ChatController extends GetxController {
     List<String> downloadUrls = [];
 
     try {
-      // Güvenlik: Seçim ekranı dışında dosya değişmişse tekrar doğrula.
-      for (final image in images) {
-        final check = await OptimizedNSFWService.checkImage(image);
-        if (check.isNSFW) {
-          isUploading.value = false;
-          uploadPercent.value = 0;
-          AppSnackbar(
-            "Yükleme Başarısız!",
-            "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-            backgroundColor: Colors.red.withValues(alpha: 0.7),
-          );
-          return;
-        }
-      }
+      // Not: Seçim aşamasında NSFW kontrolü zaten yapıldı.
 
       for (int i = 0; i < images.length; i++) {
         final image = images[i];
+        File fileToUpload = image;
+
+        try {
+          final tempDir = Directory.systemTemp.path;
+          final targetPath =
+              '$tempDir/chat_img_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+          final compressed = await FlutterImageCompress.compressAndGetFile(
+            image.path,
+            targetPath,
+            quality: 82,
+            minWidth: 1440,
+            minHeight: 1440,
+            keepExif: false,
+            format: CompressFormat.jpeg,
+          );
+          if (compressed != null) {
+            fileToUpload = File(compressed.path);
+          }
+        } catch (e) {
+          print("Görsel sıkıştırma atlandı: $e");
+        }
+
         final fileName = uuid.v4();
 
         final ref = storage.ref().child(
               'ChatAssets/$chatID/$fileName${DateTime.now().millisecondsSinceEpoch}.jpg',
             );
 
-        final uploadTask = ref.putFile(image);
+        final bytes = await fileToUpload.readAsBytes();
+        final uploadTask = ref.putData(
+          bytes,
+          SettableMetadata(contentType: "image/jpeg"),
+        );
 
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
           double percent =
@@ -882,13 +1390,15 @@ class ChatController extends GetxController {
       uploadPercent.value = 0;
       isUploading.value = false;
       selection.value = 0;
+      images.clear();
 
       await sendMessage(imageUrls: downloadUrls);
     } catch (e) {
       print("Resim upload error: $e");
       uploadPercent.value = 0;
       isUploading.value = false;
-      AppSnackbar("Hata", "Resim yüklenirken bir hata oluştu");
+      images.clear();
+      AppSnackbar("Hata", "Resim yüklenemedi: $e");
     }
   }
 
@@ -898,16 +1408,63 @@ class ChatController extends GetxController {
       maxDuration: const Duration(minutes: 3),
     );
     if (pickedFile == null) return;
-    await _processAndSendVideo(File(pickedFile.path));
+    images.clear();
+    pendingVideo.value = File(pickedFile.path);
+    selection.value = 1;
   }
 
   Future<void> pickCameraVideo() async {
     final XFile? pickedFile = await picker.pickVideo(
       source: ImageSource.camera,
-      maxDuration: const Duration(minutes: 3),
+      maxDuration: const Duration(minutes: 1),
     );
     if (pickedFile == null) return;
-    await _processAndSendVideo(File(pickedFile.path));
+    images.clear();
+    pendingVideo.value = File(pickedFile.path);
+    selection.value = 1;
+  }
+
+  Future<void> openCustomCameraCapture() async {
+    final result = await Get.to<ChatCameraCaptureResult>(
+      () => const ChatCameraCaptureView(),
+      transition: Transition.fadeIn,
+    );
+    if (result == null) return;
+
+    if (result.mode == ChatCameraMode.photo) {
+      final file = result.file;
+      final r = await OptimizedNSFWService.checkImage(file);
+      if (r.isNSFW) {
+        AppSnackbar(
+          "Yükleme Başarısız!",
+          "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
+          backgroundColor: Colors.red.withValues(alpha: 0.7),
+        );
+        return;
+      }
+      images.value = [file];
+      pendingVideo.value = null;
+      selection.value = 1;
+      return;
+    }
+
+    images.clear();
+    pendingVideo.value = result.file;
+    selection.value = 1;
+  }
+
+  Future<void> uploadPendingVideoToStorage() async {
+    final file = pendingVideo.value;
+    if (file == null) return;
+    await _processAndSendVideo(file);
+    pendingVideo.value = null;
+    selection.value = 0;
+  }
+
+  void clearPendingMedia() {
+    images.clear();
+    pendingVideo.value = null;
+    selection.value = 0;
   }
 
   Future<void> _processAndSendVideo(File videoFile) async {
@@ -958,7 +1515,7 @@ class ChatController extends GetxController {
         print("Thumbnail oluşturma atlandı: $e");
       }
 
-      // 3. Upload video
+      // 3. Upload video (chat akışı mp4 kalır)
       final videoFileName = uuid.v4();
       final videoRef = storage.ref().child(
             'ChatAssets/$chatID/videos/$videoFileName.mp4',
@@ -1002,7 +1559,11 @@ class ChatController extends GetxController {
   }
 
   Future<void> startVoiceRecording() async {
-    if (await _audioRecorder.hasPermission()) {
+    try {
+      if (!await _audioRecorder.hasPermission()) {
+        AppSnackbar("İzin Gerekli", "Mikrofon izni verilmedi");
+        return;
+      }
       final dir = Directory.systemTemp;
       final path = '${dir.path}/${Uuid().v4()}.m4a';
       await _audioRecorder.start(
@@ -1015,8 +1576,10 @@ class ChatController extends GetxController {
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         recordingDuration.value++;
       });
-    } else {
-      AppSnackbar("İzin Gerekli", "Mikrofon izni verilmedi");
+    } catch (e) {
+      print("Ses kaydı başlatma hatası: $e");
+      isRecording.value = false;
+      AppSnackbar("Hata", "Ses kaydı başlatılamadı");
     }
   }
 

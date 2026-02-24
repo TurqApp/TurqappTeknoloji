@@ -23,8 +23,8 @@ class SpotifySelector extends StatelessWidget {
           children: [
             BackButtons(text: "Müzik Seç"),
             PageLineBar(
-              barList: ["Gündem", "Kaydedilenler"],
-              pageName: "Spotify",
+              barList: ["Favoriler", "Kaydedilenler"],
+              pageName: "TurqApp",
               pageController: controller.pageController,
             ),
             Expanded(

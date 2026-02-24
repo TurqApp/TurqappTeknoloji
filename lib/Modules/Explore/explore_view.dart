@@ -96,6 +96,9 @@ class ExploreView extends StatelessWidget {
                                     child: TextField(
                                       controller: controller.searchController,
                                       focusNode: controller.searchFocus,
+                                      onTap: () {
+                                        controller.isSearchMode.value = true;
+                                      },
                                       decoration: InputDecoration(
                                           hintText: "Ara",
                                           hintStyle: TextStyle(
@@ -116,6 +119,7 @@ class ExploreView extends StatelessWidget {
                                           controller.showAllRecent.value =
                                               false;
                                         } else {
+                                          controller.isSearchMode.value = true;
                                           controller.search(v);
                                         }
                                       },
@@ -137,6 +141,7 @@ class ExploreView extends StatelessWidget {
                               controller.searchedTags.clear();
                               controller.showAllRecent.value = false;
                               controller.isKeyboardOpen.value = false;
+                              controller.isSearchMode.value = false;
                               closeKeyboard(context);
                             },
                             child: Padding(
@@ -151,7 +156,9 @@ class ExploreView extends StatelessWidget {
                   ),
 
                   // ——————————— İçerik Sekmeleri ———————————
-                  if (!controller.isKeyboardOpen.value)
+                  if (!controller.isSearchMode.value &&
+                      !controller.searchFocus.hasFocus &&
+                      controller.searchText.value.trim().isEmpty)
                     Expanded(
                       child: Column(
                         children: [
@@ -198,8 +205,8 @@ class ExploreView extends StatelessWidget {
                                             GestureDetector(
                                               behavior: HitTestBehavior.opaque,
                                               onTap: () {
-                                                Get.to(() =>
-                                                    TagPosts(tag: item.hashtag));
+                                                Get.to(() => TagPosts(
+                                                    tag: item.hashtag));
                                               },
                                               child: Padding(
                                                 padding:
@@ -254,8 +261,7 @@ class ExploreView extends StatelessWidget {
                                                         child: Icon(
                                                           CupertinoIcons
                                                               .chevron_right,
-                                                          color:
-                                                              Colors.black38,
+                                                          color: Colors.black38,
                                                           size: 16,
                                                         ),
                                                       )
@@ -271,8 +277,8 @@ class ExploreView extends StatelessWidget {
                                               child: SizedBox(
                                                 height: 1,
                                                 child: Divider(
-                                                  color: Colors.grey
-                                                      .withAlpha(50),
+                                                  color:
+                                                      Colors.grey.withAlpha(50),
                                                 ),
                                               ),
                                             )
@@ -300,12 +306,13 @@ class ExploreView extends StatelessWidget {
                                     child: list.isEmpty &&
                                             !controller.exploreIsLoading.value
                                         ? Center(
-                                            child:
-                                                EmptyRow(text: "Sonuç bulunamadı"))
+                                            child: EmptyRow(
+                                                text: "Sonuç bulunamadı"))
                                         : GridView.builder(
                                             key: const PageStorageKey(
                                                 'Explore_SanaOzel'),
-                                            controller: controller.exploreScroll,
+                                            controller:
+                                                controller.exploreScroll,
                                             gridDelegate:
                                                 const SliverGridDelegateWithFixedCrossAxisCount(
                                               crossAxisCount: 3,
@@ -349,17 +356,17 @@ class ExploreView extends StatelessWidget {
                                                   children: [
                                                     shouldPlayPreview
                                                         ? SmartMiniVideoPlayer(
-                                                            videoUrl:
-                                                                model.playbackUrl,
-                                                            thumbnailUrl: model
-                                                                .thumbnail,
+                                                            videoUrl: model
+                                                                .playbackUrl,
+                                                            thumbnailUrl:
+                                                                model.thumbnail,
                                                             visibilityKey:
                                                                 "${model.docID}_$i",
                                                             muted: true,
                                                           )
                                                         : CachedNetworkImage(
-                                                            imageUrl: model
-                                                                .thumbnail,
+                                                            imageUrl:
+                                                                model.thumbnail,
                                                             fit: BoxFit.cover,
                                                             memCacheHeight: 600,
                                                             placeholder: (c,
@@ -384,8 +391,7 @@ class ExploreView extends StatelessWidget {
                                                                     .play_circle_fill
                                                                 : CupertinoIcons
                                                                     .eye,
-                                                            color:
-                                                                Colors.white,
+                                                            color: Colors.white,
                                                             size: 13,
                                                           ),
                                                           const SizedBox(
@@ -507,7 +513,6 @@ class ExploreView extends StatelessWidget {
                                     ),
                                   );
                                 }),
-
                               ],
                             ),
                           )
@@ -538,43 +543,49 @@ class ExploreView extends StatelessWidget {
                               ]
                             : [
                                 ...controller.searchedHashtags.map((tag) {
-                            final title = "#${tag.hashtag}";
-                            return ListTile(
-                              dense: true,
-                              leading: const Icon(CupertinoIcons.number,
-                                  color: Colors.black87, size: 20),
-                              title: Text(
-                                title,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontFamily: "MontserratSemiBold",
-                                ),
-                              ),
-                              onTap: () => Get.to(() => TagPosts(tag: tag.hashtag)),
-                              trailing: const Icon(CupertinoIcons.arrow_turn_up_left,
-                                  color: Colors.black45, size: 18),
-                            );
-                          }),
+                                  final title = "#${tag.hashtag}";
+                                  return ListTile(
+                                    dense: true,
+                                    leading: const Icon(CupertinoIcons.number,
+                                        color: Colors.black87, size: 20),
+                                    title: Text(
+                                      title,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                        fontFamily: "MontserratSemiBold",
+                                      ),
+                                    ),
+                                    onTap: () => Get.to(
+                                        () => TagPosts(tag: tag.hashtag)),
+                                    trailing: const Icon(
+                                        CupertinoIcons.arrow_turn_up_left,
+                                        color: Colors.black45,
+                                        size: 18),
+                                  );
+                                }),
                                 ...controller.searchedTags.map((tag) {
-                            final title = tag.hashtag;
-                            return ListTile(
-                              dense: true,
-                              leading: const Icon(CupertinoIcons.tag,
-                                  color: Colors.black87, size: 20),
-                              title: Text(
-                                title,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontFamily: "MontserratSemiBold",
-                                ),
-                              ),
-                              onTap: () => Get.to(() => TagPosts(tag: tag.hashtag)),
-                              trailing: const Icon(CupertinoIcons.arrow_turn_up_left,
-                                  color: Colors.black45, size: 18),
-                            );
-                          }),
+                                  final title = tag.hashtag;
+                                  return ListTile(
+                                    dense: true,
+                                    leading: const Icon(CupertinoIcons.tag,
+                                        color: Colors.black87, size: 20),
+                                    title: Text(
+                                      title,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                        fontFamily: "MontserratSemiBold",
+                                      ),
+                                    ),
+                                    onTap: () => Get.to(
+                                        () => TagPosts(tag: tag.hashtag)),
+                                    trailing: const Icon(
+                                        CupertinoIcons.arrow_turn_up_left,
+                                        color: Colors.black45,
+                                        size: 18),
+                                  );
+                                }),
                                 ...controller.searchedList.map(
                                   (u) => SearchUserContent(
                                     model: u,

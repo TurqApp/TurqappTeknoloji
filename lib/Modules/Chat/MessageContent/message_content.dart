@@ -1,40 +1,97 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
-import 'package:turqappv2/Core/functions.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/message_content_controller.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:video_player/video_player.dart';
-import '../../../Core/Helpers/clickable_text_content.dart';
 import '../../../Core/Helpers/ImagePreview/image_preview.dart';
-import '../../../Core/redirection_link.dart';
-import '../../../Core/texts.dart';
-import '../../Agenda/FloodListing/flood_listing.dart';
 import '../../Explore/explore_controller.dart';
-import '../../Short/single_short_view.dart';
 
 class MessageContent extends StatelessWidget {
   final String mainID;
   final MessageModel model;
   final bool isLastMessage;
+  final String? dateSeparatorText;
   MessageContent(
       {super.key,
       required this.mainID,
       required this.model,
-      required this.isLastMessage});
+      required this.isLastMessage,
+      this.dateSeparatorText});
   late final MessageContentController controller;
   late final ChatController chatController;
-  final ExploreController? explore =
-      Get.isRegistered<ExploreController>() ? Get.find<ExploreController>() : null;
+  final ExploreController? explore = Get.isRegistered<ExploreController>()
+      ? Get.find<ExploreController>()
+      : null;
+  final ValueNotifier<Offset?> _lastLongPressGlobal =
+      ValueNotifier<Offset?>(null);
+
+  void _captureTapDown(TapDownDetails details) {
+    _lastLongPressGlobal.value = details.globalPosition;
+  }
+
+  Future<void> _openMenuFromLongPressStart(
+      LongPressStartDetails details) async {
+    _lastLongPressGlobal.value = details.globalPosition;
+    await _openMessageLongPressMenu();
+  }
+
+  Future<void> _openImagePreview(int index) async {
+    if (model.imgs.isEmpty) return;
+    Get.to(
+      () => ImagePreview(
+        imgs: model.imgs,
+        startIndex: index.clamp(0, model.imgs.length - 1),
+        enableReplyBar: true,
+        onSendReply: (text, mediaUrl) async {
+          await chatController.sendExternalReplyText(
+            text,
+            replyText: "Fotoğraf",
+            replyType: "media",
+            replyTarget: mediaUrl,
+          );
+        },
+        replyPreviewLabel: "Fotoğraf",
+      ),
+    );
+  }
+
+  Future<void> _openVideoPreview() async {
+    if (model.video.isEmpty) return;
+    Get.to(
+      () => _FullScreenVideoPlayer(
+        videoUrl: model.video,
+        enableReplyBar: true,
+        onSendReply: (text, mediaUrl) async {
+          await chatController.sendExternalReplyText(
+            text,
+            replyText: "Video",
+            replyType: "video",
+            replyTarget: mediaUrl,
+          );
+        },
+        replyPreviewLabel: "Video",
+      ),
+    );
+  }
+
+  Future<void> _openMessageLongPressMenu() async {
+    final fallback = Offset(Get.width - 40, Get.height * 0.35);
+    final pos = _lastLongPressGlobal.value ?? fallback;
+    debugPrint("message_long_press -> ${pos.dx}, ${pos.dy}");
+    await _openQuickReactionMenuAt(pos);
+  }
+
   @override
   Widget build(BuildContext context) {
     controller = Get.put(MessageContentController(model: model, mainID: mainID),
@@ -48,6 +105,28 @@ class MessageContent extends StatelessWidget {
                 ? MainAxisAlignment.end
                 : MainAxisAlignment.start,
         children: [
+          if (dateSeparatorText != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    dateSeparatorText!,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 12,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (model.lat != 0) locationBar(),
           if (model.video.isNotEmpty) videoBubble(),
           if (model.imgs.isNotEmpty && model.video.isEmpty) imageList(),
@@ -64,39 +143,47 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget messageBubble() {
+    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
+      mainAxisAlignment:
+          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid)
-          SizedBox(width: 100),
         Flexible(
           child: Column(
             crossAxisAlignment:
-                model.userID == FirebaseAuth.instance.currentUser!.uid
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
+                isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               GestureDetector(
-                onTap: () {
-                  if (model.lat != 0) {
-                    controller.showMapsSheet();
-                  }
-                },
+                behavior: HitTestBehavior.opaque,
+                onTap: () {},
+                onTapDown: _captureTapDown,
                 onDoubleTap: () {
                   controller.likeImage();
                 },
-                onLongPress: () {
-                  _openMessageActions();
-                },
+                onLongPressStart: _openMenuFromLongPressStart,
                 child: Container(
+                  constraints: BoxConstraints(
+                    maxWidth: Get.width * 0.74,
+                  ),
                   decoration: BoxDecoration(
-                    color:
-                        model.userID == FirebaseAuth.instance.currentUser!.uid
-                            ? Colors.blueAccent
-                            : const Color(0xFFF2F2F4),
-                    borderRadius: BorderRadius.all(Radius.circular(18)),
+                    color: isMine ? const Color(0xFFDCF8C6) : Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(16),
+                      topRight: const Radius.circular(16),
+                      bottomLeft: Radius.circular(isMine ? 16 : 4),
+                      bottomRight: Radius.circular(isMine ? 4 : 16),
+                    ),
+                    border: Border.all(
+                      color:
+                          isMine ? Colors.transparent : const Color(0xFFEAEAEA),
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      )
+                    ],
                   ),
                   child: Stack(
                     alignment: Alignment.topRight,
@@ -109,41 +196,14 @@ class MessageContent extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (model.replyText.isNotEmpty)
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 6),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(25),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  model.replyText,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: model.userID ==
-                                            FirebaseAuth
-                                                .instance.currentUser!.uid
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: 12,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
-                              ),
+                            if (model.replyText.isNotEmpty) _buildReplyCard(),
                             if (model.isForwarded)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 3),
                                 child: Text(
                                   "İletildi",
                                   style: TextStyle(
-                                    color: model.userID ==
-                                            FirebaseAuth
-                                                .instance.currentUser!.uid
-                                        ? Colors.white70
-                                        : Colors.black54,
+                                    color: Colors.black54,
                                     fontSize: 11,
                                     fontFamily: "MontserratMedium",
                                   ),
@@ -154,10 +214,7 @@ class MessageContent extends StatelessWidget {
                                   ? "Mesaj geri alındı"
                                   : model.metin,
                               style: TextStyle(
-                                color: model.userID ==
-                                        FirebaseAuth.instance.currentUser!.uid
-                                    ? Colors.white
-                                    : Colors.black,
+                                color: Colors.black,
                                 fontSize: 15,
                                 fontFamily: "MontserratMedium",
                                 decoration: model.lat != 0
@@ -173,16 +230,36 @@ class MessageContent extends StatelessWidget {
                                 child: Text(
                                   "düzenlendi",
                                   style: TextStyle(
-                                    color: model.userID ==
-                                            FirebaseAuth
-                                                .instance.currentUser!.uid
-                                        ? Colors.white70
-                                        : Colors.black54,
+                                    color: Colors.black54,
                                     fontSize: 10,
                                     fontFamily: "MontserratMedium",
                                   ),
                                 ),
                               ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (isMine) ...[
+                                    _buildStatusTicks(
+                                      readColor: Colors.black54,
+                                      defaultColor: Colors.black54,
+                                      size: 9,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
+                                    _formatHourMinute(model.timeStamp),
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 10,
+                                      fontFamily: "Montserrat",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -221,8 +298,6 @@ class MessageContent extends StatelessWidget {
             ],
           ),
         ),
-        if (model.userID != FirebaseAuth.instance.currentUser!.uid)
-          SizedBox(width: 100),
       ],
     );
   }
@@ -316,15 +391,10 @@ class MessageContent extends StatelessWidget {
                           ),
                         ),
                       GestureDetector(
-                        onTap: () {
-                          if (controller.showAllImages.value == false &&
-                              model.imgs.length > 1) {
-                            controller.showAllImages.value = true;
-                          }
-                        },
-                        onLongPress: () {
-                          _openMessageActions();
-                        },
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _openImagePreview(0),
+                        onTapDown: _captureTapDown,
+                        onLongPressStart: _openMenuFromLongPressStart,
                         onDoubleTap: () {
                           controller.likeImage();
                         },
@@ -370,8 +440,8 @@ class MessageContent extends StatelessWidget {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.1), // Gölge rengi
+                                        color: Colors.black.withValues(
+                                            alpha: 0.1), // Gölge rengi
                                         spreadRadius: 1, // Yayılma
                                         blurRadius: 6, // Yumuşaklık
                                         offset: Offset(0, 2), // Dikey konum
@@ -384,7 +454,12 @@ class MessageContent extends StatelessWidget {
                                     size: 15,
                                   ),
                                 ),
-                              )
+                              ),
+                            Positioned(
+                              right: 8,
+                              bottom: 8,
+                              child: _mediaTimeOverlay(),
+                            ),
                           ],
                         ),
                       )
@@ -403,15 +478,10 @@ class MessageContent extends StatelessWidget {
                               : CrossAxisAlignment.start,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            Get.to(() => ImagePreview(
-                                  imgs: model.imgs,
-                                  startIndex: index,
-                                ));
-                          },
-                          onLongPress: () {
-                            _openMessageActions();
-                          },
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _openImagePreview(index),
+                          onTapDown: _captureTapDown,
+                          onLongPressStart: _openMenuFromLongPressStart,
                           child: Padding(
                             padding: EdgeInsets.only(bottom: isLast ? 0 : 15),
                             child: Container(
@@ -486,12 +556,10 @@ class MessageContent extends StatelessWidget {
                 : MainAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () {
-              controller.showMapsSheet();
-            },
-            onLongPress: () {
-              _openMessageActions();
-            },
+            behavior: HitTestBehavior.opaque,
+            onTap: controller.showMapsSheet,
+            onTapDown: _captureTapDown,
+            onLongPressStart: _openMenuFromLongPressStart,
             onDoubleTap: () {
               controller.likeImage();
             },
@@ -545,12 +613,10 @@ class MessageContent extends StatelessWidget {
           : MainAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: () {
-            controller.addContact();
-          },
-          onLongPress: () {
-            _openMessageActions();
-          },
+          behavior: HitTestBehavior.opaque,
+          onTap: controller.addContact,
+          onTapDown: _captureTapDown,
+          onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
             decoration: BoxDecoration(
                 color: Colors.white,
@@ -626,12 +692,10 @@ class MessageContent extends StatelessWidget {
           : MainAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: () {
-            Get.to(() => _FullScreenVideoPlayer(videoUrl: model.video));
-          },
-          onLongPress: () {
-            _openMessageActions();
-          },
+          behavior: HitTestBehavior.opaque,
+          onTap: _openVideoPreview,
+          onTapDown: _captureTapDown,
+          onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
             width: 220,
             height: 220,
@@ -674,6 +738,11 @@ class MessageContent extends StatelessWidget {
                       size: 25,
                     ),
                   ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: _mediaTimeOverlay(),
+                  ),
                 ],
               ),
             ),
@@ -690,9 +759,9 @@ class MessageContent extends StatelessWidget {
           : MainAxisAlignment.start,
       children: [
         GestureDetector(
-          onLongPress: () {
-            _openMessageActions();
-          },
+          behavior: HitTestBehavior.opaque,
+          onTapDown: _captureTapDown,
+          onLongPressStart: _openMenuFromLongPressStart,
           child: _AudioPlayerWidget(
             audioUrl: model.sesliMesaj,
             durationMs: model.audioDurationMs,
@@ -704,6 +773,12 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget timeBar() {
+    if (model.video.isNotEmpty ||
+        model.imgs.isNotEmpty ||
+        model.metin.isNotEmpty ||
+        model.isUnsent) {
+      return const SizedBox.shrink();
+    }
     return Column(
       children: [
         if (model.reactions.isNotEmpty)
@@ -711,10 +786,9 @@ class MessageContent extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: _reactionBadges(),
           ),
-        SizedBox(height: model.imgs.length > 1 ? 10 : 7),
+        const SizedBox(height: 4),
         Padding(
-          padding:
-              EdgeInsets.symmetric(horizontal: model.imgs.length > 1 ? 12 : 7),
+          padding: const EdgeInsets.symmetric(horizontal: 7),
           child: Row(
             mainAxisAlignment:
                 model.userID == FirebaseAuth.instance.currentUser!.uid
@@ -724,9 +798,13 @@ class MessageContent extends StatelessWidget {
               if (model.userID == FirebaseAuth.instance.currentUser!.uid)
                 Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _buildStatusTicks()),
+                    child: _buildStatusTicks(
+                      readColor: Colors.black54,
+                      defaultColor: Colors.black54,
+                      size: 9,
+                    )),
               Text(
-                timeAgoMetin(model.timeStamp),
+                _formatHourMinute(model.timeStamp),
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 10,
@@ -740,14 +818,53 @@ class MessageContent extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusTicks() {
+  String _formatHourMinute(num ts) {
+    final dt = DateTime.fromMillisecondsSinceEpoch(ts.toInt());
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  Widget _mediaTimeOverlay() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (model.userID == FirebaseAuth.instance.currentUser!.uid) ...[
+            _buildStatusTicks(),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            _formatHourMinute(model.timeStamp),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusTicks({
+    Color? readColor,
+    Color? defaultColor,
+    double size = 10,
+  }) {
     // New status field takes priority, fallback to legacy isRead
     final status = model.status;
     final bool isRead = status == "read" || (status.isEmpty && model.isRead);
     final bool isDelivered = status == "delivered";
     final bool showDoubleTick = isRead || isDelivered;
 
-    final Color tickColor = isRead ? Colors.blue : Colors.grey;
+    final Color tickColor =
+        isRead ? (readColor ?? Colors.blue) : (defaultColor ?? Colors.grey);
 
     return Row(
       children: [
@@ -757,13 +874,13 @@ class MessageContent extends StatelessWidget {
             child: Icon(
               CupertinoIcons.checkmark,
               color: tickColor,
-              size: 10,
+              size: size,
             ),
           ),
         Icon(
           CupertinoIcons.checkmark,
           color: tickColor,
-          size: 10,
+          size: size,
         ),
       ],
     );
@@ -803,6 +920,174 @@ class MessageContent extends StatelessWidget {
     );
   }
 
+  String _replySenderLabel() {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    if (model.replySenderId.trim().isNotEmpty &&
+        model.replySenderId.trim() == currentUid) {
+      return "Siz";
+    }
+    final peer = chatController.nickname.value.trim();
+    return peer.isEmpty ? "TurqApp" : peer;
+  }
+
+  String _replyPreviewText() {
+    final text = model.replyText.trim();
+    if (text.isNotEmpty) return text;
+    switch (model.replyType.trim().toLowerCase()) {
+      case "media":
+        return "Fotoğraf";
+      case "video":
+        return "Video";
+      case "audio":
+        return "Ses";
+      case "location":
+        return "Konum";
+      case "post":
+        return "Gönderi";
+      default:
+        return "";
+    }
+  }
+
+  Widget _buildReplyCard() {
+    final target = model.replyMessageId.trim();
+    final type = model.replyType.trim().toLowerCase();
+    final preview = _replyPreviewText();
+    final canOpenMedia =
+        (type == "media" || type == "video") && target.isNotEmpty;
+
+    return GestureDetector(
+      onTap: canOpenMedia ? _openReplyTargetMedia : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 3,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A73E8),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _replySenderLabel(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF0D5AA7),
+                      fontSize: 12,
+                      fontFamily: "MontserratBold",
+                    ),
+                  ),
+                  if (preview.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        preview,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 12,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (target.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              _buildReplyTrailing(type, target),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReplyTrailing(String type, String target) {
+    Widget iconTile(IconData icon) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 16,
+          color: Colors.black54,
+        ),
+      );
+    }
+
+    if (type == "media") {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: CachedNetworkImage(
+            imageUrl: target,
+            fit: BoxFit.cover,
+            errorWidget: (_, __, ___) => iconTile(CupertinoIcons.photo),
+          ),
+        ),
+      );
+    }
+    if (type == "video") {
+      return iconTile(CupertinoIcons.play_fill);
+    }
+    if (type == "location") {
+      return iconTile(CupertinoIcons.location_solid);
+    }
+    if (type == "audio") {
+      return iconTile(CupertinoIcons.mic_fill);
+    }
+    if (type == "post") {
+      return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        future:
+            FirebaseFirestore.instance.collection("Posts").doc(target).get(),
+        builder: (context, snapshot) {
+          final data = snapshot.data?.data();
+          final imgList = List<String>.from(data?["img"] ?? const []);
+          final thumb = imgList.isNotEmpty ? imgList.first : "";
+          if (thumb.isNotEmpty) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: CachedNetworkImage(
+                  imageUrl: thumb,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => iconTile(CupertinoIcons.doc),
+                ),
+              ),
+            );
+          }
+          return iconTile(CupertinoIcons.doc);
+        },
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   void _openReactionPicker() {
     const emojis = ["👍", "❤️", "😂", "😮", "😢", "😡"];
     Get.bottomSheet(
@@ -829,69 +1114,203 @@ class MessageContent extends StatelessWidget {
     );
   }
 
-  void _openMessageActions() {
-    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
-    Get.bottomSheet(
-      SafeArea(
-        child: Container(
-          color: Colors.white,
-          child: Wrap(
+  Future<void> _openQuickReactionMenuAt(Offset globalPosition) async {
+    const quickEmojis = ["👍", "❤️", "😂", "😮", "😢", "🙏", "👏"];
+    final popupContext =
+        Get.overlayContext ?? Get.key.currentContext ?? Get.context;
+    if (popupContext == null) return;
+    final screenSize = MediaQuery.of(popupContext).size;
+
+    const emojiWidth = 234.0;
+    const emojiHeight = 46.0;
+    const menuWidth = 214.0;
+    const menuHeight = 334.0;
+
+    final double left = (globalPosition.dx - 16)
+        .clamp(12.0, screenSize.width - emojiWidth - 12);
+    final double menuLeft =
+        (globalPosition.dx - 16).clamp(12.0, screenSize.width - menuWidth - 12);
+
+    double top = globalPosition.dy - emojiHeight - 8;
+    double bottom = top + emojiHeight + 8 + menuHeight;
+    if (bottom > screenSize.height - 16) {
+      top -= (bottom - (screenSize.height - 16));
+    }
+    if (top < 20) {
+      top = 20;
+    }
+    debugPrint(
+      "chat_menu_pos tap=(${globalPosition.dx.toStringAsFixed(1)},${globalPosition.dy.toStringAsFixed(1)}) "
+      "emojiLeft=${left.toStringAsFixed(1)} menuLeft=${menuLeft.toStringAsFixed(1)} top=${top.toStringAsFixed(1)}",
+    );
+
+    await showGeneralDialog(
+      context: popupContext,
+      barrierDismissible: true,
+      barrierLabel: "close",
+      barrierColor: Colors.black.withValues(alpha: 0.18),
+      transitionDuration: const Duration(milliseconds: 110),
+      pageBuilder: (context, _, __) {
+        return Material(
+          type: MaterialType.transparency,
+          child: Stack(
             children: [
-              ListTile(
-                leading: const Icon(CupertinoIcons.arrowshape_turn_up_left),
-                title: const Text("Yanıtla"),
-                onTap: () {
-                  Get.back();
-                  chatController.startReply(model);
-                },
-              ),
-              ListTile(
-                leading: const Icon(CupertinoIcons.smiley),
-                title: const Text("Tepki Ekle"),
-                subtitle: const Text("👍 ❤️ 😂 😮 😢 😡"),
-                onTap: () {
-                  Get.back();
-                  _openReactionPicker();
-                },
-              ),
-              ListTile(
-                leading: const Icon(CupertinoIcons.arrowshape_turn_up_right),
-                title: const Text("İlet"),
-                onTap: () {
-                  Get.back();
-                  chatController.openForwardPicker(model);
-                },
-              ),
-              if (isMine && !model.isUnsent && model.metin.trim().isNotEmpty)
-                ListTile(
-                  leading: const Icon(CupertinoIcons.pencil),
-                  title: const Text("Düzenle"),
-                  onTap: () {
-                    Get.back();
-                    chatController.startEdit(model);
-                  },
+              Positioned(
+                left: left,
+                top: top,
+                child: Container(
+                  width: emojiWidth,
+                  height: emojiHeight,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        ...quickEmojis.map(
+                          (emoji) => GestureDetector(
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await chatController.toggleReaction(model, emoji);
+                            },
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
+                              child: Text(
+                                emoji,
+                                style: const TextStyle(fontSize: 22),
+                              ),
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _openReactionPicker();
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 4),
+                            child: Icon(
+                              CupertinoIcons.plus,
+                              color: Colors.black54,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              if (isMine && !model.isUnsent)
-                ListTile(
-                  leading: const Icon(CupertinoIcons.delete, color: Colors.red),
-                  title: const Text("Herkesten Geri Al",
-                      style: TextStyle(color: Colors.red)),
-                  onTap: () async {
-                    Get.back();
-                    await chatController.unsendMessage(model);
-                  },
+              ),
+              Positioned(
+                left: menuLeft,
+                top: top + emojiHeight + 8,
+                child: Container(
+                  width: menuWidth,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7F7),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x22000000),
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _menuAction(
+                        icon: CupertinoIcons.arrowshape_turn_up_left,
+                        title: "Yanıtla",
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          chatController.startReply(model);
+                        },
+                      ),
+                      _menuAction(
+                        icon: CupertinoIcons.doc_on_doc,
+                        title: "Kopyala",
+                        onTap: () {
+                          final text = model.metin.trim();
+                          final copyValue = text.isNotEmpty
+                              ? text
+                              : (model.video.isNotEmpty
+                                  ? model.video
+                                  : (model.imgs.isNotEmpty
+                                      ? model.imgs.first
+                                      : ""));
+                          if (copyValue.isNotEmpty) {
+                            Clipboard.setData(ClipboardData(text: copyValue));
+                          }
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      _menuAction(
+                        icon: CupertinoIcons.star,
+                        title: "Yıldız Ekle",
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          AppSnackbar("Bilgi", "Yakında eklenecek");
+                        },
+                      ),
+                      _menuAction(
+                        icon: CupertinoIcons.trash,
+                        title: "Sil",
+                        isDestructive: true,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          controller.deleteMessage();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              if (isMine)
-                ListTile(
-                  leading: const Icon(CupertinoIcons.trash, color: Colors.red),
-                  title: const Text("Sil", style: TextStyle(color: Colors.red)),
-                  onTap: () {
-                    Get.back();
-                    controller.deleteMessage();
-                  },
-                ),
+              ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _menuAction({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? Colors.red : Colors.black87;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                color: color,
+                fontSize: 15,
+                fontFamily: "MontserratMedium",
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -899,214 +1318,155 @@ class MessageContent extends StatelessWidget {
 
   Widget postBody() {
     final post = controller.postModel.value;
-
-    // 1️⃣ controller null veya verisi henüz yüklenmemişse boş container döndür
     if (post == null) {
       return const SizedBox.shrink();
     }
+    final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
+    final hasImage = post.img.isNotEmpty;
+    final hasVideo = post.hasPlayableVideo || post.thumbnail.isNotEmpty;
+    final previewUrl = hasImage
+        ? post.img.first
+        : (post.thumbnail.isNotEmpty ? post.thumbnail : "");
+    final hasMedia = previewUrl.isNotEmpty || hasVideo;
+    final senderNick = controller.nickname.value;
 
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
+      mainAxisAlignment:
+          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         GestureDetector(
-          onLongPress: () {
-            _openMessageActions();
-          },
+          behavior: HitTestBehavior.opaque,
+          onTap: () {},
+          onTapDown: _captureTapDown,
+          onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
-            width: 250,
+            width: 148,
             decoration: BoxDecoration(
-              color: Colors.grey.withAlpha(20),
-              borderRadius: const BorderRadius.all(Radius.circular(12)),
+              color: const Color(0xFFF7F7F7),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E5E5)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Üst profil satırı
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (controller.postModel.value!.userID !=
-                              FirebaseAuth.instance.currentUser!.uid) {
-                            Get.to(() => SocialProfile(
-                                userID: controller.postModel.value!.userID));
-                          }
-                        },
-                        child: ClipOval(
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: CachedNetworkImage(
-                              imageUrl: controller.postPfImage.value,
-                              fit: BoxFit.cover,
-                            ),
+                if (hasMedia)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(14),
+                      topRight: Radius.circular(14),
+                    ),
+                    child: SizedBox(
+                      height: 208,
+                      width: 148,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: previewUrl,
+                            fit: BoxFit.cover,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                if (controller.postModel.value!.userID !=
-                                    FirebaseAuth.instance.currentUser!.uid) {
-                                  Get.to(() => SocialProfile(
-                                      userID:
-                                          controller.postModel.value!.userID));
-                                }
-                              },
-                              child: Text(
-                                controller.postNickname.value,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontFamily: "MontserratBold",
+                          if (hasVideo)
+                            Center(
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.play_fill,
+                                  color: Colors.white,
+                                  size: 16,
                                 ),
                               ),
                             ),
-                            if (post.userID.isNotEmpty)
-                              RozetContent(size: 12, userID: post.userID),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Metin
-                if (post.metin.isNotEmpty)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: 8, left: 8, right: 8),
-                    child: ClickableTextContent(
-                      fontSize: 14,
-                      text: post.metin,
-                      onUrlTap: (v) async {
-                        final String uniqueKey =
-                            DateTime.now().millisecondsSinceEpoch.toString();
-                        await RedirectionLink()
-                            .goToLink(v, uniqueKey: uniqueKey);
-                      },
-                      onPlainTextTap: (v) {
-                        final pmodel = controller.postModel.value!;
-                        if (pmodel.floodCount >= 2) {
-                          Get.to(() => FloodListing(mainModel: pmodel));
-                        } else if (pmodel.floodCount <= 1 &&
-                            pmodel.img.isNotEmpty) {
-                          Get.to(() => PhotoShorts(
-                              startModel: pmodel,
-                              fetchedList: explore?.explorePhotos ?? []));
-                        } else if (pmodel.floodCount <= 1 &&
-                            pmodel.hasPlayableVideo) {
-                          Get.to(() => SingleShortView(
-                                startModel: pmodel,
-                                startList: (explore?.exploreVideos ?? [])..shuffle(),
-                              ))?.then((_) {});
-                        }
-                      },
-                    ),
-                  ),
-
-                // Görsel
-                if (post.img.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      final pmodel = controller.postModel.value!;
-                      if (pmodel.floodCount >= 2) {
-                        Get.to(() => FloodListing(mainModel: pmodel));
-                      } else if (pmodel.floodCount <= 1) {
-                        Get.to(() => PhotoShorts(
-                            startModel: pmodel,
-                            fetchedList: explore?.explorePhotos ?? []));
-                      }
-                    },
-                    child: AspectRatio(
-                      aspectRatio: post.aspectRatio.toDouble(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withAlpha(50)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.bottomLeft,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: buildImageGrid(post.img),
-                            ),
-                            if (post.floodCount > 1) Texts.colorfulFlood,
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   )
-                // Video (thumbnail gösterimi)
-                else if (post.hasPlayableVideo)
-                  GestureDetector(
-                    onTap: () {
-                      final pmodel = controller.postModel.value!;
-                      if (pmodel.floodCount >= 2) {
-                        Get.to(() => FloodListing(mainModel: pmodel));
-                      } else if (pmodel.floodCount <= 1) {
-                        Get.to(() => SingleShortView(
-                              startModel: pmodel,
-                              startList: (explore?.exploreVideos ?? [])..shuffle(),
-                            ))?.then((_) {});
-                      }
-                    },
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withAlpha(50)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.bottomLeft,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  CachedNetworkImage(
-                                    imageUrl: post.thumbnail,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                  ),
-                                  Container(
-                                    width: 35,
-                                    height: 35,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.black.withAlpha(100),
-                                    ),
-                                    child: const Icon(
-                                      CupertinoIcons.play_fill,
-                                      color: Colors.white,
-                                      size: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (post.floodCount > 1) Texts.colorfulFlood,
-                          ],
-                        ),
+                else
+                  Container(
+                    height: 90,
+                    width: 148,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(14),
+                        topRight: Radius.circular(14),
                       ),
+                      color: Color(0xFFF0F0F0),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      CupertinoIcons.photo,
+                      color: Colors.black54,
                     ),
                   ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isMine && senderNick.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            "@$senderNick'in gönderisini gönderdi",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 10,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          ),
+                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              controller.postNickname.value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 11,
+                                fontFamily: "MontserratBold",
+                              ),
+                            ),
+                          ),
+                          if (post.userID.isNotEmpty)
+                            RozetContent(size: 11, userID: post.userID),
+                        ],
+                      ),
+                      if (post.metin.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            post.metin,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 10,
+                              fontFamily: "Montserrat",
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        )
+        ),
       ],
     );
   }
@@ -1124,6 +1484,69 @@ class MessageContent extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: _buildImageContent(images),
     );
+  }
+
+  void _openReplyTargetMedia() {
+    final target = model.replyMessageId.trim();
+    if (target.isEmpty) return;
+
+    if (!target.startsWith("http")) {
+      chatController.jumpToMessageByRawId(target);
+      return;
+    }
+
+    if (model.replyType == "video") {
+      Get.to(
+        () => _FullScreenVideoPlayer(
+          videoUrl: target,
+          enableReplyBar: true,
+          onSendReply: (text, mediaUrl) async {
+            await chatController.sendExternalReplyText(
+              text,
+              replyText: "Video",
+              replyType: "video",
+              replyTarget: mediaUrl,
+            );
+          },
+          replyPreviewLabel: "Video",
+        ),
+      );
+      return;
+    }
+
+    if (model.replyType == "media") {
+      final images = <String>[];
+      final seen = <String>{};
+      for (final msg in chatController.messages) {
+        if (msg.video.isNotEmpty || msg.imgs.isEmpty) continue;
+        for (final url in msg.imgs) {
+          final clean = url.trim();
+          if (clean.isEmpty || seen.contains(clean)) continue;
+          seen.add(clean);
+          images.add(clean);
+        }
+      }
+      if (images.isEmpty) return;
+      var startIndex = images.indexOf(target);
+      if (startIndex < 0) {
+        images.insert(0, target);
+        startIndex = 0;
+      }
+      Get.to(() => ImagePreview(
+            imgs: images,
+            startIndex: startIndex,
+            enableReplyBar: true,
+            onSendReply: (text, mediaUrl) async {
+              await chatController.sendExternalReplyText(
+                text,
+                replyText: "Fotoğraf",
+                replyType: "media",
+                replyTarget: mediaUrl,
+              );
+            },
+            replyPreviewLabel: "Fotoğraf",
+          ));
+    }
   }
 
   Widget _buildImageContent(List<String> images) {
@@ -1270,7 +1693,16 @@ class MessageContent extends StatelessWidget {
 
 class _FullScreenVideoPlayer extends StatefulWidget {
   final String videoUrl;
-  const _FullScreenVideoPlayer({required this.videoUrl});
+  final bool enableReplyBar;
+  final Future<void> Function(String text, String mediaUrl)? onSendReply;
+  final String replyPreviewLabel;
+
+  const _FullScreenVideoPlayer({
+    required this.videoUrl,
+    this.enableReplyBar = false,
+    this.onSendReply,
+    this.replyPreviewLabel = "Video",
+  });
 
   @override
   State<_FullScreenVideoPlayer> createState() => _FullScreenVideoPlayerState();
@@ -1279,6 +1711,10 @@ class _FullScreenVideoPlayer extends StatefulWidget {
 class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   late VideoPlayerController _controller;
   bool _initialized = false;
+  final TextEditingController _replyController = TextEditingController();
+  final FocusNode _replyFocus = FocusNode();
+  bool _replyOpen = false;
+  bool _sending = false;
 
   @override
   void initState() {
@@ -1292,8 +1728,68 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
 
   @override
   void dispose() {
+    _replyController.dispose();
+    _replyFocus.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendReply() async {
+    final onSend = widget.onSendReply;
+    if (onSend == null || _sending) return;
+    final text = _replyController.text.trim();
+    if (text.isEmpty) return;
+    setState(() => _sending = true);
+    try {
+      await onSend(text, widget.videoUrl);
+      _replyController.clear();
+      _replyFocus.unfocus();
+      if (mounted) {
+        setState(() => _replyOpen = false);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+      }
+    }
+  }
+
+  Widget _buildCollapsedReplyButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() => _replyOpen = true);
+        Future.delayed(
+          const Duration(milliseconds: 70),
+          () => _replyFocus.requestFocus(),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.reply_thick_solid,
+              color: Colors.black,
+              size: 14,
+            ),
+            SizedBox(width: 5),
+            Text(
+              "Yanıtlayın",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 12,
+                fontFamily: "MontserratMedium",
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1304,33 +1800,150 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(
-        child: _initialized
-            ? AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _controller.value.isPlaying
-                          ? _controller.pause()
-                          : _controller.play();
-                    });
-                  },
-                  child: Stack(
-                    alignment: Alignment.center,
+      body: Stack(
+        children: [
+          Center(
+            child: _initialized
+                ? AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _controller.value.isPlaying
+                              ? _controller.pause()
+                              : _controller.play();
+                        });
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          VideoPlayer(_controller),
+                          if (!_controller.value.isPlaying)
+                            const Icon(
+                              CupertinoIcons.play_fill,
+                              color: Colors.white,
+                              size: 50,
+                            ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const CupertinoActivityIndicator(color: Colors.white),
+          ),
+          if (widget.enableReplyBar)
+            if (_replyOpen)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 10,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      VideoPlayer(_controller),
-                      if (!_controller.value.isPlaying)
-                        const Icon(
-                          CupertinoIcons.play_fill,
-                          color: Colors.white,
-                          size: 50,
+                      Row(
+                        children: [
+                          Container(
+                            width: 3,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF18A999),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              "Siz",
+                              style: TextStyle(
+                                color: Color(0xFF18A999),
+                                fontSize: 14,
+                                fontFamily: "MontserratSemiBold",
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 30,
+                            height: 30,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.videocam_fill,
+                              color: Colors.black54,
+                              size: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 11, top: 2),
+                        child: Row(
+                          children: [
+                            Text(
+                              widget.replyPreviewLabel,
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              focusNode: _replyFocus,
+                              controller: _replyController,
+                              textCapitalization: TextCapitalization.sentences,
+                              minLines: 1,
+                              maxLines: 3,
+                              decoration: const InputDecoration(
+                                hintText: "Mesaj yaz",
+                                isDense: true,
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          if (_sending)
+                            const CupertinoActivityIndicator(
+                              color: Colors.black,
+                            )
+                          else
+                            IconButton(
+                              onPressed: _sendReply,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 34, minHeight: 34),
+                              icon: const Icon(
+                                CupertinoIcons.paperplane_fill,
+                                color: Colors.black,
+                                size: 18,
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               )
-            : const CupertinoActivityIndicator(color: Colors.white),
+            else
+              Positioned(
+                right: 12,
+                bottom: 18,
+                child: _buildCollapsedReplyButton(),
+              ),
+        ],
       ),
     );
   }
@@ -1408,9 +2021,7 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
               }
             },
             child: Icon(
-              _isPlaying
-                  ? CupertinoIcons.pause_fill
-                  : CupertinoIcons.play_fill,
+              _isPlaying ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
               color: widget.isMine ? Colors.white : Colors.black,
               size: 24,
             ),

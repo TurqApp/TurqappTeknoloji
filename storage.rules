@@ -55,6 +55,25 @@ service firebase.storage {
                    && request.resource.size < 25 * 1024 * 1024;
     }
 
+    // ChatAssets medya (fotoğraf, video, ses)
+    match /ChatAssets/{chatId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+
+    // Chat HLS segments - public read for CDN
+    match /ChatAssets/{chatId}/messages/{msgId}/hls/{allPaths=**} {
+      allow read;
+      allow write: if false; // Cloud Function only
+    }
+
+    // Story HLS segments - public read for CDN
+    match /stories/{uid}/{storyId}/hls/{allPaths=**} {
+      allow read;
+      allow write: if false; // Cloud Function only
+    }
+
     // Public assets (logo, default avatar, etc.)
     match /public/{allPaths=**} {
       allow read;

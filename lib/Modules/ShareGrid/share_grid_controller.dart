@@ -40,10 +40,11 @@ class ShareGridController extends GetxController {
             .doc(item.id)
             .get()
             .then((doc) {
-          String nickname = doc.get("nickname");
-          String pfImage = doc.get("pfImage");
-          String firstName = doc.get("firstName");
-          String lastName = doc.get("lastName");
+          final data = doc.data() ?? <String, dynamic>{};
+          final nickname = (data["nickname"] ?? "").toString();
+          final pfImage = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
+          final firstName = (data["firstName"] ?? "").toString();
+          final lastName = (data["lastName"] ?? "").toString();
 
           followings.add(OgrenciModel(
               userID: item.id,
@@ -57,63 +58,71 @@ class ShareGridController extends GetxController {
   }
 
   Future<void> sendIt() async {
-    final userID = selectedUser.value!.userID;
+    final selected = selectedUser.value;
+    if (selected == null) {
+      AppSnackbar("Uyarı", "Önce bir kullanıcı seç");
+      return;
+    }
+    final userID = selected.userID;
     final sohbet = chatListingController.list.firstWhereOrNull(
       (val) => val.userID == userID,
     );
     final currentUID = FirebaseAuth.instance.currentUser!.uid;
     final chatId = sohbet?.chatID ?? buildConversationId(currentUID, userID);
 
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatId)
-        .set({
-      "participants": [currentUID, userID],
-      "lastMessage": "Gönderi",
-      "lastMessageAt": FieldValue.serverTimestamp(),
-      "lastSenderId": currentUID,
-      "unread.$currentUID": 0,
-      "unread.$userID": FieldValue.increment(1),
-    }, SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatId)
+          .set({
+        "participants": [currentUID, userID],
+        "lastMessage": "Gönderi",
+        "lastMessageAt": FieldValue.serverTimestamp(),
+        "lastSenderId": currentUID,
+        "unread.$currentUID": 0,
+        "unread.$userID": FieldValue.increment(1),
+      }, SetOptions(merge: true));
 
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatId)
-        .collection("messages")
-        .add({
-      "senderId": currentUID,
-      "text": "",
-      "createdAt": FieldValue.serverTimestamp(),
-      "seenBy": [currentUID],
-      "type": "post",
-      "mediaUrls": [],
-      "likes": <String>[],
-      "isDeleted": false,
-      "isEdited": false,
-      "audioUrl": "",
-      "postRef": {
-        "postId": postID,
-        "postType": postType,
-        "previewText": "",
-        "previewImageUrl": "",
-      }
-    });
+      await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatId)
+          .collection("messages")
+          .add({
+        "senderId": currentUID,
+        "text": "",
+        "createdAt": FieldValue.serverTimestamp(),
+        "seenBy": [currentUID],
+        "type": "post",
+        "mediaUrls": [],
+        "likes": <String>[],
+        "isDeleted": false,
+        "isEdited": false,
+        "audioUrl": "",
+        "postRef": {
+          "postId": postID,
+          "postType": postType,
+          "previewText": "",
+          "previewImageUrl": "",
+        }
+      });
 
-    if (sohbet != null) {
-      sendMessageForStoryNotUse(
-          sohbetID: sohbet.chatID, postID: postID, postType: postType);
-    } else {
-      FirebaseFirestore.instance.collection("message").doc(chatId).set({
-        "deleted": [],
-        "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "userID1": FirebaseAuth.instance.currentUser!.uid,
-        "userID2": userID
-      }).whenComplete(() {
+      if (sohbet != null) {
+        sendMessageForStoryNotUse(
+            sohbetID: sohbet.chatID, postID: postID, postType: postType);
+      } else {
+        await FirebaseFirestore.instance.collection("message").doc(chatId).set({
+          "deleted": [],
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+          "userID1": FirebaseAuth.instance.currentUser!.uid,
+          "userID2": userID
+        }, SetOptions(merge: true));
         sendMessageForStoryNotUse(
             sohbetID: chatId, postID: postID, postType: postType);
-      });
+      }
+      chatListingController.getList();
+    } catch (e) {
+      AppSnackbar("Hata", "Gönderilemedi: $e");
     }
-    chatListingController.getList();
   }
 
   void sendMessageForStoryNotUse({
@@ -165,9 +174,9 @@ class ShareGridController extends GetxController {
 
       search.text = "";
       searchFocus.value.unfocus();
+      selectedUser.value = null;
       Get.back();
-      AppSnackbar("Gönderildi",
-          "${selectedUser.value!.nickname} kullanıcısına gönderildi");
+      AppSnackbar("Gönderildi", "Gönderi iletildi");
     }
   }
 
