@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import 'package:turqappv2/Core/Services/deep_link_service.dart';
 import '../Agenda/agenda_view.dart';
 import '../Explore/explore_view.dart';
 import '../Profile/MyProfile/profile_view.dart';
@@ -54,6 +55,10 @@ class NavBarView extends StatelessWidget {
     // Short preload sadece bir kez tetiklensin (rebuild spam'i engelle)
     if (Get.isRegistered<ShortController>()) {
       controller.ensureProactiveShortPreloadStarted();
+    }
+
+    if (Get.isRegistered<DeepLinkService>()) {
+      Get.find<DeepLinkService>().start();
     }
   }
 

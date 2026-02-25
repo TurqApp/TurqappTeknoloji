@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Models/message_model.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatListingContentController extends GetxController {
   String userID;
@@ -64,17 +66,51 @@ class ChatListingContentController extends GetxController {
         .collection("conversations")
         .doc(model.chatID)
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
+      final prevUnread = notReadCounter.value;
       if (!snapshot.exists) {
         notReadCounter.value = 0;
+        model.unreadCount = 0;
+        if (Get.isRegistered<ChatListingController>()) {
+          Get.find<ChatListingController>()
+              .updateUnreadLocal(chatId: model.chatID, unreadCount: 0);
+        }
         return;
       }
       final data = snapshot.data() ?? <String, dynamic>{};
       final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
       final rawUnread = unreadMap[currentUID];
-      final unread =
-          rawUnread is int ? rawUnread : int.tryParse("$rawUnread") ?? 0;
+      final serverUnread = rawUnread is num
+          ? rawUnread.toInt()
+          : int.tryParse("$rawUnread") ?? 0;
+      final lastSenderId = (data["lastSenderId"] ?? "").toString();
+      int ts = 0;
+      final lmAt = data["lastMessageAt"];
+      if (lmAt is Timestamp) {
+        ts = lmAt.millisecondsSinceEpoch;
+      } else {
+        final fallbackTs = data["lastMessageAtMs"];
+        ts = fallbackTs is int ? fallbackTs : int.tryParse("$fallbackTs") ?? 0;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final seenTs =
+          prefs.getInt("chat_last_opened_${currentUID}_${model.chatID}") ?? 0;
+      final localUnread =
+          lastSenderId.isNotEmpty && lastSenderId != currentUID && ts > seenTs;
+      final unread = (serverUnread > 0 || localUnread) ? 1 : 0;
+
       notReadCounter.value = unread;
+      model.unreadCount = unread;
+      if (Get.isRegistered<ChatListingController>()) {
+        Get.find<ChatListingController>()
+            .updateUnreadLocal(chatId: model.chatID, unreadCount: unread);
+      }
+
+      // unread değişiminde listeyi anında güncelle
+      if (prevUnread != unread && Get.isRegistered<ChatListingController>()) {
+        Get.find<ChatListingController>()
+            .updateUnreadLocal(chatId: model.chatID, unreadCount: unread);
+      }
     }, onError: (_) {});
   }
 

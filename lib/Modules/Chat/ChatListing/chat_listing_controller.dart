@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:async';
+import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
@@ -17,7 +19,6 @@ class ChatListingController extends GetxController {
   var waiting = false.obs;
   Timer? _searchDebounce;
   Timer? _syncTimer;
-  DateTime? _lastServerSyncAt;
   bool _isRefreshing = false;
 
   NetworkAwarenessService? get _network =>
@@ -26,14 +27,6 @@ class ChatListingController extends GetxController {
           : null;
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
-  bool get _isOnWiFi => _network?.isOnWiFi ?? true;
-
-  Duration get _serverSyncGap {
-    if (_isOffline) return const Duration(days: 1);
-    return _isOnWiFi
-        ? const Duration(seconds: 8)
-        : const Duration(seconds: 15);
-  }
 
   @override
   void onInit() {
@@ -95,11 +88,9 @@ class ChatListingController extends GetxController {
     if (!silent) waiting.value = true;
     try {
       final cacheOnly = _isOffline;
-      final shouldHitServer = !cacheOnly &&
-          (forceServer ||
-          _lastServerSyncAt == null ||
-          DateTime.now().difference(_lastServerSyncAt!) >
-              _serverSyncGap);
+      // Sohbet liste durumunda (okunmadı/koyu) gecikme yaşamamak için
+      // online iken daima server'dan güncel snapshot alınır.
+      final shouldHitServer = !cacheOnly;
 
       final archiveOverrides = await _fetchArchiveOverrides(
         preferCache: !shouldHitServer,
@@ -191,9 +182,6 @@ class ChatListingController extends GetxController {
       } else {
         _onSearchChanged();
       }
-      if (shouldHitServer) {
-        _lastServerSyncAt = DateTime.now();
-      }
     } finally {
       _isRefreshing = false;
       if (!silent) waiting.value = false;
@@ -235,6 +223,7 @@ class ChatListingController extends GetxController {
   }) async {
     final tempList = <ChatListingModel>[];
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final prefs = await SharedPreferences.getInstance();
     final usersRef = FirebaseFirestore.instance.collection("users");
 
     final query = FirebaseFirestore.instance
@@ -266,8 +255,9 @@ class ChatListingController extends GetxController {
       final userData = userDoc.data() ?? {};
       final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
       final rawUnread = unreadMap[uid];
-      final unreadCount =
-          rawUnread is int ? rawUnread : int.tryParse("$rawUnread") ?? 0;
+      final serverUnread = rawUnread is num
+          ? rawUnread.toInt()
+          : int.tryParse("$rawUnread") ?? 0;
       final lastMessageAt = data["lastMessageAt"];
       int ts = 0;
       if (lastMessageAt is Timestamp) {
@@ -276,6 +266,12 @@ class ChatListingController extends GetxController {
         final fallbackTs = data["lastMessageAtMs"];
         ts = fallbackTs is int ? fallbackTs : int.tryParse("$fallbackTs") ?? 0;
       }
+      final lastSenderId = (data["lastSenderId"] ?? "").toString();
+      final seenKey = "chat_last_opened_${uid}_${doc.id}";
+      final seenTs = prefs.getInt(seenKey) ?? 0;
+      final localUnread =
+          lastSenderId.isNotEmpty && lastSenderId != uid && ts > seenTs;
+      final unreadCount = math.max(serverUnread, localUnread ? 1 : 0);
 
       tempList.add(ChatListingModel(
         chatID: doc.id,
@@ -302,6 +298,30 @@ class ChatListingController extends GetxController {
     _syncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       getList(forceServer: false, silent: true);
     });
+  }
+
+  void updateUnreadLocal({
+    required String chatId,
+    required int unreadCount,
+  }) {
+    bool changed = false;
+    for (final item in list) {
+      if (item.chatID == chatId) {
+        if (item.unreadCount != unreadCount) {
+          item.unreadCount = unreadCount;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) return;
+
+    // Rx list observers refresh
+    list.refresh();
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(

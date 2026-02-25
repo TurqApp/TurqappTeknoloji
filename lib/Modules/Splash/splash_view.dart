@@ -42,6 +42,7 @@ import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Services/offline_mode_service.dart';
+import '../../Core/Services/deep_link_service.dart';
 import '../../main.dart';
 
 class SplashView extends StatefulWidget {
@@ -114,7 +115,8 @@ class _SplashViewState extends State<SplashView> {
         unawaited(userService.initialize());
       } else {
         await Future.wait([
-          _handleFirstLaunchAuthCleanup(prefs: prefs).then((v) => isFirstLaunch = v),
+          _handleFirstLaunchAuthCleanup(prefs: prefs)
+              .then((v) => isFirstLaunch = v),
           _checkLockApp(prefs: prefs).then((v) => shouldLockApp = v),
           userService.initialize(), // Cache'den ~10ms, sync arka planda
         ]);
@@ -135,7 +137,8 @@ class _SplashViewState extends State<SplashView> {
       if (loggedIn) {
         if (Platform.isIOS) {
           // iOS'ta açılışı bloklamayalım; veri hazırlığı arka planda sürsün.
-          _minimumStartupPrepared = true; // Çift tetiklemeyi engelle: _backgroundInit tekrar _runCriticalWarmStartLoads çağırmasın
+          _minimumStartupPrepared =
+              true; // Çift tetiklemeyi engelle: _backgroundInit tekrar _runCriticalWarmStartLoads çağırmasın
           unawaited(_prepareSynchronizedStartupBeforeNav(
               isFirstLaunch: isFirstLaunch));
         } else {
@@ -184,8 +187,7 @@ class _SplashViewState extends State<SplashView> {
               ? Duration.zero
               : Duration(milliseconds: isFirstLaunch ? 250 : 600);
           if (criticalDelay == Duration.zero) {
-            unawaited(
-                _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
+            unawaited(_runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch));
           } else {
             Future.delayed(criticalDelay, () {
               unawaited(
@@ -312,6 +314,9 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController());
+    if (!Get.isRegistered<DeepLinkService>()) {
+      Get.put(DeepLinkService(), permanent: true);
+    }
     if (!Get.isRegistered<IndexPoolStore>()) {
       Get.put(IndexPoolStore(), permanent: true);
     }
@@ -354,7 +359,8 @@ class _SplashViewState extends State<SplashView> {
                 .timeout(const Duration(seconds: 3));
             await _ensureMinimumFeedPosts(
               agendaController,
-              minPosts: onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
+              minPosts:
+                  onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
               maxExtraFetch: onWiFi ? 2 : 1,
             );
           } catch (_) {}
@@ -363,8 +369,9 @@ class _SplashViewState extends State<SplashView> {
         (() async {
           try {
             await recommended.ensureLoaded(
-              limit:
-                  onWiFi ? (isFirstLaunch ? 140 : 220) : (isFirstLaunch ? 80 : 120),
+              limit: onWiFi
+                  ? (isFirstLaunch ? 140 : 220)
+                  : (isFirstLaunch ? 80 : 120),
             );
           } catch (_) {}
         })(),
@@ -611,7 +618,8 @@ class _SplashViewState extends State<SplashView> {
   /// This prevents auto-login when user deletes and reinstalls the app.
   /// Firebase Auth persists session in device keychain/keystore even after uninstall,
   /// but SharedPreferences gets cleared. We use this difference to detect fresh installs.
-  Future<bool> _handleFirstLaunchAuthCleanup({required SharedPreferences prefs}) async {
+  Future<bool> _handleFirstLaunchAuthCleanup(
+      {required SharedPreferences prefs}) async {
     try {
       const String firstLaunchKey = 'app_has_launched_before';
 

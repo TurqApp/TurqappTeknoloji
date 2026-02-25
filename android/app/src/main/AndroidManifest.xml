@@ -45,7 +45,7 @@
             android:value="ca-app-pub-4558422035199571~8657893604" /> <!-- AdMob uygulama kimliği -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher_round" />
+            android:resource="@drawable/transparent_splash_icon" />
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
@@ -66,6 +66,29 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="turqapp.com" android:pathPrefix="/p/" />
+                <data android:scheme="https" android:host="turqapp.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="turqapp.com" android:pathPrefix="/u/" />
+                <data android:scheme="https" android:host="www.turqapp.com" android:pathPrefix="/p/" />
+                <data android:scheme="https" android:host="www.turqapp.com" android:pathPrefix="/s/" />
+                <data android:scheme="https" android:host="www.turqapp.com" android:pathPrefix="/u/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="turqapp" android:host="p" />
+                <data android:scheme="turqapp" android:host="s" />
+                <data android:scheme="turqapp" android:host="u" />
+                <data android:scheme="turqapp" android:host="post" />
+                <data android:scheme="turqapp" android:host="story" />
+                <data android:scheme="turqapp" android:host="user" />
+                <data android:scheme="turqapp" android:host="profile" />
             </intent-filter>
         </activity>
 

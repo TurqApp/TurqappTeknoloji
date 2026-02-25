@@ -10,7 +10,7 @@ class SocialProfileFollowersController extends GetxController {
   RxList<String> takipciler = <String>[].obs;
   RxList<String> takipEdilenler = <String>[].obs;
 
-  final int limit = 20;
+  final int limit = 50;
   DocumentSnapshot? lastFollowerDoc;
   DocumentSnapshot? lastFollowingDoc;
   bool isLoadingFollowers = false;
@@ -32,6 +32,7 @@ class SocialProfileFollowersController extends GetxController {
   }
 
   Future<void> getFollowers() async {
+    if (takipciler.isNotEmpty) return; // tek sefer gösterim
     if (isLoadingFollowers || !hasMoreFollowers) return;
     isLoadingFollowers = true;
 
@@ -52,11 +53,12 @@ class SocialProfileFollowersController extends GetxController {
       takipciler.addAll(snap.docs.map((val) => val.id));
     }
 
-    if (snap.docs.length < limit) hasMoreFollowers = false;
+    hasMoreFollowers = false; // başkasında yenileme/sayfalama yok
     isLoadingFollowers = false;
   }
 
   Future<void> getFollowing() async {
+    if (takipEdilenler.isNotEmpty) return; // tek sefer gösterim
     if (isLoadingFollowing || !hasMoreFollowing) return;
     isLoadingFollowing = true;
 
@@ -77,7 +79,7 @@ class SocialProfileFollowersController extends GetxController {
       takipEdilenler.addAll(snap.docs.map((val) => val.id));
     }
 
-    if (snap.docs.length < limit) hasMoreFollowing = false;
+    hasMoreFollowing = false; // başkasında yenileme/sayfalama yok
     isLoadingFollowing = false;
   }
 

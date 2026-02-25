@@ -133,7 +133,6 @@ class SocialProfileController extends GetxController {
 
   Future<void> getCounters() async {
     try {
-      // ⚠️ OPTIMIZED: Read directly from users document for instant counter access
       final userDoc = await FirebaseFirestore.instance
           .collection("users")
           .doc(userID)
@@ -141,8 +140,42 @@ class SocialProfileController extends GetxController {
 
       if (userDoc.exists) {
         final data = userDoc.data();
-        totalFollower.value = (data?['counterOfFollowers'] as num?)?.toInt() ?? 0;
-        totalFollowing.value = (data?['counterOfFollowings'] as num?)?.toInt() ?? 0;
+        final followerCounter =
+            (data?['counterOfFollowers'] as num?)?.toInt() ??
+                (data?['followersCount'] as num?)?.toInt() ??
+                (data?['takipci'] as num?)?.toInt() ??
+                (data?['followerCount'] as num?)?.toInt() ??
+                0;
+        final followingCounter =
+            (data?['counterOfFollowings'] as num?)?.toInt() ??
+                (data?['followingCount'] as num?)?.toInt() ??
+                (data?['takip'] as num?)?.toInt() ??
+                (data?['followCount'] as num?)?.toInt() ??
+                0;
+
+        totalFollower.value = followerCounter;
+        totalFollowing.value = followingCounter;
+      }
+
+      // Counter alanı sıfırlanmış/bozuksa, gerçek ilişki koleksiyonlarından yeniden say.
+      if (totalFollower.value == 0 || totalFollowing.value == 0) {
+        final followersAgg = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userID)
+            .collection("Takipciler")
+            .count()
+            .get();
+        final followingAgg = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userID)
+            .collection("TakipEdilenler")
+            .count()
+            .get();
+
+        final followers = followersAgg.count ?? 0;
+        final followings = followingAgg.count ?? 0;
+        totalFollower.value = followers;
+        totalFollowing.value = followings;
       }
     } catch (e) {
       print("⚠️ SocialProfile getCounters error: $e");
@@ -265,7 +298,8 @@ class SocialProfileController extends GetxController {
 
   Future<void> setPostSelection(int index) async {
     postSelection.value = index;
-    UserAnalyticsService.instance.trackFeatureUsage('social_profile_tab_$index');
+    UserAnalyticsService.instance
+        .trackFeatureUsage('social_profile_tab_$index');
     if (index == 5) {
       if (scheduledPosts.isEmpty || lastScheduledDoc == null) {
         await fetchScheduledPosts(initial: true);
@@ -643,10 +677,8 @@ class SocialProfileController extends GetxController {
         .toList();
 
     // Kullanıcı bilgisini çek
-    final userSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .get();
+    final userSnap =
+        await FirebaseFirestore.instance.collection("users").doc(userId).get();
     if (!userSnap.exists) {
       print("Kullanıcı bulunamadı.");
       return;

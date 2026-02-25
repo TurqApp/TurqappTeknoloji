@@ -10,6 +10,8 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
@@ -702,12 +704,17 @@ class ShortsContent extends StatelessWidget {
           icon: CupertinoIcons.eye_slash,
         ),
         PullDownMenuItem(
-          onTap: () {
-            Clipboard.setData(
-              ClipboardData(
-                text: "https://www.turqapp.com/posts/${model.docID}",
-              ),
+          onTap: () async {
+            final previewImage = model.thumbnail.trim().isNotEmpty
+                ? model.thumbnail.trim()
+                : (model.img.isNotEmpty ? model.img.first.trim() : null);
+            final url = await ShortLinkService().getPostPublicUrl(
+              postId: model.docID,
+              title: 'TurqApp Gönderisi',
+              desc: model.metin,
+              imageUrl: previewImage,
             );
+            await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
           },
@@ -715,10 +722,19 @@ class ShortsContent extends StatelessWidget {
           icon: CupertinoIcons.doc_on_doc,
         ),
         PullDownMenuItem(
-          onTap: () {
-            SharePlus.instance.share(
-              ShareParams(text: "https://www.turqapp.com/posts/${model.docID}"),
-            );
+          onTap: () async {
+            await ShareActionGuard.run(() async {
+              final previewImage = model.thumbnail.trim().isNotEmpty
+                  ? model.thumbnail.trim()
+                  : (model.img.isNotEmpty ? model.img.first.trim() : null);
+              final url = await ShortLinkService().getPostPublicUrl(
+                postId: model.docID,
+                title: 'TurqApp Gönderisi',
+                desc: model.metin,
+                imageUrl: previewImage,
+              );
+              await SharePlus.instance.share(ShareParams(text: url));
+            });
           },
           title: 'Paylaş',
           icon: CupertinoIcons.share,

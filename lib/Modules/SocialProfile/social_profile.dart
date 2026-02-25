@@ -18,6 +18,8 @@ import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
@@ -52,6 +54,7 @@ class _SocialProfileState extends State<SocialProfile> {
   final ScrollController scrollController = ScrollController();
   final user = Get.find<FirebaseMyStore>();
   final chatListingController = Get.put(ChatListingController());
+  final ShortLinkService _shortLinkService = ShortLinkService();
 
   @override
   void initState() {
@@ -798,14 +801,22 @@ class _SocialProfileState extends State<SocialProfile> {
               PullDownButton(
                 itemBuilder: (context) => [
                   PullDownMenuItem(
-                    onTap: () {
-                      Clipboard.setData(
-                        ClipboardData(
-                          text:
-                              "https://www.turqapp.com/users/${widget.userID}",
-                        ),
+                    onTap: () async {
+                      final nick =
+                          controller.nickname.value.trim().toLowerCase();
+                      final safeSlug = nick.isEmpty ? widget.userID : nick;
+                      final result = await _shortLinkService.upsertUser(
+                        userId: widget.userID,
+                        slug: safeSlug,
+                        title: '@${controller.nickname.value} - TurqApp',
+                        desc: 'TurqApp profilini görüntüle',
+                        imageUrl: controller.pfImage.value,
                       );
-
+                      final link =
+                          (result['url'] ?? '').toString().trim().isNotEmpty
+                              ? (result['url'] ?? '').toString().trim()
+                              : 'https://turqapp.com/u/$safeSlug';
+                      await Clipboard.setData(ClipboardData(text: link));
                       AppSnackbar(
                           "Kopyalandı", "Bağlantı linki panoya kopyalandı");
                     },
@@ -813,13 +824,24 @@ class _SocialProfileState extends State<SocialProfile> {
                     icon: CupertinoIcons.doc_on_doc,
                   ),
                   PullDownMenuItem(
-                    onTap: () {
-                      SharePlus.instance.share(
-                        ShareParams(
-                          text:
-                              "https://www.turqapp.com/posts/${widget.userID}",
-                        ),
-                      );
+                    onTap: () async {
+                      await ShareActionGuard.run(() async {
+                        final nick =
+                            controller.nickname.value.trim().toLowerCase();
+                        final safeSlug = nick.isEmpty ? widget.userID : nick;
+                        final result = await _shortLinkService.upsertUser(
+                          userId: widget.userID,
+                          slug: safeSlug,
+                          title: '@${controller.nickname.value} - TurqApp',
+                          desc: 'TurqApp profilini görüntüle',
+                          imageUrl: controller.pfImage.value,
+                        );
+                        final link =
+                            (result['url'] ?? '').toString().trim().isNotEmpty
+                                ? (result['url'] ?? '').toString().trim()
+                                : 'https://turqapp.com/u/$safeSlug';
+                        await SharePlus.instance.share(ShareParams(text: link));
+                      });
                     },
                     title: 'Paylaş',
                     icon: CupertinoIcons.share,

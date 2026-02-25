@@ -112,8 +112,17 @@ class ProfileController extends GetxController {
       if (snapshot.exists) {
         final data = snapshot.data();
         if (data != null) {
-          followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ?? 0;
-          followingCount.value = (data['counterOfFollowings'] as num?)?.toInt() ?? 0;
+          followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
+              (data['followersCount'] as num?)?.toInt() ??
+              (data['takipci'] as num?)?.toInt() ??
+              (data['followerCount'] as num?)?.toInt() ??
+              0;
+          followingCount.value =
+              (data['counterOfFollowings'] as num?)?.toInt() ??
+                  (data['followingCount'] as num?)?.toInt() ??
+                  (data['takip'] as num?)?.toInt() ??
+                  (data['followCount'] as num?)?.toInt() ??
+                  0;
         }
       }
     });
@@ -199,16 +208,47 @@ class ProfileController extends GetxController {
     if (uid == null) return;
 
     try {
-      // ⚠️ OPTIMIZED: Read directly from users document for instant counter access
-      final userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
+      final userDoc =
+          await FirebaseFirestore.instance.collection("users").doc(uid).get();
 
       if (userDoc.exists) {
         final data = userDoc.data();
-        followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ?? 0;
-        followingCount.value = (data?['counterOfFollowings'] as num?)?.toInt() ?? 0;
+        followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
+            (data?['followersCount'] as num?)?.toInt() ??
+            (data?['takipci'] as num?)?.toInt() ??
+            (data?['followerCount'] as num?)?.toInt() ??
+            0;
+        followingCount.value =
+            (data?['counterOfFollowings'] as num?)?.toInt() ??
+                (data?['followingCount'] as num?)?.toInt() ??
+                (data?['takip'] as num?)?.toInt() ??
+                (data?['followCount'] as num?)?.toInt() ??
+                0;
+      }
+
+      if (followerCount.value == 0 || followingCount.value == 0) {
+        final followersAgg = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(uid)
+            .collection("Takipciler")
+            .count()
+            .get();
+        final followingAgg = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(uid)
+            .collection("TakipEdilenler")
+            .count()
+            .get();
+
+        final followers = followersAgg.count ?? 0;
+        final followings = followingAgg.count ?? 0;
+        followerCount.value = followers;
+        followingCount.value = followings;
+
+        await FirebaseFirestore.instance.collection("users").doc(uid).set({
+          "counterOfFollowers": followers,
+          "counterOfFollowings": followings,
+        }, SetOptions(merge: true));
       }
     } catch (e) {
       print("⚠️ getCounters error: $e");

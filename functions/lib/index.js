@@ -33,6 +33,7 @@ __exportStar(require("./04_tagSettings"), exports);
 __exportStar(require("./14_typesensePosts"), exports);
 __exportStar(require("./15_typesenseUsersTags"), exports);
 __exportStar(require("./16_tagMaintenance"), exports);
+__exportStar(require("./17_shortLinksIndex"), exports);
 // SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
 exports.cleanupExpiredStories = functions.pubsub
     .schedule("every 60 minutes")
@@ -219,7 +220,7 @@ exports.onUserNotificationCreate = functions.firestore
         const data = (snap.data() || {});
         const type = String(data.type || "Posts");
         const fromUserID = String(data.fromUserID || "");
-        const targetDocID = String(data.postID || "");
+        const targetDocID = String(data.postID || data.chatID || data.userID || "");
         const cfg = await _loadNotificationPushConfig();
         // Self-notification push göndermeyelim.
         if (fromUserID && fromUserID === uid)

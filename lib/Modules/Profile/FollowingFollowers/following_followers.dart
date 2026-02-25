@@ -61,8 +61,6 @@ class FollowingFollowers extends StatelessWidget {
                     children: [
                       _buildList(context,
                           list: controller.takipciler,
-                          searchController: controller.searchTakipciController,
-                          searchFn: controller.searchTakipci,
                           isLoading: () => controller.isLoadingFollowers,
                           hasMore: () => controller.hasMoreFollowers,
                           scrollController: scrollController,
@@ -70,9 +68,6 @@ class FollowingFollowers extends StatelessWidget {
                               controller.getFollowers(initial: false)),
                       _buildList(context,
                           list: controller.takipEdilenler,
-                          searchController:
-                              controller.searchTakipEdilenController,
-                          searchFn: controller.searchTakipEdilenler,
                           isLoading: () => controller.isLoadingFollowing,
                           hasMore: () => controller.hasMoreFollowing,
                           scrollController: scrollController,
@@ -104,8 +99,6 @@ class FollowingFollowers extends StatelessWidget {
   Widget _buildList(
     BuildContext context, {
     required RxList<String> list,
-    required TextEditingController searchController,
-    required Future<void> Function() searchFn,
     required bool Function() isLoading,
     required bool Function() hasMore,
     required ScrollController scrollController,
@@ -124,61 +117,14 @@ class FollowingFollowers extends StatelessWidget {
         child: ListView.builder(
           controller: scrollController,
           padding: EdgeInsets.zero,
-          itemCount: list.isEmpty ? 2 : list.length + 2,
+          itemCount: list.isEmpty ? 1 : list.length + 1,
           itemBuilder: (ctx, i) {
-            if (i == 0) {
-              // 🔍 Arama kutusu
-              return Padding(
-                padding: const EdgeInsets.only(left: 15, right: 15, top: 15),
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: TextField(
-                            controller: searchController,
-                            decoration: const InputDecoration(
-                              hintText: "Ara",
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                                fontFamily: 'MontserratMedium',
-                              ),
-                              border: InputBorder.none,
-                            ),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                            onSubmitted: (_) => searchFn(),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: searchFn,
-                        icon: const Icon(Icons.search,
-                            color: Colors.black54, size: 24),
-                        tooltip: 'Ara',
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
             if (list.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.only(top: 30),
                 child: Center(
                   child: Text(
-                    'Sonuç bulunamadı',
+                    'Henüz kullanıcı yok',
                     style: TextStyle(
                       color: Colors.grey,
                       fontSize: 15,
@@ -189,7 +135,7 @@ class FollowingFollowers extends StatelessWidget {
               );
             }
 
-            if (i == list.length + 1) {
+            if (i == list.length) {
               // ⬇️ Footer (yükleniyor veya tümü yüklendi)
               if (isLoading()) {
                 return const Padding(
@@ -212,9 +158,9 @@ class FollowingFollowers extends StatelessWidget {
             }
 
             // 👤 Kullanıcı içeriği (veriler)
-            final id = list[i - 1]; // i=1 → index 0, i=2 → index 1 ...
+            final id = list[i];
             return Padding(
-              padding: EdgeInsets.only(top: i == 1 ? 15 : 0),
+              padding: EdgeInsets.only(top: i == 0 ? 15 : 0),
               child: FollowerContent(userID: id, key: ValueKey(id)),
             );
           },

@@ -96,7 +96,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher_round');
+        AndroidInitializationSettings('@drawable/transparent_splash_icon');
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       settings: const InitializationSettings(
@@ -123,7 +123,7 @@ class NotificationService {
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,
-            icon: '@mipmap/ic_launcher_round',
+            icon: '@drawable/transparent_splash_icon',
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,

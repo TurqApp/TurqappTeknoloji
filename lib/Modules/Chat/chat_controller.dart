@@ -66,6 +66,7 @@ class ChatController extends GetxController {
   static const int _syncHeadSize = 40;
   final Map<String, MessageModel> _conversationMessages = {};
   var showScrollDownButton = false.obs;
+  var scrollDownOpacity = 0.0.obs;
   var isLoadingOlder = false.obs;
   var hasMoreOlder = true.obs;
   var isOtherTyping = false.obs;
@@ -167,17 +168,25 @@ class ChatController extends GetxController {
     loadChatBackgroundPreference();
     getData();
     _clearConversationUnread();
+    unawaited(_markConversationOpenedNow());
     textEditingController.addListener(() {
       textMesage.value = textEditingController.text;
       _onTypingChanged();
     });
     _listenTypingState();
     scrollController.addListener(() {
-      showScrollDownButton.value = scrollController.offset > 500;
+      final offset = scrollController.offset;
+      final visible = offset > 500;
+      showScrollDownButton.value = visible;
+      if (!visible) {
+        scrollDownOpacity.value = 0.0;
+      } else {
+        final strength = ((offset - 500) / 900).clamp(0.0, 1.0);
+        scrollDownOpacity.value = (0.45 + (strength * 0.55)).clamp(0.45, 1.0);
+      }
       if (scrollController.hasClients &&
           scrollController.position.maxScrollExtent > 0 &&
-          scrollController.offset >
-              (scrollController.position.maxScrollExtent - 280)) {
+          offset > (scrollController.position.maxScrollExtent - 280)) {
         loadOlderMessages();
       }
     });
@@ -196,6 +205,7 @@ class ChatController extends GetxController {
 
   @override
   void onClose() {
+    unawaited(_markConversationOpenedNow());
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
     _typingStream?.cancel();
@@ -204,6 +214,27 @@ class ChatController extends GetxController {
     _audioRecorder.dispose();
     _clearTyping();
     super.onClose();
+  }
+
+  Future<void> _markConversationOpenedNow() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      "chat_last_opened_${uid}_$chatID",
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  Future<void> _markConversationOpenedAt(int timestampMs) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = "chat_last_opened_${uid}_$chatID";
+    final old = prefs.getInt(key) ?? 0;
+    if (timestampMs > old) {
+      await prefs.setInt(key, timestampMs);
+    }
   }
 
   void getUserData() async {
@@ -297,6 +328,21 @@ class ChatController extends GetxController {
       final otherTs = typing[userID] as num? ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
       isOtherTyping.value = otherTs > 0 && (now - otherTs) < 3000;
+
+      // Sohbet açıkken, conversation başındaki son mesaj zamanını "görüldü"
+      // marker'ına yaz. Böylece sohbetten çıkınca yeni gibi koyulaşmaz.
+      int lastMessageAtMs = 0;
+      final lmAt = data["lastMessageAt"];
+      if (lmAt is Timestamp) {
+        lastMessageAtMs = lmAt.millisecondsSinceEpoch;
+      } else {
+        final fallback = data["lastMessageAtMs"];
+        lastMessageAtMs =
+            fallback is int ? fallback : int.tryParse("$fallback") ?? 0;
+      }
+      if (lastMessageAtMs > 0) {
+        unawaited(_markConversationOpenedAt(lastMessageAtMs));
+      }
     });
   }
 
@@ -637,6 +683,7 @@ class ChatController extends GetxController {
     if (replace) _conversationMessages.clear();
     final List<String> unseenRawDocIds = [];
     final List<String> undeliveredRawDocIds = [];
+    int latestSeenTs = 0;
 
     for (final doc in docs) {
       final data = doc.data();
@@ -646,10 +693,12 @@ class ChatController extends GetxController {
         _conversationMessages.remove("conv_${doc.id}");
         continue;
       }
-      final seenBy = List<String>.from(data["seenBy"] ?? []);
       final status = data["status"] ?? "";
+      final seenBy = List<String>.from(data["seenBy"] ?? []);
       final model = MessageModel.fromConversationSnapshot(doc);
       _conversationMessages[model.docID] = model;
+      final ts = model.timeStamp.toInt();
+      if (ts > latestSeenTs) latestSeenTs = ts;
 
       if (senderId != currentUID && !seenBy.contains(currentUID)) {
         unseenRawDocIds.add(doc.id);
@@ -679,10 +728,12 @@ class ChatController extends GetxController {
           batch.update(msgRef, {"status": "delivered"});
         }
       }
-      if (unseenRawDocIds.isNotEmpty) {
-        batch.set(convRef, {"unread.$currentUID": 0}, SetOptions(merge: true));
-      }
+      batch.set(convRef, {"unread.$currentUID": 0}, SetOptions(merge: true));
       batch.commit().catchError((_) => null);
+    }
+
+    if (latestSeenTs > 0) {
+      unawaited(_markConversationOpenedAt(latestSeenTs));
     }
   }
 
@@ -1133,14 +1184,32 @@ class ChatController extends GetxController {
         .doc(chatID)
         .collection("messages")
         .doc(model.rawDocID);
-    final snap = await ref.get();
-    final reactions =
-        Map<String, dynamic>.from(snap.data()?["reactions"] ?? {});
-    final current = List<String>.from(reactions[emoji] ?? []);
-    await ref.update({
-      "reactions.$emoji": current.contains(uid)
-          ? FieldValue.arrayRemove([uid])
-          : FieldValue.arrayUnion([uid]),
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) return;
+
+      final data = snap.data() ?? {};
+      final reactions = Map<String, dynamic>.from(data["reactions"] ?? {});
+      final selectedUsers = List<String>.from(reactions[emoji] ?? const []);
+      final wasSelected = selectedUsers.contains(uid);
+
+      final updates = <String, dynamic>{};
+
+      // Tek emoji kuralı: kullanıcıyı önce tüm reaction listelerinden kaldır.
+      for (final entry in reactions.entries) {
+        final key = entry.key.toString();
+        final users = List<String>.from(entry.value ?? const []);
+        if (users.contains(uid)) {
+          updates["reactions.$key"] = FieldValue.arrayRemove([uid]);
+        }
+      }
+
+      // Aynı emojiyse toggle-off, farklı emojiyse sadece seçilen emojiye ekle.
+      if (!wasSelected) {
+        updates["reactions.$emoji"] = FieldValue.arrayUnion([uid]);
+      }
+
+      tx.update(ref, updates);
     });
   }
 

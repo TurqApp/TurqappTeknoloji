@@ -24,6 +24,7 @@ import '../StoryHighlights/highlight_picker_sheet.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import '../../Chat/chat.dart';
 
 class UserStoryContent extends StatefulWidget {
@@ -1094,9 +1095,26 @@ class _UserStoryContentState extends State<UserStoryContent>
                   _audioPlayer.pause();
                   _timer?.cancel();
                   try {
+                    final currentStory = widget.user.stories[storyIndex];
+                    String previewImage = '';
+                    if (currentStory.elements.isNotEmpty) {
+                      previewImage = currentStory.elements
+                          .firstWhere(
+                            (e) => e.type == StoryElementType.image,
+                            orElse: () => currentStory.elements.first,
+                          )
+                          .content;
+                    }
+                    final shortUrl = await ShortLinkService().getStoryPublicUrl(
+                      storyId: currentStory.id,
+                      title: '${widget.user.nickname} hikayesi',
+                      desc: 'TurqApp üzerinde hikayeyi görüntüle',
+                      imageUrl: previewImage.isEmpty ? null : previewImage,
+                    );
                     await SharePlus.instance.share(
                       ShareParams(
-                        text: '${widget.user.nickname} hikayesine bak!',
+                        text:
+                            '${widget.user.nickname} hikayesine bak!\n$shortUrl',
                       ),
                     );
                   } catch (_) {}

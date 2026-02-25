@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -45,6 +47,12 @@ class ChatView extends StatelessWidget {
           tag: chatID,
         );
 
+  void _disposeChatControllerIfAny() {
+    if (Get.isRegistered<ChatController>(tag: chatID)) {
+      Get.delete<ChatController>(tag: chatID, force: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // İlk açılışta sadece bir kez odakla (her rebuild'de klavye zıplamasını engeller)
@@ -54,19 +62,27 @@ class ChatView extends StatelessWidget {
         controller.focus.requestFocus();
       });
     }
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Obx(() {
-          return Stack(
-            children: [
-              if (controller.selection.value == 0)
-                buildChat(context)
-              else if (controller.selection.value == 1)
-                buildImagePreview(),
-            ],
-          );
-        }),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          _disposeChatControllerIfAny();
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Obx(() {
+            return Stack(
+              children: [
+                if (controller.selection.value == 0)
+                  buildChat(context)
+                else if (controller.selection.value == 1)
+                  buildImagePreview(),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
@@ -306,25 +322,39 @@ class ChatView extends StatelessWidget {
                               onTap: () {
                                 controller.scrollToBottom();
                               },
-                              child: Opacity(
-                                opacity: 0.5,
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(50),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 6,
-                                        offset: Offset(2, 2),
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 160),
+                                opacity: controller.scrollDownOpacity.value,
+                                child: ClipOval(
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(
+                                        sigmaX: 18, sigmaY: 18),
+                                    child: Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.88),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.06),
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Color(0x22000000),
+                                            blurRadius: 16,
+                                            offset: Offset(0, 5),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.arrow_downward,
-                                    color: Colors.white,
-                                    size: 35,
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        CupertinoIcons.arrow_down,
+                                        color: Colors.black,
+                                        size: 24,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -611,7 +641,10 @@ class ChatView extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              onPressed: Get.back,
+              onPressed: () {
+                _disposeChatControllerIfAny();
+                Get.back();
+              },
               icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
             ),
             Expanded(

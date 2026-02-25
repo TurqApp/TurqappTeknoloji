@@ -11,6 +11,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
@@ -72,6 +74,26 @@ class _AgendaContentState extends State<AgendaContent>
   static const bool _showActionTapAreas = false;
   final arsivController = Get.put(ArchiveController());
   final videoStateManager = VideoStateManager.instance;
+
+  Future<Duration> _resolveCurrentVideoPosition() async {
+    final vc = videoController;
+    if (vc != null) {
+      try {
+        final pos = vc.value.position;
+        if (pos > Duration.zero) return pos;
+      } catch (_) {}
+
+      try {
+        final seconds = await vc.hlsController.getCurrentTime();
+        if (seconds > 0) {
+          return Duration(milliseconds: (seconds * 1000).round());
+        }
+      } catch (_) {}
+    }
+
+    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    return savedState?.position ?? Duration.zero;
+  }
 
   Future<List<PostsModel>> _buildFullscreenStartList() async {
     final candidates = agendaController.agendaList
@@ -299,17 +321,8 @@ class _AgendaContentState extends State<AgendaContent>
                               child: GestureDetector(
                                 onTap: () async {
                                   if (widget.isPreview) {
-                                    // Mevcut pozisyonu al
-                                    Duration? currentPos =
-                                        videoController?.value.position;
-
-                                    if (currentPos == null ||
-                                        currentPos == Duration.zero) {
-                                      // VideoStateManager'dan dene
-                                      final savedState = videoStateManager
-                                          .getVideoState(widget.model.docID);
-                                      currentPos = savedState?.position;
-                                    }
+                                    final currentPos =
+                                        await _resolveCurrentVideoPosition();
 
                                     final listForFullscreen =
                                         await _buildFullscreenStartList();
@@ -323,6 +336,8 @@ class _AgendaContentState extends State<AgendaContent>
                                               startModel: widget.model,
                                               startList: listForFullscreen,
                                               initialPosition: currentPos,
+                                              injectedController:
+                                                  videoController,
                                             ));
 
                                     if (!mounted) return;
@@ -372,16 +387,8 @@ class _AgendaContentState extends State<AgendaContent>
                                       if (widget.shouldPlay)
                                         videoController?.play();
                                     } else {
-                                      // Mevcut pozisyonu al (VideoStateManager'dan veya controller'dan)
-                                      Duration? currentPos =
-                                          videoController?.value.position;
-                                      if (currentPos == null ||
-                                          currentPos == Duration.zero) {
-                                        // VideoStateManager'dan dene
-                                        final savedState = videoStateManager
-                                            .getVideoState(widget.model.docID);
-                                        currentPos = savedState?.position;
-                                      }
+                                      final currentPos =
+                                          await _resolveCurrentVideoPosition();
                                       final listForFullscreen =
                                           await _buildFullscreenStartList();
 
@@ -394,6 +401,8 @@ class _AgendaContentState extends State<AgendaContent>
                                                 startModel: widget.model,
                                                 startList: listForFullscreen,
                                                 initialPosition: currentPos,
+                                                injectedController:
+                                                    videoController,
                                               ));
 
                                       if (!mounted) return;
@@ -1319,12 +1328,20 @@ class _AgendaContentState extends State<AgendaContent>
             icon: CupertinoIcons.pencil_circle,
           ),
         PullDownMenuItem(
-          onTap: () {
-            Clipboard.setData(
-              ClipboardData(
-                text: "https://www.turqapp.com/posts/${widget.model.docID}",
-              ),
+          onTap: () async {
+            final previewImage = widget.model.thumbnail.trim().isNotEmpty
+                ? widget.model.thumbnail.trim()
+                : (widget.model.img.isNotEmpty
+                    ? widget.model.img.first.trim()
+                    : null);
+            final url = await ShortLinkService().getPostPublicUrl(
+              postId: widget.model.docID,
+              title: 'TurqApp Gönderisi',
+              desc: widget.model.metin,
+              imageUrl: previewImage,
             );
+
+            await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
             print(widget.model.docID);
@@ -1333,12 +1350,21 @@ class _AgendaContentState extends State<AgendaContent>
           icon: CupertinoIcons.doc_on_doc,
         ),
         PullDownMenuItem(
-          onTap: () {
-            SharePlus.instance.share(
-              ShareParams(
-                text: "https://www.turqapp.com/posts/${widget.model.docID}",
-              ),
-            );
+          onTap: () async {
+            await ShareActionGuard.run(() async {
+              final previewImage = widget.model.thumbnail.trim().isNotEmpty
+                  ? widget.model.thumbnail.trim()
+                  : (widget.model.img.isNotEmpty
+                      ? widget.model.img.first.trim()
+                      : null);
+              final url = await ShortLinkService().getPostPublicUrl(
+                postId: widget.model.docID,
+                title: 'TurqApp Gönderisi',
+                desc: widget.model.metin,
+                imageUrl: previewImage,
+              );
+              await SharePlus.instance.share(ShareParams(text: url));
+            });
           },
           title: 'Paylaş',
           icon: CupertinoIcons.share,

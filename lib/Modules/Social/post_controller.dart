@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import '../../Services/firebase_my_store.dart';
 import 'Comments/post_comments.dart';
 
@@ -237,14 +239,22 @@ class PostController extends GetxController {
   }
 
   Future<void> openShareSheet(BuildContext context) async {
-    final String text = 'https://www.turqapp.com/post/${model.docID}';
-
-    try {
-      // Share the downloaded file
-      SharePlus.instance.share(ShareParams(text: text));
-    } catch (e) {
-      print('Error downloading or sharing the image: $e');
-    }
+    await ShareActionGuard.run(() async {
+      try {
+        final previewImage = model.thumbnail.trim().isNotEmpty
+            ? model.thumbnail.trim()
+            : (model.img.isNotEmpty ? model.img.first.trim() : null);
+        final shortUrl = await ShortLinkService().getPostPublicUrl(
+          postId: model.docID,
+          title: 'TurqApp Gönderisi',
+          desc: model.metin,
+          imageUrl: previewImage,
+        );
+        await SharePlus.instance.share(ShareParams(text: shortUrl));
+      } catch (e) {
+        print('Error downloading or sharing the image: $e');
+      }
+    });
   }
 
   Future<void> gizle(bool gizle) async {

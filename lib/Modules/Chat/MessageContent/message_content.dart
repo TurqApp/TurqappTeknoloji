@@ -937,7 +937,10 @@ class MessageContent extends StatelessWidget {
           ),
         );
       } else {
-        final normalized = token.startsWith('http') ? token : 'https://$token';
+        var normalized = token.startsWith('http') ? token : 'https://$token';
+        normalized = normalized
+            .replaceAll(RegExp("^[\\s<>'\"()]+"), '')
+            .replaceAll(RegExp("[\\s<>'\"),.!?:;]+\$"), '');
         spans.add(
           TextSpan(
             text: token,

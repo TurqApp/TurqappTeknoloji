@@ -12,6 +12,7 @@ import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'chat_listing_content_controller.dart';
 
@@ -351,7 +352,13 @@ class ChatListingContent extends StatelessWidget {
                             await _showAnchoredMenu(context);
                           },
                     onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setInt(
+                        "chat_last_opened_${_uid}_${model.chatID}",
+                        DateTime.now().millisecondsSinceEpoch,
+                      );
                       controller.notReadCounter.value = 0;
+                      model.unreadCount = 0;
                       await FirebaseFirestore.instance
                           .collection("conversations")
                           .doc(model.chatID)

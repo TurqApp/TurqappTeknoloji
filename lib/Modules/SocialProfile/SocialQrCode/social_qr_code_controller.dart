@@ -4,12 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
 class SocialQrCodeController extends GetxController {
   String userID;
   SocialQrCodeController({required this.userID});
   var nickname = "".obs;
+  final ShortLinkService _shortLinkService = ShortLinkService();
   @override
   void onInit() {
     // TODO: implement onInit
@@ -36,13 +39,32 @@ class SocialQrCodeController extends GetxController {
   }
 
   Future<void> shareProfile() async {
-    String profileLink =
-        'https://turqapp.com/user/$userID'; // Dinamik hale getirilebilir
-    await SharePlus.instance.share(ShareParams(text: profileLink));
+    await ShareActionGuard.run(() async {
+      final slug = nickname.value.trim().toLowerCase();
+      final result = await _shortLinkService.upsertUser(
+        userId: userID,
+        slug: slug.isEmpty ? userID : slug,
+        title: '@${nickname.value} - TurqApp',
+        desc: 'TurqApp profilini görüntüle',
+      );
+      final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
+          ? (result['url'] ?? '').toString().trim()
+          : 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
+      await SharePlus.instance.share(ShareParams(text: profileLink));
+    });
   }
 
   Future<void> copyLink() async {
-    String profileLink = 'https://turqapp.com/user/$userID';
+    final slug = nickname.value.trim().toLowerCase();
+    final result = await _shortLinkService.upsertUser(
+      userId: userID,
+      slug: slug.isEmpty ? userID : slug,
+      title: '@${nickname.value} - TurqApp',
+      desc: 'TurqApp profilini görüntüle',
+    );
+    final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
+        ? (result['url'] ?? '').toString().trim()
+        : 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
     await Clipboard.setData(ClipboardData(text: profileLink));
     AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
   }

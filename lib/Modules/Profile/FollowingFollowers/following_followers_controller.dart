@@ -17,7 +17,9 @@ class FollowingFollowersController extends GetxController {
   RxList<String> takipciler = <String>[].obs;
   RxList<String> takipEdilenler = <String>[].obs;
 
-  final int limit = 50; // başlangıç ve her fetch 30 kişi
+  static const int _selfInitialLimit = 40;
+  static const int _selfRefreshLimit = 30;
+  static const int _otherUserLimit = 50;
   DocumentSnapshot? lastFollowerDoc;
   DocumentSnapshot? lastFollowingDoc;
   bool isLoadingFollowers = false;
@@ -56,6 +58,13 @@ class FollowingFollowersController extends GetxController {
 
   bool get isSelf => FirebaseAuth.instance.currentUser?.uid == userId;
 
+  int _resolveLimit({required bool initial}) {
+    if (isSelf) {
+      return initial ? _selfInitialLimit : _selfRefreshLimit;
+    }
+    return _otherUserLimit;
+  }
+
   Future<void> getCounters() async {
     FirebaseFirestore.instance
         .collection("users")
@@ -91,12 +100,14 @@ class FollowingFollowersController extends GetxController {
       hasMoreFollowers = true;
     }
 
+    final fetchLimit = _resolveLimit(initial: initial);
+
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
         .collection("Takipciler")
         .orderBy("timeStamp", descending: true)
-        .limit(limit);
+        .limit(fetchLimit);
 
     if (isSelf && lastFollowerDoc != null) {
       query = query.startAfterDocument(lastFollowerDoc!);
@@ -111,7 +122,7 @@ class FollowingFollowersController extends GetxController {
       }
     }
 
-    if (!isSelf || snap.docs.length < limit) {
+    if (!isSelf || snap.docs.length < fetchLimit) {
       // başkasında her zaman kapat; kendinde bittiğinde kapat
       hasMoreFollowers = false;
     }
@@ -130,12 +141,14 @@ class FollowingFollowersController extends GetxController {
       hasMoreFollowing = true;
     }
 
+    final fetchLimit = _resolveLimit(initial: initial);
+
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
         .collection("TakipEdilenler")
         .orderBy("timeStamp", descending: true)
-        .limit(limit);
+        .limit(fetchLimit);
 
     if (isSelf && lastFollowingDoc != null) {
       query = query.startAfterDocument(lastFollowingDoc!);
@@ -150,7 +163,7 @@ class FollowingFollowersController extends GetxController {
       }
     }
 
-    if (!isSelf || snap.docs.length < limit) {
+    if (!isSelf || snap.docs.length < fetchLimit) {
       hasMoreFollowing = false;
     }
 

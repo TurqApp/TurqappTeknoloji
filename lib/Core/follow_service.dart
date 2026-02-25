@@ -53,19 +53,6 @@ class FollowService {
         transaction.delete(myFollowingRef);
         transaction.delete(otherFollowersRef);
 
-        // ⚠️ CRITICAL FIX: Update counters in users collection
-        // Decrease my followings count
-        final myUserRef = firestore.collection('users').doc(currentUserID);
-        transaction.update(myUserRef, {
-          'counterOfFollowings': FieldValue.increment(-1),
-        });
-
-        // Decrease their followers count
-        final otherUserRef = firestore.collection('users').doc(otherUserID);
-        transaction.update(otherUserRef, {
-          'counterOfFollowers': FieldValue.increment(-1),
-        });
-
         return const FollowToggleOutcome(
             nowFollowing: false, limitReached: false);
       }
@@ -100,19 +87,6 @@ class FollowService {
           .set(otherFollowersRef, {'timeStamp': FieldValue.serverTimestamp()});
       transaction.set(counterRef, {'date': today, 'count': currentCount + 1},
           SetOptions(merge: true));
-
-      // ⚠️ CRITICAL FIX: Update counters in users collection
-      // Increase my followings count
-      final myUserRef = firestore.collection('users').doc(currentUserID);
-      transaction.update(myUserRef, {
-        'counterOfFollowings': FieldValue.increment(1),
-      });
-
-      // Increase their followers count
-      final otherUserRef = firestore.collection('users').doc(otherUserID);
-      transaction.update(otherUserRef, {
-        'counterOfFollowers': FieldValue.increment(1),
-      });
 
       return const FollowToggleOutcome(nowFollowing: true, limitReached: false);
     });

@@ -18,6 +18,7 @@ export * from "./04_tagSettings";
 export * from "./14_typesensePosts";
 export * from "./15_typesenseUsersTags";
 export * from "./16_tagMaintenance";
+export * from "./17_shortLinksIndex";
 
 // SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
 export const cleanupExpiredStories = functions.pubsub

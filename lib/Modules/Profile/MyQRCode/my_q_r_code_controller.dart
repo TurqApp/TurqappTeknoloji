@@ -9,12 +9,15 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
 
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 import '../../../Services/firebase_my_store.dart';
 
 class MyQRCodeController extends GetxController {
   final user = Get.find<FirebaseMyStore>();
+  final ShortLinkService _shortLinkService = ShortLinkService();
   void showQrScannerModal() {
     Get.bottomSheet(
       QrScannerView(),
@@ -28,13 +31,34 @@ class MyQRCodeController extends GetxController {
   }
 
   Future<void> shareProfile() async {
-    String profileLink =
-        'https://turqapp.com/user/${user.userID.value}'; // Dinamik hale getirilebilir
-    await SharePlus.instance.share(ShareParams(text: profileLink));
+    await ShareActionGuard.run(() async {
+      final slug = user.nickname.value.trim().toLowerCase();
+      final result = await _shortLinkService.upsertUser(
+        userId: user.userID.value,
+        slug: slug.isEmpty ? user.userID.value : slug,
+        title: '@${user.nickname.value} - TurqApp',
+        desc: 'TurqApp profilini görüntüle',
+        imageUrl: user.pfImage.value,
+      );
+      final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
+          ? (result['url'] ?? '').toString().trim()
+          : 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
+      await SharePlus.instance.share(ShareParams(text: profileLink));
+    });
   }
 
   Future<void> copyLink() async {
-    String profileLink = 'https://turqapp.com/user/${user.userID.value}';
+    final slug = user.nickname.value.trim().toLowerCase();
+    final result = await _shortLinkService.upsertUser(
+      userId: user.userID.value,
+      slug: slug.isEmpty ? user.userID.value : slug,
+      title: '@${user.nickname.value} - TurqApp',
+      desc: 'TurqApp profilini görüntüle',
+      imageUrl: user.pfImage.value,
+    );
+    final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
+        ? (result['url'] ?? '').toString().trim()
+        : 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
     await Clipboard.setData(ClipboardData(text: profileLink));
     AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
   }
