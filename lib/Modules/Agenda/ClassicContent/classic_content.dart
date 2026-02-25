@@ -499,9 +499,14 @@ class _ClassicContentState extends State<ClassicContent>
                 children: [
                   AspectRatio(
                     aspectRatio: _contentAspectRatio,
-                    child: Container(
-                      color: Colors.black,
-                    ),
+                    child: widget.model.thumbnail.isNotEmpty
+                        ? Image.network(
+                            widget.model.thumbnail,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Container(color: const Color(0xFFE8E8E8)),
+                          )
+                        : Container(color: const Color(0xFFE8E8E8)),
                   ),
 
                   // 2. Video Player üstte ve tam örtülü
@@ -531,7 +536,7 @@ class _ClassicContentState extends State<ClassicContent>
                   AspectRatio(
                     aspectRatio: _contentAspectRatio,
                     child: Container(
-                      color: Colors.black,
+                      color: const Color(0xFFE8E8E8),
                       child: widget.model.thumbnail.isEmpty
                           ? null
                           : Image.network(

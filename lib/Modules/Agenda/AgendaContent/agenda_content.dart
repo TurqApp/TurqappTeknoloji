@@ -282,7 +282,18 @@ class _AgendaContentState extends State<AgendaContent>
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Container(color: Colors.black),
+                            // Thumbnail arka plan (video yüklenene kadar görünür)
+                            if (widget.model.thumbnail.isNotEmpty)
+                              Positioned.fill(
+                                child: Image.network(
+                                  widget.model.thumbnail,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      Container(color: const Color(0xFFE8E8E8)),
+                                ),
+                              )
+                            else
+                              Container(color: const Color(0xFFE8E8E8)),
                             // Video
                             SizedBox.expand(
                               child: GestureDetector(

@@ -4,11 +4,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/message_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 
@@ -80,6 +82,7 @@ class ChatView extends StatelessWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.deferToChild,
               onLongPress: () {
+                if (controller.focus.hasFocus) return;
                 FocusScope.of(context).unfocus();
                 _showBackgroundPalette(context);
               },
@@ -96,17 +99,21 @@ class ChatView extends StatelessWidget {
                               reverse: true,
                               controller: controller.scrollController,
                               padding: const EdgeInsets.only(bottom: 10),
-                              itemCount: controller.messages.isEmpty
+                              itemCount: controller.filteredMessages.isEmpty
                                   ? 1
-                                  : controller.messages.length +
+                                  : controller.filteredMessages.length +
                                       1 +
-                                      ((controller.hasMoreOlder.value ||
-                                              controller.isLoadingOlder.value)
+                                      ((!controller.showStarredOnly.value &&
+                                              (controller.hasMoreOlder.value ||
+                                                  controller
+                                                      .isLoadingOlder.value))
                                           ? 1
                                           : 0),
                               itemBuilder: (context, index) {
-                                if (controller.messages.isNotEmpty &&
-                                    index == controller.messages.length) {
+                                final displayMessages =
+                                    controller.filteredMessages;
+                                if (displayMessages.isNotEmpty &&
+                                    index == displayMessages.length) {
                                   return Obx(
                                     () => controller.isLoadingOlder.value
                                         ? const Padding(
@@ -122,27 +129,48 @@ class ChatView extends StatelessWidget {
                                   );
                                 }
 
-                                final introIndex = controller.messages.isEmpty
+                                final introIndex = displayMessages.isEmpty
                                     ? 0
-                                    : controller.messages.length +
-                                        ((controller.hasMoreOlder.value ||
-                                                controller.isLoadingOlder.value)
+                                    : displayMessages.length +
+                                        ((!controller.showStarredOnly.value &&
+                                                (controller
+                                                        .hasMoreOlder.value ||
+                                                    controller
+                                                        .isLoadingOlder.value))
                                             ? 1
                                             : 0);
                                 final isIntroItem = index == introIndex;
                                 if (isIntroItem) {
+                                  if (controller.showStarredOnly.value) {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 20),
+                                      child: Center(
+                                        child: Text(
+                                          displayMessages.isEmpty
+                                              ? "Yıldızlı mesaj yok"
+                                              : "",
+                                          style: const TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 14,
+                                            fontFamily: "MontserratMedium",
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
                                   return _buildProfileIntro(
                                     bottomSpacing: const SizedBox(height: 24),
                                   );
                                 }
-                                final message = controller.messages[index];
+                                final message = displayMessages[index];
                                 final isLast = index == 0;
                                 final shouldShowDateSeparator =
-                                    index == controller.messages.length - 1 ||
+                                    index == displayMessages.length - 1 ||
                                         !_isSameDay(
                                           message.timeStamp.toInt(),
-                                          controller
-                                              .messages[index + 1].timeStamp
+                                          displayMessages[index + 1]
+                                              .timeStamp
                                               .toInt(),
                                         );
                                 final dateSeparatorText =
@@ -658,13 +686,21 @@ class ChatView extends StatelessWidget {
                 ),
               ),
             ),
-            GestureDetector(
-              onTap: controller.openCustomCameraCapture,
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(CupertinoIcons.camera, color: Colors.black),
-              ),
-            ),
+            Obx(() => GestureDetector(
+                  onTap: controller.toggleStarredFilter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      controller.showStarredOnly.value
+                          ? CupertinoIcons.star_fill
+                          : CupertinoIcons.star,
+                      color: controller.showStarredOnly.value
+                          ? Colors.amber
+                          : Colors.black,
+                      size: 22,
+                    ),
+                  ),
+                )),
           ],
         ),
       );
@@ -816,377 +852,239 @@ class ChatView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: SafeArea(
-        child: Obx(() {
-          if (controller.isSelectionMode.value) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.black12),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: controller.selectedMessageIds.isEmpty
-                        ? null
-                        : controller.deleteSelectedMessages,
-                    icon: const Icon(CupertinoIcons.trash, color: Colors.black),
-                  ),
-                  const Spacer(),
-                  Text(
-                    "${controller.selectedMessageIds.length} Mesaj Seçildi",
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      fontFamily: "MontserratMedium",
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Selection mode bar
+            Obx(() {
+              if (!controller.isSelectionMode.value) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.black12),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: controller.selectedMessageIds.isEmpty
+                          ? null
+                          : controller.deleteSelectedMessages,
+                      icon:
+                          const Icon(CupertinoIcons.trash, color: Colors.black),
                     ),
-                  ),
-                ],
-              ),
-            );
-          }
-          // Recording UI
-          if (controller.isRecording.value) {
-            return _buildRecordingRow();
-          }
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Obx(() {
-                final editing = controller.editingMessage.value;
-                final replying = controller.replyingTo.value;
-                if (editing == null && replying == null) {
-                  return const SizedBox.shrink();
-                }
-                late final bool previewIsVideo;
-                late final bool previewIsImage;
-                late final bool previewIsAudio;
-                late final bool previewIsLocation;
-                late final bool previewIsPost;
-                late final bool previewIsContact;
-                late final String previewThumb;
-                late final String previewLabel;
-                late final String previewText;
+                    const Spacer(),
+                    Text(
+                      "${controller.selectedMessageIds.length} Mesaj Seçildi",
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            // Recording bar
+            Obx(() {
+              if (!controller.isRecording.value) {
+                return const SizedBox.shrink();
+              }
+              return _buildRecordingRow();
+            }),
+            // Reply/edit preview
+            Obx(() {
+              if (controller.isSelectionMode.value ||
+                  controller.isRecording.value) {
+                return const SizedBox.shrink();
+              }
+              final editing = controller.editingMessage.value;
+              final replying = controller.replyingTo.value;
+              if (editing == null && replying == null) {
+                return const SizedBox.shrink();
+              }
+              late final bool previewIsVideo;
+              late final bool previewIsImage;
+              late final bool previewIsAudio;
+              late final bool previewIsLocation;
+              late final bool previewIsPost;
+              late final bool previewIsContact;
+              late final String previewThumb;
+              late final String previewLabel;
+              late final String previewText;
 
-                if (editing != null) {
-                  previewIsVideo = false;
-                  previewIsImage = false;
-                  previewIsAudio = false;
-                  previewIsLocation = false;
-                  previewIsPost = false;
-                  previewIsContact = false;
-                  previewThumb = "";
-                  previewLabel = "Mesaj düzenleniyor";
-                  previewText = editing.metin;
-                } else {
-                  final replyModel = replying!;
-                  previewIsVideo = replyModel.video.isNotEmpty;
-                  previewIsImage =
-                      replyModel.video.isEmpty && replyModel.imgs.isNotEmpty;
-                  previewIsAudio = replyModel.sesliMesaj.isNotEmpty;
-                  previewIsLocation =
-                      replyModel.lat != 0 || replyModel.long != 0;
-                  previewIsPost = replyModel.postID.trim().isNotEmpty;
-                  previewIsContact = replyModel.kisiAdSoyad.trim().isNotEmpty;
-                  previewThumb = previewIsImage
-                      ? replyModel.imgs.first
-                      : (previewIsVideo ? replyModel.videoThumbnail : "");
-                  previewLabel = previewIsVideo
-                      ? "Video"
-                      : previewIsImage
-                          ? "Fotoğraf"
-                          : previewIsAudio
-                              ? "Ses"
-                              : previewIsLocation
-                                  ? "Konum"
-                                  : previewIsPost
-                                      ? "Gönderi"
-                                      : previewIsContact
-                                          ? "Kişi"
-                                          : "Yanıt";
-                  previewText = replyModel.metin.trim().isNotEmpty
-                      ? replyModel.metin
-                      : previewLabel;
-                }
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 3,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade700,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
+              if (editing != null) {
+                previewIsVideo = false;
+                previewIsImage = false;
+                previewIsAudio = false;
+                previewIsLocation = false;
+                previewIsPost = false;
+                previewIsContact = false;
+                previewThumb = "";
+                previewLabel = "Mesaj düzenleniyor";
+                previewText = editing.metin;
+              } else {
+                final replyModel = replying!;
+                previewIsVideo = replyModel.video.isNotEmpty;
+                previewIsImage =
+                    replyModel.video.isEmpty && replyModel.imgs.isNotEmpty;
+                previewIsAudio = replyModel.sesliMesaj.isNotEmpty;
+                previewIsLocation = replyModel.lat != 0 || replyModel.long != 0;
+                previewIsPost = replyModel.postID.trim().isNotEmpty;
+                previewIsContact = replyModel.kisiAdSoyad.trim().isNotEmpty;
+                previewThumb = previewIsImage
+                    ? replyModel.imgs.first
+                    : (previewIsVideo ? replyModel.videoThumbnail : "");
+                previewLabel = previewIsVideo
+                    ? "Video"
+                    : previewIsImage
+                        ? "Fotoğraf"
+                        : previewIsAudio
+                            ? "Ses"
+                            : previewIsLocation
+                                ? "Konum"
+                                : previewIsPost
+                                    ? "Gönderi"
+                                    : previewIsContact
+                                        ? "Kişi"
+                                        : "Yanıt";
+                previewText = replyModel.metin.trim().isNotEmpty
+                    ? replyModel.metin
+                    : previewLabel;
+              }
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 3,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade700,
+                        borderRadius: BorderRadius.circular(3),
                       ),
-                      const SizedBox(width: 8),
-                      if (previewThumb.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: SizedBox(
-                              width: 30,
-                              height: 30,
-                              child: CachedNetworkImage(
-                                imageUrl: previewThumb,
-                                fit: BoxFit.cover,
-                              ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (previewThumb.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: CachedNetworkImage(
+                              imageUrl: previewThumb,
+                              fit: BoxFit.cover,
                             ),
                           ),
-                        )
-                      else if (previewIsVideo)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            CupertinoIcons.play_circle_fill,
-                            color: Colors.black54,
-                            size: 16,
-                          ),
-                        )
-                      else if (previewIsAudio)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            CupertinoIcons.mic_fill,
-                            color: Colors.black54,
-                            size: 16,
-                          ),
-                        )
-                      else if (previewIsLocation)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            CupertinoIcons.location_fill,
-                            color: Colors.black54,
-                            size: 16,
-                          ),
-                        )
-                      else if (previewIsPost)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            CupertinoIcons.doc_fill,
-                            color: Colors.black54,
-                            size: 16,
-                          ),
-                        )
-                      else if (previewIsContact)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            CupertinoIcons.person_crop_circle_fill,
-                            color: Colors.black54,
-                            size: 16,
-                          ),
                         ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              previewLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 11,
-                                fontFamily: "MontserratSemiBold",
-                              ),
-                            ),
-                            Text(
-                              previewText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 11,
-                                fontFamily: "MontserratMedium",
-                              ),
-                            ),
-                          ],
+                      )
+                    else if (previewIsVideo)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          CupertinoIcons.play_circle_fill,
+                          color: Colors.black54,
+                          size: 16,
+                        ),
+                      )
+                    else if (previewIsAudio)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          CupertinoIcons.mic_fill,
+                          color: Colors.black54,
+                          size: 16,
+                        ),
+                      )
+                    else if (previewIsLocation)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          CupertinoIcons.location_fill,
+                          color: Colors.black54,
+                          size: 16,
+                        ),
+                      )
+                    else if (previewIsPost)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          CupertinoIcons.doc_fill,
+                          color: Colors.black54,
+                          size: 16,
+                        ),
+                      )
+                    else if (previewIsContact)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          CupertinoIcons.person_crop_circle_fill,
+                          color: Colors.black54,
+                          size: 16,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: controller.clearComposerAction,
-                        child: const Icon(CupertinoIcons.xmark, size: 16),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              Row(
-                children: [
-                  Expanded(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxHeight: 70,
-                        minHeight: 35,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(50)),
-                          border: Border.all(color: Colors.grey.withAlpha(70)),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Obx(
-                          () => TextField(
-                            focusNode: controller.focus,
-                            controller: controller.textEditingController,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: controller.editingMessage.value != null
-                                  ? "Mesajı düzenle"
-                                  : "Mesaj",
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 15,
-                                fontFamily: "Montserrat",
-                              ),
-                              isCollapsed: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 5),
-                            ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            previewLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
+                              color: Colors.black87,
+                              fontSize: 11,
+                              fontFamily: "MontserratSemiBold",
+                            ),
+                          ),
+                          Text(
+                            previewText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 11,
                               fontFamily: "MontserratMedium",
                             ),
-                            onChanged: (val) {
-                              controller.textMesage.value = val;
-                            },
                           ),
-                        ),
+                        ],
                       ),
                     ),
+                    GestureDetector(
+                      onTap: controller.clearComposerAction,
+                      child: const Icon(CupertinoIcons.xmark, size: 16),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            // TextField satırı - Offstage ile gizlenir ama ASLA tree'den çıkmaz
+            Obx(() => Offstage(
+                  offstage: controller.isSelectionMode.value ||
+                      controller.isRecording.value,
+                  child: _ChatTextField(
+                    key: const ValueKey('chat_text_field'),
+                    focusNode: controller.focus,
+                    textController: controller.textEditingController,
+                    controller: controller,
                   ),
-                  SizedBox(width: 7),
-                  Obx(() {
-                    // Uploading state (video, voice, image)
-                    if (controller.isUploading.value) {
-                      return SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: Center(
-                          child: CupertinoActivityIndicator(
-                            color: Colors.black,
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        if (controller.textMesage.value != "" ||
-                            controller.images.isNotEmpty ||
-                            controller.pendingVideo.value != null ||
-                            controller.editingMessage.value != null)
-                          if (controller.uploadPercent.value != 0 &&
-                              controller.uploadPercent.value != 100)
-                            SizedBox(
-                              width: 35,
-                              height: 35,
-                              child: Center(
-                                child: CupertinoActivityIndicator(
-                                  color: Colors.black,
-                                ),
-                              ),
-                            )
-                          else
-                            GestureDetector(
-                              onTap: () {
-                                if (controller.pendingVideo.value != null) {
-                                  controller.uploadPendingVideoToStorage();
-                                } else if (controller.images.isNotEmpty ||
-                                    controller.selection.value == 1) {
-                                  controller.uploadImageToStorage();
-                                } else {
-                                  controller.sendMessage();
-                                }
-                              },
-                              child: Container(
-                                width: 35,
-                                height: 35,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(50),
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.send,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            )
-                        else
-                          Row(
-                            children: [
-                              IconButton(
-                                onPressed: () {
-                                  controller.startVoiceRecording();
-                                },
-                                icon: const Icon(CupertinoIcons.mic,
-                                    color: Colors.black, size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 26, minHeight: 26),
-                              ),
-                              IconButton(
-                                onPressed: controller.pickImage,
-                                icon: const Icon(
-                                    CupertinoIcons.photo_on_rectangle,
-                                    color: Colors.black,
-                                    size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 26, minHeight: 26),
-                              ),
-                              IconButton(
-                                onPressed: controller.pickVideo,
-                                icon: const Icon(CupertinoIcons.play_circle,
-                                    color: Colors.black, size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 26, minHeight: 26),
-                              ),
-                              IconButton(
-                                onPressed: () {
-                                  Get.to(() => LocationShareViewChat(
-                                        chatID: controller.chatID,
-                                      ));
-                                },
-                                icon: const Icon(CupertinoIcons.location,
-                                    color: Colors.black, size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 26, minHeight: 26),
-                              ),
-                            ],
-                          ),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-            ],
-          );
-        }),
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -1252,6 +1150,231 @@ class ChatView extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// TextField'i tüm Obx/reactive state'ten tamamen izole eden StatefulWidget.
+class _ChatTextField extends StatefulWidget {
+  final FocusNode focusNode;
+  final TextEditingController textController;
+  final ChatController controller;
+
+  const _ChatTextField({
+    super.key,
+    required this.focusNode,
+    required this.textController,
+    required this.controller,
+  });
+
+  @override
+  State<_ChatTextField> createState() => _ChatTextFieldState();
+}
+
+class _ChatTextFieldState extends State<_ChatTextField> {
+  final GlobalKey _plusButtonKey = GlobalKey();
+
+  Future<void> _showAttachmentMenu() async {
+    final box = _plusButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+
+    final buttonRect = Rect.fromPoints(
+      box.localToGlobal(Offset.zero, ancestor: overlay),
+      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
+    );
+    final position = Rect.fromCenter(
+      center: buttonRect.center.translate(0, -4),
+      width: 2,
+      height: 2,
+    );
+
+    await showPullDownMenu(
+      context: context,
+      position: position,
+      items: [
+        PullDownMenuItem(
+          title: "Fotoğraflar",
+          icon: CupertinoIcons.photo_on_rectangle,
+          onTap: widget.controller.pickImage,
+        ),
+        PullDownMenuItem(
+          title: "Videolar",
+          icon: AppIcons.playFilled,
+          onTap: widget.controller.pickVideo,
+        ),
+        PullDownMenuItem(
+          title: "Konum",
+          icon: AppIcons.locationSolid,
+          onTap: () {
+            Get.to(
+                () => LocationShareViewChat(chatID: widget.controller.chatID));
+          },
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, top: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // + butonu (attachment menü)
+          GestureDetector(
+            onTap: _showAttachmentMenu,
+            child: Container(
+              key: _plusButtonKey,
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 2),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.grey.withAlpha(40),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(CupertinoIcons.add,
+                  color: Colors.black87, size: 22),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // TextField (pill shape)
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.withAlpha(30),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      focusNode: widget.focusNode,
+                      controller: widget.textController,
+                      textCapitalization: TextCapitalization.sentences,
+                      enableInteractiveSelection: true,
+                      minLines: 1,
+                      maxLines: 4,
+                      keyboardType: TextInputType.multiline,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: "Mesaj",
+                        hintStyle: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                          fontFamily: "Montserrat",
+                        ),
+                        contentPadding: EdgeInsets.symmetric(vertical: 9),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Kamera butonu
+          GestureDetector(
+            onTap: widget.controller.openCustomCameraCapture,
+            child: Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 2),
+              alignment: Alignment.center,
+              child: const Icon(CupertinoIcons.camera,
+                  color: Colors.black87, size: 22),
+            ),
+          ),
+          const SizedBox(width: 2),
+          // Mic / Send butonu
+          _ChatTrailingButton(controller: widget.controller),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sağ taraftaki buton: Mic veya Send
+class _ChatTrailingButton extends StatelessWidget {
+  final ChatController controller;
+  const _ChatTrailingButton({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (controller.isUploading.value) {
+        return Container(
+          width: 36,
+          height: 36,
+          margin: const EdgeInsets.only(bottom: 2),
+          alignment: Alignment.center,
+          child: const CupertinoActivityIndicator(color: Colors.black),
+        );
+      }
+
+      final hasContent = controller.textMesage.value != "" ||
+          controller.images.isNotEmpty ||
+          controller.pendingVideo.value != null ||
+          controller.editingMessage.value != null;
+
+      if (hasContent) {
+        if (controller.uploadPercent.value != 0 &&
+            controller.uploadPercent.value != 100) {
+          return Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(bottom: 2),
+            alignment: Alignment.center,
+            child: const CupertinoActivityIndicator(color: Colors.black),
+          );
+        }
+        return GestureDetector(
+          onTap: () {
+            if (controller.pendingVideo.value != null) {
+              controller.uploadPendingVideoToStorage();
+            } else if (controller.images.isNotEmpty ||
+                controller.selection.value == 1) {
+              controller.uploadImageToStorage();
+            } else {
+              controller.sendMessage();
+            }
+          },
+          child: Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.only(bottom: 2),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.send, color: Colors.white, size: 18),
+          ),
+        );
+      }
+
+      return GestureDetector(
+        onTap: controller.startVoiceRecording,
+        child: Container(
+          width: 36,
+          height: 36,
+          margin: const EdgeInsets.only(bottom: 2),
+          alignment: Alignment.center,
+          child:
+              const Icon(CupertinoIcons.mic, color: Colors.black87, size: 22),
+        ),
+      );
+    });
   }
 }
 

@@ -7,7 +7,8 @@ import "package:turqappv2/Modules/Chat/CreateChat/create_chat_controller.dart";
 
 class CreateChatContent extends StatelessWidget {
   final String userID;
-  CreateChatContent({super.key, required this.userID});
+  final VoidCallback? onTap;
+  CreateChatContent({super.key, required this.userID, this.onTap});
 
   late final CreateChatContentController controller;
   final cont = Get.find<CreateChatController>();
@@ -23,11 +24,8 @@ class CreateChatContent extends StatelessWidget {
         children: [
           TextButton(
             onPressed: () {
-              if (cont.selected.value != "") {
-                cont.selected.value = "";
-              } else {
-                cont.selected.value = userID;
-              }
+              cont.selected.value = userID;
+              onTap?.call();
             },
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: Container(

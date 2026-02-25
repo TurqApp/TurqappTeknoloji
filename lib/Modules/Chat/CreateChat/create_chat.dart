@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
@@ -47,7 +46,8 @@ class CreateChat extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: TextField(
-                      controller: followersFollowing.searchTakipciController,
+                      controller:
+                          followersFollowing.searchTakipEdilenController,
                       decoration: InputDecoration(
                         icon: Icon(
                           CupertinoIcons.search,
@@ -78,52 +78,39 @@ class CreateChat extends StatelessWidget {
                   crossAxisSpacing: 10,
                   childAspectRatio: 0.8,
                 ),
-                itemCount: followersFollowing.takipciler.length,
+                itemCount: followersFollowing.takipEdilenler.length,
                 itemBuilder: (context, index) {
+                  final selectedUserId =
+                      followersFollowing.takipEdilenler[index];
                   return CreateChatContent(
-                    userID: followersFollowing.takipciler[index],
-                  );
-                },
-              )),
-              if (controllerr.selected.value != "")
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: TurqAppButton(
-                    onTap: () {
-                      //its create new chat or actual chat continue
+                    userID: selectedUserId,
+                    onTap: () async {
                       final sohbet =
                           chatListingController.list.firstWhereOrNull(
-                        (val) => val.userID == controllerr.selected.value,
+                        (val) => val.userID == selectedUserId,
                       );
-
                       if (sohbet != null) {
-                        // Sohbet zaten varsa: mevcut chatID'yi kullan
-                        Get.to(() => ChatView(
+                        await Get.to(() => ChatView(
                               chatID: sohbet.chatID,
-                              userID: controllerr.selected.value,
+                              userID: selectedUserId,
                               isNewChat: false,
                             ));
                       } else {
                         final chatId = buildConversationId(
                           FirebaseAuth.instance.currentUser!.uid,
-                          controllerr.selected.value,
+                          selectedUserId,
                         );
-                        Get.to(() => ChatView(
+                        await Get.to(() => ChatView(
                               chatID: chatId,
-                              userID: controllerr.selected.value,
+                              userID: selectedUserId,
                               isNewChat: true,
                             ));
-                        chatListingController.getList();
                       }
+                      await chatListingController.getList();
                     },
-                    text: chatListingController.list.firstWhereOrNull(
-                              (val) => val.userID == controllerr.selected.value,
-                            ) !=
-                            null
-                        ? "Sohbete Devam Et"
-                        : "Yeni Sohbet Oluştur",
-                  ),
-                )
+                  );
+                },
+              )),
             ],
           );
         }),

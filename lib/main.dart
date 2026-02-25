@@ -261,13 +261,10 @@ class MyApp extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Listener(
+                  GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onPointerDown: (_) {
-                      final currentFocus = FocusScope.of(ctx);
-                      if (!currentFocus.hasPrimaryFocus) {
-                        currentFocus.unfocus();
-                      }
+                    onTap: () {
+                      FocusManager.instance.primaryFocus?.unfocus();
                     },
                     child: child ?? const SizedBox.shrink(),
                   ),

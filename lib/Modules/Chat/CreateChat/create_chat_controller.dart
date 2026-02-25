@@ -15,12 +15,12 @@ class CreateChatController extends GetxController {
       final q = val.trim().toLowerCase();
       if (!Get.isRegistered<FollowingFollowersController>()) return;
       final followers = Get.find<FollowingFollowersController>();
-      followers.searchTakipciController.text = q;
+      followers.searchTakipEdilenController.text = q;
       if (q.length >= 2) {
-        await followers.searchTakipci();
+        await followers.searchTakipEdilenler();
       } else {
         // kısa sorguda başlangıç listesini geri yükle
-        await followers.getFollowers();
+        await followers.getFollowing(initial: true);
       }
     }, time: const Duration(milliseconds: 300));
   }

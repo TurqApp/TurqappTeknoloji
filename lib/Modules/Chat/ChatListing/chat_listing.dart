@@ -92,21 +92,22 @@ class ChatListing extends StatelessWidget {
                     ),
                   ),
                   SizedBox(
-                    width: 68,
+                    width: 34,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Icon(CupertinoIcons.camera, size: 22),
-                        const SizedBox(width: 10),
-                        Container(
-                          width: 26,
-                          height: 26,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF23C15F),
-                            shape: BoxShape.circle,
+                        GestureDetector(
+                          onTap: controller.showCreateChatBottomSheet,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF23C15F),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(CupertinoIcons.add,
+                                size: 16, color: Colors.white),
                           ),
-                          child: const Icon(CupertinoIcons.add,
-                              size: 16, color: Colors.white),
                         ),
                       ],
                     ),

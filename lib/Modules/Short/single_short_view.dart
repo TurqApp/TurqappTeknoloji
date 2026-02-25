@@ -565,14 +565,13 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       // Başlangıç pozisyonu sadece ilk video için uygulanır
       if (_initialIndexForSeek != null &&
           index == _initialIndexForSeek &&
-          widget.initialPosition != null) {
+          widget.initialPosition != null &&
+          widget.initialPosition! > Duration.zero) {
+        // Controller henüz initialize olmadığı için duration 0 olabilir.
+        // Pozisyonu doğrudan kuyruğa al, adapter view ready olunca uygular.
         final pos = widget.initialPosition!;
-        final total = ctrl.value.duration;
-        final safePos =
-            pos > total ? total : (pos.isNegative ? Duration.zero : pos);
-        ctrl.seekTo(safePos).then((_) {
-          if (mounted && index == currentPage) ctrl.play();
-        });
+        ctrl.seekTo(pos);
+        ctrl.play();
       } else {
         ctrl.play();
       }

@@ -2,12 +2,13 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
 import 'package:turqappv2/Modules/Chat/chat_controller.dart';
@@ -15,7 +16,11 @@ import 'package:turqappv2/Modules/Chat/MessageContent/message_content_controller
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import '../../../Core/Helpers/ImagePreview/image_preview.dart';
+import '../../Agenda/TagPosts/tag_posts.dart';
 import '../../Explore/explore_controller.dart';
+import '../../SocialProfile/social_profile.dart';
+
+part 'message_content_reply_parts.dart';
 
 class MessageContent extends StatelessWidget {
   final String mainID;
@@ -121,7 +126,7 @@ class MessageContent extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.black54,
                       fontSize: 12,
-                      fontFamily: "MontserratMedium",
+                      fontFamily: "Montserrat",
                     ),
                   ),
                 ),
@@ -144,161 +149,136 @@ class MessageContent extends StatelessWidget {
 
   Widget messageBubble() {
     final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
-    return Row(
+    final bubbleColor = isMine ? const Color(0xFFE7FFDB) : Colors.white;
+    final hasReactions = model.reactions.entries
+        .where((e) => e.value.isNotEmpty)
+        .isNotEmpty;
+    return Padding(
+      padding: EdgeInsets.only(bottom: hasReactions ? 14 : 0),
+      child: Row(
       mainAxisAlignment:
           isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
         Flexible(
-          child: Column(
-            crossAxisAlignment:
-                isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {},
-                onTapDown: _captureTapDown,
-                onDoubleTap: () {
-                  controller.likeImage();
-                },
-                onLongPressStart: _openMenuFromLongPressStart,
-                child: Container(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            onTapDown: _captureTapDown,
+            onDoubleTap: () {
+              controller.likeImage();
+            },
+            onLongPressStart: _openMenuFromLongPressStart,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
                   constraints: BoxConstraints(
-                    maxWidth: Get.width * 0.74,
+                    maxWidth: Get.width * 0.78,
                   ),
+                  padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
                   decoration: BoxDecoration(
-                    color: isMine ? const Color(0xFFDCF8C6) : Colors.white,
+                    color: bubbleColor,
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isMine ? 16 : 4),
-                      bottomRight: Radius.circular(isMine ? 4 : 16),
-                    ),
-                    border: Border.all(
-                      color:
-                          isMine ? Colors.transparent : const Color(0xFFEAEAEA),
+                      topLeft: Radius.circular(isMine ? 18 : 4),
+                      topRight: Radius.circular(isMine ? 4 : 18),
+                      bottomLeft: const Radius.circular(18),
+                      bottomRight: const Radius.circular(18),
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x12000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
+                        color: Color(0x0A000000),
+                        blurRadius: 3,
+                        offset: Offset(0, 1),
                       )
                     ],
                   ),
-                  child: Stack(
-                    alignment: Alignment.topRight,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 10,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (model.replyText.isNotEmpty) _buildReplyCard(),
-                            if (model.isForwarded)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 3),
-                                child: Text(
+                  child: IntrinsicWidth(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (model.replyMessageId.trim().isNotEmpty ||
+                            model.replyText.trim().isNotEmpty)
+                          _buildReplyCard(),
+                        if (model.isForwarded)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                    CupertinoIcons
+                                        .arrowshape_turn_up_right_fill,
+                                    size: 11,
+                                    color: Colors.black45),
+                                const SizedBox(width: 3),
+                                Text(
                                   "İletildi",
                                   style: TextStyle(
-                                    color: Colors.black54,
+                                    color: Colors.black45,
                                     fontSize: 11,
-                                    fontFamily: "MontserratMedium",
+                                    fontStyle: FontStyle.italic,
+                                    fontFamily: "Montserrat",
                                   ),
-                                ),
-                              ),
-                            Text(
-                              model.isUnsent
-                                  ? "Mesaj geri alındı"
-                                  : model.metin,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                                decoration: model.lat != 0
-                                    ? TextDecoration.underline
-                                    : TextDecoration.none,
-                                decorationColor: Colors.white,
-                                decorationThickness: 1.5,
-                              ),
-                            ),
-                            if (model.isEdited)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  "düzenlendi",
-                                  style: TextStyle(
-                                    color: Colors.black54,
-                                    fontSize: 10,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 5),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (isMine) ...[
-                                    _buildStatusTicks(
-                                      readColor: Colors.black54,
-                                      defaultColor: Colors.black54,
-                                      size: 9,
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Text(
-                                    _formatHourMinute(model.timeStamp),
-                                    style: const TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 10,
-                                      fontFamily: "Montserrat",
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (model.begeniler
-                          .contains(FirebaseAuth.instance.currentUser!.uid))
-                        Transform.translate(
-                          offset: Offset(10, -10),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: 0.1), // Gölge rengi
-                                  spreadRadius: 1, // Yayılma
-                                  blurRadius: 6, // Yumuşaklık
-                                  offset: Offset(0, 2), // Dikey konum
                                 ),
                               ],
                             ),
-                            child: Icon(
-                              CupertinoIcons.hand_thumbsup_fill,
-                              color: Colors.blueAccent,
-                              size: 15,
-                            ),
                           ),
-                        )
-                    ],
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Flexible(child: _buildMessageText()),
+                            const SizedBox(width: 6),
+                            _buildMessageMetaRow(isMine),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+                // Beğeni ikonu - sağ üst
+                if (model.begeniler
+                    .contains(FirebaseAuth.instance.currentUser!.uid))
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.hand_thumbsup_fill,
+                        color: Colors.blueAccent,
+                        size: 13,
+                      ),
+                    ),
+                  ),
+                // Reaksiyonlar - alt
+                if (model.reactions.entries
+                    .where((e) => e.value.isNotEmpty)
+                    .isNotEmpty)
+                  Positioned(
+                    bottom: -14,
+                    right: 4,
+                    child: _reactionBadges(),
+                  ),
+              ],
+            ),
           ),
         ),
       ],
+    ),
     );
   }
 
@@ -399,7 +379,6 @@ class MessageContent extends StatelessWidget {
                           controller.likeImage();
                         },
                         child: Stack(
-                          alignment: Alignment.topRight,
                           children: [
                             Container(
                               decoration: BoxDecoration(
@@ -409,7 +388,7 @@ class MessageContent extends StatelessWidget {
                                     color: Colors.black.withValues(alpha: 0.15),
                                     spreadRadius: 1,
                                     blurRadius: 10,
-                                    offset: Offset(0, 4), // gölge yönü
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
@@ -429,29 +408,28 @@ class MessageContent extends StatelessWidget {
                             ),
                             if (model.begeniler.contains(
                                 FirebaseAuth.instance.currentUser!.uid))
-                              Transform.translate(
-                                offset: Offset(10, -10),
+                              Positioned(
+                                top: -4,
+                                right: -4,
                                 child: Container(
-                                  width: 30,
-                                  height: 30,
+                                  width: 26,
+                                  height: 26,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(
-                                            alpha: 0.1), // Gölge rengi
-                                        spreadRadius: 1, // Yayılma
-                                        blurRadius: 6, // Yumuşaklık
-                                        offset: Offset(0, 2), // Dikey konum
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     CupertinoIcons.hand_thumbsup_fill,
                                     color: Colors.blueAccent,
-                                    size: 15,
+                                    size: 13,
                                   ),
                                 ),
                               ),
@@ -530,7 +508,7 @@ class MessageContent extends StatelessWidget {
                                 style: TextStyle(
                                   color: Colors.blueAccent,
                                   fontSize: 12,
-                                  fontFamily: "MontserratMedium",
+                                  fontFamily: "Montserrat",
                                 ),
                               ),
                             ),
@@ -649,7 +627,7 @@ class MessageContent extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.black,
                           fontSize: 15,
-                          fontFamily: "MontserratMedium",
+                          fontFamily: "Montserrat",
                         ),
                       ),
                       SizedBox(
@@ -670,7 +648,7 @@ class MessageContent extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.blue,
                             fontSize: 13,
-                            fontFamily: "MontserratMedium",
+                            fontFamily: "Montserrat",
                           ),
                         ),
                       ),
@@ -775,6 +753,7 @@ class MessageContent extends StatelessWidget {
   Widget timeBar() {
     if (model.video.isNotEmpty ||
         model.imgs.isNotEmpty ||
+        model.postID.isNotEmpty ||
         model.metin.isNotEmpty ||
         model.isUnsent) {
       return const SizedBox.shrink();
@@ -793,24 +772,24 @@ class MessageContent extends StatelessWidget {
             mainAxisAlignment:
                 model.userID == FirebaseAuth.instance.currentUser!.uid
                     ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
+                    : MainAxisAlignment.end,
             children: [
-              if (model.userID == FirebaseAuth.instance.currentUser!.uid)
-                Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: _buildStatusTicks(
-                      readColor: Colors.black54,
-                      defaultColor: Colors.black54,
-                      size: 9,
-                    )),
               Text(
                 _formatHourMinute(model.timeStamp),
-                style: TextStyle(
-                  color: Colors.black,
+                style: const TextStyle(
+                  color: Colors.black45,
                   fontSize: 10,
                   fontFamily: "Montserrat",
                 ),
               ),
+              if (model.userID == FirebaseAuth.instance.currentUser!.uid) ...[
+                const SizedBox(width: 3),
+                _buildStatusTicks(
+                  readColor: const Color(0xFF53BDEB),
+                  defaultColor: Colors.black54,
+                  size: 12,
+                ),
+              ],
             ],
           ),
         ),
@@ -844,7 +823,7 @@ class MessageContent extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontSize: 10,
-              fontFamily: "MontserratMedium",
+              fontFamily: "Montserrat",
             ),
           ),
         ],
@@ -857,32 +836,16 @@ class MessageContent extends StatelessWidget {
     Color? defaultColor,
     double size = 10,
   }) {
-    // New status field takes priority, fallback to legacy isRead
     final status = model.status;
     final bool isRead = status == "read" || (status.isEmpty && model.isRead);
-    final bool isDelivered = status == "delivered";
-    final bool showDoubleTick = isRead || isDelivered;
+    final Color tickColor = isRead
+        ? const Color(0xFF53BDEB)
+        : (defaultColor ?? Colors.black38);
 
-    final Color tickColor =
-        isRead ? (readColor ?? Colors.blue) : (defaultColor ?? Colors.grey);
-
-    return Row(
-      children: [
-        if (showDoubleTick)
-          Transform.translate(
-            offset: const Offset(7, 0),
-            child: Icon(
-              CupertinoIcons.checkmark,
-              color: tickColor,
-              size: size,
-            ),
-          ),
-        Icon(
-          CupertinoIcons.checkmark,
-          color: tickColor,
-          size: size,
-        ),
-      ],
+    return Icon(
+      CupertinoIcons.checkmark,
+      color: tickColor,
+      size: size,
     );
   }
 
@@ -893,9 +856,7 @@ class MessageContent extends StatelessWidget {
         .toList();
     if (entries.isEmpty) return const SizedBox.shrink();
     return Row(
-      mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: entries
           .map(
             (e) => Container(
@@ -911,7 +872,7 @@ class MessageContent extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 10,
-                  fontFamily: "MontserratMedium",
+                  fontFamily: "Montserrat",
                 ),
               ),
             ),
@@ -920,172 +881,112 @@ class MessageContent extends StatelessWidget {
     );
   }
 
-  String _replySenderLabel() {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
-    if (model.replySenderId.trim().isNotEmpty &&
-        model.replySenderId.trim() == currentUid) {
-      return "Siz";
-    }
-    final peer = chatController.nickname.value.trim();
-    return peer.isEmpty ? "TurqApp" : peer;
-  }
-
-  String _replyPreviewText() {
-    final text = model.replyText.trim();
-    if (text.isNotEmpty) return text;
-    switch (model.replyType.trim().toLowerCase()) {
-      case "media":
-        return "Fotoğraf";
-      case "video":
-        return "Video";
-      case "audio":
-        return "Ses";
-      case "location":
-        return "Konum";
-      case "post":
-        return "Gönderi";
-      default:
-        return "";
+  Future<void> _openMentionProfile(String mention) async {
+    final nick = mention.trim().replaceFirst('@', '');
+    if (nick.isEmpty) return;
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .where('nickname', isEqualTo: nick)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      Get.to(() => SocialProfile(userID: snap.docs.first.id));
     }
   }
 
-  Widget _buildReplyCard() {
-    final target = model.replyMessageId.trim();
-    final type = model.replyType.trim().toLowerCase();
-    final preview = _replyPreviewText();
-    final canOpenMedia =
-        (type == "media" || type == "video") && target.isNotEmpty;
+  List<InlineSpan> _buildInteractiveSpans(String text, TextStyle baseStyle) {
+    final spans = <InlineSpan>[];
+    final tokenRegex = RegExp(
+      r'((?:https?:\/\/|www\.)\S+|#[\wğüşöçıİĞÜŞÖÇ]+|@[\w.]+)',
+      unicode: true,
+      caseSensitive: false,
+    );
 
-    return GestureDetector(
-      onTap: canOpenMedia ? _openReplyTargetMedia : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 7),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 3,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A73E8),
-                borderRadius: BorderRadius.circular(2),
-              ),
+    var cursor = 0;
+    for (final m in tokenRegex.allMatches(text)) {
+      if (m.start > cursor) {
+        spans.add(
+          TextSpan(text: text.substring(cursor, m.start), style: baseStyle),
+        );
+      }
+
+      final token = m.group(0)!;
+      if (token.startsWith('#')) {
+        final clean = token.replaceFirst('#', '');
+        spans.add(
+          TextSpan(
+            text: token,
+            style: baseStyle.copyWith(color: Colors.blueAccent),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                if (clean.isNotEmpty) {
+                  Get.to(() => TagPosts(tag: clean));
+                }
+              },
+          ),
+        );
+      } else if (token.startsWith('@')) {
+        spans.add(
+          TextSpan(
+            text: token,
+            style: baseStyle.copyWith(color: Colors.blueAccent),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                _openMentionProfile(token);
+              },
+          ),
+        );
+      } else {
+        final normalized = token.startsWith('http') ? token : 'https://$token';
+        spans.add(
+          TextSpan(
+            text: token,
+            style: baseStyle.copyWith(
+              color: Colors.blueAccent,
+              decoration: TextDecoration.underline,
             ),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _replySenderLabel(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF0D5AA7),
-                      fontSize: 12,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  if (preview.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Text(
-                        preview,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 12,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (target.isNotEmpty) ...[
-              const SizedBox(width: 6),
-              _buildReplyTrailing(type, target),
-            ],
-          ],
-        ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                RedirectionLink().goToLink(normalized);
+              },
+          ),
+        );
+      }
+      cursor = m.end;
+    }
+
+    if (cursor < text.length) {
+      spans.add(TextSpan(text: text.substring(cursor), style: baseStyle));
+    }
+    if (spans.isEmpty) {
+      spans.add(TextSpan(text: text, style: baseStyle));
+    }
+    return spans;
+  }
+
+  Widget _buildMessageText() {
+    final baseStyle = TextStyle(
+      color: model.isUnsent ? Colors.black38 : Colors.black,
+      fontSize: 13,
+      fontStyle: model.isUnsent ? FontStyle.italic : FontStyle.normal,
+      fontFamily: "Montserrat",
+      height: 1.5,
+      decoration:
+          model.lat != 0 ? TextDecoration.underline : TextDecoration.none,
+      decorationColor: Colors.white,
+      decorationThickness: 1.5,
+    );
+
+    if (model.isUnsent) {
+      return Text("Mesaj geri alındı", style: baseStyle);
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: _buildInteractiveSpans(model.metin, baseStyle),
       ),
     );
-  }
-
-  Widget _buildReplyTrailing(String type, String target) {
-    Widget iconTile(IconData icon) {
-      return Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.black12,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 16,
-          color: Colors.black54,
-        ),
-      );
-    }
-
-    if (type == "media") {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: CachedNetworkImage(
-            imageUrl: target,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => iconTile(CupertinoIcons.photo),
-          ),
-        ),
-      );
-    }
-    if (type == "video") {
-      return iconTile(CupertinoIcons.play_fill);
-    }
-    if (type == "location") {
-      return iconTile(CupertinoIcons.location_solid);
-    }
-    if (type == "audio") {
-      return iconTile(CupertinoIcons.mic_fill);
-    }
-    if (type == "post") {
-      return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future:
-            FirebaseFirestore.instance.collection("Posts").doc(target).get(),
-        builder: (context, snapshot) {
-          final data = snapshot.data?.data();
-          final imgList = List<String>.from(data?["img"] ?? const []);
-          final thumb = imgList.isNotEmpty ? imgList.first : "";
-          if (thumb.isNotEmpty) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CachedNetworkImage(
-                  imageUrl: thumb,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => iconTile(CupertinoIcons.doc),
-                ),
-              ),
-            );
-          }
-          return iconTile(CupertinoIcons.doc);
-        },
-      );
-    }
-    return const SizedBox.shrink();
   }
 
   void _openReactionPicker() {
@@ -1260,11 +1161,14 @@ class MessageContent extends StatelessWidget {
                         },
                       ),
                       _menuAction(
-                        icon: CupertinoIcons.star,
-                        title: "Yıldız Ekle",
+                        icon: model.isStarred
+                            ? CupertinoIcons.star_fill
+                            : CupertinoIcons.star,
+                        title:
+                            model.isStarred ? "Yıldızı Kaldır" : "Yıldız Ekle",
                         onTap: () {
                           Navigator.of(context).pop();
-                          AppSnackbar("Bilgi", "Yakında eklenecek");
+                          chatController.toggleStarMessage(model);
                         },
                       ),
                       _menuAction(
@@ -1307,7 +1211,7 @@ class MessageContent extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontSize: 15,
-                fontFamily: "MontserratMedium",
+                fontFamily: "Montserrat",
               ),
             ),
           ],
@@ -1424,7 +1328,7 @@ class MessageContent extends StatelessWidget {
                             style: const TextStyle(
                               color: Colors.black54,
                               fontSize: 10,
-                              fontFamily: "MontserratMedium",
+                              fontFamily: "Montserrat",
                             ),
                           ),
                         ),
@@ -1438,7 +1342,7 @@ class MessageContent extends StatelessWidget {
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 11,
-                                fontFamily: "MontserratBold",
+                                fontFamily: "Montserrat",
                               ),
                             ),
                           ),
@@ -1460,6 +1364,29 @@ class MessageContent extends StatelessWidget {
                             ),
                           ),
                         ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Text(
+                            _formatHourMinute(model.timeStamp),
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 10,
+                              fontFamily: "Montserrat",
+                            ),
+                          ),
+                          if (isMine) ...[
+                            const SizedBox(width: 2),
+                            _buildStatusTicks(
+                              readColor: const Color(0xFF53BDEB),
+                              defaultColor: Colors.black54,
+                              size: 10,
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -1783,7 +1710,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 12,
-                fontFamily: "MontserratMedium",
+                fontFamily: "Montserrat",
               ),
             ),
           ],
@@ -1863,7 +1790,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                               style: TextStyle(
                                 color: Color(0xFF18A999),
                                 fontSize: 14,
-                                fontFamily: "MontserratSemiBold",
+                                fontFamily: "Montserrat",
                               ),
                             ),
                           ),
@@ -1892,7 +1819,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                               style: const TextStyle(
                                 color: Colors.black54,
                                 fontSize: 12,
-                                fontFamily: "MontserratMedium",
+                                fontFamily: "Montserrat",
                               ),
                             ),
                           ],
@@ -2051,7 +1978,7 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
                   style: TextStyle(
                     color: widget.isMine ? Colors.white70 : Colors.black54,
                     fontSize: 10,
-                    fontFamily: "MontserratMedium",
+                    fontFamily: "Montserrat",
                   ),
                 ),
               ],

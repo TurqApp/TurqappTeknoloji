@@ -30,6 +30,7 @@ class MessageModel {
   final String status; // "sent" | "delivered" | "read" | ""
   final String videoThumbnail;
   final int audioDurationMs;
+  final bool isStarred;
 
   MessageModel({
     required this.docID,
@@ -61,6 +62,7 @@ class MessageModel {
     this.status = '',
     this.videoThumbnail = '',
     this.audioDurationMs = 0,
+    this.isStarred = false,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json, String docID) {
@@ -94,6 +96,7 @@ class MessageModel {
       status: json['status'] ?? '',
       videoThumbnail: json['videoThumbnail'] ?? '',
       audioDurationMs: json['audioDurationMs'] ?? 0,
+      isStarred: json['isStarred'] ?? false,
     );
   }
 
@@ -150,6 +153,7 @@ class MessageModel {
       status: data['status'] ?? '',
       videoThumbnail: data['videoThumbnail'] ?? '',
       audioDurationMs: data['audioDurationMs'] ?? 0,
+      isStarred: data['isStarred'] ?? false,
     );
   }
 

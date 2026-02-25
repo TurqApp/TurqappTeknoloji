@@ -72,6 +72,7 @@ class ChatController extends GetxController {
   var chatBgPaletteIndex = 0.obs;
   final RxBool isSelectionMode = false.obs;
   final RxSet<String> selectedMessageIds = <String>{}.obs;
+  final RxBool showStarredOnly = false.obs;
   var isUploading = false.obs;
   var isRecording = false.obs;
   var recordingDuration = 0.obs;
@@ -577,6 +578,28 @@ class ChatController extends GetxController {
     }
   }
 
+  void toggleStarredFilter() {
+    showStarredOnly.value = !showStarredOnly.value;
+  }
+
+  List<MessageModel> get filteredMessages {
+    if (!showStarredOnly.value) return messages;
+    return messages.where((m) => m.isStarred).toList();
+  }
+
+  Future<void> toggleStarMessage(MessageModel model) async {
+    try {
+      final convRef =
+          FirebaseFirestore.instance.collection("conversations").doc(chatID);
+      final msgRef = convRef.collection("messages").doc(model.rawDocID);
+      await msgRef.set({
+        "isStarred": !model.isStarred,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("[Chat] toggleStarMessage error: $e");
+    }
+  }
+
   Future<void> deleteSelectedMessages() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || selectedMessageIds.isEmpty) return;
@@ -1000,6 +1023,14 @@ class ChatController extends GetxController {
         final addedRef =
             await convRef.collection("messages").add(conversationMessageData);
 
+        bool recipientMuted = false;
+        try {
+          final convSnap = await convRef.get();
+          final convData = convSnap.data() ?? <String, dynamic>{};
+          final mutedMap = Map<String, dynamic>.from(convData["muted"] ?? {});
+          recipientMuted = mutedMap[userID] == true;
+        } catch (_) {}
+
         // Legacy mirror: keep "message" collection in sync as well.
         try {
           await _upsertLegacyMessageHead(
@@ -1038,16 +1069,20 @@ class ChatController extends GetxController {
         }
 
         // Notifikasyon gönder (hata olursa mesaj zaten gönderildi)
-        try {
-          NotificationService.instance.sendNotification(
-            token: token.value,
-            title: nickname.value,
-            body: notifBody,
-            docID: chatID,
-            type: "Chat",
-          );
-          print("🔔 Notification gönderildi");
-        } catch (_) {}
+        if (!recipientMuted) {
+          try {
+            NotificationService.instance.sendNotification(
+              token: token.value,
+              title: nickname.value,
+              body: notifBody,
+              docID: chatID,
+              type: "Chat",
+            );
+            print("🔔 Notification gönderildi");
+          } catch (_) {}
+        } else {
+          print("🔕 Sohbet sessizde: bildirim gönderilmedi");
+        }
       } catch (e, s) {
         print("🔥 HATA: conversation yazımı başarısız: $e");
         print(s);

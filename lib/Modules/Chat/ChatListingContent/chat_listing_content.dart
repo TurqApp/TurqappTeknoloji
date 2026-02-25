@@ -73,6 +73,16 @@ class ChatListingContent extends StatelessWidget {
 
   Future<void> _togglePinned() async {
     final newValue = !model.isPinned;
+    if (newValue && Get.isRegistered<ChatListingController>()) {
+      final listing = Get.find<ChatListingController>();
+      final pinnedCount = listing.list
+          .where((e) => e.isPinned && !e.deleted.contains("__archived__"))
+          .length;
+      if (pinnedCount >= 5) {
+        AppSnackbar("Limit", "En fazla 5 sohbet sabitlenebilir");
+        return;
+      }
+    }
     await FirebaseFirestore.instance
         .collection("conversations")
         .doc(model.chatID)
@@ -80,8 +90,7 @@ class ChatListingContent extends StatelessWidget {
       "pinned.$_uid": newValue,
     }, SetOptions(merge: true));
     await _refreshList();
-    AppSnackbar("Tamamlandı",
-        newValue ? "Sohbet sabitlendi" : "Sohbet sabitten kaldırıldı");
+    AppSnackbar("Tamamlandı", "İşlem tamamlandı");
   }
 
   Future<void> _toggleMuted() async {
@@ -401,6 +410,18 @@ class ChatListingContent extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            if (model.isMuted && !isSearchResult)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 6),
+                                child: Text(
+                                  "Sessiz",
+                                  style: TextStyle(
+                                    color: Color(0xFF8A9199),
+                                    fontSize: 11,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ],
@@ -416,6 +437,15 @@ class ChatListingContent extends StatelessWidget {
                     key: _timeAnchorKey,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      if (model.isPinned)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 2),
+                          child: Icon(
+                            CupertinoIcons.pin_fill,
+                            size: 12,
+                            color: Color(0xFF6B7179),
+                          ),
+                        ),
                       Text(
                         _buildTimeText(),
                         style: TextStyle(
