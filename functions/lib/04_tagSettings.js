@@ -269,7 +269,6 @@ async function writeTagIndex(postId, tags, meta) {
         await db.runTransaction(async (tx) => {
             const now = firestore_1.FieldValue.serverTimestamp();
             const baseMs = toMillis(meta.createdAt);
-            const expiresAtMs = baseMs + ((Number(meta.trendWindowHours) || 24) * 60 * 60 * 1000);
             const tagPostRefs = chunk.map((tag) => db.doc(`tags/${tag}/posts/${postId}`));
             const postTagRefs = chunk.map((tag) => db.doc(`Posts/${postId}/tags/${tag}`));
             const postHashtagRefs = chunk.map((tag) => db.doc(`Posts/${postId}/hashtags/${tag}`));
@@ -305,7 +304,7 @@ async function writeTagIndex(postId, tags, meta) {
                         hashtagCount: firestore_1.FieldValue.increment(hasHashtag ? 1 : 0),
                         plainCount: firestore_1.FieldValue.increment(hasHashtag ? 0 : 1),
                         hasHashtag: hasHashtag ? true : firestore_1.FieldValue.delete(),
-                        lastSeenAt: expiresAtMs,
+                        lastSeenAt: baseMs,
                         trendThreshold: meta.trendThreshold,
                         trendWindowHours: meta.trendWindowHours,
                     }, { merge: true });
@@ -315,7 +314,7 @@ async function writeTagIndex(postId, tags, meta) {
                     const hashtagDelta = hasHashtag === prevHasHashtag ? 0 : hasHashtag ? 1 : -1;
                     const plainDelta = hasHashtag === prevHasHashtag ? 0 : hasHashtag ? -1 : 1;
                     tx.set(tagRef, {
-                        lastSeenAt: expiresAtMs,
+                        lastSeenAt: baseMs,
                         ...(hashtagDelta !== 0 ? { hashtagCount: firestore_1.FieldValue.increment(hashtagDelta) } : {}),
                         ...(plainDelta !== 0 ? { plainCount: firestore_1.FieldValue.increment(plainDelta) } : {}),
                         hasHashtag: hasHashtag ? true : firestore_1.FieldValue.delete(),

@@ -123,7 +123,6 @@ async function removeTagLinks(postId: string, tags: string[]): Promise<void> {
   for (let i = 0; i < tags.length; i += chunkSize) {
     const chunk = tags.slice(i, i + chunkSize);
     await db.runTransaction(async (tx) => {
-      const expiresAtMs = Date.now() + 24 * 60 * 60 * 1000;
       const refs = chunk.map((tag) => db.doc(`tags/${tag}/posts/${postId}`));
       const snaps = await tx.getAll(...refs);
 
@@ -141,7 +140,6 @@ async function removeTagLinks(postId: string, tags: string[]): Promise<void> {
             count: FieldValue.increment(-1),
             hashtagCount: FieldValue.increment(wasHashtag ? -1 : 0),
             plainCount: FieldValue.increment(wasHashtag ? 0 : -1),
-            lastSeenAt: expiresAtMs,
           },
           { merge: true }
         );
@@ -446,7 +444,6 @@ export const f15_pruneTagsCollection = onCall(
           await tagDoc.ref.set(
             {
               count: actualCount,
-              lastSeenAt: Date.now() + 24 * 60 * 60 * 1000,
             },
             { merge: true }
           );

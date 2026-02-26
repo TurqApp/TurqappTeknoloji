@@ -367,28 +367,57 @@ class ExploreController extends GetxController {
 
   Future<void> fetchTrendingTags() async {
     try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
       final snap = await FirebaseFirestore.instance
           .collection('tags')
           .orderBy('count', descending: true)
-          .limit(30)
+          .limit(200)
           .get();
 
-      final list = snap.docs
-          .map((doc) {
-            final data = doc.data();
-            final raw = doc.id.trim();
-            return HashtagModel(
-              hashtag: raw.replaceFirst('#', ''),
-              count: ((data['count'] ?? 0) as num),
-              hasHashtag: raw.startsWith('#') ||
-                  (((data['hashtagCount'] ?? 0) as num) > 0),
-              lastSeenTs: ((data['lastSeenTs'] as num?)?.toInt()),
-            );
-          })
-          .where((e) => e.hashtag.isNotEmpty && e.count > 0)
-          .toList();
+      final list = <HashtagModel>[];
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final raw = doc.id.trim();
+        final hashtag = raw.replaceFirst('#', '');
+        if (hashtag.isEmpty) continue;
 
-      trendingTags.assignAll(list);
+        final count = ((data['count'] ?? data['counter'] ?? 0) as num).toInt();
+        final trendThreshold = ((data['trendThreshold'] ?? 1) as num).toInt();
+        if (count <= 0 || count < trendThreshold) continue;
+
+        final trendWindowHours =
+            ((data['trendWindowHours'] ?? 24) as num).toInt();
+        final safeWindowHours = trendWindowHours <= 0 ? 24 : trendWindowHours;
+        final windowMs = Duration(hours: safeWindowHours).inMilliseconds;
+
+        final rawLastSeen =
+            ((data['lastSeenTs'] ?? data['lastSeenAt'] ?? 0) as num).toInt();
+        if (rawLastSeen <= 0) continue;
+
+        // Backward compatibility: eski data'da lastSeenAt expiry olarak tutulmuş olabilir.
+        final effectiveLastSeen =
+            rawLastSeen > nowMs ? (rawLastSeen - windowMs) : rawLastSeen;
+        if (effectiveLastSeen <= 0) continue;
+        if ((nowMs - effectiveLastSeen) > windowMs) continue;
+
+        list.add(
+          HashtagModel(
+            hashtag: hashtag,
+            count: count,
+            hasHashtag: raw.startsWith('#') ||
+                (((data['hashtagCount'] ?? 0) as num) > 0),
+            lastSeenTs: effectiveLastSeen,
+          ),
+        );
+      }
+
+      list.sort((a, b) {
+        final byCount = b.count.compareTo(a.count);
+        if (byCount != 0) return byCount;
+        return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
+      });
+
+      trendingTags.assignAll(list.take(30));
     } catch (e) {
       print('fetchTrendingTags error: $e');
       trendingTags.clear();

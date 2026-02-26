@@ -105,7 +105,6 @@ async function removeTagLinks(postId, tags) {
     for (let i = 0; i < tags.length; i += chunkSize) {
         const chunk = tags.slice(i, i + chunkSize);
         await db.runTransaction(async (tx) => {
-            const expiresAtMs = Date.now() + 24 * 60 * 60 * 1000;
             const refs = chunk.map((tag) => db.doc(`tags/${tag}/posts/${postId}`));
             const snaps = await tx.getAll(...refs);
             for (let idx = 0; idx < chunk.length; idx++) {
@@ -121,7 +120,6 @@ async function removeTagLinks(postId, tags) {
                     count: firestore_1.FieldValue.increment(-1),
                     hashtagCount: firestore_1.FieldValue.increment(wasHashtag ? -1 : 0),
                     plainCount: firestore_1.FieldValue.increment(wasHashtag ? 0 : -1),
-                    lastSeenAt: expiresAtMs,
                 }, { merge: true });
             }
         });
@@ -346,7 +344,6 @@ exports.f15_pruneTagsCollection = (0, https_1.onCall)({
             if (!dryRun) {
                 await tagDoc.ref.set({
                     count: actualCount,
-                    lastSeenAt: Date.now() + 24 * 60 * 60 * 1000,
                 }, { merge: true });
             }
         }

@@ -317,8 +317,6 @@ export async function writeTagIndex(
     await db.runTransaction(async (tx) => {
       const now = FieldValue.serverTimestamp();
       const baseMs = toMillis(meta.createdAt);
-      const expiresAtMs =
-        baseMs + ((Number(meta.trendWindowHours) || 24) * 60 * 60 * 1000);
       const tagPostRefs = chunk.map((tag) => db.doc(`tags/${tag}/posts/${postId}`));
       const postTagRefs = chunk.map((tag) => db.doc(`Posts/${postId}/tags/${tag}`));
       const postHashtagRefs = chunk.map((tag) => db.doc(`Posts/${postId}/hashtags/${tag}`));
@@ -366,7 +364,7 @@ export async function writeTagIndex(
               hashtagCount: FieldValue.increment(hasHashtag ? 1 : 0),
               plainCount: FieldValue.increment(hasHashtag ? 0 : 1),
               hasHashtag: hasHashtag ? true : FieldValue.delete(),
-              lastSeenAt: expiresAtMs,
+              lastSeenAt: baseMs,
               trendThreshold: meta.trendThreshold,
               trendWindowHours: meta.trendWindowHours,
             },
@@ -379,7 +377,7 @@ export async function writeTagIndex(
           tx.set(
             tagRef,
             {
-              lastSeenAt: expiresAtMs,
+              lastSeenAt: baseMs,
               ...(hashtagDelta !== 0 ? { hashtagCount: FieldValue.increment(hashtagDelta) } : {}),
               ...(plainDelta !== 0 ? { plainCount: FieldValue.increment(plainDelta) } : {}),
               hasHashtag: hasHashtag ? true : FieldValue.delete(),
