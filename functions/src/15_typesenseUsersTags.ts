@@ -1,5 +1,6 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
@@ -178,6 +179,7 @@ async function ensureUsersCollection() {
         { name: "firstName", type: "string", optional: true },
         { name: "lastName", type: "string", optional: true },
         { name: "pfImage", type: "string", optional: true },
+        { name: "rozet", type: "string", optional: true },
         { name: "gizliHesap", type: "bool", optional: true },
         { name: "deletedAccount", type: "bool", optional: true },
         { name: "hesapOnayi", type: "bool", optional: true },
@@ -206,6 +208,7 @@ async function ensureUsersCollection() {
           { name: "firstName", type: "string", optional: true },
           { name: "lastName", type: "string", optional: true },
           { name: "pfImage", type: "string", optional: true },
+          { name: "rozet", type: "string", optional: true },
           { name: "gizliHesap", type: "bool", optional: true },
           { name: "deletedAccount", type: "bool", optional: true },
           { name: "hesapOnayi", type: "bool", optional: true },
@@ -402,6 +405,7 @@ type UserSearchDoc = {
   firstName: string;
   lastName: string;
   pfImage: string;
+  rozet: string;
   gizliHesap: boolean;
   deletedAccount: boolean;
   hesapOnayi: boolean;
@@ -419,6 +423,7 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
     pfImage: asString(data.pfImage) || asString((data as any).avatarUrl) || asString((data as any).profileImageUrl),
+    rozet: asString((data as any).rozet),
     gizliHesap: asBool((data as any).gizliHesap),
     deletedAccount: asBool((data as any).deletedAccount) || asBool((data as any).isDeleted),
     hesapOnayi: asBool((data as any).hesapOnayi) || asBool((data as any).isVerified),
@@ -614,6 +619,7 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
         firstName: h?.document?.firstName || "",
         lastName: h?.document?.lastName || "",
         pfImage: h?.document?.pfImage || "",
+        rozet: h?.document?.rozet || "",
         gizliHesap: h?.document?.gizliHesap === true,
         deletedAccount: h?.document?.deletedAccount === true,
         hesapOnayi: h?.document?.hesapOnayi === true,
@@ -1099,7 +1105,7 @@ export const f15_getTrendingTagsCallable = onCall(
     const settingsSnap = await db.collection("adminConfig").doc("tagSettings").get();
     const settings = settingsSnap.data() || {};
 
-    const windowHoursDefault = Number(settings.trendWindowHours || 48);
+    const windowHoursDefault = Number(settings.trendWindowHours || 24);
     const trendThresholdDefault = Number(settings.trendThreshold || 1);
     const tagMinLengthDefault = Number(settings.tagMinLength || 1);
     const tagMaxLengthDefault = Number(settings.tagMaxLength || 64);
@@ -1180,5 +1186,85 @@ export const f15_reindexUsersToTypesenseCallable = onCall(
     const done = snap.docs.length < limit;
 
     return { scanned, upserted, skipped, nextCursor, done };
+  }
+);
+
+export const f15_reindexUsersToTypesenseScheduled = onSchedule(
+  {
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    schedule: "every 5 minutes",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async () => {
+    ensureAdmin();
+
+    if (!typesenseReady()) {
+      console.log("Typesense env missing, skipping scheduled reindex.");
+      return;
+    }
+
+    const db = getFirestore();
+    const stateRef = db.collection("adminConfig").doc("typesenseUsersReindex");
+    const stateSnap = await stateRef.get();
+    const state = (stateSnap.data() || {}) as Record<string, unknown>;
+    const cursor = String(state.cursor || "").trim();
+    const batchSize = 300;
+
+    let q = db.collection("users").orderBy(FieldPath.documentId()).limit(batchSize);
+    if (cursor) q = q.startAfter(cursor);
+
+    const snap = await q.get();
+    if (snap.empty) {
+      await stateRef.set(
+        {
+          cursor: "",
+          doneAt: Date.now(),
+          done: true,
+        },
+        { merge: true }
+      );
+      console.log("typesense_users_reindex_scheduled_done");
+      return;
+    }
+
+    let scanned = 0;
+    let upserted = 0;
+    let skipped = 0;
+
+    for (const docSnap of snap.docs) {
+      scanned += 1;
+      const doc = buildUserSearchDoc(docSnap.id, docSnap.data() as Record<string, unknown>);
+      if (!shouldIndexUser(doc)) {
+        skipped += 1;
+        continue;
+      }
+      await upsertUserDoc(doc);
+      upserted += 1;
+    }
+
+    const last = snap.docs[snap.docs.length - 1];
+    const done = snap.docs.length < batchSize;
+
+    await stateRef.set(
+      {
+        cursor: done ? "" : (last?.id || ""),
+        lastRunAt: Date.now(),
+        done,
+        scanned,
+        upserted,
+        skipped,
+      },
+      { merge: true }
+    );
+
+    console.log("typesense_users_reindex_scheduled_progress", {
+      scanned,
+      upserted,
+      skipped,
+      done,
+      nextCursor: done ? "" : (last?.id || ""),
+    });
   }
 );
