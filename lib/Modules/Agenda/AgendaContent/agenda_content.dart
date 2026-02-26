@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
+import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
@@ -36,6 +37,7 @@ import '../../../Core/formatters.dart';
 import '../../../Core/functions.dart';
 import '../../../Core/Helpers/ImagePreview/image_preview.dart';
 import '../../../Core/rozet_content.dart';
+import '../../../Core/Services/upload_queue_service.dart';
 import '../../../Core/texts.dart';
 import '../../SocialProfile/social_profile.dart';
 import '../Common/post_content_base.dart';
@@ -206,10 +208,8 @@ class _AgendaContentState extends State<AgendaContent>
               onHashtagTap: (tag) {
                 videoController?.pause();
                 Get.to(() => TagPosts(tag: tag))?.then((_) {
-                  if (mounted) {
-                    setState(() {
-                      videoController?.play();
-                    });
+                  if (mounted && widget.shouldPlay) {
+                    videoController?.play();
                   }
                 });
               },
@@ -266,6 +266,11 @@ class _AgendaContentState extends State<AgendaContent>
               },
             ),
           ),
+        if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 45),
+            child: buildPollCard(),
+          ),
 
         // Konum varsa göster
         if (widget.model.konum != "")
@@ -304,19 +309,7 @@ class _AgendaContentState extends State<AgendaContent>
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            // Thumbnail arka plan (video yüklenene kadar görünür)
-                            if (widget.model.thumbnail.isNotEmpty)
-                              Positioned.fill(
-                                child: Image.network(
-                                  widget.model.thumbnail,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      Container(color: const Color(0xFFE8E8E8)),
-                                ),
-                              )
-                            else
-                              Container(color: const Color(0xFFE8E8E8)),
-                            // Video
+                            // Video player (veya thumbnail eğer controller yoksa)
                             SizedBox.expand(
                               child: GestureDetector(
                                 onTap: () async {
@@ -327,9 +320,8 @@ class _AgendaContentState extends State<AgendaContent>
                                     final listForFullscreen =
                                         await _buildFullscreenStartList();
 
-                                    // Tam ekrana geçerken centeredIndex'i temizle
-                                    agendaController.centeredIndex.value = -1;
-                                    setState(() {});
+                                    // Fullscreen geçişinde videoyu pause etme
+                                    markSkipNextPause();
 
                                     final res =
                                         await Get.to(() => SingleShortView(
@@ -341,7 +333,6 @@ class _AgendaContentState extends State<AgendaContent>
                                             ));
 
                                     if (!mounted) return;
-                                    setState(() {});
 
                                     // Geri dönünce centeredIndex'i geri yükle
                                     final modelIndex = agendaController
@@ -392,9 +383,7 @@ class _AgendaContentState extends State<AgendaContent>
                                       final listForFullscreen =
                                           await _buildFullscreenStartList();
 
-                                      // Tam ekrana geçerken centeredIndex'i temizle
-                                      agendaController.centeredIndex.value = -1;
-                                      setState(() {});
+                                      markSkipNextPause();
 
                                       final res =
                                           await Get.to(() => SingleShortView(
@@ -406,7 +395,6 @@ class _AgendaContentState extends State<AgendaContent>
                                               ));
 
                                       if (!mounted) return;
-                                      setState(() {});
 
                                       // Geri dönünce centeredIndex'i geri yükle
                                       final modelIndex = agendaController
@@ -450,10 +438,10 @@ class _AgendaContentState extends State<AgendaContent>
                                   }
                                 },
                                 child: Builder(builder: (_) {
+                                  final thumb = widget.model.thumbnail;
                                   if (videoController == null) {
-                                    final thumb = widget.model.thumbnail;
                                     if (thumb.isEmpty) {
-                                      return const SizedBox.shrink();
+                                      return Container(color: const Color(0xFFE8E8E8));
                                     }
                                     return Image.network(
                                       thumb,
@@ -463,18 +451,47 @@ class _AgendaContentState extends State<AgendaContent>
                                         if (loadingProgress == null) {
                                           return child;
                                         }
-                                        return const SizedBox.shrink();
+                                        return Container(color: const Color(0xFFE8E8E8));
                                       },
                                       errorBuilder:
                                           (context, error, stackTrace) =>
-                                              const SizedBox.shrink(),
+                                              Container(color: const Color(0xFFE8E8E8)),
                                     );
                                   }
-                                  return videoController!.buildPlayer(
-                                    key: ValueKey(
-                                        'agenda-${widget.model.docID}-${videoController.hashCode}'),
-                                    aspectRatio: displayAspect,
-                                    useAspectRatio: false,
+                                  // Video player + thumbnail overlay
+                                  return Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      videoController!.buildPlayer(
+                                        key: ValueKey(
+                                            'agenda-${widget.model.docID}-${videoController.hashCode}'),
+                                        aspectRatio: displayAspect,
+                                        useAspectRatio: false,
+                                      ),
+                                      // Thumbnail overlay - video hazır olana kadar göster
+                                      ValueListenableBuilder<HLSVideoValue>(
+                                        valueListenable: videoValueNotifier,
+                                        builder: (_, v, child) {
+                                          if (v.isInitialized && v.position > Duration.zero) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return child!;
+                                        },
+                                        child: thumb.isNotEmpty
+                                            ? Image.network(
+                                                thumb,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Container(color: const Color(0xFFE8E8E8)),
+                                              )
+                                            : Container(color: const Color(0xFFE8E8E8)),
+                                      ),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: buildUploadIndicator(),
+                                      ),
+                                    ],
                                   );
                                 }),
                               ),
@@ -635,6 +652,11 @@ class _AgendaContentState extends State<AgendaContent>
             padding: const EdgeInsets.only(top: 8, left: 45),
             child: buildImageGrid(widget.model.img),
           ),
+        if (widget.model.hasPlayableVideo || widget.model.img.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 45),
+            child: buildPollCard(),
+          ),
 
         // Gönderi olarak paylaş etiketi (butonların üstünde)
         // Eğer yeniden paylaşım ise orijinal kullanıcı bilgisini göster
@@ -706,8 +728,213 @@ class _AgendaContentState extends State<AgendaContent>
             ),
           );
         }),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: buildUploadIndicator(),
+          ),
+        ),
       ],
     );
+  }
+
+  Widget buildPollCard() {
+    return Obx(() {
+      final model = controller.currentModel.value ?? widget.model;
+      final poll = model.poll;
+      if (poll.isEmpty) return const SizedBox.shrink();
+      final options = (poll['options'] is List) ? poll['options'] as List : [];
+      if (options.isEmpty) return const SizedBox.shrink();
+
+      final totalVotes =
+          (poll['totalVotes'] is num) ? poll['totalVotes'] as num : 0;
+      final uid = controller.userService.userId;
+      final userVotes = poll['userVotes'] is Map
+          ? Map<String, dynamic>.from(poll['userVotes'])
+          : <String, dynamic>{};
+      final userVoteRaw = userVotes[uid];
+      final int? userVote = userVoteRaw is num
+          ? userVoteRaw.toInt()
+          : int.tryParse('${userVoteRaw ?? ''}');
+
+      final createdAt = (poll['createdAt'] ?? model.timeStamp) as num;
+      final durationHours = (poll['durationHours'] ?? 24) as num;
+      final expiresAt =
+          createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+      final expired = DateTime.now().millisecondsSinceEpoch > expiresAt;
+      final canVote = !expired && userVote == null;
+      final showResults = userVote != null || expired;
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...List.generate(options.length, (i) {
+              final text = (options[i]['text'] ?? '').toString();
+              final votes = (options[i]['votes'] ?? 0) as num;
+              final pct = totalVotes > 0 ? (votes / totalVotes) : 0.0;
+              final label = '${String.fromCharCode(65 + i)}) ';
+              final isSelected = userVote == i;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: canVote ? () => controller.votePoll(i) : null,
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected ? Colors.blue.withAlpha(18) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: isSelected
+                            ? Colors.blueAccent
+                            : Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$label$text',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (showResults)
+                        Text(
+                          '${(pct * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 12,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  'Toplam ${totalVotes.toInt()} oy',
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontFamily: "MontserratMedium",
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _pollRemainingLabel(
+                    expired: expired,
+                    expiresAtMs: expiresAt,
+                  ),
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontFamily: "MontserratMedium",
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget buildUploadIndicator() {
+    final uploadService = Get.isRegistered<UploadQueueService>()
+        ? Get.find<UploadQueueService>()
+        : Get.put(UploadQueueService());
+
+    return Obx(() {
+      QueuedUpload? item;
+      for (final q in uploadService.queue) {
+        if (q.id == widget.model.docID &&
+            (q.status == UploadStatus.pending ||
+                q.status == UploadStatus.uploading)) {
+          item = q;
+          break;
+        }
+      }
+
+      double? progress;
+      if (item != null) {
+        progress = item.progress;
+      } else {
+        final hasVideo = widget.model.hasPlayableVideo ||
+            widget.model.video.trim().isNotEmpty ||
+            widget.model.hlsMasterUrl.trim().isNotEmpty ||
+            widget.model.thumbnail.trim().isNotEmpty;
+        final hlsNotReady = widget.model.hlsStatus != 'ready' ||
+            widget.model.hlsMasterUrl.trim().isEmpty;
+        if (hasVideo && hlsNotReady) {
+          final startMs = widget.model.hlsUpdatedAt > 0
+              ? widget.model.hlsUpdatedAt.toInt()
+              : widget.model.timeStamp.toInt();
+          final elapsedMin =
+              ((DateTime.now().millisecondsSinceEpoch - startMs) / 60000)
+                  .clamp(0, 30);
+          progress = 0.9 + (elapsedMin / 30) * 0.09;
+        }
+      }
+
+      if (progress == null) return const SizedBox.shrink();
+      if (progress <= 0) {
+        progress = 0.02;
+      }
+      return RingUploadProgressIndicator(
+        isUploading: true,
+        progress: progress,
+        child: Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.cloud_upload,
+            size: 12,
+            color: Colors.black54,
+          ),
+        ),
+      );
+    });
+  }
+
+  String _pollRemainingLabel(
+      {required bool expired, required int expiresAtMs}) {
+    if (expired) return 'Süre doldu';
+    final remainingMs = expiresAtMs - DateTime.now().millisecondsSinceEpoch;
+    if (remainingMs <= 0) return 'Süre doldu';
+    final totalMinutes = (remainingMs / 60000).floor();
+    final totalHours = (totalMinutes / 60).floor();
+    final days = (totalHours / 24).floor();
+    if (days >= 1) return '${days} g';
+    final hours = totalHours;
+    final minutes = totalMinutes % 60;
+    return '${hours} sa ${minutes} dk';
   }
 
   Widget gonderiGizlendi(BuildContext context) {
@@ -1099,21 +1326,26 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget buildFourImageGrid(List<String> images) {
-    return GridView.builder(
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: 4,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1,
-        mainAxisSpacing: 2,
-        crossAxisSpacing: 2,
-      ),
-      itemBuilder: (context, index) {
-        final radius = _getGridRadius(index);
-        return _buildImage(images[index], radius: radius);
-      },
+    // shrinkWrap: true yerine Column kullanarak her frame'de layout hesaplamasını engelle
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[0], radius: _getGridRadius(0)))),
+            const SizedBox(width: 2),
+            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[1], radius: _getGridRadius(1)))),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[2], radius: _getGridRadius(2)))),
+            const SizedBox(width: 2),
+            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[3], radius: _getGridRadius(3)))),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1453,21 +1685,29 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget commentButton(BuildContext context) {
-    final bool canInteract = widget.model.yorum;
-    final Color displayColor = canInteract ? Colors.black : Colors.grey;
+    return Obx(() {
+      final int visibility = widget.model.yorumVisibility;
+      final bool isOwner =
+          controller.userService.userId == widget.model.userID;
+      final bool canInteract = isOwner ||
+          visibility == 0 ||
+          (visibility == 1 && controller.userService.isVerified) ||
+          (visibility == 2 && controller.isFollowing.value);
+      final Color displayColor = canInteract ? Colors.black : Colors.grey;
 
-    return AnimatedActionButton(
-      enabled: canInteract,
-      semanticsLabel: 'Yorumlar',
-      onTap: canInteract ? controller.showPostCommentsBottomSheet : null,
-      showTapArea: _showActionTapAreas,
-      child: _iconAction(
-        icon: CupertinoIcons.bubble_left,
-        color: displayColor,
-        label: NumberFormatter.format(controller.commentCount.value),
-        labelColor: displayColor,
-      ),
-    );
+      return AnimatedActionButton(
+        enabled: canInteract,
+        semanticsLabel: 'Yorumlar',
+        onTap: canInteract ? controller.showPostCommentsBottomSheet : null,
+        showTapArea: _showActionTapAreas,
+        child: _iconAction(
+          icon: CupertinoIcons.bubble_left,
+          color: displayColor,
+          label: NumberFormatter.format(controller.commentCount.value),
+          labelColor: displayColor,
+        ),
+      );
+    });
   }
 
   Widget likeButton() {
@@ -1510,23 +1750,32 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget reshareButton() {
-    final bool canReshare = widget.model.paylasGizliligi != 2;
-    final bool isReshared = controller.yenidenPaylasildiMi.value;
-    final Color displayColor =
-        canReshare ? (isReshared ? Colors.green : Colors.black) : Colors.grey;
+    return Obx(() {
+      final int visibility = widget.model.paylasimVisibility;
+      final bool isOwner =
+          controller.userService.userId == widget.model.userID;
+      final bool canReshare = isOwner ||
+          visibility == 0 ||
+          (visibility == 1 && controller.userService.isVerified) ||
+          (visibility == 2 && controller.isFollowing.value);
+      final bool isReshared = controller.yenidenPaylasildiMi.value;
+      final Color displayColor = canReshare
+          ? (isReshared ? Colors.green : Colors.black)
+          : Colors.grey;
 
-    return AnimatedActionButton(
-      enabled: canReshare,
-      semanticsLabel: 'Yeniden paylaş',
-      onTap: canReshare ? controller.reshare : null,
-      showTapArea: _showActionTapAreas,
-      child: _iconAction(
-        icon: Icons.repeat,
-        color: displayColor,
-        label: NumberFormatter.format(controller.retryCount.value),
-        labelColor: displayColor,
-      ),
-    );
+      return AnimatedActionButton(
+        enabled: canReshare,
+        semanticsLabel: 'Yeniden paylaş',
+        onTap: canReshare ? controller.reshare : null,
+        showTapArea: _showActionTapAreas,
+        child: _iconAction(
+          icon: Icons.repeat,
+          color: displayColor,
+          label: NumberFormatter.format(controller.retryCount.value),
+          labelColor: displayColor,
+        ),
+      );
+    });
   }
 
   Widget saveButton() {

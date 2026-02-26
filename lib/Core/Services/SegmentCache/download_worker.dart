@@ -79,10 +79,15 @@ class DownloadWorker {
     });
   }
 
-  /// Isolate'i durdur.
+  /// Isolate'i durdur — önce graceful shutdown sinyali gönder, sonra kill.
   void stop() {
-    _isolate?.kill(priority: Isolate.immediate);
-    _isolate = null;
+    // Graceful: isolate'e 'stop' mesajı gönder → client.close() çağırır
+    _sendPort?.send('stop');
+    // Kısa süre sonra zorla kapat (graceful tamamlanmazsa)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isolate?.kill(priority: Isolate.immediate);
+      _isolate = null;
+    });
     _sendPort = null;
     _resultController.close();
   }
@@ -94,6 +99,13 @@ class DownloadWorker {
     final client = http.Client();
 
     receivePort.listen((message) async {
+      // Graceful shutdown sinyali
+      if (message == 'stop') {
+        client.close();
+        receivePort.close();
+        return;
+      }
+
       if (message is! Map<String, dynamic>) return;
 
       final url = message['url'] as String;

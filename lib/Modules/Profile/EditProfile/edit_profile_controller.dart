@@ -39,7 +39,7 @@ class EditProfileController extends GetxController {
 
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
   String get defaultAvatarUrl =>
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/avatar2.png?alt=media&token=de0fe5d5-b394-43fd-a9f2-610fe3e4f137';
+      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
 
   bool get hasCustomProfilePhoto {
     final pfImage = userService.currentUser?.pfImage ?? '';

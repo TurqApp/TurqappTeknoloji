@@ -50,11 +50,12 @@ class CreatorContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: GestureDetector(
         behavior: HitTestBehavior.deferToChild,
-        onTap: isSelected
-            ? null
-            : () {
-                mainController.selectedIndex.value = model.index;
-              },
+        onTap: () {
+          if (!isSelected) {
+            mainController.selectedIndex.value = model.index;
+          }
+          controller.focus.requestFocus();
+        },
         child: Obx(() {
           return IntrinsicHeight(
             child: Row(
@@ -99,6 +100,14 @@ class CreatorContent extends StatelessWidget {
                       children: [
                         textBody(),
                         SizedBox(height: 12),
+                        Obx(() {
+                          final hasMedia = controller.croppedImages.isNotEmpty ||
+                              controller.videoPlayerController != null ||
+                              controller.waitingVideo.value;
+                          return hasMedia
+                              ? const SizedBox.shrink()
+                              : buildPollPreview();
+                        }),
                         if (controller.croppedImages.isNotEmpty)
                           buildImageGridFromMemory(controller.croppedImages),
                         Stack(
@@ -150,6 +159,24 @@ class CreatorContent extends StatelessWidget {
                                   ))
                           ],
                         ),
+                        Obx(() {
+                          final hasMedia = controller.croppedImages.isNotEmpty ||
+                              controller.videoPlayerController != null ||
+                              controller.waitingVideo.value;
+                          return hasMedia
+                              ? Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 12,
+                                    left: (controller.videoPlayerController !=
+                                                null ||
+                                            controller.waitingVideo.value)
+                                        ? 7
+                                        : 0,
+                                  ),
+                                  child: buildPollPreview(),
+                                )
+                              : const SizedBox.shrink();
+                        }),
                         if (controller.adres.value != "")
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
@@ -186,6 +213,45 @@ class CreatorContent extends StatelessWidget {
     );
   }
 
+  Widget buildPollPreview() {
+    return Obx(() {
+      final poll = controller.pollData.value;
+      if (poll == null || poll.isEmpty) return const SizedBox.shrink();
+      final options = (poll['options'] is List) ? poll['options'] as List : [];
+      if (options.isEmpty) return const SizedBox.shrink();
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(options.length, (i) {
+            final text = (options[i]['text'] ?? '').toString();
+            final label = '${String.fromCharCode(65 + i)}) ';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                '$label$text',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+            );
+          }),
+        ),
+      );
+    });
+  }
+
   Widget textBody() {
     return Obx(() {
       return Stack(
@@ -196,12 +262,9 @@ class CreatorContent extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      border: Border.all(
-                        color: Colors.grey.shade100,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(8)),
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   padding: const EdgeInsets.all(10),
                   child: Scrollbar(
                     child: TextField(
@@ -224,9 +287,10 @@ class CreatorContent extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText: controller.waitingVideo.value
                             ? "Lütfen bekle. Video işleniyor..."
-                            : "Bir şeyler yazarak başla..",
+                            : "Ne var ne yok ?",
                         hintStyle: TextStyle(
                           color: Colors.grey,
+                          fontSize: 16,
                           fontFamily: "MontserratMedium",
                         ),
                         border: InputBorder.none,
@@ -235,7 +299,7 @@ class CreatorContent extends StatelessWidget {
                       ),
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 15,
+                        fontSize: 16,
                         fontFamily: "MontserratMedium",
                       ),
                     ),

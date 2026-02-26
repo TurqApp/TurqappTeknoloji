@@ -30,6 +30,7 @@ class CacheNetworkPolicy {
       // Mobilde istisna: keş 50 videonun altındaysa, izlenen videodan
       // gelen anlık segment isteğine izin ver (izledikçe keş dolsun).
       if (net.isOnCellular) {
+
         // Cache manager henüz ayağa kalkmadıysa bootstrap için izin ver.
         if (!Get.isRegistered<SegmentCacheManager>()) {
           return true;

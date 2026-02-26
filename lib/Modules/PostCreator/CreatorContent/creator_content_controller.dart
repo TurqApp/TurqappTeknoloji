@@ -19,6 +19,7 @@ import '../../../Core/Services/media_compression_service.dart';
 import '../../../Core/Services/video_compression_service.dart';
 import '../../../Core/Services/network_awareness_service.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
+import '../../../Core/Camera/chat_camera_capture_view.dart';
 import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
 
@@ -43,6 +44,9 @@ class CreatorContentController extends GetxController {
   // User-selected custom thumbnail for video posts
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
 
+  // Poll data for this post (question + options)
+  final Rxn<Map<String, dynamic>> pollData = Rxn<Map<String, dynamic>>();
+
   var adres = "".obs;
   var gif = "".obs;
 
@@ -51,6 +55,243 @@ class CreatorContentController extends GetxController {
 
   VideoPlayerController? get videoPlayerController =>
       rxVideoPlayerController.value;
+
+  Future<void> openPollComposer() async {
+    final existing = pollData.value;
+    final questionCtrl = TextEditingController(
+      text: existing?['question']?.toString() ?? '',
+    );
+    final optionCtrls = <TextEditingController>[];
+    if (existing != null && existing['options'] is List) {
+      final opts = existing['options'] as List;
+      for (final o in opts) {
+        optionCtrls.add(
+          TextEditingController(text: (o['text'] ?? '').toString()),
+        );
+      }
+    }
+    while (optionCtrls.length < 2) {
+      optionCtrls.add(TextEditingController());
+    }
+    if (optionCtrls.length > 5) {
+      optionCtrls.removeRange(5, optionCtrls.length);
+    }
+
+    InputDecoration _fieldDecoration(String hint,
+            {String? prefixText}) =>
+        InputDecoration(
+          hintText: hint,
+          prefixText: prefixText,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade400),
+          ),
+          counterText: '',
+        );
+
+    int selectedDurationHours =
+        (existing?['durationHours'] is num) ? existing!['durationHours'] : 24;
+    String _durationLabel(int hours) {
+      switch (hours) {
+        case 6:
+          return '6 sa';
+        case 12:
+          return '12 sa';
+        case 24:
+          return '1 g';
+        case 72:
+          return '3 g';
+        case 168:
+          return '7 g';
+        default:
+          return '1 g';
+      }
+    }
+
+    await Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Text(
+                      'Anket',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _durationLabel(selectedDurationHours),
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await Get.bottomSheet<int>(
+                          Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Zaman Seçenekleri',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: "MontserratBold",
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ListTile(
+                                  title: const Text('6 sa'),
+                                  onTap: () => Get.back(result: 6),
+                                ),
+                                ListTile(
+                                  title: const Text('12 sa'),
+                                  onTap: () => Get.back(result: 12),
+                                ),
+                                ListTile(
+                                  title: const Text('1 g'),
+                                  onTap: () => Get.back(result: 24),
+                                ),
+                                ListTile(
+                                  title: const Text('3 g'),
+                                  onTap: () => Get.back(result: 72),
+                                ),
+                                ListTile(
+                                  title: const Text('7 g'),
+                                  onTap: () => Get.back(result: 168),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            selectedDurationHours = picked;
+                          });
+                        }
+                      },
+                      child: const Icon(
+                        CupertinoIcons.clock,
+                        size: 18,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Question field removed per request
+                for (int i = 0; i < optionCtrls.length; i++) ...[
+                  TextField(
+                    controller: optionCtrls[i],
+                    maxLines: 1,
+                    maxLength: 25,
+                    inputFormatters: [LengthLimitingTextInputFormatter(25)],
+                    decoration: _fieldDecoration(
+                      'Seçenek ${i + 1}',
+                      prefixText: '${String.fromCharCode(65 + i)}) ',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                TextButton(
+                  onPressed: optionCtrls.length >= 5
+                      ? null
+                      : () {
+                          setState(() {
+                            optionCtrls.add(TextEditingController());
+                          });
+                        },
+                  child: const Text('+ Bir seçenek daha ekle'),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        pollData.value = null;
+                        Get.back();
+                      },
+                      child: const Text('Kaldır'),
+                    ),
+                    const Spacer(),
+                    ElevatedButton(
+                      onPressed: () {
+                        final options = optionCtrls
+                            .map((c) => c.text.trim())
+                            .where((t) => t.isNotEmpty)
+                            .toList();
+                        if (options.length < 2) {
+                          AppSnackbar('Hata', 'En az iki seçenek zorunlu.');
+                          return;
+                        }
+                        pollData.value = {
+                          'question': questionCtrl.text.trim(),
+                          'durationHours': selectedDurationHours,
+                          'options': options
+                              .map((t) => {'text': t, 'votes': 0})
+                              .toList(),
+                        };
+                        Get.back();
+                      },
+                      child: const Text('Oluştur'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      isScrollControlled: true,
+    );
+  }
 
   Future<void> pickImage() async {
     if (selectedVideo.value != null) {
@@ -225,11 +466,16 @@ class CreatorContentController extends GetxController {
 
   Future<void> pickImageFromCamera({required ImageSource source}) async {
     final picked = await picker.pickImage(
-        source: source, imageQuality: UploadConstants.defaultImageQuality);
+      source: source,
+      imageQuality: UploadConstants.defaultImageQuality,
+    );
     if (picked == null) return;
 
     final file = File(picked.path);
+    await _processPickedImage(file);
+  }
 
+  Future<void> _processPickedImage(File file) async {
     // Validate image first
     isProcessing.value = true;
     final validation = await UploadValidationService.validateImage(file);
@@ -362,13 +608,16 @@ class CreatorContentController extends GetxController {
       file = File(picked.path);
     }
 
+    await _processPickedVideo(file);
+  }
+
+  Future<void> _processPickedVideo(File file) async {
     // 1) Size and format validation first
-    waitingVideo.value = true;
+    waitingVideo.value = false;
     isProcessing.value = true;
 
     final validation = await UploadValidationService.validateVideo(file);
     if (!validation.isValid) {
-      waitingVideo.value = false;
       isProcessing.value = false;
       UploadValidationService.showValidationError(validation.errorMessage!);
       return;
@@ -379,7 +628,6 @@ class CreatorContentController extends GetxController {
     final totalSizeValidation =
         UploadValidationService.validateTotalPostSize(currentImages, [file]);
     if (!totalSizeValidation.isValid) {
-      waitingVideo.value = false;
       isProcessing.value = false;
       UploadValidationService.showValidationError(
           totalSizeValidation.errorMessage!);
@@ -397,92 +645,43 @@ class CreatorContentController extends GetxController {
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
-    // Reset any previously selected custom thumbnail
     selectedThumbnail.value = null;
 
-    // 4) Optimized NSFW detection
-    // AppSnackbar(
-    //   'Kontrol ediliyor...',
-    //   'Video güvenlik kontrolünden geçiriliyor...',
-    //   backgroundColor: Colors.orange.withValues(alpha: 0.8),
-    // );
-
-    final nsfwResult = await OptimizedNSFWService.checkVideo(file);
-    final hasNude = nsfwResult.isNSFW;
-
-    if (hasNude) {
-      waitingVideo.value = false;
-      isProcessing.value = false;
-      AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-      );
-      return;
-    }
-
-    // 5) Compress video for network before preview
-    // AppSnackbar(
-    //   'İşleniyor...',
-    //   'Video sıkıştırılıyor...',
-    //   backgroundColor: Colors.blue.withValues(alpha: 0.8),
-    // );
-
-    double targetMbps = 5.0;
-    try {
-      final net = Get.find<NetworkAwarenessService>();
-      targetMbps = net.settings.mobileTargetMbps;
-    } catch (_) {}
-    final compressed = await VideoCompressionService.compressForNetwork(file,
-        targetMbps: targetMbps);
-
-    // Validate total size after video compression (images + video) centralized
-    int imagesTotal = 0;
-    for (final b in croppedImages) {
-      if (b != null) imagesTotal += b.length;
-    }
-    final vidSize = await compressed.length();
-    final vValidation = UploadValidationService.validateCompressedTotals(
-      imagesBytes: 0,
-      videoBytes: vidSize,
-      existingCompressedBytes: imagesTotal,
-    );
-    if (!vValidation.isValid) {
-      waitingVideo.value = false;
-      isProcessing.value = false;
-      UploadValidationService.showValidationError(vValidation.errorMessage!);
-      return;
-    }
-
-    // 6) Setup video player if all validations pass
-    final controller = VideoPlayerController.file(compressed);
+    // 4) Setup video player immediately (no NSFW/compress here)
+    final controller = VideoPlayerController.file(file);
     await controller.initialize();
     rxVideoPlayerController.value = controller;
 
-    selectedVideo.value = compressed;
+    selectedVideo.value = file;
     hasVideo.value = true;
     isPlaying.value = false;
     _listenVideo();
     hasVideo.refresh();
 
-    waitingVideo.value = false;
     isProcessing.value = false;
 
-    // Show success feedback with video info and NSFW stats
-    final metadata = validation.metadata;
-    final duration = metadata?['duration'] ?? 0;
-    final size = UploadConstants.formatBytes(await compressed.length());
-    // final framesChecked = nsfwResult.framesChecked;
-
-    // AppSnackbar(
-    //   'Video Eklendi!',
-    //   'Süre: ${duration}s, Boyut: $size, $framesChecked frame kontrol edildi',
-    //   backgroundColor: Colors.green.withValues(alpha: 0.8),
-    // );
-
     if (kDebugMode) {
+      final metadata = validation.metadata;
+      final duration = metadata?['duration'] ?? 0;
+      final size = UploadConstants.formatBytes(await file.length());
       debugPrint(
-          '[Creator] Video added after compression: size=$size, duration=${duration}s');
+          '[Creator] Video added: size=$size, duration=${duration}s');
     }
+  }
+
+  Future<void> openCustomCameraCapture() async {
+    final result = await Get.to<ChatCameraCaptureResult>(
+      () => const ChatCameraCaptureView(),
+      transition: Transition.fadeIn,
+    );
+    if (result == null) return;
+
+    if (result.mode == ChatCameraMode.photo) {
+      await _processPickedImage(result.file);
+      return;
+    }
+
+    await _processPickedVideo(result.file);
   }
 
   void _enforceImageCap() {

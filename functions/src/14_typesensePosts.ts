@@ -178,6 +178,7 @@ async function ensureUsersCollection() {
         { name: "firstName", type: "string", optional: true },
         { name: "lastName", type: "string", optional: true },
         { name: "pfImage", type: "string", optional: true },
+        { name: "rozet", type: "string", optional: true },
         { name: "gizliHesap", type: "bool", optional: true },
         { name: "deletedAccount", type: "bool", optional: true },
         { name: "hesapOnayi", type: "bool", optional: true },
@@ -206,6 +207,7 @@ async function ensureUsersCollection() {
           { name: "firstName", type: "string", optional: true },
           { name: "lastName", type: "string", optional: true },
           { name: "pfImage", type: "string", optional: true },
+          { name: "rozet", type: "string", optional: true },
           { name: "gizliHesap", type: "bool", optional: true },
           { name: "deletedAccount", type: "bool", optional: true },
           { name: "hesapOnayi", type: "bool", optional: true },
@@ -503,6 +505,7 @@ type UserSearchDoc = {
   firstName: string;
   lastName: string;
   pfImage: string;
+  rozet: string;
   gizliHesap: boolean;
   deletedAccount: boolean;
   hesapOnayi: boolean;
@@ -520,6 +523,7 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
     pfImage: asString(data.pfImage) || asString((data as any).avatarUrl) || asString((data as any).profileImageUrl),
+    rozet: asString((data as any).rozet),
     gizliHesap: asBool((data as any).gizliHesap),
     deletedAccount: asBool((data as any).deletedAccount) || asBool((data as any).isDeleted),
     hesapOnayi: asBool((data as any).hesapOnayi) || asBool((data as any).isVerified),
@@ -676,11 +680,12 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
       id: h?.document?.id,
       nickname: h?.document?.nickname || "",
       firstName: h?.document?.firstName || "",
-      lastName: h?.document?.lastName || "",
-      pfImage: h?.document?.pfImage || "",
-      gizliHesap: h?.document?.gizliHesap === true,
-      deletedAccount: h?.document?.deletedAccount === true,
-      hesapOnayi: h?.document?.hesapOnayi === true,
+        lastName: h?.document?.lastName || "",
+        pfImage: h?.document?.pfImage || "",
+        rozet: h?.document?.rozet || "",
+        gizliHesap: h?.document?.gizliHesap === true,
+        deletedAccount: h?.document?.deletedAccount === true,
+        hesapOnayi: h?.document?.hesapOnayi === true,
       text_match: h?.text_match || 0,
     })),
   };

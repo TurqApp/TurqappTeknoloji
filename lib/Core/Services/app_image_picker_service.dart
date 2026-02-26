@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AppImagePickerService {
   static final ImagePicker _picker = ImagePicker();
@@ -19,9 +20,18 @@ class AppImagePickerService {
   }
 
   static Future<File?> pickSingleImage(BuildContext context) async {
-    final files = await pickImages(context, maxAssets: 1);
-    if (files.isEmpty) return null;
-    return files.first;
+    if (Platform.isAndroid) {
+      final photoStatus = await Permission.photos.request();
+      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
+        return null;
+      }
+    }
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (picked == null) return null;
+    return File(picked.path);
   }
 
   static Future<List<File>> pickVideos(
@@ -34,6 +44,12 @@ class AppImagePickerService {
   }
 
   static Future<File?> pickSingleVideo(BuildContext context) async {
+    if (Platform.isAndroid) {
+      final photoStatus = await Permission.photos.request();
+      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
+        return null;
+      }
+    }
     final files = await pickVideos(context, maxAssets: 1);
     if (files.isEmpty) return null;
     return files.first;

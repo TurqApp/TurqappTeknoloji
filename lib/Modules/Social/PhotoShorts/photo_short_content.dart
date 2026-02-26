@@ -394,6 +394,20 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   }
 
   Widget butonlar(BuildContext context) {
+    final int commentVisibility = widget.model.yorumVisibility;
+    final int reshareVisibility = widget.model.paylasimVisibility;
+    final bool isOwner = controller.user.userID.value == widget.model.userID;
+    final bool isVerified = controller.user.hesapOnayi.value;
+    final bool isFollowing = controller.takipEdiyorum.value;
+    final bool canComment = isOwner ||
+        commentVisibility == 0 ||
+        (commentVisibility == 1 && isVerified) ||
+        (commentVisibility == 2 && isFollowing);
+    final bool canReshare = isOwner ||
+        reshareVisibility == 0 ||
+        (reshareVisibility == 1 && isVerified) ||
+        (reshareVisibility == 2 && isFollowing);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,9 +415,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         /// Yorum Butonu
         Expanded(
           child: TextButton(
-            onPressed: () {
-              controller.showPostCommentsBottomSheet();
-            },
+            onPressed: canComment ? controller.showPostCommentsBottomSheet : null,
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: SizedBox(
               height: 35,
@@ -412,18 +424,15 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                 children: [
                   Icon(
                     CupertinoIcons.bubble_right,
-                    color: widget.model.yorum == true
-                        ? Colors.white
-                        : Colors.grey.withAlpha(80),
+                    color:
+                        canComment ? Colors.white : Colors.grey.withAlpha(80),
                     size: 23,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     NumberFormatter.format(controller.commentCount.value),
                     style: TextStyle(
-                      color: widget.model.yorum == true
-                          ? Colors.white
-                          : Colors.grey,
+                      color: canComment ? Colors.white : Colors.grey,
                       fontSize: 14,
                       fontFamily: AppFontFamilies.mmedium,
                     ),
@@ -476,7 +485,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
 
         Expanded(
           child: TextButton(
-            onPressed: controller.toggleReshare,
+            onPressed: canReshare ? controller.toggleReshare : null,
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: SizedBox(
               height: 35,
@@ -486,7 +495,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                   Image.asset(
                     "assets/icons/reshare.webp",
                     height: 25,
-                    color: widget.model.paylasGizliligi != 2
+                    color: canReshare
                         ? (controller.isReshared.value
                             ? Colors.green
                             : Colors.white)
@@ -496,7 +505,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                   Text(
                     NumberFormatter.format(controller.retryCount.value),
                     style: TextStyle(
-                      color: widget.model.paylasGizliligi != 2
+                      color: canReshare
                           ? (controller.isReshared.value
                               ? Colors.green
                               : Colors.white)

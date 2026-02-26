@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f15_reindexUsersToTypesenseCallable = exports.f15_syncUsersToTypesense = exports.f15_getTrendingTagsCallable = exports.f15_getPostIdsByTagCallable = exports.f15_searchTagsCallable = exports.f15_searchUsersCallable = exports.f14_syncUsersToTypesense = exports.f15_syncTagsToTypesense = void 0;
+exports.f15_reindexUsersToTypesenseScheduled = exports.f15_reindexUsersToTypesenseCallable = exports.f15_syncUsersToTypesense = exports.f15_getTrendingTagsCallable = exports.f15_getPostIdsByTagCallable = exports.f15_searchTagsCallable = exports.f15_searchUsersCallable = exports.f14_syncUsersToTypesense = exports.f15_syncTagsToTypesense = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const axios_1 = require("axios");
@@ -168,6 +169,7 @@ async function ensureUsersCollection() {
                 { name: "firstName", type: "string", optional: true },
                 { name: "lastName", type: "string", optional: true },
                 { name: "pfImage", type: "string", optional: true },
+                { name: "rozet", type: "string", optional: true },
                 { name: "gizliHesap", type: "bool", optional: true },
                 { name: "deletedAccount", type: "bool", optional: true },
                 { name: "hesapOnayi", type: "bool", optional: true },
@@ -191,6 +193,7 @@ async function ensureUsersCollection() {
                 { name: "firstName", type: "string", optional: true },
                 { name: "lastName", type: "string", optional: true },
                 { name: "pfImage", type: "string", optional: true },
+                { name: "rozet", type: "string", optional: true },
                 { name: "gizliHesap", type: "bool", optional: true },
                 { name: "deletedAccount", type: "bool", optional: true },
                 { name: "hesapOnayi", type: "bool", optional: true },
@@ -349,6 +352,7 @@ function buildUserSearchDoc(userId, data) {
         firstName: asString(data.firstName),
         lastName: asString(data.lastName),
         pfImage: asString(data.pfImage) || asString(data.avatarUrl) || asString(data.profileImageUrl),
+        rozet: asString(data.rozet),
         gizliHesap: asBool(data.gizliHesap),
         deletedAccount: asBool(data.deletedAccount) || asBool(data.isDeleted),
         hesapOnayi: asBool(data.hesapOnayi) || asBool(data.isVerified),
@@ -515,6 +519,7 @@ async function searchUsersFromTypesense(q, limit, page) {
             firstName: h?.document?.firstName || "",
             lastName: h?.document?.lastName || "",
             pfImage: h?.document?.pfImage || "",
+            rozet: h?.document?.rozet || "",
             gizliHesap: h?.document?.gizliHesap === true,
             deletedAccount: h?.document?.deletedAccount === true,
             hesapOnayi: h?.document?.hesapOnayi === true,
@@ -912,7 +917,7 @@ exports.f15_getTrendingTagsCallable = (0, https_1.onCall)({
     const db = (0, firestore_2.getFirestore)();
     const settingsSnap = await db.collection("adminConfig").doc("tagSettings").get();
     const settings = settingsSnap.data() || {};
-    const windowHoursDefault = Number(settings.trendWindowHours || 48);
+    const windowHoursDefault = Number(settings.trendWindowHours || 24);
     const trendThresholdDefault = Number(settings.trendThreshold || 1);
     const tagMinLengthDefault = Number(settings.tagMinLength || 1);
     const tagMaxLengthDefault = Number(settings.tagMaxLength || 64);
@@ -967,5 +972,67 @@ exports.f15_reindexUsersToTypesenseCallable = (0, https_1.onCall)({
     const nextCursor = last ? last.id : null;
     const done = snap.docs.length < limit;
     return { scanned, upserted, skipped, nextCursor, done };
+});
+exports.f15_reindexUsersToTypesenseScheduled = (0, scheduler_1.onSchedule)({
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    schedule: "every 5 minutes",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+}, async () => {
+    ensureAdmin();
+    if (!typesenseReady()) {
+        console.log("Typesense env missing, skipping scheduled reindex.");
+        return;
+    }
+    const db = (0, firestore_2.getFirestore)();
+    const stateRef = db.collection("adminConfig").doc("typesenseUsersReindex");
+    const stateSnap = await stateRef.get();
+    const state = (stateSnap.data() || {});
+    const cursor = String(state.cursor || "").trim();
+    const batchSize = 300;
+    let q = db.collection("users").orderBy(firestore_2.FieldPath.documentId()).limit(batchSize);
+    if (cursor)
+        q = q.startAfter(cursor);
+    const snap = await q.get();
+    if (snap.empty) {
+        await stateRef.set({
+            cursor: "",
+            doneAt: Date.now(),
+            done: true,
+        }, { merge: true });
+        console.log("typesense_users_reindex_scheduled_done");
+        return;
+    }
+    let scanned = 0;
+    let upserted = 0;
+    let skipped = 0;
+    for (const docSnap of snap.docs) {
+        scanned += 1;
+        const doc = buildUserSearchDoc(docSnap.id, docSnap.data());
+        if (!shouldIndexUser(doc)) {
+            skipped += 1;
+            continue;
+        }
+        await upsertUserDoc(doc);
+        upserted += 1;
+    }
+    const last = snap.docs[snap.docs.length - 1];
+    const done = snap.docs.length < batchSize;
+    await stateRef.set({
+        cursor: done ? "" : (last?.id || ""),
+        lastRunAt: Date.now(),
+        done,
+        scanned,
+        upserted,
+        skipped,
+    }, { merge: true });
+    console.log("typesense_users_reindex_scheduled_progress", {
+        scanned,
+        upserted,
+        skipped,
+        done,
+        nextCursor: done ? "" : (last?.id || ""),
+    });
 });
 //# sourceMappingURL=15_typesenseUsersTags.js.map

@@ -259,17 +259,28 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// VideoPlayer widget yerine kullanılacak widget.
   /// HLSPlayer, mount edildiğinde native view oluşturur ve
   /// HLSController.initialize(viewId) çağırır → event'ler akmaya başlar.
+  /// Pending seek/play kuyruğunu hazırla (fullscreen geçişi gibi view yenilenecek durumlar için).
+  /// Yeni native view ready olduğunda bu komutlar otomatik çalışır.
+  void queueSeekAndPlay(Duration position) {
+    _wantPlay = true;
+    _wantPause = false;
+    if (position > Duration.zero) {
+      _pendingSeek = position;
+    }
+  }
+
   Widget buildPlayer({
     Key? key,
     double aspectRatio = 16 / 9,
     bool useAspectRatio = true,
+    bool? overrideAutoPlay,
   }) {
     _refreshProxyUrlIfNeeded();
     return HLSPlayer(
       key: key,
       url: url,
       controller: _hls,
-      autoPlay: autoPlay,
+      autoPlay: overrideAutoPlay ?? autoPlay,
       loop: loop,
       showControls: false,
       aspectRatio: aspectRatio,

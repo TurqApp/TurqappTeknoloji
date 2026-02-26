@@ -137,31 +137,49 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     }
   }
 
-  Widget _buildFullscreenVideoSurface(HLSVideoAdapter adapter, String keyId) {
-    final ar =
-        adapter.value.aspectRatio > 0 ? adapter.value.aspectRatio : (9 / 16);
+  /// Video frame tipi:
+  /// AR < 0.8  → Dikey: tam ekran doldur (mevcut davranış)
+  /// 0.8 ≤ AR ≤ 1.2 → Kare: ekran genişliğinde kare frame
+  /// AR > 1.2 → Yatay: ekran genişliğinde yatay dikdörtgen frame
+  /// Short ekranıyla aynı 3-tier layout:
+  /// portrait (<0.8) → ekranı doldur, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
+  Widget _buildFullscreenVideoSurface(
+    HLSVideoAdapter adapter,
+    String keyId, {
+    bool? overrideAutoPlay,
+    double? modelAspectRatio,
+  }) {
+    // Model aspect ratio güvenilir kaynak — native player default 16/9 döner
+    final ar = (modelAspectRatio != null && modelAspectRatio > 0)
+        ? modelAspectRatio
+        : (9 / 16);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final frameHeight = constraints.maxHeight > 0
-            ? constraints.maxHeight
-            : MediaQuery.of(context).size.height;
-        final targetWidth = frameHeight * ar;
-
-        return ClipRect(
-          child: Center(
-            child: SizedBox(
-              width: targetWidth,
-              height: frameHeight,
-              child: adapter.buildPlayer(
-                key: ValueKey(keyId),
-                useAspectRatio: false,
-              ),
-            ),
-          ),
-        );
-      },
+    final player = adapter.buildPlayer(
+      key: ValueKey(keyId),
+      useAspectRatio: false,
+      overrideAutoPlay: overrideAutoPlay,
     );
+
+    if (ar > 1.2) {
+      // Yatay dikdörtgen
+      return Center(
+        child: AspectRatio(
+          aspectRatio: ar,
+          child: player,
+        ),
+      );
+    } else if (ar >= 0.8) {
+      // Kare frame
+      return Center(
+        child: AspectRatio(
+          aspectRatio: 1.0,
+          child: player,
+        ),
+      );
+    } else {
+      // Dikey — ekranı doldur
+      return SizedBox.expand(child: player);
+    }
   }
 
   @override
@@ -217,82 +235,15 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       _externallyOwned.add(initial);
       final ctrl = widget.injectedController!;
 
-      print('[SingleShortView] 📺 Configuring injected controller');
-      print(
-          '[SingleShortView] Initial position received: ${widget.initialPosition}');
-      print('[SingleShortView] Controller duration: ${ctrl.value.duration}');
-      print(
-          '[SingleShortView] Controller current position: ${ctrl.value.position}');
-      print('[SingleShortView] Controller isPlaying: ${ctrl.value.isPlaying}');
+      // Yeni native view oluşacak → video yeniden yüklenecek.
+      // autoPlay=false ile build edeceğiz, seek+play'i pending kuyruğa alacağız.
+      // Native view ready olduğunda adapter otomatik uygulayacak.
+      final seekPos = widget.initialPosition ?? ctrl.value.position;
+      ctrl.setLooping(false);
+      ctrl.queueSeekAndPlay(seekPos);
 
-      // Pozisyonu set et ve oynat - PostFrameCallback ile
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) {
-          print('[SingleShortView] ❌ Not mounted, aborting');
-          return;
-        }
-
-        try {
-          // Ayarları uygula
-          ctrl.setVolume(volume ? 1 : 0);
-          ctrl.setLooping(false); // Otomatik geçiş için loop kapalı
-
-          // initialPosition varsa o pozisyona git
-          if (widget.initialPosition != null &&
-              widget.initialPosition != Duration.zero) {
-            final targetPos = widget.initialPosition!;
-            final total = ctrl.value.duration;
-            final safePos = targetPos > total
-                ? total
-                : (targetPos.isNegative ? Duration.zero : targetPos);
-
-            print('[SingleShortView] 🎯 Seeking to: $safePos');
-            await ctrl.seekTo(safePos);
-            print(
-                '[SingleShortView] ✅ Seek completed. New position: ${ctrl.value.position}');
-          } else {
-            print(
-                '[SingleShortView] ⏭️ No initial position, starting from current');
-          }
-
-          // Oynat - birkaç kez dene
-          if (mounted) {
-            print('[SingleShortView] ▶️ Calling play()...');
-            await ctrl.play();
-
-            // Play sonrası kısa bekle ve kontrol et
-            await Future.delayed(const Duration(milliseconds: 100));
-
-            print(
-                '[SingleShortView] ✅ Play completed. isPlaying: ${ctrl.value.isPlaying}');
-
-            // Hala oynatılmıyorsa tekrar dene
-            if (!ctrl.value.isPlaying) {
-              print('[SingleShortView] ⚠️ Still not playing, retrying...');
-              await ctrl.play();
-              await Future.delayed(const Duration(milliseconds: 50));
-              print(
-                  '[SingleShortView] 🔄 Retry result. isPlaying: ${ctrl.value.isPlaying}');
-            }
-
-            if (mounted) {
-              setState(() {});
-            }
-          }
-        } catch (e) {
-          print('[SingleShortView] ❌ Error during setup: $e');
-          // Hata olursa yine de oynatmayı dene
-          try {
-            if (mounted) {
-              print('[SingleShortView] 🔄 Emergency retry: calling play()...');
-              await ctrl.play();
-              if (mounted) setState(() {});
-            }
-          } catch (e2) {
-            print('[SingleShortView] ❌ Emergency retry also failed: $e2');
-          }
-        }
-      });
+      // Volume pending olarak kuyruğa al
+      ctrl.setVolume(volume ? 1 : 0);
 
       setState(() {});
     } else {
@@ -428,12 +379,20 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       // Cache state machine: playing olarak işaretle
       if (currentPage < shorts.length) {
         try {
-          Get.find<SegmentCacheManager>()
-              .markPlaying(shorts[currentPage].docID);
+          final cm = Get.find<SegmentCacheManager>();
+          cm.markPlaying(shorts[currentPage].docID);
+          // -5 kuralı: gerideki 5 videonun cache'ini koru
+          for (var i = 1; i <= 5; i++) {
+            final behindIdx = currentPage - i;
+            if (behindIdx < 0) break;
+            if (behindIdx < shorts.length) {
+              cm.touchEntry(shorts[behindIdx].docID);
+            }
+          }
         } catch (_) {}
       }
     }
-    // 5) ±5 aralığı preload & dışındakileri dispose et
+    // 5) +5/-5 aralığı preload & dışındakileri dispose et
     _preloadRange(currentPage);
     _disposeOutsideRange(currentPage);
     setState(() {});
@@ -524,10 +483,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     // externals set'i koru; injected mapping kalır
   }
 
+  // +5/-5 kuralı: önündeki 5 videoyu preload et
   void _preloadRange(int center) {
     final len = shorts.length;
     final start = (center - 1).clamp(0, len - 1);
-    final end = (center + 1).clamp(0, len - 1);
+    final end = (center + 5).clamp(0, len - 1);
     for (var i = start; i <= end; i++) {
       _ensureController(i);
     }
@@ -632,10 +592,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     });
   }
 
+  // +5/-5 kuralı: ±7 dışındakileri temizle (5+2 marj)
   void _disposeOutsideRange(int center) {
     final len = shorts.length;
-    final start = (center - 2).clamp(0, len - 1);
-    final end = (center + 2).clamp(0, len - 1);
+    final start = (center - 7).clamp(0, len - 1);
+    final end = (center + 7).clamp(0, len - 1);
     final keys = _videoControllers.keys.toList();
     for (var idx in keys) {
       if (idx < start || idx > end) {
@@ -707,18 +668,53 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                     // Injected controller'ın ses seviyesini ayarla
                     injected.setVolume(volume ? 1 : 0);
                   }
+                  final injThumb = shorts[idx].thumbnail;
                   final injectedWidget = Stack(
                     fit: StackFit.expand,
                     children: [
                       _buildFullscreenVideoSurface(
                         injected,
                         'injected-${shorts[idx].docID}-${injected.hashCode}',
+                        overrideAutoPlay: false,
+                        modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
                       ),
-                      if (!injected.value.isInitialized)
-                        const Center(
-                          child:
-                              CupertinoActivityIndicator(color: Colors.white),
-                        ),
+                      // Thumbnail overlay - native view ilk frame'i render edene kadar
+                      AnimatedBuilder(
+                        animation: injected,
+                        builder: (_, __) {
+                          if (injected.value.isInitialized && injected.value.isPlaying) {
+                            return const SizedBox.shrink();
+                          }
+                          if (injThumb.isEmpty) return const SizedBox.shrink();
+                          if (shorts[idx].aspectRatio >= 0.8) {
+                            return Align(
+                              alignment: Alignment.center,
+                              child: AspectRatio(
+                                aspectRatio: shorts[idx].aspectRatio > 1.2
+                                    ? shorts[idx].aspectRatio.toDouble()
+                                    : 1.0,
+                                child: Image.network(injThumb, fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                              ),
+                            );
+                          }
+                          return SizedBox.expand(
+                            child: Image.network(injThumb, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                          );
+                        },
+                      ),
+                      AnimatedBuilder(
+                        animation: injected,
+                        builder: (_, __) {
+                          if (!injected.value.isInitialized) {
+                            return const Center(
+                              child: CupertinoActivityIndicator(color: Colors.white),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ],
                   );
                   return _buildStackForController(
@@ -726,10 +722,32 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                 }
 
                 // Normal video controller'ları için
+                final thumb = shorts[idx].thumbnail;
                 if (!_videoControllers.containsKey(idx)) {
                   _ensureController(idx);
-                  return const Center(
-                    child: CupertinoActivityIndicator(color: Colors.white),
+                  // Thumbnail göster (yüklenirken)
+                  final loadingThumbAr = shorts[idx].aspectRatio.toDouble();
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (thumb.isNotEmpty)
+                        if (loadingThumbAr >= 0.8)
+                          Center(
+                            child: AspectRatio(
+                              aspectRatio: loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
+                              child: Image.network(thumb, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                            ),
+                          )
+                        else
+                          Image.network(thumb, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink())
+                      else
+                        const SizedBox.shrink(),
+                      const Center(
+                        child: CupertinoActivityIndicator(color: Colors.white),
+                      ),
+                    ],
                   );
                 }
 
@@ -737,9 +755,24 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
                 // Sadece yakın sayfalardaki videoları render et
                 final isNear = (idx - currentPage).abs() <= 2;
+                final thumbAr = shorts[idx].aspectRatio.toDouble();
                 final videoWidget = !isNear
-                    ? const Center(
-                        child: CupertinoActivityIndicator(color: Colors.white),
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (thumb.isNotEmpty)
+                            if (thumbAr >= 0.8)
+                              Center(
+                                child: AspectRatio(
+                                  aspectRatio: thumbAr > 1.2 ? thumbAr : 1.0,
+                                  child: Image.network(thumb, fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                ),
+                              )
+                            else
+                              Image.network(thumb, fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                        ],
                       )
                     : Stack(
                         fit: StackFit.expand,
@@ -747,12 +780,45 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                           _buildFullscreenVideoSurface(
                             vp,
                             'vp-${shorts[idx].docID}-${vp.hashCode}',
+                            modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
                           ),
-                          if (!vp.value.isInitialized)
-                            const Center(
-                              child: CupertinoActivityIndicator(
-                                  color: Colors.white),
-                            ),
+                          // Thumbnail overlay - video ilk frame'i gösterene kadar
+                          AnimatedBuilder(
+                            animation: vp,
+                            builder: (_, __) {
+                              if (vp.value.isInitialized && vp.value.position != Duration.zero) {
+                                return const SizedBox.shrink();
+                              }
+                              if (thumb.isEmpty) return const SizedBox.shrink();
+                              if (shorts[idx].aspectRatio >= 0.8) {
+                                return Align(
+                                  alignment: Alignment.center,
+                                  child: AspectRatio(
+                                    aspectRatio: shorts[idx].aspectRatio > 1.2
+                                        ? shorts[idx].aspectRatio.toDouble()
+                                        : 1.0,
+                                    child: Image.network(thumb, fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                  ),
+                                );
+                              }
+                              return SizedBox.expand(
+                                child: Image.network(thumb, fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                              );
+                            },
+                          ),
+                          AnimatedBuilder(
+                            animation: vp,
+                            builder: (_, __) {
+                              if (!vp.value.isInitialized) {
+                                return const Center(
+                                  child: CupertinoActivityIndicator(color: Colors.white),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                         ],
                       );
 
@@ -775,6 +841,16 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         // Tap kontrolü için şeffaf overlay (translucent = scroll'a izin verir)
         GestureDetector(
           behavior: HitTestBehavior.translucent,
+          onDoubleTap: () {
+            // Çift dokunma: ses aç/kapa
+            setState(() {
+              volume = !volume;
+              final ctrl = _videoControllers[currentPage];
+              if (ctrl != null) {
+                ctrl.setVolume(volume ? 1 : 0);
+              }
+            });
+          },
           onTapDown: (_) => vp.pause(),
           onTapUp: (_) {
             if (idx == currentPage) vp.play();
@@ -802,6 +878,14 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           },
           child: Container(color: Colors.transparent),
         ),
+        // İnce progress bar
+        if (idx == currentPage)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _SingleShortProgressBar(adapter: vp),
+          ),
         if (showControls)
           ShortsContent(
             model: shorts[idx],
@@ -927,6 +1011,33 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// İnce video progress bar
+class _SingleShortProgressBar extends StatelessWidget {
+  final HLSVideoAdapter adapter;
+  const _SingleShortProgressBar({required this.adapter});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: adapter,
+      builder: (_, __) {
+        final v = adapter.value;
+        if (!v.isInitialized || v.duration.inMilliseconds <= 0) {
+          return const SizedBox.shrink();
+        }
+        final progress =
+            v.position.inMilliseconds / v.duration.inMilliseconds;
+        return LinearProgressIndicator(
+          value: progress.clamp(0.0, 1.0),
+          minHeight: 2,
+          backgroundColor: Colors.white24,
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+        );
+      },
     );
   }
 }

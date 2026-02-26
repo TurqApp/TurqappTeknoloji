@@ -6,8 +6,10 @@ import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -39,6 +41,7 @@ class PreparedPostModel {
   final String location;
   final String gif;
   final Uint8List? customThumbnail;
+  final Map<String, dynamic> poll;
 
   PreparedPostModel({
     required this.text,
@@ -47,6 +50,7 @@ class PreparedPostModel {
     required this.location,
     required this.gif,
     required this.customThumbnail,
+    required this.poll,
   });
 
   Map<String, dynamic> toMap({required String docID}) => {
@@ -65,6 +69,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   var selectedIndex = 0.obs;
   final agendaController = Get.find<AgendaController>();
   var comment = true.obs;
+  // 0: Herkes, 1: Onaylı hesaplar, 2: Takip ettiğin hesaplar
+  var commentVisibility = 0.obs;
   var paylasimSelection = 0.obs;
   // 0: Şimdi Paylaş, 1: İleri Tarihe İz Bırak
   var publishMode = 0.obs;
@@ -189,7 +195,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   Future<void> showCommentOptions() async {
     Get.bottomSheet(
       Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
@@ -198,116 +204,134 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           ),
         ),
         child: Obx(() {
+          Widget optionTile({
+            required String title,
+            required IconData icon,
+            required bool selected,
+            required VoidCallback onTap,
+          }) {
+            return GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                color: Colors.white.withAlpha(1),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ),
+                    if (selected)
+                      Container(
+                        width: 20,
+                        height: 20,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.checkmark,
+                          color: Colors.white,
+                          size: 14,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
-                  SizedBox(width: 12),
-                  Text(
-                    "Yorumlar",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: "MontserratBold",
-                    ),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(80),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  SizedBox(width: 12),
-                  Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
-                ],
+                ),
               ),
-              SizedBox(height: 12),
-              GestureDetector(
+              const Text(
+                "Kimler yanıtlayabilir?",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontFamily: "MontserratBold",
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Bu gönderiyi kimlerin yanıtlayabileceğini seç.",
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+              const SizedBox(height: 14),
+              optionTile(
+                title: "Herkes",
+                icon: CupertinoIcons.globe,
+                selected: commentVisibility.value == 0,
                 onTap: () {
+                  commentVisibility.value = 0;
                   comment.value = true;
                 },
-                child: Container(
-                  color: Colors.white.withAlpha(1),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Herkes yorum yapabilir.",
-                          textAlign: TextAlign.left,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 25,
-                        height: 25,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(3),
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: comment.value
-                                  ? Colors.black
-                                  : Colors.transparent,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-              SizedBox(height: 12),
-              GestureDetector(
+              optionTile(
+                title: "Onaylı hesaplar",
+                icon: CupertinoIcons.checkmark_seal,
+                selected: commentVisibility.value == 1,
                 onTap: () {
+                  commentVisibility.value = 1;
+                  comment.value = true;
+                },
+              ),
+              optionTile(
+                title: "Takip ettiğin hesaplar",
+                icon: CupertinoIcons.person_2,
+                selected: commentVisibility.value == 2,
+                onTap: () {
+                  commentVisibility.value = 2;
+                  comment.value = true;
+                },
+              ),
+              optionTile(
+                title: "Yoruma kapalı",
+                icon: CupertinoIcons.chat_bubble_text,
+                selected: commentVisibility.value == 3,
+                onTap: () {
+                  commentVisibility.value = 3;
                   comment.value = false;
                 },
-                child: Container(
-                  color: Colors.white.withAlpha(1),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          "Hiç kimse yorum yapamaz.",
-                          textAlign: TextAlign.left,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 25,
-                        height: 25,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(3),
-                          child: Container(
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: !comment.value
-                                  ? Colors.black
-                                  : Colors.transparent,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
-              SizedBox(height: 12),
             ],
           );
         }),
@@ -528,6 +552,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final location = contentController.adres.value;
       final gif = contentController.gif.value;
       final customThumb = contentController.selectedThumbnail.value;
+      final poll = contentController.pollData.value ?? const {};
 
       allPosts.add(
         PreparedPostModel(
@@ -537,6 +562,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           location: location,
           gif: gif,
           customThumbnail: customThumb,
+          poll: poll,
         ),
       );
     }
@@ -703,6 +729,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               : 0;
       final baseTime = scheduledMs != 0 ? scheduledMs : nowMs;
 
+      final pollPayload = post.poll.isNotEmpty
+          ? _normalizePollForSave(post.poll, baseTime)
+          : null;
+
       await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
         "arsiv": false,
         if (!isImagePost) "aspectRatio": aspectRatio,
@@ -728,7 +758,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "konum": post.location,
         "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
         "metin": post.text,
-        "paylasGizliligi": paylasimSelection.value,
+        "reshareMap": {
+          "visibility": paylasimSelection.value,
+        },
         "scheduledAt": 0,
         "sikayetEdildi": false,
         "stabilized": false,
@@ -737,7 +769,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "timeStamp": baseTime + index,
         "userID": FirebaseAuth.instance.currentUser!.uid,
         "video": videoUrl,
-        "yorum": comment.value,
+        "yorumMap": {
+          "visibility": commentVisibility.value,
+        },
+        if (pollPayload != null) "poll": pollPayload,
         // Schema: Original attribution fields must always exist
         "originalUserID": "",
         "originalPostID": "",
@@ -762,7 +797,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           konum: post.location,
           mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
           metin: post.text,
-          paylasGizliligi: 0,
+          paylasGizliligi: paylasimSelection.value,
+          reshareMap: {
+            "visibility": paylasimSelection.value,
+          },
           scheduledAt: 0,
           sikayetEdildi: false,
           stabilized: false,
@@ -772,6 +810,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           userID: FirebaseAuth.instance.currentUser!.uid,
           video: videoUrl,
           yorum: comment.value,
+          yorumMap: {
+            "visibility": commentVisibility.value,
+          },
+          poll: pollPayload ?? const {},
           originalUserID: "",
           originalPostID: "",
         ),
@@ -803,6 +845,55 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       print('Error initializing services: $e');
     }
+  }
+
+  Map<String, dynamic> _normalizePollForSave(
+      Map<String, dynamic> poll, int createdAtMs) {
+    final normalized = Map<String, dynamic>.from(poll);
+    final options = (normalized['options'] is List)
+        ? List<Map<String, dynamic>>.from(
+            (normalized['options'] as List)
+                .map((o) => Map<String, dynamic>.from(o)),
+          )
+        : <Map<String, dynamic>>[];
+    int totalVotes = 0;
+    for (final opt in options) {
+      final v = opt['votes'];
+      final int votes = v is num ? v.toInt() : int.tryParse('$v') ?? 0;
+      opt['votes'] = votes;
+      totalVotes += votes;
+    }
+    normalized['options'] = options;
+    normalized['totalVotes'] = totalVotes;
+    normalized['durationHours'] =
+        (normalized['durationHours'] is num) ? normalized['durationHours'] : 24;
+    normalized['createdAt'] = createdAtMs;
+    normalized['userVotes'] = normalized['userVotes'] is Map
+        ? Map<String, dynamic>.from(normalized['userVotes'])
+        : <String, dynamic>{};
+    return normalized;
+  }
+
+  bool _validatePollRequirements() {
+    for (final postModel in postList) {
+      final tag = postModel.index.toString();
+      if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
+      final controller = Get.find<CreatorContentController>(tag: tag);
+      final poll = controller.pollData.value;
+      if (poll == null || poll.isEmpty) continue;
+      final hasCaption = controller.textEdit.text.trim().isNotEmpty;
+      final hasMedia = controller.croppedImages.isNotEmpty ||
+          controller.selectedImages.isNotEmpty ||
+          controller.selectedVideo.value != null;
+      if (!hasCaption && !hasMedia) {
+        AppSnackbar(
+          'Anket',
+          'Anket için açıklama veya görsel/video gerekli.',
+        );
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Start auto-save timer
@@ -971,6 +1062,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   Future<void> _addToUploadQueue(
       UploadProgressController progressController) async {
     try {
+      if (!_validatePollRequirements()) return;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final tag = postModel.index.toString();
@@ -987,8 +1079,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           'location': controller.adres.value,
           'gif': controller.gif.value,
           'userID': FirebaseAuth.instance.currentUser!.uid,
-          'comment': comment.value,
-          'paylasGizliligi': paylasimSelection.value,
+          'yorumMap': {
+            'visibility': commentVisibility.value,
+          },
+          'reshareMap': {
+            'visibility': paylasimSelection.value,
+          },
+          if (controller.pollData.value != null) 'poll': controller.pollData.value,
           'scheduledAt':
               (publishMode.value == 1 && izBirakDateTime.value != null)
                   ? izBirakDateTime.value!.millisecondsSinceEpoch
@@ -1016,6 +1113,21 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         }
 
         // Create queued upload
+        final poll = controller.pollData.value ?? const {};
+        final int scheduledAt =
+            (postData['scheduledAt'] is num) ? postData['scheduledAt'] as int : 0;
+        final pollPayload = (poll.isNotEmpty)
+            ? _normalizePollForSave(
+                poll,
+                scheduledAt > 0
+                    ? scheduledAt
+                    : DateTime.now().millisecondsSinceEpoch,
+              )
+            : null;
+        if (pollPayload != null) {
+          postData['poll'] = pollPayload;
+        }
+
         final queuedUpload = QueuedUpload(
           id: docID,
           postData: jsonEncode(postData),
@@ -1029,13 +1141,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
       progressController
           .complete('Gönderiler kuyruğa eklendi! Arka planda yüklenecek.');
-
-      await _errorService.handleError(
-        'Posts queued for background upload',
-        category: ErrorCategory.upload,
-        severity: ErrorSeverity.low,
-        userMessage: 'Gönderiler arka plan kuyruğuna eklendi',
-        showToUser: true,
+      AppSnackbar(
+        'Yükleme Kuyruğu',
+        'Gönderiler arka plan kuyruğuna eklendi',
+        backgroundColor: Colors.green.withValues(alpha: 0.7),
       );
     } catch (e) {
       await _errorService.handleError(
@@ -1056,6 +1165,25 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
+        bool hasVideo = false;
+        for (final postModel in postList) {
+          final tag = postModel.index.toString();
+          if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
+          final controller = Get.find<CreatorContentController>(tag: tag);
+          if (controller.selectedVideo.value != null) {
+            hasVideo = true;
+            break;
+          }
+        }
+        if (hasVideo) {
+          await _addToUploadQueue(progressController);
+          nav.uploadingPosts.value = false;
+          return;
+        }
+        if (!_validatePollRequirements()) {
+          nav.uploadingPosts.value = false;
+          return;
+        }
         final uploadedPosts =
             await uploadAllPostsWithErrorHandling(progressController);
 
@@ -1145,6 +1273,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final location = contentController.adres.value;
         final gif = contentController.gif.value;
         final customThumb = contentController.selectedThumbnail.value;
+        final poll = contentController.pollData.value ?? const {};
 
         allPosts.add(
           PreparedPostModel(
@@ -1154,6 +1283,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             location: location,
             gif: gif,
             customThumbnail: customThumb,
+            poll: poll,
           ),
         );
       }
@@ -1359,7 +1489,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "konum": post.location,
               "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
               "metin": post.text,
-              "paylasGizliligi": 0,
+              "reshareMap": {
+                "visibility": paylasimSelection.value,
+              },
               "scheduledAt": 0,
               "sikayetEdildi": false,
               "stabilized": false,
@@ -1368,7 +1500,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "timeStamp": baseTime + index,
               "userID": FirebaseAuth.instance.currentUser!.uid,
               "video": videoUrl,
-              "yorum": comment.value,
+              "yorumMap": {
+                "visibility": commentVisibility.value,
+              },
+              if (post.poll.isNotEmpty) "poll": post.poll,
               "originalUserID": "",
               "originalPostID": "",
             });
@@ -1395,7 +1530,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 metin: post.text,
                 originalPostID: "",
                 originalUserID: "",
-                paylasGizliligi: 0,
+                paylasGizliligi: paylasimSelection.value,
+                reshareMap: {
+                  "visibility": paylasimSelection.value,
+                },
                 scheduledAt: 0,
                 sikayetEdildi: false,
                 stabilized: false,
@@ -1405,6 +1543,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 userID: FirebaseAuth.instance.currentUser!.uid,
                 video: videoUrl,
                 yorum: comment.value,
+                yorumMap: {
+                  "visibility": commentVisibility.value,
+                },
+                poll: post.poll,
               ),
             );
 

@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/video_compression_service.dart';
 
 enum UploadStatus {
   pending('Bekliyor'),
@@ -92,6 +93,10 @@ class UploadQueueService extends GetxController {
   static const String _queueKey = 'upload_queue';
   static const int _maxRetries = 3;
 
+  void _notifyQueueUpdated() {
+    _queue.refresh();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -102,6 +107,7 @@ class UploadQueueService extends GetxController {
   /// Add upload to queue
   Future<void> addToQueue(QueuedUpload upload) async {
     _queue.add(upload);
+    _notifyQueueUpdated();
     await _saveQueueToStorage();
     _processQueue();
   }
@@ -143,6 +149,7 @@ class UploadQueueService extends GetxController {
 
       upload.status = UploadStatus.uploading;
       upload.progress = 0.0;
+      _notifyQueueUpdated();
       await _saveQueueToStorage();
 
       // Upload images first (preserve extension; prefer .webp)
@@ -178,6 +185,7 @@ class UploadQueueService extends GetxController {
             upload.progress = (i + progress) /
                 upload.imagePaths.length *
                 0.8; // 80% for images
+            _notifyQueueUpdated();
           });
 
           final taskSnapshot = await uploadTask;
@@ -199,8 +207,16 @@ class UploadQueueService extends GetxController {
       int thumbWidth = 0;
       int thumbHeight = 0;
       if (upload.videoPath != null) {
-        final videoFile = File(upload.videoPath!);
+        File videoFile = File(upload.videoPath!);
         if (await videoFile.exists()) {
+          // Compress in background before upload
+          try {
+            videoFile = await VideoCompressionService.compressForNetwork(
+              videoFile,
+              targetMbps: 5.0,
+            );
+          } catch (_) {}
+
           final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
           if (nsfwVideo.errorMessage != null) {
             upload.status = UploadStatus.failed;
@@ -222,6 +238,7 @@ class UploadQueueService extends GetxController {
           uploadTask.snapshotEvents.listen((snapshot) {
             final progress = snapshot.bytesTransferred / snapshot.totalBytes;
             upload.progress = 0.8 + (progress * 0.15); // 15% for video
+            _notifyQueueUpdated();
           });
 
           final taskSnapshot = await uploadTask;
@@ -279,6 +296,7 @@ class UploadQueueService extends GetxController {
 
       // Save to Firestore (full document structure)
       upload.progress = 0.95;
+      _notifyQueueUpdated();
       final postDataMap = jsonDecode(upload.postData);
       final String text = (postDataMap['text'] ?? '')
           .toString()
@@ -290,9 +308,21 @@ class UploadQueueService extends GetxController {
       if (userID.trim().isEmpty) {
         userID = FirebaseAuth.instance.currentUser?.uid ?? '';
       }
-      final bool comment = (postDataMap['comment'] ?? true) == true;
-      final int paylasGizliligi =
-          int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
+      final Map<String, dynamic> yorumMap =
+          Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
+      final Map<String, dynamic> reshareMap =
+          Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
+      final Map<String, dynamic> poll =
+          Map<String, dynamic>.from(postDataMap['poll'] ?? {});
+      if (yorumMap.isEmpty) {
+        final bool comment = (postDataMap['comment'] ?? true) == true;
+        yorumMap['visibility'] = comment ? 0 : 3;
+      }
+      if (reshareMap.isEmpty) {
+        final int paylasGizliligi =
+            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
+        reshareMap['visibility'] = paylasGizliligi;
+      }
       final int scheduledAt =
           int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
 
@@ -392,7 +422,6 @@ class UploadQueueService extends GetxController {
         "konum": location,
         "mainFlood": mainFlood,
         "metin": text,
-        "paylasGizliligi": paylasGizliligi,
         "scheduledAt": scheduledAt,
         "sikayetEdildi": false,
         "stabilized": false,
@@ -409,7 +438,9 @@ class UploadQueueService extends GetxController {
         "timeStamp": baseTime,
         "userID": userID,
         "video": videoUrl,
-        "yorum": comment,
+        "yorumMap": yorumMap,
+        "reshareMap": reshareMap,
+        if (poll.isNotEmpty) "poll": poll,
         // Schema: always include original attribution fields
         "originalUserID": "",
         "originalPostID": "",
@@ -427,6 +458,7 @@ class UploadQueueService extends GetxController {
       upload.status = UploadStatus.completed;
       upload.progress = 1.0;
       _completedCount.value++;
+      _notifyQueueUpdated();
 
       await _saveQueueToStorage();
     } catch (e) {
@@ -446,23 +478,27 @@ class UploadQueueService extends GetxController {
       }
 
       await _saveQueueToStorage();
+      _notifyQueueUpdated();
     }
   }
 
   /// Pause queue processing
   void pauseQueue() {
     _isPaused.value = true;
+    _notifyQueueUpdated();
   }
 
   /// Resume queue processing
   void resumeQueue() {
     _isPaused.value = false;
     _processQueue();
+    _notifyQueueUpdated();
   }
 
   /// Clear completed uploads
   void clearCompleted() async {
     _queue.removeWhere((item) => item.status == UploadStatus.completed);
+    _notifyQueueUpdated();
     await _saveQueueToStorage();
   }
 
@@ -476,6 +512,7 @@ class UploadQueueService extends GetxController {
       upload.progress = 0.0;
     }
     _failedCount.value = 0;
+    _notifyQueueUpdated();
     await _saveQueueToStorage();
     _processQueue();
   }
@@ -483,6 +520,7 @@ class UploadQueueService extends GetxController {
   /// Remove upload from queue
   void removeUpload(String uploadId) async {
     _queue.removeWhere((item) => item.id == uploadId);
+    _notifyQueueUpdated();
     await _saveQueueToStorage();
   }
 
@@ -518,6 +556,7 @@ class UploadQueueService extends GetxController {
           _queue.where((item) => item.status == UploadStatus.failed).length;
 
       await _saveQueueToStorage();
+      _notifyQueueUpdated();
     }
   }
 

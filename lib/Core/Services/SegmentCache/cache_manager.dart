@@ -30,7 +30,14 @@ class SegmentCacheManager extends GetxController {
   int? _userSoftLimitBytes;
 
   Timer? _persistTimer;
+  Timer? _reconcileTimer;
   bool _persistDirty = false;
+
+  /// Per-key write lock — aynı segment için eş zamanlı yazımı engeller.
+  final Map<String, Future<File>> _writeInFlight = {};
+
+  /// Coalesced eviction — birden fazla writeSegment tek eviction tetikler.
+  Future<void>? _evictionInFlight;
 
   /// Son N oynatılan video — eviction'da korunur.
   final List<String> _recentlyPlayed = [];
@@ -46,6 +53,10 @@ class SegmentCacheManager extends GetxController {
     // Recovery pahalı olabildiği için açılışı bloklamadan arka planda çalıştır.
     unawaited(_recoverIndex());
     metrics.startPeriodicLog();
+    // Periyodik totalSizeBytes reconciliation — drift'i düzeltir (5 dakikada bir)
+    _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _reconcileTotalSize();
+    });
   }
 
   String get cacheDir => _cacheDir;
@@ -64,7 +75,7 @@ class SegmentCacheManager extends GetxController {
       _userHardLimitBytes ??
       _remote?.cacheHardLimitBytes ??
       CacheIndex.maxSizeBytes;
-  int get _recentPlayCount => _remote?.cacheRecentProtectCount ?? 3;
+  int get _recentPlayCount => _remote?.cacheRecentProtectCount ?? 5;
 
   VideoRemoteConfigService? get _remote {
     if (Get.isRegistered<VideoRemoteConfigService>()) {
@@ -98,7 +109,25 @@ class SegmentCacheManager extends GetxController {
   // ──────────────────────────── Cache Yazma ────────────────────────────
 
   /// Segment'i disk'e yaz, index'i güncelle.
+  /// Per-key lock ile aynı segment için eş zamanlı yazımı engeller.
   Future<File> writeSegment(
+      String docID, String segmentKey, Uint8List bytes) async {
+    final lockKey = '$docID/$segmentKey';
+
+    // Aynı segment için zaten yazım varsa onu bekleyip döndür
+    final existing = _writeInFlight[lockKey];
+    if (existing != null) return existing;
+
+    final future = _writeSegmentInternal(docID, segmentKey, bytes);
+    _writeInFlight[lockKey] = future;
+    try {
+      return await future;
+    } finally {
+      _writeInFlight.remove(lockKey);
+    }
+  }
+
+  Future<File> _writeSegmentInternal(
       String docID, String segmentKey, Uint8List bytes) async {
     // Entry yoksa oluştur
     _index.entries.putIfAbsent(
@@ -150,12 +179,8 @@ class SegmentCacheManager extends GetxController {
 
     _markDirty();
 
-    // Hard/soft limit aşıldıysa eviction tetikle — arka planda, segment serving'i BLOKLAMA
-    if (_index.totalSizeBytes > _hardLimitBytes) {
-      unawaited(evictIfNeeded(targetBytes: _hardLimitBytes));
-    } else if (_index.totalSizeBytes > _softLimitBytes) {
-      unawaited(evictIfNeeded(targetBytes: _softLimitBytes));
-    }
+    // Hard/soft limit aşıldıysa eviction tetikle
+    _scheduleEvictionIfNeeded();
 
     return file;
   }
@@ -174,19 +199,21 @@ class SegmentCacheManager extends GetxController {
   void updateEntryMeta(String docID, String masterUrl, int totalSegmentCount) {
     final entry = _index.entries[docID];
     if (entry == null) return;
-    entry.masterPlaylistUrl.isEmpty
-        ? _index.entries[docID] = VideoCacheEntry(
-            docID: docID,
-            masterPlaylistUrl: masterUrl,
-            segments: entry.segments,
-            totalSegmentCount: totalSegmentCount,
-            totalSizeBytes: entry.totalSizeBytes,
-            lastAccessedAt: entry.lastAccessedAt,
-            watchProgress: entry.watchProgress,
-            state: entry.state,
-          )
-        : null;
-    if (entry.totalSegmentCount != totalSegmentCount) {
+
+    if (entry.masterPlaylistUrl.isEmpty) {
+      // masterPlaylistUrl boşsa yeni entry oluştur (aynı segments map'i paylaşır)
+      _index.entries[docID] = VideoCacheEntry(
+        docID: docID,
+        masterPlaylistUrl: masterUrl,
+        segments: entry.segments,
+        totalSegmentCount: totalSegmentCount,
+        totalSizeBytes: entry.totalSizeBytes,
+        lastAccessedAt: entry.lastAccessedAt,
+        watchProgress: entry.watchProgress,
+        state: entry.state,
+      );
+    } else {
+      // masterPlaylistUrl zaten var — sadece totalSegmentCount güncelle
       entry.totalSegmentCount = totalSegmentCount;
     }
     _markDirty();
@@ -242,6 +269,7 @@ class SegmentCacheManager extends GetxController {
     final entry = _index.entries[docID];
     if (entry == null) return;
     entry.lastAccessedAt = DateTime.now();
+    _markDirty();
   }
 
   // ──────────────────────────── Eviction ────────────────────────────
@@ -257,6 +285,21 @@ class SegmentCacheManager extends GetxController {
       if (candidate == null) break; // Silinecek aday kalmadı
       await _evictEntry(candidate);
     }
+  }
+
+  /// Coalesced eviction: birden fazla writeSegment aynı anda eviction tetiklerse
+  /// tek bir eviction çalışır, diğerleri aynı Future'ı bekler.
+  void _scheduleEvictionIfNeeded() {
+    if (_index.totalSizeBytes <= _softLimitBytes) return;
+    if (_evictionInFlight != null) return; // zaten çalışıyor
+
+    final target = _index.totalSizeBytes > _hardLimitBytes
+        ? _hardLimitBytes
+        : _softLimitBytes;
+
+    _evictionInFlight = evictIfNeeded(targetBytes: target).whenComplete(() {
+      _evictionInFlight = null;
+    });
   }
 
   VideoCacheEntry? _findEvictionCandidate({bool preferLowQuality = false}) {
@@ -315,9 +358,9 @@ class SegmentCacheManager extends GetxController {
       score += 30; // son 5 dk
     }
 
-    // Son N video koruma bonusu (geri sarma UX)
+    // Son N video koruma bonusu (-5 kuralı: izlenen son 5 video korunsun)
     if (_recentlyPlayed.contains(entry.docID)) {
-      score += 40;
+      score += 200;
     }
 
     return score;
@@ -325,6 +368,8 @@ class SegmentCacheManager extends GetxController {
 
   bool _isLowQualityEntry(VideoCacheEntry entry) {
     if (entry.state == VideoCacheState.playing) return false;
+    // -5 kuralı: son N oynatılan video low-quality havuzuna düşmesin
+    if (_recentlyPlayed.contains(entry.docID)) return false;
     if (entry.cachedSegmentCount <= 2) return true;
     if (entry.totalSegmentCount <= 0) return entry.cachedSegmentCount <= 3;
     final ratio = entry.cachedSegmentCount / entry.totalSegmentCount;
@@ -358,11 +403,11 @@ class SegmentCacheManager extends GetxController {
 
   void _markDirty() {
     _persistDirty = true;
-    _persistTimer ??= Timer(const Duration(seconds: 5), () {
+    _persistTimer ??= Timer(const Duration(seconds: 5), () async {
       _persistTimer = null;
       if (_persistDirty) {
         _persistDirty = false;
-        persistIndex();
+        await persistIndex();
       }
     });
   }
@@ -435,9 +480,47 @@ class SegmentCacheManager extends GetxController {
       }
     }
 
-    if (toRemove.isNotEmpty) {
+    // Drift koruması: negatife düşmüşse reconcile et
+    if (_index.totalSizeBytes < 0) {
       debugPrint(
-          '[CacheManager] Recovery: removed ${toRemove.length} stale entries');
+          '[CacheManager] Recovery: totalSizeBytes was negative (${_index.totalSizeBytes}), reconciling');
+      _reconcileTotalSize();
+    }
+
+    // Uncached/boş entry'leri temizle (0 segment, disk'te de yok)
+    final emptyEntries = _index.entries.entries
+        .where((e) => e.value.segments.isEmpty)
+        .map((e) => e.key)
+        .toList();
+    for (final k in emptyEntries) {
+      _index.entries.remove(k);
+    }
+
+    if (toRemove.isNotEmpty || emptyEntries.isNotEmpty) {
+      debugPrint(
+          '[CacheManager] Recovery: removed ${toRemove.length} stale + ${emptyEntries.length} empty entries');
+      _markDirty();
+    }
+  }
+
+  /// totalSizeBytes'ı tüm segment boyutlarından yeniden hesaplar.
+  /// İnkremental hesaplamadaki drift'i düzeltir.
+  void _reconcileTotalSize() {
+    int entryTotal = 0;
+    for (final entry in _index.entries.values) {
+      int segTotal = 0;
+      for (final seg in entry.segments.values) {
+        segTotal += seg.sizeBytes;
+      }
+      if (entry.totalSizeBytes != segTotal) {
+        entry.totalSizeBytes = segTotal;
+      }
+      entryTotal += segTotal;
+    }
+    if (_index.totalSizeBytes != entryTotal) {
+      debugPrint(
+          '[CacheManager] Reconcile: totalSizeBytes ${_index.totalSizeBytes} → $entryTotal');
+      _index.totalSizeBytes = entryTotal;
       _markDirty();
     }
   }
@@ -475,16 +558,14 @@ class SegmentCacheManager extends GetxController {
 
   /// Kullanıcının tükettiği (izlenen) içerikleri cache'ten temizler.
   /// - watched state olanlar
-  /// - veya progress eşik üstü olanlar
+  /// - veya watchProgress eşik üstü olanlar
+  /// NOT: segmentRatio (cache doluluk oranı) izlenme göstergesi DEĞİLDİR,
+  /// prefetch ile doldurulmuş ama hiç izlenmemiş videoları yanlışlıkla silmemek için kaldırıldı.
   Future<void> clearConsumedCache({double progressThreshold = 0.50}) async {
     final toRemove = <VideoCacheEntry>[];
     for (final entry in _index.entries.values) {
-      final segmentRatio = entry.totalSegmentCount > 0
-          ? (entry.cachedSegmentCount / entry.totalSegmentCount)
-          : 0.0;
       final consumed = entry.state == VideoCacheState.watched ||
-          entry.watchProgress >= progressThreshold ||
-          segmentRatio >= progressThreshold;
+          entry.watchProgress >= progressThreshold;
       if (!consumed) continue;
       if (entry.state == VideoCacheState.playing) continue;
       toRemove.add(entry);
@@ -525,12 +606,13 @@ class SegmentCacheManager extends GetxController {
   // ──────────────────────────── Cleanup ────────────────────────────
 
   @override
-  void onClose() {
+  Future<void> onClose() async {
     _persistTimer?.cancel();
+    _reconcileTimer?.cancel();
     metrics.stopPeriodicLog();
     if (_persistDirty) {
-      // Senkron kapatmada son persist denemesi
-      persistIndex();
+      _persistDirty = false;
+      await persistIndex();
     }
     super.onClose();
   }

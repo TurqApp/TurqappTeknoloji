@@ -101,6 +101,10 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/camera_android_camerax-0.6.30" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/camera_avfoundation-0.9.23+2" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/camera_web-0.3.5+3" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/app_links_web-1.0.4" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/app_links_linux-1.0.3" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gtk-2.1.0" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/app_links-6.4.1" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

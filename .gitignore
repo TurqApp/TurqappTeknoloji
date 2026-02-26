@@ -28,3 +28,7 @@ doc/api/
 
 # Local backup of previous git metadata
 .git_backup_*/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store

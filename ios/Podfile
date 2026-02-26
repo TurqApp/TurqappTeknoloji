@@ -68,6 +68,16 @@ post_install do |installer|
         config.build_settings['DEFINES_MODULE'] = 'YES'
         config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
       end
+
+      if target.name == 'video_thumbnail'
+        # Xcode 26 VerifyModule sırasında Flutter header çözümleme sorunu.
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        header_paths = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        header_paths = [header_paths] unless header_paths.is_a?(Array)
+        flutter_public = '"${PODS_ROOT}/Headers/Public/Flutter"'
+        header_paths << flutter_public unless header_paths.include?(flutter_public)
+        config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
+      end
     end
   end
 end

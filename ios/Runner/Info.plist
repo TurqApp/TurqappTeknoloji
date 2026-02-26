@@ -62,6 +62,8 @@
 	<string>TurqApp uygulamasının bu cihazın konumuna erişmesine izin verilsin mi ?</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TurqApp uygulamasının bu cihazın konumuna erişmesine izin verilsin mi ?</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TurqApp’in video çekebilmesi için mikrofona erişmesine izin verilsin mi?</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>TurqApp uygulamasının bu cihazdaki fotoğraf ve videolara erişmesine izin verilsin mi ?</string>
 	<key>NSPhotoLibraryUsageDescription</key>

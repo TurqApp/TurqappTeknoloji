@@ -152,6 +152,20 @@ class PostCreator extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
+      final hasImages = selectedController.croppedImages.isNotEmpty ||
+          selectedController.selectedImages.isNotEmpty;
+      final hasVideo = selectedController.selectedVideo.value != null;
+      final hasLocation =
+          selectedController.adres.value.trim().isNotEmpty;
+      final commentActive = controller.commentVisibility.value != 0;
+      final reshareActive = controller.paylasimSelection.value != 0;
+      final pollActive =
+          selectedController.pollData.value != null &&
+              (selectedController.pollData.value?['options'] is List) &&
+              (selectedController.pollData.value!['options'] as List)
+                  .isNotEmpty;
+
+      const double toolbarIconSize = 23.3; // ~3% smaller than 24
       return Padding(
         padding: const EdgeInsets.only(left: 15, right: 15, bottom: 20),
         child: Align(
@@ -159,167 +173,235 @@ class PostCreator extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Row(
-                  children: [
-                    PullDownButton(
-                      itemBuilder: (context) => [
-                        PullDownMenuItem(
-                          onTap: () {
-                            selectedController.pickImageFromCamera(
-                                source: ImageSource.camera);
-                          },
-                          title: 'Kamerdan Çek',
-                          icon: CupertinoIcons.camera,
-                        ),
-                        PullDownMenuItem(
-                          onTap: () {
-                            selectedController.pickImage();
-                          },
-                          title: 'Galeriden Seç',
-                          icon: CupertinoIcons.photo,
-                        ),
-                      ],
-                      buttonBuilder: (context, showMenu) => CupertinoButton(
-                        onPressed: showMenu,
-                        padding: EdgeInsets.zero,
-                        child: const Icon(
-                          CupertinoIcons.photo_on_rectangle,
-                          color: Colors.black,
-                          size: 25,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minWidth: constraints.maxWidth),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              onPressed: selectedController.pickImage,
+                              iconSize: toolbarIconSize,
+                              icon: Icon(
+                                CupertinoIcons.photo_on_rectangle,
+                                color: hasImages ? Colors.blueAccent : Colors.black,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                selectedController.pickVideo(
+                                    source: ImageSource.gallery);
+                              },
+                              iconSize: toolbarIconSize,
+                              icon: Icon(
+                                CupertinoIcons.play_circle,
+                                color: hasVideo ? Colors.blueAccent : Colors.black,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: selectedController.openCustomCameraCapture,
+                              iconSize: toolbarIconSize,
+                              icon: const Icon(
+                                CupertinoIcons.camera,
+                                color: Colors.black,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: selectedController.openPollComposer,
+                              iconSize: toolbarIconSize,
+                              icon: Icon(
+                                CupertinoIcons.chart_bar,
+                                color:
+                                    pollActive ? Colors.blueAccent : Colors.black,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: selectedController.goToLocationMap,
+                              iconSize: toolbarIconSize,
+                              icon: Icon(
+                                CupertinoIcons.map_pin_ellipse,
+                                color: hasLocation ? Colors.blueAccent : Colors.black,
+                              ),
+                            ),
+                            PullDownButton(
+                              itemBuilder: (context) => [
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.commentVisibility.value = 0;
+                                    controller.comment.value = true;
+                                  },
+                                  title: 'Herkes',
+                                  icon: controller.commentVisibility.value == 0
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.commentVisibility.value = 1;
+                                    controller.comment.value = true;
+                                  },
+                                  title: 'Onaylı hesaplar',
+                                  icon: controller.commentVisibility.value == 1
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.commentVisibility.value = 2;
+                                    controller.comment.value = true;
+                                  },
+                                  title: 'Takip ettiğin hesaplar',
+                                  icon: controller.commentVisibility.value == 2
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.commentVisibility.value = 3;
+                                    controller.comment.value = false;
+                                  },
+                                  title: 'Yoruma kapalı',
+                                  icon: controller.commentVisibility.value == 3
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                              ],
+                              buttonBuilder: (context, showMenu) =>
+                                  CupertinoButton(
+                                onPressed: showMenu,
+                                padding: EdgeInsets.zero,
+                                child: Icon(
+                                  CupertinoIcons.bubble_right,
+                                  color:
+                                      commentActive ? Colors.blueAccent : Colors.black,
+                                  size: toolbarIconSize,
+                                ),
+                              ),
+                            ),
+                            PullDownButton(
+                              itemBuilder: (context) => [
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.paylasimSelection.value = 0;
+                                  },
+                                  title: 'Herkes',
+                                  icon: controller.paylasimSelection.value == 0
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.paylasimSelection.value = 1;
+                                  },
+                                  title: 'Onaylı hesaplar',
+                                  icon: controller.paylasimSelection.value == 1
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.paylasimSelection.value = 2;
+                                  },
+                                  title: 'Takip ettiğin hesaplar',
+                                  icon: controller.paylasimSelection.value == 2
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                                PullDownMenuItem(
+                                  onTap: () {
+                                    controller.paylasimSelection.value = 3;
+                                  },
+                                  title: 'Yeniden paylaş kapalı',
+                                  icon: controller.paylasimSelection.value == 3
+                                      ? CupertinoIcons.checkmark_circle_fill
+                                      : CupertinoIcons.circle,
+                                ),
+                              ],
+                              buttonBuilder: (context, showMenu) =>
+                                  CupertinoButton(
+                                onPressed: showMenu,
+                                padding: EdgeInsets.zero,
+                                child: Icon(
+                                  Icons.repeat,
+                                  color: reshareActive
+                                      ? Colors.blueAccent
+                                      : Colors.black,
+                                  size: toolbarIconSize,
+                                ),
+                              ),
+                            ),
+                            Obx(() => IconButton(
+                                  onPressed: () {
+                                    if (controller.publishMode.value == 1) {
+                                      noYesAlert(
+                                        title: 'Planlamayı Kaldır',
+                                        message:
+                                            'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
+                                        yesText: 'Kaldır',
+                                        onYesPressed: () {
+                                          controller.publishMode.value = 0;
+                                          controller.izBirakDateTime.value =
+                                              null;
+                                        },
+                                      );
+                                    } else {
+                                      controller.showPublishModePicker();
+                                    }
+                                  },
+                                  iconSize: toolbarIconSize,
+                                  icon: Icon(
+                                    controller.publishMode.value == 1
+                                        ? CupertinoIcons.clock_fill
+                                        : CupertinoIcons.clock,
+                                    color: controller.publishMode.value == 1
+                                        ? Colors.blueAccent
+                                        : Colors.black,
+                                  ),
+                                )),
+                          ],
                         ),
                       ),
-                    ),
-                    PullDownButton(
-                      itemBuilder: (context) => [
-                        PullDownMenuItem(
-                          onTap: () {
-                            selectedController.pickVideo(
-                                source: ImageSource.camera);
-                          },
-                          title: 'Kamerdan Çek',
-                          icon: CupertinoIcons.camera,
-                        ),
-                        PullDownMenuItem(
-                          onTap: () {
-                            selectedController.pickVideo(
-                                source: ImageSource.gallery);
-                          },
-                          title: 'Galeriden Seç',
-                          icon: CupertinoIcons.photo,
-                        ),
-                      ],
-                      buttonBuilder: (context, showMenu) => CupertinoButton(
-                        onPressed: showMenu,
-                        padding: EdgeInsets.zero,
-                        child: const Icon(
-                          CupertinoIcons.play_circle,
-                          color: Colors.black,
-                          size: 25,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: selectedController.goToLocationMap,
-                      icon: const Icon(
-                        CupertinoIcons.map_pin_ellipse,
-                        color: Colors.black,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: controller.showCommentOptions,
-                      icon: const Icon(
-                        CupertinoIcons.ellipses_bubble,
-                        color: Colors.black,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: controller.showReshareSets,
-                      icon: Icon(
-                        Icons.repeat,
-                        color: controller.paylasimSelection.value == 0
-                            ? Colors.black
-                            : Colors.blueAccent,
-                      ),
-                    ),
-                    Obx(() => IconButton(
-                          onPressed: () {
-                            if (controller.publishMode.value == 1) {
-                              noYesAlert(
-                                title: 'Planlamayı Kaldır',
-                                message:
-                                    'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
-                                yesText: 'Kaldır',
-                                onYesPressed: () {
-                                  controller.publishMode.value = 0;
-                                  controller.izBirakDateTime.value = null;
-                                },
-                              );
-                            } else {
-                              controller.showPublishModePicker();
-                            }
-                          },
-                          icon: Icon(
-                            controller.publishMode.value == 1
-                                ? CupertinoIcons.clock_fill
-                                : CupertinoIcons.clock,
-                            color: controller.publishMode.value == 1
-                                ? Colors.blueAccent
-                                : Colors.black,
-                          ),
-                        )),
-                  ],
+                    );
+                  },
                 ),
               ),
-              Obx(() {
-                final lastIndex = controller.postList.length - 1;
-                final lastTag = lastIndex.toString();
-
-                if (!Get.isRegistered<CreatorContentController>(tag: lastTag)) {
-                  Get.put(CreatorContentController(), tag: lastTag);
-                }
-                final lastController =
-                    Get.find<CreatorContentController>(tag: lastTag);
-
-                // Only show "+" if the last post has content
-                final isEmpty = !lastController.textChanged.value &&
-                    lastController.croppedImages.isEmpty &&
-                    lastController.selectedVideo.value == null &&
-                    lastController.gif.value.isEmpty;
-                if (isEmpty) return const SizedBox.shrink();
-
-                return TextButton(
-                  onPressed: () {
-                    final newIndex = controller.postList.length;
-                    controller.postList.add(
-                      PostCreatorModel(index: newIndex, text: ""),
-                    );
-                    controller.selectedIndex.value = newIndex;
-                    Get.put(CreatorContentController(),
-                        tag: newIndex.toString());
-                  },
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primaryColor,
-                          AppColors.secondColor,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
+              TextButton(
+                onPressed: () {
+                  final newIndex = controller.postList.length;
+                  controller.postList.add(
+                    PostCreatorModel(index: newIndex, text: ""),
+                  );
+                  controller.selectedIndex.value = newIndex;
+                  Get.put(CreatorContentController(),
+                      tag: newIndex.toString());
+                },
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primaryColor,
+                        AppColors.secondColor,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: const Icon(
-                      CupertinoIcons.add,
-                      color: Colors.white,
-                      size: 15,
-                    ),
+                    shape: BoxShape.circle,
                   ),
-                );
-              }),
+                  child: const Icon(
+                    CupertinoIcons.add,
+                    color: Colors.white,
+                    size: 15,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -109,9 +109,10 @@ class AgendaView extends StatelessWidget {
                       } catch (_) {}
                     },
                     child: Obx(() {
-                      final centeredIndex = controller.centeredIndex.value;
-                      // Rebuild when my reshare map changes
-                      controller.lastCenteredIndex = centeredIndex;
+                      // Sadece liste değişimlerini dinle (centeredIndex DEĞİL)
+                      final _ = controller.agendaList.length;
+                      final __ = controller.feedReshareEntries.length;
+                      final ___ = controller.highlightDocIDs.length;
 
                       final Map<String, int> agendaIndexByDoc = {
                         for (int i = 0; i < controller.agendaList.length; i++)
@@ -195,7 +196,6 @@ class AgendaView extends StatelessWidget {
                               item['reshareUserID'] as String?;
                           final agendaIndex =
                               (item['agendaIndex'] ?? -1) as int;
-                          final isCentered = centeredIndex == agendaIndex;
 
                           final List<Widget> columnChildren = [];
                           Widget postWidget;
@@ -204,27 +204,31 @@ class AgendaView extends StatelessWidget {
                               ? "${model.docID}_reshare_$reshareUserID"
                               : "${model.docID}_original";
 
-                          // VisibilityDetector ile sarmalayarak görünürlük tespiti yap
+                          // centeredIndex'i her post için ayrı Obx ile dinle
+                          // Bu sayede sadece centered durumu değişen post rebuild olur
                           Widget buildPostContent() {
-                            if (user.viewSelection.value == 1) {
-                              return AgendaContent(
-                                key: ValueKey(stableKeyString),
-                                model: model,
-                                isPreview: false,
-                                shouldPlay: isCentered,
-                                isYenidenPaylasilanPost: isReshare,
-                                reshareUserID: reshareUserID,
-                              );
-                            } else {
-                              return ClassicContent(
-                                key: ValueKey(stableKeyString),
-                                model: model,
-                                isPreview: false,
-                                shouldPlay: isCentered,
-                                isYenidenPaylasilanPost: isReshare,
-                                reshareUserID: reshareUserID,
-                              );
-                            }
+                            return Obx(() {
+                              final isCentered = controller.centeredIndex.value == agendaIndex;
+                              if (user.viewSelection.value == 1) {
+                                return AgendaContent(
+                                  key: ValueKey(stableKeyString),
+                                  model: model,
+                                  isPreview: false,
+                                  shouldPlay: isCentered,
+                                  isYenidenPaylasilanPost: isReshare,
+                                  reshareUserID: reshareUserID,
+                                );
+                              } else {
+                                return ClassicContent(
+                                  key: ValueKey(stableKeyString),
+                                  model: model,
+                                  isPreview: false,
+                                  shouldPlay: isCentered,
+                                  isYenidenPaylasilanPost: isReshare,
+                                  reshareUserID: reshareUserID,
+                                );
+                              }
+                            });
                           }
 
                           postWidget = VisibilityDetector(
@@ -284,9 +288,6 @@ class AgendaView extends StatelessWidget {
 
                           columnChildren.add(postWidget);
 
-                          // originalUserID: boş değilse sol altta göster
-                          // Not: Etiket artık içerik bileşenlerinde (Classic/AgendaContent) butonların üstünde gösteriliyor.
-
                           columnChildren.add(
                             Divider(color: Colors.grey.withAlpha(20)),
                           );
@@ -317,12 +318,16 @@ class AgendaView extends StatelessWidget {
                             );
                           }
 
-                          return Padding(
-                            key: ValueKey('row-$stableKeyString'),
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: columnChildren,
+                          // RepaintBoundary ile her postu izole et - scroll sırasında
+                          // sadece görünür postların repaint'ini sağlar
+                          return RepaintBoundary(
+                            child: Padding(
+                              key: ValueKey('row-$stableKeyString'),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: columnChildren,
+                              ),
                             ),
                           );
                         },
@@ -334,8 +339,7 @@ class AgendaView extends StatelessWidget {
             ),
           ),
           Obx(() {
-            final offset = controller.scrollOffset.value;
-            if (offset <= 1000) {
+            if (controller.showFAB.value) {
               return Positioned(
                 bottom: 82,
                 right: 20,

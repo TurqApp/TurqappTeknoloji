@@ -38,21 +38,20 @@ void main() {
   runApp(const MyApp());
 
   _appLifecycleListener = AppLifecycleListener(
-    onPause: _clearConsumedCacheIfNeeded,
-    onDetach: _clearConsumedCacheIfNeeded,
+    onInactive: _handleAppBackgroundTransition,
+    onPause: _handleAppBackgroundTransition,
+    onDetach: _handleAppBackgroundTransition,
   );
 
   // İlk frame'i geciktirmemek için sistem UI ayarlarını sonrasına bırak.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    _bootstrapFirebaseAndCrashlytics()
-        .then((_) {
-          if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
-        })
-        .catchError((e, st) {
-          if (!bootstrapCompleter.isCompleted) {
-            bootstrapCompleter.completeError(e, st);
-          }
-        });
+    _bootstrapFirebaseAndCrashlytics().then((_) {
+      if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
+    }).catchError((e, st) {
+      if (!bootstrapCompleter.isCompleted) {
+        bootstrapCompleter.completeError(e, st);
+      }
+    });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -67,6 +66,15 @@ void _clearConsumedCacheIfNeeded() {
   try {
     if (Get.isRegistered<SegmentCacheManager>()) {
       unawaited(Get.find<SegmentCacheManager>().clearConsumedCache());
+    }
+  } catch (_) {}
+}
+
+void _handleAppBackgroundTransition() {
+  _clearConsumedCacheIfNeeded();
+  try {
+    if (Get.isRegistered<VideoStateManager>()) {
+      Get.find<VideoStateManager>().pauseAllVideos();
     }
   } catch (_) {}
 }
@@ -227,7 +235,8 @@ class MyApp extends StatelessWidget {
         ),
         builder: (ctx, child) {
           final mq = MediaQuery.of(ctx);
-          final topGap = GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
+          final topGap =
+              GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
           final adjustedPadding = mq.padding.copyWith(
             top: mq.padding.top + topGap,
           );

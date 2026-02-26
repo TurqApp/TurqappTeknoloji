@@ -227,8 +227,16 @@ class _ShortViewState extends State<ShortView> {
       // Cache state machine: playing olarak işaretle
       if (page < _cachedShorts.length) {
         try {
-          Get.find<SegmentCacheManager>()
-              .markPlaying(_cachedShorts[page].docID);
+          final cm = Get.find<SegmentCacheManager>();
+          cm.markPlaying(_cachedShorts[page].docID);
+          // -5 kuralı: gerideki 5 videonun cache'ini koru
+          for (var i = 1; i <= 5; i++) {
+            final behindIdx = page - i;
+            if (behindIdx < 0) break;
+            if (behindIdx < _cachedShorts.length) {
+              cm.touchEntry(_cachedShorts[behindIdx].docID);
+            }
+          }
         } catch (_) {}
       }
     });
@@ -471,11 +479,47 @@ class _ShortViewState extends State<ShortView> {
               }
 
               // PURE BUILD — side effect yok, sadece widget döndür
+              final modelAr = list[idx].aspectRatio > 0
+                  ? list[idx].aspectRatio.toDouble()
+                  : (9 / 16);
+
+              // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
+              Widget videoWidget;
+              if (modelAr > 1.2) {
+                // Yatay dikdörtgen
+                videoWidget = Center(
+                  child: AspectRatio(
+                    aspectRatio: modelAr,
+                    child: vp.buildPlayer(useAspectRatio: false),
+                  ),
+                );
+              } else if (modelAr >= 0.8) {
+                // Kare frame
+                videoWidget = Center(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: vp.buildPlayer(useAspectRatio: false),
+                  ),
+                );
+              } else {
+                // Dikey — ekranı doldur
+                videoWidget = SizedBox.expand(
+                  child: vp.buildPlayer(),
+                );
+              }
+
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  SizedBox.expand(
-                    child: vp.buildPlayer(),
+                  // Video layer
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onDoubleTap: () {
+                      // Çift dokunma: ses aç/kapa
+                      setState(() => volume = !volume);
+                      vp.setVolume(volume ? 1 : 0);
+                    },
+                    child: videoWidget,
                   ),
                   ShortsContent(
                     model: list[idx],
@@ -495,6 +539,14 @@ class _ShortViewState extends State<ShortView> {
                       setState(() {});
                     },
                   ),
+                  // İnce progress bar — altta
+                  if (idx == currentPage)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _ShortProgressBar(adapter: vp),
+                    ),
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -567,6 +619,33 @@ class _ShortViewState extends State<ShortView> {
             color: Colors.black.withAlpha(50), shape: BoxShape.circle),
         child: Icon(icon, color: Colors.white, size: 22),
       ),
+    );
+  }
+}
+
+/// İnce video progress bar — AnimatedBuilder ile sadece bu widget rebuild olur
+class _ShortProgressBar extends StatelessWidget {
+  final HLSVideoAdapter adapter;
+  const _ShortProgressBar({required this.adapter});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: adapter,
+      builder: (_, __) {
+        final v = adapter.value;
+        if (!v.isInitialized || v.duration.inMilliseconds <= 0) {
+          return const SizedBox.shrink();
+        }
+        final progress =
+            v.position.inMilliseconds / v.duration.inMilliseconds;
+        return LinearProgressIndicator(
+          value: progress.clamp(0.0, 1.0),
+          minHeight: 2,
+          backgroundColor: Colors.white24,
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+        );
+      },
     );
   }
 }

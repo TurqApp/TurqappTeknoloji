@@ -22,6 +22,9 @@ class HLSProxyServer extends GetxController {
   final http.Client _httpClient = http.Client();
   int _pendingDownloadBytes = 0;
 
+  /// Segment request deduplication — aynı segment için eş zamanlı CDN fetch'i engeller.
+  final Map<String, Future<Uint8List>> _segmentFetchInFlight = {};
+
   int _port = 0;
   int get port => _port;
   String get baseUrl => 'http://127.0.0.1:$_port';
@@ -212,19 +215,21 @@ class HLSProxyServer extends GetxController {
 
     final cdnUrl = '$_cdnOrigin$path';
     try {
-      final response = await _httpClient
-          .get(Uri.parse(cdnUrl))
-          .timeout(const Duration(seconds: 15));
-
-      if (response.statusCode != 200) {
-        request.response
-          ..statusCode = response.statusCode
-          ..write('CDN returned ${response.statusCode}')
-          ..close();
-        return;
+      // Deduplication: aynı segment için zaten CDN fetch varsa onu bekle
+      final existing = _segmentFetchInFlight[path];
+      final Uint8List bytes;
+      if (existing != null) {
+        bytes = await existing;
+      } else {
+        final future = _fetchSegmentFromCDN(cdnUrl);
+        _segmentFetchInFlight[path] = future;
+        try {
+          bytes = await future;
+        } finally {
+          _segmentFetchInFlight.remove(path);
+        }
       }
 
-      final bytes = response.bodyBytes;
       metrics?.recordMiss(bytes.length);
       _trackDownloadBytes(bytes.length);
 
@@ -255,6 +260,17 @@ class HLSProxyServer extends GetxController {
   }
 
   // ──────────────────────────── Helpers ────────────────────────────
+
+  /// CDN'den segment indir — deduplication için ayrılmış metod.
+  Future<Uint8List> _fetchSegmentFromCDN(String cdnUrl) async {
+    final response = await _httpClient
+        .get(Uri.parse(cdnUrl))
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw HttpException('CDN returned ${response.statusCode}');
+    }
+    return response.bodyBytes;
+  }
 
   /// Path'ten docID çıkar: /Posts/{docID}/hls/...
   String? _extractDocID(String path) {

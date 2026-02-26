@@ -29,15 +29,15 @@ class ShortController extends GetxController {
   Future<void>? _backgroundPreloadFuture;
   static const int _initialPreloadCount = 3;
 
-  // Tier sınırları — Android'de decoder/surface baskısını azaltmak için daha dar pencere.
+  // +5/-5 kuralı: önündeki 5 video HOT, gerideki 5 video WARM (cache korumalı)
   static final int _hotAhead =
-      defaultTargetPlatform == TargetPlatform.android ? 1 : 5;
+      defaultTargetPlatform == TargetPlatform.android ? 3 : 5;
   static final int _hotBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 0 : 2;
+      defaultTargetPlatform == TargetPlatform.android ? 1 : 2;
   static final int _warmBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 0 : 5;
+      defaultTargetPlatform == TargetPlatform.android ? 4 : 5;
   static final int _maxPlayers =
-      defaultTargetPlatform == TargetPlatform.android ? 2 : 10;
+      defaultTargetPlatform == TargetPlatform.android ? 5 : 10;
   static final double _activeBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
   static final double _neighborBufferSeconds =

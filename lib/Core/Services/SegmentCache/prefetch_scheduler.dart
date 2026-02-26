@@ -20,6 +20,7 @@ import 'network_policy.dart';
 /// 3. current+1, current+2'nin tüm segmentleri
 class PrefetchScheduler extends GetxController {
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
+  // +5/-5 kuralı: önündeki 5 videonun min 2 segmenti hazır olmalı
   static const int _fallbackBreadthCount = 5;
   static const int _fallbackBreadthSegments = 2;
   static const int _fallbackDepthCount = 3;
@@ -42,6 +43,7 @@ class PrefetchScheduler extends GetxController {
   int _pendingDownloadBytes = 0;
   DownloadWorker? _worker;
   StreamSubscription? _workerSub;
+  Timer? _watchdogTimer;
   final http.Client _httpClient = http.Client();
 
   int get activeDownloads => _activeDownloads;
@@ -179,6 +181,16 @@ class PrefetchScheduler extends GetxController {
       ));
     }
 
+    // -5 kuralı: gerideki 5 videonun izlenen kısmını cache'de tut
+    // (eviction korumasını desteklemek için touchEntry çağır)
+    for (var i = 1; i <= 5; i++) {
+      final idx = currentIndex - i;
+      if (idx < 0) break;
+      if (idx < docIDs.length) {
+        cacheManager.touchEntry(docIDs[idx]);
+      }
+    }
+
     // Sıralama: düşük priority önce
     _queue.sort((a, b) => a.priority.compareTo(b.priority));
 
@@ -230,6 +242,15 @@ class PrefetchScheduler extends GetxController {
         maxSegments: _feedPrepSegments,
         priority: 1,
       ));
+    }
+
+    // -5 kuralı: gerideki 5 videonun cache'ini koru
+    for (var i = 1; i <= 5; i++) {
+      final idx = safeCurrent - i;
+      if (idx < 0) break;
+      if (idx < docIDs.length) {
+        cacheManager.touchEntry(docIDs[idx]);
+      }
     }
 
     _queue.sort((a, b) => a.priority.compareTo(b.priority));
@@ -406,6 +427,7 @@ class PrefetchScheduler extends GetxController {
             '${variantDir.replaceFirst('Posts/${job.docID}/hls/', '')}$segUri';
 
         _activeDownloads++;
+        _resetWatchdog();
         _worker?.download(DownloadRequest(
           url: segmentCdnUrl,
           segmentKey: segmentKey,
@@ -521,6 +543,7 @@ class PrefetchScheduler extends GetxController {
 
   void _onDownloadResult(DownloadResult result) {
     _activeDownloads = (_activeDownloads - 1).clamp(0, _maxConcurrent * 2);
+    _resetWatchdog();
 
     if (result.success) {
       final bytes = result.bytes!;
@@ -538,6 +561,26 @@ class PrefetchScheduler extends GetxController {
 
     // Kuyrukta daha var mı?
     _processQueue();
+  }
+
+  /// Watchdog: 30sn boyunca hiç download result gelmezse _activeDownloads sıkışmıştır.
+  /// Worker'ı yeniden başlat ve kuyruğu devam ettir.
+  void _resetWatchdog() {
+    _watchdogTimer?.cancel();
+    if (_activeDownloads > 0) {
+      _watchdogTimer = Timer(const Duration(seconds: 30), () {
+        if (_activeDownloads > 0) {
+          debugPrint(
+              '[Prefetch] Watchdog: $_activeDownloads stuck downloads, resetting worker');
+          _activeDownloads = 0;
+          _workerSub?.cancel();
+          _workerSub = null;
+          _worker?.stop();
+          _worker = null;
+          _processQueue();
+        }
+      });
+    }
   }
 
   void _trackDownloadBytes(int bytes) {
@@ -568,6 +611,7 @@ class PrefetchScheduler extends GetxController {
 
   @override
   void onClose() {
+    _watchdogTimer?.cancel();
     _workerSub?.cancel();
     _worker?.stop();
     if (_pendingDownloadBytes > 0) {

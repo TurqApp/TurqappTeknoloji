@@ -43,7 +43,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         eventChannel: FlutterEventChannel
     ) {
         _view = PlayerContainerView(frame: frame)
-        _view.backgroundColor = .black
+        _view.backgroundColor = .clear
 
         super.init()
 

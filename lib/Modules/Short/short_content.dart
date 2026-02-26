@@ -819,6 +819,20 @@ class ShortsContent extends StatelessWidget {
   }
 
   Widget butonlar(BuildContext context) {
+    final int commentVisibility = model.yorumVisibility;
+    final int reshareVisibility = model.paylasimVisibility;
+    final bool isOwner = controller.user.userID.value == model.userID;
+    final bool isVerified = controller.user.hesapOnayi.value;
+    final bool isFollowing = controller.takipEdiyorum.value;
+    final bool canComment = isOwner ||
+        commentVisibility == 0 ||
+        (commentVisibility == 1 && isVerified) ||
+        (commentVisibility == 2 && isFollowing);
+    final bool canReshare = isOwner ||
+        reshareVisibility == 0 ||
+        (reshareVisibility == 1 && isVerified) ||
+        (reshareVisibility == 2 && isFollowing);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
@@ -829,7 +843,8 @@ class ShortsContent extends StatelessWidget {
           Flexible(
             flex: 2,
             child: TextButton(
-              onPressed: () {
+              onPressed: canComment
+                  ? () {
                 volumeOff(false);
                 Get.bottomSheet(
                   SizedBox(
@@ -857,16 +872,16 @@ class ShortsContent extends StatelessWidget {
                   // Yorum sayısı real-time güncellendiği için getComments() artık gerekli değil
                   volumeOff(true);
                 });
-              },
+              }
+                  : null,
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     CupertinoIcons.bubble_right,
-                    color: model.yorum == true
-                        ? Colors.white
-                        : Colors.grey.withAlpha(80),
+                    color:
+                        canComment ? Colors.white : Colors.grey.withAlpha(80),
                     size: 20,
                   ),
                   2.pw,
@@ -874,7 +889,7 @@ class ShortsContent extends StatelessWidget {
                     NumberFormatter.format(controller.commentCount.value),
                     // controller.commentCount.toString(),
                     style: TextStyle(
-                      color: model.yorum == true ? Colors.white : Colors.grey,
+                      color: canComment ? Colors.white : Colors.grey,
                       fontSize: 12,
                       fontFamily: AppFontFamilies.mmedium,
                     ),
@@ -924,7 +939,7 @@ class ShortsContent extends StatelessWidget {
           Flexible(
             flex: 2,
             child: TextButton(
-              onPressed: controller.toggleReshare,
+              onPressed: canReshare ? controller.toggleReshare : null,
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -932,7 +947,7 @@ class ShortsContent extends StatelessWidget {
                   Icon(
                     Icons.repeat,
                     size: 20,
-                    color: model.paylasGizliligi != 2
+                    color: canReshare
                         ? (controller.isReshared.value
                             ? Colors.green
                             : Colors.white)
@@ -942,7 +957,7 @@ class ShortsContent extends StatelessWidget {
                   Text(
                     NumberFormatter.format(controller.retryCount.value.toInt()),
                     style: TextStyle(
-                      color: model.paylasGizliligi != 2
+                      color: canReshare
                           ? (controller.isReshared.value
                               ? Colors.green
                               : Colors.white)

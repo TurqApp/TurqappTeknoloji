@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -41,8 +42,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   late final PostContentController controller;
   HLSVideoAdapter? _videoAdapter;
   bool _hasAutoPlayed = false;
+  bool _skipNextPause = false;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
+  Timer? _lazyInitTimer;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
@@ -88,8 +91,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     // iOS'ta aynı anda çok sayıda native player açılması "ses var görüntü yok"
     // ve raster crash'e yol açabiliyor. Player'ı yalnızca oynatma gerektiğinde aç.
+    // Hızlı scroll sırasında native view oluşturmayı engellemek için kısa gecikme.
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
-      _initVideoController();
+      _lazyInitTimer = Timer(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        if (widget.shouldPlay) {
+          _initVideoController();
+        }
+      });
     }
 
     if (widget.showComments) {
@@ -139,6 +148,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (route != null) routeObserver.unsubscribe(this);
     } catch (_) {}
 
+    _lazyInitTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
     _videoAdapter?.dispose();
     _muteWorker?.dispose();
@@ -153,6 +163,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     if (oldWidget.shouldPlay != widget.shouldPlay) {
       if (widget.shouldPlay) {
+        _lazyInitTimer?.cancel();
         if (_videoAdapter == null && widget.model.hasPlayableVideo) {
           _initVideoController();
         }
@@ -162,13 +173,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
         } catch (_) {}
       } else {
-        _safePauseVideo();
+        // Bekleyen lazy init varsa iptal et
+        _lazyInitTimer?.cancel();
+        // Fullscreen geçişi sırasında pause etme
+        if (!_skipNextPause) {
+          _safePauseVideo();
+        }
       }
     }
   }
 
   @override
   void didPushNext() {
+    if (_skipNextPause) {
+      _skipNextPause = false;
+      return;
+    }
     _safePauseVideo();
   }
 
@@ -222,6 +242,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   void pauseVideo() => _safePauseVideo();
+
+  /// Alt sınıflar route geçişinde bir sonraki otomatik pause'u atlamak istediğinde çağırır.
+  void markSkipNextPause() {
+    _skipNextPause = true;
+  }
 
   void tryAutoPlayWhenBuffered() {
     // Adapter initialize olmadan çağrı gelirse pending-play kuyruğa alınır.

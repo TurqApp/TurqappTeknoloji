@@ -387,7 +387,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\n#!/bin/sh\nset -e\n\nif [ \"$CONFIGURATION\" != \"Release\" ] && [ \"$CONFIGURATION\" != \"Profile\" ]; then\n  exit 0\nfi\n\nif [ -z \"${DWARF_DSYM_FOLDER_PATH:-}\" ] || [ -z \"${DWARF_DSYM_FILE_NAME:-}\" ]; then\n  exit 0\nfi\n\nDSYM_PATH=\"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}\"\nif [ ! -d \"$DSYM_PATH\" ]; then\n  exit 0\nfi\n\nUPLOAD_SYMBOLS=\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\"\nif [ -z \"${PODS_ROOT:-}\" ] || [ ! -x \"$UPLOAD_SYMBOLS\" ]; then\n  echo \"FirebaseCrashlytics/upload-symbols bulunamadı, dSYM upload atlandı.\"\n  exit 0\nfi\n\n\"$UPLOAD_SYMBOLS\" -gsp \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" -p ios \"$DSYM_PATH\"\n\necho \"crashlytics symbols upload complete\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			shellScript = "\n#!/bin/sh\nset -e\n\nif [ \"$CONFIGURATION\" != \"Release\" ] && [ \"$CONFIGURATION\" != \"Profile\" ]; then\n  exit 0\nfi\n\n# Default behavior for local release builds: skip symbol upload to prevent build hangs.\n# To force upload in CI/manual workflows, run with RUN_CRASHLYTICS_SYMBOL_UPLOAD=1.\nif [ \"${RUN_CRASHLYTICS_SYMBOL_UPLOAD:-0}\" != \"1\" ]; then\n  echo \"crashlytics symbols upload skipped\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n  exit 0\nfi\n\nif [ -z \"${DWARF_DSYM_FOLDER_PATH:-}\" ] || [ -z \"${DWARF_DSYM_FILE_NAME:-}\" ]; then\n  exit 0\nfi\n\nDSYM_PATH=\"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}\"\nif [ ! -d \"$DSYM_PATH\" ]; then\n  exit 0\nfi\n\nUPLOAD_SYMBOLS=\"${PODS_ROOT}/FirebaseCrashlytics/upload-symbols\"\nif [ -z \"${PODS_ROOT:-}\" ] || [ ! -x \"$UPLOAD_SYMBOLS\" ]; then\n  echo \"FirebaseCrashlytics/upload-symbols not found, dSYM upload skipped.\"\n  echo \"crashlytics symbols upload skipped\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n  exit 0\nfi\n\n/usr/bin/perl -e 'alarm shift; exec @ARGV' 90 \"$UPLOAD_SYMBOLS\" -gsp \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" -p ios \"$DSYM_PATH\" || echo \"Crashlytics upload timeout/failed, continuing build.\"\n\necho \"crashlytics symbols upload complete\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 		};
 		B230796702C5DB735EA06527 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -528,6 +528,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = WS86Q9VZN2;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TurqApp;
@@ -746,6 +747,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = WS86Q9VZN2;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TurqApp;
@@ -777,6 +779,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = WS86Q9VZN2;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TurqApp;

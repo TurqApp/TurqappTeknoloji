@@ -201,7 +201,102 @@ class PostContentController extends GetxController {
           (stats['retryCount'] ?? data['retryCount'] ?? 0) as int;
       countManager.getStatsCount(model.docID).value =
           (stats['statsCount'] ?? data['statsCount'] ?? 0) as int;
+      if (data['poll'] != null) {
+        try {
+          model.poll = Map<String, dynamic>.from(data['poll']);
+          currentModel.value = model;
+        } catch (_) {}
+      }
     });
+  }
+
+  Future<void> votePoll(int optionIndex) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final postRef =
+        FirebaseFirestore.instance.collection('Posts').doc(model.docID);
+
+    final originalPoll = Map<String, dynamic>.from(model.poll);
+    try {
+      final localPoll = Map<String, dynamic>.from(model.poll);
+      if (localPoll.isEmpty) return;
+      final createdAt = (localPoll['createdAt'] ?? model.timeStamp) as num;
+      final durationHours = (localPoll['durationHours'] ?? 24) as num;
+      final expiresAt =
+          createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+      if (DateTime.now().millisecondsSinceEpoch > expiresAt) return;
+
+      final options = (localPoll['options'] is List)
+          ? List<Map<String, dynamic>>.from(
+              (localPoll['options'] as List)
+                  .map((o) => Map<String, dynamic>.from(o)),
+            )
+          : <Map<String, dynamic>>[];
+      if (optionIndex < 0 || optionIndex >= options.length) return;
+
+      final userVotes = localPoll['userVotes'] is Map
+          ? Map<String, dynamic>.from(localPoll['userVotes'])
+          : <String, dynamic>{};
+      if (userVotes.containsKey(uid)) return;
+
+      final opt = Map<String, dynamic>.from(options[optionIndex]);
+      final currentVotes = (opt['votes'] ?? 0) as num;
+      opt['votes'] = currentVotes.toInt() + 1;
+      options[optionIndex] = opt;
+
+      final totalVotes = (localPoll['totalVotes'] ?? 0) as num;
+      localPoll['totalVotes'] = totalVotes.toInt() + 1;
+      userVotes[uid] = optionIndex;
+      localPoll['options'] = options;
+      localPoll['userVotes'] = userVotes;
+
+      // Optimistic UI update
+      model.poll = localPoll;
+      currentModel.value = model;
+
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final snap = await tx.get(postRef);
+        final data = snap.data();
+        if (data == null) return;
+        final poll = Map<String, dynamic>.from(data['poll'] ?? {});
+        if (poll.isEmpty) return;
+
+        final createdAt = (poll['createdAt'] ?? data['timeStamp'] ?? 0) as num;
+        final durationHours = (poll['durationHours'] ?? 24) as num;
+        final expiresAt =
+            createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
+        if (DateTime.now().millisecondsSinceEpoch > expiresAt) return;
+
+        final options = (poll['options'] is List)
+            ? List<Map<String, dynamic>>.from(
+                (poll['options'] as List)
+                    .map((o) => Map<String, dynamic>.from(o)),
+              )
+            : <Map<String, dynamic>>[];
+        if (optionIndex < 0 || optionIndex >= options.length) return;
+
+        final userVotes = poll['userVotes'] is Map
+            ? Map<String, dynamic>.from(poll['userVotes'])
+            : <String, dynamic>{};
+        if (userVotes.containsKey(uid)) return;
+
+        final opt = Map<String, dynamic>.from(options[optionIndex]);
+        final currentVotes = (opt['votes'] ?? 0) as num;
+        opt['votes'] = currentVotes.toInt() + 1;
+        options[optionIndex] = opt;
+
+        final totalVotes = (poll['totalVotes'] ?? 0) as num;
+        poll['totalVotes'] = totalVotes.toInt() + 1;
+        userVotes[uid] = optionIndex;
+        poll['options'] = options;
+        poll['userVotes'] = userVotes;
+
+        tx.update(postRef, {'poll': poll});
+      });
+    } catch (_) {
+      model.poll = originalPoll;
+      currentModel.value = model;
+    }
   }
 
   void _bindCommentsListener() {

@@ -19,14 +19,16 @@ class AgendaController extends GetxController {
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
-  final RxDouble scrollOffset = 0.0.obs;
+  /// FAB gösterimi için kullanılır. Her frame'de reactive güncelleme yapmak yerine
+  /// sadece eşik aşıldığında güncellenir (scroll jank'ı engeller).
+  final RxBool showFAB = true.obs;
   final RxInt centeredIndex = 0.obs;
   int? lastCenteredIndex;
   var isMuted = false.obs;
   DocumentSnapshot? lastDoc;
   final RxBool hasMore = true.obs;
   final RxBool isLoading = false.obs;
-  final int fetchLimit = 10;
+  final int fetchLimit = 50;
   final pauseAll = false.obs;
   late NavBarController navBarController;
   final RxSet<String> highlightDocIDs = <String>{}.obs;
@@ -71,6 +73,19 @@ class AgendaController extends GetxController {
   DateTime? _lastCacheTime; // Son cache zamanı
   final int _cacheValidMinutes = 5; // Cache geçerlilik süresi (dakika)
   final int _initialShuffleSize = 100; // İlk karışık yükleme miktarı
+  // null => no time window limit
+  static const Duration? _agendaWindow = null;
+
+  int _agendaCutoffMs(int nowMs) {
+    if (_agendaWindow == null) return 0;
+    return nowMs - _agendaWindow!.inMilliseconds;
+  }
+
+  bool _isInAgendaWindow(num ts, int nowMs) {
+    if (_agendaWindow == null) return true;
+    final v = ts.toInt();
+    return v >= _agendaCutoffMs(nowMs) && v <= nowMs;
+  }
 
   @override
   void onInit() {
@@ -141,7 +156,7 @@ class AgendaController extends GetxController {
 
   void _scheduleFeedPrefetch() {
     _feedPrefetchDebounce?.cancel();
-    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 220), () {
+    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 500), () {
       _updateFeedPrefetchQueue();
     });
   }
@@ -183,7 +198,7 @@ class AgendaController extends GetxController {
       _visibleFractions[modelIndex] = visibleFraction;
     }
     _visibilityDebounce?.cancel();
-    _visibilityDebounce = Timer(const Duration(milliseconds: 120), () {
+    _visibilityDebounce = Timer(const Duration(milliseconds: 250), () {
       _applyVisibilityDecision();
     });
   }
@@ -369,11 +384,11 @@ class AgendaController extends GetxController {
       fetchAgendaBigData();
     }
 
-    scrollOffset.value = currentOffset;
-
-    // 🎯 INSTAGRAM STYLE: centeredIndex kontrolü SADECE VisibilityDetector'dan
-    // Scroll offset hesabı YANLIŞ tahmin yapıyor (RecommendedUserList, reklam yüksekliklerini bilmiyor)
-    // Bu metod KALDIRILDİ - Fiziksel görünürlük = gerçek
+    // FAB'ı sadece eşik geçişlerinde güncelle (her frame'de değil)
+    final shouldShowFab = currentOffset <= 1000;
+    if (showFAB.value != shouldShowFab) {
+      showFAB.value = shouldShowFab;
+    }
   }
 
   void disposeAgendaContentController(String docID) {
@@ -459,10 +474,12 @@ class AgendaController extends GetxController {
     isLoading.value = true;
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
       Query query = FirebaseFirestore.instance
           .collection("Posts")
           .where("arsiv", isEqualTo: false)
           .where("flood", isEqualTo: false)
+          .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
           .where('timeStamp', isLessThanOrEqualTo: nowMs)
           .orderBy("timeStamp", descending: true)
           .limit(fetchLimit);
@@ -477,8 +494,8 @@ class AgendaController extends GetxController {
       final items = snap.docs
           .map((doc) =>
               PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-          // Yalnızca timeStamp'i şimdiye eşit/önce olanlar
-          .where((p) => (p.timeStamp) <= nowMs)
+          // Son 24 saat penceresi
+          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
 
@@ -571,10 +588,12 @@ class AgendaController extends GetxController {
     if (agendaList.isNotEmpty) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
     Query query = FirebaseFirestore.instance
         .collection("Posts")
         .where("arsiv", isEqualTo: false)
         .where("flood", isEqualTo: false)
+        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
         .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy("timeStamp", descending: true)
         .limit(fetchLimit);
@@ -585,7 +604,7 @@ class AgendaController extends GetxController {
     final items = snap.docs
         .map((doc) =>
             PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .where((p) => (p.timeStamp) <= nowMs)
+        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
     if (items.isEmpty) return;
@@ -650,11 +669,13 @@ class AgendaController extends GetxController {
     );
     if (fromPool.isEmpty) return;
 
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     // Pool'dan gelen postları validasyonsuz hızlıca göster.
     // Basit senkron filtre: silinmiş/gizlenmiş postları çıkar.
     final quickFiltered = fromPool.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
+      if (!_isInAgendaWindow(post.timeStamp, nowMs)) return false;
       if (!_isRenderablePost(post)) return false;
       return true;
     }).toList();
@@ -754,7 +775,7 @@ class AgendaController extends GetxController {
         final archived = (data['arsiv'] ?? false) == true;
         final timeStamp =
             (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
-        if (!deleted && !archived && timeStamp <= nowMs) {
+        if (!deleted && !archived && _isInAgendaWindow(timeStamp, nowMs)) {
           validPostIds.add(d.id);
         }
       }
@@ -852,10 +873,12 @@ class AgendaController extends GetxController {
   // Feed refresh: son 100 gönderiyi çek, shuffle yap, ilk partiyi göster.
   Future<void> _fetchRefreshShuffledLast100() async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
     final snap = await FirebaseFirestore.instance
         .collection("Posts")
         .where("arsiv", isEqualTo: false)
         .where("flood", isEqualTo: false)
+        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
         .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy("timeStamp", descending: true)
         .limit(100)
@@ -863,7 +886,7 @@ class AgendaController extends GetxController {
 
     final items = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
-        .where((p) => p.timeStamp <= nowMs)
+        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
 
@@ -932,10 +955,12 @@ class AgendaController extends GetxController {
   // İlk küçük batch'i hızlıca getir
   Future<void> _fetchInitialShuffledBatch() async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cutoffMs = _agendaCutoffMs(nowMs);
     Query query = FirebaseFirestore.instance
         .collection("Posts")
         .where("arsiv", isEqualTo: false)
         .where("flood", isEqualTo: false)
+        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
         .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy("timeStamp", descending: true)
         .limit(_initialShuffleSize); // 100 gönderi
@@ -946,7 +971,7 @@ class AgendaController extends GetxController {
     final items = snap.docs
         .map((doc) =>
             PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .where((p) => (p.timeStamp) <= nowMs)
+        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
 
@@ -988,10 +1013,12 @@ class AgendaController extends GetxController {
       await Future.delayed(const Duration(seconds: 2));
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
       Query query = FirebaseFirestore.instance
           .collection("Posts")
           .where("arsiv", isEqualTo: false)
           .where("flood", isEqualTo: false)
+          .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
           .where('timeStamp', isLessThanOrEqualTo: nowMs)
           .orderBy("timeStamp", descending: true)
           .limit(1000); // 2000 yerine 1000 (daha hızlı)
@@ -1002,7 +1029,7 @@ class AgendaController extends GetxController {
       final items = snap.docs
           .map((doc) =>
               PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-          .where((p) => (p.timeStamp) <= nowMs)
+          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
 
@@ -1084,11 +1111,13 @@ class AgendaController extends GetxController {
   // Yeni yüklenen gönderileri sadece listenin başına ekle (full refresh yapmadan)
   void addUploadedPostsAtTop(List<PostsModel> posts) {
     if (posts.isEmpty) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd = <PostsModel>[];
     for (final p in posts) {
       if (!existingIDs.contains(p.docID) &&
           !hiddenPosts.contains(p.docID) &&
+          _isInAgendaWindow(p.timeStamp, nowMs) &&
           _isRenderablePost(p)) {
         toAdd.add(p);
       }

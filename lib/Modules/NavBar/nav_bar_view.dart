@@ -270,9 +270,10 @@ class NavBarView extends StatelessWidget {
                                   final shortController =
                                       Get.find<ShortController>();
 
-                                  try {
-                                    await shortController.backgroundPreload();
-                                  } catch (_) {}
+                                  // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
+                                  shortController
+                                      .backgroundPreload()
+                                      .catchError((_) {});
 
                                   await Get.to(() => const ShortView());
                                 }

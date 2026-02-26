@@ -38,6 +38,7 @@ import '../../Services/firebase_my_store.dart';
 import '../../Services/story_interaction_optimizer.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Services/current_user_service.dart';
+import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
@@ -314,6 +315,9 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController());
+    if (!Get.isRegistered<UploadQueueService>()) {
+      Get.put(UploadQueueService(), permanent: true);
+    }
     if (!Get.isRegistered<DeepLinkService>()) {
       Get.put(DeepLinkService(), permanent: true);
     }

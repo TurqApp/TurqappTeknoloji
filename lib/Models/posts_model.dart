@@ -94,6 +94,9 @@ class PostsModel {
   String hlsStatus;
   num hlsUpdatedAt;
   bool yorum;
+  Map<String, dynamic> yorumMap;
+  Map<String, dynamic> reshareMap;
+  Map<String, dynamic> poll;
 
   PostsModel({
     required this.ad,
@@ -129,6 +132,9 @@ class PostsModel {
     this.hlsStatus = 'none',
     this.hlsUpdatedAt = 0,
     required this.yorum,
+    this.yorumMap = const {},
+    this.reshareMap = const {},
+    this.poll = const {},
   });
 
   bool get hasHls => hlsMasterUrl.trim().isNotEmpty;
@@ -136,6 +142,26 @@ class PostsModel {
   bool get isHlsReady => hlsStatus == 'ready' && hasHls;
 
   bool get hasPlayableVideo => playbackUrl.trim().isNotEmpty;
+
+  int get yorumVisibility {
+    final v = yorumMap['visibility'];
+    if (v is num) return v.toInt();
+    if (v is String) {
+      final parsed = int.tryParse(v);
+      if (parsed != null) return parsed;
+    }
+    return yorum ? 0 : 3;
+  }
+
+  int get paylasimVisibility {
+    final v = reshareMap['visibility'];
+    if (v is num) return v.toInt();
+    if (v is String) {
+      final parsed = int.tryParse(v);
+      if (parsed != null) return parsed;
+    }
+    return paylasGizliligi.toInt();
+  }
 
   String get playbackUrl {
     if (isHlsReady) return CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
@@ -231,6 +257,9 @@ class PostsModel {
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
       yorum: data['yorum'] ?? true,
+      yorumMap: Map<String, dynamic>.from(data['yorumMap'] ?? {}),
+      reshareMap: Map<String, dynamic>.from(data['reshareMap'] ?? {}),
+      poll: Map<String, dynamic>.from(data['poll'] ?? {}),
     );
   }
 
@@ -268,6 +297,9 @@ class PostsModel {
       'hlsStatus': hlsStatus,
       'hlsUpdatedAt': hlsUpdatedAt,
       'yorum': yorum,
+      'yorumMap': yorumMap,
+      'reshareMap': reshareMap,
+      'poll': poll,
     };
   }
 
@@ -306,6 +338,9 @@ class PostsModel {
       hlsStatus: 'none',
       hlsUpdatedAt: 0,
       yorum: true,
+      yorumMap: const {},
+      reshareMap: const {},
+      poll: const {},
     );
   }
 
@@ -343,6 +378,9 @@ class PostsModel {
     String? hlsStatus,
     num? hlsUpdatedAt,
     bool? yorum,
+    Map<String, dynamic>? yorumMap,
+    Map<String, dynamic>? reshareMap,
+    Map<String, dynamic>? poll,
   }) {
     return PostsModel(
       ad: ad ?? this.ad,
@@ -378,6 +416,9 @@ class PostsModel {
       hlsStatus: hlsStatus ?? this.hlsStatus,
       hlsUpdatedAt: hlsUpdatedAt ?? this.hlsUpdatedAt,
       yorum: yorum ?? this.yorum,
+      yorumMap: yorumMap ?? this.yorumMap,
+      reshareMap: reshareMap ?? this.reshareMap,
+      poll: poll ?? this.poll,
     );
   }
 
