@@ -43,6 +43,8 @@
 	<false/>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-4558422035199571~1475411033</string>
+	<key>GMSApiKey</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>

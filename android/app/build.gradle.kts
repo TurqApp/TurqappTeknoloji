@@ -23,6 +23,15 @@ if (hasKeyProps) {
     println("⚠️ key.properties yok: Debug çalışır. Release signing devre dışı.")
 }
 
+val localPropsFile = rootProject.file("local.properties")
+val localProps = Properties()
+if (localPropsFile.exists()) {
+    localPropsFile.inputStream().use { localProps.load(it) }
+}
+val googleMapsApiKey: String =
+    (project.findProperty("GOOGLE_MAPS_API_KEY") as String?)
+        ?: localProps.getProperty("GOOGLE_MAPS_API_KEY", "")
+
 android {
     namespace = "com.turqapp.app"
 
@@ -50,6 +59,7 @@ android {
 
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
     }
 
     /**

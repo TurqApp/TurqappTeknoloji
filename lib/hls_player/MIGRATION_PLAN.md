@@ -137,7 +137,7 @@ private final class TurqNativeAVPlayerPlatformView: NSObject, FlutterPlatformVie
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    GMSServices.provideAPIKey("<REDACTED_GOOGLE_MAPS_API_KEY>")
+    GMSServices.provideAPIKey("<YOUR_GOOGLE_MAPS_API_KEY>")
 
     // Audio session setup (GlobalHLSPlayerManager içinde yapılacak)
     // Bu kod da silinebilir

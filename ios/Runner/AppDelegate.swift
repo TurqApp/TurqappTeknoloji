@@ -17,9 +17,12 @@ import AVFoundation
       HLSPlayerPlugin.register(with: registrar)
     }
 
-    // Google Maps API key — ilk frame'i bloklamadan arka planda başlat
-    DispatchQueue.main.async {
-      GMSServices.provideAPIKey("<REDACTED_GOOGLE_MAPS_API_KEY>")
+    // Google Maps API key (Info.plist: GMSApiKey)
+    if let mapsKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
+       !mapsKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      DispatchQueue.main.async {
+        GMSServices.provideAPIKey(mapsKey)
+      }
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

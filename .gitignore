@@ -29,6 +29,14 @@ doc/api/
 # Local backup of previous git metadata
 .git_backup_*/
 
+# Secrets / local credentials
+assets/data/service_account.json
+**/service_account.json
+**/*-firebase-adminsdk-*.json
+*.p12
+*.jks
+*.keystore
+
 # macOS metadata
 .DS_Store
 **/.DS_Store
