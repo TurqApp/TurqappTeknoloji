@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
 import '../Core/Services/SegmentCache/hls_proxy_server.dart';
+import '../Core/Services/audio_focus_coordinator.dart';
 
 /// VideoPlayerController-benzeri API sunan HLSController adapter.
 class HLSVideoValue {
@@ -66,6 +67,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   bool _viewReady = false;
   bool _disposed = false;
   bool _isStopped = false;
+  bool get isDisposed => _disposed;
 
   /// Network/decoder durdurulmuş mu? (stopPlayback çağrıldı)
   bool get isStopped => _isStopped;
@@ -85,6 +87,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     this.loop = false,
   })  : _originalUrl = url,
         _effectiveUrl = _resolveToProxy(url) {
+    AudioFocusCoordinator.instance.register(this);
     // Stream'lere hemen abone ol.
     // HLSPlayer widget mount olup native view oluşturduğunda
     // HLSController.initialize(viewId) çağrılır ve event'ler akmaya başlar.
@@ -106,8 +109,7 @@ class HLSVideoAdapter extends ChangeNotifier {
       if (_disposed) return;
 
       final wasReady = _viewReady;
-      _viewReady =
-          state != PlayerState.idle && state != PlayerState.loading;
+      _viewReady = state != PlayerState.idle && state != PlayerState.loading;
 
       _value = HLSVideoValue(
         isInitialized: _viewReady,
@@ -178,6 +180,15 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   Future<void> play() {
+    if (_disposed) return Future.value();
+    return _playWithAudioFocus();
+  }
+
+  Future<void> _playWithAudioFocus() async {
+    if (_disposed) return;
+    try {
+      await AudioFocusCoordinator.instance.requestPlay(this);
+    } catch (_) {}
     _refreshProxyUrlIfNeeded();
     // Stopped ise otomatik reload + play
     if (_isStopped) {
@@ -185,21 +196,26 @@ class HLSVideoAdapter extends ChangeNotifier {
       _wantPlay = true;
       _wantPause = false;
       if (_viewReady) {
-        return _hls.loadVideo(url, autoPlay: true, loop: loop);
+        await _hls.loadVideo(url, autoPlay: true, loop: loop);
+        return;
       }
-      return Future.value();
+      return;
     }
     if (_viewReady) {
       _wantPlay = false;
       _wantPause = false;
-      return _hls.play();
+      await _hls.play();
+      return;
     }
     _wantPlay = true;
     _wantPause = false;
-    return Future.value();
   }
 
   Future<void> pause() {
+    if (_disposed) return Future.value();
+    try {
+      AudioFocusCoordinator.instance.requestPause(this);
+    } catch (_) {}
     if (_viewReady) {
       _wantPlay = false;
       _wantPause = false;
@@ -211,6 +227,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   Future<void> setVolume(double v) {
+    if (_disposed) return Future.value();
     if (_viewReady) return _hls.setVolume(v);
     _pendingVolume = v;
     _hasPendingVolume = true;
@@ -218,11 +235,13 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   Future<void> setLooping(bool v) {
+    if (_disposed) return Future.value();
     if (_viewReady) return _hls.setLoop(v);
     return Future.value();
   }
 
   Future<void> seekTo(Duration pos) {
+    if (_disposed) return Future.value();
     if (_viewReady) return _hls.seekTo(pos.inMilliseconds / 1000.0);
     _pendingSeek = pos;
     return Future.value();
@@ -231,6 +250,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// Network/decoder durdur, adapter hayatta kalsın.
   /// Tekrar play() çağrılırsa otomatik reload olur.
   Future<void> stopPlayback() {
+    if (_disposed) return Future.value();
     _isStopped = true;
     _wantPlay = false;
     _wantPause = false;
@@ -242,6 +262,7 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   /// stopPlayback sonrası videoyu tekrar yükle.
   Future<void> reloadVideo() async {
+    if (_disposed) return;
     _refreshProxyUrlIfNeeded();
     if (!_isStopped) return;
     _isStopped = false;
@@ -252,6 +273,7 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   /// Forward buffer süresini ayarla (saniye).
   Future<void> setPreferredBufferDuration(double seconds) {
+    if (_disposed) return Future.value();
     if (_viewReady) return _hls.setPreferredBufferDuration(seconds);
     return Future.value();
   }
@@ -275,6 +297,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool useAspectRatio = true,
     bool? overrideAutoPlay,
   }) {
+    if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
     return HLSPlayer(
       key: key,
@@ -292,6 +315,9 @@ class HLSVideoAdapter extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    try {
+      AudioFocusCoordinator.instance.unregister(this);
+    } catch (_) {}
     _stateSub?.cancel();
     _posSub?.cancel();
     _durSub?.cancel();

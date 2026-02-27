@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/PostCreator/CreatorContent/creator_content_controller.dart';
 import 'package:turqappv2/Modules/PostCreator/CreatorContent/post_creator_model.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
@@ -12,12 +13,43 @@ import '../../Core/BottomSheets/no_yes_alert.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 
 class PostCreator extends StatelessWidget {
-  PostCreator({super.key});
+  final String sharedVideoUrl;
+  final double sharedAspectRatio;
+  final String sharedThumbnail;
+  final bool sharedAsPost;
+  final String? originalUserID;
+  final String? originalPostID;
+  final bool editMode;
+  final PostsModel? editPost;
+
+  PostCreator({
+    super.key,
+    this.sharedVideoUrl = '',
+    this.sharedAspectRatio = 9 / 16,
+    this.sharedThumbnail = '',
+    this.sharedAsPost = false,
+    this.originalUserID,
+    this.originalPostID,
+    this.editMode = false,
+    this.editPost,
+  });
   final controller = Get.put(PostCreatorController());
   final progressController = Get.put(UploadProgressController());
 
   @override
   Widget build(BuildContext context) {
+    controller.applySharedSourceIfNeeded(
+      videoUrl: sharedVideoUrl,
+      aspectRatio: sharedAspectRatio,
+      thumbnail: sharedThumbnail,
+      sharedAsPost: sharedAsPost,
+      originalUserID: originalUserID,
+      originalPostID: originalPostID,
+    );
+    controller.applyEditSourceIfNeeded(
+      editMode: editMode,
+      editPost: editPost,
+    );
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -26,7 +58,7 @@ class PostCreator extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  header(),
+                  header(context),
                   postBody(),
                   toolbar(),
                 ],
@@ -45,7 +77,7 @@ class PostCreator extends StatelessWidget {
     );
   }
 
-  Widget header() {
+  Widget header(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5),
       child: Stack(
@@ -60,6 +92,21 @@ class PostCreator extends StatelessWidget {
               ),
               InkWell(
                 onTap: () async {
+                  if (controller.isSavingEdit.value) return;
+                  if (controller.isEditMode.value) {
+                    final ok = await controller.savePostEdit();
+                    if (ok) {
+                      final popped = await Navigator.of(context).maybePop();
+                      if (!popped) {
+                        if (Navigator.of(context, rootNavigator: true).canPop()) {
+                          Navigator.of(context, rootNavigator: true).pop();
+                        } else {
+                          Get.back();
+                        }
+                      }
+                    }
+                    return;
+                  }
                   controller.uploadAllPostsInBackgroundWithErrorHandling();
                 },
                 child: Container(
@@ -73,7 +120,9 @@ class PostCreator extends StatelessWidget {
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
-                    "Yayınla",
+                    controller.isEditMode.value
+                        ? (controller.isSavingEdit.value ? "Kaydediliyor..." : "Kaydet")
+                        : "Yayınla",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
@@ -85,7 +134,9 @@ class PostCreator extends StatelessWidget {
             ],
           ),
           Text(
-            "${controller.postList.length > 1 ? "Flood" : "Gönderi"} Hazırla",
+            controller.isEditMode.value
+                ? "Gönderi Düzenle"
+                : "${controller.postList.length > 1 ? "Flood" : "Gönderi"} Hazırla",
             style: const TextStyle(
               color: Colors.black,
               fontSize: 16,
@@ -164,6 +215,8 @@ class PostCreator extends StatelessWidget {
               (selectedController.pollData.value?['options'] is List) &&
               (selectedController.pollData.value!['options'] as List)
                   .isNotEmpty;
+      final disableFirstThree = controller.isEditMode.value;
+      final disableFlood = controller.isEditMode.value;
 
       const double toolbarIconSize = 23.3; // ~3% smaller than 24
       return Padding(
@@ -185,30 +238,39 @@ class PostCreator extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              onPressed: selectedController.pickImage,
+                              onPressed:
+                                  disableFirstThree ? null : selectedController.pickImage,
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.photo_on_rectangle,
-                                color: hasImages ? Colors.blueAccent : Colors.black,
+                                color: disableFirstThree
+                                    ? Colors.black38
+                                    : (hasImages ? Colors.blueAccent : Colors.black),
                               ),
                             ),
                             IconButton(
-                              onPressed: () {
-                                selectedController.pickVideo(
-                                    source: ImageSource.gallery);
-                              },
+                              onPressed: disableFirstThree
+                                  ? null
+                                  : () {
+                                      selectedController.pickVideo(
+                                          source: ImageSource.gallery);
+                                    },
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.play_circle,
-                                color: hasVideo ? Colors.blueAccent : Colors.black,
+                                color: disableFirstThree
+                                    ? Colors.black38
+                                    : (hasVideo ? Colors.blueAccent : Colors.black),
                               ),
                             ),
                             IconButton(
-                              onPressed: selectedController.openCustomCameraCapture,
+                              onPressed: disableFirstThree
+                                  ? null
+                                  : selectedController.openCustomCameraCapture,
                               iconSize: toolbarIconSize,
-                              icon: const Icon(
+                              icon: Icon(
                                 CupertinoIcons.camera,
-                                color: Colors.black,
+                                color: disableFirstThree ? Colors.black38 : Colors.black,
                               ),
                             ),
                             IconButton(
@@ -371,28 +433,33 @@ class PostCreator extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  final newIndex = controller.postList.length;
-                  controller.postList.add(
-                    PostCreatorModel(index: newIndex, text: ""),
-                  );
-                  controller.selectedIndex.value = newIndex;
-                  Get.put(CreatorContentController(),
-                      tag: newIndex.toString());
-                },
+                onPressed: disableFlood
+                    ? null
+                    : () {
+                        final newIndex = controller.postList.length;
+                        controller.postList.add(
+                          PostCreatorModel(index: newIndex, text: ""),
+                        );
+                        controller.selectedIndex.value = newIndex;
+                        Get.put(CreatorContentController(),
+                            tag: newIndex.toString());
+                      },
                 child: Container(
                   width: 28,
                   height: 28,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.primaryColor,
-                        AppColors.secondColor,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: disableFlood
+                        ? null
+                        : LinearGradient(
+                            colors: [
+                              AppColors.primaryColor,
+                              AppColors.secondColor,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: disableFlood ? Colors.black26 : null,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

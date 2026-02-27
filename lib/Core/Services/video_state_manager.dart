@@ -22,8 +22,11 @@ class VideoStateManager extends GetxController {
 
   // GLOBAL VIDEO CONTROL: Şu anda çalan video
   String? _currentPlayingDocID;
+  bool _exclusiveMode = false;
+  String? _exclusiveDocID;
   Timer? _pendingPlayTimer;
   static const Duration _playResumeDelay = Duration(milliseconds: 140);
+  int _playRequestSeq = 0;
 
   /// Video durumunu kaydet (PlaybackHandle ile)
   void saveVideoState(String docID, PlaybackHandle handle) {
@@ -37,7 +40,8 @@ class VideoStateManager extends GetxController {
   }
 
   /// Legacy: VideoPlayerController ile kaydet
-  void saveVideoStateFromController(String docID, VideoPlayerController controller) {
+  void saveVideoStateFromController(
+      String docID, VideoPlayerController controller) {
     if (!controller.value.isInitialized) return;
 
     _videoStates[docID] = VideoState(
@@ -154,6 +158,13 @@ class VideoStateManager extends GetxController {
 
   /// INSTAGRAM STYLE: SADECE bu videoyu oynat, diğer tüm videoları durdur
   void playOnlyThis(String docID) {
+    _playRequestSeq++;
+    final int requestSeq = _playRequestSeq;
+
+    if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      return;
+    }
+
     final current = _allVideoControllers[docID];
     if (_currentPlayingDocID == docID &&
         current != null &&
@@ -166,6 +177,7 @@ class VideoStateManager extends GetxController {
 
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = Timer(_playResumeDelay, () {
+      if (requestSeq != _playRequestSeq) return;
       if (_currentPlayingDocID != docID) return;
       final handle = _allVideoControllers[docID];
       if (handle != null && handle.isInitialized && !handle.isPlaying) {
@@ -182,7 +194,8 @@ class VideoStateManager extends GetxController {
   }
 
   /// Legacy: VideoPlayerController ile requestPlayVideo
-  void requestPlayVideoFromController(String docID, VideoPlayerController controller) {
+  void requestPlayVideoFromController(
+      String docID, VideoPlayerController controller) {
     requestPlayVideo(docID, LegacyPlaybackHandle(controller));
   }
 
@@ -194,10 +207,34 @@ class VideoStateManager extends GetxController {
   }
 
   /// INSTAGRAM STYLE: TÜM videoları durdur
-  void pauseAllVideos() {
+  void pauseAllVideos({bool force = false}) {
+    if (!force && _exclusiveMode) {
+      if (_exclusiveDocID != null) {
+        pauseAllExcept(_exclusiveDocID);
+      }
+      return;
+    }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
+    _playRequestSeq++;
     pauseAllExcept(null);
+  }
+
+  void enterExclusiveMode(String docID) {
+    _exclusiveMode = true;
+    _exclusiveDocID = docID;
+    playOnlyThis(docID);
+  }
+
+  void updateExclusiveModeDoc(String docID) {
+    if (!_exclusiveMode) return;
+    _exclusiveDocID = docID;
+    playOnlyThis(docID);
+  }
+
+  void exitExclusiveMode() {
+    _exclusiveMode = false;
+    _exclusiveDocID = null;
   }
 
   /// Şu anda çalan video ID'sini döndür

@@ -12,7 +12,9 @@ class TopTagsController extends GetxController {
   TopTagsController({TopTagsRepository? repository})
       : _repo = repository ?? TopTagsRepository();
 
-  final navbar = Get.put(NavBarController());
+  final navbar = Get.isRegistered<NavBarController>()
+      ? Get.find<NavBarController>()
+      : Get.put(NavBarController());
   ScrollController scrollController = ScrollController();
   double _lastOffset = 0;
   RxList<HashtagModel> tags = <HashtagModel>[].obs;

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,37 +22,37 @@ class SharedPostLabel extends StatefulWidget {
 }
 
 class _SharedPostLabelState extends State<SharedPostLabel> {
-  String? _nickname;
+  String? _displayName;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadNickname();
+    _loadDisplayName();
   }
 
   @override
   void didUpdateWidget(SharedPostLabel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.originalUserID != widget.originalUserID) {
-      _loadNickname();
+      _loadDisplayName();
     }
   }
 
-  void _loadNickname() async {
+  void _loadDisplayName() async {
     if (widget.originalUserID.isEmpty) {
       return;
     }
 
     // Önce cache'ten kontrol et
-    final cachedNickname =
-        ReshareHelper.getCachedNickname(widget.originalUserID);
+    final cachedName =
+        ReshareHelper.getCachedDisplayName(widget.originalUserID);
 
-    if (cachedNickname != null) {
+    if (cachedName != null) {
       // Cache'te var, direkt kullan
       if (mounted) {
         setState(() {
-          _nickname = cachedNickname;
+          _displayName = cachedName;
           _isLoading = false;
         });
       }
@@ -63,18 +64,18 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
         });
 
         try {
-          final nickname =
-              await ReshareHelper.getUserNickname(widget.originalUserID);
+          final displayName =
+              await ReshareHelper.getUserDisplayName(widget.originalUserID);
           if (mounted) {
             setState(() {
-              _nickname = nickname;
+              _displayName = displayName;
               _isLoading = false;
             });
           }
         } catch (e) {
           if (mounted) {
             setState(() {
-              _nickname = 'Bilinmeyen Kullanıcı';
+              _displayName = 'Bilinmeyen Kullanıcı';
               _isLoading = false;
             });
           }
@@ -91,12 +92,12 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
     }
 
     // Nickname yok ve yükleniyor da değilse hiçbir şey gösterme
-    if (_nickname == null && !_isLoading) {
+    if (_displayName == null && !_isLoading) {
       return const SizedBox.shrink();
     }
 
     // Nickname varsa göster
-    if (_nickname != null) {
+    if (_displayName != null) {
       return GestureDetector(
         onTap: () {
           // Kendi ID'si ise tıklanabilir olmasın
@@ -105,15 +106,28 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
             Get.to(() => SocialProfile(userID: widget.originalUserID));
           }
         },
-        child: Text(
-          'Kimden: @$_nickname',
-          style: TextStyle(
-            color: widget.textColor,
-            fontSize: widget.fontSize,
-            fontWeight: FontWeight.w500,
-            fontStyle: FontStyle.italic,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.28),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Kimden $_displayName',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: widget.fontSize,
+                  fontWeight: FontWeight.w500,
+                  fontStyle: FontStyle.normal,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ),
-          overflow: TextOverflow.ellipsis,
         ),
       );
     }

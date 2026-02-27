@@ -382,13 +382,28 @@ class CreatorContent extends StatelessWidget {
                 child: Obx(() {
                   final cover = controller.selectedThumbnail.value;
                   final isPlaying = controller.isPlaying.value;
-                  if (cover == null || isPlaying) return const SizedBox.shrink();
+                  if (isPlaying) return const SizedBox.shrink();
+                  if (cover != null) {
+                    return FittedBox(
+                      fit: fit,
+                      child: SizedBox(
+                        width: width,
+                        height: height,
+                        child: Image.memory(cover, fit: BoxFit.cover),
+                      ),
+                    );
+                  }
+                  final reusedThumb = controller.reusedVideoThumbnail.value;
+                  if (reusedThumb.trim().isEmpty) return const SizedBox.shrink();
                   return FittedBox(
                     fit: fit,
                     child: SizedBox(
                       width: width,
                       height: height,
-                      child: Image.memory(cover, fit: BoxFit.cover),
+                      child: CachedNetworkImage(
+                        imageUrl: reusedThumb,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   );
                 }),
@@ -474,6 +489,9 @@ class CreatorContent extends StatelessWidget {
                     await videoCtrl.dispose();
                     controller.rxVideoPlayerController.value = null;
                     controller.selectedVideo.value = null;
+                    controller.reusedVideoUrl.value = '';
+                    controller.reusedVideoThumbnail.value = '';
+                    controller.reusedVideoAspectRatio.value = 0.0;
                     controller.isPlaying.value = false;
                     controller.hasVideo.value = false;
                     controller.hasVideo.refresh();

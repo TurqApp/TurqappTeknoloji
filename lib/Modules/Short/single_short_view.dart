@@ -106,21 +106,57 @@ class SingleShortView extends StatefulWidget {
 class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// Videoları tutan reaktif liste
   final shorts = <PostsModel>[].obs;
+  final videoStateManager = VideoStateManager.instance;
 
   final PageController pageController = PageController();
   int currentPage = 0;
   bool volume = true;
   bool showControls = true;
+  DateTime _pageActivatedAt = DateTime.now();
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
 
+  Future<void> _ensureInjectedInitialPlayback(
+      HLSVideoAdapter ctrl, String docId) async {
+    try {
+      if (ctrl.isDisposed) return;
+      ctrl.setLooping(false);
+      ctrl.setVolume(volume ? 1 : 0);
+
+      final targetPos = widget.initialPosition;
+      if (targetPos != null) {
+        Duration safePos = targetPos.isNegative ? Duration.zero : targetPos;
+        final total = ctrl.value.duration;
+        if (total > Duration.zero) {
+          final maxSeek = total - const Duration(milliseconds: 400);
+          if (maxSeek > Duration.zero && safePos > maxSeek) {
+            safePos = maxSeek;
+          }
+        }
+        await ctrl.seekTo(safePos);
+      }
+
+      // View attach/render yarışı için garantili play denemeleri
+      for (var i = 0; i < 3; i++) {
+        if (!mounted || ctrl.isDisposed) return;
+        await ctrl.play();
+        try {
+          VideoStateManager.instance.playOnlyThis(docId);
+        } catch (_) {}
+        await Future.delayed(const Duration(milliseconds: 120));
+        if (ctrl.value.isPlaying) break;
+      }
+    } catch (_) {}
+  }
+
   Future<void> _pauseAllControllers() async {
     // Aktif ve bufferlanan tüm video controller'larını güvenli şekilde durdur
     for (final vp in _videoControllers.values) {
       try {
+        if (vp.isDisposed) continue;
         if (vp.value.isInitialized && vp.value.isPlaying) {
           await vp.pause();
         }
@@ -130,11 +166,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final injected = widget.injectedController;
     if (injected != null) {
       try {
-        if (injected.value.isInitialized && injected.value.isPlaying) {
+        if (injected.isDisposed) {
+          // no-op
+        } else if (injected.value.isInitialized && injected.value.isPlaying) {
           await injected.pause();
         }
       } catch (_) {}
     }
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      VideoStateManager.instance.exitExclusiveMode();
+    } catch (_) {}
   }
 
   /// Video frame tipi:
@@ -185,6 +229,16 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   @override
   void initState() {
     super.initState();
+    // Feed'den aynı controller enjekte edildiyse geçişte pause etme;
+    // aksi halde arka plandaki videoları sustur.
+    final hasInjectedPlayingController = widget.injectedController != null &&
+        !widget.injectedController!.isDisposed &&
+        widget.injectedController!.value.isInitialized;
+    if (!hasInjectedPlayingController) {
+      try {
+        VideoStateManager.instance.pauseAllVideos(force: true);
+      } catch (_) {}
+    }
 
     // Page değişimini PageView.onPageChanged ile yöneteceğiz
 
@@ -228,22 +282,24 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       initial = 0;
     }
     currentPage = initial;
+    _pageActivatedAt = DateTime.now();
     _initialIndexForSeek = initial;
     if (widget.injectedController != null &&
         widget.injectedController!.value.isInitialized) {
       _videoControllers[initial] = widget.injectedController!;
       _externallyOwned.add(initial);
+      videoStateManager.registerPlaybackHandle(
+        list[initial].docID,
+        HLSAdapterPlaybackHandle(widget.injectedController!),
+      );
       final ctrl = widget.injectedController!;
 
-      // Yeni native view oluşacak → video yeniden yüklenecek.
-      // autoPlay=false ile build edeceğiz, seek+play'i pending kuyruğa alacağız.
-      // Native view ready olduğunda adapter otomatik uygulayacak.
-      final seekPos = widget.initialPosition ?? ctrl.value.position;
       ctrl.setLooping(false);
-      ctrl.queueSeekAndPlay(seekPos);
-
-      // Volume pending olarak kuyruğa al
       ctrl.setVolume(volume ? 1 : 0);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || ctrl.isDisposed || initial >= list.length) return;
+        _ensureInjectedInitialPlayback(ctrl, list[initial].docID);
+      });
 
       setState(() {});
     } else {
@@ -252,6 +308,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       _ensureController(initial);
       print(
           '[SingleShortView] Injected controller hazır değil, local controller kullanılıyor.');
+    }
+    if (list.isNotEmpty && initial >= 0 && initial < list.length) {
+      try {
+        VideoStateManager.instance.enterExclusiveMode(list[initial].docID);
+        VideoStateManager.instance.playOnlyThis(list[initial].docID);
+      } catch (_) {}
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (pageController.hasClients) {
@@ -338,6 +400,13 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     // 2) Yeni sayfayı ata
     currentPage = page;
+    _pageActivatedAt = DateTime.now();
+    if (currentPage >= 0 && currentPage < shorts.length) {
+      try {
+        VideoStateManager.instance
+            .updateExclusiveModeDoc(shorts[currentPage].docID);
+      } catch (_) {}
+    }
 
     // Yarış koşullarını azalt: yeni sayfa dışında tüm controller'ları durdur.
     for (final entry in _videoControllers.entries) {
@@ -370,10 +439,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     if (vp != null) {
       try {
+        if (vp.isDisposed) return;
         vp.setVolume(volume ? 1 : 0);
       } catch (_) {}
       try {
-        vp.play();
+        VideoStateManager.instance.playOnlyThis(shorts[currentPage].docID);
       } catch (_) {}
 
       // Cache state machine: playing olarak işaretle
@@ -408,6 +478,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     // pageController.addListener ile eklenmediği için removeListener çağrısı gereksiz ve hataya yol açıyor.
     pageController.dispose();
     _clearAllControllers();
+    try {
+      VideoStateManager.instance.exitExclusiveMode();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -433,7 +506,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           final videoStateManager = Get.find<VideoStateManager>();
           videoStateManager.saveVideoState(
             currentModel.docID,
-            HLSPlaybackHandle(ctrl.hlsController),
+            HLSAdapterPlaybackHandle(ctrl),
           );
 
           print(
@@ -446,6 +519,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     // Tüm videoları durdur
     _pauseAllControllers();
+    try {
+      VideoStateManager.instance.exitExclusiveMode();
+    } catch (_) {}
   }
 
   void didStartUserGesture(Route route, Route? previousRoute) {
@@ -460,8 +536,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       final vp = _videoControllers[currentPage];
       if (vp != null && vp.value.isInitialized) {
         try {
+          if (vp.isDisposed) return;
           vp.setVolume(volume ? 1 : 0);
-          vp.play();
+          if (currentPage >= 0 && currentPage < shorts.length) {
+            VideoStateManager.instance.playOnlyThis(shorts[currentPage].docID);
+          }
         } catch (_) {}
       }
     }
@@ -472,8 +551,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final keys = _videoControllers.keys.toList();
     for (final idx in keys) {
       final c = _videoControllers[idx]!;
+      final docId =
+          (idx >= 0 && idx < shorts.length) ? shorts[idx].docID : null;
       if (_externallyOwned.contains(idx)) {
         // bırak: görüntüleyen sayfa kullanmaya devam edecek
+        continue;
+      }
+      if (docId != null) {
+        try {
+          videoStateManager.unregisterVideoController(docId);
+        } catch (_) {}
+      }
+      if (c.isDisposed) {
+        _videoControllers.remove(idx);
         continue;
       }
       c.pause();
@@ -503,6 +593,14 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         widget.injectedController != null &&
         widget.injectedController!.value.isInitialized &&
         !_videoControllers.containsKey(index)) {
+      if (index >= 0 && index < shorts.length) {
+        try {
+          videoStateManager.registerPlaybackHandle(
+            shorts[index].docID,
+            HLSAdapterPlaybackHandle(widget.injectedController!),
+          );
+        } catch (_) {}
+      }
       // Injected controller için listener ekle
       _addVideoCompletionListener(widget.injectedController!, index);
       return;
@@ -513,6 +611,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     final ctrl = HLSVideoAdapter(url: url, autoPlay: false, loop: false);
     _videoControllers[index] = ctrl;
+    try {
+      videoStateManager.registerPlaybackHandle(
+        shorts[index].docID,
+        HLSAdapterPlaybackHandle(ctrl),
+      );
+    } catch (_) {}
 
     ctrl.setLooping(false); // Loop'u kapat, manuel geçiş yapacağız
 
@@ -521,6 +625,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     // Eğer bu index aktif sayfa ise ses ayarı ve oynatma
     if (index == currentPage) {
+      if (ctrl.isDisposed) return;
       ctrl.setVolume(volume ? 1 : 0);
       // Başlangıç pozisyonu sadece ilk video için uygulanır
       if (_initialIndexForSeek != null &&
@@ -531,9 +636,13 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         // Pozisyonu doğrudan kuyruğa al, adapter view ready olunca uygular.
         final pos = widget.initialPosition!;
         ctrl.seekTo(pos);
-        ctrl.play();
+        if (index < shorts.length) {
+          VideoStateManager.instance.playOnlyThis(shorts[index].docID);
+        }
       } else {
-        ctrl.play();
+        if (index < shorts.length) {
+          VideoStateManager.instance.playOnlyThis(shorts[index].docID);
+        }
       }
     }
     if (mounted) setState(() {});
@@ -556,6 +665,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       final duration = value.duration;
 
       // Video sona yaklaştı mı? (son 300ms)
+      final justActivated =
+          DateTime.now().difference(_pageActivatedAt).inMilliseconds < 1200;
+      if (justActivated) return;
       if (duration.inMilliseconds > 0 &&
           position >= duration - const Duration(milliseconds: 300) &&
           position.inMilliseconds > 0) {
@@ -581,9 +693,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           print('[SingleShortView] 📝 Son video, başa sarılıyor');
           // Son videoysa başa sar
           Future.delayed(const Duration(milliseconds: 100), () {
-            if (mounted) {
+            final sameController = _videoControllers[index] == ctrl;
+            if (mounted && sameController && !ctrl.isDisposed) {
               ctrl.seekTo(Duration.zero);
-              ctrl.play();
+              if (index >= 0 && index < shorts.length) {
+                VideoStateManager.instance.playOnlyThis(shorts[index].docID);
+              }
               _completionTriggered[index] = false;
             }
           });
@@ -621,6 +736,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
           // Pop'tan önce tüm video seslerini durdur
+          try {
+            VideoStateManager.instance.exitExclusiveMode();
+          } catch (_) {}
           await _pauseAllControllers();
           // Çıkarken mevcut pozisyonu geri gönder
           final idx = widget.startModel != null
@@ -675,14 +793,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                       _buildFullscreenVideoSurface(
                         injected,
                         'injected-${shorts[idx].docID}-${injected.hashCode}',
-                        overrideAutoPlay: false,
+                        overrideAutoPlay: true,
                         modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
                       ),
                       // Thumbnail overlay - native view ilk frame'i render edene kadar
                       AnimatedBuilder(
                         animation: injected,
                         builder: (_, __) {
-                          if (injected.value.isInitialized && injected.value.isPlaying) {
+                          final v = injected.value;
+                          final hideThumb = v.isInitialized &&
+                              (v.isPlaying ||
+                                  v.isBuffering ||
+                                  v.position > Duration.zero);
+                          if (hideThumb) {
                             return const SizedBox.shrink();
                           }
                           if (injThumb.isEmpty) return const SizedBox.shrink();
@@ -693,14 +816,18 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                 aspectRatio: shorts[idx].aspectRatio > 1.2
                                     ? shorts[idx].aspectRatio.toDouble()
                                     : 1.0,
-                                child: Image.network(injThumb, fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                child: Image.network(injThumb,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox.shrink()),
                               ),
                             );
                           }
                           return SizedBox.expand(
-                            child: Image.network(injThumb, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                            child: Image.network(injThumb,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink()),
                           );
                         },
                       ),
@@ -709,7 +836,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                         builder: (_, __) {
                           if (!injected.value.isInitialized) {
                             return const Center(
-                              child: CupertinoActivityIndicator(color: Colors.white),
+                              child: CupertinoActivityIndicator(
+                                  color: Colors.white),
                             );
                           }
                           return const SizedBox.shrink();
@@ -734,14 +862,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                         if (loadingThumbAr >= 0.8)
                           Center(
                             child: AspectRatio(
-                              aspectRatio: loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
-                              child: Image.network(thumb, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                              aspectRatio:
+                                  loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
+                              child: Image.network(thumb,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink()),
                             ),
                           )
                         else
-                          Image.network(thumb, fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink())
+                          Image.network(thumb,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink())
                       else
                         const SizedBox.shrink(),
                       const Center(
@@ -765,13 +898,17 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                               Center(
                                 child: AspectRatio(
                                   aspectRatio: thumbAr > 1.2 ? thumbAr : 1.0,
-                                  child: Image.network(thumb, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                  child: Image.network(thumb,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox.shrink()),
                                 ),
                               )
                             else
-                              Image.network(thumb, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                              Image.network(thumb,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink()),
                         ],
                       )
                     : Stack(
@@ -780,13 +917,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                           _buildFullscreenVideoSurface(
                             vp,
                             'vp-${shorts[idx].docID}-${vp.hashCode}',
-                            modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
+                            modelAspectRatio:
+                                shorts[idx].aspectRatio.toDouble(),
                           ),
                           // Thumbnail overlay - video ilk frame'i gösterene kadar
                           AnimatedBuilder(
                             animation: vp,
                             builder: (_, __) {
-                              if (vp.value.isInitialized && vp.value.position != Duration.zero) {
+                              final v = vp.value;
+                              final hideThumb = v.isInitialized &&
+                                  (v.isPlaying ||
+                                      v.isBuffering ||
+                                      v.position > Duration.zero);
+                              if (hideThumb) {
                                 return const SizedBox.shrink();
                               }
                               if (thumb.isEmpty) return const SizedBox.shrink();
@@ -797,14 +940,18 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                     aspectRatio: shorts[idx].aspectRatio > 1.2
                                         ? shorts[idx].aspectRatio.toDouble()
                                         : 1.0,
-                                    child: Image.network(thumb, fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                    child: Image.network(thumb,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const SizedBox.shrink()),
                                   ),
                                 );
                               }
                               return SizedBox.expand(
-                                child: Image.network(thumb, fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                                child: Image.network(thumb,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox.shrink()),
                               );
                             },
                           ),
@@ -813,7 +960,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                             builder: (_, __) {
                               if (!vp.value.isInitialized) {
                                 return const Center(
-                                  child: CupertinoActivityIndicator(color: Colors.white),
+                                  child: CupertinoActivityIndicator(
+                                      color: Colors.white),
                                 );
                               }
                               return const SizedBox.shrink();
@@ -851,13 +999,6 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
               }
             });
           },
-          onTapDown: (_) => vp.pause(),
-          onTapUp: (_) {
-            if (idx == currentPage) vp.play();
-          },
-          onTapCancel: () {
-            if (idx == currentPage) vp.play();
-          },
           onTap: () async {
             final model = shorts[idx];
             if (model.floodCount > 1 && model.flood == false) {
@@ -871,7 +1012,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
               if (idx == currentPage) {
                 try {
                   vp.setVolume(volume ? 1 : 0);
-                  vp.play();
+                  VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
                 } catch (_) {}
               }
             }
@@ -890,10 +1031,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           ShortsContent(
             model: shorts[idx],
             volumeOff: (volume) {
-              if (volume) {
-                vp.play();
-              } else {
+              if (!volume) {
                 vp.pause();
+                return;
+              }
+              if (idx == currentPage && idx < shorts.length) {
+                VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
               }
             },
             videoPlayerController: vp,
@@ -910,6 +1053,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                         color: Colors.white),
                     onPressed: () async {
                       // Pop'tan önce tüm video seslerini durdur
+                      try {
+                        VideoStateManager.instance.exitExclusiveMode();
+                      } catch (_) {}
                       await _pauseAllControllers();
                       // Geri dönerken pozisyonu ilet
                       final idx0 = widget.startModel != null
@@ -981,7 +1127,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                             if (idx == currentPage) {
                               try {
                                 vp.setVolume(volume ? 1 : 0);
-                                vp.play();
+                                VideoStateManager.instance
+                                    .playOnlyThis(shorts[idx].docID);
                               } catch (_) {}
                             }
                           },
@@ -1029,8 +1176,7 @@ class _SingleShortProgressBar extends StatelessWidget {
         if (!v.isInitialized || v.duration.inMilliseconds <= 0) {
           return const SizedBox.shrink();
         }
-        final progress =
-            v.position.inMilliseconds / v.duration.inMilliseconds;
+        final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
         return LinearProgressIndicator(
           value: progress.clamp(0.0, 1.0),
           minHeight: 2,

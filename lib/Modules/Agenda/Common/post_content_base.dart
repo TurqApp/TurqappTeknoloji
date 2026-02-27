@@ -6,6 +6,8 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../../Core/Services/video_state_manager.dart';
+import '../../../Core/Services/playback_handle.dart';
 import '../../Agenda/agenda_controller.dart';
 import 'post_content_controller.dart';
 
@@ -38,11 +40,13 @@ abstract class PostContentBase extends StatefulWidget {
 mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
   final agendaController = Get.find<AgendaController>();
+  final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;
   HLSVideoAdapter? _videoAdapter;
   bool _hasAutoPlayed = false;
   bool _skipNextPause = false;
+  bool _blockPause = false;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
   Timer? _lazyInitTimer;
@@ -59,7 +63,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!widget.model.hasPlayableVideo) return false;
     try {
       if (!Get.isRegistered<SegmentCacheManager>()) return false;
-      final entry = Get.find<SegmentCacheManager>().getEntry(widget.model.docID);
+      final entry =
+          Get.find<SegmentCacheManager>().getEntry(widget.model.docID);
       if (entry == null) return false;
       return entry.cachedSegmentCount > 0;
     } catch (_) {
@@ -115,10 +120,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   void _initVideoController() {
+    if (_videoAdapter != null) return;
     _videoAdapter = HLSVideoAdapter(
       url: widget.model.playbackUrl,
       autoPlay: widget.shouldPlay,
       loop: true,
+    );
+
+    videoStateManager.registerPlaybackHandle(
+      widget.model.docID,
+      HLSAdapterPlaybackHandle(_videoAdapter!),
     );
 
     _videoAdapter!.addListener(_onVideoUpdate);
@@ -150,6 +161,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     _lazyInitTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
+    videoStateManager.unregisterVideoController(widget.model.docID);
     _videoAdapter?.dispose();
     _muteWorker?.dispose();
     _pauseAllWorker?.dispose();
@@ -168,6 +180,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           _initVideoController();
         }
         _videoAdapter?.play();
+        videoStateManager.playOnlyThis(widget.model.docID);
         // Cache state machine: playing olarak işaretle
         try {
           Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
@@ -175,16 +188,20 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       } else {
         // Bekleyen lazy init varsa iptal et
         _lazyInitTimer?.cancel();
+        if (_blockPause) return;
         // Fullscreen geçişi sırasında pause etme
-        if (!_skipNextPause) {
-          _safePauseVideo();
+        if (_skipNextPause) {
+          _skipNextPause = false;
+          return;
         }
+        _safePauseVideo();
       }
     }
   }
 
   @override
   void didPushNext() {
+    if (_blockPause) return;
     if (_skipNextPause) {
       _skipNextPause = false;
       return;
@@ -196,6 +213,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void didPopNext() {
     if (widget.shouldPlay && _videoAdapter != null) {
       _videoAdapter?.play();
+      videoStateManager.playOnlyThis(widget.model.docID);
     }
   }
 
@@ -219,8 +237,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     // Watch progress bildirimi (feed videoları için)
     if (v.isInitialized && v.duration.inMilliseconds > 0) {
-      final progress =
-          v.position.inMilliseconds / v.duration.inMilliseconds;
+      final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
         try {
           Get.find<SegmentCacheManager>()
@@ -246,6 +263,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// Alt sınıflar route geçişinde bir sonraki otomatik pause'u atlamak istediğinde çağırır.
   void markSkipNextPause() {
     _skipNextPause = true;
+  }
+
+  /// Fullscreen route açıkken feed tarafında aynı controller'a pause gitmesini engeller.
+  void setPauseBlocked(bool value) {
+    _blockPause = value;
+    if (!value) {
+      _skipNextPause = false;
+    }
   }
 
   void tryAutoPlayWhenBuffered() {

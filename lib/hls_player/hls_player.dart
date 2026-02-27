@@ -68,7 +68,6 @@ class _HLSPlayerState extends State<HLSPlayer> {
   void _onPlatformViewCreated(int viewId) {
     _isInitialized = true;
     widget.controller.initialize(viewId);
-    _loadVideo();
   }
 
   Future<void> _loadVideo() async {

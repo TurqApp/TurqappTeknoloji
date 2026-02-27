@@ -16,7 +16,6 @@ import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 import '../../../Core/LocationFinderView/location_finder_view.dart';
 import '../../../Core/Services/upload_validation_service.dart';
 import '../../../Core/Services/media_compression_service.dart';
-import '../../../Core/Services/video_compression_service.dart';
 import '../../../Core/Services/network_awareness_service.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
 import '../../../Core/Camera/chat_camera_capture_view.dart';
@@ -40,6 +39,9 @@ class CreatorContentController extends GetxController {
   final RxBool contentNotEmpty = false.obs;
   final RxBool textChanged = false.obs;
   final RxBool waitingVideo = false.obs;
+  final RxString reusedVideoUrl = ''.obs;
+  final RxString reusedVideoThumbnail = ''.obs;
+  final RxDouble reusedVideoAspectRatio = 0.0.obs;
 
   // User-selected custom thumbnail for video posts
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
@@ -294,7 +296,7 @@ class CreatorContentController extends GetxController {
   }
 
   Future<void> pickImage() async {
-    if (selectedVideo.value != null) {
+    if (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty) {
       UploadValidationService.showValidationError(
           'Video seçiliyken fotoğraf ekleyemezsiniz. En fazla 1 video seçilebilir.');
       return;
@@ -491,6 +493,9 @@ class CreatorContentController extends GetxController {
     await rxVideoPlayerController.value?.dispose();
     rxVideoPlayerController.value = null;
     selectedVideo.value = null;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
@@ -590,7 +595,7 @@ class CreatorContentController extends GetxController {
   }
 
   Future<void> pickVideo({required ImageSource source}) async {
-    if (selectedVideo.value != null) {
+    if (selectedVideo.value != null || reusedVideoUrl.value.isNotEmpty) {
       UploadValidationService.showValidationError(
           'En fazla ${UploadConstants.maxVideosPerPost} video seçebilirsiniz.');
       return;
@@ -642,6 +647,9 @@ class CreatorContentController extends GetxController {
     await rxVideoPlayerController.value?.dispose();
     rxVideoPlayerController.value = null;
     selectedVideo.value = null;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
@@ -667,6 +675,48 @@ class CreatorContentController extends GetxController {
       debugPrint(
           '[Creator] Video added: size=$size, duration=${duration}s');
     }
+  }
+
+  Future<void> setReusedVideoSource({
+    required String videoUrl,
+    required double aspectRatio,
+    String thumbnail = '',
+  }) async {
+    final url = videoUrl.trim();
+    if (url.isEmpty) return;
+
+    waitingVideo.value = false;
+    isProcessing.value = true;
+
+    gif.value = '';
+    selectedImages.clear();
+    croppedImages.clear();
+    await rxVideoPlayerController.value?.pause();
+    await rxVideoPlayerController.value?.dispose();
+    rxVideoPlayerController.value = null;
+    selectedVideo.value = null;
+    isPlaying.value = false;
+    hasVideo.value = false;
+    selectedThumbnail.value = null;
+
+    reusedVideoUrl.value = url;
+    reusedVideoThumbnail.value = thumbnail.trim();
+    reusedVideoAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      isProcessing.value = false;
+      return;
+    }
+
+    final controller = VideoPlayerController.networkUrl(uri);
+    await controller.initialize();
+    rxVideoPlayerController.value = controller;
+    hasVideo.value = true;
+    isPlaying.value = false;
+    _listenVideo();
+    hasVideo.refresh();
+    isProcessing.value = false;
   }
 
   Future<void> openCustomCameraCapture() async {

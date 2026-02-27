@@ -25,8 +25,8 @@ import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
-import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
@@ -34,10 +34,9 @@ import '../../../Core/functions.dart';
 import '../../../Core/rozet_content.dart';
 import '../../../Core/texts.dart';
 import '../../../Core/Services/upload_queue_service.dart';
-import '../../EditPost/edit_post.dart';
-import '../../Social/UrlPostMaker/url_post_maker.dart';
 import '../../Social/PostSharers/post_sharers.dart';
 import '../../SocialProfile/social_profile.dart';
+import '../../PostCreator/post_creator.dart';
 import 'classic_content_controller.dart';
 
 class ClassicContent extends PostContentBase {
@@ -70,6 +69,15 @@ class _ClassicContentState extends State<ClassicContent>
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final bool _isFullscreen = false;
+
+  void _pauseFeedBeforeFullscreen() {
+    try {
+      videoController?.pause();
+    } catch (_) {}
+    try {
+      VideoStateManager.instance.pauseAllVideos();
+    } catch (_) {}
+  }
 
   @override
   bool get enableBufferedAutoplay => false;
@@ -292,6 +300,7 @@ class _ClassicContentState extends State<ClassicContent>
             padding: const EdgeInsets.only(top: 8),
             child: GestureDetector(
               onTap: () {
+                _pauseFeedBeforeFullscreen();
                 final visibleList = agendaController.agendaList
                     .where((val) =>
                         val.deletedPost == false &&
@@ -363,6 +372,7 @@ class _ClassicContentState extends State<ClassicContent>
             padding: const EdgeInsets.only(top: 8),
             child: GestureDetector(
               onTap: () {
+                _pauseFeedBeforeFullscreen();
                 final visibleList = agendaController.agendaList
                     .where((val) =>
                         val.deletedPost == false &&
@@ -546,8 +556,7 @@ class _ClassicContentState extends State<ClassicContent>
               ...List.generate(options.length, (i) {
                 final text = (options[i]['text'] ?? '').toString();
                 final votes = (options[i]['votes'] ?? 0) as num;
-                final pct =
-                    totalVotes > 0 ? (votes / totalVotes) : 0.0;
+                final pct = totalVotes > 0 ? (votes / totalVotes) : 0.0;
                 final label = '${String.fromCharCode(65 + i)}) ';
                 final isSelected = userVote == i;
 
@@ -560,9 +569,8 @@ class _ClassicContentState extends State<ClassicContent>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.blue.withAlpha(18)
-                          : Colors.white,
+                      color:
+                          isSelected ? Colors.blue.withAlpha(18) : Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: isSelected
@@ -700,10 +708,10 @@ class _ClassicContentState extends State<ClassicContent>
     final totalMinutes = (remainingMs / 60000).floor();
     final totalHours = (totalMinutes / 60).floor();
     final days = (totalHours / 24).floor();
-    if (days >= 1) return '${days} g';
+    if (days >= 1) return '$days g';
     final hours = totalHours;
     final minutes = totalMinutes % 60;
-    return '${hours} sa ${minutes} dk';
+    return '$hours sa $minutes dk';
   }
 
   Widget videoBody(BuildContext context) {
@@ -812,7 +820,6 @@ class _ClassicContentState extends State<ClassicContent>
                   final remaining = v.duration - v.position;
                   final safeRemaining =
                       remaining.isNegative ? Duration.zero : remaining;
-                  final isEnded = remaining.inMilliseconds <= 0;
                   return Stack(
                     children: [
                       Positioned(
@@ -837,28 +844,6 @@ class _ClassicContentState extends State<ClassicContent>
                           ),
                         ),
                       ),
-                      if (isEnded)
-                        Positioned.fill(
-                          child: Center(
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black45,
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                iconSize: 48,
-                                color: Colors.white,
-                                onPressed: () {
-                                  videoController!
-                                    ..seekTo(Duration.zero)
-                                    ..play();
-                                },
-                                icon: const Icon(AppIcons.playFilled,
-                                    color: Colors.white, size: 32),
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   );
                 },
@@ -896,6 +881,19 @@ class _ClassicContentState extends State<ClassicContent>
                       ),
                     ],
                   ),
+                ),
+              ),
+
+            if (widget.model.originalUserID.isNotEmpty)
+              Positioned(
+                left: 8,
+                bottom: isVideoFromCache
+                    ? ((widget.model.floodCount > 1) ? 52 : 34)
+                    : ((widget.model.floodCount > 1) ? 26 : 8),
+                child: SharedPostLabel(
+                  originalUserID: widget.model.originalUserID,
+                  textColor: Colors.white,
+                  fontSize: 12,
                 ),
               ),
 
@@ -1328,11 +1326,10 @@ class _ClassicContentState extends State<ClassicContent>
               finalOriginalPostID = widget.model.docID;
             }
 
-            Get.to(() => UrlPostMaker(
-                  video: widget.model.playbackUrl,
-                  aspectRatio: widget.model.aspectRatio.toDouble(),
-                  imgs: widget.model.img,
-                  thumbnail: widget.model.thumbnail,
+            Get.to(() => PostCreator(
+                  sharedVideoUrl: widget.model.playbackUrl,
+                  sharedAspectRatio: widget.model.aspectRatio.toDouble(),
+                  sharedThumbnail: widget.model.thumbnail,
                   originalUserID: finalOriginalUserID,
                   originalPostID: finalOriginalPostID,
                   sharedAsPost: true,
@@ -1375,7 +1372,10 @@ class _ClassicContentState extends State<ClassicContent>
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
-              Get.to(() => EditPost(post: widget.model))?.then((_) {
+              Get.to(() => PostCreator(
+                    editMode: true,
+                    editPost: widget.model,
+                  ))?.then((_) {
                 videoController?.play();
               });
             },
@@ -1510,8 +1510,7 @@ class _ClassicContentState extends State<ClassicContent>
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
-      final bool isOwner =
-          controller.userService.userId == widget.model.userID;
+      final bool isOwner = controller.userService.userId == widget.model.userID;
       final bool canReshare = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
@@ -1538,8 +1537,7 @@ class _ClassicContentState extends State<ClassicContent>
   Widget commentButton(BuildContext context) {
     return Obx(() {
       final int visibility = widget.model.yorumVisibility;
-      final bool isOwner =
-          controller.userService.userId == widget.model.userID;
+      final bool isOwner = controller.userService.userId == widget.model.userID;
       final bool canInteract = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||

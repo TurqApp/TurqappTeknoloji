@@ -23,8 +23,8 @@ import '../../../Core/formatters.dart';
 import '../../../Core/rozet_content.dart';
 import '../../SocialProfile/ReportUser/report_user.dart';
 import '../hashtag_text_post.dart';
-import '../UrlPostMaker/url_post_maker.dart';
 import '../PostSharers/post_sharers.dart';
+import '../../PostCreator/post_creator.dart';
 import 'photo_short_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import '../../../Services/post_count_manager.dart';
@@ -619,11 +619,10 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
               finalOriginalPostID = widget.model.docID;
             }
 
-            Get.to(() => UrlPostMaker(
-                  video: widget.model.playbackUrl,
-                  aspectRatio: widget.model.aspectRatio.toDouble(),
-                  imgs: widget.model.img,
-                  thumbnail: widget.model.thumbnail,
+            Get.to(() => PostCreator(
+                  sharedVideoUrl: widget.model.playbackUrl,
+                  sharedAspectRatio: widget.model.aspectRatio.toDouble(),
+                  sharedThumbnail: widget.model.thumbnail,
                   originalUserID: finalOriginalUserID,
                   originalPostID: finalOriginalPostID,
                   sharedAsPost: true,

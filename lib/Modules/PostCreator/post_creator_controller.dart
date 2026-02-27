@@ -38,6 +38,9 @@ class PreparedPostModel {
   final String text;
   final List<Uint8List> images;
   final File? video;
+  final String reusedVideoUrl;
+  final String reusedVideoThumbnail;
+  final double reusedVideoAspectRatio;
   final String location;
   final String gif;
   final Uint8List? customThumbnail;
@@ -47,6 +50,9 @@ class PreparedPostModel {
     required this.text,
     required this.images,
     required this.video,
+    required this.reusedVideoUrl,
+    required this.reusedVideoThumbnail,
+    required this.reusedVideoAspectRatio,
     required this.location,
     required this.gif,
     required this.customThumbnail,
@@ -81,8 +87,22 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   late final NetworkAwarenessService _networkService;
   late final UploadQueueService _uploadQueueService;
   late final DraftService _draftService;
+  bool _sharedSourceApplied = false;
+  bool _isSharedAsPost = false;
+  String _sharedOriginalUserID = "";
+  String _sharedOriginalPostID = "";
+  bool _editSourceApplied = false;
+  final RxBool isEditMode = false.obs;
+  final RxString editingPostID = ''.obs;
+  final RxBool isSavingEdit = false.obs;
 
   Timer? _autoSaveTimer;
+  Timer? _queueRingTimer;
+
+  NavBarController? _maybeNavBarController() {
+    if (!Get.isRegistered<NavBarController>()) return null;
+    return Get.find<NavBarController>();
+  }
 
   @override
   void onInit() {
@@ -96,6 +116,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
     _autoSaveTimer?.cancel();
+    _queueRingTimer?.cancel();
     _saveCurrentDraft(); // Save before closing
     super.onClose();
   }
@@ -107,12 +128,169 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     isKeyboardOpen.value = bottomInset > 10;
   }
 
+  Future<void> applySharedSourceIfNeeded({
+    required String videoUrl,
+    required double aspectRatio,
+    required String thumbnail,
+    required bool sharedAsPost,
+    String? originalUserID,
+    String? originalPostID,
+  }) async {
+    final cleanUrl = videoUrl.trim();
+    if (cleanUrl.isEmpty || !sharedAsPost) {
+      _sharedSourceApplied = false;
+      _isSharedAsPost = false;
+      _sharedOriginalUserID = "";
+      _sharedOriginalPostID = "";
+      return;
+    }
+    if (_sharedSourceApplied) return;
+    _sharedSourceApplied = true;
+
+    _isSharedAsPost = true;
+    _sharedOriginalUserID = (originalUserID ?? '').trim();
+    _sharedOriginalPostID = (originalPostID ?? '').trim();
+
+    const tag = '0';
+    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
+      Get.put(CreatorContentController(), tag: tag);
+    }
+    final c = Get.find<CreatorContentController>(tag: tag);
+    await c.setReusedVideoSource(
+      videoUrl: cleanUrl,
+      aspectRatio: aspectRatio,
+      thumbnail: thumbnail,
+    );
+  }
+
+  Future<void> applyEditSourceIfNeeded({
+    required bool editMode,
+    required PostsModel? editPost,
+  }) async {
+    if (!editMode || editPost == null) return;
+    if (_editSourceApplied && editingPostID.value == editPost.docID) return;
+    _editSourceApplied = true;
+
+    isEditMode.value = true;
+    editingPostID.value = editPost.docID;
+
+    // Edit modunda tek gönderi düzenlenir.
+    postList.value = [PostCreatorModel(index: 0, text: editPost.metin)];
+    selectedIndex.value = 0;
+
+    // Yorum / yeniden paylaş görünürlüğünü mevcut posttan doldur.
+    commentVisibility.value = editPost.yorumVisibility;
+    comment.value = commentVisibility.value != 3;
+    paylasimSelection.value = editPost.paylasimVisibility;
+
+    const tag = '0';
+    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
+      Get.put(CreatorContentController(), tag: tag);
+    }
+    final c = Get.find<CreatorContentController>(tag: tag);
+    c.textEdit.text = editPost.metin;
+    c.textEdit.selection = TextSelection.fromPosition(
+      TextPosition(offset: c.textEdit.text.length),
+    );
+  }
+
+  Future<bool> savePostEdit() async {
+    if (isSavingEdit.value) return false;
+    final docID = editingPostID.value.trim();
+    if (docID.isEmpty) {
+      AppSnackbar('Hata', 'Düzenlenecek gönderi bulunamadı');
+      return false;
+    }
+
+    const tag = '0';
+    if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
+      AppSnackbar('Hata', 'Düzenleme içeriği bulunamadı');
+      return false;
+    }
+
+    final c = Get.find<CreatorContentController>(tag: tag);
+    final text = c.textEdit.text.trim();
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    final yorumVisible = commentVisibility.value.clamp(0, 3);
+    final reshVisible = paylasimSelection.value.clamp(0, 2);
+
+    final update = <String, dynamic>{
+      'metin': text,
+      'editTime': now,
+      'yorum': yorumVisible != 3,
+      'yorumMap': {'visibility': yorumVisible},
+      'paylasGizliligi': reshVisible,
+      'reshareMap': {'visibility': reshVisible},
+    };
+
+    try {
+      isSavingEdit.value = true;
+      final postsRef = FirebaseFirestore.instance.collection('Posts');
+      String targetDocID = docID;
+
+      try {
+        await postsRef.doc(targetDocID).update(update);
+      } on FirebaseException catch (e) {
+        if (e.code != 'not-found') rethrow;
+
+        // Eski/veri uyumsuz kayıtlar için: id alanından gerçek belgeyi bul.
+        final byId = await postsRef.where('id', isEqualTo: docID).limit(1).get();
+        if (byId.docs.isEmpty) {
+          rethrow;
+        }
+        targetDocID = byId.docs.first.id;
+        await postsRef.doc(targetDocID).update(update);
+      }
+
+      // Feed üzerinde anlık güncelle
+      if (Get.isRegistered<AgendaController>()) {
+        final agenda = Get.find<AgendaController>();
+        final idx = agenda.agendaList.indexWhere((e) => e.docID == docID || e.docID == targetDocID);
+        if (idx != -1) {
+          final old = agenda.agendaList[idx];
+          agenda.agendaList[idx] = old.copyWith(
+            metin: text,
+            editTime: now,
+            yorum: yorumVisible != 3,
+            yorumMap: {'visibility': yorumVisible},
+            paylasGizliligi: reshVisible,
+            reshareMap: {'visibility': reshVisible},
+          );
+          agenda.agendaList.refresh();
+        }
+      }
+
+      try {
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().fetchPosts(isInitial: true);
+        }
+      } catch (_) {}
+
+      AppSnackbar('Başarılı', 'Gönderi güncellendi');
+      return true;
+    } catch (e) {
+      String msg = 'Gönderi güncellenemedi';
+      if (e is FirebaseException && e.message != null && e.message!.trim().isNotEmpty) {
+        msg = e.message!.trim();
+      }
+      AppSnackbar('Hata', msg);
+      if (kDebugMode) {
+        debugPrint('savePostEdit error: $e');
+      }
+      return false;
+    } finally {
+      isSavingEdit.value = false;
+    }
+  }
+
   void uploadAllPostsInBackground() async {
     final progressController = Get.find<UploadProgressController>();
     // Comprehensive validation before upload
     final allImages = <File>[];
     final allVideos = <File>[];
     final allTexts = <String>[];
+    bool hasReusedVideo = false;
 
     // Collect all content from posts
     for (final postModel in postList) {
@@ -129,6 +307,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       if (c.selectedVideo.value != null) {
         allVideos.add(c.selectedVideo.value!);
       }
+      if (c.reusedVideoUrl.value.trim().isNotEmpty) {
+        hasReusedVideo = true;
+      }
 
       // Collect texts
       final text = c.textEdit.text.trim();
@@ -141,7 +322,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     final validation = await UploadValidationService.validatePost(
       images: allImages,
       videos: allVideos,
-      text: allTexts.join(' '),
+      text: hasReusedVideo ? 'video' : allTexts.join(' '),
     );
 
     if (!validation.isValid) {
@@ -159,8 +340,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     );
 
     // NavBar profil ikonunda yükleme göstergisi
-    final nav = Get.find<NavBarController>();
-    nav.uploadingPosts.value = true;
+    final nav = _maybeNavBarController();
+    nav?.uploadingPosts.value = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final uploadedPosts = await uploadAllPosts(progressController);
@@ -188,7 +369,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         progressController.setError('Gönderi yüklenirken hata oluştu.');
       }
 
-      nav.uploadingPosts.value = false;
+      nav?.uploadingPosts.value = false;
     });
   }
 
@@ -549,6 +730,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final images =
           contentController.croppedImages.whereType<Uint8List>().toList();
       final video = contentController.selectedVideo.value;
+      final reusedVideoUrl = contentController.reusedVideoUrl.value;
+      final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
+      final reusedVideoAspectRatio =
+          contentController.reusedVideoAspectRatio.value;
       final location = contentController.adres.value;
       final gif = contentController.gif.value;
       final customThumb = contentController.selectedThumbnail.value;
@@ -559,6 +744,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           text: text,
           images: images,
           video: video,
+          reusedVideoUrl: reusedVideoUrl,
+          reusedVideoThumbnail: reusedVideoThumbnail,
+          reusedVideoAspectRatio: reusedVideoAspectRatio,
           location: location,
           gif: gif,
           customThumbnail: customThumb,
@@ -584,6 +772,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final imageUrls = <String>[];
       var videoUrl = "";
       var thumbnailUrl = "";
+      final isReusedVideoPost =
+          post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
 
       for (int j = 0; j < post.images.length; j++) {
         final ref = FirebaseStorage.instance.ref().child(
@@ -667,10 +857,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 'minWidth=${UploadConstants.thumbnailMaxWidth} url=$thumbnailUrl');
           }
         }
+      } else if (isReusedVideoPost) {
+        videoUrl = post.reusedVideoUrl.trim();
+        if (post.reusedVideoThumbnail.trim().isNotEmpty) {
+          thumbnailUrl = post.reusedVideoThumbnail.trim();
+        }
       }
 
       double aspectRatio = 1;
-      if (post.images.length == 1 && post.video == null) {
+      if (post.images.length == 1 && post.video == null && !isReusedVideoPost) {
         final codec = await ui.instantiateImageCodec(post.images.first);
         final frame = await codec.getNextFrame();
         final image = frame.image;
@@ -680,6 +875,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         await controller.initialize();
         aspectRatio = controller.value.aspectRatio;
         await controller.dispose();
+      } else if (isReusedVideoPost) {
+        aspectRatio = post.reusedVideoAspectRatio > 0
+            ? post.reusedVideoAspectRatio
+            : 9 / 16;
       }
 
       // Normalize to 4 decimals
@@ -769,14 +968,36 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "timeStamp": baseTime + index,
         "userID": FirebaseAuth.instance.currentUser!.uid,
         "video": videoUrl,
+        "hlsStatus": isReusedVideoPost ? "ready" : "none",
+        "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
+        "hlsUpdatedAt": isReusedVideoPost ? nowMs : 0,
         "yorumMap": {
           "visibility": commentVisibility.value,
         },
         if (pollPayload != null) "poll": pollPayload,
         // Schema: Original attribution fields must always exist
-        "originalUserID": "",
-        "originalPostID": "",
+        "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
+        "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
+        "sharedAsPost": _isSharedAsPost,
       });
+
+      if (_isSharedAsPost &&
+          _sharedOriginalUserID.isNotEmpty &&
+          _sharedOriginalPostID.isNotEmpty &&
+          index == 0) {
+        try {
+          await FirebaseFirestore.instance
+              .collection("Posts")
+              .doc(_sharedOriginalPostID)
+              .collection("postSharers")
+              .doc(FirebaseAuth.instance.currentUser!.uid)
+              .set({
+            "userID": FirebaseAuth.instance.currentUser!.uid,
+            "timestamp": DateTime.now().millisecondsSinceEpoch,
+            "sharedPostID": docID,
+          });
+        } catch (_) {}
+      }
 
       uploadedPosts.add(
         PostsModel(
@@ -809,13 +1030,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           timeStamp: baseTime + index,
           userID: FirebaseAuth.instance.currentUser!.uid,
           video: videoUrl,
+          hlsStatus: isReusedVideoPost ? "ready" : "none",
+          hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
+          hlsUpdatedAt: isReusedVideoPost ? nowMs : 0,
           yorum: comment.value,
           yorumMap: {
             "visibility": commentVisibility.value,
           },
           poll: pollPayload ?? const {},
-          originalUserID: "",
-          originalPostID: "",
+          originalUserID: _isSharedAsPost ? _sharedOriginalUserID : "",
+          originalPostID: _isSharedAsPost ? _sharedOriginalPostID : "",
         ),
       );
 
@@ -966,6 +1190,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final allImages = <File>[];
       final allVideos = <File>[];
       final allTexts = <String>[];
+      bool hasReusedVideo = false;
 
       // Collect all content from posts
       for (final postModel in postList) {
@@ -978,6 +1203,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         allImages.addAll(c.selectedImages);
         if (c.selectedVideo.value != null) {
           allVideos.add(c.selectedVideo.value!);
+        }
+        if (c.reusedVideoUrl.value.trim().isNotEmpty) {
+          hasReusedVideo = true;
         }
 
         final text = c.textEdit.text.trim();
@@ -1012,7 +1240,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final validation = await UploadValidationService.validatePost(
         images: allImages,
         videos: allVideos,
-        text: allTexts.join(' '),
+        text: hasReusedVideo ? 'video' : allTexts.join(' '),
       );
 
       if (!validation.isValid) {
@@ -1062,6 +1290,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   Future<void> _addToUploadQueue(
       UploadProgressController progressController) async {
     try {
+      _startQueueRingMonitor();
       if (!_validatePollRequirements()) return;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
@@ -1157,11 +1386,26 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  void _startQueueRingMonitor() {
+    final nav = _maybeNavBarController();
+    nav?.uploadingPosts.value = true;
+    _queueRingTimer?.cancel();
+    _queueRingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final stats = _uploadQueueService.getQueueStats();
+      final pending = (stats['pending'] as int?) ?? 0;
+      final processing = (stats['processing'] as bool?) ?? false;
+      if (!processing && pending == 0) {
+        nav?.uploadingPosts.value = false;
+        timer.cancel();
+      }
+    });
+  }
+
   /// Upload directly with error handling
   Future<void> _uploadDirectly(
       UploadProgressController progressController) async {
-    final nav = Get.find<NavBarController>();
-    nav.uploadingPosts.value = true;
+    final nav = _maybeNavBarController();
+    nav?.uploadingPosts.value = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
@@ -1177,11 +1421,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         }
         if (hasVideo) {
           await _addToUploadQueue(progressController);
-          nav.uploadingPosts.value = false;
           return;
         }
         if (!_validatePollRequirements()) {
-          nav.uploadingPosts.value = false;
+          nav?.uploadingPosts.value = false;
           return;
         }
         final uploadedPosts =
@@ -1247,7 +1490,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         );
         progressController.setError('Kritik hata oluştu.');
       } finally {
-        nav.uploadingPosts.value = false;
+        nav?.uploadingPosts.value = false;
       }
     });
   }
@@ -1270,6 +1513,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final images =
             contentController.croppedImages.whereType<Uint8List>().toList();
         final video = contentController.selectedVideo.value;
+        final reusedVideoUrl = contentController.reusedVideoUrl.value;
+        final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
+        final reusedVideoAspectRatio =
+            contentController.reusedVideoAspectRatio.value;
         final location = contentController.adres.value;
         final gif = contentController.gif.value;
         final customThumb = contentController.selectedThumbnail.value;
@@ -1280,6 +1527,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             text: text,
             images: images,
             video: video,
+            reusedVideoUrl: reusedVideoUrl,
+            reusedVideoThumbnail: reusedVideoThumbnail,
+            reusedVideoAspectRatio: reusedVideoAspectRatio,
             location: location,
             gif: gif,
             customThumbnail: customThumb,
@@ -1307,6 +1557,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           final imageUrls = <String>[];
           var videoUrl = "";
           var thumbnailUrl = "";
+          final isReusedVideoPost =
+              post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
 
           // Upload images with retry logic
           for (int j = 0; j < post.images.length; j++) {
@@ -1403,6 +1655,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               );
               rethrow; // Re-throw to stop this post's upload
             }
+          } else if (isReusedVideoPost) {
+            videoUrl = post.reusedVideoUrl.trim();
+            if (post.reusedVideoThumbnail.trim().isNotEmpty) {
+              thumbnailUrl = post.reusedVideoThumbnail.trim();
+            }
           }
 
           // Calculate timing
@@ -1413,7 +1670,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
-          if (post.images.length == 1 && post.video == null) {
+          if (post.images.length == 1 && post.video == null && !isReusedVideoPost) {
             try {
               final codec = await ui.instantiateImageCodec(post.images.first);
               final frame = await codec.getNextFrame();
@@ -1431,6 +1688,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             } catch (e) {
               aspectRatio = 16.0 / 9.0; // Default for videos
             }
+          } else if (isReusedVideoPost) {
+            aspectRatio = post.reusedVideoAspectRatio > 0
+                ? post.reusedVideoAspectRatio
+                : 9.0 / 16.0;
           } else {
             aspectRatio =
                 4.0 / 5.0; // Default for multiple images or mixed content
@@ -1500,13 +1761,35 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "timeStamp": baseTime + index,
               "userID": FirebaseAuth.instance.currentUser!.uid,
               "video": videoUrl,
+              "hlsStatus": isReusedVideoPost ? "ready" : "none",
+              "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
+              "hlsUpdatedAt": isReusedVideoPost ? nowMs : 0,
               "yorumMap": {
                 "visibility": commentVisibility.value,
               },
               if (post.poll.isNotEmpty) "poll": post.poll,
-              "originalUserID": "",
-              "originalPostID": "",
+              "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
+              "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
+              "sharedAsPost": _isSharedAsPost,
             });
+
+            if (_isSharedAsPost &&
+                _sharedOriginalUserID.isNotEmpty &&
+                _sharedOriginalPostID.isNotEmpty &&
+                index == 0) {
+              try {
+                await FirebaseFirestore.instance
+                    .collection("Posts")
+                    .doc(_sharedOriginalPostID)
+                    .collection("postSharers")
+                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .set({
+                  "userID": FirebaseAuth.instance.currentUser!.uid,
+                  "timestamp": DateTime.now().millisecondsSinceEpoch,
+                  "sharedPostID": docID,
+                });
+              } catch (_) {}
+            }
 
             // Create PostsModel
             uploadedPosts.add(
@@ -1528,8 +1811,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 konum: post.location,
                 mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
                 metin: post.text,
-                originalPostID: "",
-                originalUserID: "",
+                originalPostID: _isSharedAsPost ? _sharedOriginalPostID : "",
+                originalUserID: _isSharedAsPost ? _sharedOriginalUserID : "",
                 paylasGizliligi: paylasimSelection.value,
                 reshareMap: {
                   "visibility": paylasimSelection.value,
@@ -1542,6 +1825,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 timeStamp: baseTime + index,
                 userID: FirebaseAuth.instance.currentUser!.uid,
                 video: videoUrl,
+                hlsStatus: isReusedVideoPost ? "ready" : "none",
+                hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
+                hlsUpdatedAt: isReusedVideoPost ? nowMs : 0,
                 yorum: comment.value,
                 yorumMap: {
                   "visibility": commentVisibility.value,

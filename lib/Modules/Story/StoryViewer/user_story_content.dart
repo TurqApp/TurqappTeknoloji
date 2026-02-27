@@ -488,7 +488,11 @@ class _UserStoryContentState extends State<UserStoryContent>
                                   element: element,
                                 );
                               case StoryElementType.gif:
-                                return const SizedBox.shrink();
+                                return StoryGifWidget(
+                                  key: ValueKey(
+                                      'gif_${element.content}_${currentStory.id}'),
+                                  element: element,
+                                );
                               case StoryElementType.text:
                                 return StoryTextWidget(
                                   key: ValueKey(
@@ -519,6 +523,12 @@ class _UserStoryContentState extends State<UserStoryContent>
                                   onEnded: () {
                                     _nextStory(auto: true);
                                   },
+                                );
+                              case StoryElementType.sticker:
+                                return StoryTextWidget(
+                                  key: ValueKey(
+                                      'sticker_${element.content}_${currentStory.id}'),
+                                  element: element,
                                 );
                               default:
                                 return const SizedBox.shrink();

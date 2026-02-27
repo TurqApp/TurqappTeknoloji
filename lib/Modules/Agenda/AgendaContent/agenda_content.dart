@@ -13,7 +13,6 @@ import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -22,14 +21,12 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
-import 'package:turqappv2/Modules/EditPost/edit_post.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
-import 'package:turqappv2/Modules/Social/UrlPostMaker/url_post_maker.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
-import 'package:turqappv2/Themes/app_icons.dart';
+import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -75,7 +72,23 @@ class _AgendaContentState extends State<AgendaContent>
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   final arsivController = Get.put(ArchiveController());
-  final videoStateManager = VideoStateManager.instance;
+  bool _isFullscreen = false;
+  bool _pauseQueuedAfterBuild = false;
+
+  void _pauseFeedBeforeFullscreen() {
+    try {
+      videoController?.pause();
+    } catch (_) {}
+    try {
+      videoStateManager.pauseAllVideos();
+    } catch (_) {}
+  }
+
+  void _prepareVideoFullscreenTransition() {
+    // Geçişte aynı controller'ı fullscreen'e enjekte edeceğiz.
+    // Pause çağırmayıp yalnızca feed tarafındaki bir kerelik auto-pause'u atlat.
+    markSkipNextPause();
+  }
 
   Future<Duration> _resolveCurrentVideoPosition() async {
     final vc = videoController;
@@ -157,11 +170,21 @@ class _AgendaContentState extends State<AgendaContent>
 
   @override
   Widget build(BuildContext context) {
-    // Gizli, arşivli veya silindi ise videoyu durdur
+    // Build sırasında doğrudan pause() çağırmak Obx'i yeniden kirletebilir.
+    // Bu yüzden pause işlemini frame sonuna erteliyoruz.
     if (controller.gizlendi.value ||
         controller.arsiv.value ||
         controller.silindi.value) {
-      videoController?.pause();
+      if (!_pauseQueuedAfterBuild) {
+        _pauseQueuedAfterBuild = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pauseQueuedAfterBuild = false;
+          if (!mounted) return;
+          try {
+            videoController?.pause();
+          } catch (_) {}
+        });
+      }
     }
 
     return Padding(
@@ -320,17 +343,22 @@ class _AgendaContentState extends State<AgendaContent>
                                     final listForFullscreen =
                                         await _buildFullscreenStartList();
 
-                                    // Fullscreen geçişinde videoyu pause etme
-                                    markSkipNextPause();
-
-                                    final res =
-                                        await Get.to(() => SingleShortView(
-                                              startModel: widget.model,
-                                              startList: listForFullscreen,
-                                              initialPosition: currentPos,
-                                              injectedController:
-                                                  videoController,
-                                            ));
+                                    _prepareVideoFullscreenTransition();
+                                    _pauseFeedBeforeFullscreen();
+                                    setPauseBlocked(true);
+                                    if (mounted) {
+                                      setState(() => _isFullscreen = true);
+                                    }
+                                    final res = await Get.to(() => SingleShortView(
+                                          startModel: widget.model,
+                                          startList: listForFullscreen,
+                                          initialPosition: currentPos,
+                                          injectedController: videoController,
+                                        ));
+                                    setPauseBlocked(false);
+                                    if (mounted) {
+                                      setState(() => _isFullscreen = false);
+                                    }
 
                                     if (!mounted) return;
 
@@ -383,16 +411,22 @@ class _AgendaContentState extends State<AgendaContent>
                                       final listForFullscreen =
                                           await _buildFullscreenStartList();
 
-                                      markSkipNextPause();
-
-                                      final res =
-                                          await Get.to(() => SingleShortView(
-                                                startModel: widget.model,
-                                                startList: listForFullscreen,
-                                                initialPosition: currentPos,
-                                                injectedController:
-                                                    videoController,
-                                              ));
+                                      _prepareVideoFullscreenTransition();
+                                      _pauseFeedBeforeFullscreen();
+                                      setPauseBlocked(true);
+                                      if (mounted) {
+                                        setState(() => _isFullscreen = true);
+                                      }
+                                      final res = await Get.to(() => SingleShortView(
+                                            startModel: widget.model,
+                                            startList: listForFullscreen,
+                                            initialPosition: currentPos,
+                                            injectedController: videoController,
+                                          ));
+                                      setPauseBlocked(false);
+                                      if (mounted) {
+                                        setState(() => _isFullscreen = false);
+                                      }
 
                                       if (!mounted) return;
 
@@ -441,7 +475,8 @@ class _AgendaContentState extends State<AgendaContent>
                                   final thumb = widget.model.thumbnail;
                                   if (videoController == null) {
                                     if (thumb.isEmpty) {
-                                      return Container(color: const Color(0xFFE8E8E8));
+                                      return Container(
+                                          color: const Color(0xFFE8E8E8));
                                     }
                                     return Image.network(
                                       thumb,
@@ -451,28 +486,33 @@ class _AgendaContentState extends State<AgendaContent>
                                         if (loadingProgress == null) {
                                           return child;
                                         }
-                                        return Container(color: const Color(0xFFE8E8E8));
+                                        return Container(
+                                            color: const Color(0xFFE8E8E8));
                                       },
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(color: const Color(0xFFE8E8E8)),
+                                      errorBuilder: (context, error,
+                                              stackTrace) =>
+                                          Container(
+                                              color: const Color(0xFFE8E8E8)),
                                     );
                                   }
                                   // Video player + thumbnail overlay
                                   return Stack(
                                     fit: StackFit.expand,
                                     children: [
-                                      videoController!.buildPlayer(
-                                        key: ValueKey(
-                                            'agenda-${widget.model.docID}-${videoController.hashCode}'),
-                                        aspectRatio: displayAspect,
-                                        useAspectRatio: false,
-                                      ),
+                                      _isFullscreen
+                                          ? const SizedBox.shrink()
+                                          : videoController!.buildPlayer(
+                                              key: ValueKey(
+                                                  'agenda-${widget.model.docID}-${videoController.hashCode}'),
+                                              aspectRatio: displayAspect,
+                                              useAspectRatio: false,
+                                            ),
                                       // Thumbnail overlay - video hazır olana kadar göster
                                       ValueListenableBuilder<HLSVideoValue>(
                                         valueListenable: videoValueNotifier,
                                         builder: (_, v, child) {
-                                          if (v.isInitialized && v.position > Duration.zero) {
+                                          if (v.isInitialized &&
+                                              v.position > Duration.zero) {
                                             return const SizedBox.shrink();
                                           }
                                           return child!;
@@ -482,9 +522,12 @@ class _AgendaContentState extends State<AgendaContent>
                                                 thumb,
                                                 fit: BoxFit.cover,
                                                 errorBuilder: (_, __, ___) =>
-                                                    Container(color: const Color(0xFFE8E8E8)),
+                                                    Container(
+                                                        color: const Color(
+                                                            0xFFE8E8E8)),
                                               )
-                                            : Container(color: const Color(0xFFE8E8E8)),
+                                            : Container(
+                                                color: const Color(0xFFE8E8E8)),
                                       ),
                                       Positioned(
                                         top: 8,
@@ -507,7 +550,6 @@ class _AgendaContentState extends State<AgendaContent>
                                   final safeRemaining = remaining.isNegative
                                       ? Duration.zero
                                       : remaining;
-                                  final isEnded = remaining.inMilliseconds <= 0;
                                   return Stack(
                                     children: [
                                       // Süre göstergesi
@@ -532,31 +574,6 @@ class _AgendaContentState extends State<AgendaContent>
                                           ),
                                         ),
                                       ),
-                                      // Replay butonu
-                                      if (isEnded)
-                                        Positioned.fill(
-                                          child: Center(
-                                            child: Container(
-                                              decoration: const BoxDecoration(
-                                                color: Colors.black45,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: IconButton(
-                                                iconSize: 48,
-                                                color: Colors.white,
-                                                onPressed: () {
-                                                  videoController!
-                                                    ..seekTo(Duration.zero)
-                                                    ..play();
-                                                },
-                                                icon: const Icon(
-                                                    AppIcons.playFilled,
-                                                    color: Colors.white,
-                                                    size: 32),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
                                     ],
                                   );
                                 },
@@ -612,6 +629,24 @@ class _AgendaContentState extends State<AgendaContent>
                                   ),
                                 ),
                               ),
+                            if (widget.model.originalUserID.isNotEmpty)
+                              Positioned(
+                                left: 8,
+                                bottom: isVideoFromCache
+                                    ? ((widget.model.flood == false &&
+                                                widget.model.floodCount > 1)
+                                            ? 52
+                                            : 34)
+                                    : ((widget.model.flood == false &&
+                                                widget.model.floodCount > 1)
+                                            ? 26
+                                            : 8),
+                                child: SharedPostLabel(
+                                  originalUserID: widget.model.originalUserID,
+                                  textColor: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
                             // Ses butonu
                             Positioned(
                               bottom: 8,
@@ -660,7 +695,8 @@ class _AgendaContentState extends State<AgendaContent>
 
         // Gönderi olarak paylaş etiketi (butonların üstünde)
         // Eğer yeniden paylaşım ise orijinal kullanıcı bilgisini göster
-        if (widget.model.originalUserID.isNotEmpty)
+        if (widget.model.originalUserID.isNotEmpty &&
+            !widget.model.hasPlayableVideo)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 45, right: 8),
             child: Row(
@@ -931,10 +967,10 @@ class _AgendaContentState extends State<AgendaContent>
     final totalMinutes = (remainingMs / 60000).floor();
     final totalHours = (totalMinutes / 60).floor();
     final days = (totalHours / 24).floor();
-    if (days >= 1) return '${days} g';
+    if (days >= 1) return '$days g';
     final hours = totalHours;
     final minutes = totalMinutes % 60;
-    return '${hours} sa ${minutes} dk';
+    return '$hours sa $minutes dk';
   }
 
   Widget gonderiGizlendi(BuildContext context) {
@@ -1258,6 +1294,7 @@ class _AgendaContentState extends State<AgendaContent>
       children: [
         GestureDetector(
           onTap: () {
+            _pauseFeedBeforeFullscreen();
             final visibleList = agendaController.agendaList
                 .where((val) =>
                     val.deletedPost == false &&
@@ -1332,17 +1369,29 @@ class _AgendaContentState extends State<AgendaContent>
       children: [
         Row(
           children: [
-            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[0], radius: _getGridRadius(0)))),
+            Expanded(
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildImage(images[0], radius: _getGridRadius(0)))),
             const SizedBox(width: 2),
-            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[1], radius: _getGridRadius(1)))),
+            Expanded(
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildImage(images[1], radius: _getGridRadius(1)))),
           ],
         ),
         const SizedBox(height: 2),
         Row(
           children: [
-            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[2], radius: _getGridRadius(2)))),
+            Expanded(
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildImage(images[2], radius: _getGridRadius(2)))),
             const SizedBox(width: 2),
-            Expanded(child: AspectRatio(aspectRatio: 1, child: _buildImage(images[3], radius: _getGridRadius(3)))),
+            Expanded(
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: _buildImage(images[3], radius: _getGridRadius(3)))),
           ],
         ),
       ],
@@ -1505,11 +1554,10 @@ class _AgendaContentState extends State<AgendaContent>
               finalOriginalPostID = widget.model.docID;
             }
 
-            Get.to(() => UrlPostMaker(
-                  video: widget.model.playbackUrl,
-                  aspectRatio: widget.model.aspectRatio.toDouble(),
-                  imgs: widget.model.img,
-                  thumbnail: widget.model.thumbnail,
+            Get.to(() => PostCreator(
+                  sharedVideoUrl: widget.model.playbackUrl,
+                  sharedAspectRatio: widget.model.aspectRatio.toDouble(),
+                  sharedThumbnail: widget.model.thumbnail,
                   originalUserID: finalOriginalUserID,
                   originalPostID: finalOriginalPostID,
                   sharedAsPost: true,
@@ -1552,7 +1600,10 @@ class _AgendaContentState extends State<AgendaContent>
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
-              Get.to(() => EditPost(post: widget.model))?.then((_) {
+              Get.to(() => PostCreator(
+                    editMode: true,
+                    editPost: widget.model,
+                  ))?.then((_) {
                 videoController?.play();
               });
             },
@@ -1687,8 +1738,7 @@ class _AgendaContentState extends State<AgendaContent>
   Widget commentButton(BuildContext context) {
     return Obx(() {
       final int visibility = widget.model.yorumVisibility;
-      final bool isOwner =
-          controller.userService.userId == widget.model.userID;
+      final bool isOwner = controller.userService.userId == widget.model.userID;
       final bool canInteract = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
@@ -1752,16 +1802,14 @@ class _AgendaContentState extends State<AgendaContent>
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
-      final bool isOwner =
-          controller.userService.userId == widget.model.userID;
+      final bool isOwner = controller.userService.userId == widget.model.userID;
       final bool canReshare = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
       final bool isReshared = controller.yenidenPaylasildiMi.value;
-      final Color displayColor = canReshare
-          ? (isReshared ? Colors.green : Colors.black)
-          : Colors.grey;
+      final Color displayColor =
+          canReshare ? (isReshared ? Colors.green : Colors.black) : Colors.grey;
 
       return AnimatedActionButton(
         enabled: canReshare,

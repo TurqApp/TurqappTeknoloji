@@ -60,6 +60,8 @@ class StoryModel {
         fontFamily: (m['fontFamily'] as String?) ?? 'MontserratMedium',
         hasOutline: (m['hasOutline'] as bool?) ?? false,
         outlineColor: (m['outlineColor'] as int?) ?? 0xFF000000,
+        stickerType: (m['stickerType'] as String?) ?? '',
+        stickerData: (m['stickerData'] as String?) ?? '',
       );
     }).toList();
 
@@ -117,6 +119,8 @@ class StoryModel {
                 'fontFamily': e.fontFamily,
                 'hasOutline': e.hasOutline,
                 'outlineColor': e.outlineColor,
+                'stickerType': e.stickerType,
+                'stickerData': e.stickerData,
               },
             )
             .toList(),
@@ -154,6 +158,8 @@ class StoryModel {
                 'fontFamily': e.fontFamily,
                 'hasOutline': e.hasOutline,
                 'outlineColor': e.outlineColor,
+                'stickerType': e.stickerType,
+                'stickerData': e.stickerData,
               },
             )
             .toList(),
@@ -197,6 +203,8 @@ class StoryModel {
         fontFamily: (m['fontFamily'] ?? 'MontserratMedium').toString(),
         hasOutline: (m['hasOutline'] ?? false) == true,
         outlineColor: (m['outlineColor'] as num?)?.toInt() ?? 0xFF000000,
+        stickerType: (m['stickerType'] ?? '').toString(),
+        stickerData: (m['stickerData'] ?? '').toString(),
       );
     }).toList();
 

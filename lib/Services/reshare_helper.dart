@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ReshareHelper {
   // Nickname cache - bellekte tutulan kullanıcı adları
   static final Map<String, String> _nicknameCache = {};
+  static final Map<String, String> _displayNameCache = {};
 
   // Cache temizleme için zaman damgası
   static DateTime? _lastCacheCleanup;
@@ -40,6 +41,44 @@ class ReshareHelper {
     }
   }
 
+  /// Kullanıcının görüntülenecek adını alır (displayName/fullName fallback nickname)
+  static Future<String> getUserDisplayName(String userID) async {
+    try {
+      if (_displayNameCache.containsKey(userID)) {
+        return _displayNameCache[userID]!;
+      }
+
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(userID).get();
+
+      String displayName = 'Bilinmeyen Kullanıcı';
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        final firstName = (data?['firstName'] ?? '').toString().trim();
+        final lastName = (data?['lastName'] ?? '').toString().trim();
+        final fullName = '$firstName $lastName'.trim();
+        final fallbackNickname = (data?['nickname'] ?? '').toString().trim();
+
+        if (fullName.isNotEmpty) {
+          displayName = fullName;
+        } else if (fallbackNickname.isNotEmpty) {
+          displayName = fallbackNickname;
+        }
+      }
+
+      _displayNameCache[userID] = displayName;
+      _cleanupCacheIfNeeded();
+      return displayName;
+    } catch (e) {
+      print('ReshareHelper: getUserDisplayName error: $e');
+      return 'Bilinmeyen Kullanıcı';
+    }
+  }
+
+  static String? getCachedDisplayName(String userID) {
+    return _displayNameCache[userID];
+  }
+
   /// Senkron olarak cache'ten nickname al (cache'te yoksa null döner)
   static String? getCachedNickname(String userID) {
     return _nicknameCache[userID];
@@ -48,6 +87,7 @@ class ReshareHelper {
   /// Cache'i manuel olarak temizle
   static void clearNicknameCache() {
     _nicknameCache.clear();
+    _displayNameCache.clear();
     _lastCacheCleanup = DateTime.now();
   }
 

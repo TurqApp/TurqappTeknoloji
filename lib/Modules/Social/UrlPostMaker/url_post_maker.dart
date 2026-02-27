@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/ImagePreview/image_preview.dart';
+import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Modules/Social/UrlPostMaker/url_post_maker_controller.dart';
 
 class UrlPostMaker extends StatelessWidget {
@@ -181,6 +182,16 @@ class UrlPostMaker extends StatelessWidget {
                     ),
                   ),
                   // Sağ alt köşe play/pause butonu
+                  if (sharedAsPost && (originalUserID ?? '').isNotEmpty)
+                    Positioned(
+                      left: 10,
+                      bottom: 10,
+                      child: SharedPostLabel(
+                        originalUserID: originalUserID!,
+                        textColor: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
                   Positioned(
                     bottom: 16,
                     right: 16,

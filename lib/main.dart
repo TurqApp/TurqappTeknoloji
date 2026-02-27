@@ -74,7 +74,7 @@ void _handleAppBackgroundTransition() {
   _clearConsumedCacheIfNeeded();
   try {
     if (Get.isRegistered<VideoStateManager>()) {
-      Get.find<VideoStateManager>().pauseAllVideos();
+      Get.find<VideoStateManager>().pauseAllVideos(force: true);
     }
   } catch (_) {}
 }

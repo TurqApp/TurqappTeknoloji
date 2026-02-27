@@ -24,8 +24,8 @@ import '../../Core/rozet_content.dart';
 import '../../Core/sizes.dart';
 import '../../Themes/app_fonts.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
-import '../Social/UrlPostMaker/url_post_maker.dart';
 import '../Social/PostSharers/post_sharers.dart';
+import '../PostCreator/post_creator.dart';
 import '../SocialProfile/social_profile.dart';
 import 'short_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
@@ -662,11 +662,10 @@ class ShortsContent extends StatelessWidget {
               finalOriginalPostID = model.docID;
             }
 
-            Get.to(() => UrlPostMaker(
-                  video: model.playbackUrl,
-                  aspectRatio: model.aspectRatio.toDouble(),
-                  imgs: model.img,
-                  thumbnail: model.thumbnail,
+            Get.to(() => PostCreator(
+                  sharedVideoUrl: model.playbackUrl,
+                  sharedAspectRatio: model.aspectRatio.toDouble(),
+                  sharedThumbnail: model.thumbnail,
                   originalUserID: finalOriginalUserID,
                   originalPostID: finalOriginalPostID,
                   sharedAsPost: true,
@@ -845,34 +844,36 @@ class ShortsContent extends StatelessWidget {
             child: TextButton(
               onPressed: canComment
                   ? () {
-                volumeOff(false);
-                Get.bottomSheet(
-                  SizedBox(
-                    height: Get.height * 0.55, // Ekranın %95'i kadar yükseklik
-                    child: ClipRRect(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(20)),
-                      child: PostComments(
-                        postID: model.docID,
-                        userID: model.userID,
-                        collection: 'Posts',
-                      ),
-                    ),
-                  ),
-                  isScrollControlled: true,
-                  isDismissible: true,
-                  enableDrag: true, // Sürükleyerek kapatma için
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  backgroundColor: Colors.white, // Alt barda arka plan rengi
-                  barrierColor: Colors.black54, // Gri karartma rengi
-                ).then((v) {
-                  // Yorum sayısı real-time güncellendiği için getComments() artık gerekli değil
-                  volumeOff(true);
-                });
-              }
+                      volumeOff(false);
+                      Get.bottomSheet(
+                        SizedBox(
+                          height: Get.height *
+                              0.55, // Ekranın %95'i kadar yükseklik
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20)),
+                            child: PostComments(
+                              postID: model.docID,
+                              userID: model.userID,
+                              collection: 'Posts',
+                            ),
+                          ),
+                        ),
+                        isScrollControlled: true,
+                        isDismissible: true,
+                        enableDrag: true, // Sürükleyerek kapatma için
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        backgroundColor:
+                            Colors.white, // Alt barda arka plan rengi
+                        barrierColor: Colors.black54, // Gri karartma rengi
+                      ).then((v) {
+                        // Yorum sayısı real-time güncellendiği için getComments() artık gerekli değil
+                        volumeOff(true);
+                      });
+                    }
                   : null,
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
               child: Row(

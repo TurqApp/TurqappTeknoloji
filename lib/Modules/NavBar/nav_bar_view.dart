@@ -26,7 +26,9 @@ class NavBarView extends StatelessWidget {
   final selection = 0;
 
   NavBarView({super.key});
-  final NavBarController controller = Get.put(NavBarController());
+  final NavBarController controller = Get.isRegistered<NavBarController>()
+      ? Get.find<NavBarController>()
+      : Get.put(NavBarController());
   final SettingsController settingController = Get.put(SettingsController());
   final FirebaseMyStore userStore = Get.find<FirebaseMyStore>();
 

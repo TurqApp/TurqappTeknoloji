@@ -14,10 +14,13 @@ import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
+import '../../Core/Services/upload_queue_service.dart';
+import '../../Core/Services/video_state_manager.dart';
 
 typedef TextUpdate = String;
 
-class NavBarController extends GetxController with GetTickerProviderStateMixin {
+class NavBarController extends GetxController
+    with GetTickerProviderStateMixin, WidgetsBindingObserver {
   var selectedIndex = 0.obs;
   var showBar = true.obs;
   ShortController?
@@ -51,10 +54,12 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
   bool _isDisposed = false;
   bool _proactiveShortPreloadStarted = false;
   Timer? _backgroundCacheTimer;
+  Timer? _uploadIndicatorTimer;
 
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
 
     // Animation Controllers
     animationController = AnimationController(
@@ -97,6 +102,7 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
     }
 
     _startBackgroundCacheLoop();
+    _startUploadIndicatorSync();
   }
 
   void _startBackgroundCacheLoop() {
@@ -132,6 +138,21 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
     });
   }
 
+  void _startUploadIndicatorSync() {
+    _uploadIndicatorTimer?.cancel();
+    _uploadIndicatorTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_isDisposed) return;
+      if (!Get.isRegistered<UploadQueueService>()) return;
+      final queue = Get.find<UploadQueueService>();
+      final stats = queue.getQueueStats();
+      final pending = (stats['pending'] as int?) ?? 0;
+      final processing = (stats['processing'] as bool?) ?? false;
+      if (processing || pending > 0) {
+        uploadingPosts.value = true;
+      }
+    });
+  }
+
   Future<void> _runAcilisAnimation() async {
     try {
       // ⚠️ CRITICAL FIX: Check if controller is still alive before animating
@@ -160,6 +181,9 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
 
     _backgroundCacheTimer?.cancel();
     _backgroundCacheTimer = null;
+    _uploadIndicatorTimer?.cancel();
+    _uploadIndicatorTimer = null;
+    WidgetsBinding.instance.removeObserver(this);
 
     // Dispose animation controllers safely
     try {
@@ -183,9 +207,47 @@ class NavBarController extends GetxController with GetTickerProviderStateMixin {
     super.onClose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_isDisposed) return;
+
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      try {
+        VideoStateManager.instance.pauseAllVideos(force: true);
+      } catch (_) {}
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
+      try {
+        if (Get.isRegistered<AgendaController>()) {
+          Get.find<AgendaController>().resumeFeedPlayback();
+        }
+      } catch (_) {}
+    }
+  }
+
   void changeIndex(int index) {
     final previous = selectedIndex.value;
     selectedIndex.value = index;
+
+    if (previous == 0 && index != 0) {
+      try {
+        VideoStateManager.instance.pauseAllVideos(force: true);
+      } catch (_) {}
+    }
+
+    if (index == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_isDisposed) return;
+        try {
+          if (Get.isRegistered<AgendaController>()) {
+            Get.find<AgendaController>().resumeFeedPlayback();
+          }
+        } catch (_) {}
+      });
+    }
 
     if (previous == 1 && index != 1 && Get.isRegistered<ExploreController>()) {
       // Keşfet'ten çıkarken resetle; geri dönünce Gündem ile açılır.

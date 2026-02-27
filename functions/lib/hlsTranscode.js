@@ -100,7 +100,7 @@ function resolveTarget(filePath) {
         };
     }
     // Pattern 3: Story videosu
-    const storyMatch = filePath.match(/^stories\/([^/]+)\/([^/]+)\/video\.mp4$/i);
+    const storyMatch = filePath.match(/^stories\/([^/]+)\/([^/]+)\/[^/]+\.(mp4|mov|m4v|webm)$/i);
     if (storyMatch) {
         const uid = storyMatch[1];
         const storyID = storyMatch[2];
@@ -109,6 +109,8 @@ function resolveTarget(filePath) {
             id: `story_${storyID}`,
             hlsOutputPrefix: `stories/${uid}/${storyID}/hls`,
             firestoreDoc: `stories/${storyID}`,
+            storyUid: uid,
+            storyId: storyID,
             generateThumbnail: false,
             buildProcessingData: () => ({
                 hlsStatus: "processing",
@@ -276,7 +278,53 @@ exports.onVideoUpload = functions
         // Firestore güncelle
         const hlsUrl = `https://${CDN_DOMAIN}/${target.hlsOutputPrefix}/master.m3u8`;
         await db.doc(target.firestoreDoc).set(target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl), { merge: true });
+        // Story'de ilgili video element URL'sini HLS master URL'e çevir.
+        // Böylece dokümanda MP4 URL kalmaz.
+        if (target.type === "story" && target.storyUid && target.storyId) {
+            try {
+                const sourceFileName = path.posix.basename(filePath).toLowerCase();
+                const storyPathNeedle = `/stories/${target.storyUid}/${target.storyId}/`.toLowerCase();
+                const storySnap = await db.doc(target.firestoreDoc).get();
+                const data = storySnap.data();
+                const elements = Array.isArray(data?.elements) ? data?.elements : [];
+                let changed = false;
+                const updated = elements.map((raw) => {
+                    if (!raw || typeof raw !== "object")
+                        return raw;
+                    const e = raw;
+                    const type = String(e.type || "").toLowerCase();
+                    const content = String(e.content || "");
+                    if (type !== "video" || !content)
+                        return raw;
+                    const lcContent = content.toLowerCase();
+                    if (lcContent.includes(storyPathNeedle) &&
+                        lcContent.includes(sourceFileName)) {
+                        changed = true;
+                        return { ...e, content: hlsUrl };
+                    }
+                    return raw;
+                });
+                if (changed) {
+                    await db.doc(target.firestoreDoc).set({
+                        elements: updated,
+                    }, { merge: true });
+                }
+            }
+            catch (storyPatchErr) {
+                console.warn(`[HLS] Story element URL patch failed (ignored): ${storyPatchErr}`);
+            }
+        }
         console.log(`[HLS] Complete for ${target.type}:${target.id}. HLS URL: ${hlsUrl}`);
+        // Story için orijinal video dosyasını tutma: HLS hazır olduktan sonra sil.
+        if (target.type === "story") {
+            try {
+                await bucket.file(filePath).delete({ ignoreNotFound: true });
+                console.log(`[HLS] Story source deleted: ${filePath}`);
+            }
+            catch (deleteErr) {
+                console.warn(`[HLS] Story source delete failed (ignored): ${deleteErr}`);
+            }
+        }
         // Temp dosyaları temizle
         fs.rmSync(tempDir, { recursive: true, force: true });
     }

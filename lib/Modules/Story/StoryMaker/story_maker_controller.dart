@@ -52,6 +52,8 @@ class StoryElement {
   String fontFamily;
   bool hasOutline;
   int outlineColor;
+  String stickerType;
+  String stickerData;
   Offset? initialFocalPoint;
   Offset? initialPosition;
   double? initialWidth;
@@ -83,6 +85,8 @@ class StoryElement {
     this.fontFamily = 'MontserratMedium',
     this.hasOutline = false,
     this.outlineColor = 0xFF000000,
+    this.stickerType = '',
+    this.stickerData = '',
     this.initialFocalPoint,
     this.initialPosition,
     this.initialWidth,
@@ -385,6 +389,8 @@ class StoryMakerController extends GetxController {
               fontFamily: e.fontFamily,
               hasOutline: e.hasOutline,
               outlineColor: e.outlineColor,
+              stickerType: e.stickerType,
+              stickerData: e.stickerData,
             ))
         .toList();
 
@@ -619,6 +625,58 @@ class StoryMakerController extends GetxController {
     );
   }
 
+  void addGifFromUrl(String gifUrl) {
+    final clean = gifUrl.trim();
+    if (clean.isEmpty) return;
+    _saveState();
+    final width = Get.width * 0.55;
+    final height = width;
+    elements.add(
+      StoryElement(
+        type: StoryElementType.gif,
+        content: clean,
+        width: width,
+        height: height,
+        position: Offset((Get.width - width) / 2, Get.height * 0.30),
+        rotation: 0,
+        zIndex: ++_zIndexCounter,
+        aspectRatio: 1.0,
+      ),
+    );
+    elements.refresh();
+  }
+
+  void addSticker({
+    required String stickerType,
+    required String label,
+    String data = '',
+  }) {
+    final cleanLabel = label.trim();
+    if (cleanLabel.isEmpty) return;
+    _saveState();
+    final width = Get.width * 0.62;
+    const height = 58.0;
+    elements.add(
+      StoryElement(
+        type: StoryElementType.sticker,
+        content: cleanLabel,
+        width: width,
+        height: height,
+        position: Offset((Get.width - width) / 2, Get.height * 0.35),
+        rotation: 0,
+        zIndex: ++_zIndexCounter,
+        aspectRatio: width / height,
+        stickerType: stickerType,
+        stickerData: data.trim(),
+        textColor: 0xFF111111,
+        textBgColor: 0xF5FFFFFF,
+        hasTextBg: true,
+        fontSize: 16,
+      ),
+    );
+    elements.refresh();
+  }
+
   void editTextElement({
     required StoryElement element,
     required String text,
@@ -812,6 +870,8 @@ class StoryMakerController extends GetxController {
           'fontFamily': e.fontFamily,
           'hasOutline': e.hasOutline,
           'outlineColor': e.outlineColor,
+          'stickerType': e.stickerType,
+          'stickerData': e.stickerData,
         });
       }
 

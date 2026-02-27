@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/hls_player/hls_controller.dart';
+import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 /// Abstract interface for video playback control.
 /// Bridges both HLSController (native) and VideoPlayerController (legacy).
@@ -53,6 +54,41 @@ class HLSPlaybackHandle implements PlaybackHandle {
 
   @override
   Future<void> dispose() => controller.dispose();
+}
+
+/// HLS adapter handle.
+/// Audio focus coordinator'ın devreye girmesi için adapter API'sini kullanır.
+class HLSAdapterPlaybackHandle implements PlaybackHandle {
+  final HLSVideoAdapter adapter;
+
+  HLSAdapterPlaybackHandle(this.adapter);
+
+  @override
+  Future<void> play() => adapter.play();
+
+  @override
+  Future<void> pause() => adapter.pause();
+
+  @override
+  bool get isPlaying => adapter.value.isPlaying;
+
+  @override
+  bool get isInitialized => adapter.value.isInitialized;
+
+  @override
+  Duration get position => adapter.value.position;
+
+  @override
+  Duration get duration => adapter.value.duration;
+
+  @override
+  Future<void> seekTo(Duration position) => adapter.seekTo(position);
+
+  @override
+  Future<void> setVolume(double volume) => adapter.setVolume(volume);
+
+  @override
+  Future<void> dispose() async {}
 }
 
 /// Legacy video_player handle (for backward compatibility).

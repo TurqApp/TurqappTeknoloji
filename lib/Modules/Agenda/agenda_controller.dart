@@ -35,6 +35,7 @@ class AgendaController extends GetxController {
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
   final Map<int, double> _visibleFractions = <int, double>{};
+  final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
 
   // Video içerik ekrana sadece HLS hazır olduğunda düşsün.
   bool _isRenderablePost(PostsModel post) {
@@ -176,6 +177,71 @@ class AgendaController extends GetxController {
     } catch (_) {}
   }
 
+  int _resolveResumeIndex() {
+    if (agendaList.isEmpty) return -1;
+
+    int bestIndex = -1;
+    double bestFraction = 0.0;
+    _visibleFractions.forEach((idx, fraction) {
+      if (idx < 0 || idx >= agendaList.length) return;
+      if (fraction > bestFraction) {
+        bestFraction = fraction;
+        bestIndex = idx;
+      }
+    });
+
+    if (bestIndex >= 0) return bestIndex;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < agendaList.length) {
+      return lastCenteredIndex!;
+    }
+    if (centeredIndex.value >= 0 && centeredIndex.value < agendaList.length) {
+      return centeredIndex.value;
+    }
+    return 0;
+  }
+
+  void resumeFeedPlayback() {
+    if (agendaList.isEmpty) return;
+
+    pauseAll.value = false;
+    int target = _resolveResumeIndex();
+    if (target < 0 || target >= agendaList.length) {
+      target = 0;
+    }
+
+    // Hedef post video değilse en yakın oynatılabilir videoya kay.
+    if (!agendaList[target].hasPlayableVideo) {
+      final nextVideo =
+          agendaList.indexWhere((p) => p.hasPlayableVideo, target);
+      if (nextVideo != -1) {
+        target = nextVideo;
+      } else {
+        final anyVideo = agendaList.indexWhere((p) => p.hasPlayableVideo);
+        if (anyVideo != -1) target = anyVideo;
+      }
+    }
+
+    if (target < 0 || target >= agendaList.length) return;
+    lastCenteredIndex = target;
+    if (centeredIndex.value != target) {
+      centeredIndex.value = target;
+    }
+
+    final targetPost = agendaList[target];
+    if (!targetPost.hasPlayableVideo) return;
+
+    final manager = VideoStateManager.instance;
+    manager.playOnlyThis(targetPost.docID);
+
+    // Route/tab dönüşünde player yeniden register olabiliyor; bir kez daha tetikle.
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (centeredIndex.value != target) return;
+      manager.playOnlyThis(targetPost.docID);
+    });
+  }
+
   /// Uygulama açıkken dışarıdan tetiklenen hafif cache ısınması.
   void ensureFeedCacheWarm() {
     _scheduleFeedPrefetch();
@@ -194,16 +260,31 @@ class AgendaController extends GetxController {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
     if (visibleFraction <= 0.01) {
       _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
     } else {
       _visibleFractions[modelIndex] = visibleFraction;
+      _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
     _visibilityDebounce?.cancel();
-    _visibilityDebounce = Timer(const Duration(milliseconds: 250), () {
+    _visibilityDebounce = Timer(const Duration(milliseconds: 120), () {
       _applyVisibilityDecision();
     });
   }
 
   void _applyVisibilityDecision() {
+    // Uzun süre güncellenmeyen visibility değerlerini temizle (stale veri).
+    final now = DateTime.now();
+    final staleKeys = <int>[];
+    _visibleUpdatedAt.forEach((idx, ts) {
+      if (now.difference(ts).inMilliseconds > 700) {
+        staleKeys.add(idx);
+      }
+    });
+    for (final k in staleKeys) {
+      _visibleUpdatedAt.remove(k);
+      _visibleFractions.remove(k);
+    }
+
     final current = centeredIndex.value;
     int bestIndex = -1;
     double bestFraction = 0.0;
@@ -214,6 +295,15 @@ class AgendaController extends GetxController {
         bestIndex = idx;
       }
     });
+
+    // Oynayan post artık neredeyse görünmüyorsa sesi anında kes.
+    if (current >= 0) {
+      final currentVisible = _visibleFractions[current] ?? 0.0;
+      if (currentVisible < 0.05) {
+        centeredIndex.value = -1;
+        return;
+      }
+    }
 
     // Ekranda en görünür post oynasın.
     // Header + padding nedeniyle 0.55 pratik ve stabil eşik.
@@ -835,38 +925,38 @@ class AgendaController extends GetxController {
   }
 
   Future<void> refreshAgenda() async {
-    isLoading.value = true;
     try {
+      // Refresh başlarken tüm oynatımları kesin durdur.
+      pauseAll.value = true;
+      centeredIndex.value = -1;
+      lastCenteredIndex = null;
+      try {
+        VideoStateManager.instance.pauseAllVideos(force: true);
+      } catch (_) {}
+
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
       }
+
+      // Pull-to-refresh => "ilk açılış" gibi tam sıfırdan başlat.
+      // Bu sayede shuffle yerine en güncel veriler yeniden çekilir.
       lastDoc = null;
       hasMore.value = true;
       agendaList.clear();
-      // Yeniden paylaşım olaylarını da temizle (güncel meta yeniden oluşsun)
+      _shuffledPosts.clear();
+      _shuffledIndex = 0;
+      _lastCacheTime = null;
+
       publicReshareEvents.clear();
       feedReshareEntries.clear();
 
-      // 🎯 INSTAGRAM STYLE: Refresh sırasında centered index'i sıfırla
-      centeredIndex.value = -1;
-
-      await _fetchRefreshShuffledLast100();
-      // Reshare eventlerini de dahil et
+      // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
+      await fetchAgendaBigData(initial: true);
       await _fetchAndMergeReshareEvents();
+      pauseAll.value = false;
     } catch (e) {
       print("refreshAgenda error: $e");
-    } finally {
-      isLoading.value = false;
-
-      // 🎯 INSTAGRAM STYLE: Refresh sonrası ilk videoyu otomatik centered yap
-      if (agendaList.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-            centeredIndex.value = 0;
-            lastCenteredIndex = 0;
-          }
-        });
-      }
+      pauseAll.value = false;
     }
   }
 

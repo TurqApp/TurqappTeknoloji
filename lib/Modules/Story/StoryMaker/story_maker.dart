@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/icon_buttons.dart';
 import 'story_maker_controller.dart';
+import 'story_sticker_sheet.dart';
 import 'story_video.dart';
 import 'text_editor_sheet.dart';
 
@@ -31,9 +33,14 @@ class StoryMaker extends StatelessWidget {
 
   Widget playground() {
     return Obx(() {
-      // zIndex'e göre sıralayıp çizin
+      // Katmanlama:
+      // 1) Arka plan medya (image/video) daima altta
+      // 2) Diğer öğeler (text/sticker/gif/drawing) daima üstte
+      // Her katmanda kendi içinde zIndex sırası korunur.
       final sorted = [...controller.elements];
       sorted.sort((a, b) => a.zIndex.compareTo(b.zIndex));
+      final mediaLayer = sorted.where(_isBackgroundMedia).toList();
+      final overlayLayer = sorted.where((e) => !_isBackgroundMedia(e)).toList();
 
       return Container(
         color: controller.color.value,
@@ -42,8 +49,10 @@ class StoryMaker extends StatelessWidget {
           scaleEnabled: false,
           child: Stack(
             children: [
-              // Elements
-              ...sorted.map(_buildInteractiveElement),
+              // Background media first
+              ...mediaLayer.map(_buildInteractiveElement),
+              // Interactive overlays on top
+              ...overlayLayer.map(_buildInteractiveElement),
 
               // Trash bin - sadece element sürüklenirken göster
               if (controller.isDragging.value)
@@ -60,6 +69,10 @@ class StoryMaker extends StatelessWidget {
         ),
       );
     });
+  }
+
+  bool _isBackgroundMedia(StoryElement e) {
+    return e.type == StoryElementType.image || e.type == StoryElementType.video;
   }
 
   Widget _buildInteractiveElement(StoryElement e) {
@@ -170,30 +183,10 @@ class StoryMaker extends StatelessWidget {
         },
         onScaleEnd: (details) {
           controller.isDragging.value = false;
-
-          // Çöp kutusunun pozisyonunu kontrol et - parmak pozisyonunu kullan
-          final screenWidth = Get.width;
-          final screenHeight = Get.height;
-          final trashBinCenterY =
-              screenHeight - 20 - 50; // bottom margin - yarı yükseklik
-          final trashBinCenterX = screenWidth / 2;
-          final trashBinRadius = 60;
-
-          // Parmağın son pozisyonu (controller'dan al)
-          final lastPos = controller.lastFingerPosition;
-          if (lastPos == null) return; // Pozisyon yoksa çık
-
-          final fingerX = lastPos.dx;
-          final fingerY = lastPos.dy;
-
-          // Parmak çöp kutusu alanında mı?
-          final distanceToTrash =
-              ((fingerX - trashBinCenterX) * (fingerX - trashBinCenterX) +
-                  (fingerY - trashBinCenterY) * (fingerY - trashBinCenterY));
-          final isOverTrash =
-              distanceToTrash < (trashBinRadius * trashBinRadius);
-
-          if (isOverTrash) {
+          // Bırakma anında güvenilir kriter: onScaleUpdate boyunca hesaplanan state.
+          // Bu sayede son parmak pozisyonu null olduğunda da silme kaçmaz.
+          final shouldDelete = controller.isElementOverTrash.value;
+          if (shouldDelete) {
             // Parmak çöp kutusuna bırakıldı, sil
             HapticFeedback.heavyImpact(); // Güçlü titreme - silme başarılı
             controller.removeElement(e);
@@ -221,7 +214,22 @@ class StoryMaker extends StatelessWidget {
       case StoryElementType.image:
         return Image.file(File(e.content), fit: BoxFit.cover);
       case StoryElementType.gif:
-        return const SizedBox.shrink();
+        return CachedNetworkImage(
+          imageUrl: e.content,
+          fit: BoxFit.contain,
+          placeholder: (_, __) => Container(
+            color: Colors.white12,
+            child: const Center(
+              child: CupertinoActivityIndicator(color: Colors.white),
+            ),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            color: Colors.white12,
+            child: const Center(
+              child: Icon(Icons.broken_image, color: Colors.white70),
+            ),
+          ),
+        );
       case StoryElementType.video:
         return Stack(
           children: [
@@ -308,8 +316,26 @@ class StoryMaker extends StatelessWidget {
           fit: BoxFit.cover,
         );
       case StoryElementType.sticker:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return Container(
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.black12, width: 1),
+          ),
+          child: Text(
+            e.content,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 15,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        );
     }
   }
 
@@ -410,6 +436,14 @@ class StoryMaker extends StatelessWidget {
               onPressed: () => controller.pickVideo(),
               child: Icon(CupertinoIcons.play_circle,
                   color: Colors.white, size: 25),
+            ),
+          ),
+          Expanded(
+            child: TextButton(
+              style: IconButtons.storyButtons,
+              onPressed: () => showStoryStickerSheet(Get.context!, controller),
+              child: const Icon(CupertinoIcons.sparkles,
+                  color: Colors.white, size: 24),
             ),
           ),
           // Expanded(

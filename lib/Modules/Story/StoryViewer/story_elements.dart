@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../StoryMaker/story_maker_controller.dart';
 
@@ -177,7 +178,16 @@ class StoryTextWidget extends StatelessWidget {
       height: element.height,
       child: Transform.rotate(
         angle: element.rotation,
-        child: Container(
+        child: GestureDetector(
+          onTap: () async {
+            if (element.stickerType == 'link' && element.stickerData.isNotEmpty) {
+              final uri = Uri.tryParse(element.stickerData.trim());
+              if (uri != null) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          },
+          child: Container(
           width: element.width,
           height: element.height,
           alignment: Alignment.center,
@@ -266,6 +276,7 @@ class StoryTextWidget extends StatelessWidget {
                     overflow: TextOverflow.visible,
                   );
                 }(),
+          ),
         ),
       ),
     );
