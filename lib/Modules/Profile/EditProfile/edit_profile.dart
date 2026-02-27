@@ -601,13 +601,10 @@ class _EditProfileState extends State<EditProfile> {
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    user.meslek.value,
-                                    style: TextStyle(
-                                      color: Colors.pink,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratMedium",
-                                    ),
+                                  Icon(
+                                    CupertinoIcons.chevron_right,
+                                    color: Colors.grey,
+                                    size: 20,
                                   ),
                                 ],
                               ),

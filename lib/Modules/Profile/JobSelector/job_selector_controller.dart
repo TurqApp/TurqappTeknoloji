@@ -6,35 +6,71 @@ import 'package:turqappv2/Core/jobs.dart';
 class JobSelectorController extends GetxController {
   var job = "".obs;
   var filteredJobs = <String>[].obs;
+  late final List<String> _initialJobs;
+  bool _userInteracted = false;
+
+  List<String> _buildInitialJobs() {
+    final idx = jobs.indexWhere((e) => e.trim().toLowerCase() == "öğrenci");
+    if (idx < 0) {
+      return List<String>.from(jobs.take(30));
+    }
+    return List<String>.from(jobs.take(idx + 1));
+  }
+
+  List<String> _initialWithSelected() {
+    final current = job.value.trim();
+    if (current.isEmpty) {
+      return _initialJobs;
+    }
+    if (_initialJobs.any((e) => e.trim() == current)) {
+      return _initialJobs;
+    }
+    return [current, ..._initialJobs];
+  }
 
   @override
   void onInit() {
     super.onInit();
-    filteredJobs.assignAll(jobs);
+    _initialJobs = _buildInitialJobs();
+    filteredJobs.assignAll(_initialJobs);
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get()
         .then((doc) {
-      job.value = doc.get("meslekKategori");
+      if (!_userInteracted) {
+        job.value = (doc.data()?["meslekKategori"] ?? "").toString();
+      }
+      filteredJobs.assignAll(_initialWithSelected());
     });
   }
 
+  void selectJob(String value) {
+    _userInteracted = true;
+    job.value = value;
+    filteredJobs.refresh();
+  }
+
   void filterJobs(String query) {
-    if (query.isEmpty) {
-      filteredJobs.assignAll(jobs);
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) {
+      filteredJobs.assignAll(_initialWithSelected());
     } else {
       filteredJobs.assignAll(
-        jobs.where((job) => job.toLowerCase().contains(query.toLowerCase())),
+        jobs.where((job) => job.toLowerCase().contains(q)),
       );
     }
   }
 
   Future<void> setData() async {
-    FirebaseFirestore.instance
+    final selected = job.value.trim();
+    if (selected.isEmpty) {
+      return;
+    }
+    await FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"meslekKategori": job.value});
+        .update({"meslekKategori": selected});
 
     Get.back();
   }

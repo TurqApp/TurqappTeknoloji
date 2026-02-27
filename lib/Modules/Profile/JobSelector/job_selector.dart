@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'job_selector_controller.dart';
 
 class JobSelector extends StatelessWidget {
@@ -10,6 +12,7 @@ class JobSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -21,42 +24,39 @@ class JobSelector extends StatelessWidget {
                 Row(
                   children: [BackButtons(text: "Meslek & Kategori")],
                 ),
-                SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
                 Text(
-                  "Kategoriler senin gibi hesapların bulunmasına yardımcı olur. Kategorini istediğin zaman değiştirebilirsin.",
-                  style: TextStyle(
+                  "Kategorin, profilinin keşfedilmesini kolaylaştırır.",
+                  style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 15,
+                    fontSize: 14,
                     fontFamily: "MontserratMedium",
                   ),
                 ),
-                SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
                 Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(
+                      color: Colors.grey.withValues(alpha: 0.20),
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: TextField(
                       onChanged: controller.filterJobs,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         icon: Icon(Icons.search, color: Colors.grey),
                         hintText: "Ara",
                         hintStyle: TextStyle(
                           color: Colors.grey,
                           fontFamily: "Montserrat",
-                          fontSize: 15,
+                          fontSize: 14,
                         ),
                         border: InputBorder.none,
                       ),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 15,
                         fontFamily: "Montserrat",
@@ -65,74 +65,78 @@ class JobSelector extends StatelessWidget {
                   ),
                 ),
                 Obx(() {
-                  // hem job hem filteredJobs değişiminde rebuild eder
                   final selectedJob = controller.job.value;
                   final jobs = controller.filteredJobs;
 
                   return ListView.builder(
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: jobs.length,
                     itemBuilder: (context, index) {
                       final job = jobs[index];
+                      final isSelected = job.trim() == selectedJob.trim();
                       return Padding(
-                        padding: EdgeInsets.only(top: index == 0 ? 25 : 0),
+                        padding: EdgeInsets.only(top: index == 0 ? 14 : 8),
                         child: GestureDetector(
                           onTap: () {
-                            controller.job.value = job;
-                            controller.setData();
+                            controller.selectJob(job);
                           },
                           child: Container(
-                            color: Colors.white,
                             alignment: Alignment.centerLeft,
-                            child: Column(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.white.withValues(alpha: 0.10)
+                                  : Colors.white,
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(12)),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.grey.withValues(alpha: 0.20),
+                              ),
+                            ),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        job,
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium",
-                                        ),
-                                      ),
+                                Expanded(
+                                  child: Text(
+                                    job,
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontFamily: isSelected
+                                          ? "MontserratBold"
+                                          : "Montserrat",
                                     ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 15),
-                                      child: Container(
-                                        width: 25,
-                                        height: 25,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(50),
-                                          border: Border.all(
-                                              color: Colors.grey, width: 0.5),
-                                        ),
-                                        child: Center(
-                                          child: Container(
-                                            width: 15,
-                                            height: 15,
-                                            decoration: BoxDecoration(
-                                              color: job.trim() ==
-                                                      selectedJob.trim()
-                                                  ? Colors.indigo
-                                                  : Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(50),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  ],
+                                  ),
                                 ),
-                                Divider(color: Colors.grey.withValues(alpha: 0.1)),
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected ? Colors.black : Colors.white,
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(15),
+                                    ),
+                                    border: Border.all(
+                                      color:
+                                          isSelected ? Colors.black : Colors.grey,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(
+                                          CupertinoIcons.checkmark,
+                                          color: Colors.white,
+                                          size: 12,
+                                        )
+                                      : const SizedBox(),
+                                ),
                               ],
                             ),
                           ),
@@ -141,6 +145,14 @@ class JobSelector extends StatelessWidget {
                     },
                   );
                 }),
+                const SizedBox(height: 14),
+                TurqAppButton(
+                  text: "Kaydet",
+                  onTap: () {
+                    controller.setData();
+                  },
+                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
