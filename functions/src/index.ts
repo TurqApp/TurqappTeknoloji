@@ -15,6 +15,8 @@ const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export { onVideoUpload } from "./hlsTranscode";
 export * from "./04_tagSettings";
+export * from "./09_userProfile";
+export * from "./11_resend";
 export * from "./14_typesensePosts";
 export * from "./15_typesenseUsersTags";
 export * from "./16_tagMaintenance";

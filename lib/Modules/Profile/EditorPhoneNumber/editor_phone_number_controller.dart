@@ -1,21 +1,21 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/netgsm_services.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Services/phone_account_limiter.dart';
 
 class EditorPhoneNumberController extends GetxController {
   final phoneController = TextEditingController();
-  final inputOtp = TextEditingController();
-  var isVerified = false.obs;
-  var lock = false.obs;
-  var countdown = 0.obs;
+  final codeController = TextEditingController();
 
-  String _otpCode = "";
+  final phoneValue = "".obs;
+  final codeValue = "".obs;
+  final countdown = 0.obs;
+  final isCodeSent = false.obs;
+  final isBusy = false.obs;
+
   Timer? _timer;
 
   @override
@@ -26,7 +26,17 @@ class EditorPhoneNumberController extends GetxController {
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get()
         .then((doc) {
-      phoneController.text = doc["phoneNumber"] ?? "";
+      phoneController.text =
+          (doc.data() ?? const {})["phoneNumber"]?.toString() ?? "";
+      phoneValue.value = phoneController.text;
+    });
+
+    phoneController.addListener(() {
+      phoneValue.value = phoneController.text;
+    });
+
+    codeController.addListener(() {
+      codeValue.value = codeController.text;
     });
   }
 
@@ -34,86 +44,149 @@ class EditorPhoneNumberController extends GetxController {
   void onClose() {
     _timer?.cancel();
     phoneController.dispose();
-    inputOtp.dispose();
+    codeController.dispose();
     super.onClose();
   }
 
-  Future<void> setData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final newPhone = phoneController.text.trim();
-    try {
-      final userSnap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final oldPhone = (userSnap.data() ?? const {})['phoneNumber']?.toString() ?? '';
-
-      if (newPhone == oldPhone) {
-        Get.back();
-        AppSnackbar("Bilgi", "Telefon numaranız zaten bu numara.");
-        return;
-      }
-
-      final limiter = PhoneAccountLimiter();
-      final check = await limiter.checkCanCreate(newPhone);
-      if (!check.allowed) {
-        AppSnackbar('Limit Aşıldı', 'Bu telefon numarası için en fazla ${check.limit} hesap oluşturulabilir.');
-        return;
-      }
-
-      // Move counters first to guarantee capacity
-      await limiter.moveUserToNewPhone(uid: uid, oldPhone: oldPhone, newPhone: newPhone);
-
-      // Update user doc
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'phoneNumber': newPhone,
-      });
-
-      Get.back();
-      AppSnackbar("Başarılı", "Telefon numaranız güncellendi.");
-    } on PhoneAccountLimitReached catch (e) {
-      AppSnackbar('Limit Aşıldı', e.message);
-    } catch (e) {
-      AppSnackbar('Hata', 'Telefon numarası güncellenemedi.');
-    }
+  bool get isPhoneValid {
+    final newPhone =
+        phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
+    return newPhone.length == 10 && newPhone.startsWith('5');
   }
 
-  String generateOtpCode({int length = 6}) {
-    final random = Random();
-    return List.generate(length, (_) => random.nextInt(10).toString()).join();
+  Future<String> _resolveAccountEmail() async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) return "";
+
+    final authEmail = (current.email ?? "").trim().toLowerCase();
+    if (authEmail.isNotEmpty) return authEmail;
+
+    final doc = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(current.uid)
+        .get();
+    return ((doc.data() ?? const {})["email"] ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
   }
 
-  Future<void> sendOtpCode() async {
-    if (lock.value) {
+  Future<void> sendEmailApproval() async {
+    if (isBusy.value) return;
+    if (countdown.value > 0) {
       AppSnackbar("Uyarı", "Lütfen $countdown saniye bekleyin.");
       return;
     }
+    if (!isPhoneValid) {
+      AppSnackbar(
+          "Uyarı", "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.");
+      return;
+    }
 
-    _otpCode = generateOtpCode();
-    print("OTP Kodu: $_otpCode");
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) {
+      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      return;
+    }
+    final email = await _resolveAccountEmail();
+    if (email.isEmpty) {
+      AppSnackbar("Uyarı", "Hesabınızda doğrulanacak e-posta bulunamadı.");
+      return;
+    }
 
+    isBusy.value = true;
     try {
-      await NetgsmService().sendRequest(_otpCode, phoneController.text);
+      await current.getIdToken(true);
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('sendEmailVerificationCode')
+          .call({
+        "email": email,
+        "purpose": "phone_change",
+        "newPhone": phoneController.text.trim(),
+        "idToken": await current.getIdToken(),
+      });
 
-      lock.value = true;
+      isCodeSent.value = true;
       countdown.value = 60;
-
+      _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (countdown.value > 0) {
           countdown.value--;
         } else {
-          lock.value = false;
           timer.cancel();
         }
       });
 
-      AppSnackbar("Kod Gönderildi", "Telefonunuza doğrulama kodu gönderildi.");
-    } catch (e) {
-      AppSnackbar("Hata", "Kod gönderilemedi.");
-      lock.value = false;
-      countdown.value = 0;
-      _timer?.cancel();
+      AppSnackbar("Başarılı", "Onay kodu e-posta adresinize gönderildi.");
+    } on FirebaseFunctionsException catch (e) {
+      AppSnackbar("Uyarı", e.message ?? "Onay kodu gönderilemedi.");
+    } catch (_) {
+      AppSnackbar("Hata", "Onay kodu gönderilemedi.");
+    } finally {
+      isBusy.value = false;
     }
   }
 
-  bool verifyOtp(String input) {
-    return input == _otpCode;
+  Future<void> confirmAndUpdatePhone() async {
+    if (isBusy.value) return;
+    if (!isPhoneValid) {
+      AppSnackbar(
+          "Uyarı", "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.");
+      return;
+    }
+
+    final code = codeController.text.trim();
+    if (code.length != 6) {
+      AppSnackbar("Uyarı", "Lütfen 6 haneli onay kodunu girin.");
+      return;
+    }
+
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) {
+      AppSnackbar("Uyarı", "Oturum bulunamadı. Lütfen tekrar giriş yapın.");
+      return;
+    }
+    final email = await _resolveAccountEmail();
+    if (email.isEmpty) {
+      AppSnackbar("Uyarı", "Hesabınızda doğrulanacak e-posta bulunamadı.");
+      return;
+    }
+
+    isBusy.value = true;
+    try {
+      await current.getIdToken(true);
+      final idToken = await current.getIdToken();
+
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('verifyEmailCode')
+          .call({
+        "email": email,
+        "purpose": "phone_change",
+        "verificationCode": code,
+        "idToken": idToken,
+      });
+
+      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('updateUserPhoneNumberAfterEmailVerification')
+          .call({
+        "newPhone": phoneController.text.trim(),
+        "idToken": idToken,
+      });
+
+      final ok = (result.data is Map && (result.data["success"] == true));
+      if (!ok) {
+        AppSnackbar("Hata", "Telefon numarası güncellenemedi.");
+        return;
+      }
+
+      Get.back();
+      AppSnackbar("Başarılı", "Telefon numaranız güncellendi.");
+    } on FirebaseFunctionsException catch (e) {
+      AppSnackbar("Uyarı", e.message ?? "Telefon numarası güncellenemedi.");
+    } catch (_) {
+      AppSnackbar("Hata", "Telefon numarası güncellenemedi.");
+    } finally {
+      isBusy.value = false;
+    }
   }
 }

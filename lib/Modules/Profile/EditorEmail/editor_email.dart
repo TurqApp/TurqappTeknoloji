@@ -7,6 +7,7 @@ import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email_controller.da
 class EditorEmail extends StatelessWidget {
   EditorEmail({super.key});
   final controller = Get.put(EditorEmailController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,80 +16,110 @@ class EditorEmail extends StatelessWidget {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(15),
-            child: Column(
-              children: [
-                Row(
-                  children: [BackButtons(text: "Email Adresi")],
-                ),
-                SizedBox(
-                  height: 12,
-                ),
-                Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: TextField(
-                      controller: controller.emailController,
-                      decoration: InputDecoration(
-                        hintText: "Email adresini değiştir",
-                        hintStyle: TextStyle(
-                            color: Colors.grey, fontFamily: "MontserratMedium"),
-                        border: InputBorder.none,
-                      ),
-                      style: TextStyle(
+            child: Obx(() {
+              final canSend =
+                  controller.countdown.value == 0 && !controller.isBusy.value;
+              final canUpdate =
+                  controller.isCodeSent.value && !controller.isBusy.value;
+
+              return Column(
+                children: [
+                  Row(children: [BackButtons(text: "E-posta Onayı")]),
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 50,
+                    alignment: Alignment.centerLeft,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: TextField(
+                        controller: controller.emailController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          hintText: "Hesap e-posta adresiniz",
+                          hintStyle: TextStyle(
+                              color: Colors.grey,
+                              fontFamily: "MontserratMedium"),
+                          border: InputBorder.none,
+                        ),
+                        style: const TextStyle(
                           color: Colors.black,
                           fontSize: 15,
-                          fontFamily: "MontserratMedium"),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 12,
-                ),
-                Container(
-                  height: 50,
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: TextField(
-                      controller: controller.passwordController,
-                      decoration: InputDecoration(
-                        hintText: "Mevcut Şifreniz",
-                        hintStyle: TextStyle(
-                            color: Colors.grey, fontFamily: "MontserratMedium"),
-                        border: InputBorder.none,
+                          fontFamily: "MontserratMedium",
+                        ),
                       ),
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium"),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: 12, bottom: 12),
-                  child: Text(
-                    "Email adresinizi devamlı değiştirmeniz durumunda, hesabınız askıya alınacaktır.",
+                  const SizedBox(height: 12),
+                  TurqAppButton(
+                    onTap: () {
+                      if (canSend) {
+                        controller.sendEmailCode();
+                      }
+                    },
+                    bgColor: canSend ? Colors.black : Colors.grey,
+                    text: controller.countdown.value > 0
+                        ? "Yeniden gönderim için ${controller.countdown.value}s"
+                        : "Onay Kodu Gönder",
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Bu onay güvenlik amaçlıdır. Onaylamasanız da uygulamayı kullanmaya devam edebilirsiniz.",
                     style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium"),
+                      color: Colors.black54,
+                      fontSize: 13,
+                      fontFamily: "MontserratMedium",
+                    ),
                   ),
-                ),
-                TurqAppButton(onTap: () {
-                  controller.setData();
-                })
-              ],
-            ),
+                  if (controller.isCodeSent.value) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 50,
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(12)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        child: TextField(
+                          controller: controller.codeController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          decoration: const InputDecoration(
+                            counterText: "",
+                            hintText: "6 haneli onay kodu",
+                            hintStyle: TextStyle(
+                                color: Colors.grey,
+                                fontFamily: "MontserratMedium"),
+                            border: InputBorder.none,
+                          ),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TurqAppButton(
+                      onTap: () {
+                        if (canUpdate) {
+                          controller.verifyAndConfirmEmail();
+                        }
+                      },
+                      bgColor: canUpdate ? Colors.black : Colors.grey,
+                      text: "Kodu Doğrula ve Onayla",
+                    ),
+                  ],
+                ],
+              );
+            }),
           ),
         ),
       ),

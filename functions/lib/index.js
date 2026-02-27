@@ -30,6 +30,8 @@ const db = admin.firestore();
 var hlsTranscode_1 = require("./hlsTranscode");
 Object.defineProperty(exports, "onVideoUpload", { enumerable: true, get: function () { return hlsTranscode_1.onVideoUpload; } });
 __exportStar(require("./04_tagSettings"), exports);
+__exportStar(require("./09_userProfile"), exports);
+__exportStar(require("./11_resend"), exports);
 __exportStar(require("./14_typesensePosts"), exports);
 __exportStar(require("./15_typesenseUsersTags"), exports);
 __exportStar(require("./16_tagMaintenance"), exports);

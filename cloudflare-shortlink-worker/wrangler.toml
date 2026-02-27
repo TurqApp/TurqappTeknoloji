@@ -6,6 +6,7 @@ routes = [
   { pattern = "turqapp.com/p/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/s/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/u/*", zone_name = "turqapp.com" },
+  { pattern = "turqapp.com/e/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/.well-known/*", zone_name = "turqapp.com" }
 ]
 
@@ -18,6 +19,7 @@ APP_SCHEME = "turqapp://"
 IOS_STORE_URL = "https://apps.apple.com/tr/app/turqapp/id6740809479?l=tr"
 ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.turqapp.app"
 DEFAULT_OG_IMAGE = "https://cdn.turqapp.com/og/default.jpg"
+EMAIL_ACTION_CONFIRM_URL = "https://europe-west3-turqappteknoloji.cloudfunctions.net/confirmEmailAction"
 
 # JSON string olarak verilir.
 # iOS Universal Links:

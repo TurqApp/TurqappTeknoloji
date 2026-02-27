@@ -22,7 +22,6 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
-import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -97,10 +96,6 @@ class SettingsView extends StatelessWidget {
                       buildRow("Özgeçmiş (Cv)", CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
-                      buildRow("Bağlantılar", CupertinoIcons.link, () {
-                        Get.to(() => SocialMediaLinks());
-                      }),
-
                       buildSectionTitle("İçerik"),
                       buildRow("Kaydedilenler", CupertinoIcons.bookmark, () {
                         Get.to(() => SavedPosts());

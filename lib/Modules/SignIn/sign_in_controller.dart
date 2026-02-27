@@ -385,6 +385,12 @@ class SignInController extends GetxController
       // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
       await Future.delayed(const Duration(milliseconds: 300));
 
+      await CurrentUserService.instance.sendVerificationEmailIfNeeded();
+      await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
+        actionName: "mesajlaşma ve içerik paylaşımı",
+        force: true,
+      );
+
       Get.off(() => NavBarView());
     } on PhoneAccountLimitReached catch (e) {
       // Rollback newly created auth user to avoid orphaned accounts
@@ -648,6 +654,9 @@ class SignInController extends GetxController
       );
       authSucceeded = true;
       print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}");
+      await CurrentUserService.instance.refreshEmailVerificationStatus(
+        reloadAuthUser: true,
+      );
 
       // 🔥 CRITICAL: Re-initialize CurrentUserService after login
       print("🔄 CurrentUserService yeniden başlatılıyor...");
@@ -718,6 +727,10 @@ class SignInController extends GetxController
 
       // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
       await Future.delayed(const Duration(milliseconds: 300));
+
+      await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
+        actionName: "mesajlaşma ve içerik paylaşımı",
+      );
 
       Get.offAll(() => NavBarView());
     } on FirebaseAuthException catch (e) {

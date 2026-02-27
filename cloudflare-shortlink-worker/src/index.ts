@@ -4,11 +4,12 @@ interface Env {
   IOS_STORE_URL: string;
   ANDROID_STORE_URL: string;
   DEFAULT_OG_IMAGE: string;
+  EMAIL_ACTION_CONFIRM_URL: string;
   AASA_JSON: string;
   ASSETLINKS_JSON: string;
 }
 
-type LinkType = "p" | "s" | "u";
+type LinkType = "p" | "s" | "u" | "e";
 
 type LinkMeta = {
   type?: "post" | "story" | "user";
@@ -66,6 +67,33 @@ export default {
       return notFoundHtml("Link pasif");
     }
 
+    if (route.kind === "e") {
+      const token = String((meta as { token?: string }).token || "").trim();
+      if (!token) return notFoundHtml("Onay bağlantısı geçersiz");
+      const confirmBase = String(env.EMAIL_ACTION_CONFIRM_URL || "").trim();
+      if (!confirmBase) return notFoundHtml("Onay servisi yapılandırılmamış");
+
+      const confirmUrl = `${confirmBase}?token=${encodeURIComponent(token)}`;
+      try {
+        const response = await fetch(confirmUrl, { method: "GET" });
+        if (!response.ok) {
+          return new Response(
+            "<!doctype html><html><body><h3>Bağlantı geçersiz veya süresi dolmuş.</h3></body></html>",
+            { status: 410, headers: { "content-type": "text/html; charset=utf-8" } }
+          );
+        }
+        return new Response(
+          "<!doctype html><html><body><h3>Onaylandı. Uygulamaya geri dönebilirsiniz.</h3></body></html>",
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      } catch {
+        return new Response(
+          "<!doctype html><html><body><h3>Onay servisine ulaşılamadı. Lütfen tekrar deneyin.</h3></body></html>",
+          { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
+        );
+      }
+    }
+
     if (route.kind === "s" && typeof meta.expiresAt === "number" && meta.expiresAt > 0) {
       if (Date.now() > meta.expiresAt) {
         return expiredHtml();
@@ -107,7 +135,7 @@ export default {
 };
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
-  const match = pathname.match(/^\/(p|s|u)\/([A-Za-z0-9._-]{2,40})$/);
+  const match = pathname.match(/^\/(p|s|u|e)\/([A-Za-z0-9._-]{2,80})$/);
   if (!match) return null;
   return { kind: match[1] as LinkType, id: match[2] };
 }
@@ -116,6 +144,7 @@ function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {
   const base = appScheme.endsWith("://") ? appScheme.slice(0, -3) : appScheme.replace(/:$/, "");
   if (kind === "p") return `${base}://post/${id}`;
   if (kind === "s") return `${base}://story/${id}`;
+  if (kind === "e") return `${base}://settings/phone`;
   return `${base}://profile/${id}`;
 }
 
@@ -254,4 +283,3 @@ function jsonResponse(jsonText: string, status = 200, extraHeaders?: Record<stri
     },
   });
 }
-

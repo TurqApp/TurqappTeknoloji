@@ -11,11 +11,12 @@ import 'package:turqappv2/Modules/Profile/AddressSelector/address_selector.dart'
 import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 import 'package:turqappv2/Modules/Profile/DeleteAccount/delete_account.dart';
 import 'package:turqappv2/Modules/Profile/EditProfile/edit_profile_controller.dart';
+import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname.dart';
-import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number.dart';
 import 'package:turqappv2/Modules/Profile/JobSelector/job_selector.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contact.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -31,6 +32,7 @@ class EditProfile extends StatefulWidget {
 class _EditProfileState extends State<EditProfile> {
   late final EditProfileController controller;
   late final FirebaseMyStore user;
+  final CurrentUserService currentUserService = CurrentUserService.instance;
   bool _updating = false;
 
   @override
@@ -171,7 +173,8 @@ class _EditProfileState extends State<EditProfile> {
                                     height: 50,
                                     alignment: Alignment.centerLeft,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.03),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.03),
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(12),
                                       ),
@@ -212,7 +215,8 @@ class _EditProfileState extends State<EditProfile> {
                                     height: 50,
                                     alignment: Alignment.centerLeft,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.03),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.03),
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(12),
                                       ),
@@ -301,7 +305,10 @@ class _EditProfileState extends State<EditProfile> {
                               padding: EdgeInsets.only(bottom: 12),
                               child: GestureDetector(
                                 onTap: () {
-                                  // Get.to(() => EditorEmail());
+                                  if (!currentUserService
+                                      .emailVerifiedRx.value) {
+                                    Get.to(() => EditorEmail());
+                                  }
                                 },
                                 child: Container(
                                   height: 50,
@@ -328,15 +335,40 @@ class _EditProfileState extends State<EditProfile> {
                                             fontFamily: "MontserratMedium",
                                           ),
                                         ),
-
-                                        // Text(
-                                        //   "Değiştir",
-                                        //   style: TextStyle(
-                                        //     color: Colors.blueAccent,
-                                        //     fontSize: 15,
-                                        //     fontFamily: "MontserratMedium",
-                                        //   ),
-                                        // ), //sonra yapilacak
+                                        Obx(() {
+                                          final verified = currentUserService
+                                              .emailVerifiedRx.value;
+                                          if (verified) {
+                                            return const Row(
+                                              children: [
+                                                Icon(
+                                                  CupertinoIcons
+                                                      .checkmark_seal_fill,
+                                                  color: Colors.green,
+                                                  size: 18,
+                                                ),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  "Onaylı",
+                                                  style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontSize: 14,
+                                                    fontFamily:
+                                                        "MontserratMedium",
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }
+                                          return const Text(
+                                            "Onayla",
+                                            style: TextStyle(
+                                              color: Colors.blueAccent,
+                                              fontSize: 15,
+                                              fontFamily: "MontserratMedium",
+                                            ),
+                                          );
+                                        }),
                                       ],
                                     ),
                                   ),
@@ -346,9 +378,7 @@ class _EditProfileState extends State<EditProfile> {
                             Padding(
                               padding: EdgeInsets.only(bottom: 12),
                               child: GestureDetector(
-                                onTap: () {
-                                  Get.to(() => EditorPhoneNumber());
-                                },
+                                onTap: () {},
                                 child: Container(
                                   height: 50,
                                   alignment: Alignment.centerLeft,
@@ -374,13 +404,24 @@ class _EditProfileState extends State<EditProfile> {
                                             fontFamily: "MontserratMedium",
                                           ),
                                         ),
-                                        Text(
-                                          "Değiştir",
-                                          style: TextStyle(
-                                            color: Colors.blueAccent,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
+                                        const Row(
+                                          children: [
+                                            Icon(
+                                              CupertinoIcons
+                                                  .checkmark_seal_fill,
+                                              color: Colors.green,
+                                              size: 18,
+                                            ),
+                                            SizedBox(width: 6),
+                                            Text(
+                                              "Onaylı",
+                                              style: TextStyle(
+                                                color: Colors.green,
+                                                fontSize: 14,
+                                                fontFamily: "MontserratMedium",
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),

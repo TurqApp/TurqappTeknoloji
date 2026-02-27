@@ -16,6 +16,7 @@ import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
+import '../../Services/current_user_service.dart';
 
 typedef TextUpdate = String;
 
@@ -55,6 +56,7 @@ class NavBarController extends GetxController
   bool _proactiveShortPreloadStarted = false;
   Timer? _backgroundCacheTimer;
   Timer? _uploadIndicatorTimer;
+  Timer? _emailVerifyPromptTimer;
 
   @override
   void onInit() {
@@ -103,6 +105,7 @@ class NavBarController extends GetxController
 
     _startBackgroundCacheLoop();
     _startUploadIndicatorSync();
+    _startEmailVerificationPromptLoop();
   }
 
   void _startBackgroundCacheLoop() {
@@ -153,6 +156,19 @@ class NavBarController extends GetxController
     });
   }
 
+  void _startEmailVerificationPromptLoop() {
+    _emailVerifyPromptTimer?.cancel();
+    _emailVerifyPromptTimer =
+        Timer.periodic(const Duration(minutes: 6), (_) async {
+      if (_isDisposed) return;
+      try {
+        await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
+          actionName: "mesajlaşma ve içerik paylaşımı",
+        );
+      } catch (_) {}
+    });
+  }
+
   Future<void> _runAcilisAnimation() async {
     try {
       // ⚠️ CRITICAL FIX: Check if controller is still alive before animating
@@ -183,6 +199,8 @@ class NavBarController extends GetxController
     _backgroundCacheTimer = null;
     _uploadIndicatorTimer?.cancel();
     _uploadIndicatorTimer = null;
+    _emailVerifyPromptTimer?.cancel();
+    _emailVerifyPromptTimer = null;
     WidgetsBinding.instance.removeObserver(this);
 
     // Dispose animation controllers safely

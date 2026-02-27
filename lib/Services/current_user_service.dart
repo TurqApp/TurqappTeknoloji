@@ -8,8 +8,10 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 
 import '../Models/current_user_model.dart';
 
@@ -110,11 +112,16 @@ class CurrentUserService extends GetxController {
       final firebaseUser = FirebaseAuth.instance.currentUser;
       if (firebaseUser == null) {
         _isInitialized = true;
+        emailVerifiedRx.value = true;
         return false;
       }
+      emailVerifiedRx.value = firebaseUser.emailVerified;
+      unawaited(_loadEmailVerifyConfig());
 
       // If already initialized and user exists, just ensure sync is running
-      if (_isInitialized && _currentUser != null && _currentUser!.userID == firebaseUser.uid) {
+      if (_isInitialized &&
+          _currentUser != null &&
+          _currentUser!.userID == firebaseUser.uid) {
         // Same user, ensure Firebase sync is active
         if (!_isSyncing) {
           unawaited(_startFirebaseSync());
@@ -154,6 +161,7 @@ class CurrentUserService extends GetxController {
       if (doc.exists) {
         await _updateUser(CurrentUserModel.fromFirestore(doc));
       }
+      await refreshEmailVerificationStatus(reloadAuthUser: true);
     } catch (e) {
       print('❌ Force refresh error: $e');
     }
@@ -176,7 +184,8 @@ class CurrentUserService extends GetxController {
       // Check cache expiration
       final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
       if (cacheAge > _cacheExpiration.inMilliseconds) {
-        print('⏰ Cache expired (${Duration(milliseconds: cacheAge).inDays} days old)');
+        print(
+            '⏰ Cache expired (${Duration(milliseconds: cacheAge).inDays} days old)');
         return false;
       }
 
@@ -211,7 +220,8 @@ class CurrentUserService extends GetxController {
         try {
           final json = jsonEncode(user.toJson());
           await _prefs?.setString(_cacheKey, json);
-          await _prefs?.setInt(_cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
+          await _prefs?.setInt(
+              _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
           _lastCachedNickname = user.nickname;
           print('💾 User cached: ${user.nickname}');
         } catch (e) {
@@ -257,19 +267,19 @@ class CurrentUserService extends GetxController {
           .doc(firebaseUser.uid)
           .snapshots()
           .listen(
-            (doc) async {
-              if (!doc.exists) {
-                print('❌ User document not found in Firestore');
-                return;
-              }
+        (doc) async {
+          if (!doc.exists) {
+            print('❌ User document not found in Firestore');
+            return;
+          }
 
-              final user = CurrentUserModel.fromFirestore(doc);
-              await _updateUser(user);
-            },
-            onError: (error) {
-              print('❌ Firebase sync error: $error');
-            },
-          );
+          final user = CurrentUserModel.fromFirestore(doc);
+          await _updateUser(user);
+        },
+        onError: (error) {
+          print('❌ Firebase sync error: $error');
+        },
+      );
 
       print('🔥 Firebase sync started');
     } catch (e) {
@@ -347,6 +357,147 @@ class CurrentUserService extends GetxController {
   /// Is verified account
   bool get isVerified => _currentUser?.isVerified ?? false;
 
+  /// Email verification state (Firebase Auth)
+  final RxBool emailVerifiedRx = true.obs;
+  DateTime? _lastEmailPromptAt;
+  Duration _emailPromptCooldown = const Duration(days: 7);
+
+  bool get isEmailVerified => emailVerifiedRx.value;
+
+  Future<void> _loadEmailVerifyConfig() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('adminConfig')
+          .doc('emailVerify')
+          .get();
+      final verifyDay = (snap.data() ?? const {})['verifyDay'];
+      final days = verifyDay is num ? verifyDay.toInt() : 7;
+      _emailPromptCooldown = Duration(days: days.clamp(1, 30));
+    } catch (_) {
+      _emailPromptCooldown = const Duration(days: 7);
+    }
+  }
+
+  Future<void> refreshEmailVerificationStatus(
+      {bool reloadAuthUser = true}) async {
+    try {
+      var user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        emailVerifiedRx.value = true;
+        return;
+      }
+      if (reloadAuthUser) {
+        await user.reload();
+        user = FirebaseAuth.instance.currentUser;
+      }
+      var isVerified = user?.emailVerified ?? false;
+      if (!isVerified) {
+        try {
+          final uid = user?.uid;
+          if (uid != null && uid.isNotEmpty) {
+            final snap = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get();
+            isVerified = (snap.data() ?? const {})['emailVerified'] == true;
+          }
+        } catch (_) {}
+      }
+      emailVerifiedRx.value = isVerified;
+    } catch (_) {
+      final authVerified =
+          FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      if (authVerified) {
+        emailVerifiedRx.value = true;
+        return;
+      }
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null && uid.isNotEmpty) {
+          final snap = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .get();
+          emailVerifiedRx.value =
+              (snap.data() ?? const {})['emailVerified'] == true;
+          return;
+        }
+      } catch (_) {}
+      emailVerifiedRx.value = false;
+    }
+  }
+
+  Future<void> sendVerificationEmailIfNeeded({bool force = false}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    await refreshEmailVerificationStatus(reloadAuthUser: true);
+    if (!force && isEmailVerified) return;
+    if (isEmailVerified) return;
+    try {
+      await user.sendEmailVerification();
+      AppSnackbar(
+          "Doğrulama E-postası", "E-posta doğrulama bağlantısı gönderildi.");
+    } catch (_) {
+      AppSnackbar(
+          "Uyarı", "Doğrulama e-postası gönderilemedi. Lütfen tekrar deneyin.");
+    }
+  }
+
+  Future<bool> ensureEmailVerifiedForRestrictedAction({
+    required String actionName,
+    bool showPrompt = true,
+  }) async {
+    await refreshEmailVerificationStatus(reloadAuthUser: true);
+    if (isEmailVerified) return true;
+    AppSnackbar("E-posta Doğrulama Gerekli",
+        "$actionName için e-posta doğrulaması gerekli.");
+    if (showPrompt) {
+      await maybeShowEmailVerificationPrompt(actionName: actionName);
+    }
+    return false;
+  }
+
+  Future<void> maybeShowEmailVerificationPrompt({
+    String? actionName,
+    bool force = false,
+  }) async {
+    await refreshEmailVerificationStatus(reloadAuthUser: true);
+    if (isEmailVerified) return;
+    final now = DateTime.now();
+    if (!force &&
+        _lastEmailPromptAt != null &&
+        now.difference(_lastEmailPromptAt!) < _emailPromptCooldown) {
+      return;
+    }
+    if (Get.isDialogOpen == true) return;
+    _lastEmailPromptAt = now;
+
+    await Get.dialog(
+      AlertDialog(
+        title: const Text("E-posta Doğrulaması"),
+        content: Text(
+          actionName == null
+              ? "Hesabını güvenli kullanmak için e-posta adresini doğrulamalısın."
+              : "$actionName için e-posta adresini doğrulamalısın.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Daha Sonra"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              await sendVerificationEmailIfNeeded(force: true);
+            },
+            child: const Text("Tekrar Gönder"),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
+    );
+  }
+
   /// Is private account
   bool get isPrivate => _currentUser?.isPrivate ?? false;
 
@@ -375,6 +526,8 @@ class CurrentUserService extends GetxController {
       // 🔥 CRITICAL: Reset initialization flag to allow re-initialization
       _isInitialized = false;
       _isSyncing = false;
+      emailVerifiedRx.value = true;
+      _lastEmailPromptAt = null;
 
       print('👋 User logged out - State cleared');
     } catch (e) {
