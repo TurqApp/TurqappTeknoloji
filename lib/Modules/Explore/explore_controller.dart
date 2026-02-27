@@ -840,6 +840,34 @@ class ExploreController extends GetxController {
     throw lastError ?? Exception('typesense_callable_failed');
   }
 
+  Future<List<OgrenciModel>> _filterPendingOrDeletedUsers(
+      List<OgrenciModel> users) async {
+    if (users.isEmpty) return users;
+    final blocked = <String>{};
+    final ids = users.map((e) => e.userID).where((e) => e.isNotEmpty).toList();
+
+    for (int i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final deletedAccount = (data['deletedAccount'] ?? false) == true;
+        final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+        final pendingOrDeleted =
+            status == 'pending_deletion' || status == 'deleted';
+        if (deletedAccount || pendingOrDeleted) {
+          blocked.add(doc.id);
+        }
+      }
+    }
+
+    return users.where((u) => !blocked.contains(u.userID)).toList();
+  }
+
   Future<void> search(String query) async {
     final nick = query.trim();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
@@ -913,7 +941,7 @@ class ExploreController extends GetxController {
           pfImage: (row['pfImage'] ?? '').toString(),
         ));
       }
-      searchedList.value = users;
+      searchedList.value = await _filterPendingOrDeletedUsers(users);
     } catch (e) {
       print("❌ Typesense arama hatası: $e");
       searchedList.clear();

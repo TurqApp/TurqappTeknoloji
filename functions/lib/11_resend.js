@@ -23,6 +23,7 @@ const VALID_PURPOSES = [
     "phone_change",
     "email_change",
     "email_confirm",
+    "account_delete",
 ];
 function validEmail(email) {
     return EMAIL_REGEX.test(email);
@@ -86,6 +87,12 @@ function buildMailCopy(purpose) {
             intro: "E-posta adresinizi onaylamak için onay kodunuz:",
         };
     }
+    if (purpose === "account_delete") {
+        return {
+            subject: "TurqApp - Hesap Silme Onay Kodu",
+            intro: "Hesabınızı silme talebini onaylamak için onay kodunuz:",
+        };
+    }
     return {
         subject: "TurqApp - Email Doğrulama Kodunuz",
         intro: "Email doğrulama kodunuz:",
@@ -131,6 +138,10 @@ async function ensurePurposeEmailRules(request, purpose, emailLower) {
         return;
     }
     if (purpose === "email_confirm") {
+        await ensureEmailBelongsToCaller();
+        return;
+    }
+    if (purpose === "account_delete") {
         await ensureEmailBelongsToCaller();
         return;
     }

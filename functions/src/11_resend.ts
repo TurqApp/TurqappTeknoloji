@@ -19,7 +19,13 @@ const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-type VerificationPurpose = "signup" | "password_reset" | "phone_change" | "email_change" | "email_confirm";
+type VerificationPurpose =
+  | "signup"
+  | "password_reset"
+  | "phone_change"
+  | "email_change"
+  | "email_confirm"
+  | "account_delete";
 
 const VALID_PURPOSES: VerificationPurpose[] = [
   "signup",
@@ -27,6 +33,7 @@ const VALID_PURPOSES: VerificationPurpose[] = [
   "phone_change",
   "email_change",
   "email_confirm",
+  "account_delete",
 ];
 
 function validEmail(email: string): boolean {
@@ -101,6 +108,12 @@ function buildMailCopy(purpose: VerificationPurpose): { subject: string; intro: 
       intro: "E-posta adresinizi onaylamak için onay kodunuz:",
     };
   }
+  if (purpose === "account_delete") {
+    return {
+      subject: "TurqApp - Hesap Silme Onay Kodu",
+      intro: "Hesabınızı silme talebini onaylamak için onay kodunuz:",
+    };
+  }
   return {
     subject: "TurqApp - Email Doğrulama Kodunuz",
     intro: "Email doğrulama kodunuz:",
@@ -158,6 +171,11 @@ async function ensurePurposeEmailRules(
   }
 
   if (purpose === "email_confirm") {
+    await ensureEmailBelongsToCaller();
+    return;
+  }
+
+  if (purpose === "account_delete") {
     await ensureEmailBelongsToCaller();
     return;
   }

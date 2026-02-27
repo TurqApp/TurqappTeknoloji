@@ -346,6 +346,8 @@ function buildUserSearchDoc(userId, data) {
     const createdDateTs = Number.isFinite(createdDateRaw) && createdDateRaw > 0
         ? Math.floor(createdDateRaw / 1000)
         : 0;
+    const accountStatus = asString(data.accountStatus).toLowerCase();
+    const isPendingOrDeleted = accountStatus === "pending_deletion" || accountStatus === "deleted";
     return {
         id: userId,
         nickname: asString(data.nickname) || asString(data.username),
@@ -354,7 +356,7 @@ function buildUserSearchDoc(userId, data) {
         pfImage: asString(data.pfImage) || asString(data.avatarUrl) || asString(data.profileImageUrl),
         rozet: asString(data.rozet),
         gizliHesap: asBool(data.gizliHesap),
-        deletedAccount: asBool(data.deletedAccount) || asBool(data.isDeleted),
+        deletedAccount: asBool(data.deletedAccount) || asBool(data.isDeleted) || isPendingOrDeleted,
         hesapOnayi: asBool(data.hesapOnayi) || asBool(data.isVerified),
         updatedAtTs: asEpochSeconds(data.updatedAt) ||
             asEpochSeconds(data.createdAt) ||

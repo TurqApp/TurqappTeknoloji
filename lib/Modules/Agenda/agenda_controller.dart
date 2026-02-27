@@ -47,6 +47,7 @@ class AgendaController extends GetxController {
     if (hiddenPosts.contains(post.docID)) return false;
     if (post.deletedPost == true) return false;
     if (!_isRenderablePost(post)) return false;
+    if (await _isUserDeactivated(post.userID)) return false;
 
     final isPrivate = await _isUserPrivate(post.userID);
     if (!isPrivate) return true;
@@ -65,6 +66,7 @@ class AgendaController extends GetxController {
   final RxList<Map<String, dynamic>> feedReshareEntries =
       <Map<String, dynamic>>[].obs; // Feed'de görünecek reshare entry'leri
   final Map<String, bool> _userPrivacyCache = {};
+  final Map<String, bool> _userDeactivatedCache = {};
   late final FirebaseMyStore myStore;
 
   List<String> hiddenPosts = [];
@@ -438,11 +440,39 @@ class AgendaController extends GetxController {
           .collection('users')
           .doc(userID)
           .get();
-      final gizli = (d.data()?['gizliHesap'] ?? false) == true;
+      final data = d.data();
+      final gizli = (data?['gizliHesap'] ?? false) == true;
+      _userDeactivatedCache[userID] = _isUserMarkedDeactivated(data);
       _userPrivacyCache[userID] = gizli;
       return gizli;
     } catch (_) {
       _userPrivacyCache[userID] = false;
+      _userDeactivatedCache[userID] = false;
+      return false;
+    }
+  }
+
+  bool _isUserMarkedDeactivated(Map<String, dynamic>? data) {
+    if (data == null) return false;
+    final deletedAccount = (data['deletedAccount'] ?? false) == true;
+    final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+    return deletedAccount || status == 'pending_deletion' || status == 'deleted';
+  }
+
+  Future<bool> _isUserDeactivated(String userID) async {
+    if (_userDeactivatedCache.containsKey(userID)) {
+      return _userDeactivatedCache[userID]!;
+    }
+    try {
+      final d =
+          await FirebaseFirestore.instance.collection('users').doc(userID).get();
+      final data = d.data();
+      final deactivated = _isUserMarkedDeactivated(data);
+      _userDeactivatedCache[userID] = deactivated;
+      _userPrivacyCache[userID] = (data?['gizliHesap'] ?? false) == true;
+      return deactivated;
+    } catch (_) {
+      _userDeactivatedCache[userID] = false;
       return false;
     }
   }
@@ -592,6 +622,7 @@ class AgendaController extends GetxController {
       // Yazarların gizlilik durumlarını çek ve gizli profilleri filtrele
       final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
       Map<String, bool> userPrivacy = {};
+      Map<String, bool> userDeactivated = {};
       Map<String, Map<String, dynamic>> userMeta = {};
       if (uniqueUserIDs.isNotEmpty) {
         // whereIn 10 eleman sınırı — fetchLimit zaten 10
@@ -602,7 +633,11 @@ class AgendaController extends GetxController {
         for (final d in usersSnap.docs) {
           final data = d.data();
           final gizli = (data['gizliHesap'] ?? false) == true;
+          final deactivated = _isUserMarkedDeactivated(data);
           userPrivacy[d.id] = gizli;
+          userDeactivated[d.id] = deactivated;
+          _userPrivacyCache[d.id] = gizli;
+          _userDeactivatedCache[d.id] = deactivated;
           userMeta[d.id] = data;
         }
       }
@@ -612,6 +647,7 @@ class AgendaController extends GetxController {
         if (hiddenPosts.contains(post.docID)) return false;
         if (post.deletedPost == true) return false;
         if (!_isRenderablePost(post)) return false;
+        if (userDeactivated[post.userID] == true) return false;
         final isPrivate = userPrivacy[post.userID] ?? false;
         if (!isPrivate) return true;
         // Gizli ise: sadece kendi gönderisi veya takip ediliyorsa göster
@@ -702,6 +738,7 @@ class AgendaController extends GetxController {
     // Kullanıcı gizliliklerini cache'ten getir
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
     Map<String, bool> userPrivacy = {};
+    Map<String, bool> userDeactivated = {};
     for (int i = 0; i < uniqueUserIDs.length; i += 10) {
       final chunk = uniqueUserIDs.sublist(
           i, i + 10 > uniqueUserIDs.length ? uniqueUserIDs.length : i + 10);
@@ -710,8 +747,13 @@ class AgendaController extends GetxController {
           .where(FieldPath.documentId, whereIn: chunk)
           .get(const GetOptions(source: Source.cache));
       for (final d in usersSnap.docs) {
-        final gizli = (d.data()['gizliHesap'] ?? false) == true;
+        final data = d.data();
+        final gizli = (data['gizliHesap'] ?? false) == true;
+        final deactivated = _isUserMarkedDeactivated(data);
         userPrivacy[d.id] = gizli;
+        userDeactivated[d.id] = deactivated;
+        _userPrivacyCache[d.id] = gizli;
+        _userDeactivatedCache[d.id] = deactivated;
       }
     }
 
@@ -719,6 +761,7 @@ class AgendaController extends GetxController {
     final filtered = items.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (!_isRenderablePost(post)) return false;
+      if (userDeactivated[post.userID] == true) return false;
       final isPrivate = userPrivacy[post.userID] ?? false;
       if (!isPrivate) return true;
       final isMine = me != null && post.userID == me;
@@ -760,11 +803,30 @@ class AgendaController extends GetxController {
     if (fromPool.isEmpty) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final uniqueUserIds = fromPool.map((e) => e.userID).toSet().toList();
+    final userDeactivated = <String, bool>{};
+    for (final chunk in _chunkList(uniqueUserIds, 10)) {
+      try {
+        final usersSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        for (final d in usersSnap.docs) {
+          final data = d.data();
+          final deactivated = _isUserMarkedDeactivated(data);
+          userDeactivated[d.id] = deactivated;
+          _userDeactivatedCache[d.id] = deactivated;
+          _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+        }
+      } catch (_) {}
+    }
+
     // Pool'dan gelen postları validasyonsuz hızlıca göster.
     // Basit senkron filtre: silinmiş/gizlenmiş postları çıkar.
     final quickFiltered = fromPool.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
+      if (userDeactivated[post.userID] == true) return false;
       if (!_isInAgendaWindow(post.timeStamp, nowMs)) return false;
       if (!_isRenderablePost(post)) return false;
       return true;
@@ -798,6 +860,7 @@ class AgendaController extends GetxController {
       // Toplu gizlilik kontrolü (whereIn ile, tek tek değil)
       final uniqueUserIDs = valid.map((e) => e.userID).toSet().toList();
       final Map<String, bool> userPrivacy = {};
+      final Map<String, bool> userDeactivated = {};
       for (final chunk in _chunkList(uniqueUserIDs, 10)) {
         try {
           final usersSnap = await FirebaseFirestore.instance
@@ -805,9 +868,13 @@ class AgendaController extends GetxController {
               .where(FieldPath.documentId, whereIn: chunk)
               .get();
           for (final d in usersSnap.docs) {
-            final gizli = (d.data()['gizliHesap'] ?? false) == true;
+            final data = d.data();
+            final gizli = (data['gizliHesap'] ?? false) == true;
+            final deactivated = _isUserMarkedDeactivated(data);
             userPrivacy[d.id] = gizli;
+            userDeactivated[d.id] = deactivated;
             _userPrivacyCache[d.id] = gizli;
+            _userDeactivatedCache[d.id] = deactivated;
           }
         } catch (_) {}
       }
@@ -818,6 +885,10 @@ class AgendaController extends GetxController {
       final toRemove = <String>[];
       for (final post in shown) {
         if (!validIds.contains(post.docID)) {
+          toRemove.add(post.docID);
+          continue;
+        }
+        if (userDeactivated[post.userID] == true) {
           toRemove.add(post.docID);
           continue;
         }
@@ -878,7 +949,13 @@ class AgendaController extends GetxController {
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
       for (final d in snap.docs) {
-        validUserIds.add(d.id);
+        final data = d.data();
+        final deactivated = _isUserMarkedDeactivated(data);
+        _userDeactivatedCache[d.id] = deactivated;
+        _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+        if (!deactivated) {
+          validUserIds.add(d.id);
+        }
       }
     }
 
@@ -1153,6 +1230,7 @@ class AgendaController extends GetxController {
   Future<List<PostsModel>> _filterPrivateItems(List<PostsModel> items) async {
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
     Map<String, bool> userPrivacy = {};
+    Map<String, bool> userDeactivated = {};
 
     if (uniqueUserIDs.isNotEmpty) {
       // Batch'leri 10'ar yerine 30'ar yap (daha az sorgu)
@@ -1179,8 +1257,13 @@ class AgendaController extends GetxController {
             .where(FieldPath.documentId, whereIn: batch)
             .get();
         for (final d in usersSnap.docs) {
-          final gizli = (d.data()['gizliHesap'] ?? false) == true;
+          final data = d.data();
+          final gizli = (data['gizliHesap'] ?? false) == true;
+          final deactivated = _isUserMarkedDeactivated(data);
           userPrivacy[d.id] = gizli;
+          userDeactivated[d.id] = deactivated;
+          _userPrivacyCache[d.id] = gizli;
+          _userDeactivatedCache[d.id] = deactivated;
         }
       }
     }
@@ -1190,6 +1273,7 @@ class AgendaController extends GetxController {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
       if (!_isRenderablePost(post)) return false;
+      if (userDeactivated[post.userID] == true) return false;
       final isPrivate = userPrivacy[post.userID] ?? false;
       if (!isPrivate) return true;
       final isMine = me != null && post.userID == me;

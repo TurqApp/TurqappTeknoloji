@@ -54,6 +54,23 @@ class SearchUserContent extends StatelessWidget {
     } catch (_) {}
   }
 
+  Future<bool> _isTargetAccountActive(String targetUid) async {
+    try {
+      final snap =
+          await FirebaseFirestore.instance.collection("users").doc(targetUid).get();
+      final data = snap.data();
+      if (data == null) return false;
+      final deletedAccount = (data['deletedAccount'] ?? false) == true;
+      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+      if (deletedAccount || status == 'pending_deletion' || status == 'deleted') {
+        return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _removeRecent() async {
     final targetUid = await _resolveTargetUid();
     if (targetUid.isEmpty) return;
@@ -94,6 +111,17 @@ class SearchUserContent extends StatelessWidget {
                   onTap: () async {
                     final targetUid = await _resolveTargetUid();
                     if (targetUid.isEmpty) return;
+                    final isActive = await _isTargetAccountActive(targetUid);
+                    if (!isActive) {
+                      await _removeRecent();
+                      Get.snackbar(
+                        'Bilgi',
+                        'Bu hesap artık görüntülenemiyor.',
+                        snackPosition: SnackPosition.TOP,
+                        duration: const Duration(seconds: 2),
+                      );
+                      return;
+                    }
                     Get.to(
                       () => SocialProfile(userID: targetUid),
                       preventDuplicates: false,

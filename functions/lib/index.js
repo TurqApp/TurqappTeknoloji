@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillPhoneAccounts = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.onVideoUpload = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillPhoneAccounts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.onVideoUpload = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -273,6 +273,77 @@ exports.onUserNotificationCreate = functions.firestore
     }
     catch (e) {
         console.error("onUserNotificationCreate error", e);
+    }
+});
+// ACCOUNT DELETION CRON: process users whose deletion grace period is over
+exports.processScheduledAccountDeletions = functions.pubsub
+    .schedule("0 0 * * *")
+    .timeZone("UTC")
+    .onRun(async () => {
+    const now = admin.firestore.Timestamp.now();
+    let processedCount = 0;
+    let errorCount = 0;
+    console.log("processScheduledAccountDeletions:start");
+    try {
+        const usersSnap = await db
+            .collection("users")
+            .where("accountStatus", "==", "pending_deletion")
+            .get();
+        for (const userDoc of usersSnap.docs) {
+            try {
+                const userId = userDoc.id;
+                const userData = userDoc.data();
+                const actionsSnap = await db
+                    .collection("users")
+                    .doc(userId)
+                    .collection("account_actions")
+                    .where("type", "==", "deletion")
+                    .where("status", "==", "pending")
+                    .orderBy("createdAt", "desc")
+                    .limit(1)
+                    .get();
+                if (actionsSnap.empty) {
+                    continue;
+                }
+                const actionDoc = actionsSnap.docs[0];
+                const action = actionDoc.data();
+                const scheduledAt = action.scheduledAt;
+                if (!scheduledAt || scheduledAt.toMillis() > now.toMillis()) {
+                    continue;
+                }
+                const timestamp = Date.now();
+                const baseName = String(userData.username || userData.nickname || "user").replace(/\s+/g, "_");
+                const deletedName = `deleted_${baseName}_${timestamp}`;
+                await db.collection("users").doc(userId).set({
+                    accountStatus: "deleted",
+                    username: deletedName,
+                    nickname: deletedName,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+                }, { merge: true });
+                await actionDoc.ref.set({
+                    status: "completed",
+                    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    originalUsername: String(userData.username || ""),
+                    originalNickname: String(userData.nickname || ""),
+                }, { merge: true });
+                processedCount++;
+            }
+            catch (e) {
+                console.error("processScheduledAccountDeletions:user_error", e);
+                errorCount++;
+            }
+        }
+        console.log("processScheduledAccountDeletions:done", {
+            processedCount,
+            errorCount,
+            totalPending: usersSnap.size,
+        });
+        return null;
+    }
+    catch (e) {
+        console.error("processScheduledAccountDeletions:fatal", e);
+        throw e;
     }
 });
 const _defaultPushTypes = {

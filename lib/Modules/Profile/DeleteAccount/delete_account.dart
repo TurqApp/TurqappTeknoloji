@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 
-import '../../../Core/external.dart';
+import '../../../Core/app_snackbar.dart';
 import '../../../Services/phone_account_limiter.dart';
-import '../../../Core/functions.dart';
 import '../../SignIn/sign_in.dart';
 
 class DeleteAccount extends StatefulWidget {
@@ -19,30 +19,45 @@ class DeleteAccount extends StatefulWidget {
 }
 
 class _DeleteAccountState extends State<DeleteAccount> {
-  TextEditingController inputcode = TextEditingController();
-  int color = 0xFF000000;
-  String phoneNumber = "";
-  String email = "";
-  String sifre = "";
-  int randomCode = Random().nextInt(90000) + 10000;
-  bool sent = false;
+  static const int _deletionGraceDays = 30;
+  final TextEditingController _codeController = TextEditingController();
+  final int _color = 0xFF000000;
+
+  String _phoneNumber = "";
+  String _email = "";
+
+  bool _isCodeSent = false;
+  bool _isBusy = false;
+  int _countdown = 0;
+  Timer? _timer;
+  StreamSubscription<DocumentSnapshot>? _userSub;
+
   @override
   void initState() {
     super.initState();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .listen((DocumentSnapshot doc) {
-      String phone = doc.get("phoneNumber");
-      String email = doc.get("email");
-      String sifre = doc.get("sifre");
-      setState(() {
-        phoneNumber = phone;
-        this.email = email;
-        this.sifre = sifre;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _userSub = FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .snapshots()
+          .listen((DocumentSnapshot doc) {
+        if (!doc.exists || !mounted) return;
+        final data = doc.data() as Map<String, dynamic>? ?? const {};
+        setState(() {
+          _phoneNumber = (data["phoneNumber"] ?? "").toString();
+          _email = (data["email"] ?? "").toString().trim().toLowerCase();
+        });
       });
-    });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _userSub?.cancel();
+    _codeController.dispose();
+    super.dispose();
   }
 
   @override
@@ -58,203 +73,356 @@ class _DeleteAccountState extends State<DeleteAccount> {
               ),
             ),
             Expanded(
-              child: Container(
-                color: Colors.white,
-                child: ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        "Biz, burada sizinle bir bağ kurduk ve bu bağın bir kopuşu her zaman zor olacaktır. Sizin deneyiminizden memnuniyet duymak ve ihtiyaçlarınıza en iyi şekilde cevap vermek bizim önceliğimizdir.",
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      borderRadius: const BorderRadius.all(Radius.circular(14)),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Hesap Silme Onayı",
+                          style: TextStyle(
                             color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium"),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(12))),
-                        child: Padding(
-                          padding: EdgeInsets.all(15),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info,
-                                size: 20,
-                                color: Color(color),
-                              ),
-                              SizedBox(
-                                width: 12,
-                              ),
-                              Flexible(
-                                child: Text(
-                                  "Telefon numarana bir doğrulama kodu göndereceğiz",
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "Montserrat"),
-                                ),
-                              )
-                            ],
+                            fontSize: 18,
+                            fontFamily: "MontserratBold",
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(12))),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: TextField(
-                                  controller: inputcode,
-                                  keyboardType: TextInputType.phone,
-                                  inputFormatters: [
-                                    LengthLimitingTextInputFormatter(5),
-                                    FilteringTextInputFormatter.allow(
-                                        RegExp(r'[0-9]')),
-                                  ],
-                                  decoration: InputDecoration(
-                                      hintText: "Doğrulama Kodu",
-                                      hintStyle: TextStyle(
-                                          color: Colors.grey,
-                                          fontFamily: "Montserrat"),
-                                      border: InputBorder.none),
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "Montserrat"),
-                                ),
-                              ),
-                              if (!sent)
-                                GestureDetector(
-                                  onTap: () {
-                                    sendRequestForDelete(
-                                        "$randomCode", phoneNumber);
-                                    setState(() {
-                                      sent = !sent;
-                                    });
-                                    showAlertDialog(context, "Kod Gönderildi!",
-                                        "Mesaj kutunuza düşen doğrulama kodunu giriniz");
-                                  },
-                                  child: Text(
-                                    "Kod Gönder",
-                                    style: TextStyle(
-                                        color: Color(color),
-                                        fontSize: 15,
-                                        fontFamily: "Montserrat"),
-                                  ),
-                                )
-                            ],
+                        const SizedBox(height: 10),
+                        Text(
+                          "Hesabınızı silmeden önce güvenlik için kayıtlı e-posta adresinize onay kodu gönderiyoruz.",
+                          style: TextStyle(
+                            color: Colors.black.withValues(alpha: 0.75),
+                            fontSize: 14,
+                            fontFamily: "Montserrat",
                           ),
                         ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: GestureDetector(
-                        onTap: () {
-                          if ("$randomCode" == inputcode.text) {
-                            _reauthenticateAndDeleteAccount(context);
-                          } else {
-                            showAlertDialog(context, "Geçersiz Kod",
-                                "Girdiğiniz doğrulama kodu hatalıdır. Tekrar kontrol edebilir misiniz ?");
-                          }
-                        },
-                        child: Container(
-                          alignment: Alignment.center,
-                          height: 50,
-                          decoration: BoxDecoration(
-                              color: Color(color),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12))),
-                          child: Text(
-                            "Hesabımı Sil",
+                        if (_email.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            _email,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium"),
+                              color: Colors.black,
+                              fontSize: 13,
+                              fontFamily: "MontserratMedium",
+                            ),
                           ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: TextField(
+                            controller: _codeController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(6),
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              hintText: "6 haneli onay kodu",
+                              hintStyle: TextStyle(
+                                color: Colors.grey,
+                                fontFamily: "Montserrat",
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "Montserrat",
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _isBusy ? null : _sendDeleteCode,
+                          child: Text(
+                            _countdown > 0
+                                ? "${_countdown}s"
+                                : (_isCodeSent ? "Tekrar Gönder" : "Kod Gönder"),
+                            style: TextStyle(
+                              color: _countdown > 0
+                                  ? Colors.grey
+                                  : Color(_color),
+                              fontSize: 14,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Kodun geçerlilik süresi 1 saattir. Silme talebiniz $_deletionGraceDays gün sonra kalıcı olarak işlenir.",
+                    style: TextStyle(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontFamily: "Montserrat",
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: _isBusy ? null : _verifyAndDelete,
+                    child: Container(
+                      alignment: Alignment.center,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _isBusy
+                            ? Colors.black.withValues(alpha: 0.35)
+                            : Color(_color),
+                        borderRadius: const BorderRadius.all(Radius.circular(12)),
+                      ),
+                      child: Text(
+                        _isBusy ? "İşleniyor..." : "Hesabımı Sil",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
                         ),
                       ),
                     ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _reauthenticateAndDeleteAccount(BuildContext context) async {
+  Future<void> _sendDeleteCode() async {
+    if (_countdown > 0 || _isBusy) return;
+    if (_email.isEmpty) {
+      AppSnackbar(
+        "Uyarı",
+        "Bu hesapta e-posta yok. Silme talebini direkt başlatabilirsiniz.",
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+    });
+
+    try {
+      await user.getIdToken(true);
+      await FirebaseFunctions.instanceFor(region: "europe-west3")
+          .httpsCallable("sendEmailVerificationCode")
+          .call({
+        "email": _email,
+        "purpose": "email_confirm",
+        "idToken": await user.getIdToken(),
+      });
+
+      _startCountdown();
+      if (!mounted) return;
+      setState(() {
+        _isCodeSent = true;
+      });
+      AppSnackbar("Kod Gönderildi", "Silme onay kodu e-posta adresinize gönderildi.");
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      AppSnackbar("Uyarı", e.message ?? "Kod gönderilemedi.");
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackbar("Hata", "Kod gönderilemedi.");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
+    }
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    setState(() {
+      _countdown = 60;
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdown <= 0) {
+        timer.cancel();
+      } else {
+        setState(() {
+          _countdown--;
+        });
+      }
+    });
+  }
+
+  Future<void> _verifyAndDelete() async {
+    if (_email.isEmpty) {
+      await _requestDelete(context);
+      return;
+    }
+
+    final code = _codeController.text.trim();
+    if (code.length != 6) {
+      AppSnackbar("Geçersiz Kod", "Lütfen 6 haneli kod girin.");
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      AppSnackbar("Uyarı", "Oturum bulunamadı. Tekrar giriş yapın.");
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+    });
+
+    try {
+      await user.getIdToken(true);
+      final idToken = await user.getIdToken();
+      await FirebaseFunctions.instanceFor(region: "europe-west3")
+          .httpsCallable("verifyEmailCode")
+          .call({
+        "email": _email,
+        "purpose": "email_confirm",
+        "verificationCode": code,
+        "idToken": idToken,
+      });
+
+      await _requestDelete(context);
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      AppSnackbar("Uyarı", e.message ?? "Kod doğrulanamadı.");
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackbar("Hata", "Kod doğrulanamadı.");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _requestDelete(BuildContext context) async {
     final FirebaseAuth auth = FirebaseAuth.instance;
     final user = auth.currentUser;
-    if (user != null) {
+    if (user == null) return;
+
+    try {
       try {
-        await user.reauthenticateWithCredential(
-          EmailAuthProvider.credential(
-            email: email,
-            password: sifre,
+        await PhoneAccountLimiter()
+            .decrementOnUserDelete(uid: user.uid, phone: _phoneNumber);
+      } catch (_) {}
+
+      final usersRef = FirebaseFirestore.instance.collection("users");
+      final now = DateTime.now();
+      final scheduledAt = now.add(
+        const Duration(days: _deletionGraceDays),
+      );
+      final userRef = usersRef.doc(user.uid);
+
+      await userRef.update({
+        "accountStatus": "pending_deletion",
+        "deletedAccount": true,
+        "gizliHesap": true,
+        "deletionRequestedAt": FieldValue.serverTimestamp(),
+        "deletionScheduledAt": Timestamp.fromDate(scheduledAt),
+        "updatedAt": FieldValue.serverTimestamp(),
+      });
+
+      await userRef.collection("account_actions").add({
+        "type": "deletion",
+        "status": "pending",
+        "reason": "self_service_request",
+        "createdAt": FieldValue.serverTimestamp(),
+        "scheduledAt": Timestamp.fromDate(scheduledAt),
+      });
+
+      await _hideUserPosts(user.uid);
+
+      await auth.signOut();
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PopScope(
+            canPop: false,
+            child: SignIn(),
           ),
-        );
-        // Decrement phone account counter first for consistency
-        try {
-          await PhoneAccountLimiter()
-              .decrementOnUserDelete(uid: user.uid, phone: phoneNumber);
-        } catch (_) {}
+        ),
+      );
 
-        // Delete user document
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(user.uid)
-            .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Talebin alındı. $_deletionGraceDays gün sonunda hesabın tamamen silinir ve nickname tekrar kullanıma açılır.",
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Hesabınızı silerken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz",
+          ),
+        ),
+      );
+    }
+  }
 
-        // Finally delete auth user
-        await user.delete();
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => PopScope(
-                      canPop: false,
-                      child: SignIn(),
-                    )));
+  Future<void> _hideUserPosts(String uid) async {
+    final postsRef = FirebaseFirestore.instance.collection("Posts");
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    DocumentSnapshot? lastDoc;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hesabın kalıcı olarak silinmiştir!')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Hesabınızı silerken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz')),
-        );
+    while (true) {
+      Query query = postsRef.where("userID", isEqualTo: uid).limit(200);
+      if (lastDoc != null) {
+        query = query.startAfterDocument(lastDoc);
       }
+
+      final snap = await query.get();
+      if (snap.docs.isEmpty) break;
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {
+          "deletedAccount": true,
+          "deletedPost": true,
+          "deletedPostTime": nowMs,
+          "updatedAt": FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+
+      lastDoc = snap.docs.last;
+      if (snap.docs.length < 200) break;
     }
   }
 }

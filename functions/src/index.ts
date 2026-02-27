@@ -262,6 +262,94 @@ export const onUserNotificationCreate = functions.firestore
     }
   });
 
+// ACCOUNT DELETION CRON: process users whose deletion grace period is over
+export const processScheduledAccountDeletions = functions.pubsub
+  .schedule("0 0 * * *")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const now = admin.firestore.Timestamp.now();
+    let processedCount = 0;
+    let errorCount = 0;
+
+    console.log("processScheduledAccountDeletions:start");
+
+    try {
+      const usersSnap = await db
+        .collection("users")
+        .where("accountStatus", "==", "pending_deletion")
+        .get();
+
+      for (const userDoc of usersSnap.docs) {
+        try {
+          const userId = userDoc.id;
+          const userData = userDoc.data() as Record<string, unknown>;
+
+          const actionsSnap = await db
+            .collection("users")
+            .doc(userId)
+            .collection("account_actions")
+            .where("type", "==", "deletion")
+            .where("status", "==", "pending")
+            .orderBy("createdAt", "desc")
+            .limit(1)
+            .get();
+
+          if (actionsSnap.empty) {
+            continue;
+          }
+
+          const actionDoc = actionsSnap.docs[0];
+          const action = actionDoc.data() as Record<string, unknown>;
+          const scheduledAt = action.scheduledAt as admin.firestore.Timestamp | undefined;
+          if (!scheduledAt || scheduledAt.toMillis() > now.toMillis()) {
+            continue;
+          }
+
+          const timestamp = Date.now();
+          const baseName =
+            String(userData.username || userData.nickname || "user").replace(/\s+/g, "_");
+          const deletedName = `deleted_${baseName}_${timestamp}`;
+
+          await db.collection("users").doc(userId).set(
+            {
+              accountStatus: "deleted",
+              username: deletedName,
+              nickname: deletedName,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+
+          await actionDoc.ref.set(
+            {
+              status: "completed",
+              completedAt: admin.firestore.FieldValue.serverTimestamp(),
+              originalUsername: String(userData.username || ""),
+              originalNickname: String(userData.nickname || ""),
+            },
+            { merge: true },
+          );
+
+          processedCount++;
+        } catch (e) {
+          console.error("processScheduledAccountDeletions:user_error", e);
+          errorCount++;
+        }
+      }
+
+      console.log("processScheduledAccountDeletions:done", {
+        processedCount,
+        errorCount,
+        totalPending: usersSnap.size,
+      });
+      return null;
+    } catch (e) {
+      console.error("processScheduledAccountDeletions:fatal", e);
+      throw e;
+    }
+  });
+
 type PushTypeMap = {
   follow: boolean;
   comment: boolean;
