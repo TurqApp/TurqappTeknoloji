@@ -14,7 +14,6 @@ dependencies:
     sdk: flutter
 
 
-  cupertino_icons: ^1.0.8
   get: ^4.7.3
   svg_flutter: ^0.0.1
   cloud_firestore: ^6.1.2
@@ -64,7 +63,6 @@ dependencies:
   shared_preferences: ^2.5.4
   flutter_local_notifications: ^20.1.0
   firebase_messaging: ^16.1.1
-  googleapis_auth: ^2.0.0
   app_tracking_transparency: ^2.0.6+1
   google_mobile_ads: ^7.0.0
   flutter_reorderable_grid_view: ^5.5.2
@@ -76,7 +74,6 @@ dependencies:
   firebase_remote_config: ^6.1.1
   app_links: ^6.4.1
   giphy_get: ^3.6.1+1
-  flutter_typeahead: ^5.2.0
 
 dev_dependencies:
   flutter_test:
