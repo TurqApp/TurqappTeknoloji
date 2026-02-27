@@ -64,47 +64,25 @@ class SettingsView extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
+                      buildSectionTitle("Hesap"),
                       buildRow("Profili Düzenle", CupertinoIcons.pencil_outline,
                           () {
                         Get.to(() => EditProfile());
                       }),
-                      // 🎯 Using CurrentUserService
                       if ((userService.currentUser?.rozet ?? "").isEmpty)
                         buildRow(
                             "Onaylı Hesap Ol", CupertinoIcons.checkmark_seal,
                             () {
                           Get.to(() => BecomeVerifiedAccount());
                         }),
-                      // Hesap Gizliliği - Görünüm altına eklendi
                       buildRow("Hesap Gizliliği", CupertinoIcons.lock,
                           () async {
-                        // 🎯 Using CurrentUserService.updateFields
                         final currentPrivacy =
                             userService.currentUser?.gizliHesap ?? false;
                         final newValue = !currentPrivacy;
                         try {
-                          await userService
-                              .updateFields({"gizliHesap": newValue});
-                        } catch (e) {
-                          // Hata sessizce geçilir; kullanıcı akışı bozulmasın
-                        }
-                      }),
-                      buildRow("Kaydedilenler", CupertinoIcons.bookmark, () {
-                        Get.to(() => SavedPosts());
-                      }),
-                      buildRow("Eğitim Ekranı", CupertinoIcons.nosign, () {
-                        controller.toggleEducationScreen();
-                      }),
-                      buildRow("Sistem ve Tanı Menüsü",
-                          CupertinoIcons.antenna_radiowaves_left_right, () {
-                        _showSystemDiagnosticsMenu();
-                      }),
-                      buildRow("Arşiv", CupertinoIcons.refresh_thick, () {
-                        Get.to(() => Archives());
-                      }),
-                      buildRow("Beğenilenler", CupertinoIcons.hand_thumbsup,
-                          () {
-                        Get.to(() => LikedPosts());
+                          await userService.updateFields({"gizliHesap": newValue});
+                        } catch (e) {}
                       }),
                       buildRow(
                         "Engellenenler",
@@ -119,23 +97,31 @@ class SettingsView extends StatelessWidget {
                       buildRow("Özgeçmiş (Cv)", CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
-                      // buildRow("Burs Ayarları", CupertinoIcons.gear, () {
-                      //   scholarshipsController.settings(context);
-                      // }),
                       buildRow("Bağlantılar", CupertinoIcons.link, () {
                         Get.to(() => SocialMediaLinks());
                       }),
-                      buildRow(
-                        "İzinler",
-                        CupertinoIcons.lock_shield,
-                        () {
-                          Get.to(() => const PermissionsView());
-                        },
-                      ),
-                      _AdminPushMenuTile(buildRow: buildRow),
-                      // buildRow("Dil", CupertinoIcons.globe, () {
-                      //   Get.to(LangSelector());
-                      // }),
+
+                      buildSectionTitle("İçerik"),
+                      buildRow("Kaydedilenler", CupertinoIcons.bookmark, () {
+                        Get.to(() => SavedPosts());
+                      }),
+                      buildRow("Arşiv", CupertinoIcons.refresh_thick, () {
+                        Get.to(() => Archives());
+                      }),
+                      buildRow("Beğenilenler", CupertinoIcons.hand_thumbsup,
+                          () {
+                        Get.to(() => LikedPosts());
+                      }),
+
+                      buildSectionTitle("Uygulama"),
+                      buildRow("İzinler", CupertinoIcons.lock_shield, () {
+                        Get.to(() => const PermissionsView());
+                      }),
+                      buildRow("Eğitim Ekranı", CupertinoIcons.nosign, () {
+                        controller.toggleEducationScreen();
+                      }),
+
+                      buildSectionTitle("Güvenlik ve Destek"),
                       buildRow("Hakkında", CupertinoIcons.info, () {
                         Get.to(
                           () => AboutProfile(
@@ -149,45 +135,46 @@ class SettingsView extends StatelessWidget {
                       buildRow("Bize Yazın", CupertinoIcons.pencil_circle, () {
                         launchUrl(Uri.parse('mailto:info@turqapp.com'));
                       }),
+
+                      buildSectionTitle("Sistem ve Tanı"),
                       buildRow(
-                        "Oturumu Kapat",
-                        CupertinoIcons.square_arrow_right,
+                        "Sistem ve Tanı Menüsü",
+                        CupertinoIcons.antenna_radiowaves_left_right,
                         () {
-                          noYesAlert(
-                            title: "Çıkış Yap",
-                            message:
-                                "Çıkış yapmak istediğinizden emin misiniz?",
-                            onYesPressed: () async {
-                              final currentUser =
-                                  FirebaseAuth.instance.currentUser?.uid;
-                              if (currentUser != null) {
-                                await FirebaseFirestore.instance
-                                    .collection("users")
-                                    .doc(currentUser)
-                                    .update({"token": ""});
-                              }
-
-                              try {
-                                // 🔥 CRITICAL: Clear CurrentUserService state & cache first
-                                await CurrentUserService.instance.logout();
-
-                                // Clear deprecated FirebaseMyStore state
-                                Get.find<FirebaseMyStore>().rvesertUserData();
-
-                                // Sign out from Firebase Auth
-                                await FirebaseAuth.instance.signOut();
-
-                                // Navigate to sign-in screen
-                                await Get.offAll(() => SignIn());
-                              } catch (e) {
-                                print("Çıkış yapılamadı: $e");
-                              }
-                            },
-                            yesText: "Çıkış Yap",
-                            cancelText: "Vazgeç",
-                          );
+                          _showSystemDiagnosticsMenu();
                         },
                       ),
+                      _AdminPushMenuTile(buildRow: buildRow),
+
+                      buildSectionTitle("Oturum"),
+                      buildRow("Oturumu Kapat",
+                          CupertinoIcons.square_arrow_right, () {
+                        noYesAlert(
+                          title: "Çıkış Yap",
+                          message: "Çıkış yapmak istediğinizden emin misiniz?",
+                          onYesPressed: () async {
+                            final currentUser =
+                                FirebaseAuth.instance.currentUser?.uid;
+                            if (currentUser != null) {
+                              await FirebaseFirestore.instance
+                                  .collection("users")
+                                  .doc(currentUser)
+                                  .update({"token": ""});
+                            }
+
+                            try {
+                              await CurrentUserService.instance.logout();
+                              Get.find<FirebaseMyStore>().rvesertUserData();
+                              await FirebaseAuth.instance.signOut();
+                              await Get.offAll(() => SignIn());
+                            } catch (e) {
+                              print("Çıkış yapılamadı: $e");
+                            }
+                          },
+                          yesText: "Çıkış Yap",
+                          cancelText: "Vazgeç",
+                        );
+                      }),
                       15.ph,
                     ],
                   ),
@@ -283,6 +270,24 @@ class SettingsView extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildSectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14, bottom: 2),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 13,
+              fontFamily: "MontserratBold",
+            ),
+          ),
+        ],
       ),
     );
   }
