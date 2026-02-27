@@ -77,6 +77,87 @@ class SignInController extends GetxController
 
   var signInEmail = "".obs;
 
+  Future<void> _restoreAccountIfPendingDeletion() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+
+    final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
+    final userSnap = await userRef.get();
+    final userData = userSnap.data();
+    if (userData == null) return;
+
+    final status = (userData["accountStatus"] ?? "").toString().toLowerCase();
+    if (status != "pending_deletion") return;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    int? scheduledAtMs;
+    final dynamic scheduledRaw = userData["deletionScheduledAt"];
+    if (scheduledRaw is Timestamp) {
+      scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
+    } else if (scheduledRaw is num) {
+      scheduledAtMs = scheduledRaw.toInt();
+    }
+
+    // Süresi dolmuşsa (silinme zamanı geçmişse) otomatik geri açma yapma.
+    if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
+      return;
+    }
+
+    // Hesabı yeniden aktif et
+    await userRef.set({
+      "accountStatus": "active",
+      "deletedAccount": false,
+      "gizliHesap": false,
+      "updatedAt": FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // Bekleyen silme aksiyonunu iptal işaretle
+    try {
+      final actionSnap = await userRef
+          .collection("account_actions")
+          .where("type", isEqualTo: "deletion")
+          .where("status", isEqualTo: "pending")
+          .limit(1)
+          .get();
+      if (actionSnap.docs.isNotEmpty) {
+        await actionSnap.docs.first.reference.set({
+          "status": "cancelled",
+          "cancelledAt": FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (_) {}
+
+    // Silme sırasında gizlenen postları geri aç
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection("Posts")
+        .where("userID", isEqualTo: uid)
+        .where("deletedPost", isEqualTo: true)
+        .limit(400);
+
+    while (true) {
+      final snap = await query.get();
+      if (snap.docs.isEmpty) break;
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {
+          "deletedPost": false,
+          "deletedPostTime": 0,
+          "updatedAt": FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+
+      if (snap.docs.length < 400) break;
+      query = FirebaseFirestore.instance
+          .collection("Posts")
+          .where("userID", isEqualTo: uid)
+          .where("deletedPost", isEqualTo: true)
+          .startAfterDocument(snap.docs.last)
+          .limit(400);
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -545,6 +626,7 @@ class SignInController extends GetxController
         email: resetMail.value,
         password: newPassword,
       );
+      await _restoreAccountIfPendingDeletion();
 
       // 2. Giriş başarılıysa, şifreyi güncelle
       await userCredential.user!.updatePassword(newPassword);
@@ -654,6 +736,7 @@ class SignInController extends GetxController
       );
       authSucceeded = true;
       print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}");
+      await _restoreAccountIfPendingDeletion();
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );

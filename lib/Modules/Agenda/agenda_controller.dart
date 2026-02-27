@@ -100,7 +100,9 @@ class AgendaController extends GetxController {
       }
     });
     scrollController.addListener(_onScroll);
-    navBarController = Get.find<NavBarController>();
+    navBarController = Get.isRegistered<NavBarController>()
+        ? Get.find<NavBarController>()
+        : Get.put(NavBarController());
     myStore = Get.find<FirebaseMyStore>();
     _bindFollowingListener();
     _bindCenteredIndexListener();

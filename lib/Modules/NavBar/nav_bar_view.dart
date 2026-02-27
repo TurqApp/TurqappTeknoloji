@@ -19,6 +19,7 @@ import '../Profile/MyProfile/profile_view.dart';
 import '../Education/education_view.dart';
 import '../Short/short_view.dart';
 import '../Short/short_controller.dart';
+import '../Story/StoryRow/story_row_controller.dart';
 import '../Profile/Settings/settings_controller.dart';
 import '../../Core/Widgets/offline_indicator.dart';
 
@@ -45,6 +46,9 @@ class NavBarView extends StatelessWidget {
     }
     if (!Get.isRegistered<EducationController>()) {
       Get.put(EducationController());
+    }
+    if (!Get.isRegistered<StoryRowController>()) {
+      Get.put(StoryRowController());
     }
 
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in

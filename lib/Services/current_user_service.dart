@@ -115,6 +115,7 @@ class CurrentUserService extends GetxController {
         emailVerifiedRx.value = true;
         return false;
       }
+      await _restorePendingDeletionIfNeeded(firebaseUser.uid);
       emailVerifiedRx.value = firebaseUser.emailVerified;
       unawaited(_loadEmailVerifyConfig());
 
@@ -144,6 +145,83 @@ class CurrentUserService extends GetxController {
       print('❌ CurrentUserService initialization error: $e');
       _isInitialized = true;
       return false;
+    }
+  }
+
+  Future<void> _restorePendingDeletionIfNeeded(String uid) async {
+    try {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final userSnap = await userRef.get();
+      final data = userSnap.data();
+      if (data == null) return;
+
+      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+      if (status != 'pending_deletion') return;
+
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      int? scheduledAtMs;
+      final dynamic scheduledRaw = data['deletionScheduledAt'];
+      if (scheduledRaw is Timestamp) {
+        scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
+      } else if (scheduledRaw is num) {
+        scheduledAtMs = scheduledRaw.toInt();
+      }
+      if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
+        return;
+      }
+
+      await userRef.set({
+        'accountStatus': 'active',
+        'deletedAccount': false,
+        'gizliHesap': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      try {
+        final actionSnap = await userRef
+            .collection('account_actions')
+            .where('type', isEqualTo: 'deletion')
+            .where('status', isEqualTo: 'pending')
+            .limit(1)
+            .get();
+        if (actionSnap.docs.isNotEmpty) {
+          await actionSnap.docs.first.reference.set({
+            'status': 'cancelled',
+            'cancelledAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+      } catch (_) {}
+
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('Posts')
+          .where('userID', isEqualTo: uid)
+          .where('deletedPost', isEqualTo: true)
+          .limit(400);
+
+      while (true) {
+        final snap = await query.get();
+        if (snap.docs.isEmpty) break;
+
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in snap.docs) {
+          batch.update(doc.reference, {
+            'deletedPost': false,
+            'deletedPostTime': 0,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+
+        if (snap.docs.length < 400) break;
+        query = FirebaseFirestore.instance
+            .collection('Posts')
+            .where('userID', isEqualTo: uid)
+            .where('deletedPost', isEqualTo: true)
+            .startAfterDocument(snap.docs.last)
+            .limit(400);
+      }
+    } catch (e) {
+      print('⚠️ pending_deletion restore skipped: $e');
     }
   }
 
