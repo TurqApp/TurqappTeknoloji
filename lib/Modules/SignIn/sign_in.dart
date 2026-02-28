@@ -589,7 +589,7 @@ class SignIn extends StatelessWidget {
                               controller.nicknameFocus.value.requestFocus();
                             },
                             onChanged: (txt) {
-                              if (txt.length >= 5) {
+                              if (txt.length >= 6) {
                                 controller.searchNickname();
                               } else {
                                 controller.nicknameAvilable.value = false;
@@ -630,7 +630,7 @@ class SignIn extends StatelessWidget {
                 height: 4,
               ),
               Text(
-                "Kullanıcı adı size özel, özgün ve yanıltıcı olmayan şekilde oluşturulmalıdır.",
+                "Kullanıcı adı size özel, özgün ve yanıltıcı olmayan şekilde oluşturulmalıdır. Türkçe karakterler otomatik dönüştürülür.",
                 style: TextStyle(color: Colors.black, fontSize: 12),
               ),
               SizedBox(height: 7),

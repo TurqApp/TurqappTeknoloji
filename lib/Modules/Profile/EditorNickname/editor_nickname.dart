@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Helpers/custom_nickname_formatter.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
@@ -47,9 +48,7 @@ class EditorNickname extends StatelessWidget {
                                         autofocus: true,
                                         inputFormatters: [
                                           LengthLimitingTextInputFormatter(20),
-                                          FilteringTextInputFormatter.allow(
-                                            RegExp(r'[a-z0-9._]'),
-                                          ),
+                                          CustomNicknameFormatter(),
                                         ],
                                         decoration: InputDecoration(
                                           hintText: "Kullanıcı Adı Oluştur",
@@ -147,12 +146,25 @@ class EditorNickname extends StatelessWidget {
                           else
                             Padding(
                               padding: EdgeInsets.only(top: 12),
-                              child: Text(
-                                "Gerçek kişileri taklit eden kullanıcı adları, topluluğumuzu korumak adına Turqapp tarafından değiştirilebilir.",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 14,
-                                    fontFamily: "Montserrat"),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Gerçek kişileri taklit eden kullanıcı adları, topluluğumuzu korumak adına Turqapp tarafından değiştirilebilir.",
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 14,
+                                        fontFamily: "Montserrat"),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    "Türkçe karakterler otomatik dönüştürülür. (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u)",
+                                    style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 12,
+                                        fontFamily: "Montserrat"),
+                                  ),
+                                ],
                               ),
                             ),
                           SizedBox(

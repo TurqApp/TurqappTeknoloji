@@ -443,8 +443,16 @@ service cloud.firestore {
     }
     match /usernames/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if false;
+      allow create: if isAuth()
+        && (
+          request.resource.data.uid == request.auth.uid ||
+          request.resource.data.userID == request.auth.uid
+        );
+      allow update, delete: if isAuth()
+        && (
+          resource.data.uid == request.auth.uid ||
+          resource.data.userID == request.auth.uid
+        );
     }
     match /Cevaplayanlar/{docId} {
       allow read, write: if isAuth();

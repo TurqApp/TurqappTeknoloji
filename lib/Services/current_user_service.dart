@@ -117,6 +117,9 @@ class CurrentUserService extends GetxController {
       }
       await _restorePendingDeletionIfNeeded(firebaseUser.uid);
       emailVerifiedRx.value = firebaseUser.emailVerified;
+      // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
+      // anında kesinleştir.
+      unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
       unawaited(_loadEmailVerifyConfig());
 
       // If already initialized and user exists, just ensure sync is running
