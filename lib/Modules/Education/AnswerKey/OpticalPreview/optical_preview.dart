@@ -6,19 +6,17 @@ import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_pre
 class OpticalPreview extends StatelessWidget {
   final OpticalFormModel model;
   final Function? update;
-  final Function gecersizSay;
 
   const OpticalPreview({
     super.key,
     required this.model,
     this.update,
-    required this.gecersizSay,
   });
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(
-      OpticalPreviewController(model, update, gecersizSay),
+      OpticalPreviewController(model, update),
     );
 
     return Scaffold(
@@ -65,11 +63,11 @@ class OpticalPreview extends StatelessWidget {
                                           height: 50,
                                           decoration: BoxDecoration(
                                             color: index % 2 == 0
-                                                ? Colors.pink.withValues(alpha: 
-                                                    0.05,
+                                                ? Colors.pink.withValues(
+                                                    alpha: 0.05,
                                                   )
-                                                : Colors.pink.withValues(alpha: 
-                                                    0.2,
+                                                : Colors.pink.withValues(
+                                                    alpha: 0.2,
                                                   ),
                                           ),
                                           child: Row(
@@ -212,7 +210,7 @@ class OpticalPreview extends StatelessWidget {
                                     ),
                                     SizedBox(height: 12),
                                     Text(
-                                      "Test'e gösterdiğiniz özen ve çabanın, başarıya giden yolu açacağına inanıyoruz. Bol şans ve başarılar dileriz!",
+                                      "Bilgilerini doldurup testi başlatabilirsin. Tüm cevapların sınav sonunda kaydedilecektir.",
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: Colors.black,
@@ -224,7 +222,7 @@ class OpticalPreview extends StatelessWidget {
                                     Divider(color: Colors.grey),
                                     SizedBox(height: 12),
                                     Text(
-                                      "Test Kuralları",
+                                      "Test Bilgilendirmesi",
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 18,
@@ -250,7 +248,7 @@ class OpticalPreview extends StatelessWidget {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            "Lütfen telefonunuzun internet bağlantısını kapatınız. Sınavınız tamamlandığında, internetinizi yeniden açarak cevaplarınızı gönderebileceğiniz ekranı görüntüleyebilirsiniz.",
+                                            "Ad soyad ve öğrenci numaranı girdikten sonra testi başlatabilirsin.",
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 18,
@@ -279,36 +277,7 @@ class OpticalPreview extends StatelessWidget {
                                         ),
                                         Expanded(
                                           child: Text(
-                                            "Sınavdan çıkmak isterseniz, tüm cevaplarınız geçersiz sayılacaktır ve puanınız kaydedilmeyecektir. Bu işlemi onaylamadan önce dikkatlice düşünmeniz önerilir.",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 15),
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        SizedBox(
-                                          width: 30,
-                                          height: 30,
-                                          child: Text(
-                                            "3-)",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 18,
-                                              fontFamily: "MontserratBold",
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            "Uygulamayı arka plana aldığınızda sınavınız geçersiz sayılacaktır. Bu yüzden uygulamayı arka plana almamaya özen gösteriniz.",
+                                            "Cevaplarını tamamladığında alttaki butonla sınavı bitirip yanıtlarını gönderebilirsin.",
                                             style: TextStyle(
                                               color: Colors.black,
                                               fontSize: 18,
@@ -323,7 +292,8 @@ class OpticalPreview extends StatelessWidget {
                                       height: 50,
                                       alignment: Alignment.centerLeft,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.withValues(alpha: 0.2),
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.all(
                                           Radius.circular(12),
                                         ),
@@ -358,7 +328,8 @@ class OpticalPreview extends StatelessWidget {
                                       height: 50,
                                       alignment: Alignment.centerLeft,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.withValues(alpha: 0.2),
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.all(
                                           Radius.circular(12),
                                         ),
@@ -389,98 +360,69 @@ class OpticalPreview extends StatelessWidget {
                                       ),
                                     ),
                                     SizedBox(height: 15),
-                                    Obx(
-                                      () {
-                                        if (!controller.isConnected.value) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Lütfen internet bağlantınızı kapatın.",
-                                                  style: TextStyle(
-                                                    fontFamily:
-                                                        "MontserratMedium",
-                                                  ),
-                                                ),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 3),
-                                              ),
-                                            );
-                                          });
-                                        } else if (controller
-                                                .fullName.text.length <
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (controller.fullName.text
+                                                .trim()
+                                                .length <
                                             6) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Ad ve soyad en az 6 karakter olmalı.",
-                                                  style: TextStyle(
-                                                    fontFamily:
-                                                        "MontserratMedium",
-                                                  ),
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Ad ve soyad en az 6 karakter olmalı.",
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      "MontserratMedium",
                                                 ),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 3),
                                               ),
-                                            );
-                                          });
-                                        } else if (controller
-                                            .ogrenciNo.text.isEmpty) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  "Öğrenci numarası boş olamaz.",
-                                                  style: TextStyle(
-                                                    fontFamily:
-                                                        "MontserratMedium",
-                                                  ),
-                                                ),
-                                                backgroundColor: Colors.red,
-                                                duration: Duration(seconds: 3),
-                                              ),
-                                            );
-                                          });
+                                              backgroundColor: Colors.red,
+                                              duration: Duration(seconds: 3),
+                                            ),
+                                          );
+                                          return;
                                         }
-                                        return !controller.isConnected.value &&
-                                                controller
-                                                        .fullName.text.length >=
-                                                    6 &&
-                                                controller
-                                                    .ogrenciNo.text.isNotEmpty
-                                            ? GestureDetector(
-                                                onTap: () =>
-                                                    controller.startTest(),
-                                                child: Container(
-                                                  height: 45,
-                                                  alignment: Alignment.center,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.indigo,
-                                                    borderRadius:
-                                                        BorderRadius.all(
-                                                      Radius.circular(12),
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    "Test'e Başla",
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                      fontFamily:
-                                                          "MontserratMedium",
-                                                    ),
-                                                  ),
+                                        if (controller.ogrenciNo.text
+                                            .trim()
+                                            .isEmpty) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                "Öğrenci numarası boş olamaz.",
+                                                style: TextStyle(
+                                                  fontFamily:
+                                                      "MontserratMedium",
                                                 ),
-                                              )
-                                            : SizedBox();
+                                              ),
+                                              backgroundColor: Colors.red,
+                                              duration: Duration(seconds: 3),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        controller.startTest();
                                       },
+                                      child: Container(
+                                        height: 45,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: controller.canStartTest()
+                                              ? Colors.indigo
+                                              : Colors.grey,
+                                          borderRadius: BorderRadius.all(
+                                            Radius.circular(12),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "Test'e Başla",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratMedium",
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                     SizedBox(height: 20),
                                   ],

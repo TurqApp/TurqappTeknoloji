@@ -129,7 +129,7 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
             itemBuilder: (context, index) {
               // Statik renk listesi
               List<Color> renkler = [
-                Colors.blue[500]!,
+                Colors.black,
                 Colors.green[500]!,
                 Colors.purple[500]!,
                 Colors.red[500]!,

@@ -138,6 +138,17 @@ class JobCreator extends StatelessWidget {
                       controller.maas2.text == "") {
                     AppSnackbar("Eksik alan",
                         "Maaş belirtmek istediğiniz için bir maaş aralığı girmek zorundasınız");
+                  } else if (controller.maasOpen.value == true &&
+                      controller.maas1.text.isNotEmpty &&
+                      controller.maas2.text.isNotEmpty &&
+                      (int.tryParse(controller.maas2.text) ?? 0) < (int.tryParse(controller.maas1.text) ?? 0)) {
+                    AppSnackbar("Hatalı Aralık",
+                        "Maksimum maaş, minimum maaştan düşük olamaz");
+                  } else if (controller.pozisyonSayisi.text.isNotEmpty &&
+                      ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) < 1 ||
+                       (int.tryParse(controller.pozisyonSayisi.text) ?? 0) > 100)) {
+                    AppSnackbar("Hatalı Değer",
+                        "Pozisyon sayısı 1 ile 100 arasında olmalıdır");
                   } else {
                     controller.setData();
                   }
@@ -694,6 +705,41 @@ class JobCreator extends StatelessWidget {
           children: [
             Column(
               children: [
+                // İlan Başlığı
+                Container(
+                  constraints: BoxConstraints(
+                    minHeight: 50,
+                    maxHeight: 100,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  child: TextField(
+                    controller: controller.ilanBasligi,
+                    maxLines: null,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(100),
+                    ],
+                    decoration: InputDecoration(
+                      hintText: "İlan Başlığı (ör. Kıdemli Yazılımcı)",
+                      hintStyle: TextStyle(
+                        color: Colors.black,
+                        fontFamily: "MontserratMedium",
+                      ),
+                      border: InputBorder.none,
+                    ),
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ),
+                15.ph,
                 GestureDetector(
                   onTap: () {
                     controller.selectCalismaTuru();
@@ -864,6 +910,96 @@ class JobCreator extends StatelessWidget {
                             )
                         ],
                       ),
+                    ),
+                  ),
+                ),
+                15.ph,
+                // Deneyim Seviyesi
+                GestureDetector(
+                  onTap: () {
+                    controller.selectDeneyimSeviyesi();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                        color: Colors.grey.withAlpha(20),
+                        borderRadius: BorderRadius.all(Radius.circular(12))),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 15, vertical: 15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Deneyim Seviyesi",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratMedium"),
+                              ),
+                              Icon(
+                                CupertinoIcons.chevron_down,
+                                color: Colors.black,
+                                size: 20,
+                              )
+                            ],
+                          ),
+                          if (controller.deneyimSeviyesi.value != "")
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                controller.deneyimSeviyesi.value,
+                                style: TextStyle(
+                                    color: Colors.pinkAccent,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratMedium"),
+                              ),
+                            )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                15.ph,
+                // Pozisyon Sayısı
+                Container(
+                  constraints: BoxConstraints(
+                    minHeight: 50,
+                    maxHeight: 100,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  child: TextField(
+                    controller: controller.pozisyonSayisi,
+                    maxLines: 1,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(3),
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    decoration: InputDecoration(
+                      hintText: "Pozisyon Sayısı",
+                      hintStyle: TextStyle(
+                        color: Colors.black,
+                        fontFamily: "MontserratMedium",
+                      ),
+                      border: InputBorder.none,
+                      suffixText: "kişi",
+                      suffixStyle: TextStyle(
+                        color: Colors.grey,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: "MontserratMedium",
                     ),
                   ),
                 ),

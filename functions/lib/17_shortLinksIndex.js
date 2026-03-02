@@ -7,7 +7,7 @@ const https_1 = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const axios_1 = require("axios");
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
-const SHORT_LINK_INDEX_COLLECTION = "short_links_index";
+const SHORT_LINK_INDEX_COLLECTION = "shortLinks";
 const SHORT_LINK_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
 const SHORT_LINK_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 function ensureAdmin() {
@@ -15,16 +15,20 @@ function ensureAdmin() {
         (0, app_1.initializeApp)();
 }
 function getEnv(name) {
-    return String(process.env[name] || "").trim();
+    const fromProcess = String(process.env[name] || "").trim();
+    if (fromProcess)
+        return fromProcess;
+    const configValue = functions.config?.()?.shortlinks?.[name.toLowerCase()];
+    return String(configValue || "").trim();
 }
 function normalizeText(v, maxLength) {
     return String(v || "").trim().slice(0, maxLength);
 }
 function normalizeType(v) {
     const raw = String(v || "").trim().toLowerCase();
-    if (raw === "post" || raw === "story" || raw === "user")
+    if (["post", "story", "user", "edu", "job"].includes(raw))
         return raw;
-    throw new https_1.HttpsError("invalid-argument", "type post/story/user olmalı.");
+    throw new https_1.HttpsError("invalid-argument", "type post/story/user/edu olmalı.");
 }
 function validateShortId(shortId) {
     if (!/^[A-Za-z0-9_-]{4,20}$/.test(shortId)) {
@@ -58,6 +62,10 @@ function typePath(type) {
         return "p";
     if (type === "story")
         return "s";
+    if (type === "edu")
+        return "e";
+    if (type === "job")
+        return "i";
     return "u";
 }
 function kvPrefix(type) {
@@ -101,10 +109,11 @@ async function findFreeShortId(db) {
 exports.upsertShortLink = (0, https_1.onCall)({ region: REGION }, async (req) => {
     ensureAdmin();
     const db = (0, firestore_1.getFirestore)();
-    if (!req.auth?.uid) {
+    const type = normalizeType(req.data?.type);
+    const callerUid = req.auth?.uid || "anonymous";
+    if (!req.auth?.uid && type !== "edu") {
         throw new https_1.HttpsError("unauthenticated", "Giriş gerekli.");
     }
-    const type = normalizeType(req.data?.type);
     const entityId = normalizeText(req.data?.entityId, 128);
     if (!entityId)
         throw new https_1.HttpsError("invalid-argument", "entityId zorunlu.");
@@ -124,6 +133,18 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION }, async (req) =>
     }
     else {
         shortId = normalizeText(req.data?.shortId, 24);
+        if (!shortId) {
+            const existingByEntity = await db
+                .collection(SHORT_LINK_INDEX_COLLECTION)
+                .where("type", "==", type)
+                .where("entityId", "==", entityId)
+                .limit(1)
+                .get();
+            if (!existingByEntity.empty) {
+                const existingData = existingByEntity.docs[0].data();
+                shortId = existingData.shortId;
+            }
+        }
         if (shortId) {
             validateShortId(shortId);
         }
@@ -153,14 +174,14 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION }, async (req) =>
             expiresAt,
             createdAt: existing.exists ? (existing.data().createdAt || now) : now,
             updatedAt: now,
-            createdBy: req.auth.uid,
+            createdBy: callerUid,
             status: "active",
         };
         tx.set(indexRef, doc, { merge: true });
     });
     const idForUrl = type === "user" ? slug : shortId;
     const publicUrl = buildPublicUrl(type, idForUrl);
-    if (type === "post") {
+    if (type === "post" || type === "job") {
         await db.collection("Posts").doc(entityId).set({
             shortId,
             shortUrl: publicUrl,
@@ -177,7 +198,7 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION }, async (req) =>
             shortLinkExpiresAt: expiresAt,
         }, { merge: true });
     }
-    else {
+    else if (type === "user") {
         await db.collection("users").doc(entityId).set({
             profileSlug: slug,
             profileUrl: publicUrl,
@@ -262,7 +283,7 @@ exports.shortLinkIndexConfig = (0, https_1.onCall)({ region: REGION }, async () 
         ok: true,
         indexCollection: SHORT_LINK_INDEX_COLLECTION,
         domain: SHORT_LINK_DOMAIN,
-        routes: ["/p/:id", "/s/:id", "/u/:id"],
+        routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id"],
         cloudflareKvSyncEnabled: !!getEnv("CF_API_TOKEN") &&
             !!getEnv("CF_ACCOUNT_ID") &&
             !!getEnv("CF_KV_NAMESPACE_ID"),

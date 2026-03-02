@@ -11,8 +11,6 @@ class CreateAnswerKeyController extends GetxController {
   final selectedDateTime = DateTime.now().obs;
   final sinavSuresiCount = 30.obs;
   final showSinavSureleri = false.obs;
-  final showUyarilar = false.obs;
-  final kisitlama = false.obs;
   final mainSelection = 0.obs;
 
   CreateAnswerKeyController(this.onBack);
@@ -59,17 +57,6 @@ class CreateAnswerKeyController extends GetxController {
     showSinavSureleri.value = false;
   }
 
-  void toggleKisitlama() {
-    kisitlama.value = !kisitlama.value;
-    if (kisitlama.value) {
-      showUyarilar.value = true;
-    }
-  }
-
-  void toggleUyarilar() {
-    showUyarilar.value = false;
-  }
-
   void setSelection(int value) {
     selection.value = value;
   }
@@ -88,11 +75,10 @@ class CreateAnswerKeyController extends GetxController {
     selections[index] = value;
   }
 
-  void saveForm(BuildContext context) {
-    FirebaseFirestore.instance
-        .collection("OptikKodlar")
-        .doc(DateTime.now().millisecondsSinceEpoch.toString())
-        .set({
+  Future<void> saveForm(BuildContext context) async {
+    final docID = DateTime.now().millisecondsSinceEpoch.toString();
+
+    await FirebaseFirestore.instance.collection("optikForm").doc(docID).set({
       "max": selection.value,
       "cevaplar": selections.toList(),
       "name": nameController.text.isNotEmpty
@@ -102,9 +88,9 @@ class CreateAnswerKeyController extends GetxController {
       "baslangic": selectedDateTime.value.millisecondsSinceEpoch,
       "bitis": selectedDateTime.value.millisecondsSinceEpoch +
           (60000 * sinavSuresiCount.value),
-      "kisitlama": kisitlama.value,
+      "kisitlama": false,
     });
-    SetOptions(merge: true);
+
     onBack();
     Get.back();
   }

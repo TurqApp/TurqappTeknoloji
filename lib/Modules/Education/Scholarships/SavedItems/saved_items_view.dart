@@ -147,7 +147,7 @@ class SavedItemsView extends StatelessWidget {
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          controller.bindStreams();
+          controller.fetchSavedItems();
         },
         child: scholarships.isEmpty
             ? Center(

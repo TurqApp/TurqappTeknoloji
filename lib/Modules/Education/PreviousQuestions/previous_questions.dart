@@ -31,7 +31,7 @@ class PreviousQuestions extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Çıkmış Sorular"),
+            BackButtons(text: "Denemeler"),
             EducationSlider(
               imageList: [
                 AppAssets.previous1,

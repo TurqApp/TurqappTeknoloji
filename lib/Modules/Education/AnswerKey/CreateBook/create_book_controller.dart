@@ -8,12 +8,14 @@ import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
-import 'package:path/path.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book.dart';
 
 class CreateBookController extends GetxController {
   final Function? onBack;
+  final BookletModel? existingBook;
   final baslikController = TextEditingController();
   final yayinEviController = TextEditingController();
   final basimTarihiController = TextEditingController();
@@ -22,10 +24,21 @@ class CreateBookController extends GetxController {
   final sinavTuru = ''.obs;
   final imageFile = Rxn<File>();
   final showIndicator = false.obs;
-  final docID = DateTime.now().millisecondsSinceEpoch.toString();
+  late final String docID;
   final picker = ImagePicker();
 
-  CreateBookController(this.onBack);
+  CreateBookController(this.onBack, {this.existingBook}) {
+    docID =
+        existingBook?.docID ?? DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  bool get isEditMode => existingBook != null;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _prefillIfEditing();
+  }
 
   @override
   void onClose() {
@@ -110,22 +123,33 @@ class CreateBookController extends GetxController {
 
   Future<void> setData(BuildContext context) async {
     showIndicator.value = true;
-    await FirebaseFirestore.instance.collection("Kitapciklar").doc(docID).set({
+    await FirebaseFirestore.instance.collection("books").doc(docID).set({
       "basimTarihi": basimTarihiController.text,
       "baslik": baslikController.text,
-      "cover": "",
+      "cover": existingBook?.cover ?? "",
       "dil": "Türkçe",
-      "kaydet": [],
+      "kaydet": existingBook?.kaydet ?? [],
       "sinavTuru": sinavTuru.value,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
+      "timeStamp":
+          existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
       "yayinEvi": yayinEviController.text,
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": existingBook?.userID ?? FirebaseAuth.instance.currentUser!.uid,
+      "goruntuleme": existingBook?.goruntuleme ?? [],
     });
     SetOptions(merge: true);
 
+    final oldAnswers = await FirebaseFirestore.instance
+        .collection("books")
+        .doc(docID)
+        .collection("CevapAnahtarlari")
+        .get();
+    for (final doc in oldAnswers.docs) {
+      await doc.reference.delete();
+    }
+
     for (var item in list) {
       await FirebaseFirestore.instance
-          .collection("Kitapciklar")
+          .collection("books")
           .doc(docID)
           .collection("CevapAnahtarlari")
           .doc(DateTime.now().microsecondsSinceEpoch.toString())
@@ -141,9 +165,36 @@ class CreateBookController extends GetxController {
       await uploadImageToFirebaseStorage(imageFile.value!, context);
     } else {
       showIndicator.value = false;
-      onBack?.call();
+      onBack?.call(true);
       Get.back();
     }
+  }
+
+  Future<void> _prefillIfEditing() async {
+    final book = existingBook;
+    if (book == null) return;
+    baslikController.text = book.baslik;
+    yayinEviController.text = book.yayinEvi;
+    basimTarihiController.text = book.basimTarihi;
+    sinavTuru.value = book.sinavTuru;
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection("books")
+        .doc(book.docID)
+        .collection("CevapAnahtarlari")
+        .get();
+    final items = snapshot.docs
+        .map(
+          (doc) => CevapAnahtariHazirlikModel(
+            baslik: (doc.data()['baslik'] ?? '').toString(),
+            dogruCevaplar:
+                List<String>.from(doc.data()['dogruCevaplar'] ?? const []),
+            sira: (doc.data()['sira'] as num?)?.toInt() ?? 0,
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.sira.compareTo(b.sira));
+    list.assignAll(items);
   }
 
   Future<void> uploadImageToFirebaseStorage(
@@ -157,7 +208,6 @@ class CreateBookController extends GetxController {
         return;
       }
 
-      final fileName = basename(imageFile.path);
       final imageBytes = await imageFile.readAsBytes();
       final originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) {
@@ -165,13 +215,29 @@ class CreateBookController extends GetxController {
         return;
       }
 
-      final compressedImageBytes = img.encodeJpg(originalImage, quality: 75);
-      final compressedData = Uint8List.fromList(compressedImageBytes);
+      final resized = img.copyResize(
+        originalImage,
+        width: originalImage.width > 1400 ? 1400 : originalImage.width,
+      );
+      final resizedBytes = Uint8List.fromList(img.encodePng(resized));
+      final webpData =
+          await WebpUploadService.toWebpFromBytes(resizedBytes, quality: 85);
+      if (webpData == null || webpData.isEmpty) {
+        showIndicator.value = false;
+        return;
+      }
 
+      final storagePath = 'books/$docID/cover.webp';
       final firebaseStorageRef = FirebaseStorage.instance.ref().child(
-            'Kitaplar/$fileName',
+            storagePath,
           );
-      final uploadTask = firebaseStorageRef.putData(compressedData);
+      final uploadTask = firebaseStorageRef.putData(
+        webpData,
+        SettableMetadata(
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
 
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
         final progress = (snapshot.bytesTransferred / snapshot.totalBytes * 100)
@@ -181,17 +247,20 @@ class CreateBookController extends GetxController {
 
       final taskSnapshot = await uploadTask;
       final downloadUrl = await taskSnapshot.ref.getDownloadURL();
+      final cacheBustedUrl =
+          '$downloadUrl${downloadUrl.contains('?') ? '&' : '?'}v=${DateTime.now().millisecondsSinceEpoch}';
 
-      await FirebaseFirestore.instance
-          .collection("Kitapciklar")
-          .doc(docID)
-          .update({"cover": downloadUrl});
+      await FirebaseFirestore.instance.collection("books").doc(docID).update({
+        "cover": cacheBustedUrl,
+        "coverStoragePath": storagePath,
+        "coverFormat": "webp",
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Resim başarıyla yüklendi!')),
       );
       showIndicator.value = false;
-      onBack?.call();
+      onBack?.call(true);
       Get.back();
     } catch (e) {
       showIndicator.value = false;

@@ -19,6 +19,7 @@ import '../../Core/LocationFinderView/location_finder_view.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
 import '../../Core/Services/video_compression_service.dart';
 import '../../Core/Services/media_compression_service.dart';
+import '../../Core/Services/webp_upload_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Agenda/AgendaContent/agenda_content_controller.dart';
 
@@ -397,19 +398,20 @@ class EditPostController extends GetxController {
               imageFile: file,
               targetQuality: CompressionQuality.high,
             );
-            final imgPath = 'Posts/${model.docID}/images/image_$i.webp';
-            final task =
-                await storage.ref(imgPath).putData(compressed.compressedData);
-            finalImageUrls.add(
-              CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL()),
+            final url = await WebpUploadService.uploadBytesAsWebp(
+              storage: storage,
+              bytes: compressed.compressedData,
+              storagePathWithoutExt: 'Posts/${model.docID}/images/image_$i',
             );
+            finalImageUrls.add(CdnUrlBuilder.toCdnUrl(url));
           } catch (_) {
-            // Fallback to original file upload as JPEG path
-            final imgPath = 'Posts/${model.docID}/images/image_$i.jpg';
-            final task = await storage.ref(imgPath).putFile(file);
-            finalImageUrls.add(
-              CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL()),
+            // Fallback: original dosyayı yine WebP olarak yükle
+            final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+              storage: storage,
+              file: file,
+              storagePathWithoutExt: 'Posts/${model.docID}/images/image_$i',
             );
+            finalImageUrls.add(CdnUrlBuilder.toCdnUrl(downloadUrl));
           }
         }
       } else {
@@ -430,18 +432,24 @@ class EditPostController extends GetxController {
             positionMs: 0, quality: 80, outputPath: localThumbPath);
 
         // Thumbnail'ı yükle
-        final thumbKey =
-            'Posts/${model.docID}/thumbnails/${p.basename(localThumbPath)}';
-        final thumbTask =
-            await storage.ref(thumbKey).putFile(File(localThumbPath));
-        newThumbnailDownloadUrl = CdnUrlBuilder.toCdnUrl(
-          await thumbTask.ref.getDownloadURL(),
+        final thumbDownloadUrl = await WebpUploadService.uploadFileAsWebp(
+          storage: storage,
+          file: File(localThumbPath),
+          storagePathWithoutExt:
+              'Posts/${model.docID}/thumbnails/${DateTime.now().millisecondsSinceEpoch}_thumb',
         );
+        newThumbnailDownloadUrl = CdnUrlBuilder.toCdnUrl(thumbDownloadUrl);
 
         // Videoyu yükle
         final vidKey =
             'Posts/${model.docID}/videos/${p.basename(videoFile.path)}';
-        final vidTask = await storage.ref(vidKey).putFile(videoFile);
+        final vidTask = await storage.ref(vidKey).putFile(
+          videoFile,
+          SettableMetadata(
+            contentType: 'video/mp4',
+            cacheControl: 'public, max-age=31536000, immutable',
+          ),
+        );
         newVideoDownloadUrl = CdnUrlBuilder.toCdnUrl(
           await vidTask.ref.getDownloadURL(),
         );

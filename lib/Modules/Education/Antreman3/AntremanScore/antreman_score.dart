@@ -5,11 +5,9 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
-import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 
 class AntremanScore extends StatelessWidget {
   AntremanScore({super.key});
@@ -27,7 +25,7 @@ class AntremanScore extends StatelessWidget {
           Column(
             children: [
               BackButtons(
-                text: "${controller.monthName} Ayı İlk 100",
+                text: "${controller.monthName} Ayı Puan Tablosu",
               ),
               Expanded(
                 child: Obx(() {
@@ -35,7 +33,26 @@ class AntremanScore extends StatelessWidget {
                     return Center(child: CupertinoActivityIndicator());
                   }
                   if (controller.leaderboard.isEmpty) {
-                    return Center(child: Text("Kullanıcı bulunamadı!"));
+                    return RefreshIndicator(
+                      color: Colors.white,
+                      backgroundColor: Colors.black,
+                      onRefresh: () => controller.fetchLeaderboard(),
+                      child: ListView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 180),
+                          Center(
+                            child: Text("Henüz puan tablosu oluşmadı."),
+                          ),
+                          SizedBox(height: 8),
+                          Center(
+                            child: Text(
+                                "Listeye girmek için Çöz Geç'te soru çöz."),
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
                   return RefreshIndicator(
@@ -46,133 +63,68 @@ class AntremanScore extends StatelessWidget {
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        // Podyum
-                        Column(
-                          children: [
-                            if (controller.leaderboard.isNotEmpty) ...[
-                              _buildPodiumItem(
-                                context,
-                                controller.leaderboard[0],
-                                'assets/images/gold.webp',
-                                160,
-                                100,
-                                18,
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+                          padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8F8F6),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.black.withValues(alpha: 0.05),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8),
                               ),
                             ],
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (controller.leaderboard.length >= 2) ...[
-                                  _buildPodiumItem(
-                                    context,
-                                    controller.leaderboard[1],
-                                    'assets/images/silver.webp',
-                                    135,
-                                    80,
-                                    18,
-                                  ),
-                                  SizedBox(width: 100),
-                                ],
-                                if (controller.leaderboard.length >= 3) ...[
-                                  _buildPodiumItem(
-                                    context,
-                                    controller.leaderboard[2],
-                                    'assets/images/bronz.webp',
-                                    120,
-                                    75,
-                                    16,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                        15.ph,
-                        if (!controller.leaderboard.any(
-                          (val) => val["userID"] == currentUserID,
-                        ))
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 15, vertical: 8.0),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 30,
-                                  child: Container(
-                                    alignment: Alignment.center,
-                                    padding: EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(50),
-                                      border: Border.all(
-                                        color: Colors.grey.withValues(alpha: 0.2),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      "Siz",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: "MontserratMedium",
-                                        color: Colors.indigo,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                ClipOval(
-                                  child: CachedNetworkImage(
-                                    imageUrl: controller.user.pfImage.value,
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        CupertinoActivityIndicator(),
-                                    errorWidget: (context, url, error) =>
-                                        Icon(Icons.person, size: 50),
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            controller.user.nickname.value,
-                                            style: TextStyles.textFieldTitle
-                                                .copyWith(fontSize: 16),
-                                          ),
-                                          SizedBox(width: 5),
-                                          RozetContent(
-                                            size: 15,
-                                            userID: FirebaseAuth.instance
-                                                    .currentUser?.uid ??
-                                                '',
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        "${controller.user.firstName.value} ${controller.user.lastName.value}",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  "${controller.userPoint.value}p",
-                                  style: TextStyles.textFieldTitle,
-                                ),
-                              ],
-                            ),
                           ),
-
-                        // 4. sıradan itibaren diğer kullanıcılar
-                        ...controller.leaderboard.sublist(3).map((user) {
+                          child: Column(
+                            children: [
+                              if (controller.leaderboard.isNotEmpty) ...[
+                                _buildPodiumItem(
+                                  context,
+                                  controller.leaderboard[0],
+                                  'assets/images/gold.webp',
+                                  124,
+                                  76,
+                                  15,
+                                ),
+                              ],
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (controller.leaderboard.length >= 2) ...[
+                                    _buildPodiumItem(
+                                      context,
+                                      controller.leaderboard[1],
+                                      'assets/images/silver.webp',
+                                      124,
+                                      76,
+                                      15,
+                                    ),
+                                    const SizedBox(width: 28),
+                                  ],
+                                  if (controller.leaderboard.length >= 3) ...[
+                                    _buildPodiumItem(
+                                      context,
+                                      controller.leaderboard[2],
+                                      'assets/images/bronz.webp',
+                                      124,
+                                      76,
+                                      15,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        ...controller.leaderboard.skip(3).map((user) {
                           return Column(
                             children: [
                               _buildUserItem(
@@ -200,7 +152,6 @@ class AntremanScore extends StatelessWidget {
     );
   }
 
-// Podyum için widget
   Widget _buildPodiumItem(
     BuildContext context,
     Map<String, dynamic> user,
@@ -247,20 +198,49 @@ class AntremanScore extends StatelessWidget {
                       Icon(Icons.person, size: 24),
                 ),
               ),
+              Positioned(
+                top: 10,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '#${user['rank'] ?? '-'}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 2),
+          const SizedBox(height: 1),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                user['nickname'] ?? 'Bilinmiyor',
-                style: TextStyles.textFieldTitle.copyWith(fontSize: textSize),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: frameWidth * 0.78),
+                child: Text(
+                  user['nickname'] ?? 'Bilinmiyor',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyles.textFieldTitle.copyWith(fontSize: textSize),
+                ),
               ),
-              RozetContent(size: 15, userID: podiumUserID),
+              const SizedBox(width: 3),
+              _buildRozetIcon((user['rozet'] ?? '').toString(), 15),
             ],
           ),
-          Text("${user['antPoint'] ?? 0}p", style: TextStyles.textFieldTitle),
+          Text(
+            "${user['antPoint'] ?? 0}p",
+            style: TextStyles.textFieldTitle.copyWith(fontSize: textSize - 1),
+          ),
         ],
       ),
     );
@@ -273,83 +253,195 @@ class AntremanScore extends StatelessWidget {
     required bool isCurrentUser,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 15),
-      child: Row(
-        children: [
-          // Sıra numarası
-          Container(
-            alignment: Alignment.center,
-            padding: EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: isCurrentUser ? Colors.indigo : Colors.white,
-              borderRadius: BorderRadius.circular(50),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              "$rank",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isCurrentUser ? Colors.white : Colors.black,
-              ),
-            ),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: _rowBackground(rank, isCurrentUser),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.12),
           ),
-          SizedBox(width: 10),
-          // Profil ve bilgiler
-          Expanded(
-            child: GestureDetector(
-              onTap: isCurrentUser
-                  ? null
-                  : () {
-                      Get.to(() => SocialProfile(userID: user['userID']));
-                    },
-              child: Row(
-                children: [
-                  ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: user['pfImage'] ?? '',
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          CupertinoActivityIndicator(),
-                      errorWidget: (context, url, error) =>
-                          Icon(Icons.person, size: 50),
-                    ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: 54,
+          child: Row(
+            children: [
+              Container(
+                alignment: Alignment.center,
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _rankBadgeColor(rank, isCurrentUser),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Text(
+                  "$rank",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: rank <= 3 || isCurrentUser
+                        ? Colors.white
+                        : Colors.black,
                   ),
-                  SizedBox(width: 10),
-                  // Kullanıcı bilgileri
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: isCurrentUser
+                      ? null
+                      : () {
+                          Get.to(() => SocialProfile(userID: user['userID']));
+                        },
+                  child: Row(
+                    children: [
+                      ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: user['pfImage'] ?? '',
+                          width: 38,
+                          height: 38,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              const CupertinoActivityIndicator(),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.person, size: 38),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              user['nickname'] ?? 'Bilinmiyor',
-                              style: TextStyles.textFieldTitle
-                                  .copyWith(fontSize: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    user['nickname'] ?? 'Bilinmiyor',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyles.textFieldTitle
+                                        .copyWith(fontSize: 14),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                _buildRozetIcon(
+                                  (user['rozet'] ?? '').toString(),
+                                  13,
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 5),
-                            RozetContent(
-                              size: 15,
-                              userID: user['userID'] ?? '',
+                            Text(
+                              "${user['firstName']} ${user['lastName']}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
-                        Text(
-                          "${user['firstName']} ${user['lastName']}",
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
+              const SizedBox(width: 8),
+              Text(
+                "${user['antPoint']}p",
+                style: TextStyles.textFieldTitle.copyWith(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _rankBadgeColor(int rank, bool isCurrentUser) {
+    if (isCurrentUser) return Colors.indigo;
+    switch (rank) {
+      case 1:
+        return const Color(0xFFD4A63A);
+      case 2:
+        return const Color(0xFF9FA6B2);
+      case 3:
+        return const Color(0xFFB46A3C);
+      default:
+        return Colors.white;
+    }
+  }
+
+  Color _rowBackground(int rank, bool isCurrentUser) {
+    if (isCurrentUser) {
+      return Colors.indigo.withValues(alpha: 0.06);
+    }
+    switch (rank) {
+      case 1:
+        return const Color(0xFFFFF7E2);
+      case 2:
+        return const Color(0xFFF5F7FA);
+      case 3:
+        return const Color(0xFFFFF0E8);
+      default:
+        return Colors.white;
+    }
+  }
+
+  Widget _buildRozetIcon(String rozet, double size) {
+    Color? color;
+    switch (rozet) {
+      case 'Kirmizi':
+        color = Colors.red;
+        break;
+      case 'Mavi':
+        color = Colors.blue;
+        break;
+      case 'Sari':
+        color = Colors.orange;
+        break;
+      case 'Siyah':
+        color = Colors.black;
+        break;
+      case 'Gri':
+        color = Colors.grey;
+        break;
+      case 'Turkuaz':
+        color = const Color(0xFF40E0D0);
+        break;
+    }
+
+    if (color == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Transform.translate(
+      offset: const Offset(0, -1),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size - 7,
+            height: size - 7,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
             ),
           ),
-          // Puan
-          Text("${user['antPoint']}p", style: TextStyles.textFieldTitle),
+          Icon(
+            CupertinoIcons.checkmark_seal_fill,
+            color: color,
+            size: size,
+          ),
         ],
       ),
     );

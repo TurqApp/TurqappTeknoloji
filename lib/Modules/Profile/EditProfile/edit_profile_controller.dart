@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
@@ -193,11 +194,11 @@ class EditProfileController extends GetxController {
       // Eğer yeni bir kırpılmış resim varsa, önce storage'a yükle
       if (croppedImage.value != null) {
         final ts = DateTime.now().millisecondsSinceEpoch;
-        final path = 'users/$uid/${uid}_${ts}_pfImage.jpg';
-        final ref = FirebaseStorage.instance.ref().child(path);
-
-        await ref.putData(croppedImage.value!);
-        newImageUrl = await ref.getDownloadURL();
+        newImageUrl = await WebpUploadService.uploadBytesAsWebp(
+          storage: FirebaseStorage.instance,
+          bytes: croppedImage.value!,
+          storagePathWithoutExt: 'users/$uid/${uid}_${ts}_pfImage',
+        );
       }
 
       // 🎯 Using CurrentUserService.updateFields (cache + Firebase sync)

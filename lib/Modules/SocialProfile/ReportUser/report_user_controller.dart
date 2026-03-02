@@ -36,7 +36,7 @@ class ReportUserController extends GetxController {
   }
 
   Future<void> report() async {
-    FirebaseFirestore.instance.collection("Sikayetler").add({
+    FirebaseFirestore.instance.collection("reports").add({
       "userID": userID,
       "postID": postID,
       "timeStamp": DateTime.now().millisecondsSinceEpoch,
@@ -53,8 +53,7 @@ class ReportUserController extends GetxController {
 
   Future<void> block() async {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    final docRef =
-        FirebaseFirestore.instance.collection("users").doc(userID);
+    final docRef = FirebaseFirestore.instance.collection("users").doc(userID);
 
     // Öncelikle belgeyi çekiyoruz.
     final snapshot = await docRef.get();

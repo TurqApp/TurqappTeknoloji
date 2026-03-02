@@ -280,5 +280,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
   }
 
+  void reportMediaVisibility(double visibleFraction) {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex < 0) return;
+    agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
+  }
+
   void onPostInitialized() {}
 }

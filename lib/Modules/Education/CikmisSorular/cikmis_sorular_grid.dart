@@ -8,7 +8,8 @@ class CikmisSorularGrid extends StatefulWidget {
   final String anaBaslik;
   final Color color;
 
-  const CikmisSorularGrid({super.key, required this.anaBaslik, required this.color});
+  const CikmisSorularGrid(
+      {super.key, required this.anaBaslik, required this.color});
   @override
   State<CikmisSorularGrid> createState() => _CikmisSorularGridState();
 }
@@ -97,7 +98,7 @@ class _CikmisSorularGridState extends State<CikmisSorularGrid> {
                   Spacer(),
                   4.ph,
                   Text(
-                    "Çıkmış Sorular",
+                    "Denemeler",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,

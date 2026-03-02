@@ -29,7 +29,7 @@ class SearchAnswerKeyController extends GetxController {
   Future<void> getData() async {
     try {
       final snapshots =
-          await FirebaseFirestore.instance.collection("Kitapciklar").get();
+          await FirebaseFirestore.instance.collection("books").get();
       final newList = <BookletModel>[];
       for (var doc in snapshots.docs) {
         newList.add(

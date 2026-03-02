@@ -13,6 +13,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/job_categories.dart';
@@ -66,6 +67,15 @@ class JobCreatorController extends GetxController {
   RxList<String> selectedYanHaklar = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   var meslek = "".obs;
+  TextEditingController ilanBasligi = TextEditingController();
+  var deneyimSeviyesi = "".obs;
+  TextEditingController pozisyonSayisi = TextEditingController(text: "1");
+  final List<String> deneyimSeviyeleri = [
+    "Deneyimsiz",
+    "Junior",
+    "Mid-Level",
+    "Senior",
+  ];
   var sehir = "".obs;
   var ilce = "".obs;
   var adres = "".obs;
@@ -95,7 +105,6 @@ class JobCreatorController extends GetxController {
     }
 
     if (existingJob != null) {
-      print("${existingJob!.about}aboutaboutaboutaboutaboutaboutabout");
       brand.text = existingJob!.brand;
       about.text = existingJob!.about;
       isTanimi.text = existingJob!.isTanimi;
@@ -110,6 +119,9 @@ class JobCreatorController extends GetxController {
       selectedCalismaTuruList.value =
           existingJob!.calismaTuru.cast<String>().toList();
       selectedYanHaklar.value = existingJob!.yanHaklar.cast<String>().toList();
+      ilanBasligi.text = existingJob!.ilanBasligi;
+      deneyimSeviyesi.value = existingJob!.deneyimSeviyesi;
+      pozisyonSayisi.text = existingJob!.pozisyonSayisi.toString();
     }
 
     loadSehirler();
@@ -389,6 +401,78 @@ class JobCreatorController extends GetxController {
     });
   }
 
+  Future<void> selectDeneyimSeviyesi() async {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Deneyim Seviyesi Seç",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontFamily: "MontserratBold",
+              ),
+            ),
+            SizedBox(height: 12),
+            ...deneyimSeviyeleri.map((item) {
+              return Obx(() => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      onTap: () {
+                        deneyimSeviyesi.value = item;
+                        Get.back();
+                      },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey),
+                            ),
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: deneyimSeviyesi.value == item
+                                    ? Colors.black
+                                    : Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            item,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black,
+                              fontFamily: "MontserratMedium",
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ));
+            }),
+            SizedBox(height: 12),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
   Future<void> showMeslekSelector() async {
     Get.bottomSheet(
       ListBottomSheet(
@@ -533,38 +617,23 @@ class JobCreatorController extends GetxController {
   }
 
   Future<void> uploadCroppedImageToFirebase(String docID) async {
-    final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
     try {
       final bytes = croppedImage.value;
-      if (bytes == null) {
-        print("Kırpılmış görsel bulunamadı.");
-        return;
-      }
+      if (bytes == null) return;
 
       final String fileName = const Uuid().v4();
 
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .child("IsBul")
-          .child(docID)
-          .child('$fileName.jpg');
-
-      UploadTask uploadTask =
-          ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-
-      TaskSnapshot snapshot = await uploadTask;
-      String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      print("Yüklenen görsel URL: $downloadUrl");
+      final downloadUrl = await WebpUploadService.uploadBytesAsWebp(
+        storage: FirebaseStorage.instance,
+        bytes: bytes,
+        storagePathWithoutExt:
+            "${FirebaseAuth.instance.currentUser?.uid ?? ''}/isBul/$docID/$fileName",
+      );
 
       await FirebaseFirestore.instance
-          .collection("IsBul")
+          .collection("isBul")
           .doc(docID)
           .set({"logo": downloadUrl}, SetOptions(merge: true));
-
-      Future.delayed(Duration(seconds: 2));
-      loader.isOn.value = false;
     } catch (e) {
       print("Yükleme hatası: $e");
     }
@@ -576,7 +645,7 @@ class JobCreatorController extends GetxController {
     final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
     loader.isOn.value = true;
 
-    await FirebaseFirestore.instance.collection("IsBul").doc(docID).set({
+    final jobData = <String, dynamic>{
       "about": about.text,
       "adres": adres.value,
       "brand": brand.text,
@@ -591,15 +660,36 @@ class JobCreatorController extends GetxController {
       "maas1": maasOpen.value ? int.tryParse(maas1.text) ?? 0 : 0,
       "maas2": maasOpen.value ? int.tryParse(maas2.text) ?? 0 : 0,
       "meslek": meslek.value,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "userID": FirebaseAuth.instance.currentUser?.uid ?? '',
       "yanHaklar": selectedYanHaklar.toList(),
-    });
+      "ilanBasligi": ilanBasligi.text,
+      "deneyimSeviyesi": deneyimSeviyesi.value,
+      "pozisyonSayisi": int.tryParse(pozisyonSayisi.text) ?? 1,
+    };
 
-    // Yeni fotoğraf varsa her durumda yükle
-    if (croppedImage.value != null) {
-      Future.microtask(() => uploadCroppedImageToFirebase(docID));
+    if (existingJob != null) {
+      // Düzenleme: counter'lara dokunma, timeStamp güncelleme
+      jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
+      await FirebaseFirestore.instance
+          .collection("isBul")
+          .doc(docID)
+          .update(jobData);
+    } else {
+      // Yeni ilan: counter'ları sıfırdan başlat
+      jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
+      jobData["viewCount"] = 0;
+      jobData["applicationCount"] = 0;
+      await FirebaseFirestore.instance
+          .collection("isBul")
+          .doc(docID)
+          .set(jobData);
     }
+
+    // Yeni fotoğraf varsa yükle
+    if (croppedImage.value != null) {
+      await uploadCroppedImageToFirebase(docID);
+    }
+    loader.isOn.value = false;
     selection.value = 0;
     Get.back();
   }

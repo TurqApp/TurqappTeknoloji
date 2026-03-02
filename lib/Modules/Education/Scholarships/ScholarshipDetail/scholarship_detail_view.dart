@@ -47,36 +47,32 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
       );
     }
 
-    final IndividualScholarshipsModel model =
+    final IndividualScholarshipsModel baseModel =
         scholarshipData['model'] as IndividualScholarshipsModel;
     final String type = 'bireysel';
     final Map<String, dynamic>? userData =
         scholarshipData['userData'] as Map<String, dynamic>?;
-
-    final followedId = userData?['userID']?.toString() ?? '';
-    if (followedId.isNotEmpty) {
-      controller.initializeFollowState(followedId);
-    }
-    {
-      final universityCount = model.universiteler.length;
-      print(
-        'University count: $universityCount, Universities: ${model.universiteler}',
-      );
-      controller.hiddenUniversityCount.value =
-          universityCount > 10 ? universityCount - 10 : 0;
-      controller.hiddenUniversityCount.refresh();
-    }
+    controller.initializeFollowState(userData?['userID']?.toString() ?? '');
 
     // Yeni ScrollController tanımlıyoruz
     final ScrollController detailScrollController = ScrollController();
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(children: [
-          Column(
-            children: [
-              Row(
+    return Obx(() {
+      final model = controller.resolvedModel.value ?? baseModel;
+      final universityCount = model.universiteler.length;
+      if (controller.hiddenUniversityCount.value !=
+          (universityCount > 10 ? universityCount - 10 : 0)) {
+        controller.hiddenUniversityCount.value =
+            universityCount > 10 ? universityCount - 10 : 0;
+      }
+
+      return Scaffold(
+        body: SafeArea(
+          bottom: false,
+          child: Stack(children: [
+            Column(
+              children: [
+                Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   BackButtons(text: "Burs Detayı"),
@@ -171,7 +167,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                             .currentPageIndex
                                                             .value ==
                                                         dotIndex
-                                                    ? Colors.blue
+                                                    ? Colors.black
                                                     : Colors.grey,
                                               ),
                                             ),
@@ -441,7 +437,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                   : 'Tümünü Göster',
                                               style: const TextStyle(
                                                 fontSize: 15,
-                                                color: Colors.blue,
+                                                color: Colors.black,
                                                 fontFamily: "MontserratMedium",
                                               ),
                                             ),
@@ -483,7 +479,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                 : '+${controller.hiddenUniversityCount.value} üniversite daha',
                                             style: const TextStyle(
                                               fontSize: 15,
-                                              color: Colors.blue,
+                                              color: Colors.black,
                                               fontFamily: "MontserratMedium",
                                             ),
                                           ),
@@ -520,7 +516,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                               TextSpan(
                                                 text: "ALINMAKTADIR.",
                                                 style: const TextStyle(
-                                                  color: Colors.blue,
+                                                  color: Colors.black,
                                                   fontFamily: "MontserratBold",
                                                 ),
                                               ),
@@ -556,7 +552,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                      color: Colors.blueAccent, width: 1)),
+                                      color: Colors.black, width: 1)),
                               child: Row(
                                 children: [
                                   GestureDetector(
@@ -672,7 +668,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                           'Web sitesini ziyaret et',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: Colors.blue,
+                                            color: Colors.black,
                                             fontFamily: "Montserrat",
                                           ),
                                         ),
@@ -733,7 +729,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                     final doc = await FirebaseFirestore
                                                         .instance
                                                         .collection(
-                                                            'BireyselBurslar')
+                                                            'scholarships')
                                                         .doc(scholarshipData[
                                                                 'docId'] ??
                                                             scholarshipData[
@@ -774,7 +770,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                       future: FirebaseFirestore
                                                           .instance
                                                           .collection(
-                                                              'BireyselBurslar')
+                                                              'scholarships')
                                                           .doc(scholarshipData[
                                                               'docId'])
                                                           .collection(
@@ -1191,6 +1187,13 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
               ),
             ],
           ),
+          if (controller.detailLoading.value)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
           ScrollTotopButton(
             scrollController: detailScrollController, // Yeni ScrollController
             visibilityThreshold: 200,
@@ -1198,6 +1201,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
         ]),
       ),
     );
+    });
   }
 
   Widget _buildDetail(String title, dynamic value) {

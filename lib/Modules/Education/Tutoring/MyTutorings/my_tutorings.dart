@@ -7,16 +7,16 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 
 class MyTutorings extends StatelessWidget {
   const MyTutorings({super.key});
 
   Future<void> _initializeData() async {
     final MyTutoringsController controller = Get.find<MyTutoringsController>();
-    if (controller.myTutorings.isEmpty &&
-        controller.getCurrentUserId() != null) {
-      await controller.fetchInitialData(controller.getCurrentUserId()!);
+    final uid = controller.getCurrentUserId();
+    if (controller.myTutorings.isEmpty && uid != null) {
+      await controller.fetchMyTutorings(uid);
     }
   }
 
@@ -24,11 +24,14 @@ class MyTutorings extends StatelessWidget {
   Widget build(BuildContext context) {
     final ViewModeController viewModeController = Get.put(ViewModeController());
 
-    Get.lazyPut(() => MyTutoringsController());
+    Get.put(MyTutoringsController());
     Get.lazyPut(
       () => PageLineBarController(pageName: "MyTutorings"),
       tag: "MyTutorings",
     );
+
+    final MyTutoringsController controller =
+        Get.find<MyTutoringsController>();
 
     return FutureBuilder(
       future: _initializeData(),
@@ -36,18 +39,16 @@ class MyTutorings extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CupertinoActivityIndicator());
         } else if (snapshot.hasError ||
-            Get.find<MyTutoringsController>().errorMessage.value.isNotEmpty) {
+            controller.errorMessage.value.isNotEmpty) {
           return Center(
             child: Text(
-              Get.find<MyTutoringsController>().errorMessage.value.isNotEmpty
-                  ? Get.find<MyTutoringsController>().errorMessage.value
+              controller.errorMessage.value.isNotEmpty
+                  ? controller.errorMessage.value
                   : "Veri yüklenirken hata oluştu",
               style: TextStyles.textFieldTitle,
             ),
           );
         }
-        final MyTutoringsController controller =
-            Get.find<MyTutoringsController>();
         final PageLineBarController pageLineBarController =
             Get.find<PageLineBarController>(tag: "MyTutorings");
 

@@ -169,7 +169,7 @@ class _StoryCard extends StatelessWidget {
                       onPressed: onRestore,
                       icon: Row(
                         children: [
-                          Icon(CupertinoIcons.share,
+                          Icon(CupertinoIcons.share_up,
                               size: 18, color: Colors.white),
                           SizedBox(width: 6),
                           Text(

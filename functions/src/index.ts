@@ -21,6 +21,7 @@ export * from "./14_typesensePosts";
 export * from "./15_typesenseUsersTags";
 export * from "./16_tagMaintenance";
 export * from "./17_shortLinksIndex";
+export * from "./18_tutoringNotifications";
 
 // SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
 export const cleanupExpiredStories = functions.pubsub
@@ -104,7 +105,7 @@ const normalizePhone = (raw: string | undefined | null): string => {
   return digits;
 };
 
-// SAFETY NET: Keep PhoneAccounts in sync when a user doc is deleted
+// SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted
 export const onUserDocDelete = functions.firestore
   .document("users/{uid}")
   .onDelete(async (snap, context) => {
@@ -113,7 +114,7 @@ export const onUserDocDelete = functions.firestore
     const phone = normalizePhone(before?.phoneNumber);
     if (!phone) return;
     try {
-      const ref = db.collection("PhoneAccounts").doc(phone);
+      const ref = db.collection("phoneAccounts").doc(phone);
       await db.runTransaction(async (tx) => {
         const doc = await tx.get(ref);
         if (!doc.exists) return;
@@ -147,7 +148,7 @@ export const onUserDocUpdate = functions.firestore
       await db.runTransaction(async (tx) => {
         const now = Date.now();
         if (oldPhone && oldPhone !== newPhone) {
-          const oldRef = db.collection("PhoneAccounts").doc(oldPhone);
+          const oldRef = db.collection("phoneAccounts").doc(oldPhone);
           const oldDoc = await tx.get(oldRef);
           if (oldDoc.exists) {
             const odata = oldDoc.data() || {};
@@ -164,7 +165,7 @@ export const onUserDocUpdate = functions.firestore
         }
 
         if (newPhone && oldPhone !== newPhone) {
-          const newRef = db.collection("PhoneAccounts").doc(newPhone);
+          const newRef = db.collection("phoneAccounts").doc(newPhone);
           const newDoc = await tx.get(newRef);
           if (newDoc.exists) {
             const ndata = newDoc.data() || {};
@@ -228,29 +229,35 @@ export const onUserNotificationCreate = functions.firestore
 
       const title = String(data.title || "TurqApp");
       const body = String(data.body || _notificationBodyFromType(type));
+      const imageUrl = String(data.imageUrl || "");
 
       await admin.messaging().send({
         token,
         notification: {
           title,
           body,
+          ...(imageUrl ? { imageUrl } : {}),
         },
         data: {
           docID: targetDocID,
           type,
+          ...(imageUrl ? { imageUrl } : {}),
         },
         android: {
           priority: "high",
           notification: {
             channelId: "high_importance_channel",
+            ...(imageUrl ? { imageUrl } : {}),
           },
         },
         apns: {
           headers: {
             "apns-priority": "10",
           },
+          fcmOptions: imageUrl ? { imageUrl } : undefined,
           payload: {
             aps: {
+              "mutable-content": imageUrl ? 1 : 0,
               sound: "default",
             },
           },
@@ -348,6 +355,85 @@ export const processScheduledAccountDeletions = functions.pubsub
       console.error("processScheduledAccountDeletions:fatal", e);
       throw e;
     }
+  });
+
+// MONTHLY RESET: Set antPoint to 100 for all users on the 1st day of each month
+export const resetMonthlyAntPoint = functions.pubsub
+  .schedule("0 0 1 * *")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const batchSize = 450;
+    const now = new Date();
+    const monthKey = `${now.getUTCFullYear()}-${String(
+      now.getUTCMonth() + 1,
+    ).padStart(2, "0")}`;
+
+    const resetCollection = async (
+      queryFactory: (
+        lastDoc: FirebaseFirestore.QueryDocumentSnapshot | null,
+      ) => FirebaseFirestore.Query,
+      extraFields: Record<string, unknown> = {},
+    ) => {
+      let lastDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+      let total = 0;
+
+      while (true) {
+        const query = queryFactory(lastDoc);
+        const snap = await query.get();
+        if (snap.empty) break;
+
+        const batch = db.batch();
+        for (const doc of snap.docs) {
+          batch.set(
+            doc.ref,
+            { antPoint: 100, ...extraFields },
+            { merge: true },
+          );
+        }
+        await batch.commit();
+        total += snap.size;
+        lastDoc = snap.docs[snap.docs.length - 1];
+      }
+
+      return total;
+    };
+
+    const usersTotal = await resetCollection(
+      (lastDoc) => {
+        let query: FirebaseFirestore.Query = db
+          .collection("users")
+          .orderBy("__name__")
+          .limit(batchSize);
+        if (lastDoc) {
+          query = query.startAfter(lastDoc);
+        }
+        return query;
+      },
+    );
+    const leaderboardTotal = await resetCollection(
+      (lastDoc) => {
+        let query: FirebaseFirestore.Query = db
+          .collection("questionBankSkor")
+          .doc(monthKey)
+          .collection("items")
+          .orderBy("__name__")
+          .limit(batchSize);
+        if (lastDoc) {
+          query = query.startAfter(lastDoc);
+        }
+        return query;
+      },
+      {
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+    );
+
+    console.log("resetMonthlyAntPoint done", {
+      monthKey,
+      usersTotal,
+      leaderboardTotal,
+    });
+    return null;
   });
 
 type PushTypeMap = {
@@ -488,7 +574,7 @@ function _notificationBodyFromType(type: string): string {
   }
 }
 
-// ADMIN UTILITY: Backfill PhoneAccounts from existing users
+// ADMIN UTILITY: Backfill phoneAccounts from existing users
 export const backfillPhoneAccounts = functions.https.onCall(async (data, context) => {
   // Require authenticated call; ideally require admin custom claim
   if (!context.auth) {
@@ -533,7 +619,7 @@ export const backfillPhoneAccounts = functions.https.onCall(async (data, context
   const batch = db.batch();
   const now = Date.now();
   for (const [phone, uids] of phoneMap.entries()) {
-    const ref = db.collection('PhoneAccounts').doc(phone);
+    const ref = db.collection('phoneAccounts').doc(phone);
     const arr = Array.from(uids);
     batch.set(ref, {
       phone,

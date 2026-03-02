@@ -24,7 +24,7 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
 
   void getData() {
     FirebaseFirestore.instance
-        .collection("CikmisSorularGecmisi")
+        .collection("questionsAnswers")
         .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
         .get()
         .then((QuerySnapshot snap) {

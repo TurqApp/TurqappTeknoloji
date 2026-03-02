@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../Services/turq_image_cache_manager.dart';
 import '../Utils/image_helper.dart';
 
 class OptimizedImage extends StatelessWidget {
@@ -45,6 +46,7 @@ class OptimizedImage extends StatelessWidget {
 
     return CachedNetworkImage(
       imageUrl: optimizedUrl,
+      cacheManager: TurqImageCacheManager.instance,
       width: width,
       height: height,
       fit: fit,
@@ -57,9 +59,10 @@ class OptimizedImage extends StatelessWidget {
       maxWidthDiskCache: 600, // Max 600px disk cache
       maxHeightDiskCache: 600,
 
-      // ✅ Fade-in animation
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 100),
+      // ✅ No fade for cached images — instant display
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
+      placeholderFadeInDuration: Duration.zero,
 
       // ✅ Placeholder
       placeholder: placeholder ??
@@ -82,6 +85,7 @@ class OptimizedImage extends StatelessWidget {
             if (ImageHelper.isThumbnail(optimizedUrl)) {
               return CachedNetworkImage(
                 imageUrl: imageUrl, // Original URL
+                cacheManager: TurqImageCacheManager.instance,
                 width: width,
                 height: height,
                 fit: fit,
@@ -145,6 +149,7 @@ class OptimizedCircleAvatar extends StatelessWidget {
       backgroundImage: imageUrl.isNotEmpty
           ? CachedNetworkImageProvider(
               thumbnailUrl,
+              cacheManager: TurqImageCacheManager.instance,
               maxWidth: (radius * 2).toInt(),
               maxHeight: (radius * 2).toInt(),
             )

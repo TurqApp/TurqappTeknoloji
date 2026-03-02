@@ -5,11 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -33,6 +35,86 @@ class CreateTutoringController extends GetxController {
   var isPhoneOpen = false.obs;
   var selectedBranch = ''.obs;
   var isLoading = false.obs;
+
+  /// Müsaitlik takvimi: gün → saat aralıkları listesi
+  final availability = <String, List<String>>{}.obs;
+
+  static const List<String> weekDays = [
+    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
+  ];
+
+  static const List<String> timeSlots = [
+    '08:00-10:00', '10:00-12:00', '12:00-14:00',
+    '14:00-16:00', '16:00-18:00', '18:00-20:00', '20:00-22:00',
+  ];
+
+  double? _lat;
+  double? _long;
+
+  /// Doğrulama belgeleri (diploma/sertifika dosya yolları)
+  var verificationDocs = <String>[].obs;
+
+  /// Şehir/ilçe değiştiğinde geocode ile lat/long hesapla.
+  Future<void> _geocodeLocation() async {
+    try {
+      final query = town.isNotEmpty
+          ? '${town}, ${city.value}, Türkiye'
+          : '${city.value}, Türkiye';
+      final locations = await locationFromAddress(query);
+      if (locations.isNotEmpty) {
+        _lat = locations.first.latitude;
+        _long = locations.first.longitude;
+      }
+    } catch (e) {
+      log('Geocoding failed: $e');
+      _lat = null;
+      _long = null;
+    }
+  }
+
+  void addVerificationDoc(String filePath) {
+    verificationDocs.add(filePath);
+  }
+
+  Future<List<String>> _uploadVerificationDocs() async {
+    if (verificationDocs.isEmpty) return [];
+    final urls = <String>[];
+    final storage = firebase_storage.FirebaseStorage.instance;
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    for (final docPath in verificationDocs) {
+      if (docPath.startsWith('http')) {
+        urls.add(docPath);
+        continue;
+      }
+      try {
+        final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+          storage: storage,
+          file: File(docPath),
+          storagePathWithoutExt:
+              'users/$userId/verification_${DateTime.now().millisecondsSinceEpoch}',
+        );
+        urls.add(downloadUrl);
+      } catch (e) {
+        log('Verification doc upload failed: $e');
+      }
+    }
+    return urls;
+  }
+
+  void toggleTimeSlot(String day, String slot) {
+    final current = availability[day] ?? [];
+    if (current.contains(slot)) {
+      current.remove(slot);
+    } else {
+      current.add(slot);
+    }
+    if (current.isEmpty) {
+      availability.remove(day);
+    } else {
+      availability[day] = current;
+    }
+    availability.refresh();
+  }
 
   final Map<String, String> branchIconMap = {
     'Yaz Okulu': '1.png',
@@ -92,6 +174,7 @@ class CreateTutoringController extends GetxController {
           cityController.text = v;
           town = "";
           districtController.text = "";
+          _geocodeLocation();
         },
       ),
       isScrollControlled: true,
@@ -116,6 +199,7 @@ class CreateTutoringController extends GetxController {
         onBackData: (v) {
           town = v;
           districtController.text = v;
+          _geocodeLocation();
         },
       ),
       isScrollControlled: true,
@@ -159,15 +243,24 @@ class CreateTutoringController extends GetxController {
         );
         final tempDir = await Directory.systemTemp.createTemp();
         final tempFile = File('${tempDir.path}/$iconFileName');
-        await tempFile.writeAsBytes(byteData.buffer.asUint8List());
+        try {
+          await tempFile.writeAsBytes(byteData.buffer.asUint8List());
 
-        final ref = storage.ref().child('users/$userId/$iconFileName');
-        await ref.putFile(tempFile);
-        final downloadUrl = await ref.getDownloadURL();
-        imageUrls.add(downloadUrl);
-
-        await tempFile.delete();
-        await tempDir.delete();
+          final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+            storage: storage,
+            file: tempFile,
+            storagePathWithoutExt:
+                'users/$userId/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
+          );
+          imageUrls.add(downloadUrl);
+        } finally {
+          try {
+            if (await tempFile.exists()) await tempFile.delete();
+            if (await tempDir.exists()) {
+              await tempDir.delete(recursive: true);
+            }
+          } catch (_) {}
+        }
       }
     } else {
       for (var imagePath in newLocalImages) {
@@ -181,10 +274,12 @@ class CreateTutoringController extends GetxController {
           AppSnackbar("Hata", "Uygunsuz görsel tespit edildi.");
           continue;
         }
-        final fileName = path.basename(imagePath);
-        final ref = storage.ref().child('users/$userId/$fileName');
-        await ref.putFile(localFile);
-        final downloadUrl = await ref.getDownloadURL();
+        final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+          storage: storage,
+          file: localFile,
+          storagePathWithoutExt:
+              'users/$userId/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
+        );
         imageUrls.add(downloadUrl);
       }
     }
@@ -206,6 +301,7 @@ class CreateTutoringController extends GetxController {
     isLoading.value = true;
     try {
       final imageUrls = await uploadImages();
+      final verDocUrls = await _uploadVerificationDocs();
       final tutoring = TutoringModel(
         docID: '',
         aciklama: descriptionController.text,
@@ -224,10 +320,14 @@ class CreateTutoringController extends GetxController {
         timeStamp: DateTime.now().millisecondsSinceEpoch,
         userID: FirebaseAuth.instance.currentUser?.uid ?? '',
         whatsapp: false,
+        availability: availability.isNotEmpty ? Map<String, List<String>>.from(availability) : null,
+        lat: _lat,
+        long: _long,
+        verificationDocs: verDocUrls.isNotEmpty ? verDocUrls : null,
       );
 
       await FirebaseFirestore.instance
-          .collection('OzelDersVerenler')
+          .collection('educators')
           .add(tutoring.toJson());
       Get.back();
       AppSnackbar("Başarılı", "Özel ders ilanı paylaşıldı!");
@@ -288,6 +388,17 @@ class CreateTutoringController extends GetxController {
         updateData['telefon'] = isPhoneOpen.value;
       }
 
+      // Availability
+      if (availability.isNotEmpty) {
+        updateData['availability'] = Map<String, List<String>>.from(availability);
+      }
+
+      // Lat/Long (şehir/ilçe değiştiyse geocode edilmiştir)
+      if (_lat != null && _long != null) {
+        updateData['lat'] = _lat;
+        updateData['long'] = _long;
+      }
+
       // Only update images if new images were added
       final newLocalImages =
           images.where((path) => !path.startsWith('http')).toList();
@@ -298,7 +409,7 @@ class CreateTutoringController extends GetxController {
 
       if (updateData.isNotEmpty) {
         await FirebaseFirestore.instance
-            .collection('OzelDersVerenler')
+            .collection('educators')
             .doc(docId)
             .update(updateData);
         Get.back();
@@ -330,5 +441,9 @@ class CreateTutoringController extends GetxController {
     images.clear();
     isPhoneOpen.value = false;
     selectedBranch.value = '';
+    availability.clear();
+    verificationDocs.clear();
+    _lat = null;
+    _long = null;
   }
 }

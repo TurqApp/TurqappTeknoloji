@@ -152,7 +152,7 @@ class ApplicantProfile extends StatelessWidget {
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.blueAccent,
+            color: Colors.black,
             width: 1,
           ),
         ),
@@ -216,7 +216,7 @@ class ApplicantProfile extends StatelessWidget {
             Icon(
               AppIcons.right,
               size: 22,
-              color: Colors.blueAccent,
+              color: Colors.black,
             ),
           ],
         ),

@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Modules/Social/ShareOfPost/thumbnail_data.dart';
 import 'package:turqappv2/Modules/Social/ShareOfPost/video_cover_selector.dart';
@@ -464,11 +465,19 @@ class ShareOfPostController extends GetxController {
       final compressedBytes = Uint8List.fromList(
         img.encodeJpg(decoded, quality: 50),
       );
+      final webpBytes =
+          await WebpUploadService.toWebpFromBytes(compressedBytes, quality: 85);
+      if (webpBytes == null || webpBytes.isEmpty) continue;
 
-      final fileName = 'img_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+      final fileName = 'img_${DateTime.now().millisecondsSinceEpoch}_$i.webp';
       final ref = storage.ref().child('Sosyal/$docID/$fileName');
       final uploadTask = ref.putData(
-          compressedBytes, SettableMetadata(contentType: 'image/jpeg'));
+        webpBytes,
+        SettableMetadata(
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
 
       final snapshot = await uploadTask;
       final url = CdnUrlBuilder.toCdnUrl(await snapshot.ref.getDownloadURL());
@@ -497,20 +506,22 @@ class ShareOfPostController extends GetxController {
     final videoRef = storage.ref().child("Sosyal/$docID/video.mp4");
     final videoUploadTask = videoRef.putFile(
       video,
-      SettableMetadata(contentType: 'video/mp4'),
+      SettableMetadata(
+        contentType: 'video/mp4',
+        cacheControl: 'public, max-age=31536000, immutable',
+      ),
     );
     final videoSnap = await videoUploadTask;
     videoUrl = CdnUrlBuilder.toCdnUrl(await videoSnap.ref.getDownloadURL());
 
     // 2. Thumbnail Yükle
     final thumbBytes = await thumb.readAsBytes();
-    final thumbRef = storage.ref().child("Sosyal/$docID/thumbnail.jpg");
-    final thumbUploadTask = thumbRef.putData(
-      thumbBytes,
-      SettableMetadata(contentType: 'image/jpeg'),
+    final thumbDownloadUrl = await WebpUploadService.uploadBytesAsWebp(
+      storage: storage,
+      bytes: thumbBytes,
+      storagePathWithoutExt: "Sosyal/$docID/thumbnail",
     );
-    final thumbSnap = await thumbUploadTask;
-    thumbnailUrl = CdnUrlBuilder.toCdnUrl(await thumbSnap.ref.getDownloadURL());
+    thumbnailUrl = CdnUrlBuilder.toCdnUrl(thumbDownloadUrl);
 
     // 3. Firestore'a kaydet (aspectRatio dahil)
     double ar = 1.0;

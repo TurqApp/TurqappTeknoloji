@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
@@ -129,10 +130,12 @@ class SocialMediaController extends GetxController {
     isUploading.value = true;
     final byteData = await rootBundle.load(assetPath);
     final data = byteData.buffer.asUint8List();
-    final ref = FirebaseStorage.instance.ref(
-        "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID.png");
-    final uploadTask = await ref.putData(data);
-    return await uploadTask.ref.getDownloadURL();
+    return WebpUploadService.uploadBytesAsWebp(
+      storage: FirebaseStorage.instance,
+      bytes: data,
+      storagePathWithoutExt:
+          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
+    );
   }
 
   Future<String> uploadFileImage(File file, String docID) async {
@@ -144,9 +147,11 @@ class SocialMediaController extends GetxController {
     if (nsfw.isNSFW) {
       throw Exception('Uygunsuz görsel tespit edildi');
     }
-    final ref = FirebaseStorage.instance.ref(
-        "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID.png");
-    final uploadTask = await ref.putFile(file);
-    return await uploadTask.ref.getDownloadURL();
+    return WebpUploadService.uploadFileAsWebp(
+      storage: FirebaseStorage.instance,
+      file: file,
+      storagePathWithoutExt:
+          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
+    );
   }
 }

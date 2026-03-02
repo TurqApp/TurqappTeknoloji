@@ -6,7 +6,7 @@ import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/LocationBasedTutoring/location_based_tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 class LocationBasedTutoring extends StatelessWidget {

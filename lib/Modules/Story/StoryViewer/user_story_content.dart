@@ -1140,7 +1140,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    CupertinoIcons.share,
+                    CupertinoIcons.share_up,
                     color: Colors.white,
                     size: 20,
                   ),

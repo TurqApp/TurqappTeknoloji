@@ -25,7 +25,7 @@ class SearchDenemeController extends GetxController {
     isLoading.value = true;
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .orderBy("timeStamp", descending: true)
           .get();
       list.clear();

@@ -21,6 +21,24 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
   int bosSayisi = 0;
   int yanlisSayisi = 0;
 
+  String _denemeLabelFromYear(String year) {
+    final parsedYear = int.tryParse(year);
+    if (parsedYear == null) return year;
+    final denemeNumber = (2025 - parsedYear).clamp(1, 999);
+    return "Deneme $denemeNumber";
+  }
+
+  String _resultTitle() {
+    final denemeLabel = _denemeLabelFromYear(widget.model.yil);
+    if (widget.model.anaBaslik == "KPSS") {
+      final prefix = widget.model.baslik3.contains("Lisans")
+          ? widget.model.baslik2
+          : widget.model.baslik3.replaceAll("ö", "Ö");
+      return "$prefix $denemeLabel";
+    }
+    return "${widget.model.sinavTuru} $denemeLabel";
+  }
+
   @override
   void initState() {
     toplamSoru = widget.model.dogruCevaplar.length;
@@ -49,9 +67,7 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
           MaterialPageRoute(
             builder: (context) => CikmisSoruSonucPreview(
               model: widget.model,
-              title: widget.model.anaBaslik == "KPSS"
-                  ? "${widget.model.baslik3.contains("Lisans") ? widget.model.baslik2 : widget.model.baslik3.replaceAll("ö", "Ö")} ${widget.model.yil}"
-                  : "${widget.model.sinavTuru} ${widget.model.yil}",
+              title: _resultTitle(),
             ),
           ),
         );
@@ -74,9 +90,7 @@ class _CikmisSorularSonucContentState extends State<CikmisSorularSonucContent> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.model.anaBaslik == "KPSS"
-                                ? "${widget.model.baslik3.contains("Lisans") ? widget.model.baslik2 : widget.model.baslik3.replaceAll("ö", "Ö")} ${widget.model.yil}"
-                                : "${widget.model.sinavTuru} ${widget.model.yil}",
+                            _resultTitle(),
                             style: TextStyles.bold18Black,
                           ),
                         ),

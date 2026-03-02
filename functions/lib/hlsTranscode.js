@@ -149,7 +149,7 @@ exports.onVideoUpload = functions
         // Segment konfigürasyonu oku
         const configSnap = await db.doc("adminConfig/hlsSegment").get();
         const segment1 = clampSegment(configSnap.data()?.segment1, 2);
-        const segment2 = clampSegment(configSnap.data()?.segment2, 6);
+        const segment2 = clampSegment(configSnap.data()?.segment2, 2);
         console.log(`[HLS] Segment config: first=${segment1}s, rest=${segment2}s`);
         // Temp dizini oluştur
         fs.mkdirSync(tempDir, { recursive: true });
@@ -162,92 +162,91 @@ exports.onVideoUpload = functions
         const durationSeconds = await getVideoDurationSeconds(inputPath);
         const forceKeyFrames = buildForceKeyFrames(durationSeconds, segment1, segment2);
         console.log(`[HLS] duration=${durationSeconds.toFixed(2)}s, forced_keyframes=${forceKeyFrames || "none"}`);
-        // ffmpeg ile HLS üret
-        const masterPlaylist = path.join(outputDir, "master.m3u8");
-        console.log(`[HLS] Starting ffmpeg transcode...`);
-        const ffmpegArgs = [
-            "-i",
+        // ABR multi-rendition ladder
+        // Kaynak çözünürlüğünü al
+        const probeResult = await execFileAsync("ffprobe", [
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=width,height",
+            "-of", "csv=p=0",
             inputPath,
-            "-c:v",
-            "libx264",
-            "-pix_fmt",
-            "yuv420p",
-            "-profile:v",
-            "main",
-            "-level:v",
-            "4.1",
-            "-flags",
-            "+cgop",
-            "-preset",
-            "fast",
-            "-crf",
-            "23",
-            "-r",
-            "30",
-            "-c:a",
-            "aac",
-            "-profile:a",
-            "aac_low",
-            "-ar",
-            "48000",
-            "-b:a",
-            "128k",
-            "-g",
-            String(segment2 * 30), // GOP size = segment duration * fps
-            "-keyint_min",
-            String(segment2 * 30),
-            "-sc_threshold",
-            "0",
-            "-x264-params",
-            `keyint=${segment2 * 30}:min-keyint=${segment2 * 30}:scenecut=0:open-gop=0:repeat-headers=1`,
-            "-bsf:v",
-            "h264_mp4toannexb",
-            ...(forceKeyFrames ? ["-force_key_frames", forceKeyFrames] : []),
-            "-start_number",
-            "0",
-            "-hls_init_time",
-            String(segment1),
-            "-hls_time",
-            String(segment2),
-            "-hls_list_size",
-            "0",
-            "-hls_playlist_type",
-            "vod",
-            "-hls_flags",
-            "independent_segments+temp_file",
-            "-hls_segment_type",
-            "mpegts",
-            "-mpegts_flags",
-            "+resend_headers",
-            "-muxpreload",
-            "0",
-            "-muxdelay",
-            "0",
-            "-max_muxing_queue_size",
-            "2048",
-            "-hls_segment_filename",
-            path.join(outputDir, "seg_%03d.ts"),
-            "-f",
-            "hls",
-            masterPlaylist,
-        ];
-        await execFileAsync("ffmpeg", ffmpegArgs);
+        ]);
+        const [srcW, srcH] = String(probeResult.stdout).trim().split(",").map(Number);
+        const srcHeight = Math.max(srcW || 0, srcH || 0) > 0 ? Math.min(srcW || 720, srcH || 720) : 720;
+        // Eğer kaynak dikey (portrait) ise width'i baz al
+        const isPortrait = (srcH || 0) > (srcW || 0);
+        const srcShortSide = isPortrait ? (srcW || 720) : (srcH || 720);
+        // Rendition ladder — kaynaktan yüksek olanları atla
+        const renditions = [
+            { height: 360, bitrate: 800, maxrate: 856, bufsize: 1200, label: "360p" },
+            { height: 480, bitrate: 1400, maxrate: 1498, bufsize: 2100, label: "480p" },
+            { height: 720, bitrate: 2800, maxrate: 2996, bufsize: 4200, label: "720p" },
+        ].filter((r) => r.height <= srcShortSide + 50); // +50 tolerans
+        // Kaynak çok düşükse en az 1 rendition olsun
+        if (renditions.length === 0) {
+            renditions.push({ height: 360, bitrate: 800, maxrate: 856, bufsize: 1200, label: "360p" });
+        }
+        const gopSize = segment2 * 30;
+        const masterPlaylist = path.join(outputDir, "master.m3u8");
+        console.log(`[HLS] Starting ABR transcode (${renditions.map(r => r.label).join(", ")})...`);
+        // Her rendition için ayrı dizin oluştur
+        for (const r of renditions) {
+            fs.mkdirSync(path.join(outputDir, r.label), { recursive: true });
+        }
+        // ffmpeg multi-output ABR encoding
+        const ffmpegArgs = ["-i", inputPath];
+        for (let i = 0; i < renditions.length; i++) {
+            const r = renditions[i];
+            const scale = isPortrait
+                ? `scale=${r.height}:-2`
+                : `scale=-2:${r.height}`;
+            ffmpegArgs.push("-map", "0:v:0", "-map", "0:a:0?", `-filter:v:${i}`, scale, `-c:v:${i}`, "libx264", `-b:v:${i}`, `${r.bitrate}k`, `-maxrate:v:${i}`, `${r.maxrate}k`, `-bufsize:v:${i}`, `${r.bufsize}k`, `-pix_fmt`, "yuv420p", `-profile:v:${i}`, "main", `-preset`, "fast", `-g:v:${i}`, String(gopSize), `-keyint_min:v:${i}`, String(gopSize), `-sc_threshold:v:${i}`, "0", `-c:a:${i}`, "aac", `-b:a:${i}`, "128k", `-ar:${i}`, "48000");
+        }
+        // forceKeyFrames tüm stream'lere
+        if (forceKeyFrames) {
+            ffmpegArgs.push("-force_key_frames", forceKeyFrames);
+        }
+        // HLS muxer ayarları
+        const varStreamMap = renditions
+            .map((_, i) => `v:${i},a:${i}`)
+            .join(" ");
+        ffmpegArgs.push("-f", "hls", "-hls_time", String(segment2), "-hls_init_time", String(segment1), "-hls_list_size", "0", "-hls_playlist_type", "vod", "-hls_flags", "independent_segments+temp_file", "-hls_segment_type", "mpegts", "-master_pl_name", "master.m3u8", "-var_stream_map", varStreamMap, "-hls_segment_filename", path.join(outputDir, "%v/seg_%03d.ts"), path.join(outputDir, "%v/playlist.m3u8"));
+        await execFileAsync("ffmpeg", ffmpegArgs, { maxBuffer: 50 * 1024 * 1024 });
         console.log(`[HLS] Transcode complete. Uploading HLS files...`);
-        // HLS dosyalarını Storage'a yükle
-        const hlsFiles = fs.readdirSync(outputDir);
-        const hlsSegmentCount = hlsFiles.filter((file) => file.startsWith("seg_") && file.endsWith(".ts")).length;
-        const uploadPromises = hlsFiles.map((file) => {
-            const localPath = path.join(outputDir, file);
-            const remotePath = `${target.hlsOutputPrefix}/${file}`;
-            return bucket.upload(localPath, {
-                destination: remotePath,
-                metadata: {
-                    contentType: file.endsWith(".m3u8")
-                        ? "application/vnd.apple.mpegurl"
-                        : "video/mp2t",
-                },
-            });
-        });
+        // HLS dosyalarını Storage'a yükle (nested rendition dizinleri dahil)
+        const uploadPromises = [];
+        let hlsSegmentCount = 0;
+        const walkDir = (dir, prefix) => {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                if (entry.isDirectory()) {
+                    walkDir(path.join(dir, entry.name), `${prefix}${entry.name}/`);
+                }
+                else {
+                    const localPath = path.join(dir, entry.name);
+                    const remotePath = `${target.hlsOutputPrefix}/${prefix}${entry.name}`;
+                    const isPlaylist = entry.name.endsWith(".m3u8");
+                    const isMaster = entry.name === "master.m3u8";
+                    if (entry.name.endsWith(".ts"))
+                        hlsSegmentCount++;
+                    // Segmentler immutable → uzun cache. Master playlist kısa cache (ABR switch).
+                    const cacheControl = isPlaylist
+                        ? isMaster
+                            ? "public, max-age=300, s-maxage=300"
+                            : "public, max-age=86400, s-maxage=86400"
+                        : "public, max-age=31536000, s-maxage=31536000, immutable";
+                    uploadPromises.push(bucket.upload(localPath, {
+                        destination: remotePath,
+                        metadata: {
+                            contentType: isPlaylist
+                                ? "application/vnd.apple.mpegurl"
+                                : "video/mp2t",
+                            cacheControl,
+                        },
+                    }));
+                }
+            }
+        };
+        walkDir(outputDir, "");
         await Promise.all(uploadPromises);
         // Thumbnail üret (sadece post tipi için)
         let thumbnailUrl = "";

@@ -95,7 +95,7 @@ class BookletAnswer extends StatelessWidget {
                   child: Container(color: Colors.black.withValues(alpha: 0.5)),
                 ),
                 Container(
-                  height: 250,
+                  height: 320,
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -125,15 +125,62 @@ class BookletAnswer extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             const Text(
-                              "Testi tamamladınız!\nSonuçlarım ekranından tüm test sonuçlarına ulaşabilirsin!",
+                              "Testi tamamladınız!",
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                height: 1.7,
+                                height: 1.4,
                                 color: Colors.black,
                                 fontSize: 18,
                                 fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Obx(
+                              () => Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.12),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _resultItem(
+                                      "Doğru",
+                                      controller.correctCount.value.toString(),
+                                    ),
+                                    _resultItem(
+                                      "Yanlış",
+                                      controller.wrongCount.value.toString(),
+                                    ),
+                                    _resultItem(
+                                      "Boş",
+                                      controller.emptyCount.value.toString(),
+                                    ),
+                                    _resultItem(
+                                      "Net",
+                                      controller.netScore.value
+                                          .toStringAsFixed(2),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Obx(
+                              () => Text(
+                                "Puan: ${controller.scorePercent.value.toStringAsFixed(1)}",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -167,6 +214,31 @@ class BookletAnswer extends StatelessWidget {
               ],
             )
           : Container(),
+    );
+  }
+
+  Widget _resultItem(String title, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontFamily: "MontserratBold",
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontSize: 12,
+            fontFamily: "MontserratMedium",
+          ),
+        ),
+      ],
     );
   }
 }

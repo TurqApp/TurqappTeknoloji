@@ -736,7 +736,7 @@ class ShortsContent extends StatelessWidget {
             });
           },
           title: 'Paylaş',
-          icon: CupertinoIcons.share,
+          icon: CupertinoIcons.share_up,
         ),
         if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
             FirebaseAuth.instance.currentUser!.uid ==

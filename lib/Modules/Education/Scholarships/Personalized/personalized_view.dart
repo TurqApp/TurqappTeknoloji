@@ -109,6 +109,17 @@ class PersonalizedView extends StatelessWidget {
   }
 
   Widget _buildCarouselItem(IndividualScholarshipsModel item) {
+    if (item.img.trim().isEmpty) {
+      return AspectRatio(
+        aspectRatio: 4 / 3,
+        child: Container(
+          color: Colors.grey.shade200,
+          alignment: Alignment.center,
+          child: const Icon(Icons.image_not_supported,
+              size: 40, color: Colors.grey),
+        ),
+      );
+    }
     return GestureDetector(
       onTap: () => _navigateToIndividualDetail(item),
       child: AspectRatio(
@@ -184,24 +195,34 @@ class PersonalizedView extends StatelessWidget {
         final IndividualScholarshipsModel item = controller.list[index];
         return GestureDetector(
           onTap: () => _navigateToIndividualDetail(item),
-          child: CachedNetworkImage(
-            imageUrl: item.img,
-            fit: BoxFit.cover,
-            placeholder: (c, u) => const Center(child: CupertinoActivityIndicator()),
-            errorWidget: (c, u, e) => const Icon(Icons.error),
-          ),
+          child: item.img.trim().isEmpty
+              ? Container(
+                  color: Colors.grey.shade200,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.image_not_supported,
+                      size: 24, color: Colors.grey),
+                )
+              : CachedNetworkImage(
+                  imageUrl: item.img,
+                  fit: BoxFit.cover,
+                  placeholder: (c, u) =>
+                      const Center(child: CupertinoActivityIndicator()),
+                  errorWidget: (c, u, e) => const Icon(Icons.error),
+                ),
         );
       },
     );
   }
 
   Future<void> _navigateToIndividualDetail(IndividualScholarshipsModel item) async {
+    final controller = Get.find<PersonalizedController>();
+    final docId = controller.docIdByTimestamp[item.timeStamp] ?? '';
     final scholarshipData = {
       'model': item,
       'type': 'bireysel',
       'userData': null,
-      'docId': null,
-      'scholarshipId': null,
+      'docId': docId,
+      'scholarshipId': docId,
     };
     Get.to(() => ScholarshipDetailView(), arguments: scholarshipData);
   }

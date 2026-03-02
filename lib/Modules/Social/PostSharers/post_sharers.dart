@@ -39,7 +39,7 @@ class PostSharers extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          CupertinoIcons.share,
+                          CupertinoIcons.share_up,
                           size: 64,
                           color: Colors.grey.withValues(alpha: 0.5),
                         ),

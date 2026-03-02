@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -14,13 +17,8 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 String? getCurrentUserId() {
-  try {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    return userId?.isNotEmpty == true ? userId : null;
-  } catch (e) {
-    ("Error getting userID: $e");
-    return null;
-  }
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  return (userId != null && userId.isNotEmpty) ? userId : null;
 }
 
 class TutoringWidgetBuilder extends StatelessWidget {
@@ -112,6 +110,17 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                     style: TextStyles.bold16Black,
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => _shareTutoring(tutoring),
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: Icon(
+                                      CupertinoIcons.share_up,
+                                      size: 20,
+                                      color: Colors.grey,
+                                    ),
                                   ),
                                 ),
                                 Obx(() {
@@ -260,6 +269,17 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                         maxLines: 1,
                                       ),
                                     ),
+                                    GestureDetector(
+                                      onTap: () => _shareTutoring(tutoring),
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(right: 8),
+                                        child: Icon(
+                                          CupertinoIcons.share_up,
+                                          size: 20,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
                                     Obx(() {
                                       final isSaved = savedController
                                           .savedTutoringIds
@@ -352,5 +372,39 @@ class TutoringWidgetBuilder extends StatelessWidget {
               );
             },
           );
+  }
+
+  Future<void> _shareTutoring(TutoringModel tutoring) async {
+    await ShareActionGuard.run(() async {
+      var shortUrl = '';
+      try {
+        shortUrl = await ShortLinkService().getInternalEducationPublicUrl(
+          shareId: 'tutoring:${tutoring.docID}',
+          title: tutoring.baslik,
+          desc: tutoring.aciklama,
+          imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
+              ? tutoring.imgs!.first
+              : null,
+        );
+      } catch (_) {}
+
+      if (shortUrl.trim().isEmpty) {
+        shortUrl = 'https://turqapp.com/i/tutoring:${tutoring.docID}';
+      }
+
+      final shareText = '''
+${tutoring.baslik}
+${tutoring.brans} • ${tutoring.sehir}/${tutoring.ilce}
+
+$shortUrl
+''';
+
+      await SharePlus.instance.share(
+        ShareParams(
+          text: shareText.trim(),
+          title: tutoring.baslik,
+        ),
+      );
+    });
   }
 }

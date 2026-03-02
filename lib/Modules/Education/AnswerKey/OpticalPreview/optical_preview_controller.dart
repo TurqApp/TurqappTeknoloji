@@ -5,20 +5,17 @@ import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
-class OpticalPreviewController extends GetxController
-    with WidgetsBindingObserver {
+class OpticalPreviewController extends GetxController {
   final OpticalFormModel model;
   final Function? onUpdate;
-  final Function gecersizSay;
 
   final cevaplar = <String>[].obs;
   final isConnected = true.obs;
   final selection = 0.obs;
-  final hataCount = 0.obs;
   final fullName = TextEditingController();
   final ogrenciNo = TextEditingController();
 
-  OpticalPreviewController(this.model, this.onUpdate, this.gecersizSay) {
+  OpticalPreviewController(this.model, this.onUpdate) {
     _initialize();
   }
 
@@ -26,12 +23,10 @@ class OpticalPreviewController extends GetxController
     cevaplar.value = List.generate(model.cevaplar.length, (index) => "");
     kullaniciyiSinavGirdiKaydet();
     checkInternetConnection();
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
     fullName.dispose();
     ogrenciNo.dispose();
     super.onClose();
@@ -48,72 +43,31 @@ class OpticalPreviewController extends GetxController
     });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    if (state == AppLifecycleState.paused) {
-      print("Uygulama arka plana atıldı.");
-    } else if (state == AppLifecycleState.resumed) {
-      print("Uygulama ön plana geldi.");
-      hataCount.value++;
-      cevaplar.value = List.generate(model.cevaplar.length, (index) => "");
-
-      if (hataCount.value == 1) {
-        showAlertDialog(
-          "Son Uyarı !",
-          "Son hatırlatmamızdır! Uygulamayı arka plana almanız gibi kritik durumlarda, sınavınız geçersiz sayılacaktır. Bu defalık sınavınıza devam edebilirsiniz, ancak tüm cevaplarınız sıfırlanmıştır. Lütfen dikkatli olun ve kurallara uygun hareket edin.",
-        );
-      } else {
-        sinaviGecersizSay();
-      }
-    } else if (state == AppLifecycleState.detached) {
-      sinaviGecersizSay();
-    }
-  }
-
-  void sinaviGecersizSay() {
-    if (!model.kisitlama) {
-      final gecersizList = List.filled(model.cevaplar.length, "");
-      FirebaseFirestore.instance
-          .collection("OptikKodlar")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({
-            "timeStamp": DateTime.now().millisecondsSinceEpoch,
-            "cevaplar": gecersizList,
-          });
-      Get.back();
-      gecersizSay();
-    }
-  }
-
   void setData() {
     FirebaseFirestore.instance
-        .collection("OptikKodlar")
+        .collection("optikForm")
         .doc(model.docID)
         .collection("Yanitlar")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .update({
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-          "cevaplar": cevaplar,
-          "ogrenciNo": ogrenciNo.text,
-          "fullName": fullName.text,
-        });
+      "timeStamp": DateTime.now().millisecondsSinceEpoch,
+      "cevaplar": cevaplar,
+      "ogrenciNo": ogrenciNo.text,
+      "fullName": fullName.text,
+    });
     Get.back();
   }
 
   void kullaniciyiSinavGirdiKaydet() {
     FirebaseFirestore.instance
-        .collection("OptikKodlar")
+        .collection("optikForm")
         .doc(model.docID)
         .collection("Yanitlar")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .set({
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-          "cevaplar": List.filled(model.cevaplar.length, ""),
-        });
+      "timeStamp": DateTime.now().millisecondsSinceEpoch,
+      "cevaplar": List.filled(model.cevaplar.length, ""),
+    });
     SetOptions(merge: true);
   }
 
@@ -138,6 +92,10 @@ class OpticalPreviewController extends GetxController
 
   void startTest() {
     selection.value = 1;
+  }
+
+  bool canStartTest() {
+    return fullName.text.trim().length >= 6 && ogrenciNo.text.trim().isNotEmpty;
   }
 
   void showAlertDialog(String title, String desc) {

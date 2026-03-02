@@ -508,7 +508,8 @@ class _ShortViewState extends State<ShortView> {
                 );
               }
 
-              return Stack(
+              return RepaintBoundary(
+                child: Stack(
                 fit: StackFit.expand,
                 children: [
                   // Video layer
@@ -575,6 +576,7 @@ class _ShortViewState extends State<ShortView> {
                     ),
                   ),
                 ],
+              ),
               );
             },
           ),

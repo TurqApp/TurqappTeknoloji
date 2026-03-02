@@ -28,10 +28,6 @@ class JobDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     controller = Get.put(JobDetailsController(model: model), tag: model.docID);
-    controller.checkSaved(model.docID);
-    controller.checkBasvuru(model.docID);
-    controller.getSimilar(model.meslek);
-    controller.getUserData(model.userID);
 
     return Scaffold(
       body: SafeArea(
@@ -47,7 +43,7 @@ class JobDetails extends StatelessWidget {
                     RedirectionLink().goToLink("https://turqapp.com");
                   },
                   icon: Icon(
-                    CupertinoIcons.share,
+                    CupertinoIcons.share_up,
                     color: Colors.black,
                     size: 25,
                   ),
@@ -100,55 +96,49 @@ class JobDetails extends StatelessWidget {
                                 width: 12,
                               ),
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () => Get.to(JobDetails(model: model)),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        controller.model.value.meslek,
-                                        style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratBold"),
-                                      ),
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  controller.model.value.brand,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                      color: Colors.blueAccent,
-                                                      fontSize: 15,
-                                                      fontFamily:
-                                                          "MontserratMedium"),
-                                                ),
-                                                Text(
-                                                  "${controller.model.value.kacKm.toStringAsFixed(2)} km • ${controller.model.value.city}, ${controller.model.value.town}",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: Colors.black,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      controller.model.value.meslek,
+                                      style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratBold"),
+                                    ),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                controller.model.value.brand,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    color: Colors.blueAccent,
                                                     fontSize: 15,
-                                                    fontFamily: "Montserrat",
-                                                  ),
+                                                    fontFamily:
+                                                        "MontserratMedium"),
+                                              ),
+                                              Text(
+                                                "${controller.model.value.kacKm.toStringAsFixed(2)} km • ${controller.model.value.city}, ${controller.model.value.town}",
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 15,
+                                                  fontFamily: "Montserrat",
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      )
-                                    ],
-                                  ),
+                                        ),
+                                      ],
+                                    )
+                                  ],
                                 ),
                               ),
                             ],
@@ -156,6 +146,67 @@ class JobDetails extends StatelessWidget {
                           SizedBox(
                             height: 12,
                           ),
+                          // İlan Başlığı (varsa)
+                          if (controller.model.value.ilanBasligi.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "İlan Başlığı",
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratBold"),
+                                  ),
+                                  Text(
+                                    controller.model.value.ilanBasligi,
+                                    style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "Montserrat"),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          // Deneyim Seviyesi + Pozisyon Sayısı + Başvuru Sayısı
+                          if (controller
+                                  .model.value.deneyimSeviyesi.isNotEmpty ||
+                              controller.model.value.pozisyonSayisi > 1 ||
+                              controller.model.value.applicationCount > 0 ||
+                              controller.model.value.viewCount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  if (controller
+                                      .model.value.deneyimSeviyesi.isNotEmpty)
+                                    _infoChip(
+                                      CupertinoIcons.briefcase,
+                                      controller.model.value.deneyimSeviyesi,
+                                    ),
+                                  if (controller.model.value.pozisyonSayisi > 1)
+                                    _infoChip(
+                                      CupertinoIcons.person_2,
+                                      "${controller.model.value.pozisyonSayisi} kişi",
+                                    ),
+                                  if (controller.model.value.applicationCount >
+                                      0)
+                                    _infoChip(
+                                      CupertinoIcons.doc_text,
+                                      "${controller.model.value.applicationCount} başvuru",
+                                    ),
+                                  if (controller.model.value.viewCount > 0)
+                                    _infoChip(
+                                      CupertinoIcons.eye,
+                                      "${controller.model.value.viewCount} görüntülenme",
+                                    ),
+                                ],
+                              ),
+                            ),
                           Row(
                             children: [
                               Text(
@@ -188,12 +239,28 @@ class JobDetails extends StatelessWidget {
                               )
                             ],
                           ),
-                          Text(
-                            controller.model.value.yanHaklar.join(", "),
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "Montserrat"),
+                          SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children:
+                                controller.model.value.yanHaklar.map((hak) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withAlpha(20),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  hak,
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 13,
+                                      fontFamily: "MontserratMedium"),
+                                ),
+                              );
+                            }).toList(),
                           ),
                           SizedBox(
                             height: 12,
@@ -292,6 +359,17 @@ class JobDetails extends StatelessWidget {
                               ),
                             ],
                           ),
+                          if (controller.model.value.adres.isNotEmpty) ...[
+                            SizedBox(height: 8),
+                            Text(
+                              controller.model.value.adres,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 13,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ],
                           SizedBox(
                             height: 12,
                           ),
@@ -346,7 +424,8 @@ class JobDetails extends StatelessWidget {
                           GestureDetector(
                             onTap: () {
                               if (model.userID !=
-                                  FirebaseAuth.instance.currentUser!.uid) {
+                                  (FirebaseAuth.instance.currentUser?.uid ??
+                                      '')) {
                                 Get.to(
                                     () => SocialProfile(userID: model.userID));
                               }
@@ -425,31 +504,106 @@ class JobDetails extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             if (controller.model.value.userID ==
-                                FirebaseAuth.instance.currentUser!.uid)
+                                (FirebaseAuth.instance.currentUser?.uid ?? ''))
                               Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    controller.goToEdit();
-                                  },
-                                  child: Container(
-                                    height: 50,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius:
-                                          BorderRadius.all(Radius.circular(12)),
-                                      border: Border.all(
-                                          color: Colors.grey.withAlpha(50)),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: controller.goToEdit,
+                                            child: Container(
+                                              height: 50,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: Colors.black,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Text(
+                                                "İlanı Düzenle",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontFamily: "MontserratBold",
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: GestureDetector(
+                                            onTap: controller
+                                                .goToApplicationReview,
+                                            child: Container(
+                                              height: 50,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF2F2F2F),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Text(
+                                                "Başvurular",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 15,
+                                                  fontFamily: "MontserratBold",
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    child: Text(
-                                      "İlanı Düzenle",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
+                                    const SizedBox(height: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        noYesAlert(
+                                          title: "İlanı Yayından Kaldır",
+                                          message:
+                                              "Bu ilanı yayından kaldırmak istediğinizden emin misiniz?",
+                                          yesText: "Kaldır",
+                                          cancelText: "Vazgeç",
+                                          onYesPressed: () async {
+                                            try {
+                                              await controller.unpublishAd();
+                                              AppSnackbar(
+                                                "Başarılı",
+                                                "İlan yayından kaldırıldı.",
+                                              );
+                                            } catch (e) {
+                                              AppSnackbar(
+                                                "Hata",
+                                                "İlan kaldırılamadı: $e",
+                                                backgroundColor:
+                                                    Colors.red.withAlpha(40),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      },
+                                      child: Container(
+                                        height: 50,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Text(
+                                          "İlanı Yayından Kaldır",
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratBold",
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               )
                             else
@@ -855,6 +1009,31 @@ class JobDetails extends StatelessWidget {
     );
   }
 
+  Widget _infoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.withAlpha(20),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey.shade700),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 13,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget pullDownMenu() {
     return PullDownButton(
       itemBuilder: (context) => [
@@ -871,7 +1050,8 @@ class JobDetails extends StatelessWidget {
       ],
       buttonBuilder: (context, showMenu) => CupertinoButton(
         onPressed: showMenu,
-        padding: EdgeInsets.zero, minimumSize: Size(0, 0),
+        padding: EdgeInsets.zero,
+        minimumSize: Size(0, 0),
         child: Icon(
           AppIcons.ellipsisVertical,
           color: Colors.black,

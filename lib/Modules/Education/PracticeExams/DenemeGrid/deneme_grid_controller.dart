@@ -12,8 +12,16 @@ class DenemeGridController extends GetxController {
   var isLoadingProfile = true.obs;
   var isLoadingApplicants = true.obs;
   final int fifteenMinutes = 15 * 60 * 1000;
+  String _initializedDocId = '';
+  String _initializedUserId = '';
 
   void initData(SinavModel model) {
+    if (_initializedDocId == model.docID &&
+        _initializedUserId == model.userID) {
+      return;
+    }
+    _initializedDocId = model.docID;
+    _initializedUserId = model.userID;
     examTime.value = model.timeStamp.toInt();
     fetchProfileData(model.userID);
     fetchApplicantCount(model.docID);
@@ -39,7 +47,7 @@ class DenemeGridController extends GetxController {
     isLoadingApplicants.value = true;
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(docID)
           .collection("Basvurular")
           .get();

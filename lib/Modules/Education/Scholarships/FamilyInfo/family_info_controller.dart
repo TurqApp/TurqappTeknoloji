@@ -44,7 +44,7 @@ class FamilyInfoController extends GetxController {
       FocusScope.of(Get.context!).unfocus();
     });
     loadSehirler();
-    listenToFirestore();
+    fetchFromFirestore();
 
     // Hayatta mı sorusu değiştiğinde ilgili alanları temizle
     ever(fatherLiving, (value) {
@@ -77,14 +77,14 @@ class FamilyInfoController extends GetxController {
     }
   }
 
-  void listenToFirestore() {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .listen((DocumentSnapshot doc) {
+  Future<void> fetchFromFirestore() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .get();
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
+        final data = doc.data();
         if (data != null) {
           familyInfo.value = data['familyInfo'] ?? '';
           fatherName.value.text = data['fatherName'] ?? '';
@@ -100,7 +100,7 @@ class FamilyInfoController extends GetxController {
           motherLiving.value = data['motherLiving'] ?? "Seçiniz";
           motherJob.value = data['motherJob'] ?? "Meslek Seç";
           totalLiving.value.text = data['totalLiving']?.toString() ?? '';
-          evMulkiyeti.value = data['evMulkiyeti'] ?? "Seçim Yap"; // Fixed typo
+          evMulkiyeti.value = data['evMulkiyeti'] ?? "Seçim Yap";
           city.value = data['ikametSehir'] ?? '';
           town.value = data['ikametIlce'] ?? '';
         } else {
@@ -109,7 +109,9 @@ class FamilyInfoController extends GetxController {
       } else {
         _resetToDefaults();
       }
-    });
+    } catch (e) {
+      print('Error fetching family info: $e');
+    }
   }
 
   void _resetToDefaults() {
@@ -342,7 +344,7 @@ class FamilyInfoController extends GetxController {
         "motherSalary":
             motherLiving.value == "Evet" ? motherSalary.value.text : "",
         // Genel bilgiler
-        "totalLiving": int.parse(totalLiving.value.text),
+        "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
         "ikametSehir": city.value,
         "ikametIlce": town.value,
         "evMulkiyeti": evMulkiyeti.value,

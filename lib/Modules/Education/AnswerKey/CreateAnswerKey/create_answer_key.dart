@@ -143,60 +143,6 @@ class CreateAnswerKey extends StatelessWidget {
                   ),
                 ),
               ),
-              const Divider(),
-              GestureDetector(
-                onTap: controller.toggleKisitlama,
-                child: Container(
-                  height: 45,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Colors.white10,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Obx(
-                      () => Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Telefon Kısıtlama",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontFamily: "MontserratBold",
-                              fontSize: 15,
-                            ),
-                          ),
-                          Container(
-                            width: 45,
-                            height: 25,
-                            alignment: controller.kisitlama.value
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withValues(alpha: 0.3),
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(50),
-                              ),
-                            ),
-                            child: Container(
-                              width: 25,
-                              decoration: BoxDecoration(
-                                color: controller.kisitlama.value
-                                    ? Colors.black
-                                    : Colors.grey,
-                                borderRadius: const BorderRadius.all(
-                                  Radius.circular(50),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -212,7 +158,7 @@ class CreateAnswerKey extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: controller.selection.value == 5
-                          ? Colors.blue
+                          ? Colors.black
                           : Colors.white,
                     ),
                     child: Text(
@@ -238,7 +184,7 @@ class CreateAnswerKey extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: controller.selection.value == 4
-                          ? Colors.blue
+                          ? Colors.black
                           : Colors.white,
                     ),
                     child: Text(
@@ -565,150 +511,6 @@ class CreateAnswerKey extends StatelessWidget {
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-          Obx(
-            () => controller.showUyarilar.value
-                ? Stack(
-                    children: [
-                      Container(color: Colors.black.withValues(alpha: 0.5)),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: const EdgeInsets.all(30),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                            ),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: ListView(
-                                    children: const [
-                                      Padding(
-                                        padding: EdgeInsets.all(20),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "Öğrencilerinizi Uyarın!",
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                                fontSize: 18,
-                                                fontFamily: "MontserratBold",
-                                              ),
-                                            ),
-                                            SizedBox(height: 15),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                SizedBox(
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: Icon(
-                                                    Icons.network_check_rounded,
-                                                    color: Colors.green,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Text(
-                                                    "Öğrencilerinizin sınav sırasında dikkatlerinin dağılmaması için internet bağlantılarını kapatmaları konusunda uyarınız. Sınav tamamlandığında, öğrenciler internet bağlantılarını açarak cevaplarını gönderebilecekleri ekrana yönlendirilecektir. Öğrenci eğer sınav anında internetini açar ise sınav sonlanacaktır.",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 18,
-                                                      fontFamily:
-                                                          "MontserratMedium",
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 15),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                SizedBox(
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: Icon(
-                                                    Icons.battery_3_bar_rounded,
-                                                    color: Colors.deepPurple,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Text(
-                                                    "Sınav esnasında öğrencinin telefonunun bataryasının bitmesi durumunda sınav geçersiz sayılacaktır. Bu nedenle, öğrencilerinizin sınav öncesinde cihazlarının şarj seviyesini kontrol ederek en az %40 dolulukta olmasını sağlamaları gerekmektedir. Öğrenciler bu konuda gerekli tedbirleri almalıdır.",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 18,
-                                                      fontFamily:
-                                                          "MontserratMedium",
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(height: 15),
-                                            Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                SizedBox(
-                                                  width: 30,
-                                                  height: 30,
-                                                  child: Icon(
-                                                    Icons.back_hand_outlined,
-                                                    color: Colors.deepOrange,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Text(
-                                                    "Öğrencilerin sınav esnasında uygulamayı arka plana alması, bir arama alması, bildirim panelini açması veya ekranını kilitlemesi durumunda sınav geçersiz sayılacaktır. Bu konuda titiz davranıyoruz; öğrencilerin gerekli tedbirleri almasını konusunda uyarınız.",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 18,
-                                                      fontFamily:
-                                                          "MontserratMedium",
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: controller.toggleUyarilar,
-                                  child: Container(
-                                    height: 50,
-                                    color: Colors.indigo,
-                                    alignment: Alignment.center,
-                                    child: const Text(
-                                      "Tamam",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       ),

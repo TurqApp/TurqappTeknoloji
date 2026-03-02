@@ -7,7 +7,7 @@ const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const REGION = "europe-west3";
 const RESEND_API_KEY = (0, params_1.defineSecret)("RESEND_API_KEY");
-const EMAIL_ACCOUNTS_COLLECTION = "EmailAccounts";
+const EMAIL_ACCOUNTS_COLLECTION = "emailAccounts";
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }

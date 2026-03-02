@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 
 class ScholarshipDetailController extends GetxController {
@@ -14,6 +15,10 @@ class ScholarshipDetailController extends GetxController {
   var currentPageIndex = 0.obs;
   final RxBool applyReady = false.obs;
   final RxBool allreadyApplied = false.obs;
+  final Rxn<IndividualScholarshipsModel> resolvedModel =
+      Rxn<IndividualScholarshipsModel>();
+  final RxBool detailLoading = false.obs;
+  String? _followInitForId;
 
   @override
   void onInit() {
@@ -22,16 +27,27 @@ class ScholarshipDetailController extends GetxController {
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData != null) {
       checkIfUserAlreadyApplied(scholarshipData);
+      _incrementViewCount(scholarshipData);
     }
   }
 
-  @override
-  void onReady() {
-    super.onReady();
-    final scholarshipData = Get.arguments as Map<String, dynamic>?;
-    if (scholarshipData != null) {
-      checkIfUserAlreadyApplied(scholarshipData);
+  void _incrementViewCount(Map<String, dynamic> scholarshipData) {
+    final docId =
+        scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '';
+    if (docId.isEmpty) return;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    final model = scholarshipData['model'];
+    if (model is IndividualScholarshipsModel &&
+        model.userID == currentUser.uid) {
+      return;
     }
+    FirebaseFirestore.instance
+        .collection('scholarships')
+        .doc(docId)
+        .update({
+      'goruntuleme': FieldValue.arrayUnion([currentUser.uid]),
+    }).catchError((_) {});
   }
 
   Future<void> checkUserApplicationReadiness() async {
@@ -140,7 +156,7 @@ class ScholarshipDetailController extends GetxController {
       print('Burs ID: $scholarshipId, Tür: $type');
 
       if (scholarshipId.isNotEmpty) {
-        final collection = 'BireyselBurslar';
+        final collection = 'scholarships';
         final field = 'basvurular';
 
         print('Koleksiyon kontrol ediliyor: $collection');
@@ -185,13 +201,12 @@ class ScholarshipDetailController extends GetxController {
     try {
       isLoading.value = true;
       await checkUserApplicationReadiness();
-      await Future.delayed(Duration(milliseconds: 1500));
 
       if (!applyReady.value) {
         return;
       }
 
-      final collection = 'BireyselBurslar';
+      final collection = 'scholarships';
       final field = 'basvurular';
 
       await FirebaseFirestore.instance
@@ -226,6 +241,9 @@ class ScholarshipDetailController extends GetxController {
       isFollowing.value = false;
       return;
     }
+    if (followedId.isEmpty) return;
+    if (_followInitForId == followedId) return;
+    _followInitForId = followedId;
     final followerId = currentUser.uid;
     final doc = await FirebaseFirestore.instance
         .collection('users')
@@ -281,9 +299,8 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      final collection = 'BireyselBurslar';
       await FirebaseFirestore.instance
-          .collection(collection)
+          .collection('scholarships')
           .doc(scholarshipId)
           .delete();
       Get.back();
@@ -307,7 +324,7 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      final collection = 'BireyselBurslar';
+      final collection = 'scholarships';
       final field = 'basvurular';
 
       await FirebaseFirestore.instance

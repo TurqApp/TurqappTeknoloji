@@ -4,6 +4,9 @@ class ShortLinkService {
   static const String _defaultDomain = 'turqapp.com';
   static final Map<String, String> _postUrlCache = <String, String>{};
   static final Map<String, String> _storyUrlCache = <String, String>{};
+  static final Map<String, String> _eduUrlCache = <String, String>{};
+  static final Map<String, String> _jobUrlCache = <String, String>{};
+  static final Map<String, String> _internalEduUrlCache = <String, String>{};
 
   Future<Map<String, dynamic>> upsertPost({
     required String postId,
@@ -55,6 +58,23 @@ class ShortLinkService {
       title: title,
       desc: desc,
       imageUrl: imageUrl,
+    );
+  }
+
+  Future<Map<String, dynamic>> upsertEducation({
+    required String shareId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) async {
+    return _upsert(
+      type: 'edu',
+      entityId: shareId,
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+      shortId: shortId,
     );
   }
 
@@ -111,6 +131,66 @@ class ShortLinkService {
     );
     final url = _extractUrl(result, fallbackPath: '/s/');
     if (url.isNotEmpty) _storyUrlCache[storyId] = url;
+    return url;
+  }
+
+  Future<String> getEducationPublicUrl({
+    required String shareId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+  }) async {
+    final cached = _eduUrlCache[shareId];
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    final result = await upsertEducation(
+      shareId: shareId,
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+    );
+    final url = _extractUrl(result, fallbackPath: '/e/');
+    if (url.isNotEmpty) _eduUrlCache[shareId] = url;
+    return url;
+  }
+
+  Future<String> getJobPublicUrl({
+    required String jobId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+  }) async {
+    final cached = _jobUrlCache[jobId];
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    final result = await upsertEducation(
+      shareId: 'job:$jobId',
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+    );
+    final url = _extractUrl(result, fallbackPath: '/i/');
+    if (url.isNotEmpty) _jobUrlCache[jobId] = url;
+    return url;
+  }
+
+  Future<String> getInternalEducationPublicUrl({
+    required String shareId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+  }) async {
+    final cached = _internalEduUrlCache[shareId];
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    final result = await upsertEducation(
+      shareId: shareId,
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+    );
+    final url = _extractUrl(result, fallbackPath: '/i/');
+    if (url.isNotEmpty) _internalEduUrlCache[shareId] = url;
     return url;
   }
 

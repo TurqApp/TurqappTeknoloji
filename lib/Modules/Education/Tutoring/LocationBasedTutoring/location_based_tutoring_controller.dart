@@ -16,10 +16,29 @@ class LocationBasedTutoringController extends GetxController {
     fetchLocationBasedTutoring();
   }
 
+  Future<void> _batchFetchUsers(Set<String> userIds) async {
+    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
+    if (toFetch.isEmpty) return;
+
+    try {
+      for (var i = 0; i < toFetch.length; i += 30) {
+        final batch = toFetch.skip(i).take(30).toList();
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (var doc in snap.docs) {
+          users[doc.id] = doc.data();
+        }
+      }
+    } catch (e) {
+      log("Error batch fetching users: $e");
+    }
+  }
+
   Future<void> fetchLocationBasedTutoring() async {
     isLoading.value = true;
     try {
-      // Cihazın konumunu al
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -38,8 +57,9 @@ class LocationBasedTutoringController extends GetxController {
       );
 
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('OzelDersVerenler')
+          .collection('educators')
           .where('sehir', isEqualTo: currentCity)
+          .limit(100)
           .get();
       List<TutoringModel> tempList = querySnapshot.docs
           .map(
@@ -50,15 +70,16 @@ class LocationBasedTutoringController extends GetxController {
           )
           .toList();
 
-      for (var tutoring in tempList) {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(tutoring.userID)
-            .get();
-        if (userDoc.exists) {
-          users[tutoring.userID] = userDoc.data() as Map<String, dynamic>;
-        }
-      }
+      // Batch fetch users instead of N+1
+      final userIds = tempList.map((t) => t.userID).toSet();
+      await _batchFetchUsers(userIds);
+
+      // Mesafeye göre sırala (lat/long olan ilanlar önce, yakından uzağa)
+      tempList.sort((a, b) {
+        final aDist = _distanceKm(position.latitude, position.longitude, a.lat, a.long);
+        final bDist = _distanceKm(position.latitude, position.longitude, b.lat, b.long);
+        return aDist.compareTo(bDist);
+      });
 
       tutoringList.value = tempList;
     } catch (e) {
@@ -66,6 +87,12 @@ class LocationBasedTutoringController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// İki nokta arasındaki mesafe (km). lat/long null ise sona at (çok büyük değer).
+  double _distanceKm(double userLat, double userLon, double? lat, double? lon) {
+    if (lat == null || lon == null) return 999999.0;
+    return Geolocator.distanceBetween(userLat, userLon, lat, lon) / 1000.0;
   }
 
   Future<String> _getCityFromCoordinates(double lat, double lon) async {

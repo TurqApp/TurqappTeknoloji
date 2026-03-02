@@ -25,7 +25,7 @@ class FirestoreConfig {
 
         // ✅ Cache size: 100 MB (default is 40 MB)
         // Increased for better offline support
-        cacheSizeBytes: 100 * 1024 * 1024,
+        cacheSizeBytes: 200 * 1024 * 1024,
 
         // ✅ SSL validation
         sslEnabled: true,
@@ -38,7 +38,7 @@ class FirestoreConfig {
       if (kDebugMode) {
         print('✅ Firestore initialized with optimized settings');
         print('   - Persistence: enabled');
-        print('   - Cache size: 100 MB');
+        print('   - Cache size: 200 MB');
       }
     } catch (e) {
       if (kDebugMode) {

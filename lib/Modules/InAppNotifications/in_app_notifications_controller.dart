@@ -262,6 +262,9 @@ class InAppNotificationsController extends GetxController {
       case "message":
       case "Chat":
         return "Chat";
+      case "job_application":
+      case "tutoring_application":
+        return "User";
       case "like":
       case "reshared_posts":
       case "shared_as_posts":
@@ -298,6 +301,10 @@ class InAppNotificationsController extends GetxController {
       case "message":
       case "Chat":
         return "sana mesaj gönderdi";
+      case "job_application":
+        return "ilanına başvuru yaptı";
+      case "tutoring_application":
+        return "özel ders ilanına başvuru yaptı";
       default:
         return "";
     }

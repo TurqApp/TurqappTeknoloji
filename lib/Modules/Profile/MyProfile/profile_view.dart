@@ -345,6 +345,7 @@ class _ProfileViewState extends State<ProfileView> {
                               child: CachedNetworkImage(
                                 imageUrl: user.pfImage.value,
                                 fit: BoxFit.cover,
+                                memCacheWidth: 300,
                                 memCacheHeight: 600,
                               ),
                             ),
@@ -481,6 +482,8 @@ class _ProfileViewState extends State<ProfileView> {
                       child: CachedNetworkImage(
                         imageUrl: model.img.first,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                       ),
                     ),
                     if (model.img.length > 1)
@@ -647,6 +650,8 @@ class _ProfileViewState extends State<ProfileView> {
                       child: CachedNetworkImage(
                         imageUrl: model.thumbnail,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                         placeholder: (context, url) => const Center(
                             child:
                                 CupertinoActivityIndicator(color: Colors.grey)),
@@ -809,6 +814,8 @@ class _ProfileViewState extends State<ProfileView> {
                             ? model.thumbnail
                             : model.img.first,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                         placeholder: (context, url) => const Center(
                           child: CupertinoActivityIndicator(
                             color: Colors.grey,

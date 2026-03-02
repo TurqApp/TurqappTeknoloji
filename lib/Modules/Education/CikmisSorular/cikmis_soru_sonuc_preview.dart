@@ -30,14 +30,9 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
   }
 
   void _getData(String docID) {
-    FirebaseFirestore.instance
-        .collection("CikmisSorular")
-        .doc(docID)
-        .collection("Sorular")
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        var question = CikmisSorularinModeli(
+    _loadQuestions(docID).then((questionDocs) {
+      for (var doc in questionDocs) {
+        final question = CikmisSorularinModeli(
           ders: doc.get("ders"),
           dogruCevap: doc.get("dogruCevap"),
           soru: doc.get("soru"),
@@ -56,6 +51,20 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
         }
       }
     });
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadQuestions(
+    String docID,
+  ) async {
+    final baseDoc = FirebaseFirestore.instance.collection("questions").doc(docID);
+
+    final questionsSnap = await baseDoc.collection("questions").get();
+    if (questionsSnap.docs.isNotEmpty) {
+      return questionsSnap.docs;
+    }
+
+    final sorularSnap = await baseDoc.collection("Sorular").get();
+    return sorularSnap.docs;
   }
 
   @override

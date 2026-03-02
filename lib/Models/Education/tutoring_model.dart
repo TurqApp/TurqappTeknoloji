@@ -16,6 +16,17 @@ class TutoringModel {
   final num timeStamp;
   final String userID;
   final bool whatsapp;
+  final bool? ended;
+  final num? endedAt;
+  final num? viewCount;
+  final num? applicationCount;
+  final num? averageRating;
+  final num? reviewCount;
+  final Map<String, List<String>>? availability;
+  final double? lat;
+  final double? long;
+  final bool? verified;
+  final List<String>? verificationDocs;
 
   TutoringModel({
     required this.docID,
@@ -35,9 +46,30 @@ class TutoringModel {
     required this.timeStamp,
     required this.userID,
     required this.whatsapp,
+    this.ended,
+    this.endedAt,
+    this.viewCount,
+    this.applicationCount,
+    this.averageRating,
+    this.reviewCount,
+    this.availability,
+    this.lat,
+    this.long,
+    this.verified,
+    this.verificationDocs,
   });
 
   factory TutoringModel.fromJson(Map<String, dynamic> json, String documentId) {
+    Map<String, List<String>>? parsedAvailability;
+    if (json['availability'] is Map) {
+      parsedAvailability = (json['availability'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(
+          key,
+          (value as List<dynamic>?)?.cast<String>() ?? [],
+        ),
+      );
+    }
+
     return TutoringModel(
       docID: documentId,
       aciklama: json['aciklama'] as String? ?? '',
@@ -56,6 +88,18 @@ class TutoringModel {
       timeStamp: json['timeStamp'] as num? ?? 0,
       userID: json['userID'] as String? ?? '',
       whatsapp: json['whatsapp'] as bool? ?? false,
+      ended: json['ended'] as bool?,
+      endedAt: json['endedAt'] as num?,
+      viewCount: json['viewCount'] as num?,
+      applicationCount: json['applicationCount'] as num?,
+      averageRating: json['averageRating'] as num?,
+      reviewCount: json['reviewCount'] as num?,
+      availability: parsedAvailability,
+      lat: (json['lat'] as num?)?.toDouble(),
+      long: (json['long'] as num?)?.toDouble(),
+      verified: json['verified'] as bool?,
+      verificationDocs:
+          (json['verificationDocs'] as List<dynamic>?)?.cast<String>(),
     );
   }
 
@@ -77,6 +121,17 @@ class TutoringModel {
       'timeStamp': timeStamp,
       'userID': userID,
       'whatsapp': whatsapp,
+      if (ended != null) 'ended': ended,
+      if (endedAt != null) 'endedAt': endedAt,
+      if (viewCount != null) 'viewCount': viewCount,
+      if (applicationCount != null) 'applicationCount': applicationCount,
+      if (averageRating != null) 'averageRating': averageRating,
+      if (reviewCount != null) 'reviewCount': reviewCount,
+      if (availability != null) 'availability': availability,
+      if (lat != null) 'lat': lat,
+      if (long != null) 'long': long,
+      if (verified != null) 'verified': verified,
+      if (verificationDocs != null) 'verificationDocs': verificationDocs,
     };
   }
 }

@@ -91,7 +91,7 @@ class DenemeSinaviYapController extends GetxController
   Future<void> getSorular() async {
     try {
       QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Sorular")
           .get();
@@ -138,7 +138,7 @@ class DenemeSinaviYapController extends GetxController
   }
 
   void sinaviGecersizSay() {
-    FirebaseFirestore.instance.collection("Sinavlar").doc(model.docID).set({
+    FirebaseFirestore.instance.collection("practiceExams").doc(model.docID).set({
       "gecersizSayilanlar": FieldValue.arrayUnion([
         FirebaseAuth.instance.currentUser!.uid,
       ]),
@@ -151,7 +151,7 @@ class DenemeSinaviYapController extends GetxController
     final docID = DateTime.now().millisecondsSinceEpoch.toString();
     try {
       await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Yanitlar")
           .doc(docID)
@@ -190,7 +190,7 @@ class DenemeSinaviYapController extends GetxController
 
       for (var sonuc in dersSonuclari) {
         await FirebaseFirestore.instance
-            .collection("Sinavlar")
+            .collection("practiceExams")
             .doc(model.docID)
             .collection("Yanitlar")
             .doc(docID)

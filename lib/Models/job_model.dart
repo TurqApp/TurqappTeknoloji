@@ -17,7 +17,13 @@ class JobModel {
   final double kacKm;
   final String city;
   final String town;
-  final String about; // ✅ Yeni alan eklendi
+  final String about;
+  final String ilanBasligi;
+  final String deneyimSeviyesi;
+  final int pozisyonSayisi;
+  final int viewCount;
+  final int applicationCount;
+  final int endedAt;
 
   JobModel({
     required this.docID,
@@ -38,7 +44,13 @@ class JobModel {
     required this.city,
     required this.town,
     this.kacKm = 0.0,
-    this.about = "", // ✅ Varsayılan boş string
+    this.about = "",
+    this.ilanBasligi = "",
+    this.deneyimSeviyesi = "",
+    this.pozisyonSayisi = 1,
+    this.viewCount = 0,
+    this.applicationCount = 0,
+    this.endedAt = 0,
   });
 
   factory JobModel.fromMap(Map<String, dynamic> map, String docID) {
@@ -60,7 +72,13 @@ class JobModel {
       yanHaklar: List<String>.from(map['yanHaklar'] ?? []),
       city: map['city'] ?? '',
       town: map['town'] ?? '',
-      about: map['about'] ?? '', // ✅ Yeni alan
+      about: map['about'] ?? '',
+      ilanBasligi: map['ilanBasligi'] ?? '',
+      deneyimSeviyesi: map['deneyimSeviyesi'] ?? '',
+      pozisyonSayisi: map['pozisyonSayisi'] ?? 1,
+      viewCount: map['viewCount'] ?? 0,
+      applicationCount: map['applicationCount'] ?? 0,
+      endedAt: map['endedAt'] ?? 0,
     );
   }
 
@@ -82,13 +100,25 @@ class JobModel {
       'yanHaklar': yanHaklar,
       'city': city,
       'town': town,
-      'about': about, // ✅ Map'e dahil edildi
+      'about': about,
+      'ilanBasligi': ilanBasligi,
+      'deneyimSeviyesi': deneyimSeviyesi,
+      'pozisyonSayisi': pozisyonSayisi,
+      'viewCount': viewCount,
+      'applicationCount': applicationCount,
+      'endedAt': endedAt,
     };
   }
 
   JobModel copyWith({
     double? kacKm,
     String? about,
+    String? ilanBasligi,
+    String? deneyimSeviyesi,
+    int? pozisyonSayisi,
+    int? viewCount,
+    int? applicationCount,
+    int? endedAt,
   }) {
     return JobModel(
       docID: docID,
@@ -110,6 +140,12 @@ class JobModel {
       town: town,
       kacKm: kacKm ?? this.kacKm,
       about: about ?? this.about,
+      ilanBasligi: ilanBasligi ?? this.ilanBasligi,
+      deneyimSeviyesi: deneyimSeviyesi ?? this.deneyimSeviyesi,
+      pozisyonSayisi: pozisyonSayisi ?? this.pozisyonSayisi,
+      viewCount: viewCount ?? this.viewCount,
+      applicationCount: applicationCount ?? this.applicationCount,
+      endedAt: endedAt ?? this.endedAt,
     );
   }
 }

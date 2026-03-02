@@ -22,26 +22,30 @@ class AnswerKeyContent extends StatelessWidget {
       AnswerKeyContentController(model, onUpdate),
       tag: model.docID,
     );
+    controller.syncModel(model);
 
     return Obx(
-      () => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.all(Radius.circular(8)),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize:
-              MainAxisSize.min, // Solution 1: Use minimum space needed
-          children: [
-            _buildHeader(context, controller),
-            Flexible(
-              // Solution 2: Make image flexible
-              child: _buildImage(context, controller),
-            ),
-            _buildContent(context, controller),
-          ],
+      () => GestureDetector(
+        onTap: () => controller.openBooklet(context),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize:
+                MainAxisSize.min, // Solution 1: Use minimum space needed
+            children: [
+              _buildHeader(context, controller),
+              Flexible(
+                // Solution 2: Make image flexible
+                child: _buildImage(context, controller),
+              ),
+              _buildContent(context, controller),
+            ],
+          ),
         ),
       ),
     );
@@ -87,8 +91,12 @@ class AnswerKeyContent extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => controller.showBottomSheet(context),
-            child: Icon(Icons.more_vert, color: Colors.grey, size: 20),
+            onTap: controller.shareBooklet,
+            child: Icon(
+              CupertinoIcons.share_up,
+              color: Colors.grey,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -100,12 +108,16 @@ class AnswerKeyContent extends StatelessWidget {
     AnswerKeyContentController controller,
   ) {
     return GestureDetector(
-      onTap: () => controller.navigateToPreview(context),
+      onTap: () => controller.openBooklet(context),
       child: AspectRatio(
         aspectRatio: 1 / 1.3,
         child: ClipRRect(
           borderRadius: BorderRadius.all(Radius.circular(8)),
-          child: Image.network(controller.model.cover, fit: BoxFit.cover),
+          child: Image.network(
+            controller.model.cover,
+            key: ValueKey(controller.model.cover),
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );
@@ -185,7 +197,7 @@ class AnswerKeyContent extends StatelessWidget {
           ),
           SizedBox(height: 3),
           GestureDetector(
-            onTap: () => controller.navigateToPreview(context),
+            onTap: () => controller.openBooklet(context),
             child: Container(
               height: 30,
               alignment: Alignment.center,

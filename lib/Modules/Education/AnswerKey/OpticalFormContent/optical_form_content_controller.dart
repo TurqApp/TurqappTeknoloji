@@ -15,7 +15,7 @@ class OpticalFormContentController extends GetxController {
   Future<void> fetchTotal() async {
     total.value = 0;
     final snapshot = await FirebaseFirestore.instance
-        .collection("OptikKodlar")
+        .collection("optikForm")
         .doc(model.docID)
         .collection("Yanitlar")
         .get();
@@ -146,7 +146,7 @@ class OpticalFormContentController extends GetxController {
   Future<void> deleteOpticalForm() async {
     try {
       await FirebaseFirestore.instance
-          .collection("OptikKodlar")
+          .collection("optikForm")
           .doc(model.docID)
           .delete();
     } catch (e) {

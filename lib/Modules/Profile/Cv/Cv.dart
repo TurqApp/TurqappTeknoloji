@@ -11,7 +11,6 @@ class Cv extends StatelessWidget {
   Cv({super.key});
   @override
   Widget build(BuildContext context) {
-    controller.selection.value = 0;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -42,9 +41,7 @@ class Cv extends StatelessWidget {
                               ? "Kişisel Bilgiler"
                               : controller.selection.value == 1
                                   ? "Eğitim Bilgileri"
-                                  : controller.selection.value == 2
-                                      ? "Diğer Bilgiler"
-                                      : "",
+                                  : "Diğer Bilgiler",
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 20,
@@ -60,49 +57,58 @@ class Cv extends StatelessWidget {
                         ),
                         onPressed: () {
                           if (controller.selection.value == 0) {
-                            if (controller.firstName.text == "") {
-                              AppSnackbar("Eksik Alan",
-                                  "İsim girmeden devam edemezsiniz");
-                            } else if (controller.lastName.text == "") {
-                              AppSnackbar("Eksik Alan",
-                                  "Soyisim girmeden devam edemezsiniz");
-                            } else if (controller.mail.text == "") {
-                              AppSnackbar("Eksik Alan",
-                                  "Mail adresi girmeden devam edemezsiniz");
-                            } else if (controller.phoneNumber.text == "") {
-                              AppSnackbar("Eksik Alan",
-                                  "Telefon numarası girmeden devam edemezsiniz");
-                            } else if (controller.onYazi.text == "") {
-                              AppSnackbar("Eksik Alan",
-                                  "Kendiniz hakkında kısa bilgi vermek zorundasınız");
+                            if (controller.firstName.text.trim().isEmpty) {
+                              AppSnackbar("Eksik Alan", "İsim girmeden devam edemezsiniz");
+                            } else if (controller.lastName.text.trim().isEmpty) {
+                              AppSnackbar("Eksik Alan", "Soyisim girmeden devam edemezsiniz");
+                            } else if (controller.mail.text.trim().isEmpty) {
+                              AppSnackbar("Eksik Alan", "Mail adresi girmeden devam edemezsiniz");
+                            } else if (!controller.validateEmail(controller.mail.text.trim())) {
+                              AppSnackbar("Hatalı Format", "Geçerli bir e-posta adresi girin");
+                            } else if (controller.phoneNumber.text.trim().isEmpty) {
+                              AppSnackbar("Eksik Alan", "Telefon numarası girmeden devam edemezsiniz");
+                            } else if (!controller.validatePhone(controller.phoneNumber.text)) {
+                              AppSnackbar("Hatalı Format", "Geçerli bir telefon numarası girin");
+                            } else if (controller.linkedin.text.isNotEmpty && !controller.validateLinkedIn(controller.linkedin.text)) {
+                              AppSnackbar("Hatalı Format", "Geçerli bir LinkedIn adresi girin");
+                            } else if (controller.onYazi.text.trim().isEmpty) {
+                              AppSnackbar("Eksik Alan", "Kendiniz hakkında kısa bilgi vermek zorundasınız");
                             } else {
                               controller.selection.value++;
                             }
                           } else if (controller.selection.value == 1) {
                             if (controller.okullar.isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "En az bir okul bilgisi girmeden devam edemezsiniz");
+                              AppSnackbar("Eksik Alan", "En az bir okul bilgisi girmeden devam edemezsiniz");
                             } else {
                               controller.selection.value++;
                             }
                           } else {
-                            controller.setData();
+                            if (!controller.isSaving.value) {
+                              controller.setData();
+                            }
                           }
                         },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Row(
                             children: [
-                              Text(
-                                controller.selection.value != 2
-                                    ? "Devam"
-                                    : "Tamamla",
-                                style: TextStyle(
-                                  color: Colors.blueAccent,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
+                              if (controller.isSaving.value)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else
+                                Text(
+                                  controller.selection.value != 2
+                                      ? "Devam"
+                                      : "Tamamla",
+                                  style: TextStyle(
+                                    color: Colors.blueAccent,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratBold",
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -162,9 +168,7 @@ class Cv extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(
-              width: 12,
-            ),
+            SizedBox(width: 12),
             Expanded(
               child: Container(
                 height: 50,
@@ -199,9 +203,7 @@ class Cv extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(
-          height: 15,
-        ),
+        SizedBox(height: 15),
         Container(
           height: 50,
           alignment: Alignment.centerLeft,
@@ -227,9 +229,7 @@ class Cv extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          height: 15,
-        ),
+        SizedBox(height: 15),
         Container(
           height: 50,
           alignment: Alignment.centerLeft,
@@ -242,10 +242,9 @@ class Cv extends StatelessWidget {
             child: TextField(
               controller: controller.phoneNumber,
               keyboardType: TextInputType.number,
-              // inputFormatters eklendi:
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, // Sadece rakam
-                LengthLimitingTextInputFormatter(10), // En fazla 10 karakter
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
               ],
               decoration: InputDecoration(
                 hintText: "Telefon Numarası",
@@ -260,9 +259,7 @@ class Cv extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          height: 15,
-        ),
+        SizedBox(height: 15),
         Container(
           height: 50,
           alignment: Alignment.centerLeft,
@@ -276,7 +273,7 @@ class Cv extends StatelessWidget {
               controller: controller.linkedin,
               keyboardType: TextInputType.url,
               decoration: InputDecoration(
-                hintText: "Linkedin adresi",
+                hintText: "LinkedIn adresi (opsiyonel)",
                 hintStyle: TextStyle(
                     color: Colors.grey, fontFamily: "MontserratMedium"),
                 border: InputBorder.none,
@@ -288,9 +285,7 @@ class Cv extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          height: 15,
-        ),
+        SizedBox(height: 15),
         Container(
           height: 150,
           alignment: Alignment.topLeft,
@@ -305,7 +300,7 @@ class Cv extends StatelessWidget {
             textInputAction: TextInputAction.done,
             maxLines: null,
             maxLength: 250,
-            expands: true, // ⚠️ Bu satır alanı tamamen kullanmasını sağlar
+            expands: true,
             decoration: InputDecoration(
               hintText: "Kendiniz hakkında kısa bilgi verin",
               hintStyle: TextStyle(
@@ -313,9 +308,8 @@ class Cv extends StatelessWidget {
                 fontFamily: "MontserratMedium",
               ),
               border: InputBorder.none,
-              isDense: true, // padding'i sadeleştirir
-              contentPadding:
-                  EdgeInsets.zero, // iç boşluğu sıfırlar, Container’dan gelir
+              isDense: true,
+              contentPadding: EdgeInsets.zero,
             ),
             style: TextStyle(
               color: Colors.black,
@@ -337,7 +331,6 @@ class Cv extends StatelessWidget {
           itemCount: controller.okullar.length + 1,
           itemBuilder: (context, index) {
             if (index == controller.okullar.length) {
-              // Ekle butonu
               return GestureDetector(
                 onTap: () => controller.okulEkle(),
                 child: Container(
@@ -354,101 +347,65 @@ class Cv extends StatelessWidget {
                     children: [
                       Icon(Icons.add, color: Colors.black),
                       SizedBox(width: 8),
-                      Text(
-                        "Yeni okul ekle",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                      ),
+                      Text("Yeni okul ekle", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
                     ],
                   ),
                 ),
               );
             }
 
-            // HER BİR OKUL
             final model = controller.okullar[index];
             return Stack(
               children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(20),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              model.school,
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratBold",
+                GestureDetector(
+                  onTap: () => controller.okulDuzenle(index),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withAlpha(20),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(model.school, style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
+                              SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(model.branch, style: TextStyle(color: Colors.pinkAccent, fontSize: 15, fontFamily: "MontserratMedium")),
+                                  if (model.branch.isNotEmpty && model.lastYear.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                                      child: Text("-"),
+                                    ),
+                                  Text(model.lastYear, style: TextStyle(color: Colors.pinkAccent, fontSize: 15, fontFamily: "MontserratMedium")),
+                                ],
                               ),
-                            ),
-                            SizedBox(
-                              height: 4,
-                            ),
-                            Row(
-                              children: [
-                                Text(
-                                  model.branch,
-                                  style: TextStyle(
-                                    color: Colors.pinkAccent,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 3),
-                                  child: Text("-"),
-                                ),
-                                Text(
-                                  model.lastYear,
-                                  style: TextStyle(
-                                    color: Colors.pinkAccent,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Icon(CupertinoIcons.pencil, color: Colors.grey, size: 18),
+                      ],
+                    ),
                   ),
                 ),
                 Positioned(
                   right: 6,
                   top: 6,
                   child: GestureDetector(
-                    onTap: () {
-                      controller.okulSil(index);
-                    },
+                    onTap: () => controller.okulSil(index),
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 3,
-                            spreadRadius: 1,
-                          ),
-                        ],
+                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 3, spreadRadius: 1)],
                       ),
                       padding: const EdgeInsets.all(3),
-                      child:
-                          Icon(Icons.close, size: 18, color: Colors.redAccent),
+                      child: Icon(Icons.close, size: 18, color: Colors.redAccent),
                     ),
                   ),
                 ),
@@ -464,19 +421,69 @@ class Cv extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: 12,
-        ),
+        // ── Skills / Beceriler ──
+        SizedBox(height: 12),
         Row(
           children: [
-            Text(
-              "Dil Ekle",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratBold",
+            Text("Beceriler", style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
+            SizedBox(width: 12),
+            Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
+          ],
+        ),
+        SizedBox(height: 12),
+        Obx(() => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...controller.skills.asMap().entries.map((entry) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withAlpha(20),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(entry.value, style: TextStyle(fontSize: 13, fontFamily: "MontserratMedium", color: Colors.blueAccent)),
+                    SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => controller.skills.removeAt(entry.key),
+                      child: Icon(Icons.close, size: 16, color: Colors.blueAccent),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            if (controller.skills.length < 10)
+              GestureDetector(
+                onTap: () => controller.beceriEkle(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(30),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 16, color: Colors.black),
+                      SizedBox(width: 4),
+                      Text("Ekle", style: TextStyle(fontSize: 13, fontFamily: "MontserratMedium", color: Colors.black)),
+                    ],
+                  ),
+                ),
               ),
-            ),
+          ],
+        )),
+
+        SizedBox(height: 20),
+
+        // ── Languages ──
+        Row(
+          children: [
+            Text("Dil Ekle", style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
             SizedBox(width: 12),
             Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
           ],
@@ -485,11 +492,9 @@ class Cv extends StatelessWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          itemCount:
-              controller.diler.length >= 5 ? 5 : controller.diler.length + 1,
+          itemCount: controller.diler.length >= 5 ? 5 : controller.diler.length + 1,
           itemBuilder: (context, index) {
-            if (index == controller.diler.length &&
-                controller.diler.length < 5) {
+            if (index == controller.diler.length && controller.diler.length < 5) {
               return GestureDetector(
                 onTap: () => controller.dilEkle(),
                 child: Container(
@@ -505,14 +510,7 @@ class Cv extends StatelessWidget {
                     children: [
                       Icon(Icons.add, color: Colors.black),
                       SizedBox(width: 8),
-                      Text(
-                        "Yeni dil ekle",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                      ),
+                      Text("Yeni dil ekle", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
                     ],
                   ),
                 ),
@@ -520,61 +518,53 @@ class Cv extends StatelessWidget {
             }
 
             final model = controller.diler[index];
-            return Container(
-              margin: EdgeInsets.only(bottom: 12),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.languege,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
+            return GestureDetector(
+              onTap: () => controller.dilDuzenle(index),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(model.languege, style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
+                          SizedBox(height: 4),
+                          Row(
+                            children: List.generate(5, (i) {
+                              return Icon(
+                                i < model.level ? Icons.star : Icons.star_border,
+                                color: i < model.level ? Colors.amber : Colors.grey,
+                                size: 20,
+                              );
+                            }),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          children: List.generate(5, (i) {
-                            return Icon(
-                              i < model.level ? Icons.star : Icons.star_border,
-                              color:
-                                  i < model.level ? Colors.amber : Colors.grey,
-                              size: 20,
-                            );
-                          }),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => controller.diler.removeAt(index),
-                    child: Icon(CupertinoIcons.trash,
-                        color: Colors.redAccent, size: 20),
-                  )
-                ],
+                    SizedBox(width: 8),
+                    Icon(CupertinoIcons.pencil, color: Colors.grey, size: 18),
+                    SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => controller.diler.removeAt(index),
+                      child: Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
+
+        // ── Experience ──
         Row(
           children: [
-            Text(
-              "İş Deneyimi Ekle",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratBold",
-              ),
-            ),
+            Text("İş Deneyimi Ekle", style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
             SizedBox(width: 12),
             Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
           ],
@@ -583,12 +573,9 @@ class Cv extends StatelessWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          itemCount: controller.isDeneyimleri.length >= 5
-              ? 5
-              : controller.isDeneyimleri.length + 1,
+          itemCount: controller.isDeneyimleri.length >= 5 ? 5 : controller.isDeneyimleri.length + 1,
           itemBuilder: (context, index) {
-            if (index == controller.isDeneyimleri.length &&
-                controller.isDeneyimleri.length < 5) {
+            if (index == controller.isDeneyimleri.length && controller.isDeneyimleri.length < 5) {
               return GestureDetector(
                 onTap: () => controller.isDeneyimiEkle(),
                 child: Container(
@@ -604,14 +591,7 @@ class Cv extends StatelessWidget {
                     children: [
                       Icon(Icons.add, color: Colors.black),
                       SizedBox(width: 8),
-                      Text(
-                        "Yeni iş deneyimi ekle",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                      ),
+                      Text("Yeni iş deneyimi ekle", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
                     ],
                   ),
                 ),
@@ -619,68 +599,51 @@ class Cv extends StatelessWidget {
             }
 
             final model = controller.isDeneyimleri[index];
-            return Container(
-              margin: EdgeInsets.only(bottom: 12),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.position,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                        Text(
-                          model.company,
-                          style: TextStyle(
-                            color: Colors.pinkAccent,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                        Text(
-                          "${model.year1} - ${model.year2}",
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ],
+            return GestureDetector(
+              onTap: () => controller.isDeneyimiDuzenle(index),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(model.position, style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
+                          SizedBox(height: 4),
+                          Text(model.company, style: TextStyle(color: Colors.pinkAccent, fontSize: 15, fontFamily: "MontserratMedium")),
+                          if (model.description.isNotEmpty) ...[
+                            SizedBox(height: 4),
+                            Text(model.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontFamily: "Montserrat")),
+                          ],
+                          SizedBox(height: 4),
+                          Text("${model.year1} - ${model.year2}", style: TextStyle(color: Colors.blueAccent, fontSize: 15, fontFamily: "MontserratMedium")),
+                        ],
+                      ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => controller.isDeneyimleri.removeAt(index),
-                    child: Icon(CupertinoIcons.trash,
-                        color: Colors.redAccent, size: 20),
-                  )
-                ],
+                    SizedBox(width: 8),
+                    Icon(CupertinoIcons.pencil, color: Colors.grey, size: 18),
+                    SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => controller.isDeneyimleri.removeAt(index),
+                      child: Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
+
+        // ── References ──
         Row(
           children: [
-            Text(
-              "Referans Ekle",
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: "MontserratBold",
-              ),
-            ),
+            Text("Referans Ekle", style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
             SizedBox(width: 12),
             Expanded(child: Divider(color: Colors.grey.withAlpha(50))),
           ],
@@ -689,12 +652,9 @@ class Cv extends StatelessWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          itemCount: controller.referanslar.length >= 5
-              ? 5
-              : controller.referanslar.length + 1,
+          itemCount: controller.referanslar.length >= 5 ? 5 : controller.referanslar.length + 1,
           itemBuilder: (context, index) {
-            if (index == controller.referanslar.length &&
-                controller.referanslar.length < 5) {
+            if (index == controller.referanslar.length && controller.referanslar.length < 5) {
               return GestureDetector(
                 onTap: () => controller.referansEkle(),
                 child: Container(
@@ -710,14 +670,7 @@ class Cv extends StatelessWidget {
                     children: [
                       Icon(Icons.add, color: Colors.black),
                       SizedBox(width: 8),
-                      Text(
-                        "Yeni referans ekle",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                      ),
+                      Text("Yeni referans ekle", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
                     ],
                   ),
                 ),
@@ -725,47 +678,36 @@ class Cv extends StatelessWidget {
             }
 
             final model = controller.referanslar[index];
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 12),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.nameSurname,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                        Text(
-                          "0 (${model.phone.replaceAll("+90", "").substring(0, 3)}) ${model.phone.replaceAll("+90", "").substring(3, 6)} ${model.phone.replaceAll("+90", "").substring(6, 10)}",
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                        SizedBox(height: 7),
-                      ],
+            return GestureDetector(
+              onTap: () => controller.referansDuzenle(index),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(model.nameSurname, style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratBold")),
+                          SizedBox(height: 4),
+                          Text(model.phone, style: TextStyle(color: Colors.blueAccent, fontSize: 15, fontFamily: "MontserratMedium")),
+                        ],
+                      ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: () => controller.referanslar.removeAt(index),
-                    child: Icon(CupertinoIcons.trash,
-                        color: Colors.redAccent, size: 20),
-                  )
-                ],
+                    SizedBox(width: 8),
+                    Icon(CupertinoIcons.pencil, color: Colors.grey, size: 18),
+                    SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => controller.referanslar.removeAt(index),
+                      child: Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 20),
+                    ),
+                  ],
+                ),
               ),
             );
           },

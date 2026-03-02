@@ -1,0 +1,34 @@
+{
+  "startedAt": 1772350479191,
+  "collections": {
+    "qestionsBank_to_questionBank": {
+      "done": true,
+      "lastDocId": "1733073306525b42d5022-5821-4af6-bdad-c3684ccd498b",
+      "copied": 1800,
+      "subCopied": 1019
+    },
+    "questionsAnswer_to_questionsAnswers": {
+      "done": true,
+      "lastDocId": "zpysUXpRyT36yPmwRA2x",
+      "copied": 6,
+      "subCopied": 0
+    },
+    "Sikayetler_to_reports": {
+      "done": true,
+      "lastDocId": null,
+      "copied": 0,
+      "subCopied": 0
+    }
+  },
+  "storage": {
+    "qestionsBank_to_questionBank": {
+      "done": true,
+      "pageToken": null,
+      "copied": 35160,
+      "skippedExists": 3287,
+      "failed": 0
+    }
+  },
+  "errors": {},
+  "finishedAt": 1772368655912
+}

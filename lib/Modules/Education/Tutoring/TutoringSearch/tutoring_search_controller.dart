@@ -9,6 +9,9 @@ class TutoringSearchController extends GetxController {
   var searchResults = <TutoringModel>[].obs;
   var users = <String, Map<String, dynamic>>{}.obs;
 
+  /// Full list cached for client-side filtering
+  List<TutoringModel> _allTutorings = [];
+
   @override
   void onInit() {
     super.onInit();
@@ -17,40 +20,48 @@ class TutoringSearchController extends GetxController {
       if (query.isNotEmpty) {
         performSearch(query);
       } else {
-        fetchInitialData();
+        searchResults.value = _allTutorings;
       }
     }, time: Duration(milliseconds: 500));
+  }
+
+  Future<void> _batchFetchUsers(Set<String> userIds) async {
+    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
+    if (toFetch.isEmpty) return;
+
+    try {
+      for (var i = 0; i < toFetch.length; i += 30) {
+        final batch = toFetch.skip(i).take(30).toList();
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (var doc in snap.docs) {
+          users[doc.id] = doc.data();
+        }
+      }
+    } catch (e) {
+      log("Error batch fetching users: $e");
+    }
   }
 
   Future<void> fetchInitialData() async {
     isLoading.value = true;
     try {
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance
-              .collection('OzelDersVerenler')
-              .orderBy('timeStamp', descending: true)
-              .get();
-      List<TutoringModel> tempList =
-          querySnapshot.docs
-              .map(
-                (doc) => TutoringModel.fromJson(
-                  doc.data() as Map<String, dynamic>,
-                  doc.id,
-                ),
-              )
-              .toList();
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('educators')
+          .orderBy('timeStamp', descending: true)
+          .limit(200)
+          .get();
 
-      for (var tutoring in tempList) {
-        DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(tutoring.userID)
-                .get();
-        if (userDoc.exists) {
-          users[tutoring.userID] = userDoc.data() as Map<String, dynamic>;
-        }
-      }
-      searchResults.value = tempList;
+      _allTutorings = querySnapshot.docs
+          .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
+          .toList();
+
+      final userIds = _allTutorings.map((t) => t.userID).toSet();
+      await _batchFetchUsers(userIds);
+
+      searchResults.value = _allTutorings;
     } catch (e) {
       log("Error fetching initial data: $e");
     } finally {
@@ -58,53 +69,14 @@ class TutoringSearchController extends GetxController {
     }
   }
 
-  Future<void> performSearch(String query) async {
-    isLoading.value = true;
-    try {
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance.collection('OzelDersVerenler').get();
-      List<TutoringModel> tempList =
-          querySnapshot.docs
-              .map(
-                (doc) => TutoringModel.fromJson(
-                  doc.data() as Map<String, dynamic>,
-                  doc.id,
-                ),
-              )
-              .toList();
-
-      for (var tutoring in tempList) {
-        if (tutoring.aciklama.toLowerCase().contains(query.toLowerCase()) ||
-            tutoring.baslik.toLowerCase().contains(query.toLowerCase()) ||
-            tutoring.brans.toLowerCase().contains(query.toLowerCase())) {
-          DocumentSnapshot userDoc =
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(tutoring.userID)
-                  .get();
-          if (userDoc.exists) {
-            users[tutoring.userID] = userDoc.data() as Map<String, dynamic>;
-          }
-        }
-      }
-      searchResults.value =
-          tempList
-              .where(
-                (tutoring) =>
-                    tutoring.aciklama.toLowerCase().contains(
-                      query.toLowerCase(),
-                    ) ||
-                    tutoring.baslik.toLowerCase().contains(
-                      query.toLowerCase(),
-                    ) ||
-                    tutoring.brans.toLowerCase().contains(query.toLowerCase()),
-              )
-              .toList();
-    } catch (e) {
-      log("Error searching tutoring data: $e");
-    } finally {
-      isLoading.value = false;
-    }
+  void performSearch(String query) {
+    final q = query.toLowerCase();
+    searchResults.value = _allTutorings
+        .where((tutoring) =>
+            tutoring.aciklama.toLowerCase().contains(q) ||
+            tutoring.baslik.toLowerCase().contains(q) ||
+            tutoring.brans.toLowerCase().contains(q))
+        .toList();
   }
 
   void updateSearchQuery(String query) {

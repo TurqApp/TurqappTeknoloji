@@ -115,12 +115,7 @@ class CurrentUserService extends GetxController {
         emailVerifiedRx.value = true;
         return false;
       }
-      await _restorePendingDeletionIfNeeded(firebaseUser.uid);
       emailVerifiedRx.value = firebaseUser.emailVerified;
-      // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
-      // anında kesinleştir.
-      unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
-      unawaited(_loadEmailVerifyConfig());
 
       // If already initialized and user exists, just ensure sync is running
       if (_isInitialized &&
@@ -130,6 +125,11 @@ class CurrentUserService extends GetxController {
         if (!_isSyncing) {
           unawaited(_startFirebaseSync());
         }
+        unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
+        // Auth tarafı gecikmeli/yanlış dönebileceği için Firestore alanı ile
+        // arka planda kesinleştir.
+        unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
+        unawaited(_loadEmailVerifyConfig());
         return true;
       }
 
@@ -139,7 +139,12 @@ class CurrentUserService extends GetxController {
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
       final cacheLoaded = await _loadFromCache();
 
-      // 2️⃣ Start Firebase sync in background (await etme — cache yeterli)
+      // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
+      unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
+      unawaited(refreshEmailVerificationStatus(reloadAuthUser: false));
+      unawaited(_loadEmailVerifyConfig());
+
+      // 3️⃣ Start Firebase sync in background (await etme — cache yeterli)
       unawaited(_startFirebaseSync());
 
       _isInitialized = true;

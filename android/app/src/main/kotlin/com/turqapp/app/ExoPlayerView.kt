@@ -13,6 +13,8 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.flutter.plugin.common.EventChannel
@@ -32,7 +34,7 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 15000
+    private var preferredMaxBufferMs: Long = 10000
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -96,8 +98,8 @@ class ExoPlayerView(
                 .setBufferDurationsMs(
                     minBufferMs, // minBufferMs: segment geçişlerinde yeterli tampon
                     maxBufferMs, // maxBufferMs: segment sınırında boşalma olmasın
-                    1000,        // bufferForPlaybackMs: ilk play'de güvenli tampon
-                    2000         // bufferForPlaybackAfterRebufferMs: rebuffer sonrası daha temkinli
+                    500,         // bufferForPlaybackMs: TTFF için hızlı başlat
+                    1500         // bufferForPlaybackAfterRebufferMs: rebuffer sonrası makul tampon
                 )
                 .build()
 
@@ -165,7 +167,22 @@ class ExoPlayerView(
 
         val mediaItem = MediaItem.fromUri(url)
         activePlayer.clearMediaItems()
-        activePlayer.setMediaItem(mediaItem)
+
+        // HLS URL'leri için HlsMediaSource kullan (ABR desteği)
+        if (url.contains(".m3u8") || url.contains("/hls/")) {
+            val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+                .setConnectTimeoutMs(8000)
+                .setReadTimeoutMs(8000)
+                .setDefaultRequestProperties(mapOf(
+                    "X-Turq-App" to "turqapp-mobile",
+                ))
+            val hlsSource = HlsMediaSource.Factory(httpDataSourceFactory)
+                .setAllowChunklessPreparation(true)
+                .createMediaSource(mediaItem)
+            activePlayer.setMediaSource(hlsSource)
+        } else {
+            activePlayer.setMediaItem(mediaItem)
+        }
         activePlayer.prepare()
 
         playerView.player = activePlayer

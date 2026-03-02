@@ -31,7 +31,7 @@ class MyBookletResults extends StatelessWidget {
                         height: 45,
                         alignment: Alignment.center,
                         color: controller.selection.value == 0
-                            ? Colors.blueAccent
+                            ? Colors.black
                             : Colors.grey.withAlpha(20),
                         child: Text(
                           "Kitap (${controller.list.length})",
@@ -55,7 +55,7 @@ class MyBookletResults extends StatelessWidget {
                         height: 45,
                         alignment: Alignment.center,
                         color: controller.selection.value == 1
-                            ? Colors.blueAccent
+                            ? Colors.black
                             : Colors.grey.withAlpha(20),
                         child: Text(
                           "Optik Form",

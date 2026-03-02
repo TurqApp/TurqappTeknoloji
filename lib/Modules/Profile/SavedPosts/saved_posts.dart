@@ -216,6 +216,7 @@ class _SavedPostsState extends State<SavedPosts> {
                                         controller.savedVideos[index].thumbnail,
                                     fit: BoxFit.cover,
                                     fadeOutDuration: Duration.zero,
+                                    memCacheWidth: 200,
                                     memCacheHeight: 400,
                                     placeholder: (context, url) =>
                                         Container(color: Colors.grey[300]),
@@ -265,6 +266,7 @@ class _SavedPostsState extends State<SavedPosts> {
                               imageUrl: controller.savedPhotos[index].img.first,
                               fit: BoxFit.cover,
                               fadeOutDuration: Duration.zero,
+                              memCacheWidth: 200,
                               memCacheHeight: 400,
                               placeholder: (context, url) =>
                                   Container(color: Colors.grey[300]),

@@ -237,23 +237,7 @@ class EditorNicknameController extends GetxController {
       isChecking.value = true;
       statusText.value = 'Kontrol ediliyor…';
 
-      // Önce registry kontrolü (usernames/<nickname>)
-      final regRef =
-          FirebaseFirestore.instance.collection('usernames').doc(name);
-      final regSnap = await regRef.get();
-      if (regSnap.exists) {
-        final data = regSnap.data();
-        final owner = data != null
-            ? ((data['uid'] as String?) ?? (data['userID'] as String?) ?? '')
-            : '';
-        if (owner.isNotEmpty && owner != uid) {
-          isAvailable.value = false;
-          statusText.value = 'Bu kullanıcı adı alınmış';
-          return;
-        }
-      }
-
-      // Registry yoksa emniyet amaçlı users üzerinde tarama (geçiş süreci için)
+      // Global benzersizlik kontrolü
       final q = await FirebaseFirestore.instance
           .collection('users')
           .where('nickname', isEqualTo: name)
@@ -375,6 +359,20 @@ class EditorNicknameController extends GetxController {
         final freshSnap = await userDoc.get();
         final patch = await buildPatch(freshSnap);
         await userDoc.update(patch);
+      }
+
+      final previousNickname = _originalNickname;
+      if (previousNickname.isNotEmpty && previousNickname != normalized) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('username')
+            .doc(nowMs.toString())
+            .set({
+              'from': previousNickname,
+              'to': normalized,
+              'changedAt': nowMs,
+            });
       }
 
       _originalNickname = normalized;

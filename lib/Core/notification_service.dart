@@ -4,10 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart'; // navigatorKey için
-import 'NotifyReader/notify_reader.dart';
+import 'NotifyReader/notify_reader_controller.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -26,6 +27,8 @@ class NotificationService {
   static bool _bgRegistered = false;
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<User?>? _authStateSub;
+  StreamSubscription<RemoteMessage>? _foregroundMessageSub;
+  bool _isHandlingTap = false;
 
   Future<void> initialize() async {
     if (!_bgRegistered) {
@@ -96,7 +99,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     const androidSettings =
-        AndroidInitializationSettings('@drawable/transparent_splash_icon');
+        AndroidInitializationSettings('@mipmap/ic_launcher_round');
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       settings: const InitializationSettings(
@@ -110,8 +113,7 @@ class NotificationService {
 
   Future<void> showNotification(RemoteMessage msg) async {
     final notif = msg.notification;
-    final android = msg.notification?.android;
-    if (notif != null && android != null) {
+    if (notif != null) {
       await _localNotifications.show(
         id: notif.hashCode,
         title: notif.title,
@@ -123,7 +125,7 @@ class NotificationService {
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,
-            icon: '@drawable/transparent_splash_icon',
+            icon: '@mipmap/ic_launcher_round',
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,
@@ -137,6 +139,9 @@ class NotificationService {
   }
 
   void _setupMessageHandlers() {
+    _foregroundMessageSub ??= FirebaseMessaging.onMessage.listen((msg) async {
+      await showNotification(msg);
+    });
     FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       _handleData(msg.data);
     });
@@ -155,9 +160,51 @@ class NotificationService {
   void _handleData(Map<String, dynamic> data) {
     final docID = data['docID'] ?? '';
     final type = data['type'] ?? '';
-    navigatorKey.currentState?.push(MaterialPageRoute(
-      builder: (_) => NotifyReader(docID: docID, type: type),
-    ));
+    if (docID.toString().trim().isEmpty || _isHandlingTap) return;
+    _isHandlingTap = true;
+
+    Future<void>.delayed(Duration.zero, () async {
+      if (navigatorKey.currentState == null) {
+        _isHandlingTap = false;
+        return;
+      }
+
+      navigatorKey.currentState!.push(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const _NotificationOpeningOverlay(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
+
+      final controller = Get.isRegistered<NotifyReaderController>()
+          ? Get.find<NotifyReaderController>()
+          : Get.put(NotifyReaderController());
+
+      final normalized = type.toString().trim().toLowerCase();
+      try {
+        if (normalized == "user" || normalized == "follow") {
+          await controller.goToProfile(docID.toString());
+          return;
+        }
+        if (normalized == "posts" ||
+            normalized == "like" ||
+            normalized == "reshared_posts" ||
+            normalized == "shared_as_posts") {
+          await controller.goToPost(docID.toString());
+          return;
+        }
+        if (normalized == "comment") {
+          await controller.goToPostComments(docID.toString());
+          return;
+        }
+        if (normalized == "chat" || normalized == "message") {
+          await controller.goToChat(docID.toString());
+        }
+      } finally {
+        _isHandlingTap = false;
+      }
+    });
   }
 
   Future<void> sendNotification({
@@ -226,7 +273,30 @@ class NotificationService {
   Future<void> dispose() async {
     await _tokenRefreshSub?.cancel();
     await _authStateSub?.cancel();
+    await _foregroundMessageSub?.cancel();
     _tokenRefreshSub = null;
     _authStateSub = null;
+    _foregroundMessageSub = null;
+  }
+}
+
+class _NotificationOpeningOverlay extends StatelessWidget {
+  const _NotificationOpeningOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.2,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
   }
 }

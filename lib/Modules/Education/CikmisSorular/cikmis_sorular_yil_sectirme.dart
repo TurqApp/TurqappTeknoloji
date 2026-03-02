@@ -26,6 +26,9 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   List<String> yillar = [];
+
+  String _denemeLabel(int index) => "Deneme ${index + 1}";
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +50,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
         widget.baslik2 == "Arapça") {
       print("DEVELOPER 3");
       FirebaseFirestore.instance
-          .collection("CikmisSorular")
+          .collection("questions")
           .where("anaBaslik", isEqualTo: widget.anaBaslik)
           .where("sinavTuru", isEqualTo: widget.sinavTuru)
           .get()
@@ -70,7 +73,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     } else if (widget.baslik3 != "") {
       print("DEVELOPER 1");
       FirebaseFirestore.instance
-          .collection("CikmisSorular")
+          .collection("questions")
           .where("anaBaslik", isEqualTo: widget.anaBaslik)
           .where("sinavTuru", isEqualTo: widget.sinavTuru)
           .get()
@@ -96,7 +99,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
     } else if (widget.baslik2 != "") {
       print("DEVELOPER 2");
       FirebaseFirestore.instance
-          .collection("CikmisSorular")
+          .collection("questions")
           .where("anaBaslik", isEqualTo: widget.anaBaslik)
           .where("sinavTuru", isEqualTo: widget.sinavTuru)
           .get()
@@ -125,7 +128,7 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "${widget.sinavTuru} Yılları"),
+            BackButtons(text: "${widget.sinavTuru} Denemeleri"),
             Expanded(
               child: Container(
                 color: Colors.white,
@@ -137,10 +140,10 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                         physics: NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 4,
-                          mainAxisSpacing: 4,
-                          childAspectRatio: 1,
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 0.78,
                         ),
                         itemCount: yillar.length,
                         itemBuilder: (context, index) {
@@ -322,35 +325,76 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
                             },
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 2),
-                              child: Column(
+                              child: Stack(
                                 children: [
-                                  Expanded(
-                                    child: Container(
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.cyan,
-                                            Colors.black.withValues(alpha: 0.9),
-                                          ],
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.cyan,
+                                          Colors.black.withValues(alpha: 0.9),
+                                        ],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(4),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 0),
                                         ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.grey.withValues(alpha: 0.3),
-                                            blurRadius: 6,
-                                            offset: Offset(0, 0),
+                                      ],
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        children: [
+                                          Expanded(
+                                            child: Center(
+                                              child: Text(
+                                                widget.sinavTuru,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 22,
+                                                  fontFamily: "MontserratBold",
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            _denemeLabel(index),
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 16,
+                                              fontFamily: "MontserratBold",
+                                            ),
                                           ),
                                         ],
                                       ),
-                                      child: Text(
-                                        yillar[index],
-                                        style: TextStyle(
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
                                           color: Colors.white,
-                                          fontSize: 25,
-                                          fontFamily: "MontserratBold",
+                                          width: 0.5,
                                         ),
                                       ),
                                     ),

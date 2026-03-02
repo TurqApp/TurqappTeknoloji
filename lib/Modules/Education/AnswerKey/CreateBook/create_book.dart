@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book_controller.dart';
 
 class CevapAnahtariHazirlikModel {
@@ -22,12 +23,15 @@ class CevapAnahtariHazirlikModel {
 
 class CreateBook extends StatelessWidget {
   final Function? onBack;
+  final BookletModel? existingBook;
 
-  const CreateBook({required this.onBack, super.key});
+  const CreateBook({required this.onBack, this.existingBook, super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CreateBookController(onBack));
+    final controller = Get.put(
+      CreateBookController(onBack, existingBook: existingBook),
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -66,7 +70,9 @@ class CreateBook extends StatelessWidget {
                               child: Text(
                                 controller.selection.value == 0
                                     ? "Devam Et"
-                                    : "Yayınla!",
+                                    : controller.isEditMode
+                                        ? "Güncelle"
+                                        : "Yayınla!",
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -128,11 +134,11 @@ class CreateBook extends StatelessWidget {
                             );
                             if (pickedFile != null) {
                               final file = pickedFile;
-                              final r = await OptimizedNSFWService.checkImage(file);
+                              final r =
+                                  await OptimizedNSFWService.checkImage(file);
                               if (r.isNSFW) {
                                 controller.imageFile.value = null;
-                                AppSnackbar(
-                                    "Yükleme Başarısız!",
+                                AppSnackbar("Yükleme Başarısız!",
                                     "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
                                     backgroundColor:
                                         Colors.red.withValues(alpha: 0.7));
@@ -163,12 +169,14 @@ class CreateBook extends StatelessWidget {
                             );
                             if (pickedFile != null) {
                               final file = pickedFile;
-                              final r = await OptimizedNSFWService.checkImage(file);
+                              final r =
+                                  await OptimizedNSFWService.checkImage(file);
                               if (r.isNSFW) {
                                 controller.imageFile.value = null;
                                 AppSnackbar("Yükleme Başarısız!",
                                     "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                    backgroundColor: Colors.red.withValues(alpha: 0.7));
+                                    backgroundColor:
+                                        Colors.red.withValues(alpha: 0.7));
                               } else {
                                 controller.imageFile.value = file;
                               }
@@ -237,8 +245,8 @@ class CreateBook extends StatelessWidget {
                                       color: controller.sinavTuru.value ==
                                               dersler1[index]
                                           ? Colors.black
-                                          : Colors.white.withValues(alpha: 
-                                              0.000001,
+                                          : Colors.white.withValues(
+                                              alpha: 0.000001,
                                             ),
                                       width: 3,
                                     ),

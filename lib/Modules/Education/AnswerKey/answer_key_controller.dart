@@ -7,14 +7,28 @@ import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class AnswerKeyController extends GetxController {
   var isLoading = false.obs;
+  var isLoadingMore = false.obs;
+  var hasMore = true.obs;
   var bookList = <BookletModel>[].obs;
   ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
+  DocumentSnapshot? _lastDocument;
+  static const int _pageSize = 30;
 
   @override
   void onInit() {
     super.onInit();
+    scrollController.addListener(_onScroll);
     refreshData();
+  }
+
+  void _onScroll() {
+    if (scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent - 200 &&
+        !isLoadingMore.value &&
+        hasMore.value) {
+      loadMore();
+    }
   }
 
   List<String> lessons = [
@@ -79,57 +93,73 @@ class AnswerKeyController extends GetxController {
     Icons.design_services,
   ];
 
+  BookletModel _fromDoc(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return BookletModel(
+      dil: (data["dil"] ?? '').toString(),
+      sinavTuru: (data["sinavTuru"] ?? '').toString(),
+      cover: (data["cover"] ?? '').toString(),
+      baslik: (data["baslik"] ?? '').toString(),
+      timeStamp: data["timeStamp"] is num
+          ? data["timeStamp"] as num
+          : num.tryParse((data["timeStamp"] ?? "0").toString()) ?? 0,
+      kaydet: (data["kaydet"] is List)
+          ? (data["kaydet"] as List).map((e) => e.toString()).toList()
+          : <String>[],
+      basimTarihi: (data["basimTarihi"] ?? '').toString(),
+      yayinEvi: (data["yayinEvi"] ?? '').toString(),
+      docID: doc.id,
+      userID: (data["userID"] ?? '').toString(),
+      goruntuleme: (data["goruntuleme"] is List)
+          ? (data["goruntuleme"] as List).map((e) => e.toString()).toList()
+          : <String>[],
+    );
+  }
+
   Future<void> refreshData() async {
     isLoading.value = true;
+    hasMore.value = true;
+    _lastDocument = null;
     try {
-      QuerySnapshot snapshots = await FirebaseFirestore.instance
-          .collection("Kitapciklar")
+      final snapshots = await FirebaseFirestore.instance
+          .collection("books")
           .orderBy("timeStamp", descending: true)
+          .limit(_pageSize)
           .get();
 
-      var newList = <BookletModel>[];
-      for (var doc in snapshots.docs) {
-        String basimTarihi = doc.get("basimTarihi") ?? '';
-        String baslik = doc.get("baslik") ?? '';
-        String cover = doc.get("cover") ?? '';
-        String dil = doc.get("dil") ?? '';
-        List<String> kaydet = List<String>.from(doc.get("kaydet") ?? []);
-        List<String> goruntuleme = List<String>.from(
-          doc.get("goruntuleme") ?? [],
-        );
-        String sinavTuru = doc.get("sinavTuru") ?? '';
-        num timeStamp = doc.get("timeStamp") ?? 0;
-        String yayinEvi = doc.get("yayinEvi") ?? '';
-        String userID = doc.get("userID") ?? '';
+      bookList.assignAll(snapshots.docs.map(_fromDoc).toList());
 
-        newList.add(
-          BookletModel(
-            dil: dil,
-            sinavTuru: sinavTuru,
-            cover: cover,
-            baslik: baslik,
-            timeStamp: timeStamp,
-            kaydet: kaydet,
-            basimTarihi: basimTarihi,
-            yayinEvi: yayinEvi,
-            docID: doc.id,
-            userID: userID,
-            goruntuleme: goruntuleme,
-          ),
-        );
-      }
+      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
+      if (snapshots.docs.length < _pageSize) hasMore.value = false;
 
-      log("Çekilen kitapçık sayısı: ${newList.length}");
-      log(
-        "Kitapçık başlıkları: ${newList.map((e) => '${e.docID}: ${e.baslik}').toList()}",
-      );
-
-      final uniqueList = newList.toSet().toList();
-      bookList.assignAll(uniqueList);
+      log("Çekilen kitapçık sayısı: ${bookList.length}");
     } catch (e) {
       log("Veri çekme hatası: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_lastDocument == null || isLoadingMore.value || !hasMore.value) return;
+
+    isLoadingMore.value = true;
+    try {
+      final snapshots = await FirebaseFirestore.instance
+          .collection("books")
+          .orderBy("timeStamp", descending: true)
+          .startAfterDocument(_lastDocument!)
+          .limit(_pageSize)
+          .get();
+
+      bookList.addAll(snapshots.docs.map(_fromDoc).toList());
+
+      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
+      if (snapshots.docs.length < _pageSize) hasMore.value = false;
+    } catch (e) {
+      log("AnswerKeyController.loadMore error: $e");
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 }

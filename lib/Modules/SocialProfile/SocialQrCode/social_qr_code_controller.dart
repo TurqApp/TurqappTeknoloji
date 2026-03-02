@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +13,7 @@ class SocialQrCodeController extends GetxController {
   String userID;
   SocialQrCodeController({required this.userID});
   var nickname = "".obs;
+  final RxString profileLink = ''.obs;
   final ShortLinkService _shortLinkService = ShortLinkService();
   @override
   void onInit() {
@@ -23,7 +25,30 @@ class SocialQrCodeController extends GetxController {
         .get()
         .then((doc) {
       nickname.value = doc.get("nickname");
+      unawaited(_prepareProfileLink());
     });
+  }
+
+  Future<String> _buildProfileLink() async {
+    final slug = nickname.value.trim().toLowerCase();
+    final safeSlug = slug.isEmpty ? userID : slug;
+    final result = await _shortLinkService.upsertUser(
+      userId: userID,
+      slug: safeSlug,
+      title: '@${nickname.value} - TurqApp',
+      desc: 'TurqApp profilini görüntüle',
+    );
+    final url = (result['url'] ?? '').toString().trim();
+    return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
+  }
+
+  Future<void> _prepareProfileLink() async {
+    try {
+      profileLink.value = await _buildProfileLink();
+    } catch (_) {
+      final slug = nickname.value.trim().toLowerCase();
+      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
+    }
   }
 
   void showQrScannerModal() {
@@ -40,32 +65,16 @@ class SocialQrCodeController extends GetxController {
 
   Future<void> shareProfile() async {
     await ShareActionGuard.run(() async {
-      final slug = nickname.value.trim().toLowerCase();
-      final result = await _shortLinkService.upsertUser(
-        userId: userID,
-        slug: slug.isEmpty ? userID : slug,
-        title: '@${nickname.value} - TurqApp',
-        desc: 'TurqApp profilini görüntüle',
-      );
-      final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
-          ? (result['url'] ?? '').toString().trim()
-          : 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
-      await SharePlus.instance.share(ShareParams(text: profileLink));
+      final link = await _buildProfileLink();
+      profileLink.value = link;
+      await SharePlus.instance.share(ShareParams(text: link));
     });
   }
 
   Future<void> copyLink() async {
-    final slug = nickname.value.trim().toLowerCase();
-    final result = await _shortLinkService.upsertUser(
-      userId: userID,
-      slug: slug.isEmpty ? userID : slug,
-      title: '@${nickname.value} - TurqApp',
-      desc: 'TurqApp profilini görüntüle',
-    );
-    final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
-        ? (result['url'] ?? '').toString().trim()
-        : 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
-    await Clipboard.setData(ClipboardData(text: profileLink));
+    final link = await _buildProfileLink();
+    profileLink.value = link;
+    await Clipboard.setData(ClipboardData(text: link));
     AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
   }
 }

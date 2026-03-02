@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -17,42 +18,33 @@ class SavedOpticalFormsController extends GetxController {
     isLoading.value = true;
     try {
       list.clear();
-      final snapshots =
-          await FirebaseFirestore.instance
-              .collection("Kitapciklar")
-              .orderBy("timeStamp", descending: true)
-              .get();
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final snapshots = await FirebaseFirestore.instance
+          .collection("books")
+          .where("kaydet", arrayContains: uid)
+          .orderBy("timeStamp", descending: true)
+          .get();
 
       for (var doc in snapshots.docs) {
-        final basimTarihi = doc.get("basimTarihi") as String;
-        final baslik = doc.get("baslik") as String;
-        final cover = doc.get("cover") as String;
-        final dil = doc.get("dil") as String;
-        final kaydet = List<String>.from(doc.get("kaydet"));
-        final goruntuleme = List<String>.from(doc.get("goruntuleme"));
-        final sinavTuru = doc.get("sinavTuru") as String;
-        final timeStamp = doc.get("timeStamp") as num;
-        final yayinEvi = doc.get("yayinEvi") as String;
-        final userID = doc.get("userID") as String;
-
-        if (kaydet.contains(FirebaseAuth.instance.currentUser!.uid)) {
-          list.add(
-            BookletModel(
-              dil: dil,
-              sinavTuru: sinavTuru,
-              cover: cover,
-              baslik: baslik,
-              timeStamp: timeStamp,
-              kaydet: kaydet,
-              basimTarihi: basimTarihi,
-              yayinEvi: yayinEvi,
-              docID: doc.id,
-              userID: userID,
-              goruntuleme: goruntuleme,
-            ),
-          );
-        }
+        final data = doc.data();
+        list.add(
+          BookletModel(
+            dil: (data["dil"] ?? '') as String,
+            sinavTuru: (data["sinavTuru"] ?? '') as String,
+            cover: (data["cover"] ?? '') as String,
+            baslik: (data["baslik"] ?? '') as String,
+            timeStamp: (data["timeStamp"] ?? 0) as num,
+            kaydet: List<String>.from(data["kaydet"] ?? []),
+            basimTarihi: (data["basimTarihi"] ?? '') as String,
+            yayinEvi: (data["yayinEvi"] ?? '') as String,
+            docID: doc.id,
+            userID: (data["userID"] ?? '') as String,
+            goruntuleme: List<String>.from(data["goruntuleme"] ?? []),
+          ),
+        );
       }
+    } catch (e) {
+      log("SavedOpticalFormsController.getData error: $e");
     } finally {
       isLoading.value = false;
     }

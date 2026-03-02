@@ -13,7 +13,6 @@ class OpticalFormEntryController extends GetxController {
   final model = Rx<OpticalFormModel?>(null);
   final fullName = ''.obs;
   final pfImage = ''.obs;
-  final sinavaGirdi = false.obs;
 
   @override
   void onInit() {
@@ -33,7 +32,7 @@ class OpticalFormEntryController extends GetxController {
 
   Future<void> searchDocID() async {
     final doc = await FirebaseFirestore.instance
-        .collection("OptikKodlar")
+        .collection("optikForm")
         .doc(search.text)
         .get();
 
@@ -60,7 +59,6 @@ class OpticalFormEntryController extends GetxController {
         kisitlama: kisitlama,
       );
       getUserData(userID);
-      ogrenciSinavaGirdiMi(doc.id);
     } else {
       focusNode.unfocus();
       showAlertDialog(
@@ -68,28 +66,6 @@ class OpticalFormEntryController extends GetxController {
         "Aradığınız sınavın süresi dolmuştur!",
       );
       model.value = null;
-    }
-  }
-
-  Future<void> ogrenciSinavaGirdiMi(String docID) async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("OptikKodlar")
-          .doc(docID)
-          .collection("Yanitlar")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-
-      if (doc.exists) {
-        print("Doküman mevcut: Öğrenci sınava girmiş.");
-        sinavaGirdi.value = model.value!.kisitlama;
-      } else {
-        print("Doküman mevcut değil: Öğrenci sınava girmemiş.");
-        sinavaGirdi.value = false;
-      }
-    } catch (error) {
-      print("Hata oluştu: $error");
-      sinavaGirdi.value = false;
     }
   }
 
@@ -104,21 +80,57 @@ class OpticalFormEntryController extends GetxController {
     this.pfImage.value = pfImage;
   }
 
-  void showAlert() {
-    showAlertDialog(
-      "Tebrikler, Sınavı Tamamladın!",
-      "Sınavı başarıyla tamamladın. Sonuçlarını görmek için 'Sonuçlar' sayfasına göz atabilirsin.",
-    );
+  Future<void> showAlert() async {
+    final currentModel = model.value;
+    if (currentModel != null) {
+      try {
+        final yanitDoc = await FirebaseFirestore.instance
+            .collection("optikForm")
+            .doc(currentModel.docID)
+            .collection("Yanitlar")
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .get();
+
+        final userAnswers = List<String>.from(yanitDoc.get("cevaplar") ?? []);
+        final answerKey = currentModel.cevaplar;
+
+        int dogru = 0;
+        int yanlis = 0;
+        int bos = 0;
+
+        final len = userAnswers.length < answerKey.length
+            ? userAnswers.length
+            : answerKey.length;
+        for (var i = 0; i < len; i++) {
+          final selected = userAnswers[i];
+          final correct = answerKey[i];
+          if (selected.isEmpty) {
+            bos++;
+          } else if (selected == correct) {
+            dogru++;
+          } else {
+            yanlis++;
+          }
+        }
+        if (answerKey.length > userAnswers.length) {
+          bos += answerKey.length - userAnswers.length;
+        }
+
+        final net = dogru - (yanlis * 0.25);
+        showAlertDialog(
+          "Tebrikler, Sınavı Tamamladın!",
+          "Doğru: $dogru   •   Yanlış: $yanlis   •   Boş: $bos   •   Net: ${net.toStringAsFixed(2)}",
+        );
+      } catch (_) {
+        showAlertDialog(
+            "Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+      }
+    } else {
+      showAlertDialog("Tebrikler, Sınavı Tamamladın!", "Sonuç hesaplanamadı.");
+    }
     model.value = null;
     search.text = "";
     searchText.value = "";
-  }
-
-  void showGecersizSinavAlert() {
-    showAlertDialog(
-      "Sınavınız Geçersiz Sayılmıştır!",
-      "Sizi uyardık! Kural ihlali yaptığınız için sınavınız geçersiz sayılmıştır!",
-    );
   }
 
   void handleExamTap(BuildContext context) {
@@ -128,134 +140,12 @@ class OpticalFormEntryController extends GetxController {
         "Sınav Başlamadı!",
         "Sınavınız başlamadı. Başladıktan sonra tekrar deneyin!",
       );
-    } else if (!sinavaGirdi.value) {
-      Get.to(
-        () => PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) async {
-            if (didPop) return;
-            bool canExit = false;
-
-            await Get.bottomSheet(
-              Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Sınavdan çıkmak mı istiyorsunuz?",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 18,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        model.value!.kisitlama
-                            ? "Tüm cevaplarınız geçersiz sayılacaktır!"
-                            : "Tüm cevaplarınız geçersiz sayılacaktır!",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 18,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      GestureDetector(
-                        onTap: () {
-                          if (model.value!.kisitlama) {
-                            final gecersizList = List.filled(
-                              model.value!.cevaplar.length,
-                              "",
-                            );
-                            FirebaseFirestore.instance
-                                .collection("OptikKodlar")
-                                .doc(model.value!.docID)
-                                .collection("Yanitlar")
-                                .doc(FirebaseAuth.instance.currentUser!.uid)
-                                .update({
-                              "timeStamp":
-                                  DateTime.now().millisecondsSinceEpoch,
-                              "cevaplar": gecersizList,
-                            });
-                            model.value = null;
-                            searchDocID();
-                          } else {
-                            model.value = null;
-                          }
-                          Get.back();
-                          canExit = true;
-                        },
-                        child: Container(
-                          height: 50,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                          child: const Text(
-                            "Sınavdan Çık",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: () {
-                          Get.back();
-                          canExit = false;
-                        },
-                        child: Container(
-                          height: 50,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
-                          ),
-                          child: const Text(
-                            "Burada Kal",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-
-            if (canExit) {
-              Get.back();
-            }
-          },
-          child: OpticalPreview(
-            model: model.value!,
-            update: showAlert,
-            gecersizSay: showGecersizSinavAlert,
-          ),
-        ),
-      );
     } else {
-      showAlertDialog(
-        "Sınava Giremezsin!",
-        "Daha önce bu sınava girdin. Bir sınava sadece bir kez girebilirsin",
+      Get.to(
+        () => OpticalPreview(
+          model: model.value!,
+          update: showAlert,
+        ),
       );
     }
   }

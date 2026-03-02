@@ -26,7 +26,7 @@ class _CikmisSorularAltDalSectirmeState
     // TODO: implement initState
     super.initState();
     FirebaseFirestore.instance
-        .collection("CikmisSorular")
+        .collection("questions")
         .where("anaBaslik", isEqualTo: widget.anaBaslik)
         .where("sinavTuru", isEqualTo: widget.sinavTuru)
         .get()

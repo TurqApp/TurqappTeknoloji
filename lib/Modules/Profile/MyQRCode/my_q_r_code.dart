@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 import 'my_q_r_code_controller.dart';
 
 class MyQRCode extends StatelessWidget {
@@ -68,16 +69,20 @@ class MyQRCode extends StatelessWidget {
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            ClipRRect(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
-                              child: QrImageView(
-                                data: user.userID.value,
-                                version: QrVersions.auto,
-                                size: 250.0,
-                                backgroundColor: Colors.white,
-                                embeddedImage: AssetImage(
-                                    "assets/images/logogradient.webp"),
+                            Obx(
+                              () => ClipRRect(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(12)),
+                                child: QrImageView(
+                                  data: controller.profileLink.value.isNotEmpty
+                                      ? controller.profileLink.value
+                                      : user.userID.value,
+                                  version: QrVersions.auto,
+                                  size: 250.0,
+                                  backgroundColor: Colors.white,
+                                  embeddedImage: AssetImage(
+                                      "assets/images/logogradient.webp"),
+                                ),
                               ),
                             ),
                           ],
@@ -122,7 +127,7 @@ class MyQRCode extends StatelessWidget {
                                       child: Padding(
                                         padding: const EdgeInsets.all(20),
                                         child: Icon(
-                                          CupertinoIcons.share,
+                                          AppIcons.share,
                                           color: Colors.black,
                                         ),
                                       ),

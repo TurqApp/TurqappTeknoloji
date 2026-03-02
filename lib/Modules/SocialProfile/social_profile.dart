@@ -387,6 +387,7 @@ class _SocialProfileState extends State<SocialProfile> {
                                 ? CachedNetworkImage(
                                     imageUrl: controller.pfImage.value,
                                     fit: BoxFit.cover,
+                                    memCacheWidth: 300,
                                     memCacheHeight: 600,
                                     placeholder: (context, url) => Container(
                                       color: Colors.grey[300],
@@ -603,6 +604,8 @@ class _SocialProfileState extends State<SocialProfile> {
                       child: CachedNetworkImage(
                         imageUrl: model.img.first,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                       ),
                     ),
                     if (model.img.length > 1)
@@ -703,6 +706,8 @@ class _SocialProfileState extends State<SocialProfile> {
                       child: CachedNetworkImage(
                         imageUrl: model.thumbnail,
                         fit: BoxFit.cover,
+                        memCacheWidth: 200,
+                        memCacheHeight: 200,
                         placeholder: (context, url) => const Center(
                           child: CupertinoActivityIndicator(color: Colors.grey),
                         ),
@@ -844,7 +849,7 @@ class _SocialProfileState extends State<SocialProfile> {
                       });
                     },
                     title: 'Paylaş',
-                    icon: CupertinoIcons.share,
+                    icon: CupertinoIcons.share_up,
                   ),
                   if (!user.blockedUsers.contains(widget.userID))
                     PullDownMenuItem(

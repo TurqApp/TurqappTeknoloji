@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
 class SavedJobsController extends GetxController {
@@ -12,7 +13,8 @@ class SavedJobsController extends GetxController {
     isLoading.value = true;
 
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
       final savedSnap = await FirebaseFirestore.instance
           .collection("users")
@@ -35,20 +37,17 @@ class SavedJobsController extends GetxController {
 
       for (String docId in savedIds) {
         final jobDoc = await FirebaseFirestore.instance
-            .collection("IsBul")
+            .collection(JobCollection.name)
             .doc(docId)
             .get();
 
         if (!jobDoc.exists) {
-          // IsBul içinde yoksa SavedIsBul'dan sil
           await FirebaseFirestore.instance
               .collection("users")
               .doc(uid)
               .collection("SavedIsBul")
               .doc(docId)
               .delete();
-
-          print("🗑️ Saved'dan silindi: $docId");
           continue;
         }
 
@@ -57,10 +56,9 @@ class SavedJobsController extends GetxController {
 
         if (job.timeStamp < thirtyDaysAgo && !job.ended) {
           await FirebaseFirestore.instance
-              .collection("IsBul")
+              .collection(JobCollection.name)
               .doc(docId)
               .update({"ended": true});
-          print("🔕 Süresi dolan ilan kapatıldı: ${job.brand}");
           continue;
         }
 
@@ -69,7 +67,6 @@ class SavedJobsController extends GetxController {
         }
       }
 
-      // Konum bilgisi varsa mesafe hesapla
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();
 
@@ -114,7 +111,7 @@ class SavedJobsController extends GetxController {
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
       list.value = updatedJobs;
     } catch (e) {
-      print("Hata oluştu: $e");
+      print("Kaydedilen ilanlar hatası: $e");
     } finally {
       isLoading.value = false;
     }

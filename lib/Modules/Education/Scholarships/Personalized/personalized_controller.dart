@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class PersonalizedController extends GetxController {
@@ -22,10 +23,16 @@ class PersonalizedController extends GetxController {
   final RxString ikametIlce = "".obs;
   final RxString nufusIlce = "".obs;
   final RxString locationSehir = "".obs;
+  final RxString schoolCity = "".obs;
   final RxString universite = "".obs;
   final RxString ortaokul = "".obs;
   final RxString lise = "".obs;
   final RxString cinsiyet = "".obs;
+  final RxBool hasSchoolInfo = false.obs;
+  final RxString educationLevel = "".obs;
+
+  // docId lookup by timeStamp (since model doesn't carry docId)
+  final Map<int, String> docIdByTimestamp = {};
 
   // UI state observables
   final RxBool showSearch = false.obs;
@@ -34,10 +41,13 @@ class PersonalizedController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isInitialLoading = true.obs;
   final RxBool isUserDataLoaded = false.obs;
+  final RxBool usedFallback = false.obs;
+
+  static const String _cacheKey = 'personalized_scholarships_cache_v1';
+  static const int _cacheLimit = 30;
 
   // Controllers and listeners
   final ScrollController scrollController = ScrollController();
-  StreamSubscription<QuerySnapshot>? _burslarSubscription;
 
   @override
   void onInit() {
@@ -48,7 +58,6 @@ class PersonalizedController extends GetxController {
 
   @override
   void onClose() {
-    _burslarSubscription?.cancel();
     scrollController.dispose();
     super.onClose();
   }
@@ -56,11 +65,14 @@ class PersonalizedController extends GetxController {
   // Initialize all data loading
   Future<void> _initializeData() async {
     try {
+      await _loadCachedList();
       // Load user data first
       await _loadUserData();
 
-      // Load location data
-      await getUserLocation();
+      // Load location data only if no school info
+      if (!hasSchoolInfo.value) {
+        await getUserLocation();
+      }
 
       // Load vitrin data (parallel)
       _loadVitrinData();
@@ -117,6 +129,19 @@ class PersonalizedController extends GetxController {
 
   // Update user data observables
   void _updateUserData(Map<String, dynamic> data) {
+    final educationLevel = (data['educationLevel'] ?? '').toString();
+    final uni = (data['universite'] ?? '').toString();
+    final hs = (data['lise'] ?? '').toString();
+    final ms = (data['ortaOkul'] ?? '').toString();
+    final il = (data['il'] ?? '').toString();
+
+    hasSchoolInfo.value = educationLevel.isNotEmpty ||
+        uni.isNotEmpty ||
+        hs.isNotEmpty ||
+        ms.isNotEmpty;
+    schoolCity.value = hasSchoolInfo.value ? il : '';
+    this.educationLevel.value = educationLevel;
+
     ikametSehir.value = data['ikametSehir'] ?? '';
     ikametIlce.value = data['ikametIlce'] ?? '';
     nufusSehir.value = data['nufusSehir'] ?? '';
@@ -131,7 +156,7 @@ class PersonalizedController extends GetxController {
   // Load vitrin data
   void _loadVitrinData() {
     FirebaseFirestore.instance
-        .collection("BireyselBurslar")
+        .collection("scholarships")
         .orderBy("timeStamp", descending: true)
         .limit(10)
         .get()
@@ -148,38 +173,52 @@ class PersonalizedController extends GetxController {
     });
   }
 
-  // Load scholarships data with stream
+  // Load scholarships data (pull-based)
   Future<void> _loadScholarshipsData() async {
     if (!isUserDataLoaded.value) return;
 
-    _burslarSubscription?.cancel();
-    _burslarSubscription = FirebaseFirestore.instance
-        .collection("BireyselBurslar")
-        .orderBy("timeStamp", descending: true)
-        .limit(50)
-        .snapshots()
-        .listen(
-      (snapshot) {
-        _processScholarshipsData(snapshot.docs);
-      },
-      onError: (error) {
-        print('Error loading scholarships data: $error');
-        isLoading.value = false;
-      },
-    );
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("scholarships")
+          .orderBy("timeStamp", descending: true)
+          .limit(50)
+          .get();
+      _processScholarshipsData(snapshot.docs);
+    } catch (error) {
+      print('Error loading scholarships data: $error');
+      isLoading.value = false;
+    }
   }
 
   // Process scholarships data
   void _processScholarshipsData(List<QueryDocumentSnapshot> docs) {
     try {
-      final tempList = docs
-          .map((doc) => IndividualScholarshipsModel.fromJson(
-              doc.data() as Map<String, dynamic>))
-          .where(_shouldIncludeScholarship)
+      final allItems = <IndividualScholarshipsModel>[];
+      for (final doc in docs) {
+        final model = IndividualScholarshipsModel.fromJson(
+            doc.data() as Map<String, dynamic>);
+        allItems.add(model);
+        docIdByTimestamp[model.timeStamp] = doc.id;
+      }
+
+      final scored = allItems
+          .map((item) => MapEntry(item, _scoreScholarship(item)))
+          .where((e) => e.value > 0)
           .toList();
 
-      list.value = tempList;
-      count.value = tempList.length;
+      scored.sort((a, b) => b.value.compareTo(a.value));
+      final filtered = scored.map((e) => e.key).toList();
+
+      if (filtered.isEmpty && allItems.isNotEmpty) {
+        list.value = allItems;
+        usedFallback.value = true;
+      } else {
+        list.value = filtered;
+        usedFallback.value = false;
+      }
+
+      _saveCachedList(allItems);
+      count.value = list.length;
       isLoading.value = false;
     } catch (e) {
       print('Error processing scholarships data: $e');
@@ -187,16 +226,81 @@ class PersonalizedController extends GetxController {
     }
   }
 
-  // Check if scholarship should be included based on user criteria
-  bool _shouldIncludeScholarship(IndividualScholarshipsModel item) {
-    // Basitleştirilmiş kişiselleştirme: şehir/ilçe/üniversite eşleşmesi veya ülke
-    final matchSehir = item.sehirler.contains(ikametSehir.value) ||
-        item.liseOrtaOkulSehirler.contains(ikametSehir.value);
-    final matchIlce = item.ilceler.contains(ikametIlce.value) ||
-        item.liseOrtaOkulIlceler.contains(ikametIlce.value);
-    final matchUni = item.universiteler.contains(universite.value);
-    final matchUlke = item.ulke.isNotEmpty ? item.ulke == 'Türkiye' : true;
-    return matchSehir || matchIlce || matchUni || matchUlke;
+  // Score by priority: location (3), school (2), target audience (1)
+  int _scoreScholarship(IndividualScholarshipsModel item) {
+    int score = 0;
+    final locationCity =
+        locationSehir.value.isNotEmpty ? locationSehir.value : ikametSehir.value;
+    final hasLocation = locationCity.trim().isNotEmpty;
+    final hasSchoolCity = hasSchoolInfo.value && schoolCity.value.isNotEmpty;
+
+    if (hasLocation && _matchesTargetCity(item, locationCity)) {
+      score += 3;
+    }
+    if (hasSchoolCity && _matchesTargetCity(item, schoolCity.value)) {
+      score += 2;
+    }
+    if (_matchesTargetAudience(item)) {
+      score += 1;
+    }
+
+    return score;
+  }
+
+  String _normalizeCity(String input) {
+    var s = input.toLowerCase().trim();
+    s = s
+        .replaceAll('ç', 'c')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ı', 'i')
+        .replaceAll('i̇', 'i')
+        .replaceAll('ö', 'o')
+        .replaceAll('ş', 's')
+        .replaceAll('ü', 'u');
+    s = s.replaceAll(' province', '');
+    s = s.replaceAll(' ili', '');
+    s = s.replaceAll(' il', '');
+    s = s.replaceAll(' sehri', '');
+    s = s.replaceAll(' şehir', '');
+    s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return s;
+  }
+
+  bool _matchesTargetCity(IndividualScholarshipsModel item, String city) {
+    final normalizedTarget = _normalizeCity(city);
+
+    bool cityMatch(List<String> list) {
+      for (final raw in list) {
+        final normalized = _normalizeCity(raw);
+        if (normalized == normalizedTarget) return true;
+        if (normalized.contains(normalizedTarget) ||
+            normalizedTarget.contains(normalized)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return cityMatch(item.sehirler) || cityMatch(item.liseOrtaOkulSehirler);
+  }
+
+  bool _matchesTargetAudience(IndividualScholarshipsModel item) {
+    final level = educationLevel.value.trim();
+    if (level.isEmpty) return false;
+
+    final normLevel = _normalizeCity(level);
+    final hedef = _normalizeCity(item.hedefKitle);
+    if (hedef.contains(normLevel) || normLevel.contains(hedef)) return true;
+
+    final egitim = _normalizeCity(item.egitimKitlesi);
+    if (egitim.contains(normLevel) || normLevel.contains(egitim)) return true;
+
+    for (final alt in item.altEgitimKitlesi) {
+      final n = _normalizeCity(alt);
+      if (n.contains(normLevel) || normLevel.contains(n)) return true;
+    }
+
+    return false;
   }
 
   // Get user location
@@ -268,5 +372,38 @@ class PersonalizedController extends GetxController {
 
     await _initializeData();
     print("List refreshed!");
+  }
+
+  Future<void> _loadCachedList() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = json.decode(raw) as List<dynamic>;
+      final items = decoded
+          .whereType<Map>()
+          .map((e) => IndividualScholarshipsModel.fromJson(
+              Map<String, dynamic>.from(e)))
+          .toList();
+      if (items.isNotEmpty) {
+        list.value = items;
+        count.value = items.length;
+      }
+    } catch (_) {
+      // ignore cache errors
+    }
+  }
+
+  Future<void> _saveCachedList(List<IndividualScholarshipsModel> allItems) async {
+    try {
+      if (allItems.isEmpty) return;
+      final sorted = List<IndividualScholarshipsModel>.from(allItems)
+        ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+      final top = sorted.take(_cacheLimit).map((e) => e.toJson()).toList();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey, json.encode(top));
+    } catch (_) {
+      // ignore cache errors
+    }
   }
 }

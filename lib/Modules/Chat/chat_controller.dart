@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:record/record.dart';
@@ -1451,7 +1452,7 @@ class ChatController extends GetxController {
         try {
           final tempDir = Directory.systemTemp.path;
           final targetPath =
-              '$tempDir/chat_img_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+              '$tempDir/chat_img_${DateTime.now().millisecondsSinceEpoch}_$i.webp';
           final compressed = await FlutterImageCompress.compressAndGetFile(
             image.path,
             targetPath,
@@ -1459,7 +1460,7 @@ class ChatController extends GetxController {
             minWidth: 1440,
             minHeight: 1440,
             keepExif: false,
-            format: CompressFormat.jpeg,
+            format: CompressFormat.webp,
           );
           if (compressed != null) {
             fileToUpload = File(compressed.path);
@@ -1471,13 +1472,16 @@ class ChatController extends GetxController {
         final fileName = uuid.v4();
 
         final ref = storage.ref().child(
-              'ChatAssets/$chatID/$fileName${DateTime.now().millisecondsSinceEpoch}.jpg',
+              'ChatAssets/$chatID/$fileName${DateTime.now().millisecondsSinceEpoch}.webp',
             );
 
         final bytes = await fileToUpload.readAsBytes();
         final uploadTask = ref.putData(
           bytes,
-          SettableMetadata(contentType: "image/jpeg"),
+          SettableMetadata(
+            contentType: "image/webp",
+            cacheControl: 'public, max-age=31536000, immutable',
+          ),
         );
 
         uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
@@ -1624,7 +1628,13 @@ class ChatController extends GetxController {
       final videoRef = storage.ref().child(
             'ChatAssets/$chatID/videos/$videoFileName.mp4',
           );
-      final videoUpload = videoRef.putFile(fileToUpload);
+      final videoUpload = videoRef.putFile(
+        fileToUpload,
+        SettableMetadata(
+          contentType: 'video/mp4',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
       videoUpload.snapshotEvents.listen((snapshot) {
         uploadPercent.value =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -1636,11 +1646,12 @@ class ChatController extends GetxController {
       String thumbUrl = "";
       if (thumbBytes != null) {
         try {
-          final thumbRef = storage.ref().child(
-                'ChatAssets/$chatID/videos/${videoFileName}_thumb.jpg',
-              );
-          await thumbRef.putData(thumbBytes);
-          thumbUrl = await thumbRef.getDownloadURL();
+          thumbUrl = await WebpUploadService.uploadBytesAsWebp(
+            storage: storage,
+            bytes: thumbBytes,
+            storagePathWithoutExt:
+                'ChatAssets/$chatID/videos/${videoFileName}_thumb',
+          );
         } catch (e) {
           print("Thumbnail yükleme atlandı: $e");
         }
@@ -1703,7 +1714,13 @@ class ChatController extends GetxController {
       final storage = FirebaseStorage.instance;
       final fileName = Uuid().v4();
       final ref = storage.ref().child('ChatAssets/$chatID/voice/$fileName.m4a');
-      final uploadTask = ref.putFile(file);
+      final uploadTask = ref.putFile(
+        file,
+        SettableMetadata(
+          contentType: 'audio/mp4',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
       uploadTask.snapshotEvents.listen((snapshot) {
         uploadPercent.value =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;

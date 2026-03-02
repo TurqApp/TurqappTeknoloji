@@ -14,6 +14,7 @@ import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 
 class QuestionContent extends StatelessWidget {
   QuestionContent({super.key});
@@ -68,7 +69,11 @@ class QuestionContent extends StatelessWidget {
                         children: [
                           StreamBuilder<DocumentSnapshot>(
                             stream: FirebaseFirestore.instance
-                                .collection('users')
+                                .collection('questionBankSkor')
+                                .doc(
+                                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+                                )
+                                .collection('items')
                                 .doc(controller.userID)
                                 .snapshots(),
                             builder: (context, snapshot) {
@@ -79,7 +84,28 @@ class QuestionContent extends StatelessWidget {
                                 return const Text("0");
                               } else if (!snapshot.hasData ||
                                   !snapshot.data!.exists) {
-                                return const Text("0");
+                                return StreamBuilder<DocumentSnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(controller.userID)
+                                      .snapshots(),
+                                  builder: (context, userSnapshot) {
+                                    if (!userSnapshot.hasData ||
+                                        !userSnapshot.data!.exists) {
+                                      return const Text("0");
+                                    }
+                                    final antPoint =
+                                        userSnapshot.data!['antPoint'] ?? 100;
+                                    return Text(
+                                      antPoint.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 25,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    );
+                                  },
+                                );
                               } else {
                                 int antPoint = snapshot.data!['antPoint'] ?? 0;
                                 return AnimatedContainer(
@@ -293,16 +319,16 @@ class QuestionContent extends StatelessWidget {
                             SizedBox(height: 12),
                             Obx(() {
                               final selectedAnswer =
-                                  controller.selectedAnswers[question.soru] ??
+                                  controller.selectedAnswers[question.docID] ??
                                       '';
                               final initialAnswer =
-                                  controller.initialAnswers[question.soru] ??
+                                  controller.initialAnswers[question.docID] ??
                                       '';
                               final isInitialCorrect =
                                   initialAnswer.isNotEmpty &&
                                       initialAnswer == question.dogruCevap;
                               final isSaved =
-                                  controller.savedQuestions[question.soru] ??
+                                  controller.savedQuestions[question.docID] ??
                                       false;
                               // LGS için şık sayısını 4 ile sınırlandır (A, B, C, D)
                               final int optionCount =
@@ -393,16 +419,16 @@ class QuestionContent extends StatelessWidget {
                                       IconButton(
                                         icon: Icon(
                                           controller.likedQuestions[
-                                                      question.soru] ??
+                                                      question.docID] ??
                                                   false
                                               ? CupertinoIcons
                                                   .hand_thumbsup_fill
                                               : CupertinoIcons.hand_thumbsup,
                                         ),
                                         color: controller.likedQuestions[
-                                                    question.soru] ??
+                                                    question.docID] ??
                                                 false
-                                            ? Colors.blue
+                                            ? Colors.black
                                             : Colors.black,
                                         onPressed: () => controller.addTolikes(
                                           question,
@@ -416,55 +442,59 @@ class QuestionContent extends StatelessWidget {
                                   ),
                                 ),
                                 Obx(
-                                  () => Row(
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(CupertinoIcons.bubble_left),
-                                        color: controller
-                                                .selectedAnswers[question.soru]!
-                                                .isNotEmpty
-                                            ? Colors.black
-                                            : Colors.grey,
-                                        onPressed: () {
-                                          if (controller
-                                              .selectedAnswers[question.soru]!
-                                              .isNotEmpty) {
-                                            Get.bottomSheet(
-                                              AntremanComments(
-                                                  question: question),
-                                              isScrollControlled: true,
-                                            );
-                                          } else {
-                                            AppSnackbar(
-                                              "Bilgi",
-                                              "Önce soruyu cevaplayın!",
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      StreamBuilder<QuerySnapshot>(
-                                        stream: FirebaseFirestore.instance
-                                            .collection('SoruBankasi')
-                                            .doc(question.docID)
-                                            .collection('Yorumlar')
-                                            .snapshots(),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.hasData) {
-                                            int commentCount =
-                                                snapshot.data!.docs.length;
+                                  () {
+                                    final hasAnswered =
+                                        (controller.selectedAnswers[
+                                                    question.docID] ??
+                                                '')
+                                            .isNotEmpty;
+                                    return Row(
+                                      children: [
+                                        IconButton(
+                                          icon:
+                                              Icon(CupertinoIcons.bubble_left),
+                                          color: hasAnswered
+                                              ? Colors.black
+                                              : Colors.grey,
+                                          onPressed: () {
+                                            if (hasAnswered) {
+                                              Get.bottomSheet(
+                                                AntremanComments(
+                                                    question: question),
+                                                isScrollControlled: true,
+                                              );
+                                            } else {
+                                              AppSnackbar(
+                                                "Bilgi",
+                                                "Önce soruyu cevaplayın!",
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        StreamBuilder<QuerySnapshot>(
+                                          stream: FirebaseFirestore.instance
+                                              .collection('questionBank')
+                                              .doc(question.docID)
+                                              .collection('Yorumlar')
+                                              .snapshots(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.hasData) {
+                                              int commentCount =
+                                                  snapshot.data!.docs.length;
+                                              return Text(
+                                                "$commentCount",
+                                                style: TextStyle(fontSize: 14),
+                                              );
+                                            }
                                             return Text(
-                                              "$commentCount",
+                                              "0",
                                               style: TextStyle(fontSize: 14),
                                             );
-                                          }
-                                          return Text(
-                                            "0",
-                                            style: TextStyle(fontSize: 14),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ),
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                                 Obx(
                                   () => Row(
@@ -472,7 +502,7 @@ class QuestionContent extends StatelessWidget {
                                       IconButton(
                                         onPressed: controller
                                                     .selectedAnswers[
-                                                        question.soru]
+                                                        question.docID]
                                                     ?.isNotEmpty ??
                                                 false
                                             ? null
@@ -481,9 +511,9 @@ class QuestionContent extends StatelessWidget {
                                         icon: Image.asset(
                                           'assets/icons/reshare.webp',
                                           color: controller.savedQuestions[
-                                                      question.soru] ??
+                                                      question.docID] ??
                                                   false
-                                              ? Colors.blue
+                                              ? Colors.black
                                               : Colors.black,
                                           width:
                                               24, // İsteğe bağlı boyutlandırma
@@ -497,7 +527,7 @@ class QuestionContent extends StatelessWidget {
                                 Row(
                                   children: [
                                     IconButton(
-                                      icon: Icon(CupertinoIcons.paperplane),
+                                      icon: Icon(AppIcons.share, size: 20),
                                       color: Colors.black,
                                       onPressed: () =>
                                           controller.addToPaylasanlar(

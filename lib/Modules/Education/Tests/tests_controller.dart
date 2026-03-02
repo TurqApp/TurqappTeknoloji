@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +11,11 @@ class TestsController extends GetxController {
   final scrollController = ScrollController();
   final _previousOffset = 0.0.obs;
   final isLoading = true.obs;
+  final isLoadingMore = false.obs;
+  final hasMore = true.obs;
   final RxDouble scrollOffset = 0.0.obs;
+  DocumentSnapshot? _lastDocument;
+  static const int _pageSize = 30;
 
   @override
   void onInit() {
@@ -41,57 +46,75 @@ class TestsController extends GetxController {
         ustBar.value = true;
       }
 
+      if (currentOffset >= scrollController.position.maxScrollExtent - 200 &&
+          !isLoadingMore.value &&
+          hasMore.value) {
+        loadMore();
+      }
+
       _previousOffset.value = currentOffset;
     });
   }
 
+  TestsModel _fromDoc(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return TestsModel(
+      userID: (data["userID"] ?? '') as String,
+      timeStamp: (data["timeStamp"] ?? '') as String,
+      aciklama: (data["aciklama"] ?? '') as String,
+      dersler: List<String>.from(data['dersler'] ?? []),
+      img: (data["img"] ?? '') as String,
+      docID: doc.id,
+      paylasilabilir: (data["paylasilabilir"] ?? false) as bool,
+      testTuru: (data["testTuru"] ?? '') as String,
+      taslak: (data["taslak"] ?? false) as bool,
+    );
+  }
+
   Future<void> getData() async {
     isLoading.value = true;
-    list.clear();
+    hasMore.value = true;
+    _lastDocument = null;
     try {
       final snap = await FirebaseFirestore.instance
           .collection("Testler")
           .where("paylasilabilir", isEqualTo: true)
+          .orderBy("timeStamp", descending: true)
+          .limit(_pageSize)
           .get();
 
-      final tempList = <TestsModel>[];
+      list.assignAll(snap.docs.map(_fromDoc).toList());
 
-      for (var doc in snap.docs) {
-        final aciklama = doc.get("aciklama") as String;
-        final testTuru = doc.get("testTuru") as String;
-        final dersler = List<String>.from(doc['dersler'] ?? []);
-        final img = doc.get("img") as String;
-        final timeStamp = doc.get("timeStamp") as String;
-        final userID = doc.get("userID") as String;
-        final paylasilabilir = doc.get("paylasilabilir") as bool;
-        final taslak = doc.get("taslak") as bool;
-
-        tempList.add(
-          TestsModel(
-            userID: userID,
-            timeStamp: timeStamp,
-            aciklama: aciklama,
-            dersler: dersler,
-            img: img,
-            docID: doc.id,
-            paylasilabilir: paylasilabilir,
-            testTuru: testTuru,
-            taslak: taslak,
-          ),
-        );
-      }
-
-      tempList.sort(
-        (a, b) =>
-            int.tryParse(
-              b.timeStamp,
-            )?.compareTo(int.tryParse(a.timeStamp) ?? 0) ??
-            0,
-      );
-
-      list.addAll(tempList);
+      if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
+      if (snap.docs.length < _pageSize) hasMore.value = false;
+    } catch (e) {
+      log("TestsController.getData error: $e");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_lastDocument == null || isLoadingMore.value || !hasMore.value) return;
+
+    isLoadingMore.value = true;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection("Testler")
+          .where("paylasilabilir", isEqualTo: true)
+          .orderBy("timeStamp", descending: true)
+          .startAfterDocument(_lastDocument!)
+          .limit(_pageSize)
+          .get();
+
+      list.addAll(snap.docs.map(_fromDoc).toList());
+
+      if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
+      if (snap.docs.length < _pageSize) hasMore.value = false;
+    } catch (e) {
+      log("TestsController.loadMore error: $e");
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 }

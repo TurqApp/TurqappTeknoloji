@@ -12,150 +12,100 @@ class SavedItemsController extends GetxController {
   final selectedTabIndex = 0.obs;
   final pageController = PageController();
 
-  Stream<List<Map<String, dynamic>>>? _likedStream;
-  Stream<List<Map<String, dynamic>>>? _bookmarkedStream;
-
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-    );
-    bindStreams();
+    fetchSavedItems();
   }
 
-  void bindStreams() {
+  Future<void> fetchSavedItems() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       AppSnackbar('Hata', 'Lütfen oturum açın.');
       return;
     }
-    final userId = user.uid;
-    print('User ID: $userId');
-
-    _likedStream = _createScholarshipStream(userId, isLiked: true);
-    _bookmarkedStream = _createScholarshipStream(userId, isBookmarked: true);
-
-    likedScholarships.bindStream(_likedStream!);
-    bookmarkedScholarships.bindStream(_bookmarkedStream!);
+    isLoading.value = true;
+    try {
+      await Future.wait([
+        _fetchScholarships(user.uid, isLiked: true),
+        _fetchScholarships(user.uid, isBookmarked: true),
+      ]);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  Stream<List<Map<String, dynamic>>> _createScholarshipStream(
+  Future<void> _fetchScholarships(
     String userId, {
     bool isLiked = false,
     bool isBookmarked = false,
-  }) async* {
+  }) async {
     try {
-      isLoading.value = true;
-
-      final bireyselStream = FirebaseFirestore.instance
-          .collection('BireyselBurslar')
+      final snapshot = await FirebaseFirestore.instance
+          .collection('scholarships')
           .where(
             isLiked ? 'begeniler' : 'kaydedenler',
             arrayContains: userId,
           )
-          .snapshots();
+          .orderBy('timeStamp', descending: true)
+          .limit(50)
+          .get();
 
-      // Kurumsal burslar kaldırıldı
+      final scholarships = <Map<String, dynamic>>[];
 
-      bireyselStream.listen((snapshot) {
-        print(
-          'Bireysel snapshot: ${snapshot.docs.length} docs, time: ${DateTime.now()}',
-        );
-      });
-      //
+      // Batch fetch users
+      final userIds = <String>{};
+      for (var doc in snapshot.docs) {
+        final userID = doc.data()['userID'] as String? ?? '';
+        if (userID.isNotEmpty) userIds.add(userID);
+      }
 
-      yield* bireyselStream
-          .asyncMap((snapshot) async {
-        final startTime = DateTime.now();
-        final scholarships = <Map<String, dynamic>>[];
-        print('Processing snapshot, docs: ${snapshot.docs.length}');
-
-        {
-          print(
-            'Processing Bireysel snapshot, docs: ${snapshot.docs.length}',
-          );
-
-          final userFutures = <Future<DocumentSnapshot>>[];
-          final userIds = <String>[];
-
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            final userID = data['userID'] as String? ?? '';
-            if (userID.isNotEmpty) {
-              userIds.add(userID);
-              userFutures.add(
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(userID)
-                    .get(),
-              );
-            }
-          }
-
-          final userDocs =
-              userFutures.isNotEmpty ? await Future.wait(userFutures) : [];
-
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            final begeniler = data['begeniler'] as List<dynamic>? ?? [];
-            final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-            print(
-              'Doc ID: ${doc.id}, begeniler: $begeniler, kaydedenler: $kaydedenler',
-            );
-
-            try {
-                final userID = data['userID'] as String? ?? '';
-                var userData = {
-                  'pfImage': '',
-                  'nickname': '',
-                  'userID': userID,
-                };
-
-                if (userID.isNotEmpty) {
-                  final index = userIds.indexOf(userID);
-                  if (index != -1 && userDocs[index].exists) {
-                    userData = {
-                      'pfImage':
-                          userDocs[index].data()?['pfImage'] as String? ?? '',
-                      'nickname':
-                          userDocs[index].data()?['nickname'] as String? ?? '',
-                      'userID': userID,
-                    };
-                  }
-                }
-
-                scholarships.add({
-                  'model': IndividualScholarshipsModel.fromJson(data),
-                  'type': 'bireysel',
-                  'userData': userData,
-                  'docId': doc.id,
-                  'likesCount': begeniler.length,
-                  'bookmarksCount': kaydedenler.length,
-                });
-                print('Added bireysel scholarship: ${doc.id}');
-            } catch (e) {
-              print('Error processing doc ${doc.id}: $e');
-              AppSnackbar('Hata', 'Burs verisi işlenemedi.');
-            }
-          }
+      final userDataMap = <String, Map<String, dynamic>>{};
+      for (var i = 0; i < userIds.length; i += 10) {
+        final batch = userIds.skip(i).take(10).toList();
+        final usersSnap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (final d in usersSnap.docs) {
+          userDataMap[d.id] = {
+            'pfImage': d.data()['pfImage'] as String? ?? '',
+            'nickname': d.data()['nickname'] as String? ?? '',
+            'userID': d.id,
+          };
         }
+      }
 
-        print(
-          'Total scholarships: ${scholarships.length}, processing time: ${DateTime.now().difference(startTime).inMilliseconds}ms',
-        );
-        // Fix: Set isLoading to false when no scholarships are found
-        isLoading.value = scholarships.isNotEmpty ? false : false;
-        return scholarships;
-      }).handleError((e) {
-        AppSnackbar('Hata', 'Veriler yüklenemedi.');
-        print('Stream error: $e');
-        isLoading.value = false;
-      });
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final begeniler = data['begeniler'] as List<dynamic>? ?? [];
+        final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
+
+        try {
+          final userID = data['userID'] as String? ?? '';
+          final userData = userDataMap[userID] ??
+              {'pfImage': '', 'nickname': '', 'userID': userID};
+
+          scholarships.add({
+            'model': IndividualScholarshipsModel.fromJson(data),
+            'type': 'bireysel',
+            'userData': userData,
+            'docId': doc.id,
+            'likesCount': begeniler.length,
+            'bookmarksCount': kaydedenler.length,
+          });
+        } catch (e) {
+          AppSnackbar('Hata', 'Burs verisi işlenemedi.');
+        }
+      }
+
+      if (isLiked) {
+        likedScholarships.value = scholarships;
+      } else {
+        bookmarkedScholarships.value = scholarships;
+      }
     } catch (e) {
-      print('Stream setup error: $e');
-      isLoading.value = false;
+      AppSnackbar('Hata', 'Veriler yüklenemedi.');
     }
   }
 
@@ -169,7 +119,7 @@ class SavedItemsController extends GetxController {
 
     try {
       final docRef =
-          FirebaseFirestore.instance.collection('BireyselBurslar').doc(docId);
+          FirebaseFirestore.instance.collection('scholarships').doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {
@@ -185,12 +135,10 @@ class SavedItemsController extends GetxController {
       }
 
       await docRef.update({'begeniler': begeniler});
-      print('Updated begeniler for $docId: $begeniler');
-
-      // Stream otomatik olarak güncellenir, manuel liste güncellemesi gerekmez
+      // Pull-based: listeyi yeniden çek
+      await _fetchScholarships(userId, isLiked: true);
     } catch (e) {
       AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
-      print('toggleLike error: $e');
     }
   }
 
@@ -204,7 +152,7 @@ class SavedItemsController extends GetxController {
 
     try {
       final docRef =
-          FirebaseFirestore.instance.collection('BireyselBurslar').doc(docId);
+          FirebaseFirestore.instance.collection('scholarships').doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {
@@ -220,12 +168,10 @@ class SavedItemsController extends GetxController {
       }
 
       await docRef.update({'kaydedenler': kaydedenler});
-      print('Updated kaydedenler for $docId: $kaydedenler');
-
-      // Stream otomatik olarak güncellenir, manuel liste güncellemesi gerekmez
+      // Pull-based: listeyi yeniden çek
+      await _fetchScholarships(userId, isBookmarked: true);
     } catch (e) {
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
-      print('toggleBookmark error: $e');
     }
   }
 
@@ -233,15 +179,14 @@ class SavedItemsController extends GetxController {
     selectedTabIndex.value = index;
     pageController.animateToPage(
       index,
-      duration: Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 120),
       curve: Curves.easeInOut,
     );
   }
 
   @override
   void onClose() {
-    likedScholarships.close();
-    bookmarkedScholarships.close();
+    pageController.dispose();
     super.onClose();
   }
 }

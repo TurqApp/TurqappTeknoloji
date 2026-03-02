@@ -13,6 +13,16 @@ class AdminPushView extends StatefulWidget {
 }
 
 class _AdminPushViewState extends State<AdminPushView> {
+  static const Set<String> _activePushTargetUserIds = {
+    "i7RhJD0T5AazadgXl1iCc6ueeHf2",
+    "hiv3UzAABlRWJaePerm3mtPEolI3",
+    "CePvRgjSPobQrDQwH8SXJFuG1Jw2",
+  };
+  static const Set<String> _activePushTargetNicknames = {
+    "osmannafiz",
+    "turqapp",
+  };
+  static const int _pushTargetCutoffMs = 1772409600000;
   final _uidController = TextEditingController();
   final _konumController = TextEditingController();
   final _genderController = TextEditingController();
@@ -77,7 +87,13 @@ class _AdminPushViewState extends State<AdminPushView> {
 
   List<String> _collectLocationValues(Map<String, dynamic> data) {
     final values = <String>[];
-    for (final key in const ["city", "il", "ilce", "locationSehir", "ikametSehir"]) {
+    for (final key in const [
+      "city",
+      "il",
+      "ilce",
+      "locationSehir",
+      "ikametSehir"
+    ]) {
       final value = (data[key] ?? "").toString().trim().toLowerCase();
       if (value.isNotEmpty) values.add(value);
     }
@@ -117,6 +133,17 @@ class _AdminPushViewState extends State<AdminPushView> {
     return age < 0 ? null : age;
   }
 
+  bool _isEligiblePushTarget(String userId, Map<String, dynamic> data) {
+    if (_activePushTargetUserIds.contains(userId)) return true;
+    final nickname = (data['nickname'] ?? '').toString().trim().toLowerCase();
+    if (_activePushTargetNicknames.contains(nickname)) return true;
+    final rawCreatedDate = data['createdDate'];
+    final createdAtMs = rawCreatedDate is num
+        ? rawCreatedDate.toInt()
+        : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
+    return createdAtMs >= _pushTargetCutoffMs;
+  }
+
   Future<List<String>> _resolveTargetUids({
     required String uid,
     required String meslek,
@@ -125,7 +152,13 @@ class _AdminPushViewState extends State<AdminPushView> {
     required int? minAge,
     required int? maxAge,
   }) async {
-    if (uid.isNotEmpty) return [uid];
+    if (uid.isNotEmpty) {
+      final userDoc =
+          await FirebaseFirestore.instance.collection("users").doc(uid).get();
+      if (!userDoc.exists) return <String>[];
+      final data = userDoc.data() ?? const <String, dynamic>{};
+      return _isEligiblePushTarget(uid, data) ? [uid] : <String>[];
+    }
 
     final users = await FirebaseFirestore.instance.collection("users").get();
     final meslekLc = meslek.toLowerCase();
@@ -134,8 +167,10 @@ class _AdminPushViewState extends State<AdminPushView> {
     final targets = <String>[];
     for (final doc in users.docs) {
       final data = doc.data();
-      final userMeslek = (data["meslekKategori"] ?? "").toString().trim().toLowerCase();
-      final userGender = (data["cinsiyet"] ?? "").toString().trim().toLowerCase();
+      final userMeslek =
+          (data["meslekKategori"] ?? "").toString().trim().toLowerCase();
+      final userGender =
+          (data["cinsiyet"] ?? "").toString().trim().toLowerCase();
       final locations = _collectLocationValues(data);
       final age = _extractAge(data);
       final meslekOk = meslekLc.isEmpty || userMeslek == meslekLc;
@@ -143,7 +178,12 @@ class _AdminPushViewState extends State<AdminPushView> {
       final genderOk = genderLc.isEmpty || userGender == genderLc;
       final minAgeOk = minAge == null || (age != null && age >= minAge);
       final maxAgeOk = maxAge == null || (age != null && age <= maxAge);
-      if (meslekOk && konumOk && genderOk && minAgeOk && maxAgeOk) {
+      if (_isEligiblePushTarget(doc.id, data) &&
+          meslekOk &&
+          konumOk &&
+          genderOk &&
+          minAgeOk &&
+          maxAgeOk) {
         targets.add(doc.id);
       }
     }

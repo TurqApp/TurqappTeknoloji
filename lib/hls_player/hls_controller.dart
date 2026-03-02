@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 
 enum PlayerState {
   idle,
@@ -32,6 +33,11 @@ class HLSController {
   // Fallback support
   String? _fallbackUrl;
   bool _fallbackAttempted = false;
+
+  // Telemetry
+  final _telemetry = VideoTelemetryService.instance;
+  String? _telemetryVideoId;
+  bool _firstFrameEmitted = false;
 
   // Stream controllers
   final _stateController = StreamController<PlayerState>.broadcast();
@@ -81,6 +87,16 @@ class HLSController {
     await loadVideo(url, autoPlay: autoPlay, loop: loop);
   }
 
+  /// Set the video document ID for telemetry tracking.
+  void setTelemetryVideoId(String videoId) {
+    // End previous session if still active.
+    if (_telemetryVideoId != null) {
+      _telemetry.endSession(_telemetryVideoId!);
+    }
+    _telemetryVideoId = videoId;
+    _firstFrameEmitted = false;
+  }
+
   // Load video URL
   Future<void> loadVideo(String url, {bool autoPlay = true, bool loop = false}) async {
     if (_viewId == null) {
@@ -90,6 +106,10 @@ class HLSController {
     _currentUrl = url;
     _isLooping = loop;
     _updateState(PlayerState.loading);
+    _firstFrameEmitted = false;
+    if (_telemetryVideoId != null) {
+      _telemetry.startSession(_telemetryVideoId!, url);
+    }
 
     try {
       await _methodChannel.invokeMethod('loadVideo', {
@@ -251,6 +271,11 @@ class HLSController {
 
   // Dispose
   Future<void> dispose() async {
+    if (_telemetryVideoId != null) {
+      _telemetry.endSession(_telemetryVideoId!);
+      _telemetryVideoId = null;
+    }
+
     if (_viewId != null) {
       try {
         await _methodChannel.invokeMethod('dispose', {'viewId': _viewId});
@@ -292,6 +317,10 @@ class HLSController {
             break;
 
           case 'play':
+            if (!_firstFrameEmitted && _telemetryVideoId != null) {
+              _firstFrameEmitted = true;
+              _telemetry.onFirstFrame(_telemetryVideoId!);
+            }
             _updateState(PlayerState.playing);
             break;
 
@@ -303,8 +332,14 @@ class HLSController {
             final isBuffering = (event['isBuffering'] as bool?) ?? false;
             _bufferingController.add(isBuffering);
             if (isBuffering) {
+              if (_telemetryVideoId != null) {
+                _telemetry.onBufferingStart(_telemetryVideoId!);
+              }
               _updateState(PlayerState.buffering);
             } else if (_state == PlayerState.buffering) {
+              if (_telemetryVideoId != null) {
+                _telemetry.onBufferingEnd(_telemetryVideoId!);
+              }
               _updateState(PlayerState.playing);
             }
             break;
@@ -316,6 +351,9 @@ class HLSController {
             _duration = duration;
             _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
             _durationController.add(Duration(milliseconds: (duration * 1000).toInt()));
+            if (_telemetryVideoId != null) {
+              _telemetry.onPositionUpdate(_telemetryVideoId!, position, duration);
+            }
             // Native tarafında 'ready/play' eventi erken kaçarsa timeUpdate ile state'i toparla.
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
               _updateState(position > 0 ? PlayerState.playing : PlayerState.ready);
@@ -323,6 +361,9 @@ class HLSController {
             break;
 
           case 'completed':
+            if (_telemetryVideoId != null) {
+              _telemetry.onCompleted(_telemetryVideoId!);
+            }
             _updateState(PlayerState.completed);
             break;
 
@@ -332,6 +373,9 @@ class HLSController {
 
           case 'error':
             final message = event['message'] as String? ?? 'Unknown error';
+            if (_telemetryVideoId != null) {
+              _telemetry.onError(_telemetryVideoId!, message);
+            }
             _handleError(message);
             break;
 
@@ -339,6 +383,9 @@ class HLSController {
             final position = (event['position'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
             _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
+            if (_telemetryVideoId != null) {
+              _telemetry.onSeek(_telemetryVideoId!);
+            }
             break;
         }
       },

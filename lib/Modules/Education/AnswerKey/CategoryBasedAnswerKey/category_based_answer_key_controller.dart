@@ -30,7 +30,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
     filteredList.clear();
     try {
       final snapshots = await FirebaseFirestore.instance
-          .collection("Kitapciklar")
+          .collection("books")
           .where("sinavTuru", isEqualTo: sinavTuru)
           .get();
 

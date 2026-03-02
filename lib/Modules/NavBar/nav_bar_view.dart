@@ -89,6 +89,18 @@ class NavBarView extends StatelessWidget {
     final profileIndex = hasEducation ? 4 : 3;
     final educationIndex = hasEducation ? 3 : 0;
 
+    if (hasEducation && controller.selectedIndex.value == educationIndex) {
+      final educationController = Get.isRegistered<EducationController>()
+          ? Get.find<EducationController>()
+          : Get.put(EducationController());
+      if (educationController.canExitToFeed) {
+        controller.changeIndex(0);
+      } else {
+        educationController.handleBackFromEducation();
+      }
+      return false;
+    }
+
     if (controller.selectedIndex.value == profileIndex) {
       controller.changeIndex(educationIndex);
       return false;
@@ -151,182 +163,196 @@ class NavBarView extends StatelessWidget {
               // Opening overlay (first boot only)
               // const Positioned.fill(child: OpeningOverlay()),
 
-              AnimatedOpacity(
-                opacity: controller.showBar.value ? 1 : 0.2,
-                duration: const Duration(milliseconds: 200),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    12,
-                    0,
-                    12,
-                    math.max(
-                      0.0,
-                      math.max(8.0, MediaQuery.of(context).viewPadding.bottom) -
-                          (GetPlatform.isIOS ? 20 : 10),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                      child: Container(
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
-                          border: Border.all(
-                            color: Colors.black.withValues(alpha: 0.06),
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x22000000),
-                              blurRadius: 20,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
+              AnimatedSlide(
+                offset: controller.showBar.value
+                    ? Offset.zero
+                    : const Offset(0, 1.2),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: AnimatedOpacity(
+                  opacity: controller.showBar.value ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: IgnorePointer(
+                    ignoring: !controller.showBar.value,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        12,
+                        0,
+                        12,
+                        math.max(
+                          0.0,
+                          math.max(8.0,
+                                  MediaQuery.of(context).viewPadding.bottom) -
+                              (GetPlatform.isIOS ? 20 : 10),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: List.generate(icons.length, (i) {
-                            final isSelected =
-                                controller.selectedIndex.value == i;
-                            return TextButton(
-                              style: ButtonStyle(
-                                overlayColor:
-                                    WidgetStateProperty.all(Colors.transparent),
-                                padding:
-                                    WidgetStateProperty.all(EdgeInsets.zero),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                          child: Container(
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.88),
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.06),
                               ),
-                              onPressed: () async {
-                                // Eğer zaten AgendaView (index 0) aktifken House ikonuna basılırsa, en üste kaydır
-                                if (i == 0 &&
-                                    controller.selectedIndex.value == 0) {
-                                  if (Get.isRegistered<AgendaController>()) {
-                                    final agendaCtrl =
-                                        Get.find<AgendaController>();
-                                    if (agendaCtrl
-                                        .scrollController.hasClients) {
-                                      agendaCtrl.scrollController.animateTo(
-                                        0,
-                                        duration:
-                                            const Duration(milliseconds: 500),
-                                        curve: Curves.easeOut,
-                                      );
-                                      return;
-                                    }
-                                  }
-                                  // Kayıtlı controller yoksa normal akışa düşer
-                                }
-                                // Explore sayfasındayken search ikonuna tekrar basılırsa: mevcut sekmenin en üstüne kaydır
-                                if (i == 1 &&
-                                    controller.selectedIndex.value == 1) {
-                                  if (Get.isRegistered<ExploreController>()) {
-                                    final explore =
-                                        Get.find<ExploreController>();
-                                    int tab = 0;
-                                    try {
-                                      tab = Get.find<PageLineBarController>(
-                                              tag: 'Explore')
-                                          .selection
-                                          .value;
-                                    } catch (_) {}
-                                    ScrollController? sc;
-                                    switch (tab) {
-                                      case 0:
-                                        sc = explore.exploreScroll;
-                                        break;
-                                      case 1:
-                                        sc = explore.floodsScroll;
-                                        break;
-                                      case 2:
-                                        sc = explore.videoScroll;
-                                        break;
-                                      case 3:
-                                        sc = explore.photoScroll;
-                                        break;
-                                      default:
-                                        sc = explore.exploreScroll;
-                                    }
-                                    if (sc.hasClients) {
-                                      sc.animateTo(0,
-                                          duration:
-                                              const Duration(milliseconds: 500),
-                                          curve: Curves.easeOut);
-                                      return;
-                                    }
-                                  }
-                                  // controller kayıtlı değilse normal akış
-                                }
-                                if (i != 2) {
-                                  if (i ==
-                                      (settingController
-                                              .educationScreenIsOn.value
-                                          ? 3
-                                          : 2)) {
-                                    FocusScope.of(context).unfocus();
-                                    controller.changeIndex(i);
-                                  } else {
-                                    controller.changeIndex(i);
-                                  }
-                                } else {
-                                  // Short ikonuna tıklandığında background preload başlat
-                                  final shortController =
-                                      Get.find<ShortController>();
-
-                                  // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
-                                  shortController
-                                      .backgroundPreload()
-                                      .catchError((_) {});
-
-                                  await Get.to(() => const ShortView());
-                                }
-                              },
-                              child: Builder(builder: (_) {
-                                if (icons[i] == 'profile_dynamic') {
-                                  return Obx(() {
-                                    final img = userStore.pfImage.value;
-                                    final uploading =
-                                        controller.uploadingPosts.value;
-                                    const double size = 28;
-                                    return AnimatedBuilder(
-                                      animation:
-                                          controller.animationController.value,
-                                      builder: (_, __) {
-                                        // Slightly faster sweep rotation
-                                        final angle = controller
-                                                .animationController
-                                                .value
-                                                .value *
-                                            2 *
-                                            math.pi *
-                                            3;
-                                        return _AvatarWithRing(
-                                          imageUrl: img,
-                                          size: size,
-                                          isSelected: isSelected,
-                                          uploading: uploading,
-                                          angle: angle,
-                                        );
-                                      },
-                                    );
-                                  });
-                                }
-                                return SvgPicture.asset(
-                                  '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
-                                  height: i <= 1 ? 25 : 28,
-                                  colorFilter: ColorFilter.mode(
-                                    isSelected
-                                        ? Colors.black
-                                        : Colors.black.withValues(alpha: 0.5),
-                                    BlendMode.srcIn,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 20,
+                                  offset: Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: List.generate(icons.length, (i) {
+                                final isSelected =
+                                    controller.selectedIndex.value == i;
+                                return TextButton(
+                                  style: ButtonStyle(
+                                    overlayColor: WidgetStateProperty.all(
+                                        Colors.transparent),
+                                    padding: WidgetStateProperty.all(
+                                        EdgeInsets.zero),
                                   ),
+                                  onPressed: () async {
+                                    // Eğer zaten AgendaView (index 0) aktifken House ikonuna basılırsa, en üste kaydır
+                                    if (i == 0 &&
+                                        controller.selectedIndex.value == 0) {
+                                      if (Get.isRegistered<
+                                          AgendaController>()) {
+                                        final agendaCtrl =
+                                            Get.find<AgendaController>();
+                                        if (agendaCtrl
+                                            .scrollController.hasClients) {
+                                          agendaCtrl.scrollController.animateTo(
+                                            0,
+                                            duration: const Duration(
+                                                milliseconds: 500),
+                                            curve: Curves.easeOut,
+                                          );
+                                          return;
+                                        }
+                                      }
+                                      // Kayıtlı controller yoksa normal akışa düşer
+                                    }
+                                    // Explore sayfasındayken search ikonuna tekrar basılırsa: mevcut sekmenin en üstüne kaydır
+                                    if (i == 1 &&
+                                        controller.selectedIndex.value == 1) {
+                                      if (Get.isRegistered<
+                                          ExploreController>()) {
+                                        final explore =
+                                            Get.find<ExploreController>();
+                                        int tab = 0;
+                                        try {
+                                          tab = Get.find<PageLineBarController>(
+                                                  tag: 'Explore')
+                                              .selection
+                                              .value;
+                                        } catch (_) {}
+                                        ScrollController? sc;
+                                        switch (tab) {
+                                          case 0:
+                                            sc = explore.exploreScroll;
+                                            break;
+                                          case 1:
+                                            sc = explore.floodsScroll;
+                                            break;
+                                          case 2:
+                                            sc = explore.videoScroll;
+                                            break;
+                                          case 3:
+                                            sc = explore.photoScroll;
+                                            break;
+                                          default:
+                                            sc = explore.exploreScroll;
+                                        }
+                                        if (sc.hasClients) {
+                                          sc.animateTo(0,
+                                              duration: const Duration(
+                                                  milliseconds: 500),
+                                              curve: Curves.easeOut);
+                                          return;
+                                        }
+                                      }
+                                      // controller kayıtlı değilse normal akış
+                                    }
+                                    if (i != 2) {
+                                      if (i ==
+                                          (settingController
+                                                  .educationScreenIsOn.value
+                                              ? 3
+                                              : 2)) {
+                                        FocusScope.of(context).unfocus();
+                                        controller.changeIndex(i);
+                                      } else {
+                                        controller.changeIndex(i);
+                                      }
+                                    } else {
+                                      // Short ikonuna tıklandığında background preload başlat
+                                      final shortController =
+                                          Get.find<ShortController>();
+
+                                      // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
+                                      shortController
+                                          .backgroundPreload()
+                                          .catchError((_) {});
+
+                                      await Get.to(() => const ShortView());
+                                    }
+                                  },
+                                  child: Builder(builder: (_) {
+                                    if (icons[i] == 'profile_dynamic') {
+                                      return Obx(() {
+                                        final img = userStore.pfImage.value;
+                                        final uploading =
+                                            controller.uploadingPosts.value;
+                                        const double size = 28;
+                                        return AnimatedBuilder(
+                                          animation: controller
+                                              .animationController.value,
+                                          builder: (_, __) {
+                                            // Slightly faster sweep rotation
+                                            final angle = controller
+                                                    .animationController
+                                                    .value
+                                                    .value *
+                                                2 *
+                                                math.pi *
+                                                3;
+                                            return _AvatarWithRing(
+                                              imageUrl: img,
+                                              size: size,
+                                              isSelected: isSelected,
+                                              uploading: uploading,
+                                              angle: angle,
+                                            );
+                                          },
+                                        );
+                                      });
+                                    }
+                                    return SvgPicture.asset(
+                                      '${icons[i]}${isSelected ? '_fill.svg' : '.svg'}',
+                                      height: i <= 1 ? 25 : 28,
+                                      colorFilter: ColorFilter.mode(
+                                        isSelected
+                                            ? Colors.black
+                                            : Colors.black
+                                                .withValues(alpha: 0.5),
+                                        BlendMode.srcIn,
+                                      ),
+                                    );
+                                  }),
                                 );
                               }),
-                            );
-                          }),
+                            ),
+                          ),
                         ),
                       ),
                     ),

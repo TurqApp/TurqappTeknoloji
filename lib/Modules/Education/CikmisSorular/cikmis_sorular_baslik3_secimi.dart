@@ -30,7 +30,7 @@ class _CikmisSorularBaslik3SecimiState
   void initState() {
     super.initState();
     FirebaseFirestore.instance
-        .collection("CikmisSorular")
+        .collection("questions")
         .where("anaBaslik", isEqualTo: widget.anaBaslik)
         .where("sinavTuru", isEqualTo: widget.sinavTuru)
         .where("yil", isEqualTo: widget.yil)

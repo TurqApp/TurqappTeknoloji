@@ -28,7 +28,7 @@ class SavedOpticalForms extends StatelessWidget {
                               ? const Padding(
                                   padding: EdgeInsets.all(15),
                                   child: Text(
-                                    "Kaydedilen kitapçık yok.",
+                                    "Kaydedilen kitap yok.",
                                     style: TextStyle(
                                       fontFamily: "MontserratMedium",
                                       fontSize: 16,

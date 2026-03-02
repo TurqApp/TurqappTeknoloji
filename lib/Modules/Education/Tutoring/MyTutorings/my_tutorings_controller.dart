@@ -18,8 +18,12 @@ class MyTutoringsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    setupRealTimeListeners();
-    log("MyTutoringsController initialized");
+    final uid = getCurrentUserId();
+    if (uid != null) {
+      fetchMyTutorings(uid);
+    } else {
+      errorMessage.value = "Kullanıcı kimliği bulunamadı.";
+    }
   }
 
   @override
@@ -28,75 +32,27 @@ class MyTutoringsController extends GetxController {
     super.onClose();
   }
 
-  void setupRealTimeListeners() {
-    final String? currentUserId = getCurrentUserId();
-    if (currentUserId == null) {
-      errorMessage.value = "Kullanıcı kimliği bulunamadı.";
-      log("No current user ID found");
-      return;
-    }
-    log("Setting up real-time listeners for user: $currentUserId");
-
-    FirebaseFirestore.instance
-        .collection('OzelDersVerenler')
-        .where('userID', isEqualTo: currentUserId)
-        .snapshots()
-        .listen(
-      (snapshot) {
-        log(
-          "Real-time snapshot received, docs count: ${snapshot.docs.length}",
-        );
-        try {
-          final tutorings = snapshot.docs.map((doc) {
-            return TutoringModel.fromJson(doc.data(), doc.id);
-          }).toList();
-          myTutorings.assignAll(tutorings);
-
-          updateTutoringsStatus();
-
-          final userIds = tutorings.map((t) => t.userID).toSet();
-          if (userIds.isNotEmpty) {
-            fetchUsers(userIds);
-          } else {
-            log("No user IDs to fetch");
-          }
-        } catch (e) {
-          errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
-          log("Error fetching my tutorings: $e");
-        }
-      },
-      onError: (e) {
-        errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
-        log("Snapshot error: $e");
-      },
-    );
-  }
-
-  Future<void> fetchInitialData(String currentUserId) async {
-    log("Fetching initial data for user: $currentUserId");
+  Future<void> fetchMyTutorings(String currentUserId) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('OzelDersVerenler')
+      final snapshot = await FirebaseFirestore.instance
+          .collection('educators')
           .where('userID', isEqualTo: currentUserId)
           .get();
 
-      final tutorings = querySnapshot.docs.map((doc) {
+      final tutorings = snapshot.docs.map((doc) {
         return TutoringModel.fromJson(doc.data(), doc.id);
       }).toList();
       myTutorings.assignAll(tutorings);
 
-      // Aktif ve süresi dolmuş ilanları ayır
       updateTutoringsStatus();
 
       final userIds = tutorings.map((t) => t.userID).toSet();
       if (userIds.isNotEmpty) {
         await fetchUsers(userIds);
-      } else {
-        log("No user IDs to fetch in initial data");
       }
     } catch (e) {
-      errorMessage.value = "İlk veri yüklenirken hata oluştu: $e";
-      log("Error fetching initial data: $e");
+      errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
+      log("Error fetching my tutorings: $e");
     }
   }
 
@@ -107,29 +63,30 @@ class MyTutoringsController extends GetxController {
     expiredTutorings.clear();
 
     for (var tutoring in myTutorings) {
-      if (now - tutoring.timeStamp <= thirtyDaysInMillis) {
-        activeTutorings.add(tutoring);
-      } else {
+      if (tutoring.ended == true ||
+          now - tutoring.timeStamp > thirtyDaysInMillis) {
         expiredTutorings.add(tutoring);
+      } else {
+        activeTutorings.add(tutoring);
       }
     }
   }
 
   Future<void> fetchUsers(Set<String> userIds) async {
-    log("Fetching users for IDs: $userIds");
-    try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where(
-            FieldPath.documentId,
-            whereIn: userIds.toList().take(10).toList(),
-          )
-          .get();
+    final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
+    if (toFetch.isEmpty) return;
 
-      final Map<String, Map<String, dynamic>> userMap = {
-        for (var doc in querySnapshot.docs) doc.id: doc.data(),
-      };
-      users.assignAll(userMap);
+    try {
+      for (var i = 0; i < toFetch.length; i += 30) {
+        final batch = toFetch.skip(i).take(30).toList();
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        for (var doc in snap.docs) {
+          users[doc.id] = doc.data();
+        }
+      }
     } catch (e) {
       errorMessage.value = "Kullanıcı bilgileri yüklenirken hata oluştu: $e";
       log("Error fetching users: $e");
@@ -137,14 +94,8 @@ class MyTutoringsController extends GetxController {
   }
 
   String? getCurrentUserId() {
-    try {
-      return FirebaseAuth.instance.currentUser?.uid.isNotEmpty == true
-          ? FirebaseAuth.instance.currentUser!.uid
-          : null;
-    } catch (e) {
-      print("Error getting userID: $e");
-      return null;
-    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return (uid != null && uid.isNotEmpty) ? uid : null;
   }
 
   void goToPage(int index) {

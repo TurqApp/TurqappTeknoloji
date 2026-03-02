@@ -32,7 +32,7 @@ class SinavSorusuHazirlaController extends GetxController {
     isLoading.value = true;
     try {
       QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(docID)
           .collection("Sorular")
           .get();
@@ -74,7 +74,7 @@ class SinavSorusuHazirlaController extends GetxController {
         int soruSayisi = int.tryParse(derslerinSoruSayilari[i]) ?? 0;
         for (int j = 0; j < soruSayisi; j++) {
           await FirebaseFirestore.instance
-              .collection("Sinavlar")
+              .collection("practiceExams")
               .doc(docID)
               .collection("Sorular")
               .doc(DateTime.now().microsecondsSinceEpoch.toString())
@@ -97,7 +97,7 @@ class SinavSorusuHazirlaController extends GetxController {
 
   void completeExam() async {
     try {
-      await FirebaseFirestore.instance.collection("Sinavlar").doc(docID).set({
+      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).set({
         "taslak": false,
       }, SetOptions(merge: true));
       complated();

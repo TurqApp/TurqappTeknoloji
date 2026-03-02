@@ -29,7 +29,7 @@ class SinavSonuclariPreviewController extends GetxController {
     isLoading.value = true;
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Yanitlar")
           .get();
@@ -58,7 +58,7 @@ class SinavSonuclariPreviewController extends GetxController {
   Future<void> getSorular() async {
     try {
       QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Sorular")
           .get();
@@ -103,7 +103,7 @@ class SinavSonuclariPreviewController extends GetxController {
     try {
       for (var item in model.dersler) {
         DocumentSnapshot doc = await FirebaseFirestore.instance
-            .collection("Sinavlar")
+            .collection("practiceExams")
             .doc(model.docID)
             .collection("Yanitlar")
             .doc(docID)

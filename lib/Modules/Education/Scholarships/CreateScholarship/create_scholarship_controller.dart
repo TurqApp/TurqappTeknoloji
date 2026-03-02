@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
@@ -124,9 +125,38 @@ class CreateScholarshipController extends GetxController {
   final higherEducationData = <dynamic>[].obs;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final GlobalKey templateKey = GlobalKey();
+
+  Future<Uint8List?> _compressFileToWebp(File file,
+      {int quality = 85}) async {
+    try {
+      return await FlutterImageCompress.compressWithFile(
+        file.path,
+        format: CompressFormat.webp,
+        quality: quality,
+      );
+    } catch (e) {
+      log('WebP sıkıştırma hatası (file): $e');
+      return null;
+    }
+  }
+
+  Future<Uint8List?> _compressBytesToWebp(Uint8List bytes,
+      {int quality = 85}) async {
+    try {
+      return await FlutterImageCompress.compressWithList(
+        bytes,
+        format: CompressFormat.webp,
+        quality: quality,
+      );
+    } catch (e) {
+      log('WebP sıkıştırma hatası (bytes): $e');
+      return null;
+    }
+  }
 
   @override
   void onInit() {
@@ -402,10 +432,22 @@ class CreateScholarshipController extends GetxController {
         return null;
       }
 
+      final webpBytes = await _compressFileToWebp(file, quality: 85);
+      if (webpBytes == null || webpBytes.isEmpty) {
+        AppSnackbar('Hata', 'Görsel WebP formatına dönüştürülemedi.');
+        return null;
+      }
+
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final ref = _storage.ref().child(
-          'BireyselBurslar/${isLogo ? 'logos' : 'images'}/$timestamp.png');
-      await ref.putFile(file);
+          'scholarships/${isLogo ? 'logos' : 'images'}/$timestamp.webp');
+      await ref.putData(
+        webpBytes,
+        SettableMetadata(
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
       final downloadUrl = await ref.getDownloadURL();
       log('Görsel başarıyla yüklendi: $downloadUrl');
       return downloadUrl;
@@ -465,9 +507,21 @@ class CreateScholarshipController extends GetxController {
         return null;
       }
 
+      final webpBytes = await _compressBytesToWebp(bytes, quality: 85);
+      if (webpBytes == null || webpBytes.isEmpty) {
+        AppSnackbar('Hata', 'Şablon görseli WebP formatına dönüştürülemedi.');
+        return null;
+      }
+
       final ref = _storage.ref().child(
-          'BireyselBurslar/templates/${DateTime.now().millisecondsSinceEpoch}.png');
-      await ref.putFile(file);
+          'scholarships/templates/${DateTime.now().millisecondsSinceEpoch}.webp');
+      await ref.putData(
+        webpBytes,
+        SettableMetadata(
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        ),
+      );
       final downloadUrl = await ref.getDownloadURL();
       templateUrl.value = downloadUrl;
       template.value =
@@ -575,6 +629,7 @@ class CreateScholarshipController extends GetxController {
 
         final scholarship = IndividualScholarshipsModel(
           aciklama: aciklama.value,
+          shortDescription: '',
           altEgitimKitlesi: altEgitimKitlesi,
           aylar: aylar,
           basvurular: [],
@@ -612,14 +667,18 @@ class CreateScholarshipController extends GetxController {
           ulke: ulke.value,
         );
 
+        final docRef = await _firestore
+            .collection('scholarships')
+            .add(scholarship.toJson());
+
         await _firestore
-            .collection('BireyselBurslar')
-            .add(scholarship.toJson())
-            .then((value) {
-          // Refresh scholarships after successful save
-          final scholarshipsController = Get.find<ScholarshipsController>();
-          scholarshipsController.fetchScholarships();
-        });
+            .collection('scholarships')
+            .doc(docRef.id)
+            .set({'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
+
+        // Refresh scholarships after successful save
+        final scholarshipsController = Get.find<ScholarshipsController>();
+        scholarshipsController.fetchScholarships();
 
         // After create: return to NavBarView (Education tab), then open ScholarshipsView
         try {
@@ -695,6 +754,7 @@ class CreateScholarshipController extends GetxController {
 
         final scholarship = IndividualScholarshipsModel(
           aciklama: aciklama.value,
+          shortDescription: '',
           altEgitimKitlesi: altEgitimKitlesi,
           aylar: aylar,
           basvurular: [],
@@ -733,14 +793,13 @@ class CreateScholarshipController extends GetxController {
         );
 
         await _firestore
-            .collection('BireyselBurslar')
+            .collection('scholarships')
             .doc(scholarshipId.value)
-            .update(scholarship.toJson())
-            .then((value) {
-          // Refresh scholarships after successful update
-          final scholarshipsController = Get.find<ScholarshipsController>();
-          scholarshipsController.fetchScholarships();
-        });
+            .update(scholarship.toJson());
+
+        // Refresh scholarships after successful update
+        final scholarshipsController = Get.find<ScholarshipsController>();
+        scholarshipsController.fetchScholarships();
 
         // After update: return to NavBarView (Education tab), then open ScholarshipsView
         try {

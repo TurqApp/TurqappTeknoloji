@@ -225,7 +225,7 @@ class AntremanComments extends StatelessWidget {
                                           color: comment.begeniler.contains(
                                             controller.userID,
                                           )
-                                              ? Colors.blue
+                                              ? Colors.black
                                               : Colors.black,
                                         ),
                                         onPressed: () =>
@@ -436,7 +436,7 @@ class AntremanComments extends StatelessWidget {
                                                       reply.begeniler.contains(
                                                     controller.userID,
                                                   )
-                                                          ? Colors.blue
+                                                          ? Colors.black
                                                           : Colors.black,
                                                   size: 20,
                                                 ),
@@ -786,7 +786,7 @@ class AntremanComments extends StatelessWidget {
                                         ? IconButton(
                                             icon: Icon(
                                               CupertinoIcons.paperplane_fill,
-                                              color: Colors.blue,
+                                              color: Colors.black,
                                             ),
                                             onPressed: () {
                                               if (controller.editingCommentDocID
@@ -849,7 +849,7 @@ class AntremanComments extends StatelessWidget {
                                         IconButton(
                                       icon: Icon(
                                         CupertinoIcons.add_circled,
-                                        color: Colors.blue,
+                                        color: Colors.black,
                                       ),
                                       onPressed: controller.editingCommentDocID
                                                   .value.isEmpty &&

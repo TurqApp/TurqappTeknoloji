@@ -42,7 +42,7 @@ class CdnUrlBuilder {
 
   /// Post thumbnail URL'si oluşturur.
   static String buildThumbnailUrl(String docID) =>
-      _buildStorageUrl('Posts/$docID/thumbnail.jpg');
+      _buildStorageUrl('Posts/$docID/thumbnail.webp');
 
   /// Genel storage path'i CDN URL'sine çevirir.
   static String buildFromPath(String storagePath) =>

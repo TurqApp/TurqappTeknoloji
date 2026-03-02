@@ -33,6 +33,7 @@ import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/draft_service.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
+import '../../Core/Services/webp_upload_service.dart';
 
 class PreparedPostModel {
   final String text;
@@ -776,14 +777,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
 
       for (int j = 0; j < post.images.length; j++) {
-        final ref = FirebaseStorage.instance.ref().child(
-              'Posts/$docID/image_$j.webp',
-            );
-        final uploadTask = await ref.putData(post.images[j]);
-        final url = CdnUrlBuilder.toCdnUrl(
-          await uploadTask.ref.getDownloadURL(),
+        final url = await WebpUploadService.uploadBytesAsWebp(
+          storage: FirebaseStorage.instance,
+          bytes: post.images[j],
+          storagePathWithoutExt: 'Posts/$docID/image_$j',
         );
-        imageUrls.add(url);
+        imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
       }
 
       if (post.gif.isNotEmpty) {
@@ -801,7 +800,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final videoRef = FirebaseStorage.instance.ref().child(
               'Posts/$docID/video.mp4',
             );
-        final uploadTask = await videoRef.putFile(post.video!);
+        final uploadTask = await videoRef.putFile(
+          post.video!,
+          SettableMetadata(
+            contentType: 'video/mp4',
+            cacheControl: 'public, max-age=31536000, immutable',
+          ),
+        );
         videoUrl = CdnUrlBuilder.toCdnUrl(
           await uploadTask.ref.getDownloadURL(),
         );
@@ -843,13 +848,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           } catch (_) {
             thumbWebp = thumbnailData; // fallback
           }
-          final thumbRef = FirebaseStorage.instance.ref().child(
-                'Posts/$docID/thumbnail.webp',
-              );
-          final thumbUpload = await thumbRef.putData(thumbWebp);
-          thumbnailUrl = CdnUrlBuilder.toCdnUrl(
-            await thumbUpload.ref.getDownloadURL(),
+          final thumbUrl = await WebpUploadService.uploadBytesAsWebp(
+            storage: FirebaseStorage.instance,
+            bytes: thumbWebp,
+            storagePathWithoutExt: 'Posts/$docID/thumbnail',
           );
+          thumbnailUrl = CdnUrlBuilder.toCdnUrl(thumbUrl);
           if (kDebugMode) {
             debugPrint('[PostCreator] Thumbnail uploaded: '
                 'orig=${(thumbnailData.length / 1e6).toStringAsFixed(2)} MB '
@@ -1563,14 +1567,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           // Upload images with retry logic
           for (int j = 0; j < post.images.length; j++) {
             try {
-              final ref = FirebaseStorage.instance
-                  .ref()
-                  .child('Posts/$docID/image_$j.webp');
-              final uploadTask = await ref.putData(post.images[j]);
-              final url = CdnUrlBuilder.toCdnUrl(
-                await uploadTask.ref.getDownloadURL(),
+              final url = await WebpUploadService.uploadBytesAsWebp(
+                storage: FirebaseStorage.instance,
+                bytes: post.images[j],
+                storagePathWithoutExt: 'Posts/$docID/image_$j',
               );
-              imageUrls.add(url);
+              imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
             } catch (e) {
               await _errorService.handleError(
                 e,
@@ -1602,7 +1604,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               final videoRef = FirebaseStorage.instance
                   .ref()
                   .child('Posts/$docID/video.mp4');
-              final uploadTask = await videoRef.putFile(post.video!);
+              final uploadTask = await videoRef.putFile(
+                post.video!,
+                SettableMetadata(
+                  contentType: 'video/mp4',
+                  cacheControl: 'public, max-age=31536000, immutable',
+                ),
+              );
               videoUrl = CdnUrlBuilder.toCdnUrl(
                 await uploadTask.ref.getDownloadURL(),
               );
@@ -1630,12 +1638,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 } catch (_) {
                   thumbWebp = thumbnailData;
                 }
-                final thumbRef = FirebaseStorage.instance
-                    .ref()
-                    .child('Posts/$docID/thumbnail.webp');
-                final thumbUpload = await thumbRef.putData(thumbWebp);
+                final thumbUrl = await WebpUploadService.uploadBytesAsWebp(
+                  storage: FirebaseStorage.instance,
+                  bytes: thumbWebp,
+                  storagePathWithoutExt: 'Posts/$docID/thumbnail',
+                );
                 thumbnailUrl = CdnUrlBuilder.toCdnUrl(
-                  await thumbUpload.ref.getDownloadURL(),
+                  thumbUrl,
                 );
                 if (kDebugMode) {
                   debugPrint('[PostCreator] Thumbnail uploaded: '

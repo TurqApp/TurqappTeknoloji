@@ -12,6 +12,7 @@ import 'package:path/path.dart' as path;
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:video_player/video_player.dart';
 import '../../../Core/Services/optimized_nsfw_service.dart';
@@ -839,13 +840,28 @@ class StoryMakerController extends GetxController {
             print("File not found: ${e.content}");
             continue; // Skip missing files
           }
-          final ext = path.extension(file.path);
           final ts = DateTime.now().millisecondsSinceEpoch;
           final uid = user.uid;
-          final ref =
-              FirebaseStorage.instance.ref('stories/$uid/$storyId/$ts$ext');
-          final task = await ref.putFile(file);
-          url = CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL());
+          if (e.type == StoryElementType.video) {
+            final ext = path.extension(file.path);
+            final ref =
+                FirebaseStorage.instance.ref('stories/$uid/$storyId/$ts$ext');
+            final task = await ref.putFile(
+              file,
+              SettableMetadata(
+                contentType: 'video/mp4',
+                cacheControl: 'public, max-age=31536000, immutable',
+              ),
+            );
+            url = CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL());
+          } else {
+            final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+              storage: FirebaseStorage.instance,
+              file: file,
+              storagePathWithoutExt: 'stories/$uid/$storyId/$ts',
+            );
+            url = CdnUrlBuilder.toCdnUrl(downloadUrl);
+          }
         }
         serialized.add({
           'type': e.type.toString().split('.').last,

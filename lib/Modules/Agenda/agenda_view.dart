@@ -208,7 +208,8 @@ class AgendaView extends StatelessWidget {
                           // Bu sayede sadece centered durumu değişen post rebuild olur
                           Widget buildPostContent() {
                             return Obx(() {
-                              final isCentered = controller.centeredIndex.value == agendaIndex;
+                              final isCentered =
+                                  controller.centeredIndex.value == agendaIndex;
                               if (user.viewSelection.value == 1) {
                                 return AgendaContent(
                                   key: ValueKey(stableKeyString),
@@ -234,6 +235,7 @@ class AgendaView extends StatelessWidget {
                           postWidget = VisibilityDetector(
                             key: Key('visibility_$stableKeyString'),
                             onVisibilityChanged: (info) {
+                              if (model.hasPlayableVideo) return;
                               final modelIndex = agendaIndex;
                               if (modelIndex < 0) return;
                               controller.onPostVisibilityChanged(
@@ -269,10 +271,10 @@ class AgendaView extends StatelessWidget {
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
                                               colors: [
-                                                AppColors.textBlue
-                                                    .withValues(alpha: 0.10 * t),
-                                                AppColors.textPink
-                                                    .withValues(alpha: 0.10 * t),
+                                                AppColors.textBlue.withValues(
+                                                    alpha: 0.10 * t),
+                                                AppColors.textPink.withValues(
+                                                    alpha: 0.10 * t),
                                               ],
                                             ),
                                           ),
@@ -501,7 +503,8 @@ class AgendaView extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF00C853),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
+                                border:
+                                    Border.all(color: Colors.white, width: 1.5),
                               ),
                             ),
                           ),
@@ -537,7 +540,8 @@ class AgendaView extends StatelessWidget {
                         size: 20,
                       ),
                       Obx(() {
-                        final hasUnread = notificationsController.unreadCount > 0;
+                        final hasUnread =
+                            notificationsController.unreadCount > 0;
                         if (!hasUnread) {
                           return const SizedBox.shrink();
                         }
@@ -550,7 +554,8 @@ class AgendaView extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: const Color(0xFF00C853),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 1.5),
+                              border:
+                                  Border.all(color: Colors.white, width: 1.5),
                             ),
                           ),
                         );

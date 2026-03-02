@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 
 class TutoringContent extends StatelessWidget {
   final String categoryName;

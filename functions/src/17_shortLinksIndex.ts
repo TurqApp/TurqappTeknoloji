@@ -5,15 +5,15 @@ import * as functions from "firebase-functions";
 import axios from "axios";
 
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
-const SHORT_LINK_INDEX_COLLECTION = "short_links_index";
+const SHORT_LINK_INDEX_COLLECTION = "shortLinks";
 const SHORT_LINK_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
 const SHORT_LINK_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-type ShortLinkType = "post" | "story" | "user";
+type ShortLinkType = "post" | "story" | "user" | "edu" | "job";
 
 interface UpsertShortLinkPayload {
   type: ShortLinkType;
-  entityId: string; // postId | storyId | userId
+  entityId: string; // postId | storyId | userId | jobId
   shortId?: string; // post/story için
   slug?: string; // user için (nickname)
   title?: string;
@@ -48,7 +48,10 @@ function ensureAdmin() {
 }
 
 function getEnv(name: string): string {
-  return String(process.env[name] || "").trim();
+  const fromProcess = String(process.env[name] || "").trim();
+  if (fromProcess) return fromProcess;
+  const configValue = functions.config?.()?.shortlinks?.[name.toLowerCase()];
+  return String(configValue || "").trim();
 }
 
 function normalizeText(v: unknown, maxLength: number): string {
@@ -57,8 +60,8 @@ function normalizeText(v: unknown, maxLength: number): string {
 
 function normalizeType(v: unknown): ShortLinkType {
   const raw = String(v || "").trim().toLowerCase();
-  if (raw === "post" || raw === "story" || raw === "user") return raw;
-  throw new HttpsError("invalid-argument", "type post/story/user olmalı.");
+  if (["post", "story", "user", "edu", "job"].includes(raw)) return raw as ShortLinkType;
+  throw new HttpsError("invalid-argument", "type post/story/user/edu olmalı.");
 }
 
 function validateShortId(shortId: string) {
@@ -92,13 +95,15 @@ function randomShortId(length = 7): string {
   return out;
 }
 
-function typePath(type: ShortLinkType): "p" | "s" | "u" {
+function typePath(type: ShortLinkType): "p" | "s" | "u" | "e" | "i" {
   if (type === "post") return "p";
   if (type === "story") return "s";
+  if (type === "edu") return "e";
+  if (type === "job") return "i";
   return "u";
 }
 
-function kvPrefix(type: ShortLinkType): "p" | "s" | "u" {
+function kvPrefix(type: ShortLinkType): "p" | "s" | "u" | "e" | "i" {
   return typePath(type);
 }
 
@@ -147,11 +152,11 @@ export const upsertShortLink = onCall(
     ensureAdmin();
     const db = getFirestore();
 
-    if (!req.auth?.uid) {
+    const type = normalizeType(req.data?.type);
+    const callerUid = req.auth?.uid || "anonymous";
+    if (!req.auth?.uid && type !== "edu") {
       throw new HttpsError("unauthenticated", "Giriş gerekli.");
     }
-
-    const type = normalizeType(req.data?.type);
     const entityId = normalizeText(req.data?.entityId, 128);
     if (!entityId) throw new HttpsError("invalid-argument", "entityId zorunlu.");
 
@@ -165,13 +170,25 @@ export const upsertShortLink = onCall(
     let slug = "";
     let indexId = "";
 
-    if (type === "user") {
-      slug = normalizeSlug(req.data?.slug);
-      validateSlug(slug);
-      shortId = slug;
-      indexId = `user:${slug}`;
-    } else {
+  if (type === "user") {
+    slug = normalizeSlug(req.data?.slug);
+    validateSlug(slug);
+    shortId = slug;
+    indexId = `user:${slug}`;
+  } else {
       shortId = normalizeText(req.data?.shortId, 24);
+      if (!shortId) {
+        const existingByEntity = await db
+          .collection(SHORT_LINK_INDEX_COLLECTION)
+          .where("type", "==", type)
+          .where("entityId", "==", entityId)
+          .limit(1)
+          .get();
+        if (!existingByEntity.empty) {
+          const existingData = existingByEntity.docs[0].data() as ShortLinkIndexDoc;
+          shortId = existingData.shortId;
+        }
+      }
       if (shortId) {
         validateShortId(shortId);
       } else {
@@ -203,7 +220,7 @@ export const upsertShortLink = onCall(
         expiresAt,
         createdAt: existing.exists ? ((existing.data() as ShortLinkIndexDoc).createdAt || now) : now,
         updatedAt: now,
-        createdBy: req.auth!.uid,
+        createdBy: callerUid,
         status: "active",
       };
       tx.set(indexRef, doc, { merge: true });
@@ -212,7 +229,7 @@ export const upsertShortLink = onCall(
     const idForUrl = type === "user" ? slug : shortId;
     const publicUrl = buildPublicUrl(type, idForUrl);
 
-    if (type === "post") {
+    if (type === "post" || type === "job") {
       await db.collection("Posts").doc(entityId).set(
         {
           shortId,
@@ -233,7 +250,7 @@ export const upsertShortLink = onCall(
         },
         { merge: true }
       );
-    } else {
+    } else if (type === "user") {
       await db.collection("users").doc(entityId).set(
         {
           profileSlug: slug,
@@ -255,10 +272,10 @@ export const upsertShortLink = onCall(
         desc,
         imageUrl,
         expiresAt,
-        url: publicUrl,
-        updatedAt: now,
-        status: "active",
-      });
+      url: publicUrl,
+      updatedAt: now,
+      status: "active",
+    });
     } catch (e) {
       functions.logger.error("upsertShortLink cloudflare_kv_sync_error", { type, id: idForUrl, entityId, error: e });
     }
@@ -334,7 +351,7 @@ export const shortLinkIndexConfig = onCall({ region: REGION }, async () => {
     ok: true,
     indexCollection: SHORT_LINK_INDEX_COLLECTION,
     domain: SHORT_LINK_DOMAIN,
-    routes: ["/p/:id", "/s/:id", "/u/:id"],
+    routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id"],
     cloudflareKvSyncEnabled:
       !!getEnv("CF_API_TOKEN") &&
       !!getEnv("CF_ACCOUNT_ID") &&

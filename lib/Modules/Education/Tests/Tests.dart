@@ -17,13 +17,20 @@ import 'package:turqappv2/Modules/Education/Tests/tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
+import 'package:turqappv2/Core/Widgets/skeleton_loader.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class Tests extends StatelessWidget {
-  Tests({super.key});
+  Tests({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
+  final bool embedded;
+  final bool showEmbeddedControls;
   final controller = Get.put(TestsController());
-  final ScrollController _scrollController = ScrollController();
+  ScrollController get _scrollController => controller.scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -31,32 +38,8 @@ class Tests extends StatelessWidget {
       controller.scrollOffset.value = _scrollController.offset;
     });
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        Get.back();
-                      },
-                      icon: Icon(
-                        AppIcons.arrowLeft,
-                        color: Colors.black,
-                        size: 25,
-                      ),
-                    ),
-                    TypewriterText(
-                      text: "Testler",
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: RefreshIndicator(
+    final bodyContent = Expanded(
+      child: RefreshIndicator(
                     color: Colors.white,
                     backgroundColor: Colors.black,
                     onRefresh: controller.getData,
@@ -134,7 +117,7 @@ class Tests extends StatelessWidget {
                               },
                             ),
                           ),
-                          GestureDetector(
+                          if (!embedded) GestureDetector(
                             onTap: () {
                               Get.to(() => SearchTests());
                             },
@@ -187,9 +170,7 @@ class Tests extends StatelessWidget {
                             padding: EdgeInsets.symmetric(horizontal: 20),
                             child: Obx(
                               () => controller.isLoading.value
-                                  ? Center(
-                                      child: CupertinoActivityIndicator(),
-                                    )
+                                  ? EducationGridSkeleton(itemCount: 4)
                                   : controller.list.isEmpty
                                       ? Padding(
                                           padding: EdgeInsets.all(20),
@@ -224,66 +205,112 @@ class Tests extends StatelessWidget {
                                         ),
                             ),
                           ),
+                          Obx(() => controller.isLoadingMore.value
+                              ? Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Center(
+                                      child: CupertinoActivityIndicator()),
+                                )
+                              : SizedBox.shrink()),
                         ],
                       ),
                     ),
                   ),
+                );
+
+    final overlays = [
+      ScrollTotopButton(
+        scrollController: _scrollController,
+        visibilityThreshold: 350,
+      ),
+      Obx(
+        () => Positioned(
+          bottom: 20,
+          right: 20,
+          child: Visibility(
+            visible: controller.scrollOffset.value <= 350,
+            child: ActionButton(
+              context: context,
+              menuItems: [
+                PullDownMenuItem(
+                  icon: CupertinoIcons.bookmark,
+                  title: 'Kaydedilenler',
+                  onTap: () {
+                    Get.to(() => SavedTests());
+                  },
+                ),
+                PullDownMenuItem(
+                  icon: Icons.history,
+                  title: 'Sonuçlarım',
+                  onTap: () {
+                    Get.to(() => MyTestResults());
+                  },
+                ),
+                PullDownMenuItem(
+                  icon: CupertinoIcons.doc_text,
+                  title: 'Testlerim',
+                  onTap: () {
+                    Get.to(() => MyTests());
+                  },
+                ),
+                PullDownMenuItem(
+                  icon: Icons.add,
+                  title: 'Oluştur',
+                  onTap: () {
+                    Get.to(() => CreateTest());
+                  },
+                ),
+                PullDownMenuItem(
+                  icon: Icons.exit_to_app,
+                  title: 'Katıl',
+                  onTap: () {
+                    Get.to(() => TestEntry());
+                  },
                 ),
               ],
             ),
-            ScrollTotopButton(
-              scrollController: _scrollController,
-              visibilityThreshold: 350,
-            ),
-            Obx(
-              () => Positioned(
-                bottom: 20,
-                right: 20,
-                child: Visibility(
-                  visible: controller.scrollOffset.value <= 350,
-                  child: ActionButton(
-                    context: context,
-                    menuItems: [
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.bookmark,
-                        title: 'Kaydedilenler',
-                        onTap: () {
-                          Get.to(() => SavedTests());
-                        },
+          ),
+        ),
+      ),
+    ];
+
+    if (embedded) {
+      return Stack(
+        children: [
+          Column(children: [bodyContent]),
+          if (showEmbeddedControls) ...overlays,
+        ],
+      );
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Get.back();
+                      },
+                      icon: Icon(
+                        AppIcons.arrowLeft,
+                        color: Colors.black,
+                        size: 25,
                       ),
-                      PullDownMenuItem(
-                        icon: Icons.history,
-                        title: 'Sonuçlarım',
-                        onTap: () {
-                          Get.to(() => MyTestResults());
-                        },
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.doc_text,
-                        title: 'Testlerim',
-                        onTap: () {
-                          Get.to(() => MyTests());
-                        },
-                      ),
-                      PullDownMenuItem(
-                        icon: Icons.add,
-                        title: 'Oluştur',
-                        onTap: () {
-                          Get.to(() => CreateTest());
-                        },
-                      ),
-                      PullDownMenuItem(
-                        icon: Icons.exit_to_app,
-                        title: 'Katıl',
-                        onTap: () {
-                          Get.to(() => TestEntry());
-                        },
-                      ),
-                    ],
-                  ),
+                    ),
+                    TypewriterText(
+                      text: "Testler",
+                    ),
+                  ],
                 ),
-              ),
+                bodyContent,
+              ],
             ),
+            ...overlays,
           ],
         ),
       ),

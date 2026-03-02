@@ -14,7 +14,7 @@ class BookletResultPreviewController extends GetxController {
   Future<void> getData() async {
     final doc =
         await FirebaseFirestore.instance
-            .collection("Kitapciklar")
+            .collection("books")
             .doc(model.kitapcikID)
             .get();
 

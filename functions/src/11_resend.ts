@@ -5,7 +5,7 @@ import { defineSecret } from "firebase-functions/params";
 
 const REGION = "europe-west3";
 const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
-const EMAIL_ACCOUNTS_COLLECTION = "EmailAccounts";
+const EMAIL_ACCOUNTS_COLLECTION = "emailAccounts";
 
 if (admin.apps.length === 0) {
   admin.initializeApp();

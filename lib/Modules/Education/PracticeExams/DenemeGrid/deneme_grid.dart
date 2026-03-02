@@ -3,7 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
@@ -17,6 +21,57 @@ class DenemeGrid extends StatelessWidget {
   final Function getData;
 
   const DenemeGrid({super.key, required this.model, required this.getData});
+
+  Future<void> _shareExam() async {
+    final shareId = 'practice-exam:${model.docID}';
+    final shortTail =
+        model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
+    final fallbackId = 'practice-exam-$shortTail';
+    final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
+
+    try {
+      await ShareActionGuard.run(() async {
+        String shortUrl = '';
+        try {
+          shortUrl = await ShortLinkService().getEducationPublicUrl(
+            shareId: shareId,
+            title: model.sinavAdi,
+            desc: model.sinavAciklama.isNotEmpty
+                ? model.sinavAciklama
+                : '${model.sinavTuru} online sinav',
+            imageUrl: model.cover.isNotEmpty ? model.cover : null,
+          );
+        } catch (_) {
+          shortUrl = fallbackUrl;
+        }
+
+        if (shortUrl.trim().isEmpty ||
+            shortUrl.trim() == 'https://turqapp.com') {
+          shortUrl = fallbackUrl;
+        }
+
+        final shareText = '''
+TurqApp Online Sinav
+
+${model.sinavAdi}
+${model.sinavTuru}
+
+${model.sinavAciklama}
+
+$shortUrl
+''';
+
+        await SharePlus.instance.share(
+          ShareParams(
+            text: shareText,
+            subject: model.sinavAdi,
+          ),
+        );
+      });
+    } catch (_) {
+      AppSnackbar("Hata", "Paylaşım başlatılamadı");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +151,7 @@ class DenemeGrid extends StatelessWidget {
                         yesText: "Sınavı Sil",
                         onYesPressed: () {
                           FirebaseFirestore.instance
-                              .collection("Sinavlar")
+                              .collection("practiceExams")
                               .doc(model.docID)
                               .delete();
                           getData();
@@ -223,6 +278,23 @@ class DenemeGrid extends StatelessWidget {
                           ),
                         ),
                       ),
+                      GestureDetector(
+                        onTap: _shareExam,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            CupertinoIcons.share_up,
+                            color: Colors.black87,
+                            size: 17,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -313,15 +385,11 @@ class DenemeGrid extends StatelessWidget {
                               ? 'Yükleniyor...'
                               : (controller.toplamBasvuru.value * 3) / 1000000 >
                                       1
-                                  ? "${((controller.toplamBasvuru.value * 3) /
-                                              1000000)
-                                          .toStringAsFixed(2)}M Başvuru"
+                                  ? "${((controller.toplamBasvuru.value * 3) / 1000000).toStringAsFixed(2)}M Başvuru"
                                   : (controller.toplamBasvuru.value * 3) /
                                               1000 >
                                           1
-                                      ? "${((controller.toplamBasvuru.value * 3) /
-                                                  1000)
-                                              .toStringAsFixed(1)}B Başvuru"
+                                      ? "${((controller.toplamBasvuru.value * 3) / 1000).toStringAsFixed(1)}B Başvuru"
                                       : "${controller.toplamBasvuru.value * 3} Başvuru",
                           style: TextStyle(
                             color: Colors.black,

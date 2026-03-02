@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -21,71 +22,96 @@ class MyBookletResultsController extends GetxController {
   }
 
   Future<void> fetchBookletResults() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("KitapcikCevaplari")
-        .orderBy("timeStamp", descending: true)
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection("KitapcikCevaplari")
+          .orderBy("timeStamp", descending: true)
+          .get();
 
-    final tempList = <BookletResultModel>[];
-    for (var doc in snapshot.docs) {
-      tempList.add(
-        BookletResultModel(
-          cevaplar: List.from(doc.get("cevaplar")),
-          docID: doc.id,
-          baslik: doc.get("baslik"),
-          timeStamp: doc.get("timeStamp"),
-          yanlis: doc.get("yanlis"),
-          dogru: doc.get("dogru"),
-          bos: doc.get("bos"),
-          kitapcikID: doc.get("kitapcikID"),
-          puan: doc.get("puan"),
-          dogruCevaplar: List.from(doc.get("dogruCevaplar")),
-        ),
-      );
+      final tempList = <BookletResultModel>[];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        tempList.add(
+          BookletResultModel(
+            cevaplar: List.from(data["cevaplar"] ?? []),
+            docID: doc.id,
+            baslik: data["baslik"] ?? '',
+            timeStamp: data["timeStamp"] ?? 0,
+            yanlis: data["yanlis"] ?? 0,
+            dogru: data["dogru"] ?? 0,
+            bos: data["bos"] ?? 0,
+            kitapcikID: data["kitapcikID"] ?? '',
+            puan: data["puan"] ?? 0,
+            dogruCevaplar: List.from(data["dogruCevaplar"] ?? []),
+          ),
+        );
+      }
+      list.assignAll(tempList);
+    } catch (e) {
+      log("fetchBookletResults error: $e");
     }
-    list.assignAll(tempList);
   }
 
+  /// collectionGroup query ile N+1 problemi çözüldü.
+  /// Eski: tüm OptikKodlar çek → her biri için Yanitlar/{uid} oku (N+1)
+  /// Yeni: collectionGroup("Yanitlar") ile uid dokümanlarını bul → parent OptikKodlar'ı batch çek
   Future<void> fetchOptikSonuclari() async {
     optikSonuclari.clear();
     final currentUserUID = FirebaseAuth.instance.currentUser!.uid;
 
     try {
-      final optikSnapshot = await FirebaseFirestore.instance
-          .collection("OptikKodlar")
-          .orderBy("baslangic", descending: true)
+      // 1) Kullanıcının yanıt verdiği tüm OptikKodlar'ın Yanitlar dokümanlarını bul
+      // OptikKodlar'da Yanitlar doc ID'si = userID olduğundan, documentId filtresi kullanıyoruz
+      // Ancak collectionGroup'ta documentId filtresi yok, bu yüzden path'ten filtreliyoruz
+      final yanitlarSnap = await FirebaseFirestore.instance
+          .collectionGroup("Yanitlar")
+          .where(FieldPath.documentId, isEqualTo: currentUserUID)
           .get();
 
-      for (var doc in optikSnapshot.docs) {
-        final yanitlarSnapshot = await FirebaseFirestore.instance
-            .collection("OptikKodlar")
-            .doc(doc.id)
-            .collection("Yanitlar")
-            .doc(currentUserUID)
+      // 2) Parent OptikKodlar doc ID'lerini topla
+      final optikDocIds = <String>{};
+      for (var yanitDoc in yanitlarSnap.docs) {
+        final parentRef = yanitDoc.reference.parent.parent;
+        if (parentRef != null && parentRef.parent.id == "optikForm") {
+          optikDocIds.add(parentRef.id);
+        }
+      }
+
+      if (optikDocIds.isEmpty) return;
+
+      // 3) Parent OptikKodlar dokümanlarını batch çek
+      final tempList = <OpticalFormModel>[];
+      final idList = optikDocIds.toList();
+      for (var i = 0; i < idList.length; i += 10) {
+        final batch = idList.skip(i).take(10).toList();
+        final optikSnap = await FirebaseFirestore.instance
+            .collection("optikForm")
+            .where(FieldPath.documentId, whereIn: batch)
             .get();
 
-        if (yanitlarSnapshot.exists) {
-          print(
-            "Found matching Yanitlar for User ID: $currentUserUID in OptikKodlar: ${doc.get('name')}",
-          );
-          optikSonuclari.add(
+        for (var doc in optikSnap.docs) {
+          final data = doc.data();
+          tempList.add(
             OpticalFormModel(
               docID: doc.id,
-              cevaplar: List<String>.from(doc.get('cevaplar') ?? []),
-              max: doc.get("max"),
-              name: doc.get("name"),
-              userID: doc.get("userID"),
-              bitis: doc.get("bitis"),
-              baslangic: doc.get("baslangic"),
-              kisitlama: doc.get("kisitlama"),
+              cevaplar: List<String>.from(data['cevaplar'] ?? []),
+              max: data["max"] ?? 0,
+              name: data["name"] ?? '',
+              userID: data["userID"] ?? '',
+              bitis: data["bitis"] ?? 0,
+              baslangic: data["baslangic"] ?? 0,
+              kisitlama: data["kisitlama"] ?? false,
             ),
           );
         }
       }
+
+      tempList.sort((a, b) => b.baslangic.compareTo(a.baslangic));
+      optikSonuclari.assignAll(tempList);
     } catch (error) {
-      print("Error fetching OptikKodlar data: $error");
+      log("fetchOptikSonuclari error: $error");
     }
   }
 }

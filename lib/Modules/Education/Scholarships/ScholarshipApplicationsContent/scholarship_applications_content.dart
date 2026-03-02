@@ -40,7 +40,7 @@ class ScholarshipApplicationsContent extends StatelessWidget {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.blueAccent,
+                  color: Colors.black,
                   width: 1,
                 )),
             child: Row(
@@ -106,7 +106,7 @@ class ScholarshipApplicationsContent extends StatelessWidget {
                 ),
                 Icon(
                   CupertinoIcons.chevron_right,
-                  color: Colors.blueAccent,
+                  color: Colors.black,
                   size: 20,
                 ),
               ],

@@ -12,6 +12,11 @@ class BookletAnswerController extends GetxController {
 
   final cevaplar = <String>[].obs;
   final completed = false.obs;
+  final correctCount = 0.obs;
+  final wrongCount = 0.obs;
+  final emptyCount = 0.obs;
+  final scorePercent = 0.0.obs;
+  final netScore = 0.0.obs;
   final isInterstitialAdReady = false.obs;
   final iosList = ''.obs;
   final androidList = ''.obs;
@@ -62,7 +67,16 @@ class BookletAnswerController extends GetxController {
       }
     }
 
-    double score = (correct / model.dogruCevaplar.length) * 100;
+    final total = model.dogruCevaplar.length;
+    final empty = total - (correct + wrong);
+    final score = (correct / total) * 100;
+    final net = correct - (wrong / 4.0);
+
+    correctCount.value = correct;
+    wrongCount.value = wrong;
+    emptyCount.value = empty;
+    scorePercent.value = score;
+    netScore.value = net;
 
     log("Doğru: $correct, Yanlış: $wrong, Puan: $score");
 
@@ -79,8 +93,9 @@ class BookletAnswerController extends GetxController {
         "dogruCevaplar": model.dogruCevaplar,
         "dogru": correct,
         "yanlis": wrong,
-        "bos": model.dogruCevaplar.length - (correct + wrong),
+        "bos": empty,
         "puan": score,
+        "net": net,
       });
       completed.value = true;
     } catch (e) {

@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 
 class SavedTutorings extends StatelessWidget {
   const SavedTutorings({super.key});
@@ -36,17 +36,14 @@ class SavedTutorings extends StatelessWidget {
                             .contains(tutoring.docID),
                       )
                       .toList();
-                  return Obx(() {
-                    final users = tutoringController.users;
-                    return TutoringWidgetBuilder(
-                      tutoringList: filteredList,
-                      users: users,
-                      isGridView: viewModeController.isGridView.value,
-                      infoMessage: Infomessage(
-                        infoMessage: "Kaydedilen ders bulunmuyor!",
-                      ),
-                    );
-                  });
+                  return TutoringWidgetBuilder(
+                    tutoringList: filteredList,
+                    users: tutoringController.users,
+                    isGridView: viewModeController.isGridView.value,
+                    infoMessage: Infomessage(
+                      infoMessage: "Kaydedilen ders bulunmuyor!",
+                    ),
+                  );
                 }),
               ),
             ),

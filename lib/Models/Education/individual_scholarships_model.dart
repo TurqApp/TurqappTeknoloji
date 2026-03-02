@@ -1,5 +1,6 @@
 class IndividualScholarshipsModel {
   final String aciklama;
+  final String shortDescription;
   final List<String> altEgitimKitlesi;
   final List<String> aylar;
   final List<String> basvurular;
@@ -38,6 +39,7 @@ class IndividualScholarshipsModel {
 
   IndividualScholarshipsModel({
     required this.aciklama,
+    required this.shortDescription,
     required this.altEgitimKitlesi,
     required this.aylar,
     required this.basvurular,
@@ -78,6 +80,10 @@ class IndividualScholarshipsModel {
   factory IndividualScholarshipsModel.fromJson(Map<String, dynamic> json) {
     return IndividualScholarshipsModel(
       aciklama: json['aciklama'] ?? '',
+      shortDescription: json['shortDescription'] ??
+          json['kisaAciklama'] ??
+          json['ozet'] ??
+          '',
       altEgitimKitlesi: List<String>.from(json['altEgitimKitlesi'] ?? []),
       aylar: List<String>.from(json['aylar'] ?? []),
       basvurular: List<String>.from(json['basvurular'] ?? []),
@@ -119,7 +125,7 @@ class IndividualScholarshipsModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'aciklama': aciklama,
       'altEgitimKitlesi': altEgitimKitlesi,
       'aylar': aylar,
@@ -157,5 +163,9 @@ class IndividualScholarshipsModel {
       'template': template,
       'ulke': ulke,
     };
+    if (shortDescription.isNotEmpty) {
+      map['shortDescription'] = shortDescription;
+    }
+    return map;
   }
 }

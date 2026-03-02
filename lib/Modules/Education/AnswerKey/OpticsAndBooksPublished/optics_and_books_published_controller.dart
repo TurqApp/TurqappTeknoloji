@@ -10,6 +10,7 @@ class OpticsAndBooksPublishedController extends GetxController {
   final selection = 0.obs;
   final isLoading = true.obs;
   final RxDouble scrollOffset = 0.0.obs;
+  int _lastOpenRefreshAt = 0;
 
   @override
   void onInit() {
@@ -21,6 +22,14 @@ class OpticsAndBooksPublishedController extends GetxController {
     selection.value = value;
   }
 
+  void refreshOnOpen() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (isLoading.value) return;
+    if (now - _lastOpenRefreshAt < 800) return;
+    _lastOpenRefreshAt = now;
+    loadData();
+  }
+
   Future<void> loadData() async {
     isLoading.value = true;
     await Future.wait([getData(), getOptikler()]);
@@ -29,7 +38,7 @@ class OpticsAndBooksPublishedController extends GetxController {
 
   Future<void> getData() async {
     final snapshots = await FirebaseFirestore.instance
-        .collection("Kitapciklar")
+        .collection("books")
         .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
         .get();
 
@@ -57,7 +66,7 @@ class OpticsAndBooksPublishedController extends GetxController {
 
   Future<void> getOptikler() async {
     final snap = await FirebaseFirestore.instance
-        .collection("OptikKodlar")
+        .collection("optikForm")
         .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
         .get();
 
@@ -76,6 +85,7 @@ class OpticsAndBooksPublishedController extends GetxController {
         ),
       );
     }
+    tempList.sort((a, b) => b.docID.compareTo(a.docID));
     optikler.assignAll(tempList);
   }
 }

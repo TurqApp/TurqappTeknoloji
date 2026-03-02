@@ -3,29 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../JobCreator/job_creator.dart';
+import '../ApplicationReview/application_review.dart';
 
 class JobDetailsController extends GetxController {
-  /// Seçili ilan modeli
   final Rx<JobModel> model;
-
-  /// Kaydetme durumu
   final saved = false.obs;
-
-  /// Başvuru durumu
   final basvuruldu = false.obs;
-
-  /// CV kontrolü
   final cvVar = false.obs;
-
-  /// Kullanıcı bilgileri
   final nickname = ''.obs;
   final pfImage = ''.obs;
   final fullname = ''.obs;
-
-  /// Benzer ilanlar listesi
   final RxList<JobModel> list = <JobModel>[].obs;
 
   JobDetailsController({required JobModel model}) : model = model.obs;
@@ -36,16 +28,27 @@ class JobDetailsController extends GetxController {
     _initialize();
   }
 
-  /// Tüm asenkron init işlerini burada çağırıyoruz
   Future<void> _initialize() async {
     await cvCheck();
     await getUserData(model.value.userID);
     await checkSaved(model.value.docID);
     await checkBasvuru(model.value.docID);
     await getSimilar(model.value.meslek);
+    _incrementViewCount();
   }
 
-  /// Kullanıcı adı, rumuz ve profil fotoğrafını getir
+  Future<void> _incrementViewCount() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      if (model.value.userID == uid) return;
+      await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(model.value.docID)
+          .update({'viewCount': FieldValue.increment(1)});
+    } catch (_) {}
+  }
+
   Future<void> getUserData(String userID) async {
     try {
       final snap = await FirebaseFirestore.instance
@@ -65,12 +68,11 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  /// Mevcut kullanıcının CV kaydı var mı?
   Future<void> cvCheck() async {
     try {
       final snap = await FirebaseFirestore.instance
           .collection('CV')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .doc(FirebaseAuth.instance.currentUser?.uid ?? '')
           .get();
       cvVar.value = snap.exists;
     } catch (e) {
@@ -78,12 +80,11 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  /// İlanı kaydetme durumu
   Future<void> checkSaved(String docId) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
       final snap = await FirebaseFirestore.instance
-          .collection('IsBul')
+          .collection(JobCollection.name)
           .doc(docId)
           .collection('Saved')
           .doc(uid)
@@ -95,40 +96,38 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  /// Kaydetilen ilanı toggle et
   Future<void> toggleSave(String docId) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
     final ref = FirebaseFirestore.instance
-        .collection('IsBul')
+        .collection(JobCollection.name)
         .doc(docId)
         .collection('Saved')
         .doc(uid);
 
     try {
+      final batch = FirebaseFirestore.instance.batch();
       final snap = await ref.get();
+
       if (snap.exists) {
-        // Sil
-        await ref.delete();
+        batch.delete(ref);
+        batch.delete(FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('SavedIsBul')
+            .doc(docId));
+        await batch.commit();
         saved.value = false;
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('SavedIsBul')
-            .doc(docId)
-            .delete();
       } else {
-        // Ekle
-        await ref.set({
-          'timeStamp': FieldValue.serverTimestamp(),
-        });
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('SavedIsBul')
-            .doc(docId)
-            .set({
-          'timeStamp': FieldValue.serverTimestamp(),
-        });
+        final ts = {'timeStamp': FieldValue.serverTimestamp()};
+        batch.set(ref, ts);
+        batch.set(
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .collection('SavedIsBul')
+                .doc(docId),
+            ts);
+        await batch.commit();
         saved.value = true;
       }
     } catch (e) {
@@ -136,11 +135,10 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  /// Benzer ilanları getir
   Future<void> getSimilar(String meslek) async {
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection('IsBul')
+          .collection(JobCollection.name)
           .where('meslek', isEqualTo: meslek)
           .where('ended', isEqualTo: false)
           .limit(15)
@@ -148,14 +146,12 @@ class JobDetailsController extends GetxController {
 
       final jobs =
           snapshot.docs.map((d) => JobModel.fromMap(d.data(), d.id)).toList();
-
       list.assignAll(jobs);
     } catch (e) {
       print('getSimilar hatası: $e');
     }
   }
 
-  /// Haritalar alt sayfasını göster
   Future<void> showMapsSheet(double lat, double long) async {
     Get.bottomSheet(
       barrierColor: Colors.black.withAlpha(50),
@@ -184,8 +180,6 @@ class JobDetailsController extends GetxController {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Google Maps
               _mapTile(
                 icon: 'assets/icons/googlemaps.webp',
                 text: 'Google Haritalar\'da Aç',
@@ -198,8 +192,6 @@ class JobDetailsController extends GetxController {
                   Get.back();
                 },
               ),
-
-              // iOS ise Apple Maps
               if (Platform.isIOS)
                 _mapTile(
                   icon: 'assets/icons/applemaps.webp',
@@ -214,8 +206,6 @@ class JobDetailsController extends GetxController {
                     Get.back();
                   },
                 ),
-
-              // Yandex
               _mapTile(
                 icon: 'assets/icons/yandexmaps.webp',
                 text: 'Yandex Haritalar\'da Aç',
@@ -269,12 +259,11 @@ class JobDetailsController extends GetxController {
     );
   }
 
-  /// Mevcut kullanıcının başvuru durumu
   Future<void> checkBasvuru(String docID) async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
       final snap = await FirebaseFirestore.instance
-          .collection('IsBul')
+          .collection(JobCollection.name)
           .doc(docID)
           .collection('Applications')
           .doc(uid)
@@ -286,39 +275,118 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  /// Başvuru toggle
+  /// Dual-write başvuru toggle with batch
   Future<void> toggleBasvuru(String docId) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ref = FirebaseFirestore.instance
-        .collection('IsBul')
+    final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+    if (uid.isEmpty) {
+      AppSnackbar('Hata', 'Başvuru için tekrar giriş yapın.');
+      return;
+    }
+    final jobRef = FirebaseFirestore.instance
+        .collection(JobCollection.name)
         .doc(docId)
         .collection('Applications')
         .doc(uid);
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('myApplications')
+        .doc(docId);
+    final ownerNotificationRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(model.value.userID)
+        .collection('notifications')
+        .doc();
+    final jobDocRef =
+        FirebaseFirestore.instance.collection(JobCollection.name).doc(docId);
 
     try {
-      final snap = await ref.get();
+      final snap = await jobRef.get();
+      final batch = FirebaseFirestore.instance.batch();
+
       if (snap.exists) {
-        await ref.delete();
+        // Cancel application
+        batch.delete(jobRef);
+        batch.delete(userRef);
+        batch.update(jobDocRef, {'applicationCount': FieldValue.increment(-1)});
+        await batch.commit();
+
+        // Prevent negative count
+        final jobSnap = await jobDocRef.get();
+        if (jobSnap.exists) {
+          final count = (jobSnap.data()?['applicationCount'] ?? 0) as num;
+          if (count < 0) {
+            await jobDocRef.update({'applicationCount': 0});
+          }
+        }
+
         basvuruldu.value = false;
       } else {
-        await ref.set({
-          'timeStamp': FieldValue.serverTimestamp(),
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final job = model.value;
+        final title = job.ilanBasligi.isNotEmpty ? job.ilanBasligi : job.meslek;
+        final currentUserDoc =
+            await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final currentUserData = currentUserDoc.data() ?? const {};
+        final applicantName = [
+          (currentUserData['firstName'] ?? '').toString().trim(),
+          (currentUserData['lastName'] ?? '').toString().trim(),
+        ].where((e) => e.isNotEmpty).join(' ').trim();
+        final applicantLabel = applicantName.isNotEmpty
+            ? applicantName
+            : (currentUserData['nickname'] ?? 'Bir kullanıcı').toString();
+        final applicantImage = (currentUserData['pfImage'] ?? '').toString();
+
+        batch.set(jobRef, {
+          'timeStamp': now,
+          'status': 'pending',
+          'statusUpdatedAt': now,
+          'note': '',
+          'jobTitle': title,
+          'companyName': job.brand,
+          'companyLogo': job.logo,
         });
+
+        batch.set(userRef, {
+          'timeStamp': now,
+          'jobTitle': title,
+          'companyName': job.brand,
+          'companyLogo': job.logo,
+          'status': 'pending',
+          'userID': uid,
+        });
+
+        batch.update(jobDocRef, {
+          'applicationCount': FieldValue.increment(1),
+        });
+        batch.set(ownerNotificationRef, {
+          'type': 'job_application',
+          'fromUserID': uid,
+          'postID': docId,
+          'timeStamp': now,
+          'read': false,
+          'title': applicantLabel,
+          'body': '$title ilanina basvuru yapti',
+          'thumbnail': applicantImage,
+        });
+
+        await batch.commit();
         basvuruldu.value = true;
+        AppSnackbar('Başarılı', 'Başvurun gönderildi.');
       }
     } catch (e) {
       print('toggleBasvuru hatası: $e');
+      AppSnackbar('Hata', 'Başvuru sırasında bir sorun oluştu.');
     }
   }
 
-  /// İlanı düzenleme sayfasına git ve güncel veri al
   Future<void> goToEdit() async {
     final result =
         await Get.to<JobModel?>(JobCreator(existingJob: model.value));
     if (result != null) {
       try {
         final snap = await FirebaseFirestore.instance
-            .collection('IsBul')
+            .collection(JobCollection.name)
             .doc(model.value.docID)
             .get();
 
@@ -328,6 +396,33 @@ class JobDetailsController extends GetxController {
       } catch (e) {
         print('goToEdit hatası: $e');
       }
+    }
+  }
+
+  void goToApplicationReview() {
+    final job = model.value;
+    Get.to(() => ApplicationReview(
+          jobDocID: job.docID,
+          jobTitle: job.ilanBasligi.isNotEmpty ? job.ilanBasligi : job.meslek,
+        ));
+  }
+
+  Future<void> unpublishAd() async {
+    final docId = model.value.docID;
+    final ref =
+        FirebaseFirestore.instance.collection(JobCollection.name).doc(docId);
+    final snap = await ref.get();
+
+    if (!snap.exists) throw Exception('İlan bulunamadı');
+
+    await ref.update({
+      'ended': true,
+      'endedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    final refreshed = await ref.get();
+    if (refreshed.exists && refreshed.data() != null) {
+      model.value = JobModel.fromMap(refreshed.data()!, refreshed.id);
     }
   }
 }

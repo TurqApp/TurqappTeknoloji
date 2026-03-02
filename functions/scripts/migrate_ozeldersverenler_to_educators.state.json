@@ -1,0 +1,18 @@
+{
+  "collections": {
+    "done": true,
+    "lastDocId": null,
+    "copied": 0,
+    "failed": 0
+  },
+  "storage": {
+    "done": true,
+    "pageToken": null,
+    "copied": 0,
+    "skipped": 0,
+    "failed": 0
+  },
+  "errors": {},
+  "startedAt": 1772353004667,
+  "finishedAt": 1772353005863
+}

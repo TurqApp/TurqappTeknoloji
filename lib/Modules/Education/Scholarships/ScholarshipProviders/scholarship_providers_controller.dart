@@ -16,31 +16,45 @@ class ScholarshipProvidersController extends GetxController {
     try {
       isLoading.value = true;
 
-      final bursSnapshot =
-          await FirebaseFirestore.instance.collection('BireyselBurslar').get();
+      // Sadece son 200 burstan unique provider'ları çek
+      final bursSnapshot = await FirebaseFirestore.instance
+          .collection('scholarships')
+          .orderBy('timeStamp', descending: true)
+          .limit(200)
+          .get();
 
-      final providerList = <Map<String, dynamic>>[];
       final seenUserIDs = <String>{};
-
       for (var bursDoc in bursSnapshot.docs) {
         final userID = bursDoc.data()['userID'] as String?;
+        if (userID != null && userID.isNotEmpty) {
+          seenUserIDs.add(userID);
+        }
+      }
 
-        if (userID != null && !seenUserIDs.contains(userID)) {
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userID)
-              .get();
+      if (seenUserIDs.isEmpty) {
+        providers.clear();
+        return;
+      }
 
-          if (userDoc.exists) {
-            providerList.add({
-              'userID': userID,
-              'pfImage': userDoc.data()?['pfImage'] as String? ?? '',
-              'nickname':
-                  userDoc.data()?['nickname'] as String? ?? 'Bilinmeyen',
-              'rozet': userDoc.data()?['rozet'] as String? ?? '',
-            });
-            seenUserIDs.add(userID);
-          }
+      // Batch user fetch (max 30 per whereIn)
+      final providerList = <Map<String, dynamic>>[];
+      final userIdsList = seenUserIDs.toList();
+      for (var i = 0; i < userIdsList.length; i += 30) {
+        final end =
+            (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
+        final batchIds = userIdsList.sublist(i, end);
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batchIds)
+            .get();
+        for (final userDoc in snap.docs) {
+          providerList.add({
+            'userID': userDoc.id,
+            'pfImage': userDoc.data()['pfImage'] as String? ?? '',
+            'nickname':
+                userDoc.data()['nickname'] as String? ?? 'Bilinmeyen',
+            'rozet': userDoc.data()['rozet'] as String? ?? '',
+          });
         }
       }
 

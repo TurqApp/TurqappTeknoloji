@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/texts.dart';
@@ -75,58 +76,37 @@ class ExploreView extends StatelessWidget {
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Container(
-                            height: 50,
-                            alignment: Alignment.centerLeft,
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              borderRadius:
-                                  const BorderRadius.all(Radius.circular(12)),
-                            ),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: controller.searchController,
-                                      focusNode: controller.searchFocus,
-                                      onTap: () {
-                                        controller.isSearchMode.value = true;
-                                      },
-                                      decoration: InputDecoration(
-                                          hintText: "Ara",
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "MontserratMedium"),
-                                          border: InputBorder.none,
-                                          icon: Icon(CupertinoIcons.search)),
-                                      style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratMedium"),
-                                      onChanged: (v) {
-                                        controller.searchText.value = v;
-                                        if (v.isEmpty) {
-                                          controller.searchedList.clear();
-                                          controller.searchedHashtags.clear();
-                                          controller.searchedTags.clear();
-                                          controller.showAllRecent.value =
-                                              false;
-                                        } else {
-                                          controller.isSearchMode.value = true;
-                                          controller.search(v);
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ],
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.06),
                               ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: TurqSearchBar(
+                              controller: controller.searchController,
+                              focusNode: controller.searchFocus,
+                              hintText: "Ara",
+                              onTap: () {
+                                controller.isSearchMode.value = true;
+                              },
+                              onChanged: (v) {
+                                controller.searchText.value = v;
+                                if (v.isEmpty) {
+                                  controller.searchedList.clear();
+                                  controller.searchedHashtags.clear();
+                                  controller.searchedTags.clear();
+                                  controller.showAllRecent.value = false;
+                                } else {
+                                  controller.isSearchMode.value = true;
+                                  controller.search(v);
+                                }
+                              },
                             ),
                           ),
                         ),
@@ -145,10 +125,20 @@ class ExploreView extends StatelessWidget {
                               closeKeyboard(context);
                             },
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.only(right: 15, left: 15),
-                              child: const Icon(CupertinoIcons.xmark,
-                                  color: Colors.black),
+                              padding: const EdgeInsets.only(left: 10),
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.xmark,
+                                  color: Colors.black,
+                                  size: 17,
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -333,7 +323,8 @@ class ExploreView extends StatelessWidget {
                                               final model = list[i];
                                               final shouldPlayPreview =
                                                   _shouldPlayExplorePreview(i);
-                                              return GestureDetector(
+                                              return RepaintBoundary(
+                                                child: GestureDetector(
                                                 onTap: () async {
                                                   if (model.floodCount > 1 &&
                                                       model.flood == false) {
@@ -368,6 +359,7 @@ class ExploreView extends StatelessWidget {
                                                             imageUrl:
                                                                 model.thumbnail,
                                                             fit: BoxFit.cover,
+                                                            memCacheWidth: 200,
                                                             memCacheHeight: 600,
                                                             placeholder: (c,
                                                                     u) =>
@@ -421,6 +413,7 @@ class ExploreView extends StatelessWidget {
                                                       ),
                                                   ],
                                                 ),
+                                              ),
                                               );
                                             },
                                           ),
@@ -468,7 +461,8 @@ class ExploreView extends StatelessWidget {
                                                   CupertinoActivityIndicator());
                                         }
                                         final p = list[i];
-                                        return GestureDetector(
+                                        return RepaintBoundary(
+                                          child: GestureDetector(
                                           onTap: () {
                                             // Floods sekmesinde daima flood listesine git
                                             Get.to(() =>
@@ -483,6 +477,7 @@ class ExploreView extends StatelessWidget {
                                                   imageUrl: p.img.isNotEmpty
                                                       ? p.img.first
                                                       : p.thumbnail,
+                                                  memCacheWidth: 200,
                                                   memCacheHeight: 400,
                                                   fit: BoxFit.cover,
                                                   placeholder: (c, u) =>
@@ -508,6 +503,7 @@ class ExploreView extends StatelessWidget {
                                                 _overlayStatus("Silindi"),
                                             ],
                                           ),
+                                        ),
                                         );
                                       },
                                     ),

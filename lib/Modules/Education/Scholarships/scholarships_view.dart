@@ -14,6 +14,8 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/Applications/applications_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
@@ -28,22 +30,63 @@ import 'dart:ui' as ui;
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
-class ScholarshipsView extends StatelessWidget {
-  ScholarshipsView({super.key});
+class ScholarshipsView extends StatefulWidget {
+  const ScholarshipsView({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
 
+  final bool embedded;
+  final bool showEmbeddedControls;
+
+  @override
+  State<ScholarshipsView> createState() => _ScholarshipsViewState();
+}
+
+class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipsController controller = Get.put(ScholarshipsController());
   final ScholarshipDetailController detailController = Get.put(
     ScholarshipDetailController(),
   );
   final DateTime startTime = DateTime.now();
-  final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+
+  ScrollController get _scrollController => controller.scrollController;
+  late final VoidCallback _scrollListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollListener = () {
+      controller.scrollOffset.value = _scrollController.offset;
+    };
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    _scrollController.addListener(() {
-      controller.scrollOffset.value = _scrollController.offset;
-    });
+
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          Column(
+            children: [
+              _buildBody(),
+            ],
+          ),
+          if (widget.showEmbeddedControls) _buildScrollToTopButton(),
+          if (widget.showEmbeddedControls) _buildActionButton(context),
+        ],
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -151,7 +194,7 @@ class ScholarshipsView extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.blueAccent, width: 1.5),
+            borderSide: BorderSide(color: Colors.black, width: 1.5),
           ),
         ),
         style: const TextStyle(fontFamily: 'MontserratMedium', fontSize: 14),
@@ -363,6 +406,13 @@ class ScholarshipsView extends StatelessWidget {
   }
 
   Widget _buildScholarshipCard(int index, List<Map<String, dynamic>> items) {
+    // İlk 10 kayıt geldikten sonra kullanıcı 5. karta indiğinde
+    // arka planda +5 daha çek.
+    final isSearching = controller.searchQuery.value.isNotEmpty;
+    if (!isSearching && index == 4 && controller.hasMoreData.value) {
+      controller.loadMoreScholarships();
+    }
+
     final scholarshipData = items[index];
     final burs = scholarshipData['model'];
     final type = 'bireysel';
@@ -387,7 +437,7 @@ class ScholarshipsView extends StatelessWidget {
                       Get.to(() => ReportUser(
                             userID: userData?['userID']?.toString() ?? '',
                             postID: scholarshipData['docId']?.toString() ?? '',
-                            commentID: 'BireyselBurslar',
+                            commentID: 'scholarships',
                           ));
                     },
                     title: "Şikayet Et",
@@ -417,8 +467,16 @@ class ScholarshipsView extends StatelessWidget {
     }
 
     children.add(
-      _buildScholarshipContent(index, type, burs, userData, firmaData, daysDiff,
-          scholarshipData, docId),
+      _buildScholarshipContent(
+        index,
+        type,
+        burs,
+        userData,
+        firmaData,
+        daysDiff,
+        scholarshipData,
+        docId,
+      ),
     );
 
     // Her 4 burs sonrası kare reklam
@@ -704,7 +762,7 @@ class ScholarshipsView extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: (controller.pageIndices[index]?.value ?? 0) == dotIndex
-                  ? Colors.blue
+                  ? Colors.black
                   : Colors.grey,
             ),
           ),
@@ -740,19 +798,27 @@ class ScholarshipsView extends StatelessWidget {
     Map<String, dynamic> scholarshipData,
     String docId,
   ) {
+    final displayDescription = _getDisplayDescription(type, burs);
+    final canExpandDescription =
+        displayDescription == burs.aciklama && displayDescription.isNotEmpty;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           10.ph,
-          _buildScholarshipTitle(type, burs, daysDiff),
+          _buildScholarshipTitle(index, type, burs, daysDiff),
           5.ph,
           _buildScholarshipProvider(type, userData, firmaData, burs),
           5.ph,
           _buildScholarshipDescription(index, type, burs),
           if (type == 'bireysel' &&
-              _isTextLongerThanTwoLines(burs.aciklama ?? '', Get.context!))
+              canExpandDescription &&
+              (_isTextLongerThanTwoLines(displayDescription, Get.context!) ||
+                  _isTextLongerThanTwoLines(
+                    "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
+                    Get.context!,
+                  )))
             _buildExpandButton(index),
           10.ph,
           _buildActionRow(type, userData, scholarshipData, docId),
@@ -762,23 +828,45 @@ class ScholarshipsView extends StatelessWidget {
     );
   }
 
-  Widget _buildScholarshipTitle(String type, dynamic burs, int daysDiff) {
+  Widget _buildScholarshipTitle(
+    int index,
+    String type,
+    dynamic burs,
+    int daysDiff,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Text(
-            type == 'bireysel'
-                ? "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI"
-                : burs.baslik,
-            style: TextStyle(
-              fontSize: 16,
-              fontFamily: "MontserratBold",
-              color: Colors.black,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
+          child: type == 'bireysel'
+              ? GestureDetector(
+                  onTap: () => controller.toggleExpanded(index),
+                  child: Obx(
+                    () => Text(
+                      "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: "MontserratBold",
+                        color: Colors.black,
+                      ),
+                      overflow: controller.isExpandedList[index].value
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                      maxLines:
+                          controller.isExpandedList[index].value ? null : 2,
+                    ),
+                  ),
+                )
+              : Text(
+                  burs.baslik,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontFamily: "MontserratBold",
+                    color: Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
         ),
         _buildDeadlineIndicator(daysDiff),
       ],
@@ -790,7 +878,7 @@ class ScholarshipsView extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
-          '(Süre doldu)',
+          '(Süre Doldu)',
           style: TextStyle(
             fontSize: 14,
             fontFamily: "MontserratBold",
@@ -798,7 +886,9 @@ class ScholarshipsView extends StatelessWidget {
           ),
         ),
       );
-    } else if (daysDiff == 0) {
+    }
+
+    if (daysDiff == 0) {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
@@ -810,7 +900,9 @@ class ScholarshipsView extends StatelessWidget {
           ),
         ),
       );
-    } else if (daysDiff > 0 && daysDiff <= 6) {
+    }
+
+    if (daysDiff > 0 && daysDiff <= 6) {
       return Padding(
         padding: EdgeInsets.only(left: 8),
         child: Text(
@@ -823,6 +915,7 @@ class ScholarshipsView extends StatelessWidget {
         ),
       );
     }
+
     return SizedBox.shrink();
   }
 
@@ -879,23 +972,40 @@ class ScholarshipsView extends StatelessWidget {
 
   Widget _buildScholarshipDescription(int index, String type, dynamic burs) {
     if (type == 'bireysel') {
-      return Obx(
-        () => Text(
-          burs.aciklama,
+      final description = _getDisplayDescription(type, burs);
+      final canExpand = description == burs.aciklama && description.isNotEmpty;
+      if (!canExpand) {
+        return Text(
+          description,
           style: TextStyle(
             fontSize: 13,
             fontFamily: "Montserrat",
             color: Colors.black,
           ),
-          maxLines: controller.isExpandedList[index].value ? null : 2,
-          overflow: controller.isExpandedList[index].value
-              ? TextOverflow.visible
-              : TextOverflow.ellipsis,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        );
+      }
+      return Obx(
+        () => GestureDetector(
+          onTap: () => controller.toggleExpanded(index),
+          child: Text(
+            description,
+            style: TextStyle(
+              fontSize: 13,
+              fontFamily: "Montserrat",
+              color: Colors.black,
+            ),
+            maxLines: controller.isExpandedList[index].value ? null : 2,
+            overflow: controller.isExpandedList[index].value
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
+          ),
         ),
       );
     } else {
       return Text(
-        burs.aciklama,
+        _getDisplayDescription(type, burs),
         style: TextStyle(
           fontSize: 13,
           fontFamily: "Montserrat",
@@ -905,6 +1015,15 @@ class ScholarshipsView extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       );
     }
+  }
+
+  String _getDisplayDescription(String type, dynamic burs) {
+    if (type == 'bireysel' && burs is IndividualScholarshipsModel) {
+      final summary = burs.shortDescription.trim();
+      if (summary.isNotEmpty) return summary;
+      return burs.aciklama;
+    }
+    return burs.aciklama ?? '';
   }
 
   Widget _buildExpandButton(int index) {
@@ -921,7 +1040,7 @@ class ScholarshipsView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontFamily: "Montserrat",
-                color: Colors.blue,
+                color: Colors.black,
               ),
             ),
           ),
@@ -1009,7 +1128,7 @@ class ScholarshipsView extends StatelessWidget {
                   : CupertinoIcons.hand_thumbsup,
               size: 20,
               color: controller.likedScholarships[docId] ?? false
-                  ? Colors.blue
+                  ? Colors.black
                   : Colors.black,
             ),
           ),
@@ -1065,8 +1184,14 @@ class ScholarshipsView extends StatelessWidget {
 
   Widget _buildShareButton(Map<String, dynamic> scholarshipData) {
     return IconButton(
-      onPressed: () =>
-          controller.shareScholarship(scholarshipData, Get.context!),
+      onPressed: () {
+        final ctx = Get.context ?? Get.overlayContext;
+        if (ctx == null) {
+          AppSnackbar('Hata', 'Paylaşım başlatılamadı');
+          return;
+        }
+        controller.shareScholarship(scholarshipData, ctx);
+      },
       icon: Icon(CupertinoIcons.share_up, size: 20, color: Colors.black),
     );
   }
@@ -1106,6 +1231,16 @@ class ScholarshipsView extends StatelessWidget {
                   await controller.fetchScholarships();
                   await controller.refreshTotalCount();
                 }),
+              ),
+              PullDownMenuItem(
+                title: 'Kaydedilenler',
+                icon: CupertinoIcons.bookmark,
+                onTap: () => Get.to(() => SavedItemsView()),
+              ),
+              PullDownMenuItem(
+                title: 'Başvurular',
+                icon: CupertinoIcons.doc_plaintext,
+                onTap: () => Get.to(() => ApplicationsView()),
               ),
               PullDownMenuItem(
                 title: 'Sana Özel',

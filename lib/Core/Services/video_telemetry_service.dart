@@ -1,0 +1,173 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
+
+class VideoSessionMetrics {
+  final String videoId;
+  final String videoUrl;
+  final DateTime sessionStart;
+  DateTime? firstFrameAt;
+  int rebufferCount = 0;
+  int totalRebufferMs = 0;
+  double maxPositionReached = 0.0;
+  double videoDuration = 0.0;
+  int seekCount = 0;
+  String? errorMessage;
+  bool completed = false;
+  DateTime? _lastBufferStart;
+
+  VideoSessionMetrics({required this.videoId, required this.videoUrl})
+      : sessionStart = DateTime.now();
+
+  int get ttffMs => firstFrameAt != null
+      ? firstFrameAt!.difference(sessionStart).inMilliseconds
+      : -1;
+
+  double get watchTimeSeconds =>
+      DateTime.now().difference(sessionStart).inMilliseconds / 1000.0;
+
+  double get completionRate =>
+      videoDuration > 0 ? (maxPositionReached / videoDuration).clamp(0.0, 1.0) : 0.0;
+
+  double get rebufferRatio {
+    final total = watchTimeSeconds * 1000;
+    return total > 0 ? (totalRebufferMs / total).clamp(0.0, 1.0) : 0.0;
+  }
+
+  void markFirstFrame() {
+    firstFrameAt ??= DateTime.now();
+  }
+
+  void onBufferingStart() {
+    _lastBufferStart = DateTime.now();
+    rebufferCount++;
+  }
+
+  void onBufferingEnd() {
+    if (_lastBufferStart != null) {
+      totalRebufferMs +=
+          DateTime.now().difference(_lastBufferStart!).inMilliseconds;
+      _lastBufferStart = null;
+    }
+  }
+
+  void onPositionUpdate(double position, double duration) {
+    if (position > maxPositionReached) maxPositionReached = position;
+    if (duration > 0) videoDuration = duration;
+  }
+
+  void onSeek() => seekCount++;
+
+  void onCompleted() => completed = true;
+
+  void onError(String message) => errorMessage = message;
+
+  Map<String, dynamic> toMap() => {
+        'videoId': videoId,
+        'ttffMs': ttffMs,
+        'rebufferCount': rebufferCount,
+        'totalRebufferMs': totalRebufferMs,
+        'rebufferRatio': (rebufferRatio * 100).round() / 100.0,
+        'watchTimeSec': watchTimeSeconds.round(),
+        'completionRate': (completionRate * 100).round() / 100.0,
+        'completed': completed,
+        'seekCount': seekCount,
+        'videoDurationSec': videoDuration.round(),
+        'error': errorMessage,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+}
+
+class VideoTelemetryService {
+  static final VideoTelemetryService instance =
+      VideoTelemetryService._internal();
+  VideoTelemetryService._internal();
+
+  final _userService = CurrentUserService.instance;
+  final _activeSessions = <String, VideoSessionMetrics>{};
+  bool _writesDisabled = false;
+
+  bool get _canWrite {
+    if (kDebugMode) return false;
+    return !_writesDisabled;
+  }
+
+  /// Start tracking a video session.
+  void startSession(String videoId, String videoUrl) {
+    _activeSessions[videoId] =
+        VideoSessionMetrics(videoId: videoId, videoUrl: videoUrl);
+  }
+
+  /// Record first frame rendered (TTFF).
+  void onFirstFrame(String videoId) {
+    _activeSessions[videoId]?.markFirstFrame();
+  }
+
+  /// Record buffering start.
+  void onBufferingStart(String videoId) {
+    _activeSessions[videoId]?.onBufferingStart();
+  }
+
+  /// Record buffering end.
+  void onBufferingEnd(String videoId) {
+    _activeSessions[videoId]?.onBufferingEnd();
+  }
+
+  /// Record position update.
+  void onPositionUpdate(String videoId, double position, double duration) {
+    _activeSessions[videoId]?.onPositionUpdate(position, duration);
+  }
+
+  /// Record seek.
+  void onSeek(String videoId) {
+    _activeSessions[videoId]?.onSeek();
+  }
+
+  /// Record completion.
+  void onCompleted(String videoId) {
+    _activeSessions[videoId]?.onCompleted();
+  }
+
+  /// Record error.
+  void onError(String videoId, String message) {
+    _activeSessions[videoId]?.onError(message);
+  }
+
+  /// End session and flush metrics to Firestore.
+  Future<void> endSession(String videoId) async {
+    final session = _activeSessions.remove(videoId);
+    if (session == null) return;
+    await _flush(session);
+  }
+
+  /// End all active sessions (app lifecycle).
+  Future<void> endAllSessions() async {
+    final sessions = Map<String, VideoSessionMetrics>.from(_activeSessions);
+    _activeSessions.clear();
+    for (final session in sessions.values) {
+      await _flush(session);
+    }
+  }
+
+  Future<void> _flush(VideoSessionMetrics session) async {
+    if (!_canWrite) return;
+    if (!_userService.isLoggedIn) return;
+    // Skip very short sessions (less than 1 second watch time).
+    if (session.watchTimeSeconds < 1.0) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Analytics')
+          .doc('VideoPlayback')
+          .collection(_userService.userId)
+          .add(session.toMap());
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        _writesDisabled = true;
+      }
+    } catch (_) {
+      // Silent fail for analytics
+    }
+  }
+}

@@ -15,6 +15,8 @@ class OpticsAndBooksPublished extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.refreshOnOpen();
+
     _scrollController.addListener(() {
       controller.scrollOffset.value = _scrollController.offset;
     });
@@ -36,7 +38,7 @@ class OpticsAndBooksPublished extends StatelessWidget {
                           height: 40,
                           alignment: Alignment.center,
                           color: controller.selection.value == 0
-                              ? Colors.blueAccent
+                              ? Colors.black
                               : Colors.grey.withAlpha(20),
                           child: Text(
                             "Kitap (${controller.list.length})",
@@ -60,7 +62,7 @@ class OpticsAndBooksPublished extends StatelessWidget {
                           height: 40,
                           alignment: Alignment.center,
                           color: controller.selection.value == 1
-                              ? Colors.blueAccent
+                              ? Colors.black
                               : Colors.grey.withAlpha(20),
                           child: Text(
                             "Optik Form (${controller.optikler.length})",
@@ -88,21 +90,23 @@ class OpticsAndBooksPublished extends StatelessWidget {
                           )
                         : controller.selection.value == 0
                             ? Padding(
-                                padding: EdgeInsets.all(15),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 15),
                                 child: GridView.builder(
                                   shrinkWrap: true,
-                                  physics: NeverScrollableScrollPhysics(),
+                                  physics: const NeverScrollableScrollPhysics(),
                                   gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 2,
-                                    crossAxisSpacing: 5.0,
-                                    mainAxisSpacing: 5.0,
-                                    childAspectRatio: 2.7 / 5.4,
+                                    crossAxisSpacing: 4,
+                                    mainAxisSpacing: 4,
+                                    childAspectRatio: 0.45,
                                   ),
                                   itemCount: controller.list.length,
                                   itemBuilder: (context, index) {
                                     final item = controller.list[index];
                                     return AnswerKeyContent(
+                                      key: ValueKey(item.docID),
                                       model: item,
                                       onUpdate: (v) => controller.getData(),
                                     );

@@ -15,6 +15,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 
 enum UploadStatus {
   pending('Bekliyor'),
@@ -172,32 +173,20 @@ class UploadQueueService extends GetxController {
             await _saveQueueToStorage();
             return;
           }
-          final ext = p.extension(imagePath).isNotEmpty
-              ? p.extension(imagePath)
-              : '.webp';
-          final ref = FirebaseStorage.instance.ref().child(
-                'Posts/${upload.id}/image_$i$ext',
-              );
-
-          final uploadTask = ref.putFile(file);
-          uploadTask.snapshotEvents.listen((snapshot) {
-            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-            upload.progress = (i + progress) /
-                upload.imagePaths.length *
-                0.8; // 80% for images
-            _notifyQueueUpdated();
-          });
-
-          final taskSnapshot = await uploadTask;
-          final url = CdnUrlBuilder.toCdnUrl(
-            await taskSnapshot.ref.getDownloadURL(),
+          final localBytes = await file.readAsBytes();
+          final url = await WebpUploadService.uploadBytesAsWebp(
+            storage: FirebaseStorage.instance,
+            bytes: localBytes,
+            storagePathWithoutExt: 'Posts/${upload.id}/image_$i',
           );
+          upload.progress = ((i + 1) / upload.imagePaths.length) * 0.8;
+          _notifyQueueUpdated();
           if (kDebugMode) {
             final len = await file.length();
             debugPrint('[Queue] Image uploaded: ${p.basename(imagePath)} '
                 'localSize=${(len / 1e6).toStringAsFixed(2)} MB url=$url');
           }
-          imageUrls.add(url);
+          imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
         }
       }
 
@@ -234,7 +223,13 @@ class UploadQueueService extends GetxController {
                 'Posts/${upload.id}/video.mp4',
               );
 
-          final uploadTask = ref.putFile(videoFile);
+          final uploadTask = ref.putFile(
+            videoFile,
+            SettableMetadata(
+              contentType: 'video/mp4',
+              cacheControl: 'public, max-age=31536000, immutable',
+            ),
+          );
           uploadTask.snapshotEvents.listen((snapshot) {
             final progress = snapshot.bytesTransferred / snapshot.totalBytes;
             upload.progress = 0.8 + (progress * 0.15); // 15% for video
@@ -270,13 +265,12 @@ class UploadQueueService extends GetxController {
             } catch (_) {
               thumbData = tData;
             }
-            final refThumb = FirebaseStorage.instance.ref().child(
-                  'Posts/${upload.id}/thumbnail.webp',
-                );
-            final tTask = await refThumb.putData(thumbData);
-            thumbnailUrl = CdnUrlBuilder.toCdnUrl(
-              await tTask.ref.getDownloadURL(),
+            final tUrl = await WebpUploadService.uploadBytesAsWebp(
+              storage: FirebaseStorage.instance,
+              bytes: thumbData,
+              storagePathWithoutExt: 'Posts/${upload.id}/thumbnail',
             );
+            thumbnailUrl = CdnUrlBuilder.toCdnUrl(tUrl);
             if (kDebugMode) {
               debugPrint('[Queue] Thumbnail uploaded: '
                   'orig=${(tData.length / 1e6).toStringAsFixed(2)} MB '

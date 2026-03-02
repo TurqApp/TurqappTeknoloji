@@ -21,10 +21,16 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class AnswerKey extends StatelessWidget {
-  AnswerKey({super.key});
+  AnswerKey({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
 
+  final bool embedded;
+  final bool showEmbeddedControls;
   final AnswerKeyController controller = Get.put(AnswerKeyController());
-  final ScrollController _scrollController = ScrollController();
+  ScrollController get _scrollController => controller.scrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -32,23 +38,7 @@ class AnswerKey extends StatelessWidget {
       controller.scrollOffset.value = _scrollController.offset;
     });
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(children: [
-          Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Get.back(),
-                    icon:
-                        Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
-                  ),
-                  TypewriterText(text: "Cevap Anahtarları"),
-                ],
-              ),
-              Expanded(
+    final bodyContent = Expanded(
                 child: RefreshIndicator(
                   color: Colors.white,
                   backgroundColor: Colors.black,
@@ -69,7 +59,7 @@ class AnswerKey extends StatelessWidget {
                             ),
                             8.ph,
                             lessonsCategory(),
-                            search(),
+                            if (!embedded) search(),
                             controller.isLoading.value
                                 ? const Center(
                                     child: CupertinoActivityIndicator())
@@ -136,46 +126,77 @@ class AnswerKey extends StatelessWidget {
                     ],
                   ),
                 ),
+    );
+
+    final overlays = [
+      ScrollTotopButton(
+        scrollController: _scrollController,
+        visibilityThreshold: 350,
+      ),
+      Obx(() => Positioned(
+          bottom: 20,
+          right: 20,
+          child: Visibility(
+              visible: controller.scrollOffset.value <= 350,
+              child: ActionButton(context: context, menuItems: [
+                PullDownMenuItem(
+                  title: 'Yayınladıklarım',
+                  icon: AppIcons.book,
+                  onTap: () => Get.to(OpticsAndBooksPublished()),
+                ),
+                PullDownMenuItem(
+                  title: 'Kaydedilenler',
+                  icon: AppIcons.save,
+                  onTap: () => Get.to(SavedOpticalForms()),
+                ),
+                PullDownMenuItem(
+                  title: 'Sonuçlarım',
+                  icon: AppIcons.question,
+                  onTap: () => Get.to(MyBookletResults()),
+                ),
+                PullDownMenuItem(
+                  title: 'Oluştur',
+                  icon: AppIcons.addCircled,
+                  onTap: () => Get.to(AnswerKeyCreatingOption(
+                      onBack: controller.refreshData)),
+                ),
+                PullDownMenuItem(
+                  title: 'Katıl',
+                  icon: AppIcons.arrowRight,
+                  onTap: () => Get.to(OpticalFormEntry()),
+                ),
+              ])))),
+    ];
+
+    if (embedded) {
+      return Stack(
+        children: [
+          Column(children: [bodyContent]),
+          if (showEmbeddedControls) ...overlays,
+        ],
+      );
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon:
+                        Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
+                  ),
+                  TypewriterText(text: "Cevap Anahtarları"),
+                ],
               ),
+              bodyContent,
             ],
           ),
-          ScrollTotopButton(
-            scrollController: _scrollController,
-            visibilityThreshold: 350,
-          ),
-          Obx(() => Positioned(
-              bottom: 20,
-              right: 20,
-              child: Visibility(
-                  visible: controller.scrollOffset.value <= 350,
-                  child: ActionButton(context: context, menuItems: [
-                    PullDownMenuItem(
-                      title: 'Yayınladıklarım',
-                      icon: AppIcons.book,
-                      onTap: () => Get.to(OpticsAndBooksPublished()),
-                    ),
-                    PullDownMenuItem(
-                      title: 'Kaydedilenler',
-                      icon: AppIcons.save,
-                      onTap: () => Get.to(SavedOpticalForms()),
-                    ),
-                    PullDownMenuItem(
-                      title: 'Sonuçlarım',
-                      icon: AppIcons.question,
-                      onTap: () => Get.to(MyBookletResults()),
-                    ),
-                    PullDownMenuItem(
-                      title: 'Oluştur',
-                      icon: AppIcons.addCircled,
-                      onTap: () => Get.to(AnswerKeyCreatingOption(
-                          onBack: controller.refreshData)),
-                    ),
-                    PullDownMenuItem(
-                      title: 'Katıl',
-                      icon: AppIcons.arrowRight,
-                      onTap: () => Get.to(OpticalFormEntry()),
-                    ),
-                  ])))),
+          ...overlays,
         ]),
       ),
     );

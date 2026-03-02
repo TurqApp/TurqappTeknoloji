@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-// Firestore not needed here
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 
 class PersonalizedContent extends StatelessWidget {
@@ -62,11 +62,17 @@ class PersonalizedContent extends StatelessWidget {
   }
 
   Map<String, dynamic> _createScholarshipData() {
+    String docId = '';
+    if (Get.isRegistered<PersonalizedController>()) {
+      final pc = Get.find<PersonalizedController>();
+      docId = pc.docIdByTimestamp[model.timeStamp] ?? '';
+    }
     return {
       'model': model,
       'type': 'bireysel',
       'userData': null,
-      'docId': null,
+      'docId': docId,
+      'scholarshipId': docId,
     };
   }
 }

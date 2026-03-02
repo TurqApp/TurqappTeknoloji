@@ -16,13 +16,12 @@ class ResultsAndAnswersController extends GetxController {
   }
 
   Future<void> getCevaplarim() async {
-    final doc =
-        await FirebaseFirestore.instance
-            .collection("OptikKodlar")
-            .doc(model.docID)
-            .collection("Yanitlar")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .get();
+    final doc = await FirebaseFirestore.instance
+        .collection("optikForm")
+        .doc(model.docID)
+        .collection("Yanitlar")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get();
 
     final fetchedCevaplar = List<String>.from(doc['cevaplar'] ?? []);
     cevaplar.assignAll(fetchedCevaplar);

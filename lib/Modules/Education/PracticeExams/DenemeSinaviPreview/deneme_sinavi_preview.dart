@@ -150,7 +150,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                       color: Colors.grey.shade100,
-                      border: Border.all(color: Colors.blueAccent, width: 1)),
+                      border: Border.all(color: Colors.black, width: 1)),
                   child: Padding(
                     padding: EdgeInsets.all(15),
                     child: Row(

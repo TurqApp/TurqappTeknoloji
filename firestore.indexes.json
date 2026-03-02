@@ -84,7 +84,24 @@
       ]
     },
     {
-      "collectionGroup": "BireyselBurslar",
+      "collectionGroup": "stories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" },
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "scholarships",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "begeniler", "arrayConfig": "CONTAINS" },
@@ -92,11 +109,34 @@
       ]
     },
     {
-      "collectionGroup": "BireyselBurslar",
+      "collectionGroup": "scholarships",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "kaydedenler", "arrayConfig": "CONTAINS" },
         { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Testler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paylasilabilir", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "books",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kaydet", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Yanitlar",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" }
       ]
     }
   ],

@@ -12,13 +12,20 @@ class FindingJobApplyController extends GetxController {
   }
 
   Future<void> cvCheck() async {
-    FirebaseFirestore.instance
-        .collection("CV")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("CV")
+          .doc(uid)
+          .get();
       cvVar.value = doc.exists;
-      isFinding.value = doc.get("findingJob");
-    });
+      if (doc.exists) {
+        final data = doc.data() ?? {};
+        isFinding.value = data["findingJob"] ?? false;
+      }
+    } catch (e) {
+      print('CV kontrol hatası: $e');
+    }
   }
 }

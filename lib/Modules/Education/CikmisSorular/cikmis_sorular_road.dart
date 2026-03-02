@@ -21,7 +21,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
     // TODO: implement initState
     super.initState();
     FirebaseFirestore.instance
-        .collection("CikmisSorular")
+        .collection("questions")
         .where("anaBaslik", isEqualTo: widget.anaBaslik)
         .get()
         .then((QuerySnapshot snapshot) {

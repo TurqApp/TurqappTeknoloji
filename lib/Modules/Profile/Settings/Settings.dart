@@ -42,6 +42,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 class SettingsView extends StatelessWidget {
   SettingsView({super.key});
+  static const Set<String> _adminUserIds = {
+    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
+    "hiv3UzAABlRWJaePerm3mtPEolI3",
+  };
+  static const Set<String> _adminNicknames = {
+    "osmannafiz",
+    "turqapp",
+  };
   final controller = Get.put(SettingsController());
   final scholarshipsController = Get.put(ScholarshipsController());
 
@@ -49,6 +57,14 @@ class SettingsView extends StatelessWidget {
   final userService = CurrentUserService.instance;
   @Deprecated('Use userService instead')
   final user = Get.put(FirebaseMyStore()); // Backward compatibility
+
+  bool get _isDiagnosticsAdmin {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentNickname = userService.nickname.trim().toLowerCase();
+    return _adminUserIds.contains(currentUid) ||
+        _adminNicknames.contains(currentNickname);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,7 +96,8 @@ class SettingsView extends StatelessWidget {
                             userService.currentUser?.gizliHesap ?? false;
                         final newValue = !currentPrivacy;
                         try {
-                          await userService.updateFields({"gizliHesap": newValue});
+                          await userService
+                              .updateFields({"gizliHesap": newValue});
                         } catch (e) {}
                       }),
                       buildRow(
@@ -107,15 +124,13 @@ class SettingsView extends StatelessWidget {
                           () {
                         Get.to(() => LikedPosts());
                       }),
-
                       buildSectionTitle("Uygulama"),
                       buildRow("İzinler", CupertinoIcons.lock_shield, () {
                         Get.to(() => const PermissionsView());
                       }),
-                      buildRow("Eğitim Ekranı", CupertinoIcons.nosign, () {
+                      buildRow("Eğitim", CupertinoIcons.nosign, () {
                         controller.toggleEducationScreen();
                       }),
-
                       buildSectionTitle("Güvenlik ve Destek"),
                       buildRow("Hakkında", CupertinoIcons.info, () {
                         Get.to(
@@ -130,20 +145,21 @@ class SettingsView extends StatelessWidget {
                       buildRow("Bize Yazın", CupertinoIcons.pencil_circle, () {
                         launchUrl(Uri.parse('mailto:info@turqapp.com'));
                       }),
-
-                      buildSectionTitle("Sistem ve Tanı"),
-                      buildRow(
-                        "Sistem ve Tanı Menüsü",
-                        CupertinoIcons.antenna_radiowaves_left_right,
-                        () {
-                          _showSystemDiagnosticsMenu();
-                        },
-                      ),
-                      _AdminPushMenuTile(buildRow: buildRow),
-
+                      if (_isDiagnosticsAdmin) ...[
+                        buildSectionTitle("Sistem ve Tanı"),
+                        buildRow(
+                          "Sistem ve Tanı Menüsü",
+                          CupertinoIcons.antenna_radiowaves_left_right,
+                          () {
+                            _showSystemDiagnosticsMenu();
+                          },
+                        ),
+                        _AdminPushMenuTile(buildRow: buildRow),
+                      ],
                       buildSectionTitle("Oturum"),
-                      buildRow("Oturumu Kapat",
-                          CupertinoIcons.square_arrow_right, () {
+                      buildRow(
+                          "Oturumu Kapat", CupertinoIcons.square_arrow_right,
+                          () {
                         noYesAlert(
                           title: "Çıkış Yap",
                           message: "Çıkış yapmak istediğinizden emin misiniz?",
@@ -199,7 +215,7 @@ class SettingsView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            text == "Eğitim Ekranı"
+            text == "Eğitim"
                 ? SvgPicture.asset(
                     "assets/icons/sinav.svg",
                     height: 25,
@@ -229,7 +245,7 @@ class SettingsView extends StatelessWidget {
                   fontFamily: "MontserratMedium",
                 ),
               )
-            else if (text == "Eğitim Ekranı")
+            else if (text == "Eğitim")
               Obx(() {
                 return TurqAppToggle(
                   isOn: controller.educationScreenIsOn.value,
@@ -633,15 +649,30 @@ class SettingsView extends StatelessWidget {
 class _AdminPushMenuTile extends StatelessWidget {
   const _AdminPushMenuTile({required this.buildRow});
 
+  static const Set<String> _adminUserIds = {
+    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
+    "hiv3UzAABlRWJaePerm3mtPEolI3",
+  };
+  static const Set<String> _adminNicknames = {
+    "osmannafiz",
+    "turqapp",
+  };
+
   final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;
 
   Future<bool> _canShowAdminPushMenu() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
 
+    final currentNickname =
+        CurrentUserService.instance.nickname.trim().toLowerCase();
+    final isKnownAdmin = _adminUserIds.contains(currentUser.uid) ||
+        _adminNicknames.contains(currentNickname);
+    if (!isKnownAdmin) return false;
+
     final token = await currentUser.getIdTokenResult(true);
     final isAdmin = token.claims?["admin"] == true;
-    if (!isAdmin) return false;
+    if (!isAdmin && !_adminNicknames.contains(currentNickname)) return false;
 
     final adminCfg =
         await FirebaseFirestore.instance.doc("adminConfig/admin").get();

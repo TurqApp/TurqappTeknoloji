@@ -47,37 +47,89 @@ class DenemeSinaviPreviewController extends GetxController {
     }
   }
 
-  void getGecersizlikDurumu() {
-    FirebaseFirestore.instance
-        .collection("Sinavlar")
-        .doc(model.docID)
-        .snapshots()
-        .listen(
-      (DocumentSnapshot doc) {
-        final data = doc.data() as Map<String, dynamic>?;
+  Future<void> getGecersizlikDurumu() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(model.docID)
+          .get();
+      final data = doc.data();
 
-        if (data == null || !data.containsKey('gecersizSayilanlar')) {
-          sinavaGirebilir.value = true;
-          return;
-        }
-
-        List<String> gecersizSayilanlar = List<String>.from(
-          data['gecersizSayilanlar'] ?? [],
-        );
-        sinavaGirebilir.value = !gecersizSayilanlar.contains(
-          FirebaseAuth.instance.currentUser!.uid,
-        );
-      },
-      onError: (error) {
-        AppSnackbar("Hata", "Geçersizlik durumu yüklenemedi.");
+      if (data == null || !data.containsKey('gecersizSayilanlar')) {
         sinavaGirebilir.value = true;
-      },
-    );
+        return;
+      }
+
+      List<String> gecersizSayilanlar = List<String>.from(
+        data['gecersizSayilanlar'] ?? [],
+      );
+      sinavaGirebilir.value = !gecersizSayilanlar.contains(
+        FirebaseAuth.instance.currentUser!.uid,
+      );
+    } catch (error) {
+      AppSnackbar("Hata", "Geçersizlik durumu yüklenemedi.");
+      sinavaGirebilir.value = true;
+    }
   }
 
-  void sinaviBitirAlert() {
+  Future<Map<String, num>?> _getLatestExamSummary() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final yanitlar = await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(model.docID)
+          .collection("Yanitlar")
+          .where("userID", isEqualTo: uid)
+          .get();
+
+      if (yanitlar.docs.isEmpty) return null;
+
+      QueryDocumentSnapshot<Map<String, dynamic>> latest = yanitlar.docs.first;
+      for (final doc in yanitlar.docs) {
+        final currentTs = (doc.data()["timeStamp"] ?? 0) as num;
+        final latestTs = (latest.data()["timeStamp"] ?? 0) as num;
+        if (currentTs > latestTs) {
+          latest = doc;
+        }
+      }
+
+      num dogru = 0;
+      num yanlis = 0;
+      num bos = 0;
+      num net = 0;
+
+      for (final ders in model.dersler) {
+        final sonucDoc = await FirebaseFirestore.instance
+            .collection("practiceExams")
+            .doc(model.docID)
+            .collection("Yanitlar")
+            .doc(latest.id)
+            .collection(ders)
+            .doc(latest.id)
+            .get();
+
+        if (!sonucDoc.exists) continue;
+        final data = sonucDoc.data() ?? {};
+        dogru += (data["dogru"] ?? 0) as num;
+        yanlis += (data["yanlis"] ?? 0) as num;
+        bos += (data["bos"] ?? 0) as num;
+        net += (data["net"] ?? 0) as num;
+      }
+
+      return {
+        "dogru": dogru,
+        "yanlis": yanlis,
+        "bos": bos,
+        "net": net,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> sinaviBitirAlert() async {
     FirebaseFirestore.instance
-        .collection("Sinavlar")
+        .collection("practiceExams")
         .doc(model.docID)
         .collection("SinaviBitenler")
         .doc(DateTime.now().millisecondsSinceEpoch.toString())
@@ -86,6 +138,14 @@ class DenemeSinaviPreviewController extends GetxController {
       "timeStamp": DateTime.now().millisecondsSinceEpoch,
     });
     SetOptions(merge: true);
+
+    final summary = await _getLatestExamSummary();
+    final resultText = summary == null
+        ? "Sonuç hesaplanamadı."
+        : "Doğru: ${summary["dogru"]?.toInt() ?? 0}   •   "
+            "Yanlış: ${summary["yanlis"]?.toInt() ?? 0}   •   "
+            "Boş: ${summary["bos"]?.toInt() ?? 0}   •   "
+            "Net: ${(summary["net"] ?? 0).toStringAsFixed(2)}";
 
     Get.bottomSheet(
       Container(
@@ -108,10 +168,10 @@ class DenemeSinaviPreviewController extends GetxController {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              "Sınavı tamamladın.\n'Sonuçlar' ekranında sonuçlarını görüntüleyebilirsin.",
+            Text(
+              resultText,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 15,
                 fontFamily: "MontserratMedium",
@@ -167,7 +227,7 @@ class DenemeSinaviPreviewController extends GetxController {
   Future<void> addBasvuru() async {
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Basvurular")
           .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -180,7 +240,7 @@ class DenemeSinaviPreviewController extends GetxController {
         );
       } else {
         await FirebaseFirestore.instance
-            .collection("Sinavlar")
+            .collection("practiceExams")
             .doc(model.docID)
             .collection("Basvurular")
             .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -198,7 +258,7 @@ class DenemeSinaviPreviewController extends GetxController {
   Future<void> basvuruKontrol() async {
     try {
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Basvurular")
           .get();
@@ -206,7 +266,7 @@ class DenemeSinaviPreviewController extends GetxController {
       basvuranSayisi.value = querySnapshot.docs.length;
 
       DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(model.docID)
           .collection("Basvurular")
           .doc(FirebaseAuth.instance.currentUser!.uid)

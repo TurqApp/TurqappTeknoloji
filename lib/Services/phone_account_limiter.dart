@@ -9,7 +9,7 @@ class PhoneAccountLimitReached implements Exception {
 
 class PhoneAccountLimiter {
   static const int defaultLimit = 5;
-  static const String collectionName = 'PhoneAccounts';
+  static const String collectionName = 'phoneAccounts';
 
   String normalize(String raw) {
     final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
@@ -149,4 +149,3 @@ class PhoneAccountLimiter {
     });
   }
 }
-

@@ -10,6 +10,7 @@ import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:uuid/uuid.dart';
 import '../../../Models/posts_model.dart';
 import '../../../Services/firebase_my_store.dart';
+import '../../../Services/current_user_service.dart';
 import '../../../Services/reshare_helper.dart';
 import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -21,9 +22,79 @@ import '../Comments/post_comments.dart';
 import '../../../Services/post_delete_service.dart';
 
 class PhotoShortsContentController extends GetxController {
+  static const Set<String> _adminPushUserIds = {
+    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
+    "hiv3UzAABlRWJaePerm3mtPEolI3",
+  };
+  static const Set<String> _adminPushNicknames = {
+    "osmannafiz",
+    "turqapp",
+  };
+  static const Set<String> _activePushTargetUserIds = {
+    "i7RhJD0T5AazadgXl1iCc6ueeHf2",
+    "hiv3UzAABlRWJaePerm3mtPEolI3",
+    "CePvRgjSPobQrDQwH8SXJFuG1Jw2",
+  };
+  static const Set<String> _activePushTargetNicknames = {
+    "osmannafiz",
+    "turqapp",
+  };
+  static const int _pushTargetCutoffMs = 1772409600000;
   PostsModel model;
 
   PhotoShortsContentController({required this.model});
+
+  bool get canSendAdminPush {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final currentNickname =
+        CurrentUserService.instance.nickname.trim().toLowerCase();
+    return _adminPushUserIds.contains(currentUid) ||
+        _adminPushNicknames.contains(currentNickname);
+  }
+
+  bool _shouldSendPushToUser(DocumentSnapshot<Map<String, dynamic>> userDoc) {
+    if (_activePushTargetUserIds.contains(userDoc.id)) return true;
+    final data = userDoc.data() ?? const <String, dynamic>{};
+    final nickname = (data['nickname'] ?? '').toString().trim().toLowerCase();
+    if (_activePushTargetNicknames.contains(nickname)) return true;
+    final rawCreatedDate = data['createdDate'];
+    final createdAtMs = rawCreatedDate is num
+        ? rawCreatedDate.toInt()
+        : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
+    return createdAtMs >= _pushTargetCutoffMs;
+  }
+
+  ({String title, String body}) _buildPostPushCopy() {
+    final senderName = fullName.value.trim().isNotEmpty
+        ? fullName.value.trim()
+        : nickname.value.trim();
+    final safeSender = senderName.isNotEmpty ? senderName : 'TurqApp';
+    final hasVideo = model.video.trim().isNotEmpty;
+    final hasImage = model.img.isNotEmpty;
+    final text = model.metin.trim();
+
+    final preview =
+        text.length > 90 ? '${text.substring(0, 90).trim()}...' : text;
+    final title = '$safeSender yeni bir gonderi paylasti';
+    final body = preview.isNotEmpty
+        ? preview
+        : hasVideo
+            ? 'Yeni video gonderisi'
+            : hasImage
+                ? 'Yeni gonderi'
+                : 'Yeni gonderi';
+    return (title: title, body: body);
+  }
+
+  String? _pushPreviewImageUrl() {
+    final thumbnail = model.thumbnail.trim();
+    if (thumbnail.isNotEmpty) return thumbnail;
+    if (model.img.isNotEmpty) {
+      final firstImage = model.img.first.trim();
+      if (firstImage.isNotEmpty) return firstImage;
+    }
+    return null;
+  }
 
   var pfImage = "".obs;
   var nickname = "".obs;
@@ -943,5 +1014,78 @@ class PhotoShortsContentController extends GetxController {
               topRight: Radius.circular(12), topLeft: Radius.circular(12))),
       child: ShareGrid(postID: model.docID, postType: "Post"),
     ));
+  }
+
+  Future<void> sendAdminPushForPost() async {
+    if (!canSendAdminPush) return;
+
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return;
+
+    final pushCopy = _buildPostPushCopy();
+    final title = pushCopy.title;
+    final body = pushCopy.body;
+    final imageUrl = _pushPreviewImageUrl();
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    try {
+      final usersSnap =
+          await FirebaseFirestore.instance.collection('users').get();
+      var written = 0;
+      var opCount = 0;
+      var batch = FirebaseFirestore.instance.batch();
+
+      Future<void> commitBatch() async {
+        if (opCount == 0) return;
+        await batch.commit();
+        batch = FirebaseFirestore.instance.batch();
+        opCount = 0;
+      }
+
+      for (final userDoc in usersSnap.docs) {
+        if (userDoc.id == currentUid || !_shouldSendPushToUser(userDoc)) {
+          continue;
+        }
+        final notificationRef =
+            userDoc.reference.collection('notifications').doc();
+        batch.set(notificationRef, {
+          'type': 'posts',
+          'fromUserID': currentUid,
+          'postID': model.docID,
+          if (imageUrl != null) 'imageUrl': imageUrl,
+          'adminPush': true,
+          'hideInAppInbox': true,
+          'timeStamp': nowMs,
+          'read': false,
+          'title': title,
+          'body': body,
+        });
+        written++;
+        opCount++;
+
+        if (opCount >= 400) {
+          await commitBatch();
+        }
+      }
+
+      await commitBatch();
+      await FirebaseFirestore.instance
+          .collection('adminConfig')
+          .doc('admin')
+          .collection('pushReports')
+          .add({
+        'senderUid': currentUid,
+        'title': title,
+        'body': body,
+        'type': 'posts',
+        if (imageUrl != null) 'imageUrl': imageUrl,
+        'targetCount': written,
+        'postID': model.docID,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      AppSnackbar('Push', '$written kullaniciya push kuyruga alindi');
+    } catch (e) {
+      AppSnackbar('Hata', 'Push gonderilemedi: $e');
+    }
   }
 }

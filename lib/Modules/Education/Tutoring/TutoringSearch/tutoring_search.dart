@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -55,18 +55,16 @@ class TutoringSearch extends StatelessWidget {
                   } else if (controller.searchResults.isEmpty) {
                     return Center(child: Text("Eşleşen özel ders bulunmuyor."));
                   } else {
-                    return Obx(() {
-                      return SingleChildScrollView(
-                        child: TutoringWidgetBuilder(
-                          tutoringList: controller.searchResults,
-                          users: controller.users,
-                          isGridView: viewModeController.isGridView.value,
-                          infoMessage: Infomessage(
-                            infoMessage: "Eşleşen özel ders bulunmuyor!",
-                          ),
+                    return SingleChildScrollView(
+                      child: TutoringWidgetBuilder(
+                        tutoringList: controller.searchResults,
+                        users: controller.users,
+                        isGridView: viewModeController.isGridView.value,
+                        infoMessage: Infomessage(
+                          infoMessage: "Eşleşen özel ders bulunmuyor!",
                         ),
-                      );
-                    });
+                      ),
+                    );
                   }
                 }),
               ),

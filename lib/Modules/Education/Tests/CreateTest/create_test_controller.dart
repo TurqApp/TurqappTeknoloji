@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
-import 'package:path/path.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/AddTestQuestion/add_test_question.dart';
@@ -144,13 +144,12 @@ class CreateTestController extends GetxController {
 
   Future<void> yukle(File imageFile) async {
     try {
-      final fileName = basename(imageFile.path);
-      final firebaseStorageRef = FirebaseStorage.instance.ref().child(
-        'Testler/${testID.value}/$fileName',
+      final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+        storage: FirebaseStorage.instance,
+        file: imageFile,
+        storagePathWithoutExt:
+            'Testler/${testID.value}/${DateTime.now().millisecondsSinceEpoch}',
       );
-      final uploadTask = firebaseStorageRef.putFile(imageFile);
-      final taskSnapshot = await uploadTask.whenComplete(() => null);
-      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
       await FirebaseFirestore.instance
           .collection("Testler")
           .doc(testID.value.toString())

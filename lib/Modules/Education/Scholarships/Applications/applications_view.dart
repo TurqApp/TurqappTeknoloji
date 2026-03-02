@@ -58,6 +58,9 @@ class ApplicationsView extends StatelessWidget {
                                                     img: application['img'],
                                                     aciklama:
                                                         application['desc'],
+                                                    shortDescription:
+                                                        application['shortDescription'] ??
+                                                            '',
                                                     basvuruKosullari:
                                                         application[
                                                             'basvuruKosullari'],

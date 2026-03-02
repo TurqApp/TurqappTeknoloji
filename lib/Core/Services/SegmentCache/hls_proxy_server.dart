@@ -17,6 +17,7 @@ import 'network_policy.dart';
 /// M3U8 playlist'lerde relative path kullanıldığı için rewriting gerekmez.
 class HLSProxyServer extends GetxController {
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
+  static const String _appIdentifier = 'turqapp-mobile';
 
   HttpServer? _server;
   final http.Client _httpClient = http.Client();
@@ -130,7 +131,7 @@ class HLSProxyServer extends GetxController {
     final cdnUrl = '$_cdnOrigin$path';
     try {
       final response = await _httpClient
-          .get(Uri.parse(cdnUrl))
+          .get(Uri.parse(cdnUrl), headers: _cdnHeaders)
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
@@ -261,10 +262,19 @@ class HLSProxyServer extends GetxController {
 
   // ──────────────────────────── Helpers ────────────────────────────
 
+  /// CDN isteklerine hotlink protection header'ları ekler.
+  /// Cloudflare WAF kuralı bu header'ı doğrular:
+  ///   X-Turq-App == "turqapp-mobile"
+  ///   Referer == "https://cdn.turqapp.com/"
+  Map<String, String> get _cdnHeaders => {
+        'X-Turq-App': _appIdentifier,
+        'Referer': '$_cdnOrigin/',
+      };
+
   /// CDN'den segment indir — deduplication için ayrılmış metod.
   Future<Uint8List> _fetchSegmentFromCDN(String cdnUrl) async {
     final response = await _httpClient
-        .get(Uri.parse(cdnUrl))
+        .get(Uri.parse(cdnUrl), headers: _cdnHeaders)
         .timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
       throw HttpException('CDN returned ${response.statusCode}');
@@ -334,7 +344,7 @@ class HLSProxyServer extends GetxController {
       final variantCdnUrl = '$_cdnOrigin$variantPath';
 
       _httpClient
-          .get(Uri.parse(variantCdnUrl))
+          .get(Uri.parse(variantCdnUrl), headers: _cdnHeaders)
           .timeout(const Duration(seconds: 10))
           .then((response) {
         if (response.statusCode == 200) {

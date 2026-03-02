@@ -57,7 +57,11 @@ class ThenSolve extends StatelessWidget {
                         children: [
                           StreamBuilder<DocumentSnapshot>(
                             stream: FirebaseFirestore.instance
-                                .collection('users')
+                                .collection('questionBankSkor')
+                                .doc(
+                                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+                                )
+                                .collection('items')
                                 .doc(controller.userID)
                                 .snapshots(),
                             builder: (context, snapshot) {
@@ -66,7 +70,24 @@ class ThenSolve extends StatelessWidget {
                                   snapshot.hasError ||
                                   !snapshot.hasData ||
                                   !snapshot.data!.exists) {
-                                return Text("0");
+                                return StreamBuilder<DocumentSnapshot>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(controller.userID)
+                                      .snapshots(),
+                                  builder: (context, userSnapshot) {
+                                    if (!userSnapshot.hasData ||
+                                        !userSnapshot.data!.exists) {
+                                      return const Text("0");
+                                    }
+                                    final antPoint =
+                                        userSnapshot.data!['antPoint'] ?? 100;
+                                    return Text(
+                                      antPoint.toString(),
+                                      style: TextStyles.textFieldTitle,
+                                    );
+                                  },
+                                );
                               }
                               int antPoint = snapshot.data!['antPoint'] ?? 0;
                               return Text(
@@ -179,8 +200,8 @@ class ThenSolve extends StatelessWidget {
                                         onTap: () async {
                                           await controller
                                               .addToSonraCoz(question);
-                                          if (!controller
-                                              .savedQuestions[question.soru]!) {
+                                          if (!controller.savedQuestions[
+                                              question.docID]!) {
                                             controller.savedQuestionsList
                                                 .remove(question);
                                           }
@@ -244,10 +265,10 @@ class ThenSolve extends StatelessWidget {
                             SizedBox(height: 12),
                             Obx(() {
                               final selectedAnswer =
-                                  controller.selectedAnswers[question.soru] ??
+                                  controller.selectedAnswers[question.docID] ??
                                       '';
                               final initialAnswer =
-                                  controller.initialAnswers[question.soru] ??
+                                  controller.initialAnswers[question.docID] ??
                                       '';
                               final isInitialCorrect =
                                   initialAnswer.isNotEmpty &&
@@ -323,16 +344,16 @@ class ThenSolve extends StatelessWidget {
                                       IconButton(
                                         icon: Icon(
                                           controller.likedQuestions[
-                                                      question.soru] ??
+                                                      question.docID] ??
                                                   false
                                               ? CupertinoIcons
                                                   .hand_thumbsup_fill
                                               : CupertinoIcons.hand_thumbsup,
                                         ),
                                         color: controller.likedQuestions[
-                                                    question.soru] ??
+                                                    question.docID] ??
                                                 false
-                                            ? Colors.blue
+                                            ? Colors.black
                                             : Colors.black,
                                         onPressed: () => controller.addTolikes(
                                           question,
@@ -353,14 +374,14 @@ class ThenSolve extends StatelessWidget {
                                       ),
                                       color: controller
                                                   .selectedAnswers[
-                                                      question.soru]
+                                                      question.docID]
                                                   ?.isNotEmpty ??
                                               false
                                           ? Colors.black
                                           : Colors.grey,
                                       onPressed: () {
                                         if (controller
-                                                .selectedAnswers[question.soru]
+                                                .selectedAnswers[question.docID]
                                                 ?.isNotEmpty ??
                                             false) {
                                           Get.bottomSheet(
@@ -378,7 +399,7 @@ class ThenSolve extends StatelessWidget {
                                     ),
                                     StreamBuilder<QuerySnapshot>(
                                       stream: FirebaseFirestore.instance
-                                          .collection('SoruBankasi')
+                                          .collection('questionBank')
                                           .doc(question.docID)
                                           .collection('Yorumlar')
                                           .snapshots(),
@@ -408,19 +429,19 @@ class ThenSolve extends StatelessWidget {
                                           width: 24,
                                           height: 24,
                                           color: controller.savedQuestions[
-                                                      question.soru] ??
+                                                      question.docID] ??
                                                   false
-                                              ? Colors.blue
+                                              ? Colors.black
                                               : Colors.black,
                                         ),
                                         color: controller.savedQuestions[
-                                                    question.soru] ??
+                                                    question.docID] ??
                                                 false
-                                            ? Colors.blue
+                                            ? Colors.black
                                             : Colors.black,
                                         onPressed: controller
                                                     .selectedAnswers[
-                                                        question.soru]
+                                                        question.docID]
                                                     ?.isNotEmpty ??
                                                 false
                                             ? null
@@ -428,7 +449,7 @@ class ThenSolve extends StatelessWidget {
                                                 await controller
                                                     .addToSonraCoz(question);
                                                 if (!controller.savedQuestions[
-                                                    question.soru]!) {
+                                                    question.docID]!) {
                                                   controller.savedQuestionsList
                                                       .remove(question);
                                                 }
@@ -442,7 +463,7 @@ class ThenSolve extends StatelessWidget {
                                   children: [
                                     IconButton(
                                       icon: Icon(
-                                        CupertinoIcons.paperplane,
+                                        AppIcons.share,
                                         size: 20,
                                       ),
                                       color: Colors.black,

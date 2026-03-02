@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 class FollowToggleOutcome {
   final bool nowFollowing;
@@ -44,7 +46,7 @@ class FollowService {
         .collection('Stats')
         .doc('FollowDaily');
 
-    return await firestore
+    final result = await firestore
         .runTransaction<FollowToggleOutcome>((transaction) async {
       final myFollowSnap = await transaction.get(myFollowingRef);
 
@@ -90,5 +92,17 @@ class FollowService {
 
       return const FollowToggleOutcome(nowFollowing: true, limitReached: false);
     });
+
+    // Agenda'nın followingIDs listesini lokal olarak güncelle (SWR)
+    if (Get.isRegistered<AgendaController>()) {
+      final agenda = Get.find<AgendaController>();
+      if (result.nowFollowing) {
+        agenda.followingIDs.add(otherUserID);
+      } else {
+        agenda.followingIDs.remove(otherUserID);
+      }
+    }
+
+    return result;
   }
 }

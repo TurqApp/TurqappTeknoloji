@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:ui' as ui;
@@ -18,6 +19,36 @@ import '../../../Services/firebase_my_store.dart';
 class MyQRCodeController extends GetxController {
   final user = Get.find<FirebaseMyStore>();
   final ShortLinkService _shortLinkService = ShortLinkService();
+  final RxString profileLink = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_prepareProfileLink());
+  }
+
+  Future<String> _buildProfileLink() async {
+    final slug = user.nickname.value.trim().toLowerCase();
+    final safeSlug = slug.isEmpty ? user.userID.value : slug;
+    final result = await _shortLinkService.upsertUser(
+      userId: user.userID.value,
+      slug: safeSlug,
+      title: '@${user.nickname.value} - TurqApp',
+      desc: 'TurqApp profilini görüntüle',
+      imageUrl: user.pfImage.value,
+    );
+    final url = (result['url'] ?? '').toString().trim();
+    return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
+  }
+
+  Future<void> _prepareProfileLink() async {
+    try {
+      profileLink.value = await _buildProfileLink();
+    } catch (_) {
+      final slug = user.nickname.value.trim().toLowerCase();
+      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
+    }
+  }
   void showQrScannerModal() {
     Get.bottomSheet(
       QrScannerView(),
@@ -32,34 +63,16 @@ class MyQRCodeController extends GetxController {
 
   Future<void> shareProfile() async {
     await ShareActionGuard.run(() async {
-      final slug = user.nickname.value.trim().toLowerCase();
-      final result = await _shortLinkService.upsertUser(
-        userId: user.userID.value,
-        slug: slug.isEmpty ? user.userID.value : slug,
-        title: '@${user.nickname.value} - TurqApp',
-        desc: 'TurqApp profilini görüntüle',
-        imageUrl: user.pfImage.value,
-      );
-      final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
-          ? (result['url'] ?? '').toString().trim()
-          : 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
-      await SharePlus.instance.share(ShareParams(text: profileLink));
+      final link = await _buildProfileLink();
+      profileLink.value = link;
+      await SharePlus.instance.share(ShareParams(text: link));
     });
   }
 
   Future<void> copyLink() async {
-    final slug = user.nickname.value.trim().toLowerCase();
-    final result = await _shortLinkService.upsertUser(
-      userId: user.userID.value,
-      slug: slug.isEmpty ? user.userID.value : slug,
-      title: '@${user.nickname.value} - TurqApp',
-      desc: 'TurqApp profilini görüntüle',
-      imageUrl: user.pfImage.value,
-    );
-    final profileLink = (result['url'] ?? '').toString().trim().isNotEmpty
-        ? (result['url'] ?? '').toString().trim()
-        : 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
-    await Clipboard.setData(ClipboardData(text: profileLink));
+    final link = await _buildProfileLink();
+    profileLink.value = link;
+    await Clipboard.setData(ClipboardData(text: link));
     AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
   }
 
@@ -85,7 +98,9 @@ class MyQRCodeController extends GetxController {
 
     try {
       final qrPainter = QrPainter(
-        data: Get.find<FirebaseMyStore>().userID.value,
+        data: profileLink.value.isNotEmpty
+            ? profileLink.value
+            : await _buildProfileLink(),
         version: QrVersions.auto,
         gapless: true,
         eyeStyle:

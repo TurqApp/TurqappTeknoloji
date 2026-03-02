@@ -62,11 +62,36 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow write: if isOwner(uid);
       }
+      match /qProgress/{categoryKey} {
+        allow read, write: if isOwner(uid);
+      }
+      match /qAnswers/{questionId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /qSaved/{questionId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /qViews/{questionId} {
+        allow read, write: if isOwner(uid);
+      }
 
       // DeletedStories archive
       match /DeletedStories/{storyId} {
         allow read: if isOwner(uid);
         allow write: if false; // Admin SDK only
+      }
+
+      // Tutoring applications
+      match /myTutoringApplications/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Education results (dual-write targets)
+      match /examResults/{examId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /bookletResults/{bookId} {
+        allow read, write: if isOwner(uid);
       }
 
       // Stats (follow rate limiting)
@@ -237,70 +262,248 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     // EDUCATION
     // ──────────────────────────────────────────────
+
+    // Legacy soru bankası (eski koleksiyon)
     match /SoruBankasi/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userID == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
       match /{sub=**} {
-        allow read, write: if isAuth();
+        allow read: if isAuth();
+        allow write: if isAuth();
       }
     }
-    match /BireyselBurslar/{docId} {
+
+    // Soru Bankası (yeni)
+    match /questionBank/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      // Sahip tüm alanları düzenleyebilir; diğer kullanıcılar sadece
+      // counter/beğeni alanlarını güncelleyebilir
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['viewCount', 'correctCount', 'wrongCount', 'begeniler'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Yorumlar/{commentId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      }
     }
+
+    // Soru Bankası Skor Tablosu - yalnızca kendi kaydını oluşturabilir
+    match /questionBankSkor/{monthKey} {
+      allow read: if isAuth();
+      allow create, update: if false; // Cloud Functions only
+      allow delete: if false;
+      match /items/{userId} {
+        allow read: if isAuth();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if false;
+      }
+    }
+
+    // Burslar
+    match /scholarships/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['begeniler', 'kaydedenler', 'goruntuleme', 'applicationCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Basvurular/{applicantId} {
+        allow read: if isAuth();
+        allow create: if isOwner(applicantId);
+        allow update: if isAuth() && (
+          request.auth.uid == applicantId
+          || get(/databases/$(database)/documents/scholarships/$(docId)).data.userID == request.auth.uid
+        );
+        allow delete: if isOwner(applicantId);
+      }
+    }
+
+    // Online Testler
     match /Testler/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['katilimciSayisi', 'goruntulenmeSayisi'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
       match /{sub=**} {
-        allow read, write: if isAuth();
+        allow read: if isAuth();
+        allow write: if isAuth();
       }
     }
-    match /Sinavlar/{docId} {
+
+    // Deneme Sınavları
+    match /practiceExams/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
-      match /{sub=**} {
-        allow read, write: if isAuth();
+      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['participantCount', 'viewCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      // Sınav soruları - sadece sınav sahibi yazabilir
+      match /Sorular/{soruId} {
+        allow read: if isAuth();
+        allow write: if isAuth() &&
+          get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+      }
+
+      // Sınav yanıtları - kullanıcı kendi yanıtını yazar
+      match /Yanitlar/{userId} {
+        allow read: if isAuth();
+        allow create, update: if isOwner(userId);
+        allow delete: if false;
       }
     }
+
+    // Çıkmış Sorular (admin/system tarafından eklenen içerik)
     match /CikmisSorular/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
-    match /CikmisSorularGecmisi/{docId} {
-      allow read, write: if isAuth();
+
+    // Çıkmış soru verileri
+    match /questions/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['viewCount', 'correctCount', 'wrongCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      match /{sub=**} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
     }
+
+    // Soru cevapları - kullanıcı kendi cevabını yazar
+    match /questionsAnswers/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && resource.data.userID == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+    }
+
+    // Kitapçık Cevapları
     match /KitapcikCevaplari/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
+
+    // Cevap Anahtarları
     match /CevapAnahtarlari/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
+
+    // Sorular (ek koleksiyon)
     match /Sorular/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
-    match /OptikKodlar/{docId} {
-      allow read, write: if isAuth();
+
+    // Optik Kodlar
+    match /optikForm/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
-    match /Kitapciklar/{docId} {
-      allow read, write: if isAuth();
+
+    // Kitaplar / Cevap Anahtarı Kitapları
+    match /books/{docId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['viewCount', 'solveCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      match /{sub=**} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
     }
+
+    // Sınavı Bitenler
     match /SinaviBitenler/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
 
     // ──────────────────────────────────────────────
     // JOBS
     // ──────────────────────────────────────────────
-    match /IsBul/{docId} {
+    match /isBul/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['viewCount', 'applicationCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Applications/{applicantId} {
+        allow read: if isAuth();
+        allow create: if isOwner(applicantId);
+        allow update: if isAuth() && (
+          request.auth.uid == applicantId
+          || get(/databases/$(database)/documents/isBul/$(docId)).data.userID == request.auth.uid
+        );
+        allow delete: if isOwner(applicantId);
+      }
     }
     match /SavedIsBul/{docId} {
       allow read, write: if isAuth();
     }
-    match /OzelDersVerenler/{docId} {
+    match /educators/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['favorites', 'viewCount', 'applicationCount', 'averageRating', 'reviewCount'])
+      );
+      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Applications/{applicantId} {
+        allow read: if isAuth();
+        allow create: if isOwner(applicantId);
+        allow update: if isAuth() && (
+          request.auth.uid == applicantId
+          || get(/databases/$(database)/documents/educators/$(docId)).data.userID == request.auth.uid
+        );
+        allow delete: if isOwner(applicantId);
+      }
+
+      match /Reviews/{reviewerId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isOwner(reviewerId);
+      }
     }
 
     // ──────────────────────────────────────────────
@@ -315,7 +518,7 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     // REPORTING
     // ──────────────────────────────────────────────
-    match /Sikayetler/{docId} {
+    match /reports/{docId} {
       allow read: if false;
       allow create: if isAuth();
       allow update, delete: if false;
@@ -347,12 +550,18 @@ service cloud.firestore {
     match /Analytics/{docId} {
       allow read: if false;
       allow write: if isAuth();
+
+      match /{subcol}/{subDocId} {
+        allow read: if false;
+        allow create: if isAuth();
+        allow update, delete: if false;
+      }
     }
 
     // ──────────────────────────────────────────────
     // PHONE ACCOUNTS (from phone_accounts.rules)
     // ──────────────────────────────────────────────
-    match /PhoneAccounts/{phone} {
+    match /phoneAccounts/{phone} {
       allow read: if false;
 
       function isSelfAdd(prev, next) {
@@ -421,7 +630,7 @@ service cloud.firestore {
     }
     match /CV/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if isOwner(docId);
     }
     match /HiddenPosts/{docId} {
       allow read: if false;
@@ -440,22 +649,6 @@ service cloud.firestore {
     match /Yorumlar/{docId} {
       allow read: if isAuth();
       allow write: if isAuth();
-    }
-    match /usernames/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth()
-        && (
-          request.resource.data.uid == request.auth.uid ||
-          request.resource.data.userID == request.auth.uid
-        );
-      allow update, delete: if isAuth()
-        && (
-          resource.data.uid == request.auth.uid ||
-          resource.data.userID == request.auth.uid
-        );
-    }
-    match /Cevaplayanlar/{docId} {
-      allow read, write: if isAuth();
     }
     match /List/{docId} {
       allow read: if isAuth();

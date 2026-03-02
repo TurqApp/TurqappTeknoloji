@@ -145,14 +145,15 @@ class NavBarController extends GetxController
     _uploadIndicatorTimer?.cancel();
     _uploadIndicatorTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_isDisposed) return;
-      if (!Get.isRegistered<UploadQueueService>()) return;
+      if (!Get.isRegistered<UploadQueueService>()) {
+        uploadingPosts.value = false;
+        return;
+      }
       final queue = Get.find<UploadQueueService>();
       final stats = queue.getQueueStats();
       final pending = (stats['pending'] as int?) ?? 0;
       final processing = (stats['processing'] as bool?) ?? false;
-      if (processing || pending > 0) {
-        uploadingPosts.value = true;
-      }
+      uploadingPosts.value = processing || pending > 0;
     });
   }
 

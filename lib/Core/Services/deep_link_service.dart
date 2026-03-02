@@ -6,9 +6,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
+import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
+import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
@@ -50,6 +55,19 @@ class DeepLinkService extends GetxService {
         return;
       }
 
+      // Function erişimi olmasa bile fallback eğitim linkleri direkt açılsın.
+      if (parsed.type == 'edu' &&
+          (parsed.id.startsWith('question-') ||
+              parsed.id.startsWith('scholarship-') ||
+              parsed.id.startsWith('practiceexam-') ||
+              parsed.id.startsWith('pastquestion-') ||
+              parsed.id.startsWith('answerkey-') ||
+              parsed.id.startsWith('tutoring-') ||
+              parsed.id.startsWith('job-'))) {
+        await _openEducationLink(parsed.id);
+        return;
+      }
+
       final resolved = await _shortLinkService.resolve(
         type: parsed.type,
         id: parsed.id,
@@ -77,6 +95,9 @@ class DeepLinkService extends GetxService {
         case 'user':
           Get.to(() => SocialProfile(userID: entityId));
           return;
+        case 'edu':
+          await _openEducationLink(entityId);
+          return;
       }
     } catch (_) {
       final handled = await _tryDirectFallback(parsed);
@@ -102,6 +123,9 @@ class DeepLinkService extends GetxService {
         case 'user':
           Get.to(() => SocialProfile(userID: rawId));
           return true;
+        case 'edu':
+          await _openEducationLink(rawId);
+          return true;
       }
     } catch (_) {
       return false;
@@ -117,7 +141,10 @@ class DeepLinkService extends GetxService {
     if (scheme == 'http' || scheme == 'https') {
       if (!(host == 'turqapp.com' ||
           host == 'www.turqapp.com' ||
-          host == 'go.turqapp.com')) {
+          host == 'go.turqapp.com' ||
+          host == 'turqqapp.com' ||
+          host == 'www.turqqapp.com' ||
+          host == 'go.turqqapp.com')) {
         return null;
       }
       if (segments.length < 2) return null;
@@ -155,6 +182,12 @@ class DeepLinkService extends GetxService {
     if (value == 'p' || value == 'post') return 'post';
     if (value == 's' || value == 'story') return 'story';
     if (value == 'u' || value == 'user' || value == 'profile') return 'user';
+    if (value == 'i' ||
+        value == 'e' ||
+        value == 'edu' ||
+        value == 'education') {
+      return 'edu';
+    }
     return null;
   }
 
@@ -270,6 +303,69 @@ class DeepLinkService extends GetxService {
           startedUser: user,
           storyOwnerUsers: [user],
         ));
+  }
+
+  Future<void> _openEducationLink(String entityId) async {
+    final normalized = entityId.trim().toLowerCase();
+    if (normalized.startsWith('job:')) {
+      await _openJob(entityId.split(':').last.trim());
+      return;
+    }
+
+    final navController = Get.isRegistered<NavBarController>()
+        ? Get.find<NavBarController>()
+        : Get.put(NavBarController());
+    final educationController = Get.isRegistered<EducationController>()
+        ? Get.find<EducationController>()
+        : Get.put(EducationController());
+
+    // Eğitim ana ekranı sekmesi
+    navController.changeIndex(3);
+
+    int targetTab = 0;
+    if (normalized.startsWith('scholarship:')) {
+      targetTab = 0;
+    } else if (normalized.startsWith('question:') ||
+        normalized.startsWith('question-')) {
+      targetTab = 1;
+    } else if (normalized.startsWith('practiceexam:')) {
+      targetTab = 2;
+    } else if (normalized.startsWith('pastquestion:')) {
+      targetTab = 3;
+    } else if (normalized.startsWith('answerkey:')) {
+      targetTab = 4;
+    } else if (normalized.startsWith('tutoring:')) {
+      targetTab = 5;
+    } else if (normalized.startsWith('job:')) {
+      targetTab = 6;
+    }
+
+    educationController.onTabTap(targetTab);
+  }
+
+  Future<void> _openJob(String jobId) async {
+    final cleanId = jobId.trim();
+    if (cleanId.isEmpty) {
+      AppSnackbar('Bilgi', 'İlan bulunamadı.');
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection(JobCollection.name)
+        .doc(cleanId)
+        .get();
+    if (!doc.exists || doc.data() == null) {
+      AppSnackbar('Bilgi', 'İlan bulunamadı.');
+      return;
+    }
+
+    final model = JobModel.fromMap(doc.data()!, doc.id);
+    if (model.ended) {
+      AppSnackbar('Bilgi', 'İlan yayından kaldırılmış.');
+      return;
+    }
+
+    await Get.to(() => JobDetails(model: model));
   }
 
   @override

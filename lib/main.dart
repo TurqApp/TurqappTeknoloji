@@ -23,6 +23,11 @@ AppLifecycleListener? _appLifecycleListener;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // C-004: Decoded image cache artır (varsayılan 100MB → 200MB, 1000 → 2000)
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 2000;
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);

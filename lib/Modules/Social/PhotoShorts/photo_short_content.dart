@@ -415,7 +415,8 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         /// Yorum Butonu
         Expanded(
           child: TextButton(
-            onPressed: canComment ? controller.showPostCommentsBottomSheet : null,
+            onPressed:
+                canComment ? controller.showPostCommentsBottomSheet : null,
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
             child: SizedBox(
               height: 35,
@@ -653,6 +654,14 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
           title: 'Gizle',
           icon: CupertinoIcons.eye_slash,
         ),
+        if (controller.canSendAdminPush)
+          PullDownMenuItem(
+            onTap: () {
+              controller.sendAdminPushForPost();
+            },
+            title: 'Push',
+            icon: CupertinoIcons.bell,
+          ),
         PullDownMenuItem(
           onTap: () async {
             final previewImage = widget.model.thumbnail.trim().isNotEmpty
@@ -692,7 +701,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
             });
           },
           title: 'Paylaş',
-          icon: CupertinoIcons.share,
+          icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
             FirebaseAuth.instance.currentUser!.uid ==

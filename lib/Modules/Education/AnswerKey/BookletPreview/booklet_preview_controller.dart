@@ -36,22 +36,33 @@ class BookletPreviewController extends GetxController {
   Future<void> fetchAnswerKeys() async {
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection("Kitapciklar")
+          .collection("books")
           .doc(model.docID)
           .collection("CevapAnahtarlari")
           .get();
 
       final newList = <AnswerKeySubModel>[];
       for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final baslik = (data["baslik"] ?? "").toString();
+        final rawCevaplar = data["dogruCevaplar"];
+        final cevaplar = rawCevaplar is List
+            ? rawCevaplar.map((e) => e.toString()).toList()
+            : <String>[];
+        final sira = data["sira"] is num
+            ? data["sira"] as num
+            : num.tryParse((data["sira"] ?? "0").toString()) ?? 0;
+
         newList.add(
           AnswerKeySubModel(
-            baslik: doc.get("baslik") ?? '',
+            baslik: baslik,
             docID: doc.id,
-            dogruCevaplar: List<String>.from(doc.get("dogruCevaplar") ?? []),
-            sira: doc.get("sira") ?? 0,
+            dogruCevaplar: cevaplar,
+            sira: sira,
           ),
         );
       }
+      newList.sort((a, b) => a.sira.compareTo(b.sira));
       answerKeys.assignAll(newList);
       log(
         "Çekilen cevap anahtarları: ${newList.map((e) => e.baslik).toList()}",
@@ -84,7 +95,7 @@ class BookletPreviewController extends GetxController {
 
     try {
       final docRef =
-          FirebaseFirestore.instance.collection('Kitapciklar').doc(model.docID);
+          FirebaseFirestore.instance.collection('books').doc(model.docID);
 
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final docSnapshot = await transaction.get(docRef);

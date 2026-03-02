@@ -41,6 +41,40 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
   bool showAlert = false;
   final ScrollController _scrollController = ScrollController();
 
+  int get _correctCount {
+    var count = 0;
+    for (var i = 0;
+        i < selectedAnswers.length && i < dogruCevaplarList.length;
+        i++) {
+      final answer = selectedAnswers[i];
+      if (answer.isNotEmpty && answer == dogruCevaplarList[i]) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int get _wrongCount {
+    var count = 0;
+    for (var i = 0;
+        i < selectedAnswers.length && i < dogruCevaplarList.length;
+        i++) {
+      final answer = selectedAnswers[i];
+      if (answer.isNotEmpty && answer != dogruCevaplarList[i]) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int get _emptyCount {
+    return selectedAnswers.where((e) => e.isEmpty).length;
+  }
+
+  double get _netScore {
+    return _correctCount - (_wrongCount * 0.25);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,7 +109,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
   }
 
   void _fetchData() {
-    FirebaseFirestore.instance.collection("CikmisSorular").get().then((
+    FirebaseFirestore.instance.collection("questions").get().then((
       QuerySnapshot snapshot,
     ) {
       for (var doc in snapshot.docs) {
@@ -97,14 +131,9 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
   }
 
   void _getData(String docID) {
-    FirebaseFirestore.instance
-        .collection("CikmisSorular")
-        .doc(docID)
-        .collection("Sorular")
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        var question = CikmisSorularinModeli(
+    _loadQuestions(docID).then((questionDocs) {
+      for (var doc in questionDocs) {
+        final question = CikmisSorularinModeli(
           ders: doc.get("ders"),
           dogruCevap: doc.get("dogruCevap"),
           soru: doc.get("soru"),
@@ -132,6 +161,21 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
         });
       }
     });
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadQuestions(
+    String docID,
+  ) async {
+    final baseDoc =
+        FirebaseFirestore.instance.collection("questions").doc(docID);
+
+    final questionsSnap = await baseDoc.collection("questions").get();
+    if (questionsSnap.docs.isNotEmpty) {
+      return questionsSnap.docs;
+    }
+
+    final sorularSnap = await baseDoc.collection("Sorular").get();
+    return sorularSnap.docs;
   }
 
   @override
@@ -199,7 +243,8 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              entry.value, // Display the index and the subject name
+                                              entry
+                                                  .value, // Display the index and the subject name
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 18,
@@ -230,8 +275,8 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                           color: Colors.white,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withValues(alpha: 
-                                                0.5,
+                                              color: Colors.grey.withValues(
+                                                alpha: 0.5,
                                               ),
                                               spreadRadius: 2,
                                               blurRadius: 5,
@@ -345,8 +390,8 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                                           }
                                                         },
                                                         child: Container(
-                                                          width: 45,
-                                                          height: 45,
+                                                          width: 40,
+                                                          height: 40,
                                                           alignment:
                                                               Alignment.center,
                                                           decoration:
@@ -398,9 +443,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
             ),
             GestureDetector(
               onTap: () {
-                FirebaseFirestore.instance
-                    .collection("CikmisSorularGecmisi")
-                    .add({
+                FirebaseFirestore.instance.collection("questionsAnswers").add({
                   "cevaplar": selectedAnswers,
                   "dogruCevaplar": dogruCevaplarList,
                   "timeStamp": DateTime.now().millisecondsSinceEpoch,
@@ -451,7 +494,7 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                     ),
                   ),
                   Container(
-                    height: 200,
+                    height: 260,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.only(
@@ -490,13 +533,26 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                                 ],
                               ),
                               SizedBox(height: 15),
-                              Text(
-                                "Test sonuçlarına çıkmış sorular ekranındaki sonuçlarım ekranında bakabilirsin.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontFamily: "MontserratMedium",
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.12),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(10),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _resultItem(
+                                        "Doğru", _correctCount.toString()),
+                                    _resultItem(
+                                        "Yanlış", _wrongCount.toString()),
+                                    _resultItem("Boş", _emptyCount.toString()),
+                                    _resultItem(
+                                        "Net", _netScore.toStringAsFixed(2)),
+                                  ],
                                 ),
                               ),
                               SizedBox(height: 15),
@@ -536,4 +592,29 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
       ),
     );
   }
+}
+
+Widget _resultItem(String title, String value) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 16,
+          fontFamily: "MontserratBold",
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        title,
+        style: const TextStyle(
+          color: Colors.black54,
+          fontSize: 12,
+          fontFamily: "MontserratMedium",
+        ),
+      ),
+    ],
+  );
 }

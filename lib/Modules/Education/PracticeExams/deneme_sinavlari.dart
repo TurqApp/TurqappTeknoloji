@@ -15,22 +15,281 @@ import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
+import 'package:turqappv2/Core/Widgets/skeleton_loader.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DenemeSinavlari extends StatelessWidget {
-  DenemeSinavlari({super.key});
+  DenemeSinavlari({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
 
+  final bool embedded;
+  final bool showEmbeddedControls;
   final DenemeSinavlariController controller = Get.put(
     DenemeSinavlariController(),
   );
-  final ScrollController _scrollController = ScrollController();
+  ScrollController get _scrollController => controller.scrollController;
 
   @override
   Widget build(BuildContext context) {
     _scrollController.addListener(() {
       controller.scrollOffset.value = _scrollController.offset;
     });
+
+    final bodyContent = Expanded(
+      child: RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: controller.getData,
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(height: 20),
+                  EducationGridSkeleton(itemCount: 4),
+                ],
+              ),
+            );
+          }
+          if (controller.list.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.quiz_outlined,
+                      size: 60,
+                      color: Colors.grey,
+                    ),
+                    20.ph,
+                    Text(
+                      "Henüz Deneme Sınavı Bulunmuyor",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 20,
+                        fontFamily: "MontserratBold",
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    10.ph,
+                    Text(
+                      "Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                        fontFamily: "MontserratMedium",
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return ListView(
+            controller: _scrollController,
+            children: [
+              EducationSlider(
+                imageList: [
+                  AppAssets.practice1,
+                  AppAssets.practice2,
+                  AppAssets.practice3,
+                ],
+              ),
+              20.ph,
+              SizedBox(
+                height: 85,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  shrinkWrap: true,
+                  physics: BouncingScrollPhysics(),
+                  itemCount: sinavTurleriList.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: 25,
+                        left: index == 0 ? 20 : 0,
+                      ),
+                      child: GestureDetector(
+                        onTap: () {
+                          Get.to(
+                            () => DenemeTurleriListesi(
+                              sinavTuru: sinavTurleriList[index],
+                            ),
+                          );
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: tumderslerColors[index],
+                              ),
+                              child: Icon(
+                                dersler1icons[index],
+                                color: Colors.white,
+                              ),
+                            ),
+                            8.ph,
+                            Text(
+                              sinavTurleriList[index],
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (!embedded)
+                GestureDetector(
+                  onTap: () => Get.to(() => SearchDeneme()),
+                  child: Container(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: EdgeInsets.all(15),
+                      child: Container(
+                        height: 50,
+                        alignment: Alignment.centerLeft,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(12),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                AppIcons.search,
+                                color: Colors.pink,
+                              ),
+                              12.pw,
+                              Expanded(
+                                child: Text(
+                                  "Ara",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontFamily: "Montserrat",
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  "Online Sınav",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+              ),
+              15.ph,
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 15),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                    childAspectRatio: 0.49,
+                  ),
+                  itemCount: controller.list.length,
+                  itemBuilder: (context, index) {
+                    return DenemeGrid(
+                      model: controller.list[index],
+                      getData: controller.getData,
+                    );
+                  },
+                ),
+              ),
+              Obx(() => controller.isLoadingMore.value
+                  ? Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CupertinoActivityIndicator()),
+                    )
+                  : SizedBox.shrink()),
+            ],
+          );
+        }),
+      ),
+    );
+
+    if (embedded) {
+      return Stack(
+        children: [
+          Column(children: [bodyContent]),
+          Obx(
+            () => controller.showOkulAlert.value
+                ? okulAlertSheet(context, controller)
+                : SizedBox.shrink(),
+          ),
+          if (showEmbeddedControls)
+            ScrollTotopButton(
+              scrollController: _scrollController,
+              visibilityThreshold: 350,
+            ),
+          if (showEmbeddedControls)
+            Obx(() => Positioned(
+                bottom: 20,
+                right: 20,
+                child: Visibility(
+                    visible: controller.scrollOffset.value <= 350,
+                    child: ActionButton(context: context, menuItems: [
+                      PullDownMenuItem(
+                        icon: Icons.add,
+                        title: 'Oluştur',
+                        onTap: () {
+                          if (controller.okul.value) {
+                            Get.to(() => SinavHazirla());
+                          } else {
+                            controller.showOkulAlert.value = true;
+                          }
+                        },
+                      ),
+                      PullDownMenuItem(
+                        icon: Icons.history,
+                        title: 'Sonuçlarım',
+                        onTap: () => Get.to(() => SinavSonuclarim()),
+                      ),
+                      PullDownMenuItem(
+                        icon: CupertinoIcons.search,
+                        title: 'Ara',
+                        onTap: () => Get.to(() => SearchDeneme()),
+                      ),
+                    ])))),
+        ],
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -54,208 +313,18 @@ class DenemeSinavlari extends StatelessWidget {
                             ),
                           ),
                           TypewriterText(
-                            text: "Deneme Sınavları",
+                            text: "Online Sınav",
                           ),
                         ],
                       ),
                     ),
-                    // if (controller.ustBar.value)
                     IconButton(
                       onPressed: () => Get.to(() => SearchDeneme()),
                       icon: Icon(AppIcons.search, color: Colors.black),
                     ),
                   ],
                 ),
-                Expanded(
-                  child: RefreshIndicator(
-                    color: Colors.white,
-                    backgroundColor: Colors.black,
-                    onRefresh: controller.getData,
-                    child: Obx(() {
-                      if (controller.isLoading.value) {
-                        return Center(child: CupertinoActivityIndicator());
-                      }
-                      if (controller.list.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.quiz_outlined,
-                                  size: 60,
-                                  color: Colors.grey,
-                                ),
-                                20.ph,
-                                Text(
-                                  "Henüz Deneme Sınavı Bulunmuyor",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 20,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                10.ph,
-                                Text(
-                                  "Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.",
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      return ListView(
-                        controller: _scrollController,
-                        children: [
-                          EducationSlider(
-                            imageList: [
-                              AppAssets.practice1,
-                              AppAssets.practice2,
-                              AppAssets.practice3,
-                            ],
-                          ),
-                          20.ph,
-                          SizedBox(
-                            height: 85,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              shrinkWrap: true,
-                              physics: BouncingScrollPhysics(),
-                              itemCount: sinavTurleriList.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: 25,
-                                    left: index == 0 ? 20 : 0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Get.to(
-                                        () => DenemeTurleriListesi(
-                                          sinavTuru: sinavTurleriList[index],
-                                        ),
-                                      );
-                                    },
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          width: 50,
-                                          height: 50,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: tumderslerColors[index],
-                                          ),
-                                          child: Icon(
-                                            dersler1icons[index],
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        8.ph,
-                                        Text(
-                                          sinavTurleriList[index],
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 13,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Get.to(() => SearchDeneme()),
-                            child: Container(
-                              color: Colors.white,
-                              child: Padding(
-                                padding: EdgeInsets.all(15),
-                                child: Container(
-                                  height: 50,
-                                  alignment: Alignment.centerLeft,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(12),
-                                    ),
-                                  ),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          AppIcons.search,
-                                          color: Colors.pink,
-                                        ),
-                                        12.pw,
-                                        Expanded(
-                                          child: Text(
-                                            "Ara",
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "Montserrat",
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            child: Text(
-                              "Deneme Sınavları",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontFamily: "MontserratBold",
-                              ),
-                            ),
-                          ),
-                          15.ph,
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 15),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 4,
-                                mainAxisSpacing: 4,
-                                childAspectRatio: 0.49,
-                              ),
-                              itemCount: controller.list.length,
-                              itemBuilder: (context, index) {
-                                return DenemeGrid(
-                                  model: controller.list[index],
-                                  getData: controller.getData,
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
+                bodyContent,
               ],
             ),
             Obx(
@@ -294,7 +363,7 @@ class DenemeSinavlari extends StatelessWidget {
                         title: 'Ara',
                         onTap: () => Get.to(() => SearchDeneme()),
                       ),
-                    ]))))
+                    ])))),
           ],
         ),
       ),

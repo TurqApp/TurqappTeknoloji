@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +13,13 @@ class DenemeSinavlariController extends GetxController {
   var ustBar = true.obs;
   var showOkulAlert = false.obs;
   var isLoading = true.obs;
+  var isLoadingMore = false.obs;
+  var hasMore = true.obs;
   final ScrollController scrollController = ScrollController();
   double _previousOffset = 0.0;
   final RxDouble scrollOffset = 0.0.obs;
+  DocumentSnapshot? _lastDocument;
+  static const int _pageSize = 30;
 
   @override
   void onInit() {
@@ -36,11 +41,12 @@ class DenemeSinavlariController extends GetxController {
         if (!ustBar.value) ustBar.value = true;
       }
 
-      if (scrollController.position.pixels ==
-          scrollController.position.maxScrollExtent) {}
-
-      if (scrollController.position.pixels ==
-          scrollController.position.minScrollExtent) {}
+      if (scrollController.position.pixels >=
+          scrollController.position.maxScrollExtent - 200 &&
+          !isLoadingMore.value &&
+          hasMore.value) {
+        loadMore();
+      }
 
       _previousOffset = currentOffset;
     });
@@ -59,50 +65,69 @@ class DenemeSinavlariController extends GetxController {
     }
   }
 
+  SinavModel _fromDoc(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return SinavModel(
+      docID: doc.id,
+      cover: (data["cover"] ?? '') as String,
+      sinavTuru: (data["sinavTuru"] ?? '') as String,
+      timeStamp: (data["timeStamp"] ?? 0) as num,
+      sinavAciklama: (data["sinavAciklama"] ?? '') as String,
+      sinavAdi: (data["sinavAdi"] ?? '') as String,
+      kpssSecilenLisans: (data["kpssSecilenLisans"] ?? '') as String,
+      dersler: List<String>.from(data['dersler'] ?? []),
+      userID: (data["userID"] ?? '') as String,
+      public: (data["public"] ?? false) as bool,
+      taslak: (data["taslak"] ?? false) as bool,
+      soruSayilari: List<String>.from(data['soruSayilari'] ?? []),
+      bitis: (data["bitis"] ?? 0) as num,
+      bitisDk: (data["bitisDk"] ?? 0) as num,
+    );
+  }
+
   Future<void> getData() async {
     isLoading.value = true;
+    hasMore.value = true;
+    _lastDocument = null;
     try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection("Sinavlar").get();
-      list.clear();
-      for (var doc in snapshot.docs) {
-        final cover = doc.get("cover") as String;
-        final sinavAciklama = doc.get("sinavAciklama") as String;
-        final sinavAdi = doc.get("sinavAdi") as String;
-        final sinavTuru = doc.get("sinavTuru") as String;
-        final timeStamp = doc.get("timeStamp") as num;
-        final kpssSecilenLisans = doc.get("kpssSecilenLisans") as String;
-        final dersler = List<String>.from(doc['dersler'] ?? []);
-        final soruSayisi = List<String>.from(doc['soruSayilari'] ?? []);
-        final userID = doc.get("userID") as String;
-        final taslak = doc.get("taslak") as bool;
-        final public = doc.get("public") as bool;
-        final bitisDk = doc.get("bitisDk") as num;
-        final bitis = doc.get("bitis") as num;
+      final snapshot = await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .orderBy("timeStamp", descending: true)
+          .limit(_pageSize)
+          .get();
 
-        list.add(
-          SinavModel(
-            docID: doc.id,
-            cover: cover,
-            sinavTuru: sinavTuru,
-            timeStamp: timeStamp,
-            sinavAciklama: sinavAciklama,
-            sinavAdi: sinavAdi,
-            kpssSecilenLisans: kpssSecilenLisans,
-            dersler: dersler,
-            userID: userID,
-            public: public,
-            taslak: taslak,
-            soruSayilari: soruSayisi,
-            bitis: bitis,
-            bitisDk: bitisDk,
-          ),
-        );
-      }
+      list.assignAll(snapshot.docs.map(_fromDoc).toList());
+
+      if (snapshot.docs.isNotEmpty) _lastDocument = snapshot.docs.last;
+      if (snapshot.docs.length < _pageSize) hasMore.value = false;
     } catch (e) {
+      log("DenemeSinavlariController.getData error: $e");
       AppSnackbar("Hata", "Veriler yüklenemedi.");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_lastDocument == null || isLoadingMore.value || !hasMore.value) return;
+
+    isLoadingMore.value = true;
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .orderBy("timeStamp", descending: true)
+          .startAfterDocument(_lastDocument!)
+          .limit(_pageSize)
+          .get();
+
+      list.addAll(snapshot.docs.map(_fromDoc).toList());
+
+      if (snapshot.docs.isNotEmpty) _lastDocument = snapshot.docs.last;
+      if (snapshot.docs.length < _pageSize) hasMore.value = false;
+    } catch (e) {
+      log("DenemeSinavlariController.loadMore error: $e");
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 

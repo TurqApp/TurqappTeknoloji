@@ -60,7 +60,7 @@ List<TutoringCategoryModel> kategoriler = [
   TutoringCategoryModel(
     name: "Müzik",
     icon: Icons.music_note_outlined,
-    color: Colors.blue,
+    color: Colors.black,
   ),
   TutoringCategoryModel(
     name: "Tiyatro",

@@ -5,10 +5,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
-import 'package:path/path.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSorusuHazirla/sinav_sorusu_hazirla.dart';
 
@@ -117,14 +117,13 @@ class SinavHazirlaController extends GetxController {
 
   Future<void> uploadImage(File imageFile, String docID) async {
     try {
-      String fileName = basename(imageFile.path);
-      Reference firebaseStorageRef = FirebaseStorage.instance.ref().child(
-            'DenemeSinavlari/$docID/$fileName',
-          );
-      UploadTask uploadTask = firebaseStorageRef.putFile(imageFile);
-      TaskSnapshot taskSnapshot = await uploadTask;
-      String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-      await FirebaseFirestore.instance.collection("Sinavlar").doc(docID).update(
+      final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+        storage: FirebaseStorage.instance,
+        file: imageFile,
+        storagePathWithoutExt:
+            'practiceExams/$docID/cover',
+      );
+      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).update(
         {"cover": downloadUrl},
       );
     } catch (e) {
@@ -144,7 +143,7 @@ class SinavHazirlaController extends GetxController {
       );
 
       await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(docID.value)
           .set({
         "sinavAdi": sinavIsmi.value.text,

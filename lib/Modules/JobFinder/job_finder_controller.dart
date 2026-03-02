@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
@@ -16,6 +17,11 @@ class JobFinderController extends GetxController {
     AppAssets.practice2,
     AppAssets.practice3,
   ];
+
+  // Tab management
+  final innerTabIndex = 0.obs;
+  final innerPageController = PageController();
+  final innerTabTitles = ["Keşfet", "İlan Ver", "Başvurularım", "Kariyer Profili"];
 
   RxList<JobModel> allJobs = <JobModel>[].obs;
   RxList<JobModel> list = <JobModel>[].obs;
@@ -39,10 +45,29 @@ class JobFinderController extends GetxController {
     search.addListener(_searchListener);
   }
 
+  @override
+  void onClose() {
+    innerPageController.dispose();
+    search.dispose();
+    super.onClose();
+  }
+
+  void onInnerTabTap(int index) {
+    innerTabIndex.value = index;
+    innerPageController.jumpToPage(index);
+  }
+
+  void onInnerPageChanged(int index) {
+    innerTabIndex.value = index;
+  }
+
   Future<void> refreshJob(String docID) async {
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection("IsBul").doc(docID).get();
+      final doc = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(docID)
+          .get();
+
       if (doc.exists) {
         final updatedJob = JobModel.fromMap(doc.data()!, doc.id);
         final index = list.indexWhere((e) => e.docID == docID);
@@ -58,7 +83,7 @@ class JobFinderController extends GetxController {
 
   void _searchListener() {
     final query = search.text.trim();
-    if (query.length >= 3) {
+    if (query.length >= 2) {
       searchFromFirestore(query);
     } else {
       aramaSonucu.clear();
@@ -69,23 +94,20 @@ class JobFinderController extends GetxController {
     isLoading.value = true;
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection("IsBul")
+          .collection(JobCollection.name)
           .where("ended", isEqualTo: false)
           .get();
 
-      List<JobModel> allJobs = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return JobModel.fromMap(data, doc.id);
-      }).toList();
+      List<JobModel> allResults = snapshot.docs
+          .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+          .toList();
 
-      List<JobModel> results = allJobs.where((job) {
-        final tanim = job.isTanimi.toLowerCase();
-        final marka = job.brand.toLowerCase();
-        final meslek = job.meslek.toLowerCase();
-
-        return tanim.contains(query.toLowerCase()) ||
-            marka.contains(query.toLowerCase()) ||
-            meslek.contains(query.toLowerCase());
+      final q = query.toLowerCase();
+      List<JobModel> results = allResults.where((job) {
+        return job.isTanimi.toLowerCase().contains(q) ||
+            job.brand.toLowerCase().contains(q) ||
+            job.meslek.toLowerCase().contains(q) ||
+            job.ilanBasligi.toLowerCase().contains(q);
       }).toList();
 
       aramaSonucu.value = results;
@@ -103,7 +125,7 @@ class JobFinderController extends GetxController {
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
       final snapshot = await FirebaseFirestore.instance
-          .collection("IsBul")
+          .collection(JobCollection.name)
           .orderBy("timeStamp", descending: true)
           .limit(150)
           .get();
@@ -116,10 +138,9 @@ class JobFinderController extends GetxController {
 
         if (job.timeStamp < thirtyDaysAgo && !job.ended) {
           await FirebaseFirestore.instance
-              .collection("IsBul")
+              .collection(JobCollection.name)
               .doc(doc.id)
               .update({"ended": true});
-          print("🔕 Süresi dolan ilan kapatıldı: ${job.brand}");
           continue;
         }
 
@@ -138,10 +159,6 @@ class JobFinderController extends GetxController {
         list.value = jobs;
         allJobs.value = jobs;
         isLoading.value = false;
-        //
-        // for (var job in jobs) {
-        //   print(job.toMap());
-        // }
         return;
       }
 
@@ -151,10 +168,6 @@ class JobFinderController extends GetxController {
             permission == LocationPermission.deniedForever) {
           list.value = jobs;
           allJobs.value = jobs;
-
-          for (var job in jobs) {
-            print(job.toMap());
-          }
           return;
         }
       }
@@ -192,10 +205,6 @@ class JobFinderController extends GetxController {
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
       list.value = updatedJobs;
       allJobs.value = updatedJobs;
-
-      for (var job in updatedJobs) {
-        print(job.toMap());
-      }
     } catch (e) {
       print("Hata oluştu: $e");
     } finally {
@@ -204,20 +213,41 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> siralaTapped() async {
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final context = Get.context;
+    if (context == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              MediaQuery.of(sheetContext).padding.bottom + 12,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
                   "Sıralama Ölçütü",
                   style: TextStyle(
                     color: Colors.black,
@@ -225,57 +255,78 @@ class JobFinderController extends GetxController {
                     fontFamily: "MontserratBold",
                   ),
                 ),
+                const SizedBox(height: 12),
+                buildRow(0, "Önerilen Sıralama", () {
+                  short.value = 0;
+                  list.shuffle();
+                  Navigator.of(sheetContext).pop();
+                }),
+                buildRow(1, "Maaş'a Göre (Önce En Yüksek)", () {
+                  short.value = 1;
+                  applySorting(list);
+                  Navigator.of(sheetContext).pop();
+                }),
+                buildRow(2, "Maaş'a Göre (Önce En Düşük)", () {
+                  short.value = 2;
+                  applySorting(list);
+                  Navigator.of(sheetContext).pop();
+                }),
+                buildRow(3, "Bana En Yakın", () {
+                  short.value = 3;
+                  applySorting(list);
+                  Navigator.of(sheetContext).pop();
+                }),
               ],
             ),
-            SizedBox(height: 12),
-            buildRow(0, "Önerilen Sıralama", () {
-              short.value = 0;
-              list.shuffle();
-              Get.back();
-            }),
-            buildRow(1, "Maaş'a Göre (Önce En Yüksek)", () {
-              short.value = 1;
-              applySorting(list);
-              Get.back();
-            }),
-            buildRow(2, "Maaş'a Göre (Önce En Düşük)", () {
-              short.value = 2;
-              applySorting(list);
-              Get.back();
-            }),
-            buildRow(3, "Bana En Yakın", () {
-              short.value = 3;
-              applySorting(list);
-              Get.back();
-            }),
-            SizedBox(height: 12),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
+          ),
+        );
+      },
     );
   }
 
   Future<void> filtreTapped() async {
     RxString selectedType = "".obs;
+    RxString selectedDeneyim = "".obs;
 
-    final types = ["Tam Zamanlı", "Yarı Zamanlı", "Part-Time", "Uzaktan"];
+    final types = ["Tam Zamanlı", "Yarı Zamanlı", "Part-Time", "Uzaktan", "Hibrit"];
+    final deneyimSeviyeleri = ["Deneyimsiz", "Junior", "Mid-Level", "Senior"];
 
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: Obx(() {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    final context = Get.context;
+    if (context == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              MediaQuery.of(sheetContext).padding.bottom + 12,
+            ),
+            child: Obx(() {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
                     "Filtreleme Ölçütü",
                     style: TextStyle(
                       color: Colors.black,
@@ -283,94 +334,115 @@ class JobFinderController extends GetxController {
                       fontFamily: "MontserratBold",
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 12),
-              Text("Çalışma Türü",
-                  style: TextStyle(fontFamily: "MontserratMedium")),
-              SizedBox(height: 8),
-              ...types.map((type) => buildFilterRow(
-                    type,
-                    selectedType.value == type,
-                    () {
-                      selectedType.value =
-                          selectedType.value == type ? "" : type;
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Çalışma Türü",
+                    style: TextStyle(fontFamily: "MontserratMedium"),
+                  ),
+                  const SizedBox(height: 8),
+                  ...types.map((type) => buildFilterRow(
+                        type,
+                        selectedType.value == type,
+                        () {
+                          selectedType.value =
+                              selectedType.value == type ? "" : type;
+                        },
+                      )),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Deneyim Seviyesi",
+                    style: TextStyle(fontFamily: "MontserratMedium"),
+                  ),
+                  const SizedBox(height: 8),
+                  ...deneyimSeviyeleri.map((seviye) => buildFilterRow(
+                        seviye,
+                        selectedDeneyim.value == seviye,
+                        () {
+                          selectedDeneyim.value =
+                              selectedDeneyim.value == seviye ? "" : seviye;
+                        },
+                      )),
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () {
+                      filtre.value = true;
+
+                      final filtered = allJobs.where((job) {
+                        final matchCity =
+                            sehir.value.isEmpty || sehir.value == "Tüm Türkiye" || job.city == sehir.value;
+                        final matchType = selectedType.value.isEmpty ||
+                            job.calismaTuru
+                                .map((e) => e.toLowerCase().trim())
+                                .contains(
+                                    selectedType.value.toLowerCase().trim());
+                        final matchDeneyim = selectedDeneyim.value.isEmpty ||
+                            job.deneyimSeviyesi == selectedDeneyim.value;
+                        return matchCity && matchType && matchDeneyim;
+                      }).toList();
+
+                      applySorting(filtered);
+                      list.value = filtered;
+                      Navigator.of(sheetContext).pop();
                     },
-                  )),
-              SizedBox(height: 20),
-              GestureDetector(
-                onTap: () {
-                  filtre.value = true;
-
-                  // 🔎 Filtreyi uygula (şehir artık zaten sehir.value içinde)
-                  List<JobModel> filtered = allJobs.where((job) {
-                    final matchCity =
-                        sehir.value.isEmpty || job.city == sehir.value;
-                    final matchType = selectedType.value.isEmpty ||
-                        job.calismaTuru
-                            .map((e) => e.toLowerCase().trim())
-                            .contains(selectedType.value.toLowerCase().trim());
-                    return matchCity && matchType;
-                  }).toList();
-
-                  applySorting(filtered);
-                  list.value = filtered;
-                  Get.back();
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "Filtreyi Uygula",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: "MontserratBold",
+                        ),
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    "Filtreyi Uygula",
-                    style: TextStyle(
-                        color: Colors.white, fontFamily: "MontserratBold"),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: () {
+                      filtre.value = false;
+                      short.value = 0;
+                      list.value = allJobs.toList();
+                      applySorting(list);
+                      Navigator.of(sheetContext).pop();
+                    },
+                    child: const Center(
+                      child: Text(
+                        "Filtreleri Temizle",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              SizedBox(height: 10),
-              GestureDetector(
-                onTap: () {
-                  filtre.value = false;
-                  short.value = 0;
-                  list.value = allJobs.toList();
-                  applySorting(list);
-                  Get.back();
-                },
-                child: Center(
-                  child: Text(
-                    "Filtreleri Temizle",
-                    style: TextStyle(
-                        color: Colors.red, fontFamily: "MontserratMedium"),
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-            ],
-          );
-        }),
-      ),
-      isScrollControlled: true,
+                  const SizedBox(height: 6),
+                ],
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 
   void applySorting(List<JobModel> jobs) {
     switch (short.value) {
-      case 1:
-        jobs.sort((a, b) => a.maas1.compareTo(b.maas1)); // Yüksek maaş
+      case 1: // Önce En Yüksek
+        jobs.sort((a, b) => b.maas1.compareTo(a.maas1));
         break;
-      case 2:
-        jobs.sort((b, a) => a.maas1.compareTo(b.maas1)); // Düşük maaş
+      case 2: // Önce En Düşük
+        jobs.sort((a, b) => a.maas1.compareTo(b.maas1));
         break;
       case 3:
-        jobs.sort((a, b) => a.kacKm.compareTo(b.kacKm)); // En yakın
+        jobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
         break;
       default:
-        jobs.shuffle(); // Önerilen
+        jobs.shuffle();
     }
   }
 
@@ -488,14 +560,11 @@ class JobFinderController extends GetxController {
           title: "Şehir Seç",
           startSelection: sehir.value,
           onBackData: (v) {
-            print("SELECTED $v");
             sehir.value = v;
 
-            // 🔄 Filtre ve sıralamayı sıfırla
             filtre.value = false;
             short.value = 0;
 
-            // ✅ Tüm Türkiye ise filtreleme yapma
             if (v == "Tüm Türkiye" || v.isEmpty) {
               list.value = allJobs.where((job) => !job.ended).toList();
             } else {

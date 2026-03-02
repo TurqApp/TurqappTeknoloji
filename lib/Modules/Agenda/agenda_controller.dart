@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -19,6 +20,7 @@ class AgendaController extends GetxController {
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
+
   /// FAB gösterimi için kullanılır. Her frame'de reactive güncelleme yapmak yerine
   /// sadece eşik aşıldığında güncellenir (scroll jank'ı engeller).
   final RxBool showFAB = true.obs;
@@ -168,6 +170,10 @@ class AgendaController extends GetxController {
 
   void _updateFeedPrefetchQueue() {
     if (agendaList.isEmpty) return;
+
+    // C-006: Sonraki 5 post'un görsellerini prefetch et
+    _prefetchUpcomingImages();
+
     final videoPosts = agendaList.where((p) => p.hasPlayableVideo).toList();
     if (videoPosts.isEmpty) return;
 
@@ -246,6 +252,23 @@ class AgendaController extends GetxController {
     });
   }
 
+  /// C-006: Sonraki 5 post'un görsellerini disk cache'e prefetch et.
+  void _prefetchUpcomingImages() {
+    final current = centeredIndex.value.clamp(0, agendaList.length - 1);
+    final end = (current + 6).clamp(0, agendaList.length);
+    for (int i = current + 1; i < end; i++) {
+      final post = agendaList[i];
+      // Post görseli
+      if (post.img.isNotEmpty) {
+        TurqImageCacheManager.instance.getSingleFile(post.img.first).ignore();
+      }
+      // Thumbnail (video postlar için)
+      if (post.thumbnail.isNotEmpty) {
+        TurqImageCacheManager.instance.getSingleFile(post.thumbnail).ignore();
+      }
+    }
+  }
+
   /// Uygulama açıkken dışarıdan tetiklenen hafif cache ısınması.
   void ensureFeedCacheWarm() {
     _scheduleFeedPrefetch();
@@ -269,10 +292,23 @@ class AgendaController extends GetxController {
       _visibleFractions[modelIndex] = visibleFraction;
       _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
-    _visibilityDebounce?.cancel();
-    _visibilityDebounce = Timer(const Duration(milliseconds: 120), () {
-      _applyVisibilityDecision();
-    });
+
+    // Arşiv projedeki daha stabil akış:
+    // detector anında centeredIndex'i belirler, ek "bestFraction" yarışı yapmaz.
+    const double playThreshold = 0.60;
+    const double stopThreshold = 0.25;
+
+    if (visibleFraction >= playThreshold) {
+      if (centeredIndex.value != modelIndex) {
+        centeredIndex.value = modelIndex;
+        lastCenteredIndex = modelIndex;
+      }
+      return;
+    }
+
+    if (visibleFraction < stopThreshold && centeredIndex.value == modelIndex) {
+      centeredIndex.value = -1;
+    }
   }
 
   void _applyVisibilityDecision() {
@@ -300,19 +336,25 @@ class AgendaController extends GetxController {
       }
     });
 
-    // Oynayan post artık neredeyse görünmüyorsa sesi anında kes.
+    // Oynayan video görünür kaldıkça devam etsin; erken stop hissini azalt.
     if (current >= 0) {
       final currentVisible = _visibleFractions[current] ?? 0.0;
-      if (currentVisible < 0.05) {
+      if (currentVisible < 0.18) {
         centeredIndex.value = -1;
         return;
       }
     }
 
-    // Ekranda en görünür post oynasın.
-    // Header + padding nedeniyle 0.55 pratik ve stabil eşik.
-    if (bestIndex >= 0 && bestFraction >= 0.55) {
+    // Video alanı görünürlüğüne geçtiğimiz için daha düşük eşik doğal his verir.
+    if (bestIndex >= 0 && bestFraction >= 0.35) {
       if (current != bestIndex) {
+        final currentVisible =
+            current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
+        if (current >= 0 &&
+            currentVisible >= 0.28 &&
+            bestFraction < currentVisible + 0.10) {
+          return;
+        }
         centeredIndex.value = bestIndex;
         lastCenteredIndex = bestIndex;
       }
@@ -320,7 +362,7 @@ class AgendaController extends GetxController {
     }
 
     // Hiçbir post yeterince görünmüyorsa durdur.
-    if (current != -1 && (bestIndex == -1 || bestFraction < 0.20)) {
+    if (current != -1 && (bestIndex == -1 || bestFraction < 0.18)) {
       centeredIndex.value = -1;
     }
   }
@@ -328,24 +370,32 @@ class AgendaController extends GetxController {
   void _bindFollowingListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('TakipEdilenler')
-        .snapshots()
-        .listen((snap) {
-      followingIDs.assignAll(snap.docs.map((d) => d.id).toSet());
-    });
+    // İlk yükleme: pull-based (SWR pattern)
+    _fetchFollowingAndReshares(uid);
+  }
 
-    // Also bind my reshares to reflect duplicates in feed
-    FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('reshared_posts')
-        .snapshots()
-        .listen((snap) {
+  /// Pull-based following + reshares fetch (realtime listener yerine).
+  /// Dışarıdan da çağrılabilir (ör. follow/unfollow sonrası).
+  Future<void> _fetchFollowingAndReshares(String uid) async {
+    try {
+      final followSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('TakipEdilenler')
+          .get();
+      followingIDs.assignAll(followSnap.docs.map((d) => d.id).toSet());
+    } catch (_) {}
+
+    try {
+      final reshareSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('reshared_posts')
+          .orderBy('timeStamp', descending: true)
+          .limit(200)
+          .get();
       final map = <String, int>{};
-      for (final doc in snap.docs) {
+      for (final doc in reshareSnap.docs) {
         final data = doc.data();
         final postId = data['post_docID'] as String?;
         if (postId == null || postId.isEmpty) continue;
@@ -353,7 +403,14 @@ class AgendaController extends GetxController {
         map[postId] = ts;
       }
       myReshares.value = map;
-    });
+    } catch (_) {}
+  }
+
+  /// Follow/unfollow sonrası çağrılabilecek refresh metodu.
+  Future<void> refreshFollowingData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await _fetchFollowingAndReshares(uid);
   }
 
   // Fetch a few recent reshares for these posts from followers and public users
@@ -458,7 +515,9 @@ class AgendaController extends GetxController {
     if (data == null) return false;
     final deletedAccount = (data['deletedAccount'] ?? false) == true;
     final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-    return deletedAccount || status == 'pending_deletion' || status == 'deleted';
+    return deletedAccount ||
+        status == 'pending_deletion' ||
+        status == 'deleted';
   }
 
   Future<bool> _isUserDeactivated(String userID) async {
@@ -466,8 +525,10 @@ class AgendaController extends GetxController {
       return _userDeactivatedCache[userID]!;
     }
     try {
-      final d =
-          await FirebaseFirestore.instance.collection('users').doc(userID).get();
+      final d = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userID)
+          .get();
       final data = d.data();
       final deactivated = _isUserMarkedDeactivated(data);
       _userDeactivatedCache[userID] = deactivated;
@@ -910,8 +971,7 @@ class AgendaController extends GetxController {
 
       // Reshare'leri gecikmeli getir (bant genişliği çakışmasını önle)
       Future.delayed(const Duration(seconds: 2), () {
-        fetchResharesForPosts(
-            agendaList.take(10).toList(), perPostLimit: 1);
+        fetchResharesForPosts(agendaList.take(10).toList(), perPostLimit: 1);
       });
     } catch (_) {}
   }
@@ -1028,6 +1088,10 @@ class AgendaController extends GetxController {
 
       publicReshareEvents.clear();
       feedReshareEntries.clear();
+
+      // Following/reshare verilerini yenile (SWR)
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) unawaited(_fetchFollowingAndReshares(uid));
 
       // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
       await fetchAgendaBigData(initial: true);

@@ -22,7 +22,7 @@ class DenemeTurleriListesiController extends GetxController {
     isLoading.value = true;
     try {
       QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .where("sinavTuru", isEqualTo: sinavTuru)
           .get();
 

@@ -75,6 +75,7 @@ dependencies:
   firebase_remote_config: ^6.1.1
   app_links: ^6.4.1
   giphy_get: ^3.6.1+1
+  flutter_cache_manager: ^3.4.1
 
 dev_dependencies:
   flutter_test:

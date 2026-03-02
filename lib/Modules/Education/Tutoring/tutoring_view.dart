@@ -19,65 +19,33 @@ import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/MyTutoringApplications/my_tutoring_applications.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class TutoringView extends StatelessWidget {
-  TutoringView({super.key});
+  TutoringView({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
 
+  final bool embedded;
+  final bool showEmbeddedControls;
   final TutoringController tutoringController = Get.put(TutoringController());
-  final ScrollController _scrollController = ScrollController();
+  final ViewModeController viewModeController = Get.put(ViewModeController());
+  final TutoringFilterController filterController =
+      Get.put(TutoringFilterController());
+  final applyFilterTrigger = false.obs;
+  ScrollController get _scrollController => tutoringController.scrollController;
 
   @override
   Widget build(BuildContext context) {
     Get.put(SavedTutoringsController());
-    final ViewModeController viewModeController = Get.put(ViewModeController());
-    final TutoringFilterController filterController = Get.put(
-      TutoringFilterController(),
-    );
-
-    var applyFilterTrigger = false.obs;
-    _scrollController.addListener(() {
-      tutoringController.scrollOffset.value = _scrollController.offset;
-    });
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Stack(children: [
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Get.back();
-                        },
-                        icon: Icon(
-                          AppIcons.arrowLeft,
-                          color: Colors.black,
-                          size: 25,
-                        ),
-                      ),
-                      TypewriterText(
-                        text: "Özel Ders",
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Get.to(() => TutoringSearch());
-                    },
-                    icon: Icon(AppIcons.search),
-                  ),
-                ],
-              ),
-              Expanded(
+    final bodyContent = Expanded(
                 child: RefreshIndicator(
                   color: Colors.white,
                   backgroundColor: Colors.black,
@@ -199,39 +167,41 @@ class TutoringView extends StatelessWidget {
                           ),
                           16.ph,
                           TutoringCategoryWidget(categories: kategoriler),
-                          16.ph,
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  height: 50,
-                                  margin: EdgeInsets.symmetric(horizontal: 15),
-                                  child: CupertinoTextField(
-                                    focusNode: tutoringController.focusNode,
-                                    cursorColor: Colors.black,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    placeholder: "Ara",
-                                    onTap: () {
-                                      Get.to(() => TutoringSearch());
-                                    },
-                                    prefix: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8,
+                          if (!embedded) ...[
+                            16.ph,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    height: 50,
+                                    margin: EdgeInsets.symmetric(horizontal: 15),
+                                    child: CupertinoTextField(
+                                      focusNode: tutoringController.focusNode,
+                                      cursorColor: Colors.black,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: Icon(
-                                        AppIcons.search,
-                                        color: Colors.pink,
+                                      placeholder: "Ara",
+                                      onTap: () {
+                                        Get.to(() => TutoringSearch());
+                                      },
+                                      prefix: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                        child: Icon(
+                                          AppIcons.search,
+                                          color: Colors.pink,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                           16.ph,
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 15),
@@ -297,62 +267,132 @@ class TutoringView extends StatelessWidget {
                               ),
                             );
                           }),
+                          Obx(() {
+                            if (tutoringController.isLoadingMore.value) {
+                              return Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                    child: CupertinoActivityIndicator()),
+                              );
+                            }
+                            return SizedBox.shrink();
+                          }),
                         ],
                       );
                     }),
                   ),
                 ),
-              ),
+              );
+
+    final overlays = [
+      ScrollTotopButton(
+        scrollController: _scrollController,
+        visibilityThreshold: 350,
+      ),
+      Obx(
+        () => Positioned(
+          bottom: 20,
+          right: 20,
+          child: Visibility(
+            visible: tutoringController.scrollOffset.value <= 350,
+            child: ActionButton(
+              context: context,
+              menuItems: [
+                PullDownMenuItem(
+                  title: 'Başvurularım',
+                  icon: CupertinoIcons.doc_text,
+                  onTap: () {
+                    Get.to(() => MyTutoringApplications());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'Kaydedilenler',
+                  icon: AppIcons.save,
+                  onTap: () {
+                    Get.to(() => SavedTutorings());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'Bölgemdeki İlanlar',
+                  icon: AppIcons.locationSolid,
+                  onTap: () {
+                    Get.to(() => LocationBasedTutoring());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'Özel Ders İlanlarım',
+                  icon: CupertinoIcons.list_bullet,
+                  onTap: () {
+                    Get.to(MyTutorings());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'Oluştur',
+                  icon: CupertinoIcons.add_circled,
+                  onTap: () {
+                    Get.to(CreateTutoringView());
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
+
+    if (embedded) {
+      return Stack(
+        children: [
+          Column(
+            children: [
+              bodyContent,
               15.ph,
             ],
           ),
-          ScrollTotopButton(
-            scrollController: _scrollController,
-            visibilityThreshold: 350,
-          ),
-          // ActionButton
-          Obx(
-            () => Positioned(
-              bottom: 20,
-              right: 20,
-              child: Visibility(
-                visible: tutoringController.scrollOffset.value <= 350,
-                child: ActionButton(
-                  context: context,
-                  menuItems: [
-                    PullDownMenuItem(
-                      title: 'Kaydedilenler',
-                      icon: AppIcons.save,
-                      onTap: () {
-                        Get.to(() => SavedTutorings());
-                      },
-                    ),
-                    PullDownMenuItem(
-                      title: 'Bölgemdeki İlanlar',
-                      icon: AppIcons.locationSolid,
-                      onTap: () {
-                        Get.to(() => LocationBasedTutoring());
-                      },
-                    ),
-                    PullDownMenuItem(
-                      title: 'Özel Ders İlanlarım',
-                      icon: CupertinoIcons.list_bullet,
-                      onTap: () {
-                        Get.to(MyTutorings());
-                      },
-                    ),
-                    PullDownMenuItem(
-                      title: 'Oluştur',
-                      icon: CupertinoIcons.add_circled,
-                      onTap: () {
-                        Get.to(CreateTutoringView());
-                      },
-                    ),
-                  ],
-                ),
+          if (showEmbeddedControls) ...overlays,
+        ],
+      );
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Stack(children: [
+          Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Get.back();
+                        },
+                        icon: Icon(
+                          AppIcons.arrowLeft,
+                          color: Colors.black,
+                          size: 25,
+                        ),
+                      ),
+                      TypewriterText(
+                        text: "Özel Ders",
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Get.to(() => TutoringSearch());
+                    },
+                    icon: Icon(AppIcons.search),
+                  ),
+                ],
               ),
-            ),
+              bodyContent,
+              15.ph,
+            ],
           ),
+          ...overlays,
         ]),
       ),
     );

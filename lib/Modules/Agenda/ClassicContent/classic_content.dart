@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/nickname_with_text_line.dart';
@@ -702,9 +703,9 @@ class _ClassicContentState extends State<ClassicContent>
 
   String _pollRemainingLabel(
       {required bool expired, required int expiresAtMs}) {
-    if (expired) return 'Süre doldu';
+    if (expired) return 'Süre Doldu';
     final remainingMs = expiresAtMs - DateTime.now().millisecondsSinceEpoch;
-    if (remainingMs <= 0) return 'Süre doldu';
+    if (remainingMs <= 0) return 'Süre Doldu';
     final totalMinutes = (remainingMs / 60000).floor();
     final totalHours = (totalMinutes / 60).floor();
     final days = (totalHours / 24).floor();
@@ -718,216 +719,201 @@ class _ClassicContentState extends State<ClassicContent>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Stack(
-          children: [
-            if (videoController != null)
-              Stack(
-                children: [
-                  // Video Player
-                  GestureDetector(
-                    onTap: null,
-                    onDoubleTap: () {
-                      controller.like();
-                    },
-                    child: AspectRatio(
-                      aspectRatio: _contentAspectRatio,
-                      child: _isFullscreen
-                          ? const SizedBox.shrink()
-                          : videoController!.buildPlayer(
-                              key: ValueKey(
-                                  'classic-${widget.model.docID}-${videoController.hashCode}'),
-                              aspectRatio: _contentAspectRatio,
-                              useAspectRatio: false,
-                            ),
-                    ),
-                  ),
-                  // Thumbnail overlay - video hazır olana kadar göster
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, child) {
-                      if (v.isInitialized && v.position > Duration.zero) {
-                        return const SizedBox.shrink();
-                      }
-                      return child!;
-                    },
-                    child: AspectRatio(
-                      aspectRatio: _contentAspectRatio,
-                      child: widget.model.thumbnail.isNotEmpty
-                          ? Image.network(
-                              widget.model.thumbnail,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  Container(color: const Color(0xFFE8E8E8)),
-                            )
-                          : Container(color: const Color(0xFFE8E8E8)),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: buildUploadIndicator(),
-                  ),
-                ],
-              )
-            else
-              Stack(
-                children: [
-                  AspectRatio(
-                    aspectRatio: _contentAspectRatio,
-                    child: Container(
-                      color: const Color(0xFFE8E8E8),
-                      child: widget.model.thumbnail.isEmpty
-                          ? null
-                          : Image.network(
-                              widget.model.thumbnail,
-                              fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const SizedBox.shrink();
-                              },
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const SizedBox.shrink(),
-                            ),
-                    ),
-                  ),
-                  // OriginalUserAttribution for video thumbnail
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8, bottom: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (widget.model.floodCount > 1) Texts.colorfulFlood,
-                          SharedPostLabel(
-                            originalUserID: widget.model.originalUserID,
-                            // sharedAsPost removed
-                          ),
-                        ],
+        VisibilityDetector(
+          key: Key('classic-media-${widget.model.docID}'),
+          onVisibilityChanged: (info) {
+            reportMediaVisibility(info.visibleFraction);
+          },
+          child: Stack(
+            children: [
+              if (videoController != null)
+                Stack(
+                  children: [
+                    // Video Player
+                    GestureDetector(
+                      onTap: null,
+                      onDoubleTap: () {
+                        controller.like();
+                      },
+                      child: AspectRatio(
+                        aspectRatio: _contentAspectRatio,
+                        child: _isFullscreen
+                            ? const SizedBox.shrink()
+                            : videoController!.buildPlayer(
+                                key: ValueKey(
+                                    'classic-${widget.model.docID}-${videoController.hashCode}'),
+                                aspectRatio: _contentAspectRatio,
+                                useAspectRatio: false,
+                              ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    // Thumbnail overlay - video hazır olana kadar göster
+                    ValueListenableBuilder<HLSVideoValue>(
+                      valueListenable: videoValueNotifier,
+                      builder: (_, v, child) {
+                        if (v.isInitialized && v.position > Duration.zero) {
+                          return const SizedBox.shrink();
+                        }
+                        return child!;
+                      },
+                      child: AspectRatio(
+                        aspectRatio: _contentAspectRatio,
+                        child: widget.model.thumbnail.isNotEmpty
+                            ? Image.network(
+                                widget.model.thumbnail,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    Container(color: const Color(0xFFE8E8E8)),
+                              )
+                            : Container(color: const Color(0xFFE8E8E8)),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: buildUploadIndicator(),
+                    ),
+                  ],
+                )
+              else
+                Stack(
+                  children: [
+                    AspectRatio(
+                      aspectRatio: _contentAspectRatio,
+                      child: Container(
+                        color: const Color(0xFFE8E8E8),
+                        child: widget.model.thumbnail.isEmpty
+                            ? null
+                            : Image.network(
+                                widget.model.thumbnail,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const SizedBox.shrink();
+                                },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: buildUploadIndicator(),
+                    ),
+                  ],
+                ),
 
-            // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
-            if (videoController != null)
-              ValueListenableBuilder<HLSVideoValue>(
-                valueListenable: videoValueNotifier,
-                builder: (_, v, __) {
-                  if (!v.isInitialized) return const SizedBox.shrink();
-                  final remaining = v.duration - v.position;
-                  final safeRemaining =
-                      remaining.isNegative ? Duration.zero : remaining;
-                  return Stack(
-                    children: [
-                      Positioned(
-                        top: 50,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatDuration(safeRemaining),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
+              // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
+              if (videoController != null)
+                ValueListenableBuilder<HLSVideoValue>(
+                  valueListenable: videoValueNotifier,
+                  builder: (_, v, __) {
+                    if (!v.isInitialized) return const SizedBox.shrink();
+                    final remaining = v.duration - v.position;
+                    final safeRemaining =
+                        remaining.isNegative ? Duration.zero : remaining;
+                    return Stack(
+                      children: [
+                        Positioned(
+                          top: 50,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _formatDuration(safeRemaining),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontFamily: "Montserrat",
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                      ],
+                    );
+                  },
+                ),
 
-            if (videoController != null && widget.model.floodCount > 1)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                child: Texts.colorfulFloodForVideo,
-              ),
+              if (videoController != null && widget.model.floodCount > 1)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  child: Texts.colorfulFloodForVideo,
+                ),
 
-            if (isVideoFromCache)
-              Positioned(
-                left: 8,
-                bottom: (widget.model.floodCount > 1) ? 26 : 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(10),
+              if (isVideoFromCache)
+                Positioned(
+                  left: 8,
+                  bottom: (widget.model.floodCount > 1) ? 26 : 8,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.circle,
+                      size: 8,
+                      color: Colors.green,
+                    ),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.circle, size: 8, color: Colors.red),
-                      SizedBox(width: 4),
-                      Text(
-                        'Kes',
-                        style: TextStyle(
+                ),
+
+              if (widget.model.originalUserID.isNotEmpty)
+                Positioned(
+                  left: 8,
+                  bottom: isVideoFromCache
+                      ? ((widget.model.floodCount > 1) ? 52 : 34)
+                      : ((widget.model.floodCount > 1) ? 26 : 8),
+                  child: SharedPostLabel(
+                    originalUserID: widget.model.originalUserID,
+                    textColor: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () {
+                    agendaController.isMuted.toggle();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Obx(() => Icon(
+                          agendaController.isMuted.value
+                              ? CupertinoIcons.volume_off
+                              : CupertinoIcons.volume_up,
                           color: Colors.white,
-                          fontSize: 10,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
-                    ],
+                          size: 20,
+                        )),
                   ),
                 ),
               ),
 
-            if (widget.model.originalUserID.isNotEmpty)
               Positioned(
-                left: 8,
-                bottom: isVideoFromCache
-                    ? ((widget.model.floodCount > 1) ? 52 : 34)
-                    : ((widget.model.floodCount > 1) ? 26 : 8),
-                child: SharedPostLabel(
-                  originalUserID: widget.model.originalUserID,
-                  textColor: Colors.white,
-                  fontSize: 12,
-                ),
+                top: 0,
+                left: 0,
+                right: 0,
+                child: headerUserInfoWhite(),
               ),
-
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () {
-                  agendaController.isMuted.toggle();
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Obx(() => Icon(
-                        agendaController.isMuted.value
-                            ? CupertinoIcons.volume_off
-                            : CupertinoIcons.volume_up,
-                        color: Colors.white,
-                        size: 20,
-                      )),
-                ),
-              ),
-            ),
-
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: headerUserInfoWhite(),
-            ),
-          ],
+            ],
+          ),
         ),
         // Alt-sol: yeniden paylaşıldı etiketi (video)
         if (widget.isReshared)
@@ -1382,6 +1368,19 @@ class _ClassicContentState extends State<ClassicContent>
             title: 'Düzenle',
             icon: CupertinoIcons.pencil_circle,
           ),
+        if (controller.canSendAdminPush)
+          PullDownMenuItem(
+            onTap: () {
+              videoController?.pause();
+              controller.sendAdminPushForPost().whenComplete(() {
+                if (widget.shouldPlay) {
+                  videoController?.play();
+                }
+              });
+            },
+            title: 'Push',
+            icon: CupertinoIcons.bell,
+          ),
         PullDownMenuItem(
           onTap: () async {
             final previewImage = widget.model.thumbnail.trim().isNotEmpty
@@ -1422,7 +1421,7 @@ class _ClassicContentState extends State<ClassicContent>
             });
           },
           title: 'Paylaş',
-          icon: CupertinoIcons.share,
+          icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
             FirebaseAuth.instance.currentUser!.uid ==

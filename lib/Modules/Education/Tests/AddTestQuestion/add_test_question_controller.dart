@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'dart:io';
 
@@ -80,13 +80,12 @@ class AddTestQuestionController extends GetxController {
         Get.snackbar('Hata', 'Uygunsuz görsel tespit edildi.');
         return;
       }
-      final fileName = basename(imageFile.path);
-      final firebaseStorageRef = FirebaseStorage.instance.ref().child(
-        'Testler/$testID/$fileName',
+      final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+        storage: FirebaseStorage.instance,
+        file: imageFile,
+        storagePathWithoutExt:
+            'Testler/$testID/${DateTime.now().millisecondsSinceEpoch}',
       );
-      final uploadTask = firebaseStorageRef.putFile(imageFile);
-      final taskSnapshot = await uploadTask.whenComplete(() => null);
-      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
       print("Download URL: $downloadUrl");
 
       await FirebaseFirestore.instance

@@ -20,6 +20,10 @@ import 'network_policy.dart';
 /// 3. current+1, current+2'nin tüm segmentleri
 class PrefetchScheduler extends GetxController {
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
+  static const Map<String, String> _cdnHeaders = {
+    'X-Turq-App': 'turqapp-mobile',
+    'Referer': '$_cdnOrigin/',
+  };
   // +5/-5 kuralı: önündeki 5 videonun min 2 segmenti hazır olmalı
   static const int _fallbackBreadthCount = 5;
   static const int _fallbackBreadthSegments = 2;
@@ -28,9 +32,9 @@ class PrefetchScheduler extends GetxController {
   static const int _fallbackFeedFullWindow = 5;
   static const int _fallbackFeedPrepWindow = 8;
   static const int _fallbackFeedPrepSegments = 2;
-  static const int _wifiMinBreadthCount = 10;
-  static const int _wifiMinBreadthSegments = 3;
-  static const int _wifiMinDepthCount = 5;
+  static const int _wifiMinBreadthCount = 12;
+  static const int _wifiMinBreadthSegments = 4;
+  static const int _wifiMinDepthCount = 7;
   static const int _wifiMinMaxConcurrent = 4;
   static const int _wifiMinFeedFullWindow = 10;
   static const int _wifiMinFeedPrepWindow = 20;
@@ -325,7 +329,7 @@ class PrefetchScheduler extends GetxController {
       } else {
         final url = '$_cdnOrigin/$masterPath';
         final response = await _httpClient
-            .get(Uri.parse(url))
+            .get(Uri.parse(url), headers: _cdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           masterContent = response.body;
@@ -352,7 +356,7 @@ class PrefetchScheduler extends GetxController {
       } else {
         final url = '$_cdnOrigin/$variantPath';
         final response = await _httpClient
-            .get(Uri.parse(url))
+            .get(Uri.parse(url), headers: _cdnHeaders)
             .timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           variantContent = response.body;

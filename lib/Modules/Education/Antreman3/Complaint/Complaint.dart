@@ -55,7 +55,7 @@ class ComplaintController extends GetxController {
 
     try {
       await FirebaseFirestore.instance
-          .collection('Sikayetler')
+          .collection('reports')
           .add(sikayet.toJson());
       AppSnackbar("Başarılı", "Bilgilendirmeniz için teeşkkürler.");
     } catch (e) {
@@ -95,16 +95,11 @@ class ComplaintBottomSheet extends StatelessWidget {
     ];
 
     // Calculate percentages
-    final double correctPercentage = (question.dogruCevapVerenler.length /
-            (question.dogruCevapVerenler.length +
-                question.yanlisCevapVerenler.length +
-                1)) *
-        100;
-    final double incorrectPercentage = (question.yanlisCevapVerenler.length /
-            (question.dogruCevapVerenler.length +
-                question.yanlisCevapVerenler.length +
-                1)) *
-        100;
+    final int totalAnswers = question.correctCount + question.wrongCount;
+    final double correctPercentage =
+        totalAnswers == 0 ? 0 : (question.correctCount / totalAnswers) * 100;
+    final double incorrectPercentage =
+        totalAnswers == 0 ? 0 : (question.wrongCount / totalAnswers) * 100;
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -159,10 +154,10 @@ class ComplaintBottomSheet extends StatelessWidget {
                       horizontal: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? Colors.blue[50] : Colors.white,
+                      color: isSelected ? Colors.grey.shade100 : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? Colors.blue : Colors.grey[300]!,
+                        color: isSelected ? Colors.black : Colors.grey[300]!,
                         width: 1,
                       ),
                     ),
@@ -173,8 +168,7 @@ class ComplaintBottomSheet extends StatelessWidget {
                           option['title']!,
                           style: TextStyle(
                             fontSize: 16,
-                            color:
-                                isSelected ? Colors.blue[800] : Colors.black54,
+                            color: isSelected ? Colors.black : Colors.black54,
                             fontFamily: isSelected
                                 ? "MontserratBold"
                                 : "MontserratMedium",

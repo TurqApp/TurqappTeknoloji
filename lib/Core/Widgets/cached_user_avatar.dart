@@ -5,6 +5,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 /// Cached user avatar with smart loading
@@ -66,7 +67,10 @@ class CachedUserAvatar extends StatelessWidget {
       radius: radius,
       backgroundColor: backgroundColor ?? Colors.grey[300],
       backgroundImage: url.isNotEmpty
-          ? CachedNetworkImageProvider(url) as ImageProvider
+          ? CachedNetworkImageProvider(
+              url,
+              cacheManager: TurqImageCacheManager.instance,
+            ) as ImageProvider
           : null,
       child: url.isEmpty
           ? Icon(

@@ -24,33 +24,41 @@ class ApplicationsController extends GetxController {
       }
 
       final bursSnapshot = await FirebaseFirestore.instance
-          .collection('BireyselBurslar')
+          .collection('scholarships')
           .where('basvurular', arrayContains: userID)
+          .orderBy('timeStamp', descending: true)
+          .limit(50)
           .get();
+
+      // Batch user fetch instead of N+1
+      final ownerIds = bursSnapshot.docs
+          .map((d) => d.data()['userID'] as String? ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      final userDocsById = <String, Map<String, dynamic>>{};
+      for (var i = 0; i < ownerIds.length; i += 30) {
+        final end =
+            (i + 30) > ownerIds.length ? ownerIds.length : (i + 30);
+        final batchIds = ownerIds.sublist(i, end);
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batchIds)
+            .get();
+        for (final doc in snap.docs) {
+          userDocsById[doc.id] = doc.data();
+        }
+      }
 
       final applicationList = <Map<String, dynamic>>[];
 
       for (var bursDoc in bursSnapshot.docs) {
         final data = bursDoc.data();
         final bursOwnerID = data['userID'] as String? ?? '';
-
-        String nickname = 'Bilinmiyor';
-        String pfImage = '';
-        if (bursOwnerID.isNotEmpty) {
-          try {
-            final userDoc = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(bursOwnerID)
-                .get();
-            if (userDoc.exists) {
-              final userData = userDoc.data();
-              nickname = userData?['nickname'] as String? ?? 'Bilinmiyor';
-              pfImage = userData?['pfImage'] as String? ?? '';
-            }
-          } catch (e) {
-            print('Error fetching user data: $e');
-          }
-        }
+        final ownerData = userDocsById[bursOwnerID];
+        final nickname =
+            ownerData?['nickname'] as String? ?? 'Bilinmiyor';
+        final pfImage = ownerData?['pfImage'] as String? ?? '';
 
         applicationList.add({
           'bursID': bursDoc.id,
@@ -97,12 +105,14 @@ class ApplicationsController extends GetxController {
         return;
       }
 
-      await FirebaseFirestore.instance
-          .collection('BireyselBurslar')
-          .doc(bursID)
-          .update({
+      final batch = FirebaseFirestore.instance.batch();
+      final docRef =
+          FirebaseFirestore.instance.collection('scholarships').doc(bursID);
+      batch.update(docRef, {
         'basvurular': FieldValue.arrayRemove([userID]),
       });
+      batch.delete(docRef.collection('Basvurular').doc(userID));
+      await batch.commit();
 
       applications.removeWhere((app) => app['bursID'] == bursID);
       Get.back();

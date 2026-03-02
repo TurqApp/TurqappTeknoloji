@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
@@ -325,89 +326,26 @@ class _AgendaContentState extends State<AgendaContent>
                   child: Builder(builder: (_) {
                     // Video oynatım frame'i sabit: içerik frame'e zoom/crop ile oturur.
                     const double displayAspect = 0.80;
-                    return ClipRRect(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                      child: AspectRatio(
-                        aspectRatio: displayAspect,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // Video player (veya thumbnail eğer controller yoksa)
-                            SizedBox.expand(
-                              child: GestureDetector(
-                                onTap: () async {
-                                  if (widget.isPreview) {
-                                    final currentPos =
-                                        await _resolveCurrentVideoPosition();
-
-                                    final listForFullscreen =
-                                        await _buildFullscreenStartList();
-
-                                    _prepareVideoFullscreenTransition();
-                                    _pauseFeedBeforeFullscreen();
-                                    setPauseBlocked(true);
-                                    if (mounted) {
-                                      setState(() => _isFullscreen = true);
-                                    }
-                                    final res = await Get.to(() => SingleShortView(
-                                          startModel: widget.model,
-                                          startList: listForFullscreen,
-                                          initialPosition: currentPos,
-                                          injectedController: videoController,
-                                        ));
-                                    setPauseBlocked(false);
-                                    if (mounted) {
-                                      setState(() => _isFullscreen = false);
-                                    }
-
-                                    if (!mounted) return;
-
-                                    // Geri dönünce centeredIndex'i geri yükle
-                                    final modelIndex = agendaController
-                                        .agendaList
-                                        .indexWhere((p) =>
-                                            p.docID == widget.model.docID);
-                                    if (modelIndex >= 0) {
-                                      agendaController.centeredIndex.value =
-                                          modelIndex;
-                                      agendaController.lastCenteredIndex =
-                                          modelIndex;
-                                    }
-
-                                    final vc = videoController;
-                                    if (vc != null && vc.value.isInitialized) {
-                                      if (res is Map &&
-                                          res['docID'] == widget.model.docID) {
-                                        final int? ms =
-                                            res['positionMs'] as int?;
-                                        if (ms != null) {
-                                          await vc.seekTo(
-                                              Duration(milliseconds: ms));
-                                          if (widget.shouldPlay) {
-                                            vc.play();
-                                            vc.setVolume(
-                                                agendaController.isMuted.value
-                                                    ? 0
-                                                    : 1);
-                                          }
-                                          return;
-                                        }
-                                      }
-                                      // Geri dönüşte oynat
-                                      if (widget.shouldPlay) {
-                                        tryAutoPlayWhenBuffered();
-                                      }
-                                    }
-                                  } else {
-                                    if (controller.model.floodCount > 1) {
-                                      videoController?.pause();
-                                      await Get.to(() => FloodListing(
-                                          mainModel: widget.model));
-                                      if (widget.shouldPlay)
-                                        videoController?.play();
-                                    } else {
+                    return VisibilityDetector(
+                      key: Key('agenda-media-${widget.model.docID}'),
+                      onVisibilityChanged: (info) {
+                        reportMediaVisibility(info.visibleFraction);
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        child: AspectRatio(
+                          aspectRatio: displayAspect,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Video player (veya thumbnail eğer controller yoksa)
+                              SizedBox.expand(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    if (widget.isPreview) {
                                       final currentPos =
                                           await _resolveCurrentVideoPosition();
+
                                       final listForFullscreen =
                                           await _buildFullscreenStartList();
 
@@ -417,12 +355,14 @@ class _AgendaContentState extends State<AgendaContent>
                                       if (mounted) {
                                         setState(() => _isFullscreen = true);
                                       }
-                                      final res = await Get.to(() => SingleShortView(
-                                            startModel: widget.model,
-                                            startList: listForFullscreen,
-                                            initialPosition: currentPos,
-                                            injectedController: videoController,
-                                          ));
+                                      final res =
+                                          await Get.to(() => SingleShortView(
+                                                startModel: widget.model,
+                                                startList: listForFullscreen,
+                                                initialPosition: currentPos,
+                                                injectedController:
+                                                    videoController,
+                                              ));
                                       setPauseBlocked(false);
                                       if (mounted) {
                                         setState(() => _isFullscreen = false);
@@ -468,210 +408,277 @@ class _AgendaContentState extends State<AgendaContent>
                                           tryAutoPlayWhenBuffered();
                                         }
                                       }
-                                    }
-                                  }
-                                },
-                                child: Builder(builder: (_) {
-                                  final thumb = widget.model.thumbnail;
-                                  if (videoController == null) {
-                                    if (thumb.isEmpty) {
-                                      return Container(
-                                          color: const Color(0xFFE8E8E8));
-                                    }
-                                    return Image.network(
-                                      thumb,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                        if (loadingProgress == null) {
-                                          return child;
+                                    } else {
+                                      if (controller.model.floodCount > 1) {
+                                        videoController?.pause();
+                                        await Get.to(() => FloodListing(
+                                            mainModel: widget.model));
+                                        if (widget.shouldPlay) {
+                                          videoController?.play();
                                         }
+                                      } else {
+                                        final currentPos =
+                                            await _resolveCurrentVideoPosition();
+                                        final listForFullscreen =
+                                            await _buildFullscreenStartList();
+
+                                        _prepareVideoFullscreenTransition();
+                                        _pauseFeedBeforeFullscreen();
+                                        setPauseBlocked(true);
+                                        if (mounted) {
+                                          setState(() => _isFullscreen = true);
+                                        }
+                                        final res =
+                                            await Get.to(() => SingleShortView(
+                                                  startModel: widget.model,
+                                                  startList: listForFullscreen,
+                                                  initialPosition: currentPos,
+                                                  injectedController:
+                                                      videoController,
+                                                ));
+                                        setPauseBlocked(false);
+                                        if (mounted) {
+                                          setState(() => _isFullscreen = false);
+                                        }
+
+                                        if (!mounted) return;
+
+                                        // Geri dönünce centeredIndex'i geri yükle
+                                        final modelIndex = agendaController
+                                            .agendaList
+                                            .indexWhere((p) =>
+                                                p.docID == widget.model.docID);
+                                        if (modelIndex >= 0) {
+                                          agendaController.centeredIndex.value =
+                                              modelIndex;
+                                          agendaController.lastCenteredIndex =
+                                              modelIndex;
+                                        }
+
+                                        final vc = videoController;
+                                        if (vc != null &&
+                                            vc.value.isInitialized) {
+                                          if (res is Map &&
+                                              res['docID'] ==
+                                                  widget.model.docID) {
+                                            final int? ms =
+                                                res['positionMs'] as int?;
+                                            if (ms != null) {
+                                              await vc.seekTo(
+                                                  Duration(milliseconds: ms));
+                                              if (widget.shouldPlay) {
+                                                vc.play();
+                                                vc.setVolume(agendaController
+                                                        .isMuted.value
+                                                    ? 0
+                                                    : 1);
+                                              }
+                                              return;
+                                            }
+                                          }
+                                          // Geri dönüşte oynat
+                                          if (widget.shouldPlay) {
+                                            tryAutoPlayWhenBuffered();
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Builder(builder: (_) {
+                                    final thumb = widget.model.thumbnail;
+                                    if (videoController == null) {
+                                      if (thumb.isEmpty) {
                                         return Container(
                                             color: const Color(0xFFE8E8E8));
-                                      },
-                                      errorBuilder: (context, error,
-                                              stackTrace) =>
-                                          Container(
-                                              color: const Color(0xFFE8E8E8)),
-                                    );
-                                  }
-                                  // Video player + thumbnail overlay
-                                  return Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      _isFullscreen
-                                          ? const SizedBox.shrink()
-                                          : videoController!.buildPlayer(
-                                              key: ValueKey(
-                                                  'agenda-${widget.model.docID}-${videoController.hashCode}'),
-                                              aspectRatio: displayAspect,
-                                              useAspectRatio: false,
-                                            ),
-                                      // Thumbnail overlay - video hazır olana kadar göster
-                                      ValueListenableBuilder<HLSVideoValue>(
-                                        valueListenable: videoValueNotifier,
-                                        builder: (_, v, child) {
-                                          if (v.isInitialized &&
-                                              v.position > Duration.zero) {
-                                            return const SizedBox.shrink();
+                                      }
+                                      return Image.network(
+                                        thumb,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
                                           }
-                                          return child!;
+                                          return Container(
+                                              color: const Color(0xFFE8E8E8));
                                         },
-                                        child: thumb.isNotEmpty
-                                            ? Image.network(
-                                                thumb,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    Container(
-                                                        color: const Color(
-                                                            0xFFE8E8E8)),
-                                              )
-                                            : Container(
+                                        errorBuilder: (context, error,
+                                                stackTrace) =>
+                                            Container(
                                                 color: const Color(0xFFE8E8E8)),
-                                      ),
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: buildUploadIndicator(),
-                                      ),
-                                    ],
-                                  );
-                                }),
-                              ),
-                            ),
-                            // Süre göstergesi + Replay butonu — sadece video state değiştiğinde rebuild
-                            if (videoController != null)
-                              ValueListenableBuilder<HLSVideoValue>(
-                                valueListenable: videoValueNotifier,
-                                builder: (_, v, __) {
-                                  if (!v.isInitialized)
-                                    return const SizedBox.shrink();
-                                  final remaining = v.duration - v.position;
-                                  final safeRemaining = remaining.isNegative
-                                      ? Duration.zero
-                                      : remaining;
-                                  return Stack(
-                                    children: [
-                                      // Süre göstergesi
-                                      Positioned(
-                                        top: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            _formatDuration(safeRemaining),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontFamily: "Montserrat",
-                                            ),
-                                          ),
+                                      );
+                                    }
+                                    // Video player + thumbnail overlay
+                                    return Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        _isFullscreen
+                                            ? const SizedBox.shrink()
+                                            : videoController!.buildPlayer(
+                                                key: ValueKey(
+                                                    'agenda-${widget.model.docID}-${videoController.hashCode}'),
+                                                aspectRatio: displayAspect,
+                                                useAspectRatio: false,
+                                              ),
+                                        // Thumbnail overlay - video hazır olana kadar göster
+                                        ValueListenableBuilder<HLSVideoValue>(
+                                          valueListenable: videoValueNotifier,
+                                          builder: (_, v, child) {
+                                            if (v.isInitialized &&
+                                                v.position > Duration.zero) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            return child!;
+                                          },
+                                          child: thumb.isNotEmpty
+                                              ? Image.network(
+                                                  thumb,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      Container(
+                                                    color: const Color(
+                                                      0xFFE8E8E8,
+                                                    ),
+                                                  ),
+                                                )
+                                              : Container(
+                                                  color: const Color(
+                                                    0xFFE8E8E8,
+                                                  ),
+                                                ),
                                         ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            // Tamamlandı butonu
-                            if (widget.model.flood == false &&
-                                widget.model.floodCount > 1)
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    videoController?.pause();
-                                    Get.to(() => FloodListing(
-                                            mainModel: widget.model))
-                                        ?.then((_) => videoController?.play());
-                                  },
-                                  child: Texts.colorfulFloodLeftSide,
-                                ),
-                              ),
-
-                            if (isVideoFromCache)
-                              Positioned(
-                                left: 8,
-                                bottom: (widget.model.flood == false &&
-                                        widget.model.floodCount > 1)
-                                    ? 26
-                                    : 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.circle,
-                                        size: 8,
-                                        color: Colors.red,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Kes',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontFamily: "MontserratMedium",
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: buildUploadIndicator(),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            if (widget.model.originalUserID.isNotEmpty)
-                              Positioned(
-                                left: 8,
-                                bottom: isVideoFromCache
-                                    ? ((widget.model.flood == false &&
-                                                widget.model.floodCount > 1)
-                                            ? 52
-                                            : 34)
-                                    : ((widget.model.flood == false &&
-                                                widget.model.floodCount > 1)
-                                            ? 26
-                                            : 8),
-                                child: SharedPostLabel(
-                                  originalUserID: widget.model.originalUserID,
-                                  textColor: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            // Ses butonu
-                            Positioned(
-                              bottom: 8,
-                              right: 8,
-                              child: GestureDetector(
-                                onTap: agendaController.isMuted.toggle,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Obx(() {
-                                    return Icon(
-                                      agendaController.isMuted.value
-                                          ? CupertinoIcons.volume_off
-                                          : CupertinoIcons.volume_up,
-                                      color: Colors.white,
-                                      size: 20,
+                                      ],
                                     );
                                   }),
                                 ),
                               ),
-                            ),
-                          ],
+                              // Süre göstergesi + Replay butonu — sadece video state değiştiğinde rebuild
+                              if (videoController != null)
+                                ValueListenableBuilder<HLSVideoValue>(
+                                  valueListenable: videoValueNotifier,
+                                  builder: (_, v, __) {
+                                    if (!v.isInitialized)
+                                      return const SizedBox.shrink();
+                                    final remaining = v.duration - v.position;
+                                    final safeRemaining = remaining.isNegative
+                                        ? Duration.zero
+                                        : remaining;
+                                    return Stack(
+                                      children: [
+                                        // Süre göstergesi
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black54,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              _formatDuration(safeRemaining),
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontFamily: "Montserrat",
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              // Tamamlandı butonu
+                              if (widget.model.flood == false &&
+                                  widget.model.floodCount > 1)
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      videoController?.pause();
+                                      Get.to(() => FloodListing(
+                                              mainModel: widget.model))
+                                          ?.then(
+                                              (_) => videoController?.play());
+                                    },
+                                    child: Texts.colorfulFloodLeftSide,
+                                  ),
+                                ),
+
+                              if (isVideoFromCache)
+                                Positioned(
+                                  left: 8,
+                                  bottom: (widget.model.flood == false &&
+                                          widget.model.floodCount > 1)
+                                      ? 26
+                                      : 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.circle,
+                                      size: 8,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                              if (widget.model.originalUserID.isNotEmpty)
+                                Positioned(
+                                  left: 8,
+                                  bottom: isVideoFromCache
+                                      ? ((widget.model.flood == false &&
+                                              widget.model.floodCount > 1)
+                                          ? 52
+                                          : 34)
+                                      : ((widget.model.flood == false &&
+                                              widget.model.floodCount > 1)
+                                          ? 26
+                                          : 8),
+                                  child: SharedPostLabel(
+                                    originalUserID: widget.model.originalUserID,
+                                    textColor: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              // Ses butonu
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: agendaController.isMuted.toggle,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Obx(() {
+                                      return Icon(
+                                        agendaController.isMuted.value
+                                            ? CupertinoIcons.volume_off
+                                            : CupertinoIcons.volume_up,
+                                        color: Colors.white,
+                                        size: 20,
+                                      );
+                                    }),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -961,9 +968,9 @@ class _AgendaContentState extends State<AgendaContent>
 
   String _pollRemainingLabel(
       {required bool expired, required int expiresAtMs}) {
-    if (expired) return 'Süre doldu';
+    if (expired) return 'Süre Doldu';
     final remainingMs = expiresAtMs - DateTime.now().millisecondsSinceEpoch;
-    if (remainingMs <= 0) return 'Süre doldu';
+    if (remainingMs <= 0) return 'Süre Doldu';
     final totalMinutes = (remainingMs / 60000).floor();
     final totalHours = (totalMinutes / 60).floor();
     final days = (totalHours / 24).floor();
@@ -1610,6 +1617,19 @@ class _AgendaContentState extends State<AgendaContent>
             title: 'Düzenle',
             icon: CupertinoIcons.pencil_circle,
           ),
+        if (controller.canSendAdminPush)
+          PullDownMenuItem(
+            onTap: () {
+              videoController?.pause();
+              controller.sendAdminPushForPost().whenComplete(() {
+                if (widget.shouldPlay) {
+                  videoController?.play();
+                }
+              });
+            },
+            title: 'Push',
+            icon: CupertinoIcons.bell,
+          ),
         PullDownMenuItem(
           onTap: () async {
             final previewImage = widget.model.thumbnail.trim().isNotEmpty
@@ -1650,7 +1670,7 @@ class _AgendaContentState extends State<AgendaContent>
             });
           },
           title: 'Paylaş',
-          icon: CupertinoIcons.share,
+          icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
             FirebaseAuth.instance.currentUser!.uid ==

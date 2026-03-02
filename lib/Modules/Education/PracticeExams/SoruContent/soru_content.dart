@@ -4,9 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/konu_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
@@ -79,24 +79,16 @@ class _SoruContentState extends State<SoruContent> {
         );
         return;
       }
-      // Dosya adını al
-      String fileName = basename(imageFile.path);
-
-      // Firebase Storage referansını oluştur
-      Reference firebaseStorageRef = FirebaseStorage.instance.ref().child(
-        'SinavSorulari/$mainID/$fileName',
+      final downloadUrl = await WebpUploadService.uploadFileAsWebp(
+        storage: FirebaseStorage.instance,
+        file: imageFile,
+        storagePathWithoutExt:
+            'practiceExams/$mainID/questions/${widget.model.docID}',
       );
-
-      // Dosyayı yükle
-      UploadTask uploadTask = firebaseStorageRef.putFile(imageFile);
-      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
-
-      // İndirme URL'sini al
-      String downloadUrl = await taskSnapshot.ref.getDownloadURL();
       print("Download URL: $downloadUrl");
 
       FirebaseFirestore.instance
-          .collection("Sinavlar")
+          .collection("practiceExams")
           .doc(widget.mainID)
           .collection("Sorular")
           .doc(widget.model.docID)
@@ -115,7 +107,7 @@ class _SoruContentState extends State<SoruContent> {
 
   void fastSetData() {
     FirebaseFirestore.instance
-        .collection("Sinavlar")
+        .collection("practiceExams")
         .doc(widget.mainID)
         .collection("Sorular")
         .doc(widget.model.docID)

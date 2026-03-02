@@ -423,7 +423,7 @@ class SinavHazirla extends StatelessWidget {
                                 itemCount: sinavTurleriList.length,
                                 itemBuilder: (context, index) {
                                   List<Color> renkler = [
-                                    Colors.blue[500]!,
+                                    Colors.black,
                                     Colors.green[500]!,
                                     Colors.purple[500]!,
                                     Colors.red[500]!,

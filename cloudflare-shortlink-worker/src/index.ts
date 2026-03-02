@@ -9,13 +9,14 @@ interface Env {
   ASSETLINKS_JSON: string;
 }
 
-type LinkType = "p" | "s" | "u" | "e";
+type LinkType = "p" | "s" | "u" | "e" | "i";
 
 type LinkMeta = {
-  type?: "post" | "story" | "user";
+  type?: "post" | "story" | "user" | "edu";
   entityId?: string;
   shortId?: string;
   slug?: string;
+  token?: string;
   title?: string;
   desc?: string;
   imageUrl?: string;
@@ -45,7 +46,7 @@ export default {
       });
     }
 
-    const route = parseRoute(path);
+const route = parseRoute(path);
     if (!route) {
       return new Response("Not found", { status: 404 });
     }
@@ -53,6 +54,19 @@ export default {
     const kvKey = `${route.kind}:${route.id}`;
     const kvRaw = await env.TURQ_KV.get(kvKey);
     if (!kvRaw) {
+      if (route.kind === "e") {
+        const fallback = fallbackHtml({
+          title: "TurqApp eğitim bağlantısı",
+          desc: "Paylaşımı açmak için uygulamayı kullan.",
+          image: env.DEFAULT_OG_IMAGE,
+          deepLink: buildDeepLink(env.APP_SCHEME, "e", route.id),
+          iosStore: env.IOS_STORE_URL,
+          androidStore: env.ANDROID_STORE_URL,
+        });
+        return new Response(fallback, {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
       return notFoundHtml("Link bulunamadı");
     }
 
@@ -67,30 +81,33 @@ export default {
       return notFoundHtml("Link pasif");
     }
 
+    // Geriye dönük uyumluluk: e/* linkinde token varsa e-posta onayı gibi davran.
+    // Eğitim kısa linkleri token içermez; normal deep-link akışına devam eder.
     if (route.kind === "e") {
-      const token = String((meta as { token?: string }).token || "").trim();
-      if (!token) return notFoundHtml("Onay bağlantısı geçersiz");
-      const confirmBase = String(env.EMAIL_ACTION_CONFIRM_URL || "").trim();
-      if (!confirmBase) return notFoundHtml("Onay servisi yapılandırılmamış");
+      const token = String(meta.token || "").trim();
+      if (token) {
+        const confirmBase = String(env.EMAIL_ACTION_CONFIRM_URL || "").trim();
+        if (!confirmBase) return notFoundHtml("Onay servisi yapılandırılmamış");
 
-      const confirmUrl = `${confirmBase}?token=${encodeURIComponent(token)}`;
-      try {
-        const response = await fetch(confirmUrl, { method: "GET" });
-        if (!response.ok) {
+        const confirmUrl = `${confirmBase}?token=${encodeURIComponent(token)}`;
+        try {
+          const response = await fetch(confirmUrl, { method: "GET" });
+          if (!response.ok) {
+            return new Response(
+              "<!doctype html><html><body><h3>Bağlantı geçersiz veya süresi dolmuş.</h3></body></html>",
+              { status: 410, headers: { "content-type": "text/html; charset=utf-8" } }
+            );
+          }
           return new Response(
-            "<!doctype html><html><body><h3>Bağlantı geçersiz veya süresi dolmuş.</h3></body></html>",
-            { status: 410, headers: { "content-type": "text/html; charset=utf-8" } }
+            "<!doctype html><html><body><h3>Onaylandı. Uygulamaya geri dönebilirsiniz.</h3></body></html>",
+            { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+          );
+        } catch {
+          return new Response(
+            "<!doctype html><html><body><h3>Onay servisine ulaşılamadı. Lütfen tekrar deneyin.</h3></body></html>",
+            { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
           );
         }
-        return new Response(
-          "<!doctype html><html><body><h3>Onaylandı. Uygulamaya geri dönebilirsiniz.</h3></body></html>",
-          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
-        );
-      } catch {
-        return new Response(
-          "<!doctype html><html><body><h3>Onay servisine ulaşılamadı. Lütfen tekrar deneyin.</h3></body></html>",
-          { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
-        );
       }
     }
 
@@ -135,7 +152,7 @@ export default {
 };
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
-  const match = pathname.match(/^\/(p|s|u|e)\/([A-Za-z0-9._-]{2,80})$/);
+  const match = pathname.match(/^\/(p|s|u|e|i)\/([A-Za-z0-9._-]{2,80})$/);
   if (!match) return null;
   return { kind: match[1] as LinkType, id: match[2] };
 }
@@ -144,7 +161,8 @@ function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {
   const base = appScheme.endsWith("://") ? appScheme.slice(0, -3) : appScheme.replace(/:$/, "");
   if (kind === "p") return `${base}://post/${id}`;
   if (kind === "s") return `${base}://story/${id}`;
-  if (kind === "e") return `${base}://settings/phone`;
+  if (kind === "e") return `${base}://e/${id}`;
+  if (kind === "i") return `${base}://job/${id}`;
   return `${base}://profile/${id}`;
 }
 

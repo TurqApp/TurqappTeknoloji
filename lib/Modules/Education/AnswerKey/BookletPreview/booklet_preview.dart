@@ -156,15 +156,16 @@ class BookletPreview extends StatelessWidget {
         decoration: BoxDecoration(
             color: Colors.grey.withAlpha(20),
             borderRadius: const BorderRadius.all(Radius.circular(12)),
-            border: Border.all(color: Colors.blueAccent, width: 1)),
-        padding: const EdgeInsets.all(15),
+            border: Border.all(color: Colors.black, width: 1)),
+        // Keep X axis unchanged; only reduce vertical scale slightly.
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13.5),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(59)),
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
               child: SizedBox(
-                width: 50,
-                height: 50,
+                width: 40,
+                height: 40,
                 child: controller.pfImage.value.isNotEmpty
                     ? Image.network(
                         controller.pfImage.value,
@@ -173,7 +174,7 @@ class BookletPreview extends StatelessWidget {
                     : const CupertinoActivityIndicator(),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

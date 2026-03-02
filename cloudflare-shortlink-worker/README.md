@@ -72,5 +72,4 @@ Firebase Functions modülü: `functions/src/17_shortLinksIndex.ts`
 - `resolveShortLink`
 - `shortLinkIndexConfig`
 
-Bu modül, `short_links_index` koleksiyonuna yazar ve Cloudflare KV'ye sync eder.
-
+Bu modül, `shortLinks` koleksiyonuna yazar ve Cloudflare KV'ye sync eder.

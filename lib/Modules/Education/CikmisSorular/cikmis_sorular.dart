@@ -14,7 +14,14 @@ import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class CikmisSorular extends StatefulWidget {
-  const CikmisSorular({super.key});
+  const CikmisSorular({
+    super.key,
+    this.embedded = false,
+    this.showEmbeddedControls = true,
+  });
+
+  final bool embedded;
+  final bool showEmbeddedControls;
 
   @override
   State<CikmisSorular> createState() => _CikmisSorularState();
@@ -43,7 +50,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
     ];
 
     FirebaseFirestore.instance
-        .collection("CikmisSorular")
+        .collection("questions")
         .orderBy("sira", descending: false)
         .get()
         .then((QuerySnapshot snapshot) {
@@ -126,6 +133,88 @@ class _CikmisSorularState extends State<CikmisSorular> {
       Colors.pink.shade900,
     ];
 
+    final bodyContent = Expanded(
+      child: showButons || list.isEmpty
+          ? Center(child: CupertinoActivityIndicator())
+          : Container(
+              color: Colors.white,
+              child: ListView(
+                controller: _scrollController,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      EducationSlider(
+                        imageList: [
+                          AppAssets.previous1,
+                          AppAssets.practice2,
+                          AppAssets.previous3,
+                          AppAssets.previous4,
+                        ],
+                      ),
+                      15.ph,
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                        ),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10.0,
+                            mainAxisSpacing: 10.0,
+                            childAspectRatio: 3 / 4,
+                          ),
+                          itemCount: list.length,
+                          itemBuilder: (context, index) {
+                            final color = colors[index % colors.length];
+                            return CikmisSorularGrid(
+                              anaBaslik: list[index].anaBaslik,
+                              color: color,
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 30),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+    );
+
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          Column(children: [bodyContent]),
+          if (widget.showEmbeddedControls)
+            Positioned(
+              bottom: 20,
+              right: 20,
+              child: ActionButton(
+                context: context,
+                menuItems: [
+                  PullDownMenuItem(
+                    icon: Icons.history,
+                    title: 'Sonuçlarım',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CikmisSoruSonuclar(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -147,62 +236,11 @@ class _CikmisSorularState extends State<CikmisSorular> {
                       ),
                     ),
                     TypewriterText(
-                      text: "Çıkmış Sorular",
+                      text: "Denemeler",
                     ),
                   ],
                 ),
-                Expanded(
-                  child: showButons || list.isEmpty
-                      ? Center(child: CupertinoActivityIndicator())
-                      : Container(
-                          color: Colors.white,
-                          child: ListView(
-                            controller: _scrollController,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  EducationSlider(
-                                    imageList: [
-                                      AppAssets.previous1,
-                                      AppAssets.practice2,
-                                      AppAssets.previous3,
-                                      AppAssets.previous4,
-                                    ],
-                                  ),
-                                  15.ph,
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    child: GridView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 10.0,
-                                        mainAxisSpacing: 10.0,
-                                        childAspectRatio: 3 / 4,
-                                      ),
-                                      itemCount: list.length,
-                                      itemBuilder: (context, index) {
-                                        final color =
-                                            colors[index % colors.length];
-                                        return CikmisSorularGrid(
-                                          anaBaslik: list[index].anaBaslik,
-                                          color: color,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(height: 30),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                ),
+                bodyContent,
               ],
             ),
           ],
