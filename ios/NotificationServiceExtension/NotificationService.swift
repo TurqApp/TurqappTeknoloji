@@ -1,5 +1,7 @@
 import Foundation
+import ImageIO
 import UIKit
+import UniformTypeIdentifiers
 import UserNotifications
 
 final class NotificationService: UNNotificationServiceExtension {
@@ -33,7 +35,10 @@ final class NotificationService: UNNotificationServiceExtension {
         return
       }
 
-      let prepared = Self.preparedImageData(from: data)
+      let prepared = Self.preparedImageData(
+        from: data,
+        originalExtension: imageURL.pathExtension
+      )
       guard let fileData = prepared.data else {
         return
       }
@@ -78,8 +83,11 @@ final class NotificationService: UNNotificationServiceExtension {
     return nil
   }
 
-  private static func preparedImageData(from data: Data) -> (data: Data?, fileExtension: String) {
-    if let image = UIImage(data: data) {
+  private static func preparedImageData(
+    from data: Data,
+    originalExtension: String
+  ) -> (data: Data?, fileExtension: String) {
+    if let image = Self.decodedImage(from: data) {
       if let jpeg = image.jpegData(compressionQuality: 0.92) {
         return (jpeg, "jpg")
       }
@@ -87,6 +95,22 @@ final class NotificationService: UNNotificationServiceExtension {
         return (png, "png")
       }
     }
-    return (data, "jpg")
+    let normalizedExtension = originalExtension.trimmingCharacters(
+      in: .whitespacesAndNewlines
+    ).lowercased()
+    return (data, normalizedExtension.isEmpty ? "jpg" : normalizedExtension)
+  }
+
+  private static func decodedImage(from data: Data) -> UIImage? {
+    if let image = UIImage(data: data) {
+      return image
+    }
+
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+      return nil
+    }
+
+    return UIImage(cgImage: cgImage)
   }
 }

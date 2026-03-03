@@ -7,8 +7,15 @@ class VideoControllerPool {
   static final _pool = <String, HLSVideoAdapter>{};
   static final _order = <String>[];
 
-  static HLSVideoAdapter getController(String url) {
-    if (_pool.containsKey(url)) return _pool[url]!;
+  static String _poolKey(String url, bool coordinateAudioFocus) =>
+      '$url|af:${coordinateAudioFocus ? 1 : 0}';
+
+  static HLSVideoAdapter getController(
+    String url, {
+    bool coordinateAudioFocus = true,
+  }) {
+    final key = _poolKey(url, coordinateAudioFocus);
+    if (_pool.containsKey(key)) return _pool[key]!;
 
     if (_pool.length >= 20) {
       final oldest = _order.removeAt(0);
@@ -16,18 +23,27 @@ class VideoControllerPool {
       _pool.remove(oldest);
     }
 
-    final adapter = HLSVideoAdapter(url: url, autoPlay: true, loop: true);
-    _pool[url] = adapter;
-    _order.add(url);
+    final adapter = HLSVideoAdapter(
+      url: url,
+      autoPlay: true,
+      loop: true,
+      coordinateAudioFocus: coordinateAudioFocus,
+    );
+    _pool[key] = adapter;
+    _order.add(key);
     return adapter;
   }
 
-  static Future<void> release(String url) async {
-    if (_pool.containsKey(url)) {
-      _pool[url]?.pause();
-      _pool[url]?.dispose();
-      _pool.remove(url);
-      _order.remove(url);
+  static Future<void> release(
+    String url, {
+    bool coordinateAudioFocus = true,
+  }) async {
+    final key = _poolKey(url, coordinateAudioFocus);
+    if (_pool.containsKey(key)) {
+      _pool[key]?.pause();
+      _pool[key]?.dispose();
+      _pool.remove(key);
+      _order.remove(key);
     }
   }
 
@@ -45,6 +61,8 @@ class SmartMiniVideoPlayer extends StatefulWidget {
   final String thumbnailUrl;
   final bool muted;
   final String visibilityKey;
+  final double aspectRatio;
+  final bool useAspectRatio;
 
   const SmartMiniVideoPlayer({
     super.key,
@@ -52,6 +70,8 @@ class SmartMiniVideoPlayer extends StatefulWidget {
     required this.thumbnailUrl,
     required this.visibilityKey,
     this.muted = true,
+    this.aspectRatio = 16 / 9,
+    this.useAspectRatio = false,
   });
 
   @override
@@ -60,6 +80,7 @@ class SmartMiniVideoPlayer extends StatefulWidget {
 
 class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
     with WidgetsBindingObserver {
+  static const int _previewLoopMs = 1900;
   HLSVideoAdapter? _adapter;
   bool isVisible = false;
   bool _seekingToStart = false;
@@ -70,8 +91,13 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
     if (_seekingToStart) return;
     if (!a.value.isPlaying) return;
 
+    final durationMs = a.value.duration.inMilliseconds;
+    final loopCutoff = durationMs > 0
+        ? durationMs.clamp(700, _previewLoopMs)
+        : _previewLoopMs;
+
     // Preview'de sadece ilk segment döngüsü (yaklaşık 2 sn)
-    if (a.value.position.inMilliseconds >= 1900) {
+    if (a.value.position.inMilliseconds >= loopCutoff) {
       _seekingToStart = true;
       a.seekTo(Duration.zero).then((_) => a.play()).whenComplete(() {
         Future.delayed(const Duration(milliseconds: 120), () {
@@ -82,18 +108,24 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
   }
 
   void _initController() {
-    _adapter = VideoControllerPool.getController(widget.videoUrl);
+    _adapter = VideoControllerPool.getController(
+      widget.videoUrl,
+      coordinateAudioFocus: false,
+    );
     _adapter?.removeListener(_onAdapterTick);
     _adapter?.addListener(_onAdapterTick);
     _adapter?.setVolume(widget.muted ? 0.0 : 1.0);
-    _adapter?.play();
+    _adapter?.seekTo(Duration.zero).then((_) => _adapter?.play());
     if (mounted) setState(() {});
   }
 
   Future<void> _disposeController() async {
     if (_adapter != null) {
       _adapter?.removeListener(_onAdapterTick);
-      await VideoControllerPool.release(widget.videoUrl);
+      await VideoControllerPool.release(
+        widget.videoUrl,
+        coordinateAudioFocus: false,
+      );
       _adapter = null;
       if (mounted) setState(() {});
     }
@@ -148,7 +180,10 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(2),
         child: _adapter != null
-            ? _adapter!.buildPlayer(aspectRatio: 1.0)
+            ? _adapter!.buildPlayer(
+                aspectRatio: widget.aspectRatio,
+                useAspectRatio: widget.useAspectRatio,
+              )
             : SizedBox.expand(
                 child: CachedNetworkImage(
                   imageUrl: widget.thumbnailUrl,

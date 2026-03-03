@@ -259,7 +259,7 @@ class _ClassicContentState extends State<ClassicContent>
             ),
           ),
         Padding(
-          padding: const EdgeInsets.only(top: 5),
+          padding: const EdgeInsets.only(top: 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -373,7 +373,7 @@ class _ClassicContentState extends State<ClassicContent>
   Widget imgBody(BuildContext context) {
     final hasHeaderSubline = widget.model.metin.trim().isNotEmpty;
     final mediaTopSpacing = hasHeaderSubline ? 4.0 : 0.0;
-    final actionTopSpacing = hasHeaderSubline ? 5.0 : 1.0;
+    final actionTopSpacing = hasHeaderSubline ? 2.0 : 0.0;
     final mediaVisualLift = hasHeaderSubline ? 0.0 : -6.0;
 
     return Column(
@@ -1615,7 +1615,7 @@ class _ClassicContentState extends State<ClassicContent>
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
       final bool isReshared = controller.yenidenPaylasildiMi.value;
-      final Color displayColor = isReshared ? Colors.redAccent : _actionColor;
+      final Color displayColor = isReshared ? Colors.green : _actionColor;
 
       return AnimatedActionButton(
         enabled: canReshare,

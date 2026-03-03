@@ -293,7 +293,7 @@ class AgendaView extends StatelessWidget {
                           columnChildren.add(
                             Divider(
                               color: Colors.grey.withAlpha(20),
-                              height: 6,
+                              height: 3,
                             ),
                           );
 

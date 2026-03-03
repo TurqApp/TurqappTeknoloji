@@ -17,6 +17,7 @@ import 'package:turqappv2/Services/user_analytics_service.dart';
 import '../../Models/posts_model.dart';
 
 class ExploreController extends GetxController {
+  static const double _verticalExploreAspectMax = 0.7;
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
 
@@ -214,8 +215,8 @@ class ExploreController extends GetxController {
             .map((doc) =>
                 PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
             .toList();
-        // Sana Özel ekranı: sadece oynatılabilir video gönderileri
-        newPosts = newPosts.where((p) => p.hasPlayableVideo).toList();
+        // Sana Özel ekranı: sadece dikey oranli oynatilabilir videolar
+        newPosts = newPosts.where(_isEligibleExplorePost).toList();
         // nowMs already computed above in this loop
         newPosts = newPosts
             .where((p) => (p.timeStamp) <= nowMs)
@@ -236,11 +237,15 @@ class ExploreController extends GetxController {
 
       if (accumulated.isNotEmpty) {
         final existingIds = explorePosts.map((e) => e.docID).toSet();
+        final existingCanonicalIds =
+            explorePosts.map(_exploreCanonicalId).toSet();
         final uniqueAccumulated = <PostsModel>[];
         final seen = <String>{};
         for (final p in accumulated) {
           if (existingIds.contains(p.docID)) continue;
-          if (!seen.add(p.docID)) continue;
+          final canonicalId = _exploreCanonicalId(p);
+          if (existingCanonicalIds.contains(canonicalId)) continue;
+          if (!seen.add(canonicalId)) continue;
           uniqueAccumulated.add(p);
         }
 
@@ -280,11 +285,11 @@ class ExploreController extends GetxController {
     );
     if (fromPool.isEmpty) return;
     final filtered = fromPool
-        .where((p) => p.hasPlayableVideo)
+        .where(_isEligibleExplorePost)
         .where((p) => p.deletedPost != true)
         .toList();
     if (filtered.isEmpty) return;
-    final valid = await _validatePoolPostsAndPrune(filtered);
+    final valid = _dedupeExplorePosts(await _validatePoolPostsAndPrune(filtered));
     if (valid.isEmpty) return;
     explorePosts.assignAll(valid);
   }
@@ -293,6 +298,29 @@ class ExploreController extends GetxController {
     if (posts.isEmpty) return;
     if (!Get.isRegistered<IndexPoolStore>()) return;
     await Get.find<IndexPoolStore>().savePosts(IndexPoolKind.explore, posts);
+  }
+
+  bool _isEligibleExplorePost(PostsModel post) {
+    return post.hasPlayableVideo &&
+        post.originalPostID.trim().isEmpty &&
+        post.aspectRatio.toDouble() < _verticalExploreAspectMax;
+  }
+
+  String _exploreCanonicalId(PostsModel post) {
+    final original = post.originalPostID.trim();
+    if (original.isNotEmpty) return original;
+    return post.docID;
+  }
+
+  List<PostsModel> _dedupeExplorePosts(List<PostsModel> posts) {
+    final seen = <String>{};
+    final out = <PostsModel>[];
+    for (final post in posts) {
+      final canonicalId = _exploreCanonicalId(post);
+      if (!seen.add(canonicalId)) continue;
+      out.add(post);
+    }
+    return out;
   }
 
   Future<List<PostsModel>> _validatePoolPostsAndPrune(

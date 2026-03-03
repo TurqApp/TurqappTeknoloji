@@ -45,6 +45,8 @@ class HLSVideoAdapter extends ChangeNotifier {
   String _effectiveUrl;
   final bool autoPlay;
   final bool loop;
+  final bool? _coordinateAudioFocus;
+  bool get coordinateAudioFocus => _coordinateAudioFocus ?? true;
 
   /// CDN URL'yi proxy URL'ye çevir. Proxy başlamadıysa orijinal URL döner.
   static String _resolveToProxy(String originalUrl) {
@@ -85,9 +87,13 @@ class HLSVideoAdapter extends ChangeNotifier {
     required String url,
     this.autoPlay = false,
     this.loop = false,
+    bool coordinateAudioFocus = true,
   })  : _originalUrl = url,
+        _coordinateAudioFocus = coordinateAudioFocus,
         _effectiveUrl = _resolveToProxy(url) {
-    AudioFocusCoordinator.instance.register(this);
+    if (coordinateAudioFocus) {
+      AudioFocusCoordinator.instance.register(this);
+    }
     // Stream'lere hemen abone ol.
     // HLSPlayer widget mount olup native view oluşturduğunda
     // HLSController.initialize(viewId) çağrılır ve event'ler akmaya başlar.
@@ -186,9 +192,11 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   Future<void> _playWithAudioFocus() async {
     if (_disposed) return;
-    try {
-      await AudioFocusCoordinator.instance.requestPlay(this);
-    } catch (_) {}
+    if (coordinateAudioFocus) {
+      try {
+        await AudioFocusCoordinator.instance.requestPlay(this);
+      } catch (_) {}
+    }
     _refreshProxyUrlIfNeeded();
     // Stopped ise otomatik reload + play
     if (_isStopped) {
@@ -213,9 +221,11 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   Future<void> pause() {
     if (_disposed) return Future.value();
-    try {
-      AudioFocusCoordinator.instance.requestPause(this);
-    } catch (_) {}
+    if (coordinateAudioFocus) {
+      try {
+        AudioFocusCoordinator.instance.requestPause(this);
+      } catch (_) {}
+    }
     if (_viewReady) {
       _wantPlay = false;
       _wantPause = false;
@@ -315,9 +325,11 @@ class HLSVideoAdapter extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    try {
-      AudioFocusCoordinator.instance.unregister(this);
-    } catch (_) {}
+    if (coordinateAudioFocus) {
+      try {
+        AudioFocusCoordinator.instance.unregister(this);
+      } catch (_) {}
+    }
     _stateSub?.cancel();
     _posSub?.cancel();
     _durSub?.cancel();

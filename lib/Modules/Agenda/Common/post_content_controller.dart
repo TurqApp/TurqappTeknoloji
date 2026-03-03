@@ -97,12 +97,12 @@ class PostContentController extends GetxController {
   }
 
   String? _pushPreviewImageUrl() {
-    final thumbnail = model.thumbnail.trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
     if (model.img.isNotEmpty) {
       final firstImage = model.img.first.trim();
       if (firstImage.isNotEmpty) return firstImage;
     }
+    final thumbnail = model.thumbnail.trim();
+    if (thumbnail.isNotEmpty) return thumbnail;
     return null;
   }
 

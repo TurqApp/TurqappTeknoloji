@@ -65,6 +65,46 @@ class ExploreView extends StatelessWidget {
     }
   }
 
+  double _safeAspectRatio(num ratio, {double fallback = 9 / 16}) {
+    final value = ratio.toDouble();
+    if (!value.isFinite || value <= 0) return fallback;
+    return value.clamp(0.56, 1.91);
+  }
+
+  Widget _buildCoverFrame({
+    required double aspectRatio,
+    required Widget child,
+  }) {
+    return ClipRect(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cellWidth = constraints.maxWidth;
+          final cellHeight = constraints.maxHeight;
+          double mediaWidth = cellWidth;
+          double mediaHeight = mediaWidth / aspectRatio;
+
+          if (mediaHeight < cellHeight) {
+            mediaHeight = cellHeight;
+            mediaWidth = mediaHeight * aspectRatio;
+          }
+
+          return OverflowBox(
+            alignment: Alignment.center,
+            minWidth: mediaWidth,
+            maxWidth: mediaWidth,
+            minHeight: mediaHeight,
+            maxHeight: mediaHeight,
+            child: SizedBox(
+              width: mediaWidth,
+              height: mediaHeight,
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -282,7 +322,9 @@ class ExploreView extends StatelessWidget {
                                 // ---- 1. Sekme: Sana Özel ----
                                 Obx(() {
                                   final list = controller.explorePosts
-                                      .where((e) => e.hasPlayableVideo)
+                                      .where((e) =>
+                                          e.hasPlayableVideo &&
+                                          e.aspectRatio.toDouble() < 0.7)
                                       .toList();
                                   return RefreshIndicator(
                                     backgroundColor: Colors.black,
@@ -345,33 +387,50 @@ class ExploreView extends StatelessWidget {
                                                 child: Stack(
                                                   fit: StackFit.expand,
                                                   children: [
-                                                    shouldPlayPreview
-                                                        ? SmartMiniVideoPlayer(
-                                                            videoUrl: model
-                                                                .playbackUrl,
-                                                            thumbnailUrl:
-                                                                model.thumbnail,
-                                                            visibilityKey:
-                                                                "${model.docID}_$i",
-                                                            muted: true,
-                                                          )
-                                                        : CachedNetworkImage(
-                                                            imageUrl:
-                                                                model.thumbnail,
-                                                            fit: BoxFit.cover,
-                                                            memCacheWidth: 200,
-                                                            memCacheHeight: 600,
-                                                            placeholder: (c,
-                                                                    u) =>
-                                                                Container(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300]),
-                                                            errorWidget: (c, u,
-                                                                    e) =>
-                                                                const Icon(Icons
-                                                                    .error),
-                                                          ),
+                                                    _buildCoverFrame(
+                                                      aspectRatio:
+                                                          _safeAspectRatio(
+                                                        model.aspectRatio,
+                                                      ),
+                                                      child: shouldPlayPreview
+                                                          ? SmartMiniVideoPlayer(
+                                                              videoUrl: model
+                                                                  .playbackUrl,
+                                                              thumbnailUrl: model
+                                                                  .thumbnail,
+                                                              visibilityKey:
+                                                                  "${model.docID}_$i",
+                                                              muted: true,
+                                                              aspectRatio:
+                                                                  _safeAspectRatio(
+                                                                model
+                                                                    .aspectRatio,
+                                                              ),
+                                                              useAspectRatio:
+                                                                  true,
+                                                            )
+                                                          : CachedNetworkImage(
+                                                              imageUrl: model
+                                                                  .thumbnail,
+                                                              fit: BoxFit.cover,
+                                                              memCacheWidth:
+                                                                  200,
+                                                              memCacheHeight:
+                                                                  600,
+                                                              placeholder:
+                                                                  (c, u) =>
+                                                                      Container(
+                                                                color: Colors
+                                                                        .grey[
+                                                                    300],
+                                                              ),
+                                                              errorWidget:
+                                                                  (c, u, e) =>
+                                                                      const Icon(
+                                                                Icons.error,
+                                                              ),
+                                                            ),
+                                                    ),
                                                     Positioned(
                                                       bottom: 6,
                                                       left: 6,
@@ -472,7 +531,11 @@ class ExploreView extends StatelessWidget {
                                             fit: StackFit.expand,
                                             alignment: Alignment.bottomRight,
                                             children: [
-                                              SizedBox.expand(
+                                              _buildCoverFrame(
+                                                aspectRatio: _safeAspectRatio(
+                                                  p.aspectRatio,
+                                                  fallback: 1.0,
+                                                ),
                                                 child: CachedNetworkImage(
                                                   imageUrl: p.img.isNotEmpty
                                                       ? p.img.first
