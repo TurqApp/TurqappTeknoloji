@@ -185,7 +185,7 @@ class JobFinder extends StatelessWidget {
 
       final screenWidth = MediaQuery.of(context).size.width;
       final itemWidth = screenWidth * 0.5;
-      final itemHeight = itemWidth / 0.61;
+      final itemHeight = itemWidth / 0.56;
       final aspectRatio = itemWidth / itemHeight;
 
       if (controller.listingSelection.value == 0) {

@@ -17,10 +17,10 @@ class JobContentController extends GetxController {
     if (uid == null) return;
     try {
       final doc = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docId)
-          .collection("Saved")
+          .collection("users")
           .doc(uid)
+          .collection("SavedIsBul")
+          .doc(docId)
           .get();
       saved.value = doc.exists;
     } catch (e) {
@@ -33,35 +33,20 @@ class JobContentController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     final ref = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(docId)
-        .collection("Saved")
-        .doc(uid);
+        .collection("users")
+        .doc(uid)
+        .collection("SavedIsBul")
+        .doc(docId);
 
     try {
-      final batch = FirebaseFirestore.instance.batch();
       final doc = await ref.get();
 
       if (doc.exists) {
-        batch.delete(ref);
-        batch.delete(FirebaseFirestore.instance
-            .collection("users")
-            .doc(uid)
-            .collection("SavedIsBul")
-            .doc(docId));
-        await batch.commit();
+        await ref.delete();
         saved.value = false;
       } else {
         final ts = {"timeStamp": FieldValue.serverTimestamp()};
-        batch.set(ref, ts);
-        batch.set(
-            FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
-                .collection("SavedIsBul")
-                .doc(docId),
-            ts);
-        await batch.commit();
+        await ref.set(ts);
         saved.value = true;
       }
     } catch (e) {

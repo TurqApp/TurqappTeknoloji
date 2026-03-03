@@ -3,8 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../JobCreator/job_creator.dart';
@@ -83,11 +86,15 @@ class JobDetailsController extends GetxController {
   Future<void> checkSaved(String docId) async {
     try {
       final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
+      if (uid.isEmpty) {
+        saved.value = false;
+        return;
+      }
       final snap = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docId)
-          .collection('Saved')
+          .collection('users')
           .doc(uid)
+          .collection('SavedIsBul')
+          .doc(docId)
           .get();
       saved.value = snap.exists;
     } catch (e) {
@@ -98,41 +105,71 @@ class JobDetailsController extends GetxController {
 
   Future<void> toggleSave(String docId) async {
     final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
-    final ref = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(docId)
-        .collection('Saved')
-        .doc(uid);
+    if (uid.isEmpty) {
+      AppSnackbar('Hata', 'Lütfen tekrar giriş yapın.');
+      return;
+    }
+    final userSavedRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('SavedIsBul')
+        .doc(docId);
 
     try {
-      final batch = FirebaseFirestore.instance.batch();
-      final snap = await ref.get();
+      final snap = await userSavedRef.get();
 
       if (snap.exists) {
-        batch.delete(ref);
-        batch.delete(FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('SavedIsBul')
-            .doc(docId));
-        await batch.commit();
+        await userSavedRef.delete();
         saved.value = false;
       } else {
         final ts = {'timeStamp': FieldValue.serverTimestamp()};
-        batch.set(ref, ts);
-        batch.set(
-            FirebaseFirestore.instance
-                .collection('users')
-                .doc(uid)
-                .collection('SavedIsBul')
-                .doc(docId),
-            ts);
-        await batch.commit();
+        await userSavedRef.set(ts);
         saved.value = true;
       }
     } catch (e) {
       print('toggleSave hatası: $e');
+      AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
     }
+  }
+
+  Future<void> shareJob() async {
+    final current = model.value;
+    await ShareActionGuard.run(() async {
+      var shortUrl = '';
+      try {
+        shortUrl = await ShortLinkService().getJobPublicUrl(
+          jobId: current.docID,
+          title: current.ilanBasligi.isNotEmpty
+              ? current.ilanBasligi
+              : current.meslek,
+          desc: current.about.isNotEmpty ? current.about : current.isTanimi,
+          imageUrl: current.logo,
+        );
+      } catch (_) {}
+
+      if (shortUrl.trim().isEmpty) {
+        shortUrl = 'https://turqapp.com/i/job:${current.docID}';
+      }
+
+      final title =
+          current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek;
+      final brand = current.brand.trim();
+      final location = '${current.city}, ${current.town}'
+          .trim()
+          .replaceAll(RegExp(r'^,+\s*|,\s*$'), '');
+
+      final shareText = '''
+$title
+${brand.isNotEmpty ? '$brand\n' : ''}${location.isNotEmpty ? '$location\n\n' : '\n'}$shortUrl
+''';
+
+      await SharePlus.instance.share(
+        ShareParams(
+          text: shareText.trim(),
+          subject: title,
+        ),
+      );
+    });
   }
 
   Future<void> getSimilar(String meslek) async {

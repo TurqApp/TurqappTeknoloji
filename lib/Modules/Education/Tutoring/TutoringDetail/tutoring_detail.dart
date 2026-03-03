@@ -4,10 +4,13 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
@@ -37,9 +40,13 @@ class TutoringDetail extends StatelessWidget {
       TutoringDetailController(),
     );
     final SavedTutoringsController savedController =
-        Get.find<SavedTutoringsController>();
+        Get.isRegistered<SavedTutoringsController>()
+            ? Get.find<SavedTutoringsController>()
+            : Get.put(SavedTutoringsController());
     final TutoringController tutoringController =
-        Get.find<TutoringController>();
+        Get.isRegistered<TutoringController>()
+            ? Get.find<TutoringController>()
+            : Get.put(TutoringController());
     final String? currentUserId = getCurrentUserId();
 
     Future<void> deleteTutoring(String docId) async {
@@ -56,6 +63,40 @@ class TutoringDetail extends StatelessWidget {
       }
     }
 
+    Future<void> shareTutoring() async {
+      final tutoring = controller.tutoring.value;
+      await ShareActionGuard.run(() async {
+        var shortUrl = '';
+        try {
+          shortUrl = await ShortLinkService().getInternalEducationPublicUrl(
+            shareId: 'tutoring:${tutoring.docID}',
+            title: tutoring.baslik,
+            desc: tutoring.aciklama,
+            imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
+                ? tutoring.imgs!.first
+                : null,
+          );
+        } catch (_) {}
+
+        if (shortUrl.trim().isEmpty) {
+          shortUrl = 'https://turqapp.com/i/tutoring:${tutoring.docID}';
+        }
+
+        await SharePlus.instance.share(
+          ShareParams(
+            title: tutoring.baslik,
+            text: '''
+${tutoring.baslik}
+${tutoring.brans} • ${tutoring.sehir}/${tutoring.ilce}
+
+$shortUrl
+'''
+                .trim(),
+          ),
+        );
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -68,48 +109,73 @@ class TutoringDetail extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    BackButtons(text: "Özel Ders"),
+                    Expanded(child: BackButtons(text: "Özel Ders")),
+                    IconButton(
+                      onPressed: shareTutoring,
+                      icon: Icon(
+                        CupertinoIcons.share_up,
+                        color: Colors.black,
+                        size: 22,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                    ),
                     Obx(() {
                       final isSaved = savedController.savedTutoringIds.contains(
                         controller.tutoring.value.docID,
                       );
-                      return IconButton(
-                        onPressed: () async {
-                          if (currentUserId != null) {
-                            if (isSaved) {
-                              savedController.removeSavedTutoring(
+                      return Transform.translate(
+                        offset: const Offset(0, 0),
+                        child: IconButton(
+                          onPressed: () async {
+                            if (currentUserId != null) {
+                              if (isSaved) {
+                                savedController.removeSavedTutoring(
+                                  controller.tutoring.value.docID,
+                                );
+                              } else {
+                                savedController.addSavedTutoring(
+                                  controller.tutoring.value.docID,
+                                );
+                              }
+                              await tutoringController.toggleFavorite(
                                 controller.tutoring.value.docID,
+                                currentUserId,
+                                isSaved,
                               );
+                              if (isSaved) {
+                                savedController.removeSavedTutoring(
+                                  controller.tutoring.value.docID,
+                                );
+                              } else if (!controller.tutoring.value.favorites
+                                  .contains(currentUserId)) {
+                                savedController.addSavedTutoring(
+                                  controller.tutoring.value.docID,
+                                );
+                              }
                             } else {
-                              savedController.addSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
+                              log("User ID not found");
                             }
-                            await tutoringController.toggleFavorite(
-                              controller.tutoring.value.docID,
-                              currentUserId,
-                              isSaved,
-                            );
-                            if (isSaved) {
-                              savedController.removeSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            } else if (!controller.tutoring.value.favorites
-                                .contains(currentUserId)) {
-                              savedController.addSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            }
-                          } else {
-                            log("User ID not found");
-                          }
-                        },
-                        icon: Icon(
-                          isSaved ? AppIcons.saved : AppIcons.save,
-                          color: isSaved ? Colors.orange : null,
+                          },
+                          icon: Icon(
+                            isSaved ? AppIcons.saved : AppIcons.save,
+                            color: isSaved ? Colors.orange : Colors.black,
+                            size: 20,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
                         ),
                       );
                     }),
+                    10.pw,
                   ],
                 ),
                 Expanded(
@@ -340,8 +406,8 @@ class TutoringDetail extends StatelessWidget {
                                 Text("Müsaitlik",
                                     style: TextStyles.bold16Black),
                                 8.ph,
-                                ...controller.tutoring.value.availability!
-                                    .entries
+                                ...controller
+                                    .tutoring.value.availability!.entries
                                     .map((entry) => Padding(
                                           padding: EdgeInsets.only(bottom: 4),
                                           child: Row(
@@ -352,8 +418,7 @@ class TutoringDetail extends StatelessWidget {
                                                 width: 90,
                                                 child: Text(
                                                   entry.key,
-                                                  style: TextStyles
-                                                      .bold15Black,
+                                                  style: TextStyles.bold15Black,
                                                 ),
                                               ),
                                               Expanded(
@@ -361,8 +426,7 @@ class TutoringDetail extends StatelessWidget {
                                                   spacing: 6,
                                                   runSpacing: 4,
                                                   children: entry.value
-                                                      .map((time) =>
-                                                          Container(
+                                                      .map((time) => Container(
                                                             padding: EdgeInsets
                                                                 .symmetric(
                                                                     horizontal:
@@ -422,11 +486,8 @@ class TutoringDetail extends StatelessWidget {
                                           height: 35,
                                           child: CachedNetworkImage(
                                             imageUrl: controller.users[
-                                                        controller
-                                                            .tutoring
-                                                            .value
-                                                            .userID]
-                                                    ?["pfImage"] ??
+                                                    controller.tutoring.value
+                                                        .userID]?["pfImage"] ??
                                                 '',
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) =>
@@ -610,9 +671,8 @@ class TutoringDetail extends StatelessWidget {
                                     // Apply button
                                     Obx(() => InkWell(
                                           onTap: () {
-                                            controller.toggleBasvuru(
-                                                controller
-                                                    .tutoring.value.docID);
+                                            controller.toggleBasvuru(controller
+                                                .tutoring.value.docID);
                                           },
                                           child: Container(
                                             alignment: Alignment.center,
@@ -620,10 +680,9 @@ class TutoringDetail extends StatelessWidget {
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              color:
-                                                  controller.basvuruldu.value
-                                                      ? Colors.orange
-                                                      : Colors.green,
+                                              color: controller.basvuruldu.value
+                                                  ? Colors.orange
+                                                  : Colors.green,
                                             ),
                                             child: Text(
                                               controller.basvuruldu.value
@@ -690,12 +749,10 @@ class TutoringDetail extends StatelessWidget {
                                             ),
                                           ),
                                         ),
-                                        if (controller
-                                                .tutoring.value.telefon ==
+                                        if (controller.tutoring.value.telefon ==
                                             true)
                                           8.pw,
-                                        if (controller
-                                                .tutoring.value.telefon ==
+                                        if (controller.tutoring.value.telefon ==
                                             true)
                                           Expanded(
                                             child: InkWell(
@@ -738,13 +795,12 @@ class TutoringDetail extends StatelessWidget {
                                       InkWell(
                                         onTap: () async {
                                           final phoneNumber = controller.users[
-                                                      controller.tutoring.value
-                                                          .userID]
-                                                  ?['phoneNumber']
-                                              as String?;
+                                                  controller
+                                                      .tutoring.value.userID]
+                                              ?['phoneNumber'] as String?;
                                           if (phoneNumber != null) {
-                                            final cleaned = phoneNumber
-                                                .replaceAll(
+                                            final cleaned =
+                                                phoneNumber.replaceAll(
                                                     RegExp(r'[^0-9]'), '');
                                             await launchUrl(
                                               Uri.parse(
@@ -783,8 +839,7 @@ class TutoringDetail extends StatelessWidget {
                                 ),
                               // ── Reviews Section ──
                               16.ph,
-                              _buildReviewsSection(
-                                  controller, currentUserId),
+                              _buildReviewsSection(controller, currentUserId),
                               // ── Similar listings ──
                               16.ph,
                               _buildSimilarSection(controller),
@@ -826,8 +881,7 @@ class TutoringDetail extends StatelessWidget {
                     );
                   },
                   child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(8),
@@ -854,8 +908,7 @@ class TutoringDetail extends StatelessWidget {
             ...controller.reviews.map((review) {
               final user = controller.reviewUsers[review.userID] ?? {};
               final name =
-                  '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'
-                      .trim();
+                  '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'.trim();
               final isOwn = currentUserId == review.userID;
               return Container(
                 margin: EdgeInsets.only(bottom: 8),
@@ -883,8 +936,7 @@ class TutoringDetail extends StatelessWidget {
                         ),
                         8.pw,
                         Expanded(
-                          child: Text(name,
-                              style: TextStyles.bold15Black),
+                          child: Text(name, style: TextStyles.bold15Black),
                         ),
                         Row(
                           children: List.generate(
@@ -915,8 +967,7 @@ class TutoringDetail extends StatelessWidget {
                     ),
                     if (review.comment.isNotEmpty) ...[
                       6.ph,
-                      Text(review.comment,
-                          style: TextStyles.medium15Black),
+                      Text(review.comment, style: TextStyles.medium15Black),
                     ],
                   ],
                 ),
@@ -942,8 +993,7 @@ class TutoringDetail extends StatelessWidget {
               itemCount: controller.similarList.length,
               itemBuilder: (context, index) {
                 final item = controller.similarList[index];
-                final user =
-                    controller.similarUsers[item.userID] ?? {};
+                final user = controller.similarUsers[item.userID] ?? {};
                 final name =
                     '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'
                         .trim();
@@ -962,19 +1012,18 @@ class TutoringDetail extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(12)),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(12)),
                           child: SizedBox(
                             height: 100,
                             width: double.infinity,
                             child: CachedNetworkImage(
-                              imageUrl: item.imgs != null &&
-                                      item.imgs!.isNotEmpty
-                                  ? item.imgs!.first
-                                  : '',
+                              imageUrl:
+                                  item.imgs != null && item.imgs!.isNotEmpty
+                                      ? item.imgs!.first
+                                      : '',
                               fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) =>
-                                  Container(
+                              errorWidget: (_, __, ___) => Container(
                                 color: Colors.grey.shade200,
                                 child: Icon(CupertinoIcons.photo),
                               ),
@@ -984,8 +1033,7 @@ class TutoringDetail extends StatelessWidget {
                         Padding(
                           padding: EdgeInsets.all(8),
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 item.baslik,

@@ -225,6 +225,15 @@ class NotificationService {
           await controller.goToPostComments(docID.toString());
           return;
         }
+        if (normalized == "job_application") {
+          await controller.goToJob(docID.toString());
+          return;
+        }
+        if (normalized == "tutoring_application" ||
+            normalized == "tutoring_status") {
+          await controller.goToTutoring(docID.toString());
+          return;
+        }
         if (normalized == "chat" || normalized == "message") {
           await controller.goToChat(docID.toString());
         }

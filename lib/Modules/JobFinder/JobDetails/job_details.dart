@@ -12,7 +12,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/functions.dart';
-import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details_controller.dart';
@@ -143,30 +142,42 @@ class JobDetails extends StatelessWidget {
               children: [
                 Expanded(child: BackButtons(text: "İş Detayı")),
                 IconButton(
-                  onPressed: () {
-                    RedirectionLink().goToLink("https://turqapp.com");
-                  },
+                  onPressed: controller.shareJob,
                   icon: Icon(
                     CupertinoIcons.share_up,
                     color: Colors.black,
-                    size: 25,
+                    size: 22,
                   ),
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                 ),
                 Obx(() {
-                  return IconButton(
-                    onPressed: () {
-                      controller.toggleSave(controller.model.value.docID);
-                    },
-                    icon: Icon(
-                      controller.saved.value
-                          ? CupertinoIcons.bookmark_fill
-                          : CupertinoIcons.bookmark,
-                      color:
-                          controller.saved.value ? Colors.orange : Colors.black,
-                      size: 25,
+                  return Transform.translate(
+                    offset: const Offset(0, 0),
+                    child: IconButton(
+                      onPressed: () {
+                        controller.toggleSave(controller.model.value.docID);
+                      },
+                      icon: Icon(
+                        controller.saved.value
+                            ? CupertinoIcons.bookmark_fill
+                            : CupertinoIcons.bookmark,
+                        color: controller.saved.value
+                            ? Colors.orange
+                            : Colors.black,
+                        size: 20,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
                     ),
-                    visualDensity: VisualDensity.compact,
                   );
                 }),
                 pullDownMenu(),

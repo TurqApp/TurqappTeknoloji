@@ -27,7 +27,7 @@ final class NotificationService: UNNotificationServiceExtension {
       return
     }
 
-    downloadTask = URLSession.shared.dataTask(with: imageURL) { [weak self] data, _, _ in
+    downloadTask = URLSession.shared.dataTask(with: imageURL) { [weak self] data, response, _ in
       guard let self else { return }
       defer { self.contentHandler?(bestAttemptContent) }
 
@@ -37,7 +37,8 @@ final class NotificationService: UNNotificationServiceExtension {
 
       let prepared = Self.preparedImageData(
         from: data,
-        originalExtension: imageURL.pathExtension
+        originalExtension: imageURL.pathExtension,
+        mimeType: (response as? HTTPURLResponse)?.mimeType
       )
       guard let fileData = prepared.data else {
         return
@@ -70,22 +71,13 @@ final class NotificationService: UNNotificationServiceExtension {
   }
 
   private func extractImageURL(from userInfo: [AnyHashable: Any]) -> String? {
-    if let direct = userInfo["imageUrl"] as? String, !direct.isEmpty {
-      return direct
-    }
-
-    if let fcmOptions = userInfo["fcm_options"] as? [String: Any],
-       let image = fcmOptions["image"] as? String,
-       !image.isEmpty {
-      return image
-    }
-
-    return nil
+    return Self.findImageURL(in: userInfo)
   }
 
   private static func preparedImageData(
     from data: Data,
-    originalExtension: String
+    originalExtension: String,
+    mimeType: String?
   ) -> (data: Data?, fileExtension: String) {
     if let image = Self.decodedImage(from: data) {
       if let jpeg = image.jpegData(compressionQuality: 0.92) {
@@ -95,9 +87,10 @@ final class NotificationService: UNNotificationServiceExtension {
         return (png, "png")
       }
     }
-    let normalizedExtension = originalExtension.trimmingCharacters(
-      in: .whitespacesAndNewlines
-    ).lowercased()
+    let normalizedExtension = Self.normalizedFileExtension(
+      originalExtension: originalExtension,
+      mimeType: mimeType
+    )
     return (data, normalizedExtension.isEmpty ? "jpg" : normalizedExtension)
   }
 
@@ -112,5 +105,76 @@ final class NotificationService: UNNotificationServiceExtension {
     }
 
     return UIImage(cgImage: cgImage)
+  }
+
+  private static func normalizedFileExtension(
+    originalExtension: String,
+    mimeType: String?
+  ) -> String {
+    let cleaned = originalExtension
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+    if !cleaned.isEmpty {
+      return cleaned
+    }
+
+    guard let mimeType, !mimeType.isEmpty else {
+      return "jpg"
+    }
+
+    if #available(iOS 14.0, *) {
+      if let utType = UTType(mimeType: mimeType),
+         let ext = utType.preferredFilenameExtension,
+         !ext.isEmpty {
+        return ext
+      }
+    }
+
+    if mimeType.contains("png") { return "png" }
+    if mimeType.contains("webp") { return "webp" }
+    if mimeType.contains("gif") { return "gif" }
+    return "jpg"
+  }
+
+  private static func findImageURL(in payload: Any) -> String? {
+    if let string = payload as? String,
+       let url = URL(string: string),
+       let scheme = url.scheme,
+       ["http", "https"].contains(scheme.lowercased()) {
+      return string
+    }
+
+    if let dict = payload as? [AnyHashable: Any] {
+      let directKeys = [
+        "imageUrl",
+        "image",
+        "media-url",
+        "gcm.notification.image",
+        "gcm.notification.imageUrl",
+      ]
+      for key in directKeys {
+        if let value = dict[key] {
+          if let found = findImageURL(in: value) {
+            return found
+          }
+        }
+      }
+
+      for (_, value) in dict {
+        if let found = findImageURL(in: value) {
+          return found
+        }
+      }
+    }
+
+    if let array = payload as? [Any] {
+      for value in array {
+        if let found = findImageURL(in: value) {
+          return found
+        }
+      }
+    }
+
+    return nil
   }
 }

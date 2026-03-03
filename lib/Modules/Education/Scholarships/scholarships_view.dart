@@ -1128,7 +1128,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
                   : CupertinoIcons.hand_thumbsup,
               size: 20,
               color: controller.likedScholarships[docId] ?? false
-                  ? Colors.black
+                  ? Colors.blue
                   : Colors.black,
             ),
           ),

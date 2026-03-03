@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
 
 import 'notification_content_controller.dart';
 
@@ -294,7 +295,15 @@ class NotificationContent extends StatelessWidget {
 
   void yonlendirme() async {
     final store = Get.find<ExploreController>();
-    if (model.postType == "User") {
+    final notifyReader = Get.isRegistered<NotifyReaderController>()
+        ? Get.find<NotifyReaderController>()
+        : Get.put(NotifyReaderController());
+    if (model.type == "job_application") {
+      await notifyReader.goToJob(model.postID);
+    } else if (model.type == "tutoring_application" ||
+        model.type == "tutoring_status") {
+      await notifyReader.goToTutoring(model.postID);
+    } else if (model.postType == "User") {
       Get.to(() => SocialProfile(userID: model.userID));
     } else {
       if (controller.model.value.img.isNotEmpty) {

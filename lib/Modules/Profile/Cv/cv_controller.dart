@@ -53,8 +53,9 @@ class CvController extends GetxController {
   }
 
   bool validateLinkedIn(String url) {
-    if (url.isEmpty) return true;
-    return url.contains('linkedin.com/') || url.startsWith('linkedin.com');
+    final normalized = url.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    return normalized.contains('linkedin.com/');
   }
 
   bool _validateYear(String year) {

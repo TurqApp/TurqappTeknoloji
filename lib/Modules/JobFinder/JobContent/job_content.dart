@@ -157,7 +157,7 @@ class JobContent extends StatelessWidget {
                                       icon: Icon(
                                         CupertinoIcons.share_up,
                                         color: Colors.grey,
-                                        size: 21,
+                                        size: 19,
                                       ),
                                       padding: EdgeInsets.zero,
                                       constraints: BoxConstraints(
@@ -189,7 +189,7 @@ class JobContent extends StatelessWidget {
                                           color: controller.saved.value
                                               ? Colors.orange
                                               : Colors.grey,
-                                          size: 22,
+                                          size: 19,
                                         ),
                                         padding: EdgeInsets.zero,
                                         constraints: BoxConstraints(
@@ -257,7 +257,7 @@ class JobContent extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -268,16 +268,17 @@ class JobContent extends StatelessWidget {
                     maxLines: 1,
                     style: TextStyle(
                         color: Colors.black,
-                        fontSize: 13,
+                        fontSize: 12,
                         fontFamily: "MontserratBold"),
                   ),
                   if (model.deneyimSeviyesi.isNotEmpty)
                     Text(
                       model.deneyimSeviyesi,
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.grey.shade600,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontFamily: "MontserratMedium",
                       ),
                     ),
@@ -286,9 +287,10 @@ class JobContent extends StatelessWidget {
                         ? model.calismaTuru.join(", ")
                         : "${model.calismaTuru.take(1).join(", ")} +${model.calismaTuru.length - 1}",
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.pinkAccent,
-                      fontSize: 14,
+                      fontSize: 12,
                       fontFamily: "MontserratMedium",
                     ),
                   ),
@@ -298,7 +300,7 @@ class JobContent extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: Colors.blueAccent,
-                        fontSize: 13,
+                        fontSize: 12,
                         fontFamily: "MontserratMedium"),
                   ),
                   Text(
@@ -307,11 +309,12 @@ class JobContent extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.black,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontFamily: "MontserratMedium",
+                      height: 1.05,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -319,7 +322,7 @@ class JobContent extends StatelessWidget {
                         onPressed: () => controller.shareJob(model),
                         icon: const Icon(
                           CupertinoIcons.share_up,
-                          size: 18,
+                          size: 16,
                           color: Colors.grey,
                         ),
                         visualDensity: VisualDensity.compact,
@@ -336,7 +339,7 @@ class JobContent extends StatelessWidget {
                             controller.saved.value
                                 ? CupertinoIcons.bookmark_fill
                                 : CupertinoIcons.bookmark,
-                            size: 18,
+                            size: 17,
                             color: controller.saved.value
                                 ? Colors.orange
                                 : Colors.grey,

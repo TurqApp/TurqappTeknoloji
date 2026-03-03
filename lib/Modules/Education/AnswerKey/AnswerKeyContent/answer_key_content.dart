@@ -161,7 +161,7 @@ class AnswerKeyContent extends StatelessWidget {
                 ),
               ),
               Text(
-                NumberFormatter.format(controller.model.goruntuleme.length * 3),
+                NumberFormatter.format(controller.model.goruntuleme.length),
                 style: TextStyle(color: Colors.black, fontSize: 13),
               ),
               SizedBox(width: 3),

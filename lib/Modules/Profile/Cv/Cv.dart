@@ -69,8 +69,6 @@ class Cv extends StatelessWidget {
                               AppSnackbar("Eksik Alan", "Telefon numarası girmeden devam edemezsiniz");
                             } else if (!controller.validatePhone(controller.phoneNumber.text)) {
                               AppSnackbar("Hatalı Format", "Geçerli bir telefon numarası girin");
-                            } else if (controller.linkedin.text.isNotEmpty && !controller.validateLinkedIn(controller.linkedin.text)) {
-                              AppSnackbar("Hatalı Format", "Geçerli bir LinkedIn adresi girin");
                             } else if (controller.onYazi.text.trim().isEmpty) {
                               AppSnackbar("Eksik Alan", "Kendiniz hakkında kısa bilgi vermek zorundasınız");
                             } else {

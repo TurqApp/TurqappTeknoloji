@@ -3,6 +3,10 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
+import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
 
 import '../../Models/posts_model.dart';
 import '../../Modules/Agenda/FloodListing/flood_listing.dart';
@@ -91,6 +95,31 @@ class NotifyReaderController extends GetxController {
     }
 
     Get.to<ChatView>(() => ChatView(chatID: chatID, userID: otherUser))
+        ?.then((_) => toNavbar());
+  }
+
+  Future<void> goToJob(String jobID) async {
+    final doc =
+        await FirebaseFirestore.instance.collection('isBul').doc(jobID).get();
+    if (!doc.exists) {
+      AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+      return toNavbar();
+    }
+    final model = JobModel.fromMap(doc.data()!, doc.id);
+    Get.to<JobDetails>(() => JobDetails(model: model))?.then((_) => toNavbar());
+  }
+
+  Future<void> goToTutoring(String tutoringID) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('educators')
+        .doc(tutoringID)
+        .get();
+    if (!doc.exists) {
+      AppSnackbar('Bilgi', 'Özel ders ilanı bulunamadı veya kaldırılmış.');
+      return toNavbar();
+    }
+    final model = TutoringModel.fromJson(doc.data()!, doc.id);
+    Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model)
         ?.then((_) => toNavbar());
   }
 

@@ -38,9 +38,13 @@ class TutoringWidgetBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SavedTutoringsController savedController =
-        Get.find<SavedTutoringsController>();
+        Get.isRegistered<SavedTutoringsController>()
+            ? Get.find<SavedTutoringsController>()
+            : Get.put(SavedTutoringsController());
     final TutoringController tutoringController =
-        Get.find<TutoringController>();
+        Get.isRegistered<TutoringController>()
+            ? Get.find<TutoringController>()
+            : Get.put(TutoringController());
     final String? currentUserId = getCurrentUserId();
 
     if (tutoringList.isEmpty) {
@@ -118,7 +122,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                     padding: EdgeInsets.only(right: 8),
                                     child: Icon(
                                       CupertinoIcons.share_up,
-                                      size: 20,
+                                      size: 19,
                                       color: Colors.grey,
                                     ),
                                   ),
@@ -130,8 +134,9 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   return GestureDetector(
                                     child: Icon(
                                       isSaved ? AppIcons.saved : AppIcons.save,
-                                      size: 20,
-                                      color: isSaved ? Colors.orange : null,
+                                      size: 19,
+                                      color:
+                                          isSaved ? Colors.orange : Colors.grey,
                                     ),
                                     onTap: () async {
                                       if (currentUserId != null) {
@@ -275,7 +280,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                         padding: EdgeInsets.only(right: 8),
                                         child: Icon(
                                           CupertinoIcons.share_up,
-                                          size: 20,
+                                          size: 19,
                                           color: Colors.grey,
                                         ),
                                       ),
@@ -289,8 +294,10 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                           isSaved
                                               ? AppIcons.saved
                                               : AppIcons.save,
-                                          size: 20,
-                                          color: isSaved ? Colors.orange : null,
+                                          size: 19,
+                                          color: isSaved
+                                              ? Colors.orange
+                                              : Colors.grey,
                                         ),
                                         onTap: () async {
                                           if (currentUserId != null) {

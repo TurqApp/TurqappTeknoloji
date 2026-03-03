@@ -315,7 +315,14 @@ service cloud.firestore {
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['begeniler', 'kaydedenler', 'goruntuleme', 'applicationCount'])
+           .hasOnly([
+             'begeniler',
+             'kaydedenler',
+             'goruntuleme',
+             'applicationCount',
+             'likesCount',
+             'bookmarksCount'
+           ])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
