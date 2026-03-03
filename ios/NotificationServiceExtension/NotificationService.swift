@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UserNotifications
 
 final class NotificationService: UNNotificationServiceExtension {
@@ -24,23 +25,25 @@ final class NotificationService: UNNotificationServiceExtension {
       return
     }
 
-    downloadTask = URLSession.shared.dataTask(with: imageURL) { [weak self] data, response, _ in
+    downloadTask = URLSession.shared.dataTask(with: imageURL) { [weak self] data, _, _ in
       guard let self else { return }
       defer { self.contentHandler?(bestAttemptContent) }
 
-      guard let data,
-            let response,
-            let mimeType = response.mimeType,
-            let fileExtension = Self.fileExtension(for: mimeType) else {
+      guard let data else {
+        return
+      }
+
+      let prepared = Self.preparedImageData(from: data)
+      guard let fileData = prepared.data else {
         return
       }
 
       let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent(UUID().uuidString)
-        .appendingPathExtension(fileExtension)
+        .appendingPathExtension(prepared.fileExtension)
 
       do {
-        try data.write(to: tempURL)
+        try fileData.write(to: tempURL)
         let attachment = try UNNotificationAttachment(
           identifier: "post-image",
           url: tempURL,
@@ -75,18 +78,15 @@ final class NotificationService: UNNotificationServiceExtension {
     return nil
   }
 
-  private static func fileExtension(for mimeType: String) -> String? {
-    switch mimeType.lowercased() {
-    case "image/jpeg", "image/jpg":
-      return "jpg"
-    case "image/png":
-      return "png"
-    case "image/gif":
-      return "gif"
-    case "image/webp":
-      return "webp"
-    default:
-      return nil
+  private static func preparedImageData(from data: Data) -> (data: Data?, fileExtension: String) {
+    if let image = UIImage(data: data) {
+      if let jpeg = image.jpegData(compressionQuality: 0.92) {
+        return (jpeg, "jpg")
+      }
+      if let png = image.pngData() {
+        return (png, "png")
+      }
     }
+    return (data, "jpg")
   }
 }

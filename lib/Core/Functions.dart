@@ -30,44 +30,48 @@ List<String> parseStringList(dynamic data) {
 }
 
 String timeAgoMetin(num timestamp) {
-  DateTime now = DateTime.now();
-  DateTime dateTime =
+  final now = DateTime.now();
+  final dateTime =
       DateTime.fromMillisecondsSinceEpoch(timestamp.toInt()).toLocal();
-  Duration difference = now.difference(dateTime);
+  final difference = now.difference(dateTime);
+  const monthNames = [
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara',
+  ];
 
   if (difference.inSeconds < 60) {
-    return "Az önce";
+    return "Az";
   } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk önce";
+    return "${difference.inMinutes}dk";
   } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa önce";
+    return "${difference.inHours}sa";
   } else if (difference.inDays < 7) {
-    return "${difference.inDays}g önce";
+    return "${difference.inDays}g";
+  } else if (difference.inDays < 365) {
+    final months = max(1, (difference.inDays / 30).floor());
+    return "${months}ay";
   } else {
-    int totalDays = difference.inDays;
-    int weeks = (totalDays / 7).floor();
-    int months = (totalDays / 30).floor();
-
-    if (months >= 3) {
-      String day = dateTime.day.toString().padLeft(2, '0');
-      String month = dateTime.month.toString().padLeft(2, '0');
-      String year = dateTime.year.toString();
-      return "$day.$month.$year";
-    } else {
-      if (weeks == 0) {
-        return "Bu hafta";
-      } else {
-        return "$weeks hafta önce";
-      }
-    }
+    final day = dateTime.day.toString();
+    final month = monthNames[dateTime.month - 1];
+    final year = (dateTime.year % 100).toString().padLeft(2, '0');
+    return "$day $month $year";
   }
 }
 
 Future<void> getDeviceInfo() async {
   final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  if (FirebaseAuth.instance.currentUser != null){
-
+  if (FirebaseAuth.instance.currentUser != null) {
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
       FirebaseFirestore.instance
@@ -221,10 +225,9 @@ String capitalize(String s) {
       .replaceAll(RegExp(' +'), ' ')
       .split(' ')
       .map(
-        (str) =>
-            str.isNotEmpty
-                ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
-                : '',
+        (str) => str.isNotEmpty
+            ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
+            : '',
       )
       .join(' ');
 }

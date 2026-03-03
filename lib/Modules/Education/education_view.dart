@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/MyBookletResults/my_booklet_results.dart';
@@ -177,6 +178,16 @@ class EducationView extends StatelessWidget {
             title: 'Sonuçlarım',
             onTap: () => Get.to(() => CikmisSoruSonuclar()),
           ),
+          PullDownMenuItem(
+            icon: CupertinoIcons.slider_horizontal_3,
+            title: 'Slider Yönetimi',
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'denemeler',
+                title: 'Denemeler',
+              ),
+            ),
+          ),
         ];
       case 3:
         return [
@@ -199,6 +210,16 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.search,
             title: 'Ara',
             onTap: () => Get.to(() => SearchDeneme()),
+          ),
+          PullDownMenuItem(
+            icon: CupertinoIcons.slider_horizontal_3,
+            title: 'Slider Yönetimi',
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'online_sinav',
+                title: 'Online Sınav',
+              ),
+            ),
           ),
         ];
       case 4:
@@ -234,6 +255,16 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.arrow_right,
             onTap: () => Get.to(OpticalFormEntry()),
           ),
+          PullDownMenuItem(
+            title: 'Slider Yönetimi',
+            icon: CupertinoIcons.slider_horizontal_3,
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'cevap_anahtari',
+                title: 'Cevap Anahtarı',
+              ),
+            ),
+          ),
         ];
       case 5:
         return [
@@ -256,6 +287,16 @@ class EducationView extends StatelessWidget {
             title: 'Oluştur',
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(CreateTutoringView()),
+          ),
+          PullDownMenuItem(
+            title: 'Slider Yönetimi',
+            icon: CupertinoIcons.slider_horizontal_3,
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'ozel_ders',
+                title: 'Özel Ders',
+              ),
+            ),
           ),
         ];
       case 6:
@@ -284,6 +325,16 @@ class EducationView extends StatelessWidget {
             title: 'Kaydedilenler',
             icon: CupertinoIcons.bookmark,
             onTap: () => Get.to(() => SavedJobs()),
+          ),
+          PullDownMenuItem(
+            title: 'Slider Yönetimi',
+            icon: CupertinoIcons.slider_horizontal_3,
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'is_bul',
+                title: 'İş Bul',
+              ),
+            ),
           ),
         ];
       default:

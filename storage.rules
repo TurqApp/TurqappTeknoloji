@@ -82,6 +82,12 @@ service firebase.storage {
                    && request.resource.size < 10 * 1024 * 1024; // 10MB
     }
 
+    match /slider/{moduleId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.resource.size < 10 * 1024 * 1024;
+    }
+
     // Story HLS segments - public read for CDN
     match /stories/{uid}/{storyId}/hls/{allPaths=**} {
       allow read;

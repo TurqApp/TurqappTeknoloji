@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option.dart';
@@ -39,93 +40,88 @@ class AnswerKey extends StatelessWidget {
     });
 
     final bodyContent = Expanded(
-                child: RefreshIndicator(
-                  color: Colors.white,
-                  backgroundColor: Colors.black,
-                  onRefresh: controller.refreshData,
-                  child: ListView(
-                    controller:
-                        _scrollController, // _scrollController'ı buraya bağla
-                    children: [
-                      Obx(
-                        () => Column(
-                          children: [
-                            EducationSlider(
-                              imageList: [
-                                AppAssets.optical1,
-                                AppAssets.optical2,
-                                AppAssets.optical3
-                              ],
-                            ),
-                            8.ph,
-                            lessonsCategory(),
-                            if (!embedded) search(),
-                            controller.isLoading.value
-                                ? const Center(
-                                    child: CupertinoActivityIndicator())
-                                : controller.bookList.isNotEmpty
-                                    ? Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15),
-                                        child: GridView.builder(
-                                          shrinkWrap: true,
-                                          physics:
-                                              const NeverScrollableScrollPhysics(),
-                                          gridDelegate:
-                                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            crossAxisSpacing: 4,
-                                            mainAxisSpacing: 4,
-                                            childAspectRatio: 0.45,
-                                          ),
-                                          itemCount: controller.bookList.length,
-                                          itemBuilder: (context, index) {
-                                            final item =
-                                                controller.bookList[index];
-                                            return AnswerKeyContent(
-                                              key: ValueKey(item.docID),
-                                              model: item,
-                                              onUpdate: (v) =>
-                                                  controller.refreshData(),
-                                            );
-                                          },
-                                        ),
-                                      )
-                                    : Container(
-                                        color: Colors.white,
-                                        child: const Padding(
-                                          padding: EdgeInsets.only(top: 15),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  Icon(Icons.lightbulb_outline,
-                                                      color: Colors.black),
-                                                  SizedBox(height: 7),
-                                                  Text(
-                                                    "Herhangi bir optik form yok.",
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 15,
-                                                      fontFamily: "Montserrat",
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                          ],
-                        ),
-                      ),
+      child: RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: controller.refreshData,
+        child: ListView(
+          controller: _scrollController, // _scrollController'ı buraya bağla
+          children: [
+            Obx(
+              () => Column(
+                children: [
+                  EducationSlider(
+                    sliderId: 'cevap_anahtari',
+                    imageList: [
+                      AppAssets.optical1,
+                      AppAssets.optical2,
+                      AppAssets.optical3
                     ],
                   ),
-                ),
+                  8.ph,
+                  lessonsCategory(),
+                  if (!embedded) search(),
+                  controller.isLoading.value
+                      ? const Center(child: CupertinoActivityIndicator())
+                      : controller.bookList.isNotEmpty
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
+                              child: GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 4,
+                                  mainAxisSpacing: 4,
+                                  childAspectRatio: 0.45,
+                                ),
+                                itemCount: controller.bookList.length,
+                                itemBuilder: (context, index) {
+                                  final item = controller.bookList[index];
+                                  return AnswerKeyContent(
+                                    key: ValueKey(item.docID),
+                                    model: item,
+                                    onUpdate: (v) => controller.refreshData(),
+                                  );
+                                },
+                              ),
+                            )
+                          : Container(
+                              color: Colors.white,
+                              child: const Padding(
+                                padding: EdgeInsets.only(top: 15),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.lightbulb_outline,
+                                            color: Colors.black),
+                                        SizedBox(height: 7),
+                                        Text(
+                                          "Herhangi bir optik form yok.",
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 15,
+                                            fontFamily: "Montserrat",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
 
     final overlays = [
@@ -157,13 +153,23 @@ class AnswerKey extends StatelessWidget {
                 PullDownMenuItem(
                   title: 'Oluştur',
                   icon: AppIcons.addCircled,
-                  onTap: () => Get.to(AnswerKeyCreatingOption(
-                      onBack: controller.refreshData)),
+                  onTap: () => Get.to(
+                      AnswerKeyCreatingOption(onBack: controller.refreshData)),
                 ),
                 PullDownMenuItem(
                   title: 'Katıl',
                   icon: AppIcons.arrowRight,
                   onTap: () => Get.to(OpticalFormEntry()),
+                ),
+                PullDownMenuItem(
+                  title: 'Slider Yönetimi',
+                  icon: CupertinoIcons.slider_horizontal_3,
+                  onTap: () => Get.to(
+                    () => const SliderAdminView(
+                      sliderId: 'cevap_anahtari',
+                      title: 'Cevap Anahtarı',
+                    ),
+                  ),
                 ),
               ])))),
     ];

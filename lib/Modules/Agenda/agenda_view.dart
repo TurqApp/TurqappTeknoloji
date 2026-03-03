@@ -291,24 +291,25 @@ class AgendaView extends StatelessWidget {
                           columnChildren.add(postWidget);
 
                           columnChildren.add(
-                            Divider(color: Colors.grey.withAlpha(20)),
+                            Divider(
+                              color: Colors.grey.withAlpha(20),
+                              height: 6,
+                            ),
                           );
 
                           // Her 5 gönderiden sonra: önerilen kişiler + altına reklam
                           if ((actualIndex + 1) % 5 == 0) {
                             final slot = ((actualIndex + 1) ~/ 5);
-                            // Önerilen kişiler
                             columnChildren.add(
                               Padding(
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
+                                    const EdgeInsets.only(top: 2, bottom: 10),
                                 child: RecommendedUserList(
                                   key: ValueKey('recommendedUserList-$slot'),
                                   batch: slot,
                                 ),
                               ),
                             );
-                            // Reklam
                             columnChildren.add(
                               Padding(
                                 padding:
@@ -325,7 +326,7 @@ class AgendaView extends StatelessWidget {
                           return RepaintBoundary(
                             child: Padding(
                               key: ValueKey('row-$stableKeyString'),
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: columnChildren,

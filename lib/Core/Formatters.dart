@@ -1,26 +1,16 @@
 class NumberFormatter {
   static String format(int? number) {
-    int safeNumber = number ?? 0;
+    final int safeNumber = number ?? 0;
 
     if (safeNumber >= 1000000) {
-      double million = safeNumber / 1000000;
-      return "${_formatDecimal(million)}M";
-    } else if (safeNumber >= 1000) {
-      double thousand = safeNumber / 1000;
-      return "${_formatDecimal(thousand)}B";
-    } else {
-      return safeNumber.toString();
-    }
-  }
-
-  static String _formatDecimal(double value) {
-    if (value >= 100) {
-      return value.toStringAsFixed(0);
+      return "${safeNumber ~/ 1000000}M";
     }
 
-    return value.truncateToDouble() == value
-        ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(1);
+    if (safeNumber >= 1000) {
+      return "${safeNumber ~/ 1000}B";
+    }
+
+    return safeNumber.toString();
   }
 }
 

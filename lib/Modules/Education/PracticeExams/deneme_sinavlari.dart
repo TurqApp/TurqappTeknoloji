@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeTurleriListesi/deneme_turleri_listesi.dart';
@@ -96,6 +97,7 @@ class DenemeSinavlari extends StatelessWidget {
             controller: _scrollController,
             children: [
               EducationSlider(
+                sliderId: 'online_sinav',
                 imageList: [
                   AppAssets.practice1,
                   AppAssets.practice2,
@@ -285,6 +287,16 @@ class DenemeSinavlari extends StatelessWidget {
                         title: 'Ara',
                         onTap: () => Get.to(() => SearchDeneme()),
                       ),
+                      PullDownMenuItem(
+                        icon: CupertinoIcons.slider_horizontal_3,
+                        title: 'Slider Yönetimi',
+                        onTap: () => Get.to(
+                          () => const SliderAdminView(
+                            sliderId: 'online_sinav',
+                            title: 'Online Sınav',
+                          ),
+                        ),
+                      ),
                     ])))),
         ],
       );
@@ -362,6 +374,16 @@ class DenemeSinavlari extends StatelessWidget {
                         icon: CupertinoIcons.search,
                         title: 'Ara',
                         onTap: () => Get.to(() => SearchDeneme()),
+                      ),
+                      PullDownMenuItem(
+                        icon: CupertinoIcons.slider_horizontal_3,
+                        title: 'Slider Yönetimi',
+                        onTap: () => Get.to(
+                          () => const SliderAdminView(
+                            sliderId: 'online_sinav',
+                            title: 'Online Sınav',
+                          ),
+                        ),
                       ),
                     ])))),
           ],

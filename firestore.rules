@@ -547,6 +547,17 @@ service cloud.firestore {
       allow delete: if isAdmin();
       allow update: if false;
     }
+    match /sliders/{sliderId} {
+      allow read: if isAuth();
+      allow create, update: if isAuth();
+      allow delete: if false;
+
+      match /items/{itemId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth();
+        allow delete: if isAuth();
+      }
+    }
     match /Analytics/{docId} {
       allow read: if false;
       allow write: if isAuth();

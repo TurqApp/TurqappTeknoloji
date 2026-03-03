@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class ActionButton extends StatelessWidget {
@@ -67,6 +68,10 @@ class ActionButton extends StatelessWidget {
     }
   }
 
+  Future<bool> _canManageSliders() async {
+    return AdminAccessService.canManageSliders();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPressed = false.obs;
@@ -86,16 +91,21 @@ class ActionButton extends StatelessWidget {
                 future: Future.wait([
                   _canCreateScholarship(),
                   _canCreateExam(),
+                  _canManageSliders(),
                 ]).then(
                   (results) => {
                     'canCreateScholarship': results[0],
                     'canCreateExam': results[1],
+                    'canManageSliders': results[2],
                   },
                 ),
                 builder: (context, snapshot) {
                   final canCreateScholarship =
                       snapshot.data?['canCreateScholarship'] ?? false;
-                  final canCreateExam = snapshot.data?['canCreateExam'] ?? false;
+                  final canCreateExam =
+                      snapshot.data?['canCreateExam'] ?? false;
+                  final canManageSliders =
+                      snapshot.data?['canManageSliders'] ?? false;
                   return PullDownButton(
                     itemBuilder: (context) => menuItems
                         .map((item) {
@@ -104,7 +114,12 @@ class ActionButton extends StatelessWidget {
                               !canCreateScholarship) {
                             return null;
                           }
-                          if (item.title == 'Deneme Oluştur' && !canCreateExam) {
+                          if (item.title == 'Deneme Oluştur' &&
+                              !canCreateExam) {
+                            return null;
+                          }
+                          if (item.title == 'Slider Yönetimi' &&
+                              !canManageSliders) {
                             return null;
                           }
                           return item;

@@ -72,9 +72,11 @@ class _AgendaContentState extends State<AgendaContent>
     with PostContentBaseState<AgendaContent> {
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
+  static const Color _actionColor = Color(0xFF6F7A85);
   final arsivController = Get.put(ArchiveController());
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
+  bool _isCaptionExpanded = false;
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -215,81 +217,16 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget mainbody() {
+    final hasHeaderSubline =
+        widget.model.konum != "" || widget.model.metin.trim().isNotEmpty;
+    final mediaTopSpacing = hasHeaderSubline ? 4.0 : 0.0;
+    final actionTopSpacing = hasHeaderSubline ? 5.0 : 1.0;
+    final mediaVisualLift = hasHeaderSubline ? 0.0 : -6.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         headerUserInfoBar(),
-        // Metin varsa göster
-        if (widget.model.metin.trim().isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 45, top: 8),
-            child: ClickableTextContent(
-              startWith7line: true,
-              showEllipsisOverlay: true,
-              fontSize: 14,
-              interactiveColor: Colors.blue,
-              text: widget.model.metin.trim(),
-              onHashtagTap: (tag) {
-                videoController?.pause();
-                Get.to(() => TagPosts(tag: tag))?.then((_) {
-                  if (mounted && widget.shouldPlay) {
-                    videoController?.play();
-                  }
-                });
-              },
-              onUrlTap: (v) async {
-                videoController?.pause();
-                final uniqueKey =
-                    DateTime.now().millisecondsSinceEpoch.toString();
-                await RedirectionLink().goToLink(v, uniqueKey: uniqueKey);
-                videoController?.play();
-              },
-              onPlainTextTap: (_) async {
-                if (widget.isPreview) {
-                  videoController?.pause();
-                  await Get.to(() =>
-                      ImagePreview(imgs: widget.model.img, startIndex: 0));
-                  videoController?.play();
-                } else {
-                  if (widget.model.floodCount > 1) {
-                    videoController?.pause();
-                    Get.to(() => FloodListing(mainModel: widget.model));
-                    await videoController?.play();
-                  } else {
-                    videoController?.pause();
-                    await Get.to(() =>
-                        ImagePreview(imgs: widget.model.img, startIndex: 0));
-                    videoController?.play();
-                  }
-                }
-              },
-              onMentionTap: (mention) {
-                FirebaseFirestore.instance
-                    .collection("users")
-                    .where("nickname", isEqualTo: mention)
-                    .get()
-                    .then((snap) async {
-                  agendaController.centeredIndex.value = -1;
-                  agendaController.pauseAll.value = true;
-                  if (snap.docs.isEmpty) {
-                    AppSnackbar(
-                        'Bulunamadı', '@$mention için kullanıcı bulunamadı');
-                    agendaController.pauseAll.value = false;
-                    return;
-                  }
-                  final doc = snap.docs.first;
-                  final currentId = FirebaseAuth.instance.currentUser?.uid;
-                  if (currentId != null && doc.id != currentId) {
-                    videoController?.pause();
-                    await Get.to(() => SocialProfile(userID: doc.id));
-                    videoController?.play();
-                  } else {
-                    agendaController.pauseAll.value = false;
-                  }
-                });
-              },
-            ),
-          ),
         if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8, left: 45),
@@ -317,106 +254,33 @@ class _AgendaContentState extends State<AgendaContent>
 
         // Video varsa göster
         if (widget.model.hasPlayableVideo)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Row(
-              children: [
-                const SizedBox(width: 45),
-                Expanded(
-                  child: Builder(builder: (_) {
-                    // Video oynatım frame'i sabit: içerik frame'e zoom/crop ile oturur.
-                    const double displayAspect = 0.80;
-                    return VisibilityDetector(
-                      key: Key('agenda-media-${widget.model.docID}'),
-                      onVisibilityChanged: (info) {
-                        reportMediaVisibility(info.visibleFraction);
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                        child: AspectRatio(
-                          aspectRatio: displayAspect,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              // Video player (veya thumbnail eğer controller yoksa)
-                              SizedBox.expand(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    if (widget.isPreview) {
-                                      final currentPos =
-                                          await _resolveCurrentVideoPosition();
-
-                                      final listForFullscreen =
-                                          await _buildFullscreenStartList();
-
-                                      _prepareVideoFullscreenTransition();
-                                      _pauseFeedBeforeFullscreen();
-                                      setPauseBlocked(true);
-                                      if (mounted) {
-                                        setState(() => _isFullscreen = true);
-                                      }
-                                      final res =
-                                          await Get.to(() => SingleShortView(
-                                                startModel: widget.model,
-                                                startList: listForFullscreen,
-                                                initialPosition: currentPos,
-                                                injectedController:
-                                                    videoController,
-                                              ));
-                                      setPauseBlocked(false);
-                                      if (mounted) {
-                                        setState(() => _isFullscreen = false);
-                                      }
-
-                                      if (!mounted) return;
-
-                                      // Geri dönünce centeredIndex'i geri yükle
-                                      final modelIndex = agendaController
-                                          .agendaList
-                                          .indexWhere((p) =>
-                                              p.docID == widget.model.docID);
-                                      if (modelIndex >= 0) {
-                                        agendaController.centeredIndex.value =
-                                            modelIndex;
-                                        agendaController.lastCenteredIndex =
-                                            modelIndex;
-                                      }
-
-                                      final vc = videoController;
-                                      if (vc != null &&
-                                          vc.value.isInitialized) {
-                                        if (res is Map &&
-                                            res['docID'] ==
-                                                widget.model.docID) {
-                                          final int? ms =
-                                              res['positionMs'] as int?;
-                                          if (ms != null) {
-                                            await vc.seekTo(
-                                                Duration(milliseconds: ms));
-                                            if (widget.shouldPlay) {
-                                              vc.play();
-                                              vc.setVolume(
-                                                  agendaController.isMuted.value
-                                                      ? 0
-                                                      : 1);
-                                            }
-                                            return;
-                                          }
-                                        }
-                                        // Geri dönüşte oynat
-                                        if (widget.shouldPlay) {
-                                          tryAutoPlayWhenBuffered();
-                                        }
-                                      }
-                                    } else {
-                                      if (controller.model.floodCount > 1) {
-                                        videoController?.pause();
-                                        await Get.to(() => FloodListing(
-                                            mainModel: widget.model));
-                                        if (widget.shouldPlay) {
-                                          videoController?.play();
-                                        }
-                                      } else {
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing),
+              child: Row(
+                children: [
+                  const SizedBox(width: 45),
+                  Expanded(
+                    child: Builder(builder: (_) {
+                      const double displayAspect = 0.80;
+                      return VisibilityDetector(
+                        key: Key('agenda-media-${widget.model.docID}'),
+                        onVisibilityChanged: (info) {
+                          reportMediaVisibility(info.visibleFraction);
+                        },
+                        child: ClipRRect(
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(12)),
+                          child: AspectRatio(
+                            aspectRatio: displayAspect,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                SizedBox.expand(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      if (widget.isPreview) {
                                         final currentPos =
                                             await _resolveCurrentVideoPosition();
                                         final listForFullscreen =
@@ -443,7 +307,6 @@ class _AgendaContentState extends State<AgendaContent>
 
                                         if (!mounted) return;
 
-                                        // Geri dönünce centeredIndex'i geri yükle
                                         final modelIndex = agendaController
                                             .agendaList
                                             .indexWhere((p) =>
@@ -476,228 +339,305 @@ class _AgendaContentState extends State<AgendaContent>
                                               return;
                                             }
                                           }
-                                          // Geri dönüşte oynat
                                           if (widget.shouldPlay) {
                                             tryAutoPlayWhenBuffered();
                                           }
                                         }
-                                      }
-                                    }
-                                  },
-                                  child: Builder(builder: (_) {
-                                    final thumb = widget.model.thumbnail;
-                                    if (videoController == null) {
-                                      if (thumb.isEmpty) {
-                                        return Container(
-                                            color: const Color(0xFFE8E8E8));
-                                      }
-                                      return Image.network(
-                                        thumb,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                          if (loadingProgress == null) {
-                                            return child;
+                                      } else {
+                                        if (controller.model.floodCount > 1) {
+                                          videoController?.pause();
+                                          await Get.to(() => FloodListing(
+                                              mainModel: widget.model));
+                                          if (widget.shouldPlay) {
+                                            videoController?.play();
                                           }
+                                        } else {
+                                          final currentPos =
+                                              await _resolveCurrentVideoPosition();
+                                          final listForFullscreen =
+                                              await _buildFullscreenStartList();
+
+                                          _prepareVideoFullscreenTransition();
+                                          _pauseFeedBeforeFullscreen();
+                                          setPauseBlocked(true);
+                                          if (mounted) {
+                                            setState(
+                                                () => _isFullscreen = true);
+                                          }
+                                          final res = await Get.to(() =>
+                                              SingleShortView(
+                                                startModel: widget.model,
+                                                startList: listForFullscreen,
+                                                initialPosition: currentPos,
+                                                injectedController:
+                                                    videoController,
+                                              ));
+                                          setPauseBlocked(false);
+                                          if (mounted) {
+                                            setState(
+                                                () => _isFullscreen = false);
+                                          }
+
+                                          if (!mounted) return;
+
+                                          final modelIndex = agendaController
+                                              .agendaList
+                                              .indexWhere((p) =>
+                                                  p.docID ==
+                                                  widget.model.docID);
+                                          if (modelIndex >= 0) {
+                                            agendaController.centeredIndex
+                                                .value = modelIndex;
+                                            agendaController.lastCenteredIndex =
+                                                modelIndex;
+                                          }
+
+                                          final vc = videoController;
+                                          if (vc != null &&
+                                              vc.value.isInitialized) {
+                                            if (res is Map &&
+                                                res['docID'] ==
+                                                    widget.model.docID) {
+                                              final int? ms =
+                                                  res['positionMs'] as int?;
+                                              if (ms != null) {
+                                                await vc.seekTo(
+                                                    Duration(milliseconds: ms));
+                                                if (widget.shouldPlay) {
+                                                  vc.play();
+                                                  vc.setVolume(agendaController
+                                                          .isMuted.value
+                                                      ? 0
+                                                      : 1);
+                                                }
+                                                return;
+                                              }
+                                            }
+                                            if (widget.shouldPlay) {
+                                              tryAutoPlayWhenBuffered();
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    child: Builder(builder: (_) {
+                                      final thumb = widget.model.thumbnail;
+                                      if (videoController == null) {
+                                        if (thumb.isEmpty) {
                                           return Container(
                                               color: const Color(0xFFE8E8E8));
-                                        },
-                                        errorBuilder: (context, error,
-                                                stackTrace) =>
-                                            Container(
-                                                color: const Color(0xFFE8E8E8)),
-                                      );
-                                    }
-                                    // Video player + thumbnail overlay
-                                    return Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        _isFullscreen
-                                            ? const SizedBox.shrink()
-                                            : videoController!.buildPlayer(
-                                                key: ValueKey(
-                                                    'agenda-${widget.model.docID}-${videoController.hashCode}'),
-                                                aspectRatio: displayAspect,
-                                                useAspectRatio: false,
-                                              ),
-                                        // Thumbnail overlay - video hazır olana kadar göster
-                                        ValueListenableBuilder<HLSVideoValue>(
-                                          valueListenable: videoValueNotifier,
-                                          builder: (_, v, child) {
-                                            if (v.isInitialized &&
-                                                v.position > Duration.zero) {
-                                              return const SizedBox.shrink();
+                                        }
+                                        return Image.network(
+                                          thumb,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
                                             }
-                                            return child!;
+                                            return Container(
+                                                color: const Color(0xFFE8E8E8));
                                           },
-                                          child: thumb.isNotEmpty
-                                              ? Image.network(
-                                                  thumb,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      Container(
-                                                    color: const Color(
-                                                      0xFFE8E8E8,
-                                                    ),
-                                                  ),
-                                                )
-                                              : Container(
-                                                  color: const Color(
-                                                    0xFFE8E8E8,
-                                                  ),
+                                          errorBuilder: (context, error,
+                                                  stackTrace) =>
+                                              Container(
+                                                  color:
+                                                      const Color(0xFFE8E8E8)),
+                                        );
+                                      }
+                                      return Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          _isFullscreen
+                                              ? const SizedBox.shrink()
+                                              : videoController!.buildPlayer(
+                                                  key: ValueKey(
+                                                      'agenda-${widget.model.docID}-${videoController.hashCode}'),
+                                                  aspectRatio: displayAspect,
+                                                  useAspectRatio: false,
                                                 ),
-                                        ),
-                                        Positioned(
-                                          top: 8,
-                                          right: 8,
-                                          child: buildUploadIndicator(),
-                                        ),
-                                      ],
-                                    );
-                                  }),
-                                ),
-                              ),
-                              // Süre göstergesi + Replay butonu — sadece video state değiştiğinde rebuild
-                              if (videoController != null)
-                                ValueListenableBuilder<HLSVideoValue>(
-                                  valueListenable: videoValueNotifier,
-                                  builder: (_, v, __) {
-                                    if (!v.isInitialized)
-                                      return const SizedBox.shrink();
-                                    final remaining = v.duration - v.position;
-                                    final safeRemaining = remaining.isNegative
-                                        ? Duration.zero
-                                        : remaining;
-                                    return Stack(
-                                      children: [
-                                        // Süre göstergesi
-                                        Positioned(
-                                          top: 8,
-                                          right: 8,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.black54,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              _formatDuration(safeRemaining),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontFamily: "Montserrat",
-                                              ),
-                                            ),
+                                          ValueListenableBuilder<HLSVideoValue>(
+                                            valueListenable: videoValueNotifier,
+                                            builder: (_, v, child) {
+                                              if (v.isInitialized &&
+                                                  v.position > Duration.zero) {
+                                                return const SizedBox.shrink();
+                                              }
+                                              return child!;
+                                            },
+                                            child: thumb.isNotEmpty
+                                                ? Image.network(
+                                                    thumb,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (_, __, ___) =>
+                                                            Container(
+                                                      color: const Color(
+                                                          0xFFE8E8E8),
+                                                    ),
+                                                  )
+                                                : Container(
+                                                    color:
+                                                        const Color(0xFFE8E8E8),
+                                                  ),
                                           ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              // Tamamlandı butonu
-                              if (widget.model.flood == false &&
-                                  widget.model.floodCount > 1)
-                                Positioned(
-                                  bottom: 0,
-                                  left: 0,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      videoController?.pause();
-                                      Get.to(() => FloodListing(
-                                              mainModel: widget.model))
-                                          ?.then(
-                                              (_) => videoController?.play());
-                                    },
-                                    child: Texts.colorfulFloodLeftSide,
-                                  ),
-                                ),
-
-                              if (isVideoFromCache)
-                                Positioned(
-                                  left: 8,
-                                  bottom: (widget.model.flood == false &&
-                                          widget.model.floodCount > 1)
-                                      ? 26
-                                      : 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.circle,
-                                      size: 8,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ),
-                              if (widget.model.originalUserID.isNotEmpty)
-                                Positioned(
-                                  left: 8,
-                                  bottom: isVideoFromCache
-                                      ? ((widget.model.flood == false &&
-                                              widget.model.floodCount > 1)
-                                          ? 52
-                                          : 34)
-                                      : ((widget.model.flood == false &&
-                                              widget.model.floodCount > 1)
-                                          ? 26
-                                          : 8),
-                                  child: SharedPostLabel(
-                                    originalUserID: widget.model.originalUserID,
-                                    textColor: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              // Ses butonu
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: agendaController.isMuted.toggle,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Obx(() {
-                                      return Icon(
-                                        agendaController.isMuted.value
-                                            ? CupertinoIcons.volume_off
-                                            : CupertinoIcons.volume_up,
-                                        color: Colors.white,
-                                        size: 20,
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: buildUploadIndicator(),
+                                          ),
+                                        ],
                                       );
                                     }),
                                   ),
                                 ),
-                              ),
-                            ],
+                                if (videoController != null)
+                                  ValueListenableBuilder<HLSVideoValue>(
+                                    valueListenable: videoValueNotifier,
+                                    builder: (_, v, __) {
+                                      if (!v.isInitialized) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final remaining = v.duration - v.position;
+                                      final safeRemaining = remaining.isNegative
+                                          ? Duration.zero
+                                          : remaining;
+                                      return Stack(
+                                        children: [
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                _formatDuration(safeRemaining),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontFamily: "Montserrat",
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                if (widget.model.flood == false &&
+                                    widget.model.floodCount > 1)
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        videoController?.pause();
+                                        Get.to(() => FloodListing(
+                                                mainModel: widget.model))
+                                            ?.then(
+                                                (_) => videoController?.play());
+                                      },
+                                      child: Texts.colorfulFloodLeftSide,
+                                    ),
+                                  ),
+                                if (isVideoFromCache)
+                                  Positioned(
+                                    left: 8,
+                                    bottom: (widget.model.flood == false &&
+                                            widget.model.floodCount > 1)
+                                        ? 26
+                                        : 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.circle,
+                                        size: 8,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                                if (widget.model.originalUserID.isNotEmpty)
+                                  Positioned(
+                                    left: 8,
+                                    bottom: isVideoFromCache
+                                        ? ((widget.model.flood == false &&
+                                                widget.model.floodCount > 1)
+                                            ? 52
+                                            : 34)
+                                        : ((widget.model.flood == false &&
+                                                widget.model.floodCount > 1)
+                                            ? 26
+                                            : 8),
+                                    child: SharedPostLabel(
+                                      originalUserID:
+                                          widget.model.originalUserID,
+                                      textColor: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: GestureDetector(
+                                    onTap: agendaController.isMuted.toggle,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Obx(() {
+                                        return Icon(
+                                          agendaController.isMuted.value
+                                              ? CupertinoIcons.volume_off
+                                              : CupertinoIcons.volume_up,
+                                          color: Colors.white,
+                                          size: 16,
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
-              ],
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
           ),
 
         // Resimler
         if (widget.model.img.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, left: 45),
-            child: buildImageGrid(widget.model.img),
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing, left: 45),
+              child: buildImageGrid(widget.model.img),
+            ),
           ),
         if (widget.model.hasPlayableVideo || widget.model.img.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, left: 45),
-            child: buildPollCard(),
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing, left: 45),
+              child: buildPollCard(),
+            ),
           ),
 
         // Gönderi olarak paylaş etiketi (butonların üstünde)
@@ -749,28 +689,55 @@ class _AgendaContentState extends State<AgendaContent>
           ),
 
         // Alt butonlar
-        Obx(() {
-          // Çıkış esnasında currentUser null olabilir; güvenli koruma
-          final me = FirebaseAuth.instance.currentUser;
-          if (me == null) return const SizedBox.shrink();
-          return Transform.translate(
-            offset: const Offset(17, 0),
-            child: SizedBox(
-              width: double.infinity,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  commentButton(context),
-                  likeButton(),
-                  reshareButton(),
-                  saveButton(),
-                  statButton(),
-                  sendButton(),
-                ],
+        Padding(
+          padding: EdgeInsets.only(top: actionTopSpacing),
+          child: Obx(() {
+            final me = FirebaseAuth.instance.currentUser;
+            if (me == null) return const SizedBox.shrink();
+            return Transform.translate(
+              offset: const Offset(17, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: commentButton(context)),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: likeButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: reshareButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: statButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: saveButton()),
+                        )),
+                    SizedBox(width: 58, child: Center(child: sendButton())),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
         Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Align(
@@ -779,6 +746,99 @@ class _AgendaContentState extends State<AgendaContent>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFeedCaption({
+    required String text,
+    required Color color,
+  }) {
+    const baseStyle = TextStyle(
+      color: Colors.black,
+      fontSize: 16,
+      fontFamily: "Montserrat",
+      height: 1.25,
+    );
+    final textStyle = baseStyle.copyWith(color: color);
+    const suffix = " devamı";
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: textStyle),
+          textDirection: TextDirection.ltr,
+          maxLines: 7,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        if (_isCaptionExpanded || !painter.didExceedMaxLines) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (!_isCaptionExpanded) {
+                setState(() => _isCaptionExpanded = true);
+              }
+            },
+            child: Text(text, style: textStyle),
+          );
+        }
+
+        int low = 0;
+        int high = text.length;
+        int best = 0;
+        while (low <= high) {
+          final mid = (low + high) ~/ 2;
+          final candidate = text.substring(0, mid).trimRight();
+          final candidatePainter = TextPainter(
+            text: TextSpan(
+              children: [
+                TextSpan(text: candidate, style: textStyle),
+                const TextSpan(
+                  text: suffix,
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+            textDirection: TextDirection.ltr,
+            maxLines: 7,
+          )..layout(maxWidth: constraints.maxWidth);
+
+          if (candidatePainter.didExceedMaxLines) {
+            high = mid - 1;
+          } else {
+            best = mid;
+            low = mid + 1;
+          }
+        }
+
+        final collapsed = text.substring(0, best).trimRight();
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _isCaptionExpanded = true),
+          child: RichText(
+            maxLines: 7,
+            overflow: TextOverflow.clip,
+            text: TextSpan(
+              children: [
+                TextSpan(text: collapsed, style: textStyle),
+                const TextSpan(
+                  text: suffix,
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1157,137 +1217,161 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget headerUserInfoBar() {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () {
-            if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
-              videoController?.pause();
-              Get.to(() => SocialProfile(userID: widget.model.userID))
-                  ?.then((v) {
-                videoController?.play();
-              });
-            }
-          },
-          child: Obx(() => controller.pfImage.isNotEmpty
-              ? CachedUserAvatar(
-                  userId: widget.model.userID,
-                  imageUrl: controller.pfImage.value,
-                  radius: 19,
-                )
-              : const SizedBox.shrink()),
-        ),
-        6.pw,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: GestureDetector(
-                            onTap: () {
-                              if (widget.model.userID !=
-                                  FirebaseAuth.instance.currentUser!.uid) {
-                                videoController?.pause();
-                                Get.to(SocialProfile(
-                                        userID: widget.model.userID))
-                                    ?.then((v) {
-                                  videoController?.play();
-                                });
-                              }
-                            },
-                            child: Text(
-                              controller.fullName.value.replaceAll("  ", " "),
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                fontFamily: "MontserratBold",
+    final displayTime = controller.editTime.value != 0
+        ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
+        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
+            ? widget.model.izBirakYayinTarihi
+            : widget.model.timeStamp);
+    final shouldHideFollow = controller.fullName.value.length +
+            controller.nickname.value.length +
+            displayTime.length >
+        28;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () {
+              if (widget.model.userID !=
+                  FirebaseAuth.instance.currentUser!.uid) {
+                videoController?.pause();
+                Get.to(() => SocialProfile(userID: widget.model.userID))
+                    ?.then((v) {
+                  videoController?.play();
+                });
+              }
+            },
+            child: Obx(() => controller.pfImage.isNotEmpty
+                ? CachedUserAvatar(
+                    userId: widget.model.userID,
+                    imageUrl: controller.pfImage.value,
+                    radius: 20,
+                  )
+                : const SizedBox.shrink()),
+          ),
+          6.pw,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: GestureDetector(
+                              onTap: () {
+                                if (widget.model.userID !=
+                                    FirebaseAuth.instance.currentUser!.uid) {
+                                  videoController?.pause();
+                                  Get.to(SocialProfile(
+                                          userID: widget.model.userID))
+                                      ?.then((v) {
+                                    videoController?.play();
+                                  });
+                                }
+                              },
+                              child: Text(
+                                controller.fullName.value.replaceAll("  ", " "),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontFamily: "MontserratBold",
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        RozetContent(size: 13, userID: widget.model.userID),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4, right: 12),
-                          child: Text(
-                            controller.editTime.value != 0
-                                ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
-                                : timeAgoMetin(
-                                    widget.model.izBirakYayinTarihi != 0
-                                        ? widget.model.izBirakYayinTarihi
-                                        : widget.model.timeStamp),
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                              fontFamily: "MontserratMedium",
+                          RozetContent(size: 13, userID: widget.model.userID),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Text(
+                              '@${controller.nickname.value}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                                fontFamily: "Montserrat",
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (controller.isFollowing.value == false &&
-                      widget.model.userID !=
-                          FirebaseAuth.instance.currentUser!.uid &&
-                      controller.pfImage.value != "")
-                    Obx(() => TextButton(
-                          onPressed: controller.followLoading.value
-                              ? null
-                              : () {
-                                  controller.followUser();
-                                },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6, right: 12),
+                            child: Text(
+                              displayTime,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
                           ),
-                          child: controller.followLoading.value
-                              ? Container(
-                                  height: 20,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                      color: Colors.transparent,
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(12)),
-                                      border: Border.all(color: Colors.black)),
-                                  child: const Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(horizontal: 15),
-                                    child: SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.black),
+                        ],
+                      ),
+                    ),
+                    if (controller.isFollowing.value == false &&
+                        widget.model.userID !=
+                            FirebaseAuth.instance.currentUser!.uid &&
+                        controller.pfImage.value != "" &&
+                        !shouldHideFollow)
+                      Obx(() => TextButton(
+                            onPressed: controller.followLoading.value
+                                ? null
+                                : () {
+                                    controller.followUser();
+                                  },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: controller.followLoading.value
+                                ? Container(
+                                    height: 20,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        borderRadius: const BorderRadius.all(
+                                            Radius.circular(12)),
+                                        border:
+                                            Border.all(color: Colors.black)),
+                                    child: const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 15),
+                                      child: SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.black),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                )
-                              : Texts.followMeButtonBlack,
-                        )),
-                  const SizedBox(width: 7),
-                  pulldownmenu(),
-                ],
-              ),
-              Text(
-                "@${controller.nickname.value}",
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                  fontFamily: "Montserrat",
+                                  )
+                                : Texts.followMeButtonBlack,
+                          )),
+                    const SizedBox(width: 7),
+                    pulldownmenu(),
+                  ],
                 ),
-              ),
-            ],
+                if ((widget.model.hasPlayableVideo ||
+                        widget.model.img.isNotEmpty) &&
+                    widget.model.metin.trim().isNotEmpty)
+                  _buildFeedCaption(
+                    text: widget.model.metin.trim(),
+                    color: Colors.black,
+                  ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1763,7 +1847,7 @@ class _AgendaContentState extends State<AgendaContent>
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
-      final Color displayColor = canInteract ? Colors.black : Colors.grey;
+      final Color displayColor = _actionColor;
 
       return AnimatedActionButton(
         enabled: canInteract,
@@ -1775,6 +1859,7 @@ class _AgendaContentState extends State<AgendaContent>
           color: displayColor,
           label: NumberFormatter.format(controller.commentCount.value),
           labelColor: displayColor,
+          iconSize: 17,
         ),
       );
     });
@@ -1783,7 +1868,7 @@ class _AgendaContentState extends State<AgendaContent>
   Widget likeButton() {
     final bool isLiked =
         controller.likes.contains(FirebaseAuth.instance.currentUser!.uid);
-    final Color likeColor = isLiked ? Colors.blueAccent : Colors.black;
+    final Color likeColor = isLiked ? Colors.blueAccent : _actionColor;
 
     return AnimatedActionButton(
       enabled: true,
@@ -1815,6 +1900,8 @@ class _AgendaContentState extends State<AgendaContent>
         color: likeColor,
         label: NumberFormatter.format(controller.likeCount.value),
         labelColor: likeColor,
+        iconSize: 17,
+        leadingTransformOffsetY: -2,
       ),
     );
   }
@@ -1828,8 +1915,7 @@ class _AgendaContentState extends State<AgendaContent>
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
       final bool isReshared = controller.yenidenPaylasildiMi.value;
-      final Color displayColor =
-          canReshare ? (isReshared ? Colors.green : Colors.black) : Colors.grey;
+      final Color displayColor = isReshared ? Colors.redAccent : _actionColor;
 
       return AnimatedActionButton(
         enabled: canReshare,
@@ -1848,7 +1934,7 @@ class _AgendaContentState extends State<AgendaContent>
 
   Widget saveButton() {
     final bool isSaved = controller.saved.value == true;
-    final Color displayColor = isSaved ? Colors.orange : Colors.black;
+    final Color displayColor = isSaved ? Colors.orange : _actionColor;
 
     return AnimatedActionButton(
       enabled: true,
@@ -1860,29 +1946,45 @@ class _AgendaContentState extends State<AgendaContent>
         color: displayColor,
         label: NumberFormatter.format(controller.savedCount.value),
         labelColor: displayColor,
+        iconSize: 17,
       ),
     );
   }
 
   Widget statButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.bar_chart,
-          color: Colors.black,
-          size: 20,
-        ),
-        2.pw,
-        Text(
-          NumberFormatter.format(controller.statsCount.value),
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 12,
-            fontFamily: "MontserratMedium",
+    return SizedBox(
+      height: AnimatedActionButton.actionHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 20,
+            height: AnimatedActionButton.actionHeight,
+            child: Center(
+              child: Icon(
+                Icons.bar_chart,
+                color: _actionColor,
+                size: 20,
+              ),
+            ),
           ),
-        ),
-      ],
+          2.pw,
+          SizedBox(
+            height: AnimatedActionButton.actionHeight,
+            child: Center(
+              child: Text(
+                NumberFormatter.format(controller.statsCount.value),
+                style: const TextStyle(
+                  color: _actionColor,
+                  fontSize: 12,
+                  fontFamily: "MontserratMedium",
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1891,12 +1993,18 @@ class _AgendaContentState extends State<AgendaContent>
       enabled: true,
       semanticsLabel: 'Paylaş',
       onTap: controller.sendPost,
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
+      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
       showTapArea: _showActionTapAreas,
-      child: Icon(
-        CupertinoIcons.paperplane,
-        color: Colors.black,
-        size: _actionStyle.sendIconSize,
+      child: SizedBox(
+        width: 20,
+        height: AnimatedActionButton.actionHeight,
+        child: Center(
+          child: Icon(
+            CupertinoIcons.paperplane,
+            color: _actionColor,
+            size: _actionStyle.sendIconSize,
+          ),
+        ),
       ),
     );
   }
@@ -1907,10 +2015,17 @@ class _AgendaContentState extends State<AgendaContent>
     String? label,
     Color? labelColor,
     double? iconSize,
+    double leadingTransformOffsetY = 0,
   }) {
     return _actionContent(
-      leading:
-          Icon(icon, color: color, size: iconSize ?? _actionStyle.iconSize),
+      leading: Transform.translate(
+        offset: Offset(0, leadingTransformOffsetY),
+        child: Icon(
+          icon,
+          color: color,
+          size: iconSize ?? _actionStyle.iconSize,
+        ),
+      ),
       label: label,
       labelColor: labelColor ?? color,
     );

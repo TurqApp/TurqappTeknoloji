@@ -1,7 +1,7 @@
-
 class NotificationModel {
   String docID;
   bool isRead;
+  String type;
   String desc;
   String postID;
   String postType;
@@ -14,6 +14,7 @@ class NotificationModel {
     required this.docID,
     required this.desc,
     required this.isRead,
+    required this.type,
     required this.postID,
     required this.postType,
     required this.thumbnail,
@@ -27,6 +28,7 @@ class NotificationModel {
     return NotificationModel(
       docID: docID,
       isRead: json['isRead'] ?? false,
+      type: json['type'] ?? '',
       postID: json['postID'] ?? '',
       postType: json['postType'] ?? '',
       thumbnail: json['thumbnail'] ?? '',
@@ -41,13 +43,14 @@ class NotificationModel {
   Map<String, dynamic> toJson() {
     return {
       'isRead': isRead,
+      'type': type,
       'postID': postID,
       'postType': postType,
       'thumbnail': thumbnail,
       'timeStamp': timeStamp,
       'title': title,
       'userID': userID,
-      'desc' : desc
+      'desc': desc
     };
   }
 }

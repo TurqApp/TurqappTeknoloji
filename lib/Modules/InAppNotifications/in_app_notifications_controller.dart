@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 
 class InAppNotificationsController extends GetxController {
@@ -13,11 +14,32 @@ class InAppNotificationsController extends GetxController {
   var complatedDataFetch = false.obs;
   var busyMarkAllRead = false.obs;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _notificationSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
+  final List<NotificationModel> _allNotifications = <NotificationModel>[];
+  Map<String, dynamic> _preferences = NotificationPreferencesService.defaults();
 
   @override
   void onInit() {
     super.onInit();
+    _bindPreferences();
     getData();
+  }
+
+  void _bindPreferences() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    _settingsSub?.cancel();
+    _settingsSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .snapshots()
+        .listen((snapshot) {
+      _preferences =
+          NotificationPreferencesService.mergeWithDefaults(snapshot.data());
+      _applyFilters();
+    });
   }
 
   void goToPage(int index) {
@@ -64,6 +86,7 @@ class InAppNotificationsController extends GetxController {
           return NotificationModel(
             docID: doc.id,
             isRead: (data["read"] ?? false) == true,
+            type: type,
             postID: (data["postID"] ?? "").toString(),
             postType: postType,
             thumbnail: (data["thumbnail"] ?? "").toString(),
@@ -79,10 +102,24 @@ class InAppNotificationsController extends GetxController {
       }).toList();
 
       complatedDataFetch.value = true;
-      list.value = allNotifications;
+      _allNotifications
+        ..clear()
+        ..addAll(allNotifications);
+      _applyFilters();
     }, onError: (_) {
       complatedDataFetch.value = true;
     });
+  }
+
+  void _applyFilters() {
+    list.value = _allNotifications
+        .where((notification) => NotificationPreferencesService.isTypeEnabled(
+              notification.type.isEmpty
+                  ? notification.postType
+                  : notification.type,
+              _preferences,
+            ))
+        .toList(growable: false);
   }
 
   Future<void> delete(String docID) async {
@@ -313,6 +350,7 @@ class InAppNotificationsController extends GetxController {
   @override
   void onClose() {
     _notificationSub?.cancel();
+    _settingsSub?.cancel();
     pageController.dispose();
     super.onClose();
   }

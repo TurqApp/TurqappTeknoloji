@@ -10,7 +10,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/nickname_with_text_line.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -65,11 +64,13 @@ class ClassicContent extends PostContentBase {
 class _ClassicContentState extends State<ClassicContent>
     with PostContentBaseState<ClassicContent> {
   static const PostActionStyle _actionStyle = PostActionStyle.classic();
+  static const Color _actionColor = Color(0xFF6F7A85);
   final arsivController = Get.put(ArchiveController());
   final ShortController shortsController = Get.find<ShortController>();
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final bool _isFullscreen = false;
+  bool _isCaptionExpanded = false;
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -190,27 +191,14 @@ class _ClassicContentState extends State<ClassicContent>
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: NicknameWithTextLine(
-                    nickname: controller.nickname.value,
-                    metin: widget.model.metin.trim(),
-                    onNicknameTap: () {
-                      if (widget.model.userID !=
-                          FirebaseAuth.instance.currentUser!.uid) {
-                        videoController?.pause();
-
-                        Get.to(() => SocialProfile(userID: widget.model.userID))
-                            ?.then((v) {
-                          videoController?.play();
-                        });
-                      }
-                    },
-                    userID: widget.model.userID,
-                    onAnyTap: () {},
-                    inlineExpand: true,
-                    collapsedMaxLines: 7,
-                    showNickname: false,
-                    padding: EdgeInsets.zero,
-                    showEllipsisOverlay: false,
+                  child: Text(
+                    widget.model.metin.trim(),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      height: 1.5,
+                      fontFamily: 'Montserrat',
+                    ),
                   ),
                 ),
                 Positioned(
@@ -271,16 +259,16 @@ class _ClassicContentState extends State<ClassicContent>
             ),
           ),
         Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 5),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              commentButton(context),
-              likeButton(),
-              saveButton(),
-              reshareButton(),
-              statButton(),
-              sendButton(),
+              SizedBox(width: 58, child: Center(child: commentButton(context))),
+              SizedBox(width: 58, child: Center(child: likeButton())),
+              SizedBox(width: 58, child: Center(child: saveButton())),
+              SizedBox(width: 58, child: Center(child: reshareButton())),
+              SizedBox(width: 58, child: Center(child: statButton())),
+              SizedBox(width: 58, child: Center(child: sendButton())),
             ],
           ),
         ),
@@ -289,7 +277,105 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
+  Widget _buildFeedCaption({
+    required String text,
+    required Color color,
+  }) {
+    const baseStyle = TextStyle(
+      color: Colors.black,
+      fontSize: 16,
+      fontFamily: "Montserrat",
+      height: 1.25,
+    );
+    final textStyle = baseStyle.copyWith(color: color);
+    const suffix = " devamı";
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: text, style: textStyle),
+          textDirection: TextDirection.ltr,
+          maxLines: 7,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        if (_isCaptionExpanded || !painter.didExceedMaxLines) {
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              if (!_isCaptionExpanded) {
+                setState(() => _isCaptionExpanded = true);
+              }
+            },
+            child: Text(text, style: textStyle),
+          );
+        }
+
+        int low = 0;
+        int high = text.length;
+        int best = 0;
+        while (low <= high) {
+          final mid = (low + high) ~/ 2;
+          final candidate = text.substring(0, mid).trimRight();
+          final candidatePainter = TextPainter(
+            text: TextSpan(
+              children: [
+                TextSpan(text: candidate, style: textStyle),
+                const TextSpan(
+                  text: suffix,
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+            textDirection: TextDirection.ltr,
+            maxLines: 7,
+          )..layout(maxWidth: constraints.maxWidth);
+
+          if (candidatePainter.didExceedMaxLines) {
+            high = mid - 1;
+          } else {
+            best = mid;
+            low = mid + 1;
+          }
+        }
+
+        final collapsed = text.substring(0, best).trimRight();
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _isCaptionExpanded = true),
+          child: RichText(
+            maxLines: 7,
+            overflow: TextOverflow.clip,
+            text: TextSpan(
+              children: [
+                TextSpan(text: collapsed, style: textStyle),
+                const TextSpan(
+                  text: suffix,
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget imgBody(BuildContext context) {
+    final hasHeaderSubline = widget.model.metin.trim().isNotEmpty;
+    final mediaTopSpacing = hasHeaderSubline ? 4.0 : 0.0;
+    final actionTopSpacing = hasHeaderSubline ? 5.0 : 1.0;
+    final mediaVisualLift = hasHeaderSubline ? 0.0 : -6.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -297,26 +383,27 @@ class _ClassicContentState extends State<ClassicContent>
           return headerUserInfoBar();
         }),
         if (widget.model.img.length == 1)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: GestureDetector(
-              onTap: () {
-                _pauseFeedBeforeFullscreen();
-                final visibleList = agendaController.agendaList
-                    .where((val) =>
-                        val.deletedPost == false &&
-                        val.arsiv == false &&
-                        val.gizlendi == false &&
-                        val.img.isNotEmpty)
-                    .toList();
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing),
+              child: GestureDetector(
+                onTap: () {
+                  _pauseFeedBeforeFullscreen();
+                  final visibleList = agendaController.agendaList
+                      .where((val) =>
+                          val.deletedPost == false &&
+                          val.arsiv == false &&
+                          val.gizlendi == false &&
+                          val.img.isNotEmpty)
+                      .toList();
 
-                if (widget.isPreview) {
-                  Get.to(() => PhotoShorts(
-                        fetchedList: visibleList,
-                        startModel: widget.model,
-                      ));
-                } else {
-                  if (widget.model.floodCount > 1) {
+                  if (widget.isPreview) {
+                    Get.to(() => PhotoShorts(
+                          fetchedList: visibleList,
+                          startModel: widget.model,
+                        ));
+                  } else if (widget.model.floodCount > 1) {
                     Get.to(() => FloodListing(mainModel: widget.model));
                   } else {
                     Get.to(() => PhotoShorts(
@@ -324,71 +411,71 @@ class _ClassicContentState extends State<ClassicContent>
                           startModel: widget.model,
                         ));
                   }
-                }
-              },
-              onDoubleTap: () {
-                controller.like();
-              },
-              child: AspectRatio(
-                aspectRatio: widget.model.aspectRatio.toDouble(),
-                child: Stack(
-                  alignment: Alignment.bottomLeft,
-                  children: [
-                    SizedBox.expand(
+                },
+                onDoubleTap: () {
+                  controller.like();
+                },
+                child: AspectRatio(
+                  aspectRatio: widget.model.aspectRatio.toDouble(),
+                  child: Stack(
+                    alignment: Alignment.bottomLeft,
+                    children: [
+                      SizedBox.expand(
                         child: CachedNetworkImage(
-                      imageUrl: widget.model.img.first,
-                      fit: BoxFit.cover,
-                    )),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.model.floodCount > 1)
-                              Texts.colorfulFlood,
-                            // SharedPostLabel - resmin sol altına
-                            if (widget.model.originalUserID.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: SharedPostLabel(
-                                  originalUserID: widget.model.originalUserID,
-                                  // sharedAsPost removed
-                                  fontSize: 12,
-                                  textColor: Colors.red,
-                                ),
-                              ),
-                          ],
+                          imageUrl: widget.model.img.first,
+                          fit: BoxFit.cover,
                         ),
-                        SizedBox(),
-                      ],
-                    ),
-                  ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.model.floodCount > 1)
+                                Texts.colorfulFlood,
+                              if (widget.model.originalUserID.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: SharedPostLabel(
+                                    originalUserID: widget.model.originalUserID,
+                                    fontSize: 12,
+                                    textColor: Colors.red,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           )
         else
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: GestureDetector(
-              onTap: () {
-                _pauseFeedBeforeFullscreen();
-                final visibleList = agendaController.agendaList
-                    .where((val) =>
-                        val.deletedPost == false &&
-                        val.arsiv == false &&
-                        val.gizlendi == false &&
-                        val.img.isNotEmpty)
-                    .toList();
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing),
+              child: GestureDetector(
+                onTap: () {
+                  _pauseFeedBeforeFullscreen();
+                  final visibleList = agendaController.agendaList
+                      .where((val) =>
+                          val.deletedPost == false &&
+                          val.arsiv == false &&
+                          val.gizlendi == false &&
+                          val.img.isNotEmpty)
+                      .toList();
 
-                if (widget.isPreview) {
-                  Get.to(() => PhotoShorts(
-                        fetchedList: visibleList,
-                        startModel: widget.model,
-                      ));
-                } else {
-                  if (widget.model.floodCount > 1) {
+                  if (widget.isPreview) {
+                    Get.to(() => PhotoShorts(
+                          fetchedList: visibleList,
+                          startModel: widget.model,
+                        ));
+                  } else if (widget.model.floodCount > 1) {
                     Get.to(FloodListing(mainModel: widget.model));
                   } else {
                     Get.to(() => PhotoShorts(
@@ -396,96 +483,73 @@ class _ClassicContentState extends State<ClassicContent>
                           startModel: widget.model,
                         ));
                   }
-                }
-              },
-              onDoubleTap: () {
-                controller.like();
-              },
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: widget.model.img.length,
-                      itemBuilder: (context, index) {
-                        final img = widget.model.img[index];
-                        return CachedNetworkImage(
-                            imageUrl: img, fit: BoxFit.cover);
-                      },
-                    ),
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.model.floodCount > 1)
-                              Texts.colorfulFlood,
-                            SharedPostLabel(
-                              originalUserID: widget.model.originalUserID,
-                              // sharedAsPost removed
-                              fontSize: 12,
-                              textColor: Colors.white,
-                            ),
-                          ],
+                },
+                onDoubleTap: () {
+                  controller.like();
+                },
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    children: [
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: widget.model.img.length,
+                        itemBuilder: (context, index) {
+                          final img = widget.model.img[index];
+                          return CachedNetworkImage(
+                            imageUrl: img,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      ),
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8, bottom: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.model.floodCount > 1)
+                                Texts.colorfulFlood,
+                              SharedPostLabel(
+                                originalUserID: widget.model.originalUserID,
+                                fontSize: 12,
+                                textColor: Colors.white,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 8,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children:
-                            List.generate(widget.model.img.length, (index) {
-                          bool isActive = index == _currentPage;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: isActive ? 6 : 5,
-                            height: isActive ? 6 : 5,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isActive ? Colors.white : Colors.white54,
-                            ),
-                          );
-                        }),
+                      Positioned(
+                        bottom: 8,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children:
+                              List.generate(widget.model.img.length, (index) {
+                            final isActive = index == _currentPage;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: isActive ? 6 : 5,
+                              height: isActive ? 6 : 5,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isActive ? Colors.white : Colors.white54,
+                              ),
+                            );
+                          }),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         if (widget.model.hasPlayableVideo || widget.model.img.isNotEmpty)
           buildPollCard(),
-        Obx(() {
-          return NicknameWithTextLine(
-            nickname: controller.nickname.value,
-            metin: widget.model.metin,
-            onNicknameTap: () {
-              if (widget.model.userID !=
-                  FirebaseAuth.instance.currentUser!.uid) {
-                videoController?.pause();
-
-                Get.to(() => SocialProfile(userID: widget.model.userID))
-                    ?.then((v) {
-                  videoController?.play();
-                });
-              }
-            },
-            userID: widget.model.userID,
-            onAnyTap: () {
-              videoController?.pause();
-            },
-            inlineExpand: true,
-            collapsedMaxLines: 1,
-            showEllipsisOverlay: false,
-          );
-        }),
         if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
           buildPollCard(),
         Padding(
@@ -496,15 +560,30 @@ class _ClassicContentState extends State<ClassicContent>
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: EdgeInsets.only(top: actionTopSpacing),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              commentButton(context),
-              likeButton(),
-              saveButton(),
-              reshareButton(),
-              statButton(),
+              Transform.translate(
+                offset: const Offset(2, 0),
+                child: commentButton(context),
+              ),
+              Transform.translate(
+                offset: const Offset(2, 0),
+                child: likeButton(),
+              ),
+              Transform.translate(
+                offset: const Offset(2, 0),
+                child: reshareButton(),
+              ),
+              Transform.translate(
+                offset: const Offset(2, 0),
+                child: statButton(),
+              ),
+              Transform.translate(
+                offset: const Offset(2, 0),
+                child: saveButton(),
+              ),
               sendButton(),
             ],
           ),
@@ -900,7 +979,7 @@ class _ClassicContentState extends State<ClassicContent>
                               ? CupertinoIcons.volume_off
                               : CupertinoIcons.volume_up,
                           color: Colors.white,
-                          size: 20,
+                          size: 16,
                         )),
                   ),
                 ),
@@ -968,37 +1047,25 @@ class _ClassicContentState extends State<ClassicContent>
             sendButton(),
           ],
         ),
-        Obx(() {
-          return NicknameWithTextLine(
-            nickname: controller.nickname.value,
-            metin: widget.model.metin,
-            onNicknameTap: () {
-              videoController?.pause();
-              if (widget.model.userID !=
-                  FirebaseAuth.instance.currentUser!.uid) {
-                Get.to(() => SocialProfile(userID: widget.model.userID))
-                    ?.then((v) {
-                  videoController?.play();
-                });
-              }
-            },
-            userID: widget.model.userID,
-            onAnyTap: () {
-              videoController?.pause();
-            },
-            inlineExpand: true,
-            collapsedMaxLines: 1,
-            showEllipsisOverlay: false,
-          );
-        }),
       ],
     );
   }
 
   Widget headerUserInfoBar() {
+    final displayTime = controller.editTime.value != 0
+        ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
+        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
+            ? widget.model.izBirakYayinTarihi
+            : widget.model.timeStamp);
+    final shouldHideFollow = controller.fullName.value.length +
+            controller.nickname.value.length +
+            displayTime.length >
+        28;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
             onTap: () {
@@ -1015,7 +1082,7 @@ class _ClassicContentState extends State<ClassicContent>
                 ? CachedUserAvatar(
                     userId: widget.model.userID,
                     imageUrl: controller.pfImage.value,
-                    radius: 19, // 38px diameter / 2
+                    radius: 20, // 40px diameter / 2
                   )
                 : const SizedBox.shrink()),
           ),
@@ -1046,7 +1113,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black,
-                                  fontSize: 12,
+                                  fontSize: 16,
                                   fontFamily: "MontserratBold",
                                 ),
                               ),
@@ -1054,17 +1121,25 @@ class _ClassicContentState extends State<ClassicContent>
                           ),
                           RozetContent(size: 13, userID: widget.model.userID),
                           Padding(
-                            padding: const EdgeInsets.only(left: 4, right: 12),
+                            padding: const EdgeInsets.only(left: 4),
                             child: Text(
-                              controller.editTime.value != 0
-                                  ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
-                                  : timeAgoMetin(
-                                      widget.model.izBirakYayinTarihi != 0
-                                          ? widget.model.izBirakYayinTarihi
-                                          : widget.model.timeStamp),
+                              '@${controller.nickname.value}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 12,
+                                fontSize: 16,
+                                fontFamily: "Montserrat",
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6, right: 12),
+                            child: Text(
+                              displayTime,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),
@@ -1074,7 +1149,8 @@ class _ClassicContentState extends State<ClassicContent>
                     ),
                     if (controller.isFollowing.value == false &&
                         widget.model.userID !=
-                            FirebaseAuth.instance.currentUser!.uid)
+                            FirebaseAuth.instance.currentUser!.uid &&
+                        !shouldHideFollow)
                       Transform.translate(
                         offset: Offset(0, 5),
                         child: Obx(() => TextButton(
@@ -1120,23 +1196,24 @@ class _ClassicContentState extends State<ClassicContent>
                     pulldownmenu(Colors.black),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.model.konum != ""
-                          ? widget.model.konum
-                          : "@${controller.nickname.value}",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontFamily: "Montserrat",
-                      ),
+                if (widget.model.konum != "")
+                  Text(
+                    widget.model.konum,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontFamily: "Montserrat",
                     ),
-                  ],
-                ),
+                  )
+                else if ((widget.model.hasPlayableVideo ||
+                        widget.model.img.isNotEmpty) &&
+                    widget.model.metin.trim().isNotEmpty)
+                  _buildFeedCaption(
+                    text: widget.model.metin.trim(),
+                    color: Colors.black,
+                  ),
               ],
             ),
           ),
@@ -1146,9 +1223,20 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget headerUserInfoWhite() {
+    final displayTime = controller.editTime.value != 0
+        ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
+        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
+            ? widget.model.izBirakYayinTarihi
+            : widget.model.timeStamp);
+    final shouldHideFollow = controller.fullName.value.length +
+            controller.nickname.value.length +
+            displayTime.length >
+        28;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 11, bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
             onTap: () {
@@ -1165,7 +1253,7 @@ class _ClassicContentState extends State<ClassicContent>
                 ? CachedUserAvatar(
                     userId: widget.model.userID,
                     imageUrl: controller.pfImage.value,
-                    radius: 19, // 38px diameter / 2
+                    radius: 20, // 40px diameter / 2
                   )
                 : const SizedBox.shrink()),
           ),
@@ -1196,7 +1284,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 12,
+                                  fontSize: 16,
                                   fontFamily: "MontserratBold",
                                 ),
                               ),
@@ -1204,17 +1292,25 @@ class _ClassicContentState extends State<ClassicContent>
                           ),
                           RozetContent(size: 12, userID: widget.model.userID),
                           Padding(
-                            padding: const EdgeInsets.only(left: 4, right: 12),
+                            padding: const EdgeInsets.only(left: 4),
                             child: Text(
-                              controller.editTime.value != 0
-                                  ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
-                                  : timeAgoMetin(
-                                      widget.model.izBirakYayinTarihi != 0
-                                          ? widget.model.izBirakYayinTarihi
-                                          : widget.model.timeStamp),
+                              '@${controller.nickname.value}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                                fontFamily: "Montserrat",
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6, right: 12),
+                            child: Text(
+                              displayTime,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 12,
+                                fontSize: 16,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),
@@ -1222,7 +1318,8 @@ class _ClassicContentState extends State<ClassicContent>
                         ],
                       ),
                     ),
-                    if (controller.isFollowing.value == false)
+                    if (controller.isFollowing.value == false &&
+                        !shouldHideFollow)
                       Transform.translate(
                         offset: Offset(0, 5),
                         child: Obx(() => TextButton(
@@ -1268,21 +1365,24 @@ class _ClassicContentState extends State<ClassicContent>
                     pulldownmenu(Colors.white),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.model.konum != ""
-                          ? widget.model.konum
-                          : "@${controller.nickname.value}",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFamily: "Montserrat",
-                      ),
+                if (widget.model.konum != "")
+                  Text(
+                    widget.model.konum,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: "Montserrat",
                     ),
-                  ],
-                ),
+                  )
+                else if ((widget.model.hasPlayableVideo ||
+                        widget.model.img.isNotEmpty) &&
+                    widget.model.metin.trim().isNotEmpty)
+                  _buildFeedCaption(
+                    text: widget.model.metin.trim(),
+                    color: Colors.white,
+                  ),
               ],
             ),
           ),
@@ -1515,8 +1615,7 @@ class _ClassicContentState extends State<ClassicContent>
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
       final bool isReshared = controller.yenidenPaylasildiMi.value;
-      final Color displayColor =
-          canReshare ? (isReshared ? Colors.green : Colors.black) : Colors.grey;
+      final Color displayColor = isReshared ? Colors.redAccent : _actionColor;
 
       return AnimatedActionButton(
         enabled: canReshare,
@@ -1541,7 +1640,7 @@ class _ClassicContentState extends State<ClassicContent>
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
-      final Color displayColor = canInteract ? Colors.black : Colors.grey;
+      final Color displayColor = _actionColor;
 
       return AnimatedActionButton(
         enabled: canInteract,
@@ -1559,7 +1658,7 @@ class _ClassicContentState extends State<ClassicContent>
           color: displayColor,
           label: NumberFormatter.format(controller.commentCount.value),
           labelColor: displayColor,
-          iconSize: 18,
+          iconSize: 17,
         ),
       );
     });
@@ -1569,7 +1668,7 @@ class _ClassicContentState extends State<ClassicContent>
     return Obx(() {
       final bool isLiked =
           controller.likes.contains(FirebaseAuth.instance.currentUser!.uid);
-      final Color displayColor = isLiked ? Colors.blueAccent : Colors.black;
+      final Color displayColor = isLiked ? Colors.blueAccent : _actionColor;
 
       return AnimatedActionButton(
         enabled: true,
@@ -1597,10 +1696,11 @@ class _ClassicContentState extends State<ClassicContent>
           icon: isLiked
               ? CupertinoIcons.hand_thumbsup_fill
               : CupertinoIcons.hand_thumbsup,
-          iconSize: 18,
+          iconSize: 17,
           color: displayColor,
           label: NumberFormatter.format(controller.likeCount.value),
           labelColor: displayColor,
+          leadingTransformOffsetY: -2,
         ),
       );
     });
@@ -1609,7 +1709,7 @@ class _ClassicContentState extends State<ClassicContent>
   Widget saveButton() {
     return Obx(() {
       final bool isSaved = controller.saved.value == true;
-      final Color displayColor = isSaved ? Colors.orange : Colors.black;
+      final Color displayColor = isSaved ? Colors.orange : _actionColor;
 
       return AnimatedActionButton(
         enabled: true,
@@ -1618,7 +1718,7 @@ class _ClassicContentState extends State<ClassicContent>
         child: _iconAction(
           icon:
               isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
-          iconSize: 18,
+          iconSize: 17,
           color: displayColor,
           label: NumberFormatter.format(controller.savedCount.value),
           labelColor: displayColor,
@@ -1635,21 +1735,35 @@ class _ClassicContentState extends State<ClassicContent>
         splashColor: Colors.transparent,
         hoverColor: Colors.transparent,
       ),
-      child: Obx(() => Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.bar_chart,
-                  color: Colors.black, size: 20), // İstatistik ikonu
-              2.pw,
-              Text(
-                NumberFormatter.format(controller.statsCount.value),
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                  fontFamily: "MontserratMedium",
+      child: Obx(() => SizedBox(
+            height: AnimatedActionButton.actionHeight,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: AnimatedActionButton.actionHeight,
+                  child: Center(
+                    child: Icon(Icons.bar_chart, color: _actionColor, size: 20),
+                  ),
                 ),
-              ),
-            ],
+                2.pw,
+                SizedBox(
+                  height: AnimatedActionButton.actionHeight,
+                  child: Center(
+                    child: Text(
+                      NumberFormatter.format(controller.statsCount.value),
+                      style: const TextStyle(
+                        color: _actionColor,
+                        fontSize: 12,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           )),
     );
   }
@@ -1659,11 +1773,17 @@ class _ClassicContentState extends State<ClassicContent>
       enabled: true,
       semanticsLabel: 'Paylaş',
       onTap: controller.sendPost,
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-      child: Icon(
-        CupertinoIcons.paperplane,
-        color: Colors.black,
-        size: _actionStyle.sendIconSize,
+      padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
+      child: SizedBox(
+        width: 20,
+        height: AnimatedActionButton.actionHeight,
+        child: Center(
+          child: Icon(
+            CupertinoIcons.paperplane,
+            color: _actionColor,
+            size: _actionStyle.sendIconSize,
+          ),
+        ),
       ),
     );
   }
@@ -1698,10 +1818,17 @@ class _ClassicContentState extends State<ClassicContent>
     String? label,
     Color? labelColor,
     double? iconSize,
+    double leadingTransformOffsetY = 0,
   }) {
     return _actionContent(
-      leading:
-          Icon(icon, color: color, size: iconSize ?? _actionStyle.iconSize),
+      leading: Transform.translate(
+        offset: Offset(0, leadingTransformOffsetY),
+        child: Icon(
+          icon,
+          color: color,
+          size: iconSize ?? _actionStyle.iconSize,
+        ),
+      ),
       label: label,
       labelColor: labelColor ?? color,
     );

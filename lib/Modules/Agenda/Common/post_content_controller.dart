@@ -91,8 +91,8 @@ class PostContentController extends GetxController {
         : hasVideo
             ? 'Yeni video gonderisi'
             : hasImage
-                ? 'Yeni gonderi'
-                : 'Yeni gonderi';
+                ? 'Yeni fotograf gonderisi'
+                : 'Yeni gonderi paylasti';
     return (title: title, body: body);
   }
 

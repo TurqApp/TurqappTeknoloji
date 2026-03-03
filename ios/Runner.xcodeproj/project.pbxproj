@@ -263,9 +263,9 @@
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
+				5C8C003E2E1C09560083A983 /* Embed Foundation Extensions */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
-				5C8C003E2E1C09560083A983 /* Embed Foundation Extensions */,
 				985D3AAE4F42C771A4872537 /* FlutterFire: "flutterfire upload-crashlytics-symbols" */,
 				91E300EEC7343C03A4EA2A7A /* [CP] Copy Pods Resources */,
 			);

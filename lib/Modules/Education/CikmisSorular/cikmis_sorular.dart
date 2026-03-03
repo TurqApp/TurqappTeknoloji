@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_grid.dart';
@@ -145,6 +146,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       EducationSlider(
+                        sliderId: 'denemeler',
                         imageList: [
                           AppAssets.previous1,
                           AppAssets.practice2,
@@ -208,6 +210,18 @@ class _CikmisSorularState extends State<CikmisSorular> {
                       );
                     },
                   ),
+                  PullDownMenuItem(
+                    icon: CupertinoIcons.slider_horizontal_3,
+                    title: 'Slider Yönetimi',
+                    onTap: () {
+                      Get.to(
+                        () => const SliderAdminView(
+                          sliderId: 'denemeler',
+                          title: 'Denemeler',
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -256,6 +270,18 @@ class _CikmisSorularState extends State<CikmisSorular> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => CikmisSoruSonuclar()),
+              );
+            },
+          ),
+          PullDownMenuItem(
+            icon: CupertinoIcons.slider_horizontal_3,
+            title: 'Slider Yönetimi',
+            onTap: () {
+              Get.to(
+                () => const SliderAdminView(
+                  sliderId: 'denemeler',
+                  title: 'Denemeler',
+                ),
               );
             },
           ),

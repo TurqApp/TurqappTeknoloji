@@ -428,6 +428,7 @@ class InAppNotifications extends StatelessWidget {
     return NotificationModel(
       docID: base.docID,
       isRead: base.isRead,
+      type: base.type,
       postID: base.postID,
       postType: base.postType,
       thumbnail: base.thumbnail,
@@ -475,7 +476,8 @@ class InAppNotifications extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Row(
                   children: [
                     const Expanded(

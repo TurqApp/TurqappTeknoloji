@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,12 +9,19 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart'; // navigatorKey için
+import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'NotifyReader/notify_reader_controller.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await NotificationService.instance.setupFlutterNotifications();
-  await NotificationService.instance.showNotification(message);
+  if (_shouldUseLocalNotifications()) {
+    await NotificationService.instance.setupFlutterNotifications();
+    await NotificationService.instance.showNotification(message);
+  }
+}
+
+bool _shouldUseLocalNotifications() {
+  return !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 }
 
 class NotificationService {
@@ -37,6 +45,7 @@ class NotificationService {
       _bgRegistered = true;
     }
     await _requestPermission();
+    await _configureForegroundPresentation();
     await setupFlutterNotifications();
     _bindTokenSyncListeners();
     await _syncCurrentToken();
@@ -85,6 +94,16 @@ class NotificationService {
         alert: true, badge: true, sound: true, provisional: false);
   }
 
+  Future<void> _configureForegroundPresentation() async {
+    if (!_shouldUseLocalNotifications()) {
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
+  }
+
   Future<void> setupFlutterNotifications() async {
     if (_inited) return;
     const channel = AndroidNotificationChannel(
@@ -99,7 +118,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher_round');
+        AndroidInitializationSettings('@drawable/ic_notification_small');
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       settings: const InitializationSettings(
@@ -112,7 +131,13 @@ class NotificationService {
   }
 
   Future<void> showNotification(RemoteMessage msg) async {
+    if (!_shouldUseLocalNotifications()) return;
     final notif = msg.notification;
+    final type = (msg.data['type'] ?? '').toString();
+    if (!NotificationPreferencesService.isTypeEnabled(type,
+        await NotificationPreferencesService.getCurrentUserPreferences())) {
+      return;
+    }
     if (notif != null) {
       await _localNotifications.show(
         id: notif.hashCode,
@@ -125,7 +150,7 @@ class NotificationService {
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,
-            icon: '@mipmap/ic_launcher_round',
+            icon: '@drawable/ic_notification_small',
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,
@@ -140,7 +165,9 @@ class NotificationService {
 
   void _setupMessageHandlers() {
     _foregroundMessageSub ??= FirebaseMessaging.onMessage.listen((msg) async {
-      await showNotification(msg);
+      if (_shouldUseLocalNotifications()) {
+        await showNotification(msg);
+      }
     });
     FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       _handleData(msg.data);

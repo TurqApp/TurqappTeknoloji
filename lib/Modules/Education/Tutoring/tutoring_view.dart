@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_view.dart';
@@ -46,243 +47,233 @@ class TutoringView extends StatelessWidget {
   Widget build(BuildContext context) {
     Get.put(SavedTutoringsController());
     final bodyContent = Expanded(
-                child: RefreshIndicator(
-                  color: Colors.white,
-                  backgroundColor: Colors.black,
-                  onRefresh: () async {
-                    tutoringController.listenToTutoringData();
-                    applyFilterTrigger.value = false;
-                  },
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    physics: AlwaysScrollableScrollPhysics(),
-                    child: Obx(() {
-                      List<TutoringModel> filteredList =
-                          tutoringController.tutoringList.toList();
+      child: RefreshIndicator(
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: () async {
+          tutoringController.listenToTutoringData();
+          applyFilterTrigger.value = false;
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Obx(() {
+            List<TutoringModel> filteredList =
+                tutoringController.tutoringList.toList();
 
-                      if (applyFilterTrigger.value) {
-                        if (filterController.selectedBranch.value != null &&
-                            filterController.selectedBranch.value!.isNotEmpty) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.brans ==
-                                    filterController.selectedBranch.value,
-                              )
-                              .toList();
-                        }
-                        if (filterController.selectedGender.value != null &&
-                            filterController.selectedGender.value!.isNotEmpty) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.cinsiyet ==
-                                    filterController.selectedGender.value,
-                              )
-                              .toList();
-                        }
-                        if (filterController.selectedLessonPlace.value !=
-                                null &&
-                            filterController
-                                .selectedLessonPlace.value!.isNotEmpty) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) => filterController
-                                    .selectedLessonPlace.value!
-                                    .any(
-                                  (place) => tutoring.dersYeri.contains(place),
-                                ),
-                              )
-                              .toList();
-                        }
-                        if (filterController.maxPrice.value != null) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.fiyat <=
-                                    filterController.maxPrice.value!,
-                              )
-                              .toList();
-                        }
-                        if (filterController.minPrice.value != null) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.fiyat >=
-                                    filterController.minPrice.value!,
-                              )
-                              .toList();
-                        }
-                        if (filterController.selectedCity.value != null &&
-                            filterController.selectedCity.value!.isNotEmpty) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.sehir ==
-                                    filterController.selectedCity.value,
-                              )
-                              .toList();
-                        }
-                        if (filterController.selectedDistrict.value != null &&
-                            filterController
-                                .selectedDistrict.value!.isNotEmpty) {
-                          filteredList = filteredList
-                              .where(
-                                (tutoring) =>
-                                    tutoring.ilce ==
-                                    filterController.selectedDistrict.value,
-                              )
-                              .toList();
-                        }
+            if (applyFilterTrigger.value) {
+              if (filterController.selectedBranch.value != null &&
+                  filterController.selectedBranch.value!.isNotEmpty) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.brans ==
+                          filterController.selectedBranch.value,
+                    )
+                    .toList();
+              }
+              if (filterController.selectedGender.value != null &&
+                  filterController.selectedGender.value!.isNotEmpty) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.cinsiyet ==
+                          filterController.selectedGender.value,
+                    )
+                    .toList();
+              }
+              if (filterController.selectedLessonPlace.value != null &&
+                  filterController.selectedLessonPlace.value!.isNotEmpty) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          filterController.selectedLessonPlace.value!.any(
+                        (place) => tutoring.dersYeri.contains(place),
+                      ),
+                    )
+                    .toList();
+              }
+              if (filterController.maxPrice.value != null) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.fiyat <= filterController.maxPrice.value!,
+                    )
+                    .toList();
+              }
+              if (filterController.minPrice.value != null) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.fiyat >= filterController.minPrice.value!,
+                    )
+                    .toList();
+              }
+              if (filterController.selectedCity.value != null &&
+                  filterController.selectedCity.value!.isNotEmpty) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.sehir == filterController.selectedCity.value,
+                    )
+                    .toList();
+              }
+              if (filterController.selectedDistrict.value != null &&
+                  filterController.selectedDistrict.value!.isNotEmpty) {
+                filteredList = filteredList
+                    .where(
+                      (tutoring) =>
+                          tutoring.ilce ==
+                          filterController.selectedDistrict.value,
+                    )
+                    .toList();
+              }
 
-                        // Sıralama ölçütü
-                        if (filterController.selectedLessonPlace.value!
-                            .contains(
-                          'En Yeniler',
-                        )) {
-                          filteredList.sort(
-                            (a, b) => b.timeStamp.compareTo(a.timeStamp),
-                          ); // Yeniden eskiye
-                        } else if (filterController.selectedLessonPlace.value!
-                            .contains('Fiyat: Düşükten Yükseğe')) {
-                          filteredList.sort(
-                            (a, b) => a.fiyat.compareTo(b.fiyat),
-                          ); // Azdan çoğa
-                        } else if (filterController.selectedLessonPlace.value!
-                            .contains('Fiyat: Yüksekten Düşüğe')) {
-                          filteredList.sort(
-                            (a, b) => b.fiyat.compareTo(a.fiyat),
-                          ); // Çoktan aza
-                        }
-                      }
+              // Sıralama ölçütü
+              if (filterController.selectedLessonPlace.value!.contains(
+                'En Yeniler',
+              )) {
+                filteredList.sort(
+                  (a, b) => b.timeStamp.compareTo(a.timeStamp),
+                ); // Yeniden eskiye
+              } else if (filterController.selectedLessonPlace.value!
+                  .contains('Fiyat: Düşükten Yükseğe')) {
+                filteredList.sort(
+                  (a, b) => a.fiyat.compareTo(b.fiyat),
+                ); // Azdan çoğa
+              } else if (filterController.selectedLessonPlace.value!
+                  .contains('Fiyat: Yüksekten Düşüğe')) {
+                filteredList.sort(
+                  (a, b) => b.fiyat.compareTo(a.fiyat),
+                ); // Çoktan aza
+              }
+            }
 
-                      return Column(
-                        children: [
-                          EducationSlider(
-                            imageList: [
-                              AppAssets.tutoring1,
-                              AppAssets.tutoring2,
-                              AppAssets.tutoring3,
-                            ],
+            return Column(
+              children: [
+                EducationSlider(
+                  sliderId: 'ozel_ders',
+                  imageList: [
+                    AppAssets.tutoring1,
+                    AppAssets.tutoring2,
+                    AppAssets.tutoring3,
+                  ],
+                ),
+                16.ph,
+                TutoringCategoryWidget(categories: kategoriler),
+                if (!embedded) ...[
+                  16.ph,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          margin: EdgeInsets.symmetric(horizontal: 15),
+                          child: CupertinoTextField(
+                            focusNode: tutoringController.focusNode,
+                            cursorColor: Colors.black,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            placeholder: "Ara",
+                            onTap: () {
+                              Get.to(() => TutoringSearch());
+                            },
+                            prefix: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Icon(
+                                AppIcons.search,
+                                color: Colors.pink,
+                              ),
+                            ),
                           ),
-                          16.ph,
-                          TutoringCategoryWidget(categories: kategoriler),
-                          if (!embedded) ...[
-                            16.ph,
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    height: 50,
-                                    margin: EdgeInsets.symmetric(horizontal: 15),
-                                    child: CupertinoTextField(
-                                      focusNode: tutoringController.focusNode,
-                                      cursorColor: Colors.black,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      placeholder: "Ara",
-                                      onTap: () {
-                                        Get.to(() => TutoringSearch());
-                                      },
-                                      prefix: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                        ),
-                                        child: Icon(
-                                          AppIcons.search,
-                                          color: Colors.pink,
-                                        ),
-                                      ),
-                                    ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                16.ph,
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Sana Özel", style: TextStyles.bold18Black),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () {
+                              closeKeyboard(context);
+                              Get.bottomSheet(
+                                TutoringFilterBottomSheet(
+                                  controller: tutoringController,
+                                ),
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(20),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                          16.ph,
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 15),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text("Sana Özel",
-                                    style: TextStyles.bold18Black),
-                                Row(
-                                  children: [
-                                    IconButton(
-                                      onPressed: () {
-                                        closeKeyboard(context);
-                                        Get.bottomSheet(
-                                          TutoringFilterBottomSheet(
-                                            controller: tutoringController,
-                                          ),
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(20),
-                                            ),
-                                          ),
-                                          isScrollControlled: true,
-                                        ).then((_) {
-                                          applyFilterTrigger.value = true;
-                                        });
-                                      },
-                                      icon: Icon(Icons.filter_alt_outlined),
-                                      color: applyFilterTrigger.value
-                                          ? Colors.pink
-                                          : Colors.black,
-                                    ),
-                                    Obx(
-                                      () => GestureDetector(
-                                        onTap: () {
-                                          viewModeController.toggleView();
-                                        },
-                                        child: Icon(
-                                          viewModeController.isGridView.value
-                                              ? AppIcons.squareGrid2
-                                              : AppIcons.list,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                isScrollControlled: true,
+                              ).then((_) {
+                                applyFilterTrigger.value = true;
+                              });
+                            },
+                            icon: Icon(Icons.filter_alt_outlined),
+                            color: applyFilterTrigger.value
+                                ? Colors.pink
+                                : Colors.black,
+                          ),
+                          Obx(
+                            () => GestureDetector(
+                              onTap: () {
+                                viewModeController.toggleView();
+                              },
+                              child: Icon(
+                                viewModeController.isGridView.value
+                                    ? AppIcons.squareGrid2
+                                    : AppIcons.list,
+                              ),
                             ),
                           ),
-                          8.ph,
-                          Obx(() {
-                            if (tutoringController.isLoading.value) {
-                              return Center(
-                                  child: CupertinoActivityIndicator());
-                            }
-                            return Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 15),
-                              child: TutoringWidgetBuilder(
-                                tutoringList: filteredList,
-                                users: tutoringController.users,
-                                isGridView: viewModeController.isGridView.value,
-                              ),
-                            );
-                          }),
-                          Obx(() {
-                            if (tutoringController.isLoadingMore.value) {
-                              return Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                    child: CupertinoActivityIndicator()),
-                              );
-                            }
-                            return SizedBox.shrink();
-                          }),
                         ],
-                      );
-                    }),
+                      ),
+                    ],
                   ),
                 ),
-              );
+                8.ph,
+                Obx(() {
+                  if (tutoringController.isLoading.value) {
+                    return Center(child: CupertinoActivityIndicator());
+                  }
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 15),
+                    child: TutoringWidgetBuilder(
+                      tutoringList: filteredList,
+                      users: tutoringController.users,
+                      isGridView: viewModeController.isGridView.value,
+                    ),
+                  );
+                }),
+                Obx(() {
+                  if (tutoringController.isLoadingMore.value) {
+                    return Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CupertinoActivityIndicator()),
+                    );
+                  }
+                  return SizedBox.shrink();
+                }),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
 
     final overlays = [
       ScrollTotopButton(
@@ -331,6 +322,18 @@ class TutoringView extends StatelessWidget {
                   icon: CupertinoIcons.add_circled,
                   onTap: () {
                     Get.to(CreateTutoringView());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'Slider Yönetimi',
+                  icon: CupertinoIcons.slider_horizontal_3,
+                  onTap: () {
+                    Get.to(
+                      () => const SliderAdminView(
+                        sliderId: 'ozel_ders',
+                        title: 'Özel Ders',
+                      ),
+                    );
                   },
                 ),
               ],

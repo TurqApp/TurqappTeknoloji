@@ -52,7 +52,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
 
       final List<RecommendedUserModel> items = controller.list;
       // Slot bazlı döndürme: her slot farklı 15'lik pencere göstersin
-      const int window = 15;
+      const int window = 6;
       if (items.isEmpty) return const SizedBox.shrink();
       final int start = ((widget.batch - 1) * window) % items.length;
       final List<RecommendedUserModel> showItems = [
@@ -70,7 +70,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Tanıyor Olabileceğin Kişiler",
+                  "Önerilen Kişiler",
                   style: TextStyles.bold16Black,
                 ),
                 12.pw,
@@ -81,7 +81,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             ),
           ),
           SizedBox(
-            height: 250,
+            height: 205,
             child: PageView.builder(
               padEnds: false,
               controller: _pageController,
@@ -132,7 +132,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Tanıyor Olabileceğin Kişiler",
+                "Önerilen Kişiler",
                 style: TextStyles.bold16Black,
               ),
               12.pw,
@@ -143,7 +143,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
           ),
         ),
         SizedBox(
-          height: 250,
+          height: 205,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 15),

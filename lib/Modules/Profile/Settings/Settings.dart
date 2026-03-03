@@ -22,6 +22,7 @@ import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -125,6 +126,9 @@ class SettingsView extends StatelessWidget {
                         Get.to(() => LikedPosts());
                       }),
                       buildSectionTitle("Uygulama"),
+                      buildRow("Bildirimler", CupertinoIcons.bell, () {
+                        Get.to(() => const NotificationSettingsView());
+                      }),
                       buildRow("İzinler", CupertinoIcons.lock_shield, () {
                         Get.to(() => const PermissionsView());
                       }),

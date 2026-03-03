@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeGridController extends GetxController {
@@ -37,7 +37,9 @@ class DenemeGridController extends GetxController {
       pfImage.value = doc.get("pfImage") ?? '';
       nickname.value = doc.get("nickname") ?? '';
     } catch (e) {
-      AppSnackbar("Hata", "Profil bilgileri yüklenemedi.");
+      debugPrint('[DenemeGrid] profile fetch failed for $userID: $e');
+      pfImage.value = '';
+      nickname.value = '';
     } finally {
       isLoadingProfile.value = false;
     }
@@ -53,7 +55,8 @@ class DenemeGridController extends GetxController {
           .get();
       toplamBasvuru.value = snapshot.docs.length;
     } catch (e) {
-      AppSnackbar("Hata", "Başvuru sayısı yüklenemedi.");
+      debugPrint('[DenemeGrid] applicant count fetch failed for $docID: $e');
+      toplamBasvuru.value = 0;
     } finally {
       isLoadingApplicants.value = false;
     }

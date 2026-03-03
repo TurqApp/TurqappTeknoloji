@@ -18,8 +18,8 @@ class PostActionStyle {
   const PostActionStyle.modern()
       : iconSize = 20,
         textStyle = const TextStyle(
-          color: Colors.black,
-          fontSize: 12,
+          color: Color(0xFF6F7A85),
+          fontSize: 14,
           fontFamily: 'MontserratMedium',
         ),
         reshareIcon = Icons.repeat,
@@ -29,8 +29,8 @@ class PostActionStyle {
   const PostActionStyle.classic()
       : iconSize = 20,
         textStyle = const TextStyle(
-          color: Colors.black,
-          fontSize: 12,
+          color: Color(0xFF6F7A85),
+          fontSize: 14,
           fontFamily: 'MontserratMedium',
         ),
         reshareIcon = Icons.repeat,

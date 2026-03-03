@@ -31,7 +31,7 @@ class RecommendedUserContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            15.ph,
+            4.ph,
             Stack(
               alignment: Alignment.bottomRight,
               children: [
@@ -67,7 +67,7 @@ class RecommendedUserContent extends StatelessWidget {
                 RozetContent(size: 28, userID: model.userID)
               ],
             ),
-            10.ph,
+            4.ph,
             GestureDetector(
               onTap: () {
                 Get.to(() => SocialProfile(userID: controller.userID))
@@ -113,7 +113,7 @@ class RecommendedUserContent extends StatelessWidget {
             //       fontSize: 15,
             //       fontFamily: "Montserrat"),
             // ),
-            15.ph,
+            6.ph,
             Obx(() {
               final isLoading = controller.followLoading.value;
               return Stack(
@@ -179,7 +179,7 @@ class RecommendedUserContent extends StatelessWidget {
                 ],
               );
             }),
-            15.ph,
+            4.ph,
           ],
         ),
       ),

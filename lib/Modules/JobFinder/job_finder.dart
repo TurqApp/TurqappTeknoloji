@@ -1,10 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
+import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
@@ -39,6 +43,26 @@ class JobFinder extends StatelessWidget {
               GlobalLoader(),
             ],
           ),
+          if (showEmbeddedControls && AdminAccessService.isKnownAdminSync())
+            Positioned(
+              right: 20,
+              bottom: 20,
+              child: ActionButton(
+                context: context,
+                menuItems: [
+                  PullDownMenuItem(
+                    icon: CupertinoIcons.slider_horizontal_3,
+                    title: 'Slider Yönetimi',
+                    onTap: () => Get.to(
+                      () => const SliderAdminView(
+                        sliderId: 'is_bul',
+                        title: 'İş Bul',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       );
     }
@@ -107,6 +131,23 @@ class JobFinder extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: AdminAccessService.isKnownAdminSync()
+          ? ActionButton(
+              context: context,
+              menuItems: [
+                PullDownMenuItem(
+                  icon: CupertinoIcons.slider_horizontal_3,
+                  title: 'Slider Yönetimi',
+                  onTap: () => Get.to(
+                    () => const SliderAdminView(
+                      sliderId: 'is_bul',
+                      title: 'İş Bul',
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
     );
   }
 
@@ -132,14 +173,14 @@ class JobFinder extends StatelessWidget {
           ? (tumTurkiye
               ? controller.aramaSonucu
               : controller.aramaSonucu
-                  .where((e) =>
-                      e.city.toString().contains(controller.sehir.value))
+                  .where(
+                      (e) => e.city.toString().contains(controller.sehir.value))
                   .toList())
           : (tumTurkiye
               ? controller.list
               : controller.list
-                  .where((e) =>
-                      e.city.toString().contains(controller.sehir.value))
+                  .where(
+                      (e) => e.city.toString().contains(controller.sehir.value))
                   .toList());
 
       final screenWidth = MediaQuery.of(context).size.width;
@@ -211,6 +252,7 @@ class JobFinder extends StatelessWidget {
     return Column(
       children: [
         EducationSlider(
+          sliderId: 'is_bul',
           imageList: [AppAssets.job1, AppAssets.job2, AppAssets.job3],
         ),
         if (!embedded) ...[
@@ -248,7 +290,9 @@ class JobFinder extends StatelessWidget {
                         Icon(
                           CupertinoIcons.arrow_up_arrow_down,
                           size: 14,
-                          color: controller.short.value != 0 ? Colors.pinkAccent : Colors.black,
+                          color: controller.short.value != 0
+                              ? Colors.pinkAccent
+                              : Colors.black,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -260,7 +304,9 @@ class JobFinder extends StatelessWidget {
                                       ? "Düşük Maaş"
                                       : "En Yakın",
                           style: TextStyle(
-                            color: controller.short.value != 0 ? Colors.pinkAccent : Colors.black,
+                            color: controller.short.value != 0
+                                ? Colors.pinkAccent
+                                : Colors.black,
                             fontSize: 15,
                             fontFamily: "MontserratMedium",
                           ),
@@ -311,5 +357,4 @@ class JobFinder extends StatelessWidget {
       ],
     );
   }
-
 }

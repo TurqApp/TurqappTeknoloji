@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Bouncy tap wrapper used across agenda action buttons.
 class AnimatedActionButton extends StatefulWidget {
+  static const double actionHeight = 28;
   final Widget child;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -17,7 +18,7 @@ class AnimatedActionButton extends StatefulWidget {
     this.onLongPress,
     required this.enabled,
     required this.semanticsLabel,
-    this.padding = const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
+    this.padding = const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
     this.showTapArea = false,
   });
 
@@ -105,6 +106,9 @@ class _AnimatedActionButtonState extends State<AnimatedActionButton>
           child: ScaleTransition(
             scale: _tapScale,
             child: Container(
+              constraints: const BoxConstraints(
+                minHeight: AnimatedActionButton.actionHeight,
+              ),
               decoration: widget.showTapArea
                   ? BoxDecoration(
                       border: Border.all(color: Colors.redAccent, width: 1),
@@ -143,8 +147,13 @@ class ActionButtonContent extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        leading,
+        SizedBox(
+          width: 20,
+          height: AnimatedActionButton.actionHeight,
+          child: Center(child: leading),
+        ),
         if (label != null) ...[
           SizedBox(width: gap),
           AnimatedSwitcher(
@@ -155,15 +164,20 @@ class ActionButtonContent extends StatelessWidget {
               scale: animation,
               child: child,
             ),
-            child: Text(
-              label!,
-              key: ValueKey<String>(label!),
-              style: labelStyle ??
-                  const TextStyle(
-                    color: Colors.black,
-                    fontSize: 12,
-                    fontFamily: 'MontserratMedium',
-                  ),
+            child: SizedBox(
+              height: AnimatedActionButton.actionHeight,
+              child: Center(
+                child: Text(
+                  label!,
+                  key: ValueKey<String>(label!),
+                  style: labelStyle ??
+                      const TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                ),
+              ),
             ),
           ),
         ],

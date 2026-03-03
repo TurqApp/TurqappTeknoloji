@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,6 +26,109 @@ class JobDetails extends StatelessWidget {
   final JobModel model;
   JobDetails({super.key, required this.model});
   late final JobDetailsController controller;
+
+  bool _hasValidCoordinates(JobModel job) {
+    if (!job.lat.isFinite || !job.long.isFinite) return false;
+    if (job.lat == 0 || job.long == 0) return false;
+    if (job.lat < -90 || job.lat > 90) return false;
+    if (job.long < -180 || job.long > 180) return false;
+    return true;
+  }
+
+  Widget _buildLocationPreview(BuildContext context) {
+    final hasLocation = _hasValidCoordinates(controller.model.value);
+    final canUseNativeMap =
+        hasLocation && defaultTargetPlatform != TargetPlatform.iOS;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          child: GestureDetector(
+            onTap: hasLocation
+                ? () {
+                    controller.showMapsSheet(
+                      controller.model.value.lat,
+                      controller.model.value.long,
+                    );
+                  }
+                : null,
+            child: SizedBox(
+              width: double.infinity,
+              height: 220,
+              child: canUseNativeMap
+                  ? AbsorbPointer(
+                      child: GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(
+                            controller.model.value.lat,
+                            controller.model.value.long,
+                          ),
+                          zoom: 14,
+                        ),
+                        zoomControlsEnabled: false,
+                        myLocationButtonEnabled: false,
+                        scrollGesturesEnabled: false,
+                        rotateGesturesEnabled: false,
+                        tiltGesturesEnabled: false,
+                        zoomGesturesEnabled: false,
+                        mapToolbarEnabled: false,
+                      ),
+                    )
+                  : Container(
+                      color: const Color(0xFFF3F5F7),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            hasLocation
+                                ? CupertinoIcons.location_solid
+                                : CupertinoIcons.location_slash,
+                            color: hasLocation ? Colors.red : Colors.grey,
+                            size: 34,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            hasLocation
+                                ? 'Haritada Aç'
+                                : 'Konum bilgisi bulunamadı',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
+                            ),
+                          ),
+                          if (hasLocation)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 6),
+                              child: Text(
+                                'Apple Haritalar veya diğer uygulamalarda aç',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 13,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ),
+        if (canUseNativeMap)
+          const Icon(
+            CupertinoIcons.location_solid,
+            color: Colors.red,
+            size: 30,
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     controller = Get.put(JobDetailsController(model: model), tag: model.docID);
@@ -310,55 +414,7 @@ class JobDetails extends StatelessWidget {
                           SizedBox(
                             height: 12,
                           ),
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              ClipRRect(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(12)),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    controller.showMapsSheet(
-                                        controller.model.value.lat,
-                                        controller.model.value.long);
-                                  },
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    height: 220,
-                                    child: AbsorbPointer(
-                                      // Etkileşimi tamamen engeller
-                                      child: GoogleMap(
-                                        initialCameraPosition: CameraPosition(
-                                          target: LatLng(
-                                              controller.model.value.lat
-                                                  .toDouble(),
-                                              controller.model.value.long
-                                                  .toDouble()),
-                                          zoom: 14,
-                                        ),
-                                        zoomControlsEnabled:
-                                            false, // Sağ alt zoom butonlarını kaldırır
-                                        myLocationButtonEnabled:
-                                            false, // Sağ alt konum butonunu kaldırır
-                                        scrollGesturesEnabled:
-                                            false, // Sürükleme kapalı
-                                        rotateGesturesEnabled: false,
-                                        tiltGesturesEnabled: false,
-                                        zoomGesturesEnabled: false,
-                                        mapToolbarEnabled:
-                                            false, // Sağ üstteki rota ve benzeri araçları kaldırır
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                CupertinoIcons.location_solid,
-                                color: Colors.red,
-                                size: 30,
-                              ),
-                            ],
-                          ),
+                          _buildLocationPreview(context),
                           if (controller.model.value.adres.isNotEmpty) ...[
                             SizedBox(height: 8),
                             Text(
