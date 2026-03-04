@@ -12,7 +12,11 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
     function isAdmin() {
-      return isAuth() && request.auth.token.admin == true;
+      return isAuth() && (
+        request.auth.token.admin == true ||
+        request.auth.uid == "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2" ||
+        request.auth.uid == "hiv3UzAABlRWJaePerm3mtPEolI3"
+      );
     }
 
     // ──────────────────────────────────────────────
@@ -21,7 +25,12 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isAuth();
       allow create: if isOwner(uid);
-      allow update: if isOwner(uid);
+      // Kullanıcı kendi profilini güncelleyebilir — ancak role ve stats alanlarına yazamaz
+      // Bu alanlar yalnızca Cloud Functions / Admin SDK tarafından yazılır
+      allow update: if isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['role', 'admin', 'takipciSayisi', 'takipEdilenSayisi',
+                     'gonderSayisi', 'followerCount', 'followingCount', 'postCount']);
       allow delete: if false;
 
       // Takipciler (followers)
@@ -112,7 +121,18 @@ service cloud.firestore {
     match /Posts/{postId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
-      allow update: if isAuth();
+      // Sahip: tüm alanları güncelleyebilir (istatistik alanları hariç — bunlar CF yazar)
+      // Diğer kullanıcılar: yalnızca izin verilen istatistik sayaçlarını yazabilir
+      allow update: if isAuth() && (
+        resource.data.userID == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'goruntulenmeSayisi', 'viewCount', 'seenCount',
+             'begeniSayisi', 'likeCount',
+             'yorumSayisi', 'commentCount',
+             'kaydetmeSayisi', 'savedCount',
+             'paylasilmaSayisi', 'shareCount'
+           ])
+      );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
       // Likes
@@ -197,8 +217,26 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     // CHAT / MESSAGING
     // ──────────────────────────────────────────────
+    // Legacy Chat koleksiyonu — her iki taraf da erişebilir
     match /Chat/{chatId} {
-      allow read, write: if isAuth();
+      function isChatParticipant() {
+        return isAuth() && (
+          request.auth.uid == resource.data.userID1 ||
+          request.auth.uid == resource.data.userID2 ||
+          (resource.data.participants is list &&
+           request.auth.uid in resource.data.participants)
+        );
+      }
+      function isChatParticipantFromRequest() {
+        return isAuth() && (
+          request.auth.uid == request.resource.data.userID1 ||
+          request.auth.uid == request.resource.data.userID2 ||
+          (request.resource.data.participants is list &&
+           request.auth.uid in request.resource.data.participants)
+        );
+      }
+      allow read, update, delete: if isChatParticipant();
+      allow create: if isChatParticipantFromRequest();
     }
     match /conversations/{conversationId} {
       function isParticipantFromResource() {
@@ -269,9 +307,11 @@ service cloud.firestore {
       allow create: if isAuth();
       allow update: if isAuth() && resource.data.userID == request.auth.uid;
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
-      match /{sub=**} {
+      // Alt koleksiyonlar: yalnızca belge sahibi yazabilir
+      match /{sub}/{subDocId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow write: if isAuth()
+          && get(/databases/$(database)/documents/SoruBankasi/$(docId)).data.userID == request.auth.uid;
       }
     }
 
@@ -347,9 +387,17 @@ service cloud.firestore {
            .hasOnly(['katilimciSayisi', 'goruntulenmeSayisi'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
-      match /{sub=**} {
+      // Alt koleksiyonlar: yalnızca test sahibi ya da katılımcı kendi kaydını yönetir
+      match /Katilimcilar/{userId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update: if isOwner(userId);
+        allow delete: if isOwner(userId)
+          || get(/databases/$(database)/documents/Testler/$(docId)).data.userID == request.auth.uid;
+      }
+      match /Sorular/{soruId} {
+        allow read: if isAuth();
+        allow write: if isAuth()
+          && get(/databases/$(database)/documents/Testler/$(docId)).data.userID == request.auth.uid;
       }
     }
 
@@ -417,11 +465,11 @@ service cloud.firestore {
       allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
 
-    // Cevap Anahtarları
+    // Cevap Anahtarları — client doğrudan okuyamaz; Cloud Functions Admin SDK kullanır
     match /CevapAnahtarlari/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow read: if false;   // SECURITY: Admin SDK / Cloud Functions only
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // Sorular (ek koleksiyon)

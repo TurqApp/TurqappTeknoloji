@@ -92,12 +92,15 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            val maxBufferMs = preferredMaxBufferMs.coerceIn(10000, 30000).toInt()
-            val minBufferMs = (maxBufferMs * 0.5).toInt().coerceAtLeast(5000)
+            // A6: Buffer tuning — TTFF hedefi < 400ms (warm)
+            // maxBuffer: 15s — segment atlama önleme
+            // minBuffer: 2s — önceki 5s çok fazlaydı, gereksiz bekleme üretiyordu
+            val maxBufferMs = preferredMaxBufferMs.coerceIn(15000, 30000).toInt()
+            val minBufferMs = (maxBufferMs * 0.25).toInt().coerceAtLeast(2000)
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
-                    minBufferMs, // minBufferMs: segment geçişlerinde yeterli tampon
-                    maxBufferMs, // maxBufferMs: segment sınırında boşalma olmasın
+                    minBufferMs, // minBufferMs: 2s min — segment geçişlerinde yeterli tampon
+                    maxBufferMs, // maxBufferMs: 15s — uzun segment boşalması önleme
                     500,         // bufferForPlaybackMs: TTFF için hızlı başlat
                     1500         // bufferForPlaybackAfterRebufferMs: rebuffer sonrası makul tampon
                 )
@@ -171,8 +174,8 @@ class ExoPlayerView(
         // HLS URL'leri için HlsMediaSource kullan (ABR desteği)
         if (url.contains(".m3u8") || url.contains("/hls/")) {
             val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-                .setConnectTimeoutMs(8000)
-                .setReadTimeoutMs(8000)
+                .setConnectTimeoutMs(3000)  // A6: 8000ms → 3000ms (hızlı bağlantı hatası tespiti)
+                .setReadTimeoutMs(5000)     // A6: 8000ms → 5000ms (segment okuma timeout)
                 .setDefaultRequestProperties(mapOf(
                     "X-Turq-App" to "turqapp-mobile",
                 ))

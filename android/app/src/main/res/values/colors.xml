@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="notification_accent">#4F718E</color>
+    <color name="notification_icon_bg">#4F718E</color>
+</resources>

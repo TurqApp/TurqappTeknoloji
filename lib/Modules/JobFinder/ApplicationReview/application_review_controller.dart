@@ -37,6 +37,9 @@ class ApplicationReviewController extends GetxController {
           jobTitle: data['jobTitle'] ?? '',
           companyName: data['companyName'] ?? '',
           companyLogo: data['companyLogo'] ?? '',
+          applicantName: data['applicantName'] ?? '',
+          applicantNickname: data['applicantNickname'] ?? '',
+          applicantPfImage: data['applicantPfImage'] ?? '',
           status: data['status'] ?? 'pending',
           timeStamp: data['timeStamp'] ?? 0,
           statusUpdatedAt: data['statusUpdatedAt'] ?? 0,
@@ -55,10 +58,8 @@ class ApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantCV(String userID) async {
     if (cvCache.containsKey(userID)) return cvCache[userID];
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('CV')
-          .doc(userID)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection('CV').doc(userID).get();
       if (doc.exists && doc.data() != null) {
         // Eski cache'i temizle
         if (cvCache.length >= _maxCacheSize) {
@@ -127,6 +128,9 @@ class ApplicationReviewController extends GetxController {
           jobTitle: old.jobTitle,
           companyName: old.companyName,
           companyLogo: old.companyLogo,
+          applicantName: old.applicantName,
+          applicantNickname: old.applicantNickname,
+          applicantPfImage: old.applicantPfImage,
           status: newStatus,
           timeStamp: old.timeStamp,
           statusUpdatedAt: now,

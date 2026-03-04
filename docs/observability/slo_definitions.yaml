@@ -1,0 +1,227 @@
+# TurqApp — SLO (Service Level Objective) Tanımları
+# Güncelleme: 2026-03-03
+# Hedef: Instagram / X seviyesi kalite
+
+# ─────────────────────────────────────────────────────────────────
+# FEED SLO'LARI
+# ─────────────────────────────────────────────────────────────────
+
+slos:
+  feed_availability:
+    description: Feed ana sayfası erişilebilirliği
+    target: 99.9%
+    window: 30d
+    allowed_downtime: 43.8m/ay
+    metric: feed_page_load_success_rate
+    alarm:
+      threshold: 99.5%
+      severity: P1
+      channel: pagerduty
+
+  feed_ttfc_warm:
+    description: Warm start (cache dolu) ilk içerik görünme süresi
+    target: < 500ms (p95)
+    window: 1h
+    metric: feed_ttfc_warm
+    firestore_collection: Analytics/PerformanceMetrics
+    alarm:
+      threshold: 800ms
+      severity: P1
+    alarm_p2:
+      threshold: 600ms
+      severity: P2
+
+  feed_ttfc_cold:
+    description: Cold start (cache boş) ilk içerik görünme süresi
+    target: < 1500ms (p95)
+    window: 1h
+    metric: feed_ttfc_cold
+    alarm:
+      threshold: 2500ms
+      severity: P1
+
+  scroll_jank:
+    description: Feed scroll esnasında janky frame oranı
+    target: < %5 (p95)
+    window: 1h
+    metric: scroll_jank_pct
+    alarm:
+      threshold: 10%
+      severity: P2
+
+  image_cache_hit:
+    description: Feed görseli cache hit oranı
+    target: > %85
+    window: 1h
+    metric: img_cache_hit_rate
+    alarm:
+      threshold: 70%
+      severity: P2
+
+  feed_data_cache_hit:
+    description: Feed verisi LRU cache hit oranı
+    target: > %70
+    window: 1h
+    metric: feed_cache_hit_rate
+    alarm:
+      threshold: 55%
+      severity: P2
+
+  cdn_hit_ratio:
+    description: CDN (Cloudflare) cache hit oranı
+    target: > %90
+    window: 1h
+    metric: cdn_hit_ratio
+    alarm:
+      threshold: 80%
+      severity: P1
+
+  firestore_reads_per_screen:
+    description: Feed ekranı başına Firestore okuma sayısı
+    target: < 8
+    window: 1h
+    metric: firestore_reads_per_screen
+    alarm:
+      threshold: 20
+      severity: P2
+
+# ─────────────────────────────────────────────────────────────────
+# VIDEO SLO'LARI
+# ─────────────────────────────────────────────────────────────────
+
+  video_ttff_warm:
+    description: Warm start video ilk kare görünme süresi (TTFF)
+    target: < 400ms (p95)
+    window: 1h
+    metric: video_ttff_ms
+    alarm:
+      threshold: 700ms
+      severity: P1
+    alarm_p2:
+      threshold: 500ms
+      severity: P2
+
+  video_ttff_cold:
+    description: Cold start video TTFF
+    target: < 1200ms (p95)
+    window: 1h
+    metric: video_ttff_cold_ms
+    alarm:
+      threshold: 2000ms
+      severity: P1
+
+  video_autoplay_start:
+    description: Scroll sonrası autoplay başlama gecikmesi
+    target: < 300ms (p95)
+    window: 1h
+    metric: video_autoplay_start_ms
+    alarm:
+      threshold: 500ms
+      severity: P2
+
+  video_rebuffer_rate:
+    description: Video rebuffer oranı (kullanıcı başına)
+    target: < %1
+    window: 1h
+    metric: video_rebuffer_rate
+    alarm:
+      threshold: 3%
+      severity: P1
+
+  memory_rss:
+    description: Feed scroll esnasında uygulama bellek kullanımı
+    target: < 150MB (p95)
+    window: 1h
+    metric: memory_rss_mb
+    alarm:
+      threshold: 220MB
+      severity: P1
+
+  video_dropped_frames:
+    description: Video oynatmada düşen frame oranı
+    target: < %2 (p95)
+    window: 1h
+    metric: video_dropped_frame_pct
+    alarm:
+      threshold: 5%
+      severity: P2
+
+# ─────────────────────────────────────────────────────────────────
+# ALTYAPI SLO'LARI
+# ─────────────────────────────────────────────────────────────────
+
+  cloud_function_p99_latency:
+    description: Cloud Function p99 gecikme (like, yorum, follow)
+    target: < 500ms
+    window: 1h
+    metric: cf_invocation_latency_p99
+    alarm:
+      threshold: 2000ms
+      severity: P2
+
+  rate_limit_hit_rate:
+    description: Rate limit tetiklenme oranı (spam sinyali)
+    target: < %0.1 (normal traffic)
+    window: 1h
+    metric: rate_limit_triggered_rate
+    alarm:
+      threshold: 1%
+      severity: P2
+      note: "Yüksek rate → spam saldırısı olabilir"
+
+  hls_transcode_success:
+    description: HLS transcode başarı oranı
+    target: > %99
+    window: 24h
+    metric: hls_transcode_success_rate
+    alarm:
+      threshold: 95%
+      severity: P1
+
+# ─────────────────────────────────────────────────────────────────
+# LOAD TEST HEDEFLERİ (100K DAU)
+# ─────────────────────────────────────────────────────────────────
+
+load_test:
+  scenario: 100K DAU peak traffic
+  peak_concurrent_users: 50_000
+  feed_scroll_qps: 5_000
+  video_autoplay_qps: 1_667
+  firestore_read_qps_cached: 1_500  # %70 cache hit ile
+  cf_invoke_qps: 500
+  cdn_bandwidth_peak_gbps: 75
+
+# ─────────────────────────────────────────────────────────────────
+# TELEMETRİ EVENT ŞEMASI
+# ─────────────────────────────────────────────────────────────────
+
+telemetry_events:
+  - name: feed_ttfc_warm
+    description: Warm start first content in viewport
+    fields: [ttfc_ms, cache_source, user_id, platform]
+
+  - name: feed_ttfc_cold
+    description: Cold start first content in viewport
+    fields: [ttfc_ms, user_id, platform]
+
+  - name: video_ttff_ms
+    description: Time to first frame (warm)
+    fields: [ttff_ms, video_id, bitrate_level, user_id, platform]
+    source: VideoTelemetryService
+
+  - name: video_rebuffer_rate
+    description: Rebuffer ratio for a video session
+    fields: [rebuffer_count, total_rebuffer_ms, watch_time_sec, video_id]
+    source: VideoTelemetryService
+
+  - name: scroll_jank_pct
+    description: Janky frame percentage during scroll
+    fields: [jank_pct, scroll_speed_avg, frame_count]
+
+  - name: img_cache_hit_rate
+    description: Image cache hit ratio (per screen)
+    fields: [hits, misses, total, screen]
+
+  - name: firestore_reads_per_screen
+    description: Number of Firestore reads per screen load
+    fields: [reads, screen, user_id]

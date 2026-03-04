@@ -294,9 +294,10 @@ class AgendaController extends GetxController {
     }
 
     // Arşiv projedeki daha stabil akış:
-    // detector anında centeredIndex'i belirler, ek "bestFraction" yarışı yapmaz.
-    const double playThreshold = 0.60;
-    const double stopThreshold = 0.25;
+    // %80+ görünürlükte oynat, %40 altına düşünce durdur.
+    // Böylece üstte çok az görünen video oynatılmaz; merkezdeki video öncelik alır.
+    const double playThreshold = 0.80;
+    const double stopThreshold = 0.40;
 
     if (visibleFraction >= playThreshold) {
       if (centeredIndex.value != modelIndex) {

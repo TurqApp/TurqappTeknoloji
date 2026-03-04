@@ -4,6 +4,9 @@ class JobApplicationModel {
   final String jobTitle;
   final String companyName;
   final String companyLogo;
+  final String applicantName;
+  final String applicantNickname;
+  final String applicantPfImage;
   final String status; // pending / reviewing / accepted / rejected
   final int timeStamp;
   final int statusUpdatedAt;
@@ -15,6 +18,9 @@ class JobApplicationModel {
     required this.jobTitle,
     required this.companyName,
     required this.companyLogo,
+    this.applicantName = '',
+    this.applicantNickname = '',
+    this.applicantPfImage = '',
     required this.status,
     required this.timeStamp,
     this.statusUpdatedAt = 0,
@@ -28,6 +34,9 @@ class JobApplicationModel {
       jobTitle: map['jobTitle'] ?? '',
       companyName: map['companyName'] ?? '',
       companyLogo: map['companyLogo'] ?? '',
+      applicantName: map['applicantName'] ?? '',
+      applicantNickname: map['applicantNickname'] ?? '',
+      applicantPfImage: map['applicantPfImage'] ?? '',
       status: map['status'] ?? 'pending',
       timeStamp: map['timeStamp'] ?? 0,
       statusUpdatedAt: map['statusUpdatedAt'] ?? 0,
@@ -41,6 +50,9 @@ class JobApplicationModel {
       'jobTitle': jobTitle,
       'companyName': companyName,
       'companyLogo': companyLogo,
+      'applicantName': applicantName,
+      'applicantNickname': applicantNickname,
+      'applicantPfImage': applicantPfImage,
       'status': status,
       'timeStamp': timeStamp,
       'statusUpdatedAt': statusUpdatedAt,

@@ -1,6 +1,7 @@
 // Cloud Functions templates for story TTL and deletion archival
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { RateLimits } from "./rateLimiter";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -8,12 +9,30 @@ const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// export { generateThumbnails } from "./thumbnails"; // ⏸️ Temporarily disabled (sharp build issue)
+// B9: generateThumbnails aktif — sharp build için package.json'da
+// "sharp": "^0.33.0" ve "engines": {"node": "20"} gerekli.
+// deploy öncesi: cd functions && npm install sharp --platform=linux --arch=x64
+export { generateThumbnails } from "./thumbnails";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🎬 HLS VIDEO TRANSCODE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export { onVideoUpload } from "./hlsTranscode";
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📊 AGGREGATION COUNTER SHARDING (A9)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export { recordViewBatch, aggregateCounterShards, initCounterShards } from "./counterShards";
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export { onPostCreate, onPostDelete, onNewFollower, cleanupExpiredFeedItems } from "./hybridFeed";
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 👤 AUTHOR FIELD DENORMALIZATION (B10)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export { denormAuthorOnPostWrite, syncAuthorFieldsOnProfileUpdate } from "./authorDenorm";
 export * from "./04_tagSettings";
 export * from "./09_userProfile";
 export * from "./11_resend";
@@ -241,12 +260,15 @@ export const onUserNotificationCreate = functions.firestore
         data: {
           docID: targetDocID,
           type,
+          title,
+          body,
           ...(imageUrl ? { imageUrl } : {}),
         },
         android: {
           priority: "high",
           notification: {
             channelId: "high_importance_channel",
+            color: "#4F718E",
             ...(imageUrl ? { imageUrl } : {}),
           },
         },
@@ -257,6 +279,10 @@ export const onUserNotificationCreate = functions.firestore
           fcmOptions: imageUrl ? { imageUrl } : undefined,
           payload: {
             aps: {
+              alert: {
+                title,
+                body,
+              },
               "mutable-content": imageUrl ? 1 : 0,
               sound: "default",
             },
@@ -772,6 +798,12 @@ export const purgePostSubcollections = functions
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
+  // SECURITY: Sadece admin silme işlemi yapabilir
+  const isAdmin = (context.auth.token as any)?.admin === true;
+  if (!isAdmin) {
+    throw new functions.https.HttpsError("permission-denied", "Admin privileges required");
+  }
+  RateLimits.admin(context.auth.uid);
 
   const docPathRaw = typeof data?.docPath === "string" ? (data.docPath as string) : "";
   const docPath = docPathRaw.trim();
@@ -842,6 +874,12 @@ export const purgeStudentSubcollections = functions
     if (!context.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
     }
+    // SECURITY: Sadece admin silme işlemi yapabilir
+    const isAdmin = (context.auth.token as any)?.admin === true;
+    if (!isAdmin) {
+      throw new functions.https.HttpsError('permission-denied', 'Admin privileges required');
+    }
+    RateLimits.admin(context.auth.uid);
 
     const docPathRaw = typeof data?.docPath === 'string' ? (data.docPath as string) : '';
     const docPath = docPathRaw.trim();

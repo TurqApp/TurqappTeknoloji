@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 /// Uygulama genelinde tek bir aktif ses kaynağı olmasını zorlar.
@@ -11,6 +12,7 @@ class AudioFocusCoordinator extends GetxService {
   }
 
   final Set<HLSVideoAdapter> _players = <HLSVideoAdapter>{};
+  final Set<AudioPlayer> _audioPlayers = <AudioPlayer>{};
   HLSVideoAdapter? _activePlayer;
 
   void register(HLSVideoAdapter player) {
@@ -38,6 +40,22 @@ class AudioFocusCoordinator extends GetxService {
   void requestPause(HLSVideoAdapter player) {
     if (identical(_activePlayer, player)) {
       _activePlayer = null;
+    }
+  }
+
+  void registerAudioPlayer(AudioPlayer player) {
+    _audioPlayers.add(player);
+  }
+
+  void unregisterAudioPlayer(AudioPlayer player) {
+    _audioPlayers.remove(player);
+  }
+
+  Future<void> pauseAllAudioPlayers() async {
+    for (final player in _audioPlayers.toList()) {
+      try {
+        await player.pause();
+      } catch (_) {}
     }
   }
 }

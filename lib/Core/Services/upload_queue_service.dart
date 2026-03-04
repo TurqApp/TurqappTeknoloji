@@ -153,6 +153,103 @@ class UploadQueueService extends GetxController {
       _notifyQueueUpdated();
       await _saveQueueToStorage();
 
+      final postDataMap = jsonDecode(upload.postData);
+      final String text = (postDataMap['text'] ?? '')
+          .toString()
+          .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+          .trim();
+      final String location = (postDataMap['location'] ?? '').toString();
+      final String gif = (postDataMap['gif'] ?? '').toString();
+      String userID = (postDataMap['userID'] ?? '').toString();
+      if (userID.trim().isEmpty) {
+        userID = FirebaseAuth.instance.currentUser?.uid ?? '';
+      }
+      if (userID.trim().isEmpty) {
+        throw Exception('userID boş: upload sırasında oturum bulunamadı');
+      }
+      final Map<String, dynamic> yorumMap =
+          Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
+      final Map<String, dynamic> reshareMap =
+          Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
+      final Map<String, dynamic> poll =
+          Map<String, dynamic>.from(postDataMap['poll'] ?? {});
+      if (yorumMap.isEmpty) {
+        final bool comment = (postDataMap['comment'] ?? true) == true;
+        yorumMap['visibility'] = comment ? 0 : 3;
+      }
+      if (reshareMap.isEmpty) {
+        final int paylasGizliligi =
+            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
+        reshareMap['visibility'] = paylasGizliligi;
+      }
+      final int scheduledAt =
+          int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
+
+      bool flood = false;
+      String mainFlood = '';
+      try {
+        final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
+        final idx = int.tryParse(idxStr) ?? 0;
+        flood = idx != 0;
+        if (flood) {
+          final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
+          mainFlood = '${base}_0';
+        }
+      } catch (_) {}
+
+      int floodCount = 1;
+      try {
+        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
+        floodCount = _queue.where((q) => q.id.startsWith('${base}_')).length;
+        if (floodCount <= 0) floodCount = 1;
+      } catch (_) {}
+
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final baseTime = scheduledAt != 0 ? scheduledAt : nowMs;
+
+      // Video/HLS pipeline starts from Storage; create the Firestore shell first
+      // so feed-critical fields exist even if HLS updates arrive earlier.
+      // Keep the shell out of feed queries until the final write completes.
+      await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
+        "arsiv": true,
+        "debugMode": false,
+        "deletedPost": false,
+        "deletedPostTime": 0,
+        "flood": flood,
+        "floodCount": floodCount,
+        "gizlendi": false,
+        "img": const <String>[],
+        "imgMap": const <Map<String, dynamic>>[],
+        "isAd": false,
+        "ad": false,
+        "izBirakYayinTarihi": baseTime,
+        "konum": location,
+        "mainFlood": mainFlood,
+        "metin": text,
+        "scheduledAt": scheduledAt,
+        "sikayetEdildi": false,
+        "stabilized": false,
+        "stats": {
+          "commentCount": 0,
+          "likeCount": 0,
+          "reportedCount": 0,
+          "retryCount": 0,
+          "savedCount": 0,
+          "statsCount": 0
+        },
+        "tags": const <String>[],
+        "thumbnail": "",
+        "timeStamp": baseTime,
+        "userID": userID,
+        "video": "",
+        "isUploading": true,
+        "yorumMap": yorumMap,
+        "reshareMap": reshareMap,
+        if (poll.isNotEmpty) "poll": poll,
+        "originalUserID": "",
+        "originalPostID": "",
+      }, SetOptions(merge: true));
+
       // Upload images first (preserve extension; prefer .webp)
       final imageUrls = <String>[];
       for (int i = 0; i < upload.imagePaths.length; i++) {
@@ -291,34 +388,6 @@ class UploadQueueService extends GetxController {
       // Save to Firestore (full document structure)
       upload.progress = 0.95;
       _notifyQueueUpdated();
-      final postDataMap = jsonDecode(upload.postData);
-      final String text = (postDataMap['text'] ?? '')
-          .toString()
-          .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
-          .trim();
-      final String location = (postDataMap['location'] ?? '').toString();
-      final String gif = (postDataMap['gif'] ?? '').toString();
-      String userID = (postDataMap['userID'] ?? '').toString();
-      if (userID.trim().isEmpty) {
-        userID = FirebaseAuth.instance.currentUser?.uid ?? '';
-      }
-      final Map<String, dynamic> yorumMap =
-          Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
-      final Map<String, dynamic> reshareMap =
-          Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
-      final Map<String, dynamic> poll =
-          Map<String, dynamic>.from(postDataMap['poll'] ?? {});
-      if (yorumMap.isEmpty) {
-        final bool comment = (postDataMap['comment'] ?? true) == true;
-        yorumMap['visibility'] = comment ? 0 : 3;
-      }
-      if (reshareMap.isEmpty) {
-        final int paylasGizliligi =
-            int.tryParse('${postDataMap['paylasGizliligi'] ?? 0}') ?? 0;
-        reshareMap['visibility'] = paylasGizliligi;
-      }
-      final int scheduledAt =
-          int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
 
       if (gif.isNotEmpty) {
         imageUrls.add(gif);
@@ -374,31 +443,6 @@ class UploadQueueService extends GetxController {
           .toSet()
           .toList();
 
-      // Flood relation from docID suffix
-      bool flood = false;
-      String mainFlood = '';
-      try {
-        final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
-        final idx = int.tryParse(idxStr) ?? 0;
-        flood = idx != 0;
-        if (flood) {
-          final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-          mainFlood = '${base}_0';
-        }
-      } catch (_) {}
-
-      // Estimate floodCount from queue items with same base
-      int floodCount = 1;
-      try {
-        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
-        floodCount = _queue.where((q) => q.id.startsWith('${base}_')).length;
-        if (floodCount <= 0) floodCount = 1;
-      } catch (_) {}
-
-      // Time
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final baseTime = scheduledAt != 0 ? scheduledAt : nowMs;
-
       final data = {
         "arsiv": false,
         if (!isImagePost) "aspectRatio": aspectRatio,
@@ -432,6 +476,7 @@ class UploadQueueService extends GetxController {
         "timeStamp": baseTime,
         "userID": userID,
         "video": videoUrl,
+        "isUploading": false,
         "yorumMap": yorumMap,
         "reshareMap": reshareMap,
         if (poll.isNotEmpty) "poll": poll,
@@ -439,14 +484,11 @@ class UploadQueueService extends GetxController {
         "originalUserID": "",
         "originalPostID": "",
       };
-      if (userID.trim().isEmpty) {
-        throw Exception('userID boş: upload sırasında oturum bulunamadı');
-      }
 
       await FirebaseFirestore.instance
           .collection('Posts')
           .doc(upload.id)
-          .set(data);
+          .set(data, SetOptions(merge: true));
 
       // Mark as completed
       upload.status = UploadStatus.completed;

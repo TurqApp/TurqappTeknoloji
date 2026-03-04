@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -95,6 +96,7 @@ class _UserStoryContentState extends State<UserStoryContent>
   @override
   void initState() {
     super.initState();
+    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
     _configurePlayerContext();
     // Başlangıç indexini "kaldığı yerden devam" kuralına göre ayarla
     storyIndex = (widget.initialStoryIndex >= 0 &&
@@ -151,6 +153,7 @@ class _UserStoryContentState extends State<UserStoryContent>
     _timer?.cancel();
     _musicStateSubscription?.cancel();
     _musicStartFallbackTimer?.cancel();
+    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     try {
       Get.delete<UserStoryContentController>(

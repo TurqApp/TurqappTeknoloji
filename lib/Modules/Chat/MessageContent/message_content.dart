@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -1903,6 +1904,7 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
   @override
   void initState() {
     super.initState();
+    AudioFocusCoordinator.instance.registerAudioPlayer(_player);
     if (widget.durationMs > 0) {
       _duration = Duration(milliseconds: widget.durationMs);
     }
@@ -1921,6 +1923,7 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
 
   @override
   void dispose() {
+    AudioFocusCoordinator.instance.unregisterAudioPlayer(_player);
     _player.dispose();
     super.dispose();
   }

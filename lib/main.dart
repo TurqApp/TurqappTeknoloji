@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
@@ -81,6 +82,9 @@ void _handleAppBackgroundTransition() {
     if (Get.isRegistered<VideoStateManager>()) {
       Get.find<VideoStateManager>().pauseAllVideos(force: true);
     }
+  } catch (_) {}
+  try {
+    AudioFocusCoordinator.instance.pauseAllAudioPlayers();
   } catch (_) {}
 }
 

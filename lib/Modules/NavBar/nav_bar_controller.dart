@@ -14,6 +14,7 @@ import '../Agenda/agenda_controller.dart';
 import '../Explore/explore_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
+import '../../Core/Services/audio_focus_coordinator.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Services/current_user_service.dart';
@@ -235,6 +236,9 @@ class NavBarController extends GetxController
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
       } catch (_) {}
+      try {
+        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+      } catch (_) {}
       return;
     }
 
@@ -254,6 +258,9 @@ class NavBarController extends GetxController
     if (previous == 0 && index != 0) {
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
+      } catch (_) {}
+      try {
+        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
       } catch (_) {}
     }
 

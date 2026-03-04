@@ -755,7 +755,7 @@ class _AgendaContentState extends State<AgendaContent>
   }) {
     const baseStyle = TextStyle(
       color: Colors.black,
-      fontSize: 16,
+      fontSize: 15,
       fontFamily: "Montserrat",
       height: 1.25,
     );
@@ -796,7 +796,7 @@ class _AgendaContentState extends State<AgendaContent>
                   text: suffix,
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontFamily: "MontserratMedium",
                     height: 1.25,
                   ),
@@ -829,7 +829,7 @@ class _AgendaContentState extends State<AgendaContent>
                   text: suffix,
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontFamily: "MontserratMedium",
                     height: 1.25,
                   ),
@@ -1279,7 +1279,7 @@ class _AgendaContentState extends State<AgendaContent>
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontFamily: "MontserratBold",
                                 ),
                               ),
@@ -1294,7 +1294,7 @@ class _AgendaContentState extends State<AgendaContent>
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "Montserrat",
                               ),
                             ),
@@ -1305,7 +1305,7 @@ class _AgendaContentState extends State<AgendaContent>
                               displayTime,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),

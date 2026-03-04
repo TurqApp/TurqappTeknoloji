@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
+import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -111,6 +112,10 @@ class _ShortViewState extends State<ShortView> {
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
 
+  // A10: Video telemetry — TTFF, buffering, position tracking
+  bool _telemetryFirstFrame = false;
+  HLSVideoAdapter? _telemetryAdapter;
+
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
 
@@ -168,11 +173,24 @@ class _ShortViewState extends State<ShortView> {
     if (oldVc != null) {
       oldVc.pause();
       oldVc.removeListener(_videoEndListener);
+      oldVc.removeListener(_telemetryListener);
+    }
+
+    // A10: Eski video telemetry session'ını bitir
+    if (currentPage < _cachedShorts.length) {
+      VideoTelemetryService.instance.endSession(_cachedShorts[currentPage].docID);
     }
 
     currentPage = page;
     isManuallyPaused = false;
     _isTransitioning = false;
+    _telemetryFirstFrame = false;
+    _telemetryAdapter = null;
+
+    // Yeni video için progress tracking'i sıfırla
+    // Sıfırlanmazsa eski videonun progress değeri delta hesabını bozar
+    _lastPersistedProgress = 0.0;
+    _lastProgressPersistAt = null;
 
     // Pahalı işlemleri debounce ile çalıştır
     _scrollDebounce?.cancel();
@@ -224,6 +242,15 @@ class _ShortViewState extends State<ShortView> {
       }
       _setupVideoEndListener(vc);
 
+      // A10: Telemetry session başlat
+      if (page < _cachedShorts.length) {
+        final post = _cachedShorts[page];
+        VideoTelemetryService.instance.startSession(post.docID, post.playbackUrl);
+        _telemetryFirstFrame = false;
+        _telemetryAdapter = vc;
+        vc.addListener(_telemetryListener);
+      }
+
       // Cache state machine: playing olarak işaretle
       if (page < _cachedShorts.length) {
         try {
@@ -245,6 +272,34 @@ class _ShortViewState extends State<ShortView> {
   void _setupVideoEndListener(HLSVideoAdapter vc) {
     vc.removeListener(_videoEndListener);
     vc.addListener(_videoEndListener);
+  }
+
+  /// A10: HLSVideoAdapter değişimlerini VideoTelemetryService'e iletir.
+  void _telemetryListener() {
+    final vc = _telemetryAdapter;
+    if (vc == null || currentPage >= _cachedShorts.length) return;
+    final videoId = _cachedShorts[currentPage].docID;
+    final v = vc.value;
+
+    // TTFF: ilk kez playing state'e geçiş
+    if (!_telemetryFirstFrame && v.isPlaying) {
+      _telemetryFirstFrame = true;
+      VideoTelemetryService.instance.onFirstFrame(videoId);
+    }
+
+    // Buffering durumu
+    if (v.isBuffering) {
+      VideoTelemetryService.instance.onBufferingStart(videoId);
+    } else if (!v.isBuffering && v.isPlaying) {
+      VideoTelemetryService.instance.onBufferingEnd(videoId);
+    }
+
+    // Position update
+    final pos = v.position.inMilliseconds / 1000.0;
+    final dur = v.duration.inMilliseconds / 1000.0;
+    if (dur > 0) {
+      VideoTelemetryService.instance.onPositionUpdate(videoId, pos, dur);
+    }
   }
 
   void _videoEndListener() {
@@ -338,6 +393,12 @@ class _ShortViewState extends State<ShortView> {
     if (vc != null) {
       vc.pause();
       vc.removeListener(_videoEndListener);
+      vc.removeListener(_telemetryListener);
+    }
+
+    // A10: Açık kalan telemetry session'ı bitir
+    if (currentPage < _cachedShorts.length) {
+      VideoTelemetryService.instance.endSession(_cachedShorts[currentPage].docID);
     }
 
     super.dispose();

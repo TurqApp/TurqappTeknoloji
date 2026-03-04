@@ -382,6 +382,11 @@ ${brand.isNotEmpty ? '$brand\n' : ''}${location.isNotEmpty ? '$location\n\n' : '
           'jobTitle': title,
           'companyName': job.brand,
           'companyLogo': job.logo,
+          'applicantName': applicantName,
+          'applicantNickname':
+              (currentUserData['nickname'] ?? '').toString().trim(),
+          'applicantPfImage': applicantImage,
+          'userID': uid,
         });
 
         batch.set(userRef, {
@@ -391,6 +396,10 @@ ${brand.isNotEmpty ? '$brand\n' : ''}${location.isNotEmpty ? '$location\n\n' : '
           'companyLogo': job.logo,
           'status': 'pending',
           'userID': uid,
+          'applicantName': applicantName,
+          'applicantNickname':
+              (currentUserData['nickname'] ?? '').toString().trim(),
+          'applicantPfImage': applicantImage,
         });
 
         batch.update(jobDocRef, {

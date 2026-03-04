@@ -89,6 +89,10 @@ class PostsModel {
   String thumbnail;
   num timeStamp;
   String userID;
+  // B10: Denormalize author alanları — her post için ayrı users/{uid} okuması önlenir.
+  // Cloud Function (hybridFeed.ts / user profile update trigger) bu alanları senkronize tutar.
+  String authorNickname;
+  String authorAvatarUrl;
   String video;
   String hlsMasterUrl;
   String hlsStatus;
@@ -127,6 +131,8 @@ class PostsModel {
     required this.thumbnail,
     required this.timeStamp,
     required this.userID,
+    this.authorNickname = '',
+    this.authorAvatarUrl = '',
     required this.video,
     this.hlsMasterUrl = '',
     this.hlsStatus = 'none',
@@ -252,6 +258,8 @@ class PostsModel {
       thumbnail: data['thumbnail'] ?? '',
       timeStamp: parseNum(data['timeStamp']),
       userID: data['userID'] ?? '',
+      authorNickname: data['authorNickname'] ?? '',
+      authorAvatarUrl: data['authorAvatarUrl'] ?? '',
       video: data['video'] ?? '',
       hlsMasterUrl: data['hlsMasterUrl'] ?? '',
       hlsStatus: data['hlsStatus'] ?? 'none',
@@ -292,6 +300,8 @@ class PostsModel {
       'thumbnail': thumbnail,
       'timeStamp': timeStamp,
       'userID': userID,
+      if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
+      if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
       'video': video,
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': hlsStatus,

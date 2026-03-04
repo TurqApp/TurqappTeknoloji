@@ -66,6 +66,196 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Feed & Social skeletons
+// ─────────────────────────────────────────────────────────────────
+
+/// Tek bir feed post için shimmer skeleton.
+/// AgendaController isLoading durumunda kullan.
+class FeedPostSkeleton extends StatelessWidget {
+  const FeedPostSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar + isim satırı
+          Row(
+            children: const [
+              SkeletonLoader(width: 40, height: 40, borderRadius: 20),
+              SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonLoader(width: 120, height: 13),
+                  SizedBox(height: 6),
+                  SkeletonLoader(width: 80, height: 11),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Medya alanı (kare)
+          const SkeletonLoader(height: 300, borderRadius: 12),
+          const SizedBox(height: 10),
+          // Aksiyon ikonları satırı
+          Row(
+            children: const [
+              SkeletonLoader(width: 24, height: 24, borderRadius: 4),
+              SizedBox(width: 12),
+              SkeletonLoader(width: 24, height: 24, borderRadius: 4),
+              SizedBox(width: 12),
+              SkeletonLoader(width: 24, height: 24, borderRadius: 4),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Beğeni sayısı
+          const SkeletonLoader(width: 80, height: 12),
+          const SizedBox(height: 6),
+          // Açıklama
+          const SkeletonLoader(height: 12),
+          const SizedBox(height: 4),
+          const SkeletonLoader(width: 200, height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+/// 3'lü feed post skeleton listesi (ilk yüklemede göster).
+class FeedSkeleton extends StatelessWidget {
+  final int itemCount;
+  const FeedSkeleton({super.key, this.itemCount = 3});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: itemCount,
+      itemBuilder: (_, __) => const FeedPostSkeleton(),
+    );
+  }
+}
+
+/// Short video (tam ekran) için minimal skeleton.
+/// Black background üzerinde shimmer bar'lar.
+class ShortVideoSkeleton extends StatelessWidget {
+  const ShortVideoSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: Stack(
+        children: [
+          // Video alanı
+          const Center(
+            child: SkeletonLoader(
+              width: double.infinity,
+              height: double.infinity,
+              borderRadius: 0,
+            ),
+          ),
+          // Alt bilgi alanı
+          Positioned(
+            bottom: 80,
+            left: 16,
+            right: 60,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Row(
+                  children: [
+                    SkeletonLoader(width: 36, height: 36, borderRadius: 18),
+                    SizedBox(width: 8),
+                    SkeletonLoader(width: 100, height: 14),
+                  ],
+                ),
+                SizedBox(height: 10),
+                SkeletonLoader(height: 12),
+                SizedBox(height: 6),
+                SkeletonLoader(width: 180, height: 12),
+              ],
+            ),
+          ),
+          // Sağ aksiyon bar
+          Positioned(
+            right: 12,
+            bottom: 120,
+            child: Column(
+              children: List.generate(
+                4,
+                (_) => const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: SkeletonLoader(width: 32, height: 32, borderRadius: 16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Profil post grid için skeleton (3 sütun).
+class ProfileGridSkeleton extends StatelessWidget {
+  final int itemCount;
+  const ProfileGridSkeleton({super.key, this.itemCount = 9});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 1.5,
+        mainAxisSpacing: 1.5,
+      ),
+      itemCount: itemCount,
+      itemBuilder: (_, __) =>
+          const SkeletonLoader(height: double.infinity, borderRadius: 0),
+    );
+  }
+}
+
+/// Story row skeleton (yatay scroll).
+class StoryRowSkeleton extends StatelessWidget {
+  final int itemCount;
+  const StoryRowSkeleton({super.key, this.itemCount = 6});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (_, __) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(
+            children: const [
+              SkeletonLoader(width: 56, height: 56, borderRadius: 28),
+              SizedBox(height: 6),
+              SkeletonLoader(width: 48, height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Education skeletons (orijinal)
+// ─────────────────────────────────────────────────────────────────
+
 /// Grid skeleton for education modules (2-column grid of cards).
 class EducationGridSkeleton extends StatelessWidget {
   final int itemCount;

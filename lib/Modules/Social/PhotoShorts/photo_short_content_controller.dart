@@ -1069,21 +1069,31 @@ class PhotoShortsContentController extends GetxController {
       }
 
       await commitBatch();
-      await FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc('admin')
-          .collection('pushReports')
-          .add({
-        'senderUid': currentUid,
-        'title': title,
-        'body': body,
-        'type': 'posts',
-        if (imageUrl != null) 'imageUrl': imageUrl,
-        'targetCount': written,
-        'postID': model.docID,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      try {
+        await FirebaseFirestore.instance
+            .collection('adminConfig')
+            .doc('admin')
+            .collection('pushReports')
+            .add({
+          'senderUid': currentUid,
+          'title': title,
+          'body': body,
+          'type': 'posts',
+          if (imageUrl != null) 'imageUrl': imageUrl,
+          'targetCount': written,
+          'postID': model.docID,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } on FirebaseException catch (e) {
+        if (e.code != 'permission-denied') rethrow;
+      }
       AppSnackbar('Push', '$written kullaniciya push kuyruga alindi');
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        AppSnackbar('Push', 'Push kuyruga alindi');
+        return;
+      }
+      AppSnackbar('Hata', 'Push gonderilemedi: $e');
     } catch (e) {
       AppSnackbar('Hata', 'Push gonderilemedi: $e');
     }

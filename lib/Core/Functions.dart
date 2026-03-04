@@ -50,7 +50,7 @@ String timeAgoMetin(num timestamp) {
   ];
 
   if (difference.inSeconds < 60) {
-    return "Az";
+    return "1dk";
   } else if (difference.inMinutes < 60) {
     return "${difference.inMinutes}dk";
   } else if (difference.inHours < 24) {

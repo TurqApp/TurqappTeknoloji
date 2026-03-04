@@ -118,7 +118,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     const androidSettings =
-        AndroidInitializationSettings('@drawable/ic_notification_small');
+        AndroidInitializationSettings('@drawable/ic_notification');
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       settings: const InitializationSettings(
@@ -134,15 +134,17 @@ class NotificationService {
     if (!_shouldUseLocalNotifications()) return;
     final notif = msg.notification;
     final type = (msg.data['type'] ?? '').toString();
+    final title = (notif?.title ?? msg.data['title'] ?? 'TurqApp').toString();
+    final body = (notif?.body ?? msg.data['body'] ?? '').toString();
     if (!NotificationPreferencesService.isTypeEnabled(type,
         await NotificationPreferencesService.getCurrentUserPreferences())) {
       return;
     }
-    if (notif != null) {
+    if (title.isNotEmpty || body.isNotEmpty) {
       await _localNotifications.show(
-        id: notif.hashCode,
-        title: notif.title,
-        body: notif.body,
+        id: Object.hash(title, body, type),
+        title: title,
+        body: body,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             'high_importance_channel',
@@ -150,7 +152,12 @@ class NotificationService {
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,
-            icon: '@drawable/ic_notification_small',
+            icon: '@drawable/ic_notification',
+            largeIcon: DrawableResourceAndroidBitmap(
+              'ic_notification_badge',
+            ),
+            color: const Color(0xFF4F718E),
+            colorized: true,
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,

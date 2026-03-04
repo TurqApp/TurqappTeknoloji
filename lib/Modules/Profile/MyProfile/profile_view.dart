@@ -48,6 +48,7 @@ import '../../Explore/explore_controller.dart';
 import '../../Short/short_controller.dart';
 import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
+import '../../Story/StoryRow/story_user_model.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
 
 class ProfileView extends StatefulWidget {
@@ -64,7 +65,12 @@ class _ProfileViewState extends State<ProfileView> {
   );
   final FirebaseMyStore user = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
-  final storyOwnerUsers = Get.find<StoryRowController>().users;
+  List<StoryUserModel> get storyOwnerUsers {
+    if (!Get.isRegistered<StoryRowController>()) {
+      return const <StoryUserModel>[];
+    }
+    return Get.find<StoryRowController>().users;
+  }
 
   @override
   void initState() {
@@ -732,9 +738,11 @@ class _ProfileViewState extends State<ProfileView> {
     final index5 = exploreController.exploreVideos.indexOf(model);
     if (index5 >= 0) exploreController.exploreVideos[index5].arsiv = true;
 
-    final store8 = Get.find<AgendaController>();
-    final index8 = store8.agendaList.indexOf(model);
-    if (index8 >= 0) store8.agendaList[index8].arsiv = true;
+    if (Get.isRegistered<AgendaController>()) {
+      final store8 = Get.find<AgendaController>();
+      final index8 = store8.agendaList.indexOf(model);
+      if (index8 >= 0) store8.agendaList[index8].arsiv = true;
+    }
 
     final store9 = Get.find<ProfileController>();
     final index9 = store9.allPosts.indexOf(model);

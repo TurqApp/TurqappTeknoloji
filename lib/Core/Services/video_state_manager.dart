@@ -18,6 +18,8 @@ class VideoStateManager extends GetxController {
   final Map<String, VideoState> _videoStates = {};
 
   // TÜM video controller'ları track et (PlaybackHandle abstract)
+  // Max 30 entry — daha eski kayıtlar LRU mantığıyla silinir (bellek sızıntısı önleme)
+  static const int _maxTrackedControllers = 30;
   final Map<String, PlaybackHandle> _allVideoControllers = {};
 
   // GLOBAL VIDEO CONTROL: Şu anda çalan video
@@ -113,8 +115,20 @@ class VideoStateManager extends GetxController {
   }
 
   /// Video handle kaydet (PlaybackHandle)
+  /// Max 30 entry limiti: aşıldığında en eski (ve şu an oynamayan) kaydı sil
   void registerPlaybackHandle(String docID, PlaybackHandle handle) {
     _allVideoControllers[docID] = handle;
+
+    if (_allVideoControllers.length > _maxTrackedControllers) {
+      // Şu an oynamayan en eski kaydı bul ve sil
+      final toRemove = _allVideoControllers.entries
+          .where((e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID)
+          .map((e) => e.key)
+          .firstOrNull;
+      if (toRemove != null) {
+        _allVideoControllers.remove(toRemove);
+      }
+    }
   }
 
   /// Legacy: VideoPlayerController kaydet

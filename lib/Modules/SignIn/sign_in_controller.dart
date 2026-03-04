@@ -469,7 +469,6 @@ class SignInController extends GetxController
       await CurrentUserService.instance.sendVerificationEmailIfNeeded();
       await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
         actionName: "mesajlaşma ve içerik paylaşımı",
-        force: true,
       );
 
       Get.off(() => NavBarView());

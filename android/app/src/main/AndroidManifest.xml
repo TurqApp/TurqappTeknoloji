@@ -45,7 +45,10 @@
             android:value="ca-app-pub-4558422035199571~8657893604" /> <!-- AdMob uygulama kimliği -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notification_small" />
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_icon_bg" />
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"

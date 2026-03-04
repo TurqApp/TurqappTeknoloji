@@ -365,7 +365,7 @@ class EducationView extends StatelessWidget {
                             controller.isSearchMode.value = true;
                           },
                           onChanged: (v) {
-                            controller.searchText.value = v;
+                            controller.updateSearchText(v);
                           },
                         ),
                       ),
@@ -388,8 +388,6 @@ class EducationView extends StatelessWidget {
 
                 // ——— Yatay Kaydırılabilir Tab ———
                 Obx(() {
-                  final query =
-                      controller.searchText.value.trim().toLowerCase();
                   return SizedBox(
                     height: 45,
                     child: SingleChildScrollView(
@@ -399,12 +397,6 @@ class EducationView extends StatelessWidget {
                       child: Row(
                         children:
                             List.generate(controller.titles.length, (index) {
-                          if (query.isNotEmpty &&
-                              !controller.titles[index]
-                                  .toLowerCase()
-                                  .contains(query)) {
-                            return const SizedBox.shrink();
-                          }
                           final isSelected =
                               controller.selectedTab.value == index;
                           return GestureDetector(

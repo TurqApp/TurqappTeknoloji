@@ -283,7 +283,7 @@ class _ClassicContentState extends State<ClassicContent>
   }) {
     const baseStyle = TextStyle(
       color: Colors.black,
-      fontSize: 16,
+      fontSize: 15,
       fontFamily: "Montserrat",
       height: 1.25,
     );
@@ -324,7 +324,7 @@ class _ClassicContentState extends State<ClassicContent>
                   text: suffix,
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontFamily: "MontserratMedium",
                     height: 1.25,
                   ),
@@ -357,7 +357,7 @@ class _ClassicContentState extends State<ClassicContent>
                   text: suffix,
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontFamily: "MontserratMedium",
                     height: 1.25,
                   ),
@@ -1113,7 +1113,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontFamily: "MontserratBold",
                                 ),
                               ),
@@ -1128,7 +1128,7 @@ class _ClassicContentState extends State<ClassicContent>
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "Montserrat",
                               ),
                             ),
@@ -1139,7 +1139,7 @@ class _ClassicContentState extends State<ClassicContent>
                               displayTime,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),
@@ -1284,7 +1284,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontFamily: "MontserratBold",
                                 ),
                               ),
@@ -1299,7 +1299,7 @@ class _ClassicContentState extends State<ClassicContent>
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.grey,
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "Montserrat",
                               ),
                             ),
@@ -1310,7 +1310,7 @@ class _ClassicContentState extends State<ClassicContent>
                               displayTime,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 16,
+                                fontSize: 15,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),

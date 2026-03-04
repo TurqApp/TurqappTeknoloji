@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
@@ -57,6 +58,14 @@ class ShortController extends GetxController {
   // Takip edilenler takibi
   final Set<String> _followingIDs = {};
   StreamSubscription? _followingSub;
+
+  /// Kullanıcı gizlilik cache'i — her sayfa yüklemesinde aynı UID'leri tekrar sorgulamayı önler.
+  /// Kapasite: 500 kullanıcı, TTL: 10 dakika (gizlilik ayarı sık değişmez).
+  final _privacyCache = LRUCache<String, bool>(
+    capacity: 500,
+    ttl: const Duration(minutes: 10),
+  );
+
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
 
@@ -503,26 +512,55 @@ class ShortController extends GetxController {
 
   // Eski shuffle sistemi tamamen kaldırıldı
 
-  /// Kümelenmiş whereIn ile kullanıcı gizliliklerini çek
+  /// Kullanıcı gizliliklerini LRU cache üzerinden çek.
+  /// Cache'te bulunanlar Firestore'a gitmez; sadece eksikler toplu sorgulanır.
   Future<Map<String, bool>> _fetchUsersPrivacy(List<String> uids) async {
-    final Map<String, bool> res = {};
-    const chunk = 10; // Firestore whereIn max 10
-    for (int i = 0; i < uids.length; i += chunk) {
-      final part = uids.sublist(i, (i + chunk).clamp(0, uids.length));
-      final qs = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: part)
-          .get();
-      for (final d in qs.docs) {
-        final data = d.data();
-        res[d.id] = (data['gizliHesap'] ?? false) == true;
-      }
-      // whereIn ile bulunamayan kullanıcılar default public varsayılır
-      for (final id in part) {
-        res.putIfAbsent(id, () => false);
+    if (uids.isEmpty) return {};
+
+    final result = <String, bool>{};
+
+    // 1. Cache hit'leri topla
+    final missing = <String>[];
+    for (final uid in uids) {
+      final cached = _privacyCache.get(uid);
+      if (cached != null) {
+        result[uid] = cached;
+      } else {
+        missing.add(uid);
       }
     }
-    return res;
+
+    if (missing.isEmpty) return result;
+
+    // 2. Sadece cache'te olmayan UID'leri Firestore'dan çek (whereIn max 10)
+    const chunk = 10;
+    for (int i = 0; i < missing.length; i += chunk) {
+      final part = missing.sublist(i, (i + chunk).clamp(0, missing.length));
+      try {
+        final qs = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: part)
+            .get();
+
+        for (final d in qs.docs) {
+          final isPrivate = (d.data()['gizliHesap'] ?? false) == true;
+          result[d.id] = isPrivate;
+          _privacyCache.put(d.id, isPrivate);
+        }
+      } catch (e) {
+        _log('_fetchUsersPrivacy chunk error: $e');
+      }
+
+      // Firestore'da bulunmayan UID'ler → public varsay, cache'e ekle
+      for (final uid in part) {
+        result.putIfAbsent(uid, () => false);
+        if (!_privacyCache.containsKey(uid)) {
+          _privacyCache.put(uid, false);
+        }
+      }
+    }
+
+    return result;
   }
 
   /// Üç katmanlı cache güncellemesi:

@@ -72,10 +72,23 @@ class ApplicationReview extends StatelessWidget {
       future: controller.getApplicantProfile(app.userID),
       builder: (context, profileSnap) {
         final profile = profileSnap.data;
-        final name = profile != null
-            ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim()
-            : 'Yükleniyor...';
-        final pfImage = profile?['pfImage'] as String? ?? '';
+        final fetchedName = profile != null
+            ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
+                .trim()
+            : '';
+        final fetchedNickname = (profile?['nickname'] as String? ?? '').trim();
+        final name = fetchedName.isNotEmpty
+            ? fetchedName
+            : app.applicantName.isNotEmpty
+                ? app.applicantName
+                : app.applicantNickname.isNotEmpty
+                    ? app.applicantNickname
+                    : fetchedNickname.isNotEmpty
+                        ? fetchedNickname
+                        : 'Bilinmeyen Kullanıcı';
+        final pfImage = (profile?['pfImage'] as String? ?? '').trim().isNotEmpty
+            ? (profile?['pfImage'] as String? ?? '').trim()
+            : app.applicantPfImage;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -247,8 +260,7 @@ class ApplicationReview extends StatelessWidget {
     );
   }
 
-  void _showCvPreview(
-      String userID, String name, BuildContext context) async {
+  void _showCvPreview(String userID, String name, BuildContext context) async {
     final cv = await controller.getApplicantCV(userID);
     if (cv == null) {
       Get.snackbar("CV Bulunamadı", "Bu kullanıcının CV'si mevcut değil",

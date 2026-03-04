@@ -11,6 +11,7 @@ class EducationController extends GetxController {
   final searchFocus = FocusNode();
   final isSearchMode = false.obs;
   final searchText = ''.obs;
+  final Map<int, String> tabSearchQueries = <int, String>{};
   final isKeyboardOpen = false.obs;
   final selectedTab = 0.obs;
   final pageController = PageController();
@@ -31,6 +32,9 @@ class EducationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    for (var i = 0; i < titles.length; i++) {
+      tabSearchQueries[i] = '';
+    }
     searchFocus.addListener(() {
       isKeyboardOpen.value = searchFocus.hasFocus;
       if (searchFocus.hasFocus) {
@@ -130,26 +134,20 @@ class EducationController extends GetxController {
   }
 
   void onTabTap(int index) {
-    // Önceki sekmenin aramasını temizle
-    _clearModuleSearch(selectedTab.value);
     final isForward = index > _previousTabIndex;
     _previousTabIndex = index;
     selectedTab.value = index;
     pageController.jumpToPage(index);
     _syncTabBarPosition(index, isForward: isForward);
-    // Yeni sekmeye mevcut aramayı uygula
-    _forwardSearch();
+    _restoreSearchForTab(index);
   }
 
   void onPageChanged(int index) {
-    // Önceki sekmenin aramasını temizle
-    _clearModuleSearch(selectedTab.value);
     final isForward = index > _previousTabIndex;
     _previousTabIndex = index;
     selectedTab.value = index;
     _syncTabBarPosition(index, isForward: isForward);
-    // Yeni sekmeye mevcut aramayı uygula
-    _forwardSearch();
+    _restoreSearchForTab(index);
   }
 
   bool get canExitToFeed => selectedTab.value == 0;
@@ -164,12 +162,31 @@ class EducationController extends GetxController {
 
   void clearSearch(BuildContext context) {
     searchFocus.unfocus();
+    tabSearchQueries[selectedTab.value] = '';
     searchController.clear();
     searchText.value = '';
     isKeyboardOpen.value = false;
     isSearchMode.value = false;
     _clearModuleSearch(selectedTab.value);
     FocusScope.of(context).unfocus();
+  }
+
+  void updateSearchText(String value) {
+    tabSearchQueries[selectedTab.value] = value;
+    searchText.value = value;
+  }
+
+  void _restoreSearchForTab(int tabIndex) {
+    final query = tabSearchQueries[tabIndex] ?? '';
+    searchController.value = TextEditingValue(
+      text: query,
+      selection: TextSelection.collapsed(offset: query.length),
+    );
+    if (searchText.value != query) {
+      searchText.value = query;
+    } else {
+      _forwardSearch();
+    }
   }
 
   /// Arama metnini aktif sekmenin controller'ına ilet

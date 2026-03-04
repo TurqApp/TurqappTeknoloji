@@ -89,6 +89,8 @@ class CurrentUserService extends GetxController {
 
   static const String _cacheKey = 'cached_current_user';
   static const String _cacheTimestampKey = 'cached_current_user_timestamp';
+  static const String _emailPromptTimestampKeyPrefix =
+      'email_verify_prompt_last_shown';
   static const Duration _cacheExpiration = Duration(days: 7);
 
   bool _isInitialized = false;
@@ -450,6 +452,32 @@ class CurrentUserService extends GetxController {
 
   bool get isEmailVerified => emailVerifiedRx.value;
 
+  String? _emailPromptTimestampKey() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return null;
+    return '$_emailPromptTimestampKeyPrefix:$uid';
+  }
+
+  Future<void> _loadLastEmailPromptAt() async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final key = _emailPromptTimestampKey();
+    if (key == null) {
+      _lastEmailPromptAt = null;
+      return;
+    }
+    final raw = _prefs?.getInt(key);
+    _lastEmailPromptAt =
+        raw == null ? null : DateTime.fromMillisecondsSinceEpoch(raw);
+  }
+
+  Future<void> _saveLastEmailPromptAt(DateTime value) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final key = _emailPromptTimestampKey();
+    if (key == null) return;
+    await _prefs?.setInt(key, value.millisecondsSinceEpoch);
+    _lastEmailPromptAt = value;
+  }
+
   Future<void> _loadEmailVerifyConfig() async {
     try {
       final snap = await FirebaseFirestore.instance
@@ -549,6 +577,7 @@ class CurrentUserService extends GetxController {
   }) async {
     await refreshEmailVerificationStatus(reloadAuthUser: true);
     if (isEmailVerified) return;
+    await _loadLastEmailPromptAt();
     final now = DateTime.now();
     if (!force &&
         _lastEmailPromptAt != null &&
@@ -556,7 +585,7 @@ class CurrentUserService extends GetxController {
       return;
     }
     if (Get.isDialogOpen == true) return;
-    _lastEmailPromptAt = now;
+    await _saveLastEmailPromptAt(now);
 
     await Get.dialog(
       AlertDialog(

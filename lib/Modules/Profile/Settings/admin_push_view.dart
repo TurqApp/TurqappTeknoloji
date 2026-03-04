@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 
 class AdminPushView extends StatefulWidget {
@@ -42,6 +43,8 @@ class _AdminPushViewState extends State<AdminPushView> {
   String _selectedType = "posts";
   String _selectedMeslek = "";
   bool _sending = false;
+  bool _checkingAccess = true;
+  bool _canManagePush = false;
   String _lastReport = "";
 
   CollectionReference<Map<String, dynamic>> _reportsRef() {
@@ -49,6 +52,21 @@ class _AdminPushViewState extends State<AdminPushView> {
         .collection("adminConfig")
         .doc("admin")
         .collection("pushReports");
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminAccess();
+  }
+
+  Future<void> _checkAdminAccess() async {
+    final allowed = await AdminAccessService.canManageSliders();
+    if (!mounted) return;
+    setState(() {
+      _canManagePush = allowed;
+      _checkingAccess = false;
+    });
   }
 
   @override
@@ -191,6 +209,14 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   Future<void> _sendPush() async {
+    if (!_canManagePush) {
+      Get.snackbar(
+        "Yetki Yok",
+        "Push gondermek icin admin hesabi gerekli.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     final uid = _uidController.text.trim();
     final meslek = _selectedMeslek.trim();
@@ -282,22 +308,26 @@ class _AdminPushViewState extends State<AdminPushView> {
             "Cinsiyet: ${gender.isEmpty ? '-' : gender}\n"
             "Yaş: ${minAge?.toString() ?? '-'} - ${maxAge?.toString() ?? '-'}";
       });
-      await _reportsRef().add({
-        "senderUid": senderUid,
-        "title": title,
-        "body": body,
-        "type": type,
-        "targetCount": targetUids.length,
-        "filters": {
-          "uid": uid,
-          "meslek": meslek,
-          "konum": konum,
-          "cinsiyet": gender,
-          "minAge": minAge,
-          "maxAge": maxAge,
-        },
-        "createdAt": FieldValue.serverTimestamp(),
-      });
+      try {
+        await _reportsRef().add({
+          "senderUid": senderUid,
+          "title": title,
+          "body": body,
+          "type": type,
+          "targetCount": targetUids.length,
+          "filters": {
+            "uid": uid,
+            "meslek": meslek,
+            "konum": konum,
+            "cinsiyet": gender,
+            "minAge": minAge,
+            "maxAge": maxAge,
+          },
+          "createdAt": FieldValue.serverTimestamp(),
+        });
+      } on FirebaseException catch (e) {
+        if (e.code != 'permission-denied') rethrow;
+      }
       Get.snackbar(
         "Gönderildi",
         "${targetUids.length} kullanıcı için bildirim kuyruğa alındı.",
@@ -334,10 +364,47 @@ class _AdminPushViewState extends State<AdminPushView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingAccess) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_canManagePush) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "Push Gonder",
+            style: TextStyle(
+              color: Colors.black,
+              fontFamily: "MontserratSemiBold",
+              fontSize: 20,
+            ),
+          ),
+        ),
+        body: const SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                "Bu ekran sadece admin yetkisine sahip hesaplarda kullanilabilir.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: "MontserratMedium",
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Push Gönder",
+          "Push Gonder",
           style: TextStyle(
             color: Colors.black,
             fontFamily: "MontserratSemiBold",

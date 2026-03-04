@@ -448,7 +448,7 @@ String timeAgoMesaj(num timestamp) {
   Duration difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "Az önce";
+    return "1dk önce";
   } else if (difference.inMinutes < 60) {
     return "${difference.inMinutes}dk önce";
   } else if (difference.inHours < 24) {
@@ -474,7 +474,7 @@ String timeAgoMetin(num? timestamp) {
   Duration difference = now.difference(dateTime);
 
   if (difference.inSeconds < 60) {
-    return "Az önce";
+    return "1dk önce";
   } else if (difference.inMinutes < 60) {
     return "${difference.inMinutes}dk önce";
   } else if (difference.inHours < 24) {

@@ -81,9 +81,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         cleanup()
 
         // Create AVURLAsset for HLS
+        // A7: AVURLAssetPreferPreciseDurationAndTimingKey kaldırıldı — HLS'de tüm içeriği
+        // taratıp süreyi kesin hesaplar, TTFF'i ciddi yavaşlatır. HLS için gereksiz.
         let asset = AVURLAsset(url: videoURL, options: [
-            "AVURLAssetHTTPHeaderFieldsKey": [:],
-            AVURLAssetPreferPreciseDurationAndTimingKey: true
+            "AVURLAssetHTTPHeaderFieldsKey": [:]
         ])
 
         // Create player item
@@ -91,8 +92,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
-            // TTFF için düşük buffer, segment cache zaten lokal proxy'den gelir.
-            playerItem?.preferredForwardBufferDuration = 3.0
+            // A7: 3.0s → 10.0s — kararlı oynatma için yeterli segment önceden indirilir.
+            // Lokal proxy cache zaten hızlı segment sağlar, 10s gerçek network maliyeti taşımaz.
+            playerItem?.preferredForwardBufferDuration = 10.0
         }
 
         // Create player
