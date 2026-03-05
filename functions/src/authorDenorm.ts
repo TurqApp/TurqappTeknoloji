@@ -74,12 +74,12 @@ export const syncAuthorFieldsOnProfileUpdate = functions
     const newAvatarUrl = String(after?.pfImage || after?.photoURL || "");
 
     try {
-      // Son 500 postu güncelle (daha eskisi düşük öncelikli)
+      // Son 200 postu güncelle (maliyet/latency kontrolü için)
       const postsSnap = await db
         .collection("Posts")
         .where("userID", "==", uid)
         .orderBy("timeStamp", "desc")
-        .limit(500)
+        .limit(200)
         .get();
 
       if (postsSnap.empty) return;

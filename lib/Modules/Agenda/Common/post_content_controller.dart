@@ -1149,11 +1149,10 @@ class PostContentController extends GetxController {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     try {
-      final usersSnap =
-          await FirebaseFirestore.instance.collection('users').get();
       var written = 0;
       var opCount = 0;
       var batch = FirebaseFirestore.instance.batch();
+      final pushedUserIds = <String>{};
 
       Future<void> commitBatch() async {
         if (opCount == 0) return;
@@ -1162,10 +1161,13 @@ class PostContentController extends GetxController {
         opCount = 0;
       }
 
-      for (final userDoc in usersSnap.docs) {
-        if (userDoc.id == currentUid || !_shouldSendPushToUser(userDoc)) {
-          continue;
+      void enqueueNotification(DocumentSnapshot<Map<String, dynamic>> userDoc) {
+        if (userDoc.id == currentUid ||
+            pushedUserIds.contains(userDoc.id) ||
+            !_shouldSendPushToUser(userDoc)) {
+          return;
         }
+        pushedUserIds.add(userDoc.id);
         final notificationRef =
             userDoc.reference.collection('notifications').doc();
         batch.set(notificationRef, {
@@ -1182,10 +1184,44 @@ class PostContentController extends GetxController {
         });
         written++;
         opCount++;
+      }
 
-        if (opCount >= 400) {
-          await commitBatch();
+      for (final forcedUid in _activePushTargetUserIds) {
+        if (forcedUid == currentUid) continue;
+        final forcedDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(forcedUid)
+            .get();
+        if (forcedDoc.exists) {
+          enqueueNotification(forcedDoc);
+          if (opCount >= 400) await commitBatch();
         }
+      }
+
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('users')
+          .where('createdDate', isGreaterThanOrEqualTo: _pushTargetCutoffMs)
+          .orderBy('createdDate')
+          .limit(350);
+
+      while (true) {
+        final usersSnap = await query.get();
+        if (usersSnap.docs.isEmpty) break;
+
+        for (final userDoc in usersSnap.docs) {
+          enqueueNotification(userDoc);
+          if (opCount >= 400) {
+            await commitBatch();
+          }
+        }
+
+        if (usersSnap.docs.length < 350) break;
+        query = FirebaseFirestore.instance
+            .collection('users')
+            .where('createdDate', isGreaterThanOrEqualTo: _pushTargetCutoffMs)
+            .orderBy('createdDate')
+            .startAfterDocument(usersSnap.docs.last)
+            .limit(350);
       }
 
       await commitBatch();

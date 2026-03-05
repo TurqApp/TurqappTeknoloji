@@ -3,7 +3,7 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 
 const BATCH_SIZE = 500;
-const MAX_POSTS_PER_EXECUTION = 10000;
+const MAX_POSTS_PER_EXECUTION = 2000;
 const REGION = "europe-west3";
 
 if (admin.apps.length === 0) {

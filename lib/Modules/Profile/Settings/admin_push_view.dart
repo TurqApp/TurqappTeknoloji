@@ -171,13 +171,15 @@ class _AdminPushViewState extends State<AdminPushView> {
       return _isEligiblePushTarget(uid, data) ? [uid] : <String>[];
     }
 
-    final users = await FirebaseFirestore.instance.collection("users").get();
     final meslekLc = meslek.toLowerCase();
     final konumLc = konum.toLowerCase();
     final genderLc = gender.toLowerCase();
     final targets = <String>[];
-    for (final doc in users.docs) {
-      final data = doc.data();
+    final seen = <String>{};
+
+    bool matchesFilters(String userId, Map<String, dynamic> data) {
+      if (seen.contains(userId)) return false;
+      if (!_isEligiblePushTarget(userId, data)) return false;
       final userMeslek =
           (data["meslekKategori"] ?? "").toString().trim().toLowerCase();
       final userGender =
@@ -189,15 +191,50 @@ class _AdminPushViewState extends State<AdminPushView> {
       final genderOk = genderLc.isEmpty || userGender == genderLc;
       final minAgeOk = minAge == null || (age != null && age >= minAge);
       final maxAgeOk = maxAge == null || (age != null && age <= maxAge);
-      if (_isEligiblePushTarget(doc.id, data) &&
-          meslekOk &&
-          konumOk &&
-          genderOk &&
-          minAgeOk &&
-          maxAgeOk) {
+      final ok = meslekOk && konumOk && genderOk && minAgeOk && maxAgeOk;
+      if (ok) seen.add(userId);
+      return ok;
+    }
+
+    for (final forcedUid in _activePushTargetUserIds) {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(forcedUid)
+          .get();
+      if (!doc.exists) continue;
+      final data = doc.data() ?? const <String, dynamic>{};
+      if (matchesFilters(doc.id, data)) {
         targets.add(doc.id);
       }
     }
+
+    const pageSize = 350;
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection("users")
+        .where("createdDate", isGreaterThanOrEqualTo: _pushTargetCutoffMs)
+        .orderBy("createdDate")
+        .limit(pageSize);
+
+    while (true) {
+      final users = await query.get();
+      if (users.docs.isEmpty) break;
+
+      for (final doc in users.docs) {
+        final data = doc.data();
+        if (matchesFilters(doc.id, data)) {
+          targets.add(doc.id);
+        }
+      }
+
+      if (users.docs.length < pageSize) break;
+      query = FirebaseFirestore.instance
+          .collection("users")
+          .where("createdDate", isGreaterThanOrEqualTo: _pushTargetCutoffMs)
+          .orderBy("createdDate")
+          .startAfterDocument(users.docs.last)
+          .limit(pageSize);
+    }
+
     return targets;
   }
 
