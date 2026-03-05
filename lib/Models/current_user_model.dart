@@ -293,10 +293,18 @@ class CurrentUserModel {
 
     return CurrentUserModel(
       userID: doc.id,
-      nickname: data['nickname'] ?? '',
+      nickname:
+          (data['displayName'] ?? data['nickname'] ?? data['username'] ?? '')
+              .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: data['pfImage'] ?? '',
+      pfImage: (data['avatarUrl'] ??
+              data['pfImage'] ??
+              data['photoURL'] ??
+              data['profileImageUrl'] ??
+              data['photoUrl'] ??
+              '')
+          .toString(),
       email: data['email'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
       tc: data['tc'] ?? '',
@@ -312,9 +320,19 @@ class CurrentUserModel {
       meslekKategori: data['meslekKategori'] ?? '',
       calismaDurumu: data['calismaDurumu'] ?? '',
       medeniHal: data['medeniHal'] ?? '',
-      counterOfFollowers: data['counterOfFollowers'] ?? 0,
-      counterOfFollowings: data['counterOfFollowings'] ?? 0,
-      counterOfPosts: data['counterOfPosts'] ?? 0,
+      counterOfFollowers: _parseToInt(
+        data['followerCount'] ??
+            data['counterOfFollowers'] ??
+            data['takipciSayisi'],
+      ),
+      counterOfFollowings: _parseToInt(
+        data['followingCount'] ??
+            data['counterOfFollowings'] ??
+            data['takipEdilenSayisi'],
+      ),
+      counterOfPosts: _parseToInt(
+        data['postCount'] ?? data['counterOfPosts'] ?? data['gonderSayisi'],
+      ),
       counterOfLikes: data['counterOfLikes'] ?? 0,
       antPoint: data['antPoint'] ?? 100,
       dailyDurations: data['dailyDurations'] ?? 1,
@@ -410,9 +428,11 @@ class CurrentUserModel {
     return {
       'userID': userID,
       'nickname': nickname,
+      'displayName': nickname,
       'firstName': firstName,
       'lastName': lastName,
       'pfImage': pfImage,
+      'avatarUrl': pfImage,
       'email': email,
       'phoneNumber': phoneNumber,
       'tc': tc,
@@ -431,6 +451,9 @@ class CurrentUserModel {
       'counterOfFollowers': counterOfFollowers,
       'counterOfFollowings': counterOfFollowings,
       'counterOfPosts': counterOfPosts,
+      'followerCount': counterOfFollowers,
+      'followingCount': counterOfFollowings,
+      'postCount': counterOfPosts,
       'counterOfLikes': counterOfLikes,
       'antPoint': antPoint,
       'dailyDurations': dailyDurations,
@@ -525,10 +548,15 @@ class CurrentUserModel {
   factory CurrentUserModel.fromJson(Map<String, dynamic> json) {
     return CurrentUserModel(
       userID: json['userID'] ?? '',
-      nickname: json['nickname'] ?? '',
+      nickname: (json['displayName'] ?? json['nickname'] ?? '').toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
-      pfImage: json['pfImage'] ?? '',
+      pfImage: (json['avatarUrl'] ??
+              json['pfImage'] ??
+              json['photoURL'] ??
+              json['profileImageUrl'] ??
+              '')
+          .toString(),
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       tc: json['tc'] ?? '',
@@ -544,9 +572,19 @@ class CurrentUserModel {
       meslekKategori: json['meslekKategori'] ?? '',
       calismaDurumu: json['calismaDurumu'] ?? '',
       medeniHal: json['medeniHal'] ?? '',
-      counterOfFollowers: json['counterOfFollowers'] ?? 0,
-      counterOfFollowings: json['counterOfFollowings'] ?? 0,
-      counterOfPosts: json['counterOfPosts'] ?? 0,
+      counterOfFollowers: _parseToInt(
+        json['followerCount'] ??
+            json['counterOfFollowers'] ??
+            json['takipciSayisi'],
+      ),
+      counterOfFollowings: _parseToInt(
+        json['followingCount'] ??
+            json['counterOfFollowings'] ??
+            json['takipEdilenSayisi'],
+      ),
+      counterOfPosts: _parseToInt(
+        json['postCount'] ?? json['counterOfPosts'] ?? json['gonderSayisi'],
+      ),
       counterOfLikes: json['counterOfLikes'] ?? 0,
       antPoint: json['antPoint'] ?? 100,
       dailyDurations: json['dailyDurations'] ?? 1,
@@ -643,9 +681,9 @@ class CurrentUserModel {
     if (data is Map<String, int>) return data;
     if (data is Map) {
       return data.map((key, value) => MapEntry(
-        key.toString(),
-        (value is int) ? value : int.tryParse(value.toString()) ?? 0,
-      ));
+            key.toString(),
+            (value is int) ? value : int.tryParse(value.toString()) ?? 0,
+          ));
     }
     return {};
   }

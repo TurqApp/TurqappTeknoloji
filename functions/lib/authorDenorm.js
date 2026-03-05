@@ -38,8 +38,12 @@ exports.denormAuthorOnPostWrite = functions
         const userData = userDoc.data();
         if (!userData)
             return;
-        const authorNickname = String(userData.nickname || userData.displayName || "");
-        const authorAvatarUrl = String(userData.pfImage || userData.photoURL || "");
+        const authorNickname = String(userData.displayName || userData.username || userData.nickname || "");
+        const authorAvatarUrl = String(userData.avatarUrl ||
+            userData.pfImage ||
+            userData.photoURL ||
+            userData.profileImageUrl ||
+            "");
         if (!authorNickname && !authorAvatarUrl)
             return;
         await snap.ref.update({ authorNickname, authorAvatarUrl });
@@ -59,14 +63,21 @@ exports.syncAuthorFieldsOnProfileUpdate = functions
     const uid = context.params.uid;
     const before = change.before.data();
     const after = change.after.data();
-    const nicknameChanged = before?.nickname !== after?.nickname ||
-        before?.displayName !== after?.displayName;
-    const avatarChanged = before?.pfImage !== after?.pfImage ||
-        before?.photoURL !== after?.photoURL;
+    const nicknameChanged = before?.displayName !== after?.displayName ||
+        before?.username !== after?.username ||
+        before?.nickname !== after?.nickname;
+    const avatarChanged = before?.avatarUrl !== after?.avatarUrl ||
+        before?.pfImage !== after?.pfImage ||
+        before?.photoURL !== after?.photoURL ||
+        before?.profileImageUrl !== after?.profileImageUrl;
     if (!nicknameChanged && !avatarChanged)
         return;
-    const newNickname = String(after?.nickname || after?.displayName || "");
-    const newAvatarUrl = String(after?.pfImage || after?.photoURL || "");
+    const newNickname = String(after?.displayName || after?.username || after?.nickname || "");
+    const newAvatarUrl = String(after?.avatarUrl ||
+        after?.pfImage ||
+        after?.photoURL ||
+        after?.profileImageUrl ||
+        "");
     try {
         // Son 200 postu güncelle (maliyet/latency kontrolü için)
         const postsSnap = await db

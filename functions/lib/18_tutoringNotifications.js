@@ -24,7 +24,11 @@ exports.onTutoringApplicationCreate = functions.firestore
             return;
         // Başvuranın adını bul
         const applicantDoc = await db.collection("users").doc(applicantId).get();
-        const applicantName = String(applicantDoc.data()?.nickname || "Bir kullanıcı");
+        const applicantData = applicantDoc.data() || {};
+        const applicantName = String(applicantData.displayName ||
+            applicantData.username ||
+            applicantData.nickname ||
+            "Bir kullanıcı");
         // Öğretmene bildirim oluştur
         await db
             .collection("users")

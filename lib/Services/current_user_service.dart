@@ -98,7 +98,8 @@ class CurrentUserService extends GetxController {
 
   // ⚠️ OPTIMIZATION: Debounce cache writes to prevent duplicate saves
   Timer? _cacheSaveTimer;
-  String? _lastCachedNickname; // Track last saved user to prevent duplicates
+  String?
+      _lastCacheSignature; // Track last saved snapshot to prevent duplicates
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -295,8 +296,11 @@ class CurrentUserService extends GetxController {
   /// Save user to cache (debounced to prevent duplicate saves)
   Future<void> _saveToCache(CurrentUserModel user) async {
     try {
+      final cacheSignature =
+          '${user.userID}|${user.nickname}|${user.pfImage}|${user.counterOfFollowers}|'
+          '${user.counterOfFollowings}|${user.counterOfPosts}|${user.bio}|${user.gizliHesap}';
       // ⚠️ OPTIMIZATION: Skip if same user was just cached
-      if (_lastCachedNickname == user.nickname) {
+      if (_lastCacheSignature == cacheSignature) {
         return;
       }
 
@@ -310,7 +314,7 @@ class CurrentUserService extends GetxController {
           await _prefs?.setString(_cacheKey, json);
           await _prefs?.setInt(
               _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
-          _lastCachedNickname = user.nickname;
+          _lastCacheSignature = cacheSignature;
           print('💾 User cached: ${user.nickname}');
         } catch (e) {
           print('❌ Cache save error: $e');
@@ -410,17 +414,51 @@ class CurrentUserService extends GetxController {
     if (firebaseUser == null) return;
 
     try {
+      final normalizedFields = _normalizeUserWriteFields(fields);
       // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(firebaseUser.uid)
-          .update(fields);
+          .update(normalizedFields);
 
-      print('✅ Fields updated: ${fields.keys.join(', ')}');
+      print('✅ Fields updated: ${normalizedFields.keys.join(', ')}');
     } catch (e) {
       print('❌ Update fields error: $e');
       rethrow;
     }
+  }
+
+  Map<String, dynamic> _normalizeUserWriteFields(Map<String, dynamic> input) {
+    final out = <String, dynamic>{...input};
+
+    void syncPair(String a, String b) {
+      if (out.containsKey(a) && !out.containsKey(b)) {
+        out[b] = out[a];
+      } else if (out.containsKey(b) && !out.containsKey(a)) {
+        out[a] = out[b];
+      }
+    }
+
+    syncPair('displayName', 'nickname');
+    syncPair('avatarUrl', 'pfImage');
+    syncPair('avatarUrl', 'photoURL');
+    syncPair('avatarUrl', 'profileImageUrl');
+    syncPair('followerCount', 'counterOfFollowers');
+    syncPair('followingCount', 'counterOfFollowings');
+    syncPair('postCount', 'counterOfPosts');
+
+    if (out.containsKey('followerCount') && !out.containsKey('takipciSayisi')) {
+      out['takipciSayisi'] = out['followerCount'];
+    }
+    if (out.containsKey('followingCount') &&
+        !out.containsKey('takipEdilenSayisi')) {
+      out['takipEdilenSayisi'] = out['followingCount'];
+    }
+    if (out.containsKey('postCount') && !out.containsKey('gonderSayisi')) {
+      out['gonderSayisi'] = out['postCount'];
+    }
+
+    return out;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -632,7 +670,7 @@ class CurrentUserService extends GetxController {
       // Cancel pending cache writes
       _cacheSaveTimer?.cancel();
       _cacheSaveTimer = null;
-      _lastCachedNickname = null;
+      _lastCacheSignature = null;
 
       _currentUser = null;
       currentUserRx.value = null;

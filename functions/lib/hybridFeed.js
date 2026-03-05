@@ -52,8 +52,9 @@ exports.onPostCreate = functions
     try {
         // 1. Takipçi sayısını kontrol et
         const authorDoc = await db.collection("users").doc(authorId).get();
-        const followerCount = authorDoc.data()?.takipciSayisi ||
-            authorDoc.data()?.followerCount ||
+        const followerCount = Number(authorDoc.data()?.followerCount) ||
+            Number(authorDoc.data()?.takipciSayisi) ||
+            Number(authorDoc.data()?.counterOfFollowers) ||
             0;
         if (followerCount > FAN_OUT_THRESHOLD) {
             // Celebrity: fan-in listesine ekle, fan-out yapma
