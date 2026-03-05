@@ -711,8 +711,9 @@ class SocialProfileController extends GetxController {
 
     final data = userSnap.data()!;
     final userModel = StoryUserModel(
-      nickname: data['nickname'] ?? "",
-      pfImage: data['pfImage'] ?? "",
+      nickname:
+          data['displayName'] ?? data['username'] ?? data['nickname'] ?? "",
+      pfImage: data['avatarUrl'] ?? data['pfImage'] ?? data['photoURL'] ?? "",
       fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
       userID: userId,
       stories: stories,

@@ -130,7 +130,31 @@ class StoryTextWidget extends StatelessWidget {
         style: baseStyle.copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
-            // Find user by nickname and navigate to profile
+            // Find user by canonical username/display mapping first, then fallback.
+            try {
+              final lowered = username.toLowerCase();
+              final usernameDoc = await FirebaseFirestore.instance
+                  .collection('usernames')
+                  .doc(lowered)
+                  .get();
+              final mappedUid =
+                  (usernameDoc.data()?['uid'] ?? '').toString().trim();
+              if (mappedUid.isNotEmpty) {
+                Get.to(() => SocialProfile(userID: mappedUid));
+                return;
+              }
+            } catch (_) {}
+            try {
+              final byUsername = await FirebaseFirestore.instance
+                  .collection('users')
+                  .where('username', isEqualTo: username.toLowerCase())
+                  .limit(1)
+                  .get();
+              if (byUsername.docs.isNotEmpty) {
+                Get.to(() => SocialProfile(userID: byUsername.docs.first.id));
+                return;
+              }
+            } catch (_) {}
             try {
               final snap = await FirebaseFirestore.instance
                   .collection('users')
@@ -170,7 +194,8 @@ class StoryTextWidget extends StatelessWidget {
     }();
     final fw = element.fontWeight == 'bold' ? FontWeight.bold : FontWeight.w500;
     final fs = element.italic ? FontStyle.italic : FontStyle.normal;
-    final deco = element.underline ? TextDecoration.underline : TextDecoration.none;
+    final deco =
+        element.underline ? TextDecoration.underline : TextDecoration.none;
     return Positioned(
       left: element.position.dx,
       top: element.position.dy,
@@ -180,7 +205,8 @@ class StoryTextWidget extends StatelessWidget {
         angle: element.rotation,
         child: GestureDetector(
           onTap: () async {
-            if (element.stickerType == 'link' && element.stickerData.isNotEmpty) {
+            if (element.stickerType == 'link' &&
+                element.stickerData.isNotEmpty) {
               final uri = Uri.tryParse(element.stickerData.trim());
               if (uri != null) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -188,94 +214,94 @@ class StoryTextWidget extends StatelessWidget {
             }
           },
           child: Container(
-          width: element.width,
-          height: element.height,
-          alignment: Alignment.center,
-          decoration: element.hasTextBg
-              ? BoxDecoration(
-                  color: Color(element.textBgColor),
-                  borderRadius: BorderRadius.circular(10),
-                )
-              : null,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: element.hasOutline
-              ? Stack(
-                  children: [
-                    // Outline (stroke) layer
-                    Text(
+            width: element.width,
+            height: element.height,
+            alignment: Alignment.center,
+            decoration: element.hasTextBg
+                ? BoxDecoration(
+                    color: Color(element.textBgColor),
+                    borderRadius: BorderRadius.circular(10),
+                  )
+                : null,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: element.hasOutline
+                ? Stack(
+                    children: [
+                      // Outline (stroke) layer
+                      Text(
+                        element.content,
+                        textAlign: align,
+                        style: TextStyle(
+                          fontSize: element.fontSize,
+                          fontWeight: fw,
+                          fontStyle: fs,
+                          decoration: deco,
+                          fontFamily: element.fontFamily,
+                          height: 1.2,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2.0
+                            ..color = Color(element.outlineColor),
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
+                      ),
+                      // Fill layer
+                      Text(
+                        element.content,
+                        textAlign: align,
+                        style: TextStyle(
+                          color: Color(element.textColor),
+                          fontSize: element.fontSize,
+                          fontWeight: fw,
+                          fontStyle: fs,
+                          decoration: deco,
+                          fontFamily: element.fontFamily,
+                          height: 1.2,
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
+                      ),
+                    ],
+                  )
+                : () {
+                    final baseStyle = TextStyle(
+                      color: Color(element.textColor),
+                      fontSize: element.fontSize,
+                      fontWeight: fw,
+                      fontStyle: fs,
+                      decoration: deco,
+                      fontFamily: element.fontFamily,
+                      height: 1.2,
+                      shadows: !element.hasTextBg
+                          ? [
+                              Shadow(
+                                blurRadius: element.shadowBlur,
+                                color: Colors.black
+                                    .withValues(alpha: element.shadowOpacity),
+                                offset: const Offset(1, 1),
+                              ),
+                            ]
+                          : null,
+                    );
+                    if (_hasMentions) {
+                      return RichText(
+                        textAlign: align,
+                        text: TextSpan(
+                          children: _buildMentionSpans(baseStyle),
+                        ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
+                      );
+                    }
+                    return Text(
                       element.content,
                       textAlign: align,
-                      style: TextStyle(
-                        fontSize: element.fontSize,
-                        fontWeight: fw,
-                        fontStyle: fs,
-                        decoration: deco,
-                        fontFamily: element.fontFamily,
-                        height: 1.2,
-                        foreground: Paint()
-                          ..style = PaintingStyle.stroke
-                          ..strokeWidth = 2.0
-                          ..color = Color(element.outlineColor),
-                      ),
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
-                    ),
-                    // Fill layer
-                    Text(
-                      element.content,
-                      textAlign: align,
-                      style: TextStyle(
-                        color: Color(element.textColor),
-                        fontSize: element.fontSize,
-                        fontWeight: fw,
-                        fontStyle: fs,
-                        decoration: deco,
-                        fontFamily: element.fontFamily,
-                        height: 1.2,
-                      ),
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
-                    ),
-                  ],
-                )
-              : () {
-                  final baseStyle = TextStyle(
-                    color: Color(element.textColor),
-                    fontSize: element.fontSize,
-                    fontWeight: fw,
-                    fontStyle: fs,
-                    decoration: deco,
-                    fontFamily: element.fontFamily,
-                    height: 1.2,
-                    shadows: !element.hasTextBg
-                        ? [
-                            Shadow(
-                              blurRadius: element.shadowBlur,
-                              color: Colors.black
-                                  .withValues(alpha: element.shadowOpacity),
-                              offset: const Offset(1, 1),
-                            ),
-                          ]
-                        : null,
-                  );
-                  if (_hasMentions) {
-                    return RichText(
-                      textAlign: align,
-                      text: TextSpan(
-                        children: _buildMentionSpans(baseStyle),
-                      ),
+                      style: baseStyle,
                       maxLines: null,
                       overflow: TextOverflow.visible,
                     );
-                  }
-                  return Text(
-                    element.content,
-                    textAlign: align,
-                    style: baseStyle,
-                    maxLines: null,
-                    overflow: TextOverflow.visible,
-                  );
-                }(),
+                  }(),
           ),
         ),
       ),

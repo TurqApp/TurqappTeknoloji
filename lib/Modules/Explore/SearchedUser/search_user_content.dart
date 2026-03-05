@@ -20,17 +20,31 @@ class SearchUserContent extends StatelessWidget {
   Future<String> _resolveTargetUid() async {
     var targetUid = model.userID.trim();
     if (targetUid.isNotEmpty) return targetUid;
-    final nick = model.nickname.trim();
-    if (nick.isEmpty) return "";
+    final handle = model.nickname.trim().toLowerCase();
+    if (handle.isEmpty) return "";
+    try {
+      final usernameDoc = await FirebaseFirestore.instance
+          .collection("usernames")
+          .doc(handle)
+          .get();
+      final mappedUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
+      if (mappedUid.isNotEmpty) return mappedUid;
+    } catch (_) {}
     try {
       final snap = await FirebaseFirestore.instance
           .collection("users")
-          .where("nickname", isEqualTo: nick)
+          .where("username", isEqualTo: handle)
           .limit(1)
           .get();
-      if (snap.docs.isNotEmpty) {
-        return snap.docs.first.id;
-      }
+      if (snap.docs.isNotEmpty) return snap.docs.first.id;
+    } catch (_) {}
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection("users")
+          .where("nickname", isEqualTo: model.nickname.trim())
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) return snap.docs.first.id;
     } catch (_) {}
     return "";
   }
@@ -56,13 +70,17 @@ class SearchUserContent extends StatelessWidget {
 
   Future<bool> _isTargetAccountActive(String targetUid) async {
     try {
-      final snap =
-          await FirebaseFirestore.instance.collection("users").doc(targetUid).get();
+      final snap = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(targetUid)
+          .get();
       final data = snap.data();
       if (data == null) return false;
       final deletedAccount = (data['deletedAccount'] ?? false) == true;
       final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-      if (deletedAccount || status == 'pending_deletion' || status == 'deleted') {
+      if (deletedAccount ||
+          status == 'pending_deletion' ||
+          status == 'deleted') {
         return false;
       }
       return true;

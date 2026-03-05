@@ -60,8 +60,8 @@ class StoryRowController extends GetxController {
         );
         if (data != null) {
           final myUser = StoryUserModel(
-            nickname: data['nickname'] ?? "",
-            pfImage: data['pfImage'] ?? "",
+            nickname: data['displayName'] ?? data['nickname'] ?? "",
+            pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
             fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
             userID: myUid,
             stories: [], // Boş hikayelerle başla
@@ -225,8 +225,8 @@ class StoryRowController extends GetxController {
           continue;
         }
         final userModel = StoryUserModel(
-          nickname: data['nickname'] ?? "",
-          pfImage: data['pfImage'] ?? "",
+          nickname: data['displayName'] ?? data['nickname'] ?? "",
+          pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
           fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
           userID: userId,
           stories: stories,
@@ -254,8 +254,8 @@ class StoryRowController extends GetxController {
           );
           if (data != null) {
             myStoryUser = StoryUserModel(
-              nickname: data['nickname'] ?? "",
-              pfImage: data['pfImage'] ?? "",
+              nickname: data['displayName'] ?? data['nickname'] ?? "",
+              pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
               fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
               userID: myUid,
               stories: [], // Burada boş!
