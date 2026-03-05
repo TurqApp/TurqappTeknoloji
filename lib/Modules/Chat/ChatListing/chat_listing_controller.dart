@@ -20,6 +20,8 @@ class ChatListingController extends GetxController {
   var waiting = false.obs;
   Timer? _searchDebounce;
   Timer? _syncTimer;
+  Timer? _realtimeRefreshDebounce;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _conversationsSub;
   bool _isRefreshing = false;
 
   NetworkAwarenessService? get _network =>
@@ -96,9 +98,9 @@ class ChatListingController extends GetxController {
     if (!silent) waiting.value = true;
     try {
       final cacheOnly = _isOffline;
-      // Sohbet liste durumunda (okunmadı/koyu) gecikme yaşamamak için
-      // online iken daima server'dan güncel snapshot alınır.
-      final shouldHitServer = !cacheOnly;
+      // Online'da sadece zorlandığında server'a git; realtime stream değişim
+      // geldiğinde çoğu durumda cache-first yeterlidir.
+      final shouldHitServer = !cacheOnly && forceServer;
 
       final archiveOverrides = await _fetchArchiveOverrides(
         preferCache: !shouldHitServer,
@@ -301,7 +303,25 @@ class ChatListingController extends GetxController {
   }
 
   void startConversationListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     _syncTimer?.cancel();
+    _conversationsSub?.cancel();
+    if (uid == null) return;
+
+    if (!_isOffline) {
+      _conversationsSub = FirebaseFirestore.instance
+          .collection("conversations")
+          .where("participants", arrayContains: uid)
+          .snapshots()
+          .listen((_) {
+        _realtimeRefreshDebounce?.cancel();
+        _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
+          getList(forceServer: false, silent: true);
+        });
+      }, onError: (_) {});
+      return;
+    }
+
     _syncTimer = Timer.periodic(_syncInterval, (_) {
       getList(forceServer: false, silent: true);
     });
@@ -394,6 +414,8 @@ class ChatListingController extends GetxController {
   void onClose() {
     _searchDebounce?.cancel();
     _syncTimer?.cancel();
+    _realtimeRefreshDebounce?.cancel();
+    _conversationsSub?.cancel();
     search.removeListener(_onSearchChanged);
     search.dispose();
     super.onClose();

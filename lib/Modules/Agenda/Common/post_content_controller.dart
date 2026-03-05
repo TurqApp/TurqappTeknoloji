@@ -139,7 +139,6 @@ class PostContentController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _reshareDocSub;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   StreamSubscription<QuerySnapshot>? _commentsSub;
-  StreamSubscription<DocumentSnapshot>? _followSub;
 
   @override
   void onInit() {
@@ -189,7 +188,6 @@ class PostContentController extends GetxController {
     _reshareDocSub?.cancel();
     _postDocSub?.cancel();
     _commentsSub?.cancel();
-    _followSub?.cancel();
     super.onClose();
   }
 
@@ -722,16 +720,13 @@ class PostContentController extends GetxController {
 
   Future<void> followCheck() async {
     if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
-      _followSub?.cancel();
-      _followSub = FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .collection("TakipEdilenler")
           .doc(model.userID)
-          .snapshots()
-          .listen((doc) {
-        isFollowing.value = doc.exists;
-      });
+          .get();
+      isFollowing.value = doc.exists;
     }
   }
 
