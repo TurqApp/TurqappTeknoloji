@@ -144,13 +144,6 @@
         { "fieldPath": "kaydet", "arrayConfig": "CONTAINS" },
         { "fieldPath": "timeStamp", "order": "DESCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "Yanitlar",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "userID", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
