@@ -73,7 +73,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   @override
   Widget build(BuildContext context) {
-
     if (widget.embedded) {
       return Stack(
         children: [
@@ -1192,7 +1191,11 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
         }
         controller.shareScholarship(scholarshipData, ctx);
       },
-      icon: Icon(CupertinoIcons.share_up, size: 20, color: Colors.black),
+      icon: const Icon(
+        CupertinoIcons.share_up,
+        size: 20,
+        color: Colors.black,
+      ),
     );
   }
 
