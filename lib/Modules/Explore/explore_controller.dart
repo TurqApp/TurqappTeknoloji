@@ -467,26 +467,66 @@ class ExploreController extends GetxController {
       List<PostsModel> accumulated = [];
       print("[Explore] fetchVideo:start lastDoc=${lastVideoDoc != null}");
       while (pagesFetched < maxPages && videoHasMore.value) {
-        // Not: Firestore'da isNotEqualTo ile sıralama cursor uyumsuzlukları yaşanıyor.
-        // Bu yüzden video filtrelemesini istemci tarafında yapıyoruz.
-        const int pageLimit = 60;
+        const int pageLimit = 30;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         Query query = FirebaseFirestore.instance
             .collection('Posts')
             .where("arsiv", isEqualTo: false)
+            .where("flood", isEqualTo: false)
+            .where("hlsStatus", isEqualTo: "ready")
             .where('timeStamp', isLessThanOrEqualTo: nowMs)
             .orderBy("timeStamp", descending: true)
             .limit(pageLimit);
-
-        if (lastVideoDoc != null) {
+        if (lastVideoDoc != null)
           query = query.startAfterDocument(lastVideoDoc!);
-        }
 
-        final snap = await PerformanceService.traceFeedLoad(
-          () => query.get(),
-          postCount: exploreVideos.length,
-          feedMode: 'explore_video',
-        );
+        QuerySnapshot snap;
+        try {
+          snap = await PerformanceService.traceFeedLoad(
+            () => query.get(),
+            postCount: exploreVideos.length,
+            feedMode: 'explore_video',
+          );
+        } catch (e) {
+          final isIndexError = e is FirebaseException
+              ? e.code == 'failed-precondition'
+              : e.toString().contains('requires an index');
+          if (!isIndexError) rethrow;
+
+          Query fallback = FirebaseFirestore.instance
+              .collection('Posts')
+              .where("arsiv", isEqualTo: false)
+              .where("flood", isEqualTo: false)
+              .where('timeStamp', isLessThanOrEqualTo: nowMs)
+              .orderBy("timeStamp", descending: true)
+              .limit(pageLimit);
+          if (lastVideoDoc != null) {
+            fallback = fallback.startAfterDocument(lastVideoDoc!);
+          }
+
+          try {
+            snap = await PerformanceService.traceFeedLoad(
+              () => fallback.get(),
+              postCount: exploreVideos.length,
+              feedMode: 'explore_video_fallback',
+            );
+          } catch (_) {
+            Query broad = FirebaseFirestore.instance
+                .collection('Posts')
+                .where("arsiv", isEqualTo: false)
+                .where('timeStamp', isLessThanOrEqualTo: nowMs)
+                .orderBy("timeStamp", descending: true)
+                .limit(pageLimit);
+            if (lastVideoDoc != null) {
+              broad = broad.startAfterDocument(lastVideoDoc!);
+            }
+            snap = await PerformanceService.traceFeedLoad(
+              () => broad.get(),
+              postCount: exploreVideos.length,
+              feedMode: 'explore_video_broad',
+            );
+          }
+        }
         print(
             "[Explore] fetchVideo:page=${pagesFetched + 1} serverDocs=${snap.docs.length}");
         if (snap.docs.isEmpty) {
@@ -564,6 +604,7 @@ class ExploreController extends GetxController {
       if (lastPhotoDoc == null) _photoEmptyScans = 0;
       int pagesFetched = 0;
       const int maxPages = 5;
+      const int pageLimit = 20;
       List<PostsModel> accumulated = [];
       print("[Explore] fetchPhoto:start lastDoc=${lastPhotoDoc != null}");
       while (pagesFetched < maxPages && photoHasMore.value) {
@@ -575,7 +616,7 @@ class ExploreController extends GetxController {
             .where("video", isEqualTo: "")
             .where('timeStamp', isLessThanOrEqualTo: nowMs)
             .orderBy('timeStamp', descending: true)
-            .limit(20); // ✅ Optimized: 30 → 20
+            .limit(pageLimit); // ✅ Optimized: 30 → 20
 
         if (lastPhotoDoc != null) {
           query = query.startAfterDocument(lastPhotoDoc!);
@@ -592,7 +633,7 @@ class ExploreController extends GetxController {
           photoHasMore.value = false;
           break;
         }
-        if (snap.docs.length < 30) photoHasMore.value = false;
+        if (snap.docs.length < pageLimit) photoHasMore.value = false;
         lastPhotoDoc = snap.docs.last;
 
         List<PostsModel> newPhotos = [];

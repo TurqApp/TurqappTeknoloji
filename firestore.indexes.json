@@ -6,6 +6,7 @@
       "fields": [
         { "fieldPath": "arsiv", "order": "ASCENDING" },
         { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "hlsStatus", "order": "ASCENDING" },
         { "fieldPath": "timeStamp", "order": "DESCENDING" }
       ]
     },
