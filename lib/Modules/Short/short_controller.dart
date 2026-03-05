@@ -132,7 +132,9 @@ class ShortController extends GetxController {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final base = FirebaseFirestore.instance.collection('Posts');
 
+    // Primary query: DB seviyesinde video-ready filtrelemesi ile gereksiz read azalt.
     Query<Map<String, dynamic>> query = base
+        .where('hlsStatus', isEqualTo: 'ready')
         .where('arsiv', isEqualTo: false)
         .where('deletedPost', isEqualTo: false)
         .where('timeStamp', isLessThanOrEqualTo: nowMs)
@@ -152,12 +154,25 @@ class ShortController extends GetxController {
           : e.toString().contains('requires an index');
       if (!isIndexError) rethrow;
 
-      Query<Map<String, dynamic>> fallback =
-          base.orderBy('timeStamp', descending: true).limit(pageSize);
+      Query<Map<String, dynamic>> fallback = base
+          .where('arsiv', isEqualTo: false)
+          .where('deletedPost', isEqualTo: false)
+          .where('timeStamp', isLessThanOrEqualTo: nowMs)
+          .orderBy('timeStamp', descending: true)
+          .limit(pageSize);
       if (startAfter != null) {
         fallback = fallback.startAfterDocument(startAfter);
       }
-      snap = await fallback.get();
+      try {
+        snap = await fallback.get();
+      } catch (_) {
+        Query<Map<String, dynamic>> broad =
+            base.orderBy('timeStamp', descending: true).limit(pageSize);
+        if (startAfter != null) {
+          broad = broad.startAfterDocument(startAfter);
+        }
+        snap = await broad.get();
+      }
     }
 
     if (snap.docs.isEmpty) {
@@ -210,7 +225,7 @@ class ShortController extends GetxController {
           posts: const [], lastDoc: lastDoc, hasMore: false);
     }
 
-    final hasMoreDocs = snap.docs.isNotEmpty;
+    final hasMoreDocs = snap.docs.length == pageSize;
     return _ShortPageResult(
         posts: filtered, lastDoc: lastDoc, hasMore: hasMoreDocs);
   }

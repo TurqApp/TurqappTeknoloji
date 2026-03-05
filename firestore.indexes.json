@@ -15,6 +15,7 @@
       "fields": [
         { "fieldPath": "arsiv", "order": "ASCENDING" },
         { "fieldPath": "deletedPost", "order": "ASCENDING" },
+        { "fieldPath": "hlsStatus", "order": "ASCENDING" },
         { "fieldPath": "timeStamp", "order": "DESCENDING" }
       ]
     },
