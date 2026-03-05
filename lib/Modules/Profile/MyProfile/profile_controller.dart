@@ -403,6 +403,7 @@ class ProfileController extends GetxController {
           .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
           .where("arsiv", isEqualTo: false)
           .where("flood", isEqualTo: false)
+          .where("hlsStatus", isEqualTo: "ready")
           .where('timeStamp', isLessThanOrEqualTo: nowMsVideos)
           .orderBy("timeStamp", descending: true)
           .limit(postLimitVideos);
@@ -411,7 +412,30 @@ class ProfileController extends GetxController {
         query = query.startAfterDocument(lastPostDocVideos!);
       }
 
-      final snapshot = await query.get();
+      QuerySnapshot<Map<String, dynamic>> snapshot;
+      try {
+        snapshot = await query.get();
+      } catch (e) {
+        final isIndexError = e is FirebaseException
+            ? e.code == 'failed-precondition'
+            : e.toString().contains('requires an index');
+        if (!isIndexError) rethrow;
+
+        var fallback = FirebaseFirestore.instance
+            .collection("Posts")
+            .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+            .where("arsiv", isEqualTo: false)
+            .where("flood", isEqualTo: false)
+            .where('timeStamp', isLessThanOrEqualTo: nowMsVideos)
+            .orderBy("timeStamp", descending: true)
+            .limit(postLimitVideos);
+
+        if (!isInitial && lastPostDocVideos != null) {
+          fallback = fallback.startAfterDocument(lastPostDocVideos!);
+        }
+        snapshot = await fallback.get();
+      }
+
       final newPosts = snapshot.docs.map((doc) {
         final data = doc.data();
         final model = PostsModel.fromMap(data, doc.id);
