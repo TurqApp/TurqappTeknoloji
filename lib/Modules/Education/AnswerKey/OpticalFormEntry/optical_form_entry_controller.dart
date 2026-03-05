@@ -72,9 +72,15 @@ class OpticalFormEntryController extends GetxController {
   Future<void> getUserData(String userID) async {
     final doc =
         await FirebaseFirestore.instance.collection("users").doc(userID).get();
-    final firstName = doc.get("firstName") as String;
-    final lastName = doc.get("lastName") as String;
-    final pfImage = doc.get("pfImage") as String;
+    final data = doc.data() ?? const <String, dynamic>{};
+    final firstName = (data["firstName"] ?? "").toString();
+    final lastName = (data["lastName"] ?? "").toString();
+    final pfImage = (data["avatarUrl"] ??
+            data["pfImage"] ??
+            data["photoURL"] ??
+            data["profileImageUrl"] ??
+            "")
+        .toString();
 
     fullName.value = "$firstName $lastName";
     this.pfImage.value = pfImage;

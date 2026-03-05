@@ -76,7 +76,11 @@ class ApplicationReview extends StatelessWidget {
             ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
                 .trim()
             : '';
-        final fetchedNickname = (profile?['nickname'] as String? ?? '').trim();
+        final fetchedNickname = ((profile?['displayName'] ??
+                profile?['username'] ??
+                profile?['nickname'] ??
+                '') as String)
+            .trim();
         final name = fetchedName.isNotEmpty
             ? fetchedName
             : app.applicantName.isNotEmpty
@@ -86,8 +90,17 @@ class ApplicationReview extends StatelessWidget {
                     : fetchedNickname.isNotEmpty
                         ? fetchedNickname
                         : 'Bilinmeyen Kullanıcı';
-        final pfImage = (profile?['pfImage'] as String? ?? '').trim().isNotEmpty
-            ? (profile?['pfImage'] as String? ?? '').trim()
+        final pfImage = ((profile?['avatarUrl'] ??
+                    profile?['pfImage'] ??
+                    profile?['photoURL'] ??
+                    '') as String)
+                .trim()
+                .isNotEmpty
+            ? ((profile?['avatarUrl'] ??
+                    profile?['pfImage'] ??
+                    profile?['photoURL'] ??
+                    '') as String)
+                .trim()
             : app.applicantPfImage;
 
         return Padding(

@@ -731,14 +731,27 @@ class AntremanController extends GetxController {
         SetOptions(merge: true),
       );
       final userData = userSnap.data() ?? const <String, dynamic>{};
+      final profileName = (userData['displayName'] ??
+              userData['username'] ??
+              userData['nickname'] ??
+              '')
+          .toString();
+      final profileImage = (userData['avatarUrl'] ??
+              userData['pfImage'] ??
+              userData['photoURL'] ??
+              userData['profileImageUrl'] ??
+              '')
+          .toString();
       batch.set(
         scoreRef,
         {
           'userID': userID,
-          'nickname': (userData['nickname'] ?? '').toString(),
+          'displayName': profileName,
+          'nickname': profileName,
           'firstName': (userData['firstName'] ?? '').toString(),
           'lastName': (userData['lastName'] ?? '').toString(),
-          'pfImage': (userData['pfImage'] ?? '').toString(),
+          'avatarUrl': profileImage,
+          'pfImage': profileImage,
           'rozet': (userData['rozet'] ?? '').toString(),
           'antPoint': newAntPoint,
           'updatedAt': FieldValue.serverTimestamp(),

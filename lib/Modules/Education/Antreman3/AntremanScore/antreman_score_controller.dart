@@ -79,7 +79,10 @@ class AntremanScoreController extends GetxController {
   bool _isEligibleEntry(Map<String, dynamic> data) {
     final rozet = (data['rozet'] ?? '').toString();
     if (_excludedRozet.contains(rozet)) return false;
-    final nickname = (data['nickname'] ?? '').toString().trim();
+    final nickname =
+        (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+            .toString()
+            .trim();
     return nickname.isNotEmpty;
   }
 
@@ -104,8 +107,12 @@ class AntremanScoreController extends GetxController {
     final updatedCompare = _resolveUpdatedAt(a).compareTo(_resolveUpdatedAt(b));
     if (updatedCompare != 0) return updatedCompare;
 
-    final aNickname = (a['nickname'] ?? '').toString().toLowerCase();
-    final bNickname = (b['nickname'] ?? '').toString().toLowerCase();
+    final aNickname = (a['displayName'] ?? a['username'] ?? a['nickname'] ?? '')
+        .toString()
+        .toLowerCase();
+    final bNickname = (b['displayName'] ?? b['username'] ?? b['nickname'] ?? '')
+        .toString()
+        .toLowerCase();
     return aNickname.compareTo(bNickname);
   }
 
@@ -113,7 +120,8 @@ class AntremanScoreController extends GetxController {
     List<Map<String, dynamic>> entries,
   ) async {
     final missingEntries = entries.where((entry) {
-      final pfImage = (entry['pfImage'] ?? '').toString().trim();
+      final pfImage =
+          (entry['avatarUrl'] ?? entry['pfImage'] ?? '').toString().trim();
       final firstName = (entry['firstName'] ?? '').toString().trim();
       final lastName = (entry['lastName'] ?? '').toString().trim();
       return pfImage.isEmpty || firstName.isEmpty || lastName.isEmpty;
@@ -133,13 +141,38 @@ class AntremanScoreController extends GetxController {
         final userData = userDoc.data();
         if (userData == null) return;
 
-        for (final field in [
-          'pfImage',
-          'firstName',
-          'lastName',
-          'nickname',
-          'rozet',
-        ]) {
+        final profileImage = (userData['avatarUrl'] ??
+                userData['pfImage'] ??
+                userData['photoURL'] ??
+                userData['profileImageUrl'] ??
+                '')
+            .toString()
+            .trim();
+        if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
+            profileImage.isNotEmpty) {
+          entry['avatarUrl'] = profileImage;
+        }
+        if ((entry['pfImage'] ?? '').toString().trim().isEmpty &&
+            profileImage.isNotEmpty) {
+          entry['pfImage'] = profileImage;
+        }
+
+        final profileName = (userData['displayName'] ??
+                userData['username'] ??
+                userData['nickname'] ??
+                '')
+            .toString()
+            .trim();
+        if ((entry['displayName'] ?? '').toString().trim().isEmpty &&
+            profileName.isNotEmpty) {
+          entry['displayName'] = profileName;
+        }
+        if ((entry['nickname'] ?? '').toString().trim().isEmpty &&
+            profileName.isNotEmpty) {
+          entry['nickname'] = profileName;
+        }
+
+        for (final field in ['firstName', 'lastName', 'rozet']) {
           final currentValue = (entry[field] ?? '').toString().trim();
           final fallbackValue = (userData[field] ?? '').toString().trim();
           if (currentValue.isEmpty && fallbackValue.isNotEmpty) {

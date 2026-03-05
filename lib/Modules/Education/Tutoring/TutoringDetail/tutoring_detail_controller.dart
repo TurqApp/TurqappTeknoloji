@@ -64,7 +64,23 @@ class TutoringDetailController extends GetxController {
           .doc(userID)
           .get();
       if (userDoc.exists) {
-        users[userID] = userDoc.data() as Map<String, dynamic>;
+        final raw = userDoc.data() as Map<String, dynamic>? ?? {};
+        final profileImage = (raw['avatarUrl'] ??
+                raw['pfImage'] ??
+                raw['photoURL'] ??
+                raw['profileImageUrl'] ??
+                '')
+            .toString();
+        final profileName =
+            (raw['displayName'] ?? raw['username'] ?? raw['nickname'] ?? '')
+                .toString();
+        users[userID] = {
+          ...raw,
+          'avatarUrl': profileImage,
+          'pfImage': profileImage,
+          'displayName': profileName,
+          'nickname': profileName,
+        };
       }
     } catch (e) {
       log("Error fetching user data: $e");
