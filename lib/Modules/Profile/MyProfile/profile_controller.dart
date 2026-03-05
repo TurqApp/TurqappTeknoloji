@@ -475,8 +475,12 @@ class ProfileController extends GetxController {
     isLoadingScheduled = true;
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final uid = FirebaseAuth.instance.currentUser!.uid;
       var query = FirebaseFirestore.instance
           .collection("Posts")
+          .where("userID", isEqualTo: uid)
+          .where("arsiv", isEqualTo: false)
+          .where("flood", isEqualTo: false)
           .where('timeStamp', isGreaterThan: nowMs)
           .orderBy('timeStamp')
           .limit(scheduledLimit);
@@ -486,13 +490,8 @@ class ProfileController extends GetxController {
       }
 
       final snapshot = await query.get();
-      final newPosts = snapshot.docs
-          .map((d) => PostsModel.fromMap(d.data(), d.id))
-          .where((p) =>
-              p.userID == FirebaseAuth.instance.currentUser!.uid &&
-              !p.arsiv &&
-              !p.flood)
-          .toList();
+      final newPosts =
+          snapshot.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
 
       if (isInitial) {
         if (newPosts.isNotEmpty || scheduledPosts.isEmpty) {
@@ -514,6 +513,7 @@ class ProfileController extends GetxController {
       // kullanıcıya işlevsellik sağlamak adına asgari alanlarla çekildi.
       try {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final uid = FirebaseAuth.instance.currentUser!.uid;
         final snapshot = await FirebaseFirestore.instance
             .collection('Posts')
             .where('timeStamp', isGreaterThan: nowMs)
@@ -523,10 +523,7 @@ class ProfileController extends GetxController {
 
         final newPosts = snapshot.docs
             .map((d) => PostsModel.fromMap(d.data(), d.id))
-            .where((p) =>
-                p.userID == FirebaseAuth.instance.currentUser!.uid &&
-                !p.arsiv &&
-                !p.flood)
+            .where((p) => p.userID == uid && !p.arsiv && !p.flood)
             .toList();
 
         if (isInitial) {
