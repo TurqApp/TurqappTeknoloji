@@ -478,10 +478,16 @@ class TutoringDetail extends StatelessWidget {
                                           width: 35,
                                           height: 35,
                                           child: CachedNetworkImage(
-                                            imageUrl: controller.users[
-                                                    controller.tutoring.value
+                                            imageUrl: (controller.users[
+                                                            controller.tutoring
+                                                                .value.userID]
+                                                        ?["avatarUrl"] ??
+                                                    controller.users[controller
+                                                        .tutoring
+                                                        .value
                                                         .userID]?["pfImage"] ??
-                                                '',
+                                                    '')
+                                                .toString(),
                                             fit: BoxFit.cover,
                                             placeholder: (context, url) =>
                                                 Center(
@@ -522,7 +528,7 @@ class TutoringDetail extends StatelessWidget {
                                             ],
                                           ),
                                           Text(
-                                            "@${controller.users[controller.tutoring.value.userID]?['nickname'] ?? ''} ",
+                                            "@${(controller.users[controller.tutoring.value.userID]?['displayName'] ?? controller.users[controller.tutoring.value.userID]?['username'] ?? controller.users[controller.tutoring.value.userID]?['nickname'] ?? '').toString()} ",
                                             style: TextStyles.tutoringBranch,
                                           ),
                                         ],

@@ -551,12 +551,17 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildUserAvatar(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
+    final imageUrl = (userData?['avatarUrl'] ??
+            userData?['pfImage'] ??
+            userData?['photoURL'] ??
+            '')
+        .toString();
     return CircleAvatar(
       radius: 15,
-      child: userData?['pfImage']?.isNotEmpty == true
+      child: imageUrl.isNotEmpty
           ? ClipOval(
               child: CachedNetworkImage(
-                imageUrl: userData!['pfImage'],
+                imageUrl: imageUrl,
                 placeholder: (context, url) => CupertinoActivityIndicator(),
                 errorWidget: (context, url, error) => Icon(Icons.error),
                 width: 30,
@@ -592,7 +597,10 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   String _getUserDisplayName(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
     // Her zaman nickname göster; yoksa fallback
-    final nick = userData?['nickname']?.toString();
+    final nick = (userData?['displayName'] ??
+            userData?['username'] ??
+            userData?['nickname'])
+        ?.toString();
     if (nick != null && nick.isNotEmpty) return nick;
     final first = userData?['firstName']?.toString() ?? '';
     final last = userData?['lastName']?.toString() ?? '';

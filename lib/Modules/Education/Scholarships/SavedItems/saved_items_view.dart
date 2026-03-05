@@ -307,9 +307,16 @@ class SavedItemsView extends StatelessWidget {
                                 SizedBox(height: 4),
                                 Text(
                                   type == 'bireysel'
-                                      ? (userData?['nickname']?.isNotEmpty ??
-                                              false
-                                          ? userData!['nickname']
+                                      ? (((userData?['displayName'] ??
+                                                      userData?['username'] ??
+                                                      userData?['nickname'])
+                                                  ?.toString()
+                                                  .isNotEmpty ??
+                                              false)
+                                          ? (userData?['displayName'] ??
+                                                  userData?['username'] ??
+                                                  userData?['nickname'])
+                                              .toString()
                                           : 'Bilinmeyen Kullanıcı')
                                       : (burs.kategori?.isNotEmpty ?? false
                                           ? burs.kategori

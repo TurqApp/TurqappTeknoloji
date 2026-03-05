@@ -74,7 +74,20 @@ class AntremanComments extends StatelessWidget {
                     final comment = controller.comments[index];
                     final GlobalKey commentKey = GlobalKey();
                     final userInfo = controller.userInfoCache[comment.userID] ??
-                        {'pfImage': '', 'nickname': 'Bilinmeyen Kullanıcı'};
+                        {
+                          'avatarUrl': '',
+                          'pfImage': '',
+                          'displayName': 'Bilinmeyen Kullanıcı',
+                          'nickname': 'Bilinmeyen Kullanıcı'
+                        };
+                    final userImage =
+                        (userInfo['avatarUrl'] ?? userInfo['pfImage'] ?? '')
+                            .toString();
+                    final userName = (userInfo['displayName'] ??
+                            userInfo['username'] ??
+                            userInfo['nickname'] ??
+                            'Bilinmeyen Kullanıcı')
+                        .toString();
                     controller.fetchUserInfo(comment.userID);
 
                     return Column(
@@ -88,12 +101,12 @@ class AntremanComments extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 18,
-                                backgroundImage: userInfo['pfImage'].isNotEmpty
+                                backgroundImage: userImage.isNotEmpty
                                     ? CachedNetworkImageProvider(
-                                        userInfo['pfImage'],
+                                        userImage,
                                       )
                                     : null,
-                                child: userInfo['pfImage'].isEmpty
+                                child: userImage.isEmpty
                                     ? Icon(
                                         CupertinoIcons.person,
                                         size: 18,
@@ -108,7 +121,7 @@ class AntremanComments extends StatelessWidget {
                                     Row(
                                       children: [
                                         Text(
-                                          userInfo['nickname'],
+                                          userName,
                                           style: TextStyles.bold20Black
                                               .copyWith(fontSize: 14),
                                         ),
@@ -315,9 +328,22 @@ class AntremanComments extends StatelessWidget {
                                 final replyUserInfo =
                                     controller.userInfoCache[reply.userID] ??
                                         {
+                                          'avatarUrl': '',
                                           'pfImage': '',
+                                          'displayName': 'Bilinmeyen Kullanıcı',
                                           'nickname': 'Bilinmeyen Kullanıcı',
                                         };
+                                final replyUserImage =
+                                    (replyUserInfo['avatarUrl'] ??
+                                            replyUserInfo['pfImage'] ??
+                                            '')
+                                        .toString();
+                                final replyUserName =
+                                    (replyUserInfo['displayName'] ??
+                                            replyUserInfo['username'] ??
+                                            replyUserInfo['nickname'] ??
+                                            'Bilinmeyen Kullanıcı')
+                                        .toString();
                                 controller.fetchUserInfo(reply.userID);
 
                                 return Container(
@@ -329,12 +355,12 @@ class AntremanComments extends StatelessWidget {
                                       CircleAvatar(
                                         radius: 15,
                                         backgroundImage:
-                                            replyUserInfo['pfImage'].isNotEmpty
+                                            replyUserImage.isNotEmpty
                                                 ? CachedNetworkImageProvider(
-                                                    replyUserInfo['pfImage'],
+                                                    replyUserImage,
                                                   )
                                                 : null,
-                                        child: replyUserInfo['pfImage'].isEmpty
+                                        child: replyUserImage.isEmpty
                                             ? Icon(
                                                 CupertinoIcons.person,
                                                 size: 15,
@@ -350,7 +376,7 @@ class AntremanComments extends StatelessWidget {
                                             Row(
                                               children: [
                                                 Text(
-                                                  replyUserInfo['nickname'],
+                                                  replyUserName,
                                                   style: TextStyles
                                                       .textFieldTitle
                                                       .copyWith(
@@ -523,7 +549,15 @@ class AntremanComments extends StatelessWidget {
             ),
             Obx(() {
               final userInfo = controller.userInfoCache[controller.userID] ??
-                  {'pfImage': '', 'nickname': 'Bilinmeyen Kullanıcı'};
+                  {
+                    'avatarUrl': '',
+                    'pfImage': '',
+                    'displayName': 'Bilinmeyen Kullanıcı',
+                    'nickname': 'Bilinmeyen Kullanıcı'
+                  };
+              final userImage =
+                  (userInfo['avatarUrl'] ?? userInfo['pfImage'] ?? '')
+                      .toString();
               controller.fetchUserInfo(controller.userID);
 
               return Column(
@@ -593,12 +627,12 @@ class AntremanComments extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 15,
-                          backgroundImage: userInfo['pfImage'].isNotEmpty
+                          backgroundImage: userImage.isNotEmpty
                               ? CachedNetworkImageProvider(
-                                  userInfo['pfImage'],
+                                  userImage,
                                 )
                               : null,
-                          child: userInfo['pfImage'].isEmpty
+                          child: userImage.isEmpty
                               ? Icon(CupertinoIcons.person, size: 15)
                               : null,
                         ),
@@ -643,15 +677,24 @@ class AntremanComments extends StatelessWidget {
                                               controller.userInfoCache[
                                                       replyingComment.userID] ??
                                                   {
+                                                    'avatarUrl': '',
                                                     'pfImage': '',
+                                                    'displayName':
+                                                        'Bilinmeyen Kullanıcı',
                                                     'nickname':
                                                         'Bilinmeyen Kullanıcı',
                                                   };
+                                          final replyUserName = (replyUserInfo[
+                                                      'displayName'] ??
+                                                  replyUserInfo['username'] ??
+                                                  replyUserInfo['nickname'] ??
+                                                  'Bilinmeyen Kullanıcı')
+                                              .toString();
                                           controller.fetchUserInfo(
                                             replyingComment.userID,
                                           );
                                           return Text(
-                                            "${replyUserInfo['nickname']} kişisine yanıt",
+                                            "$replyUserName kişisine yanıt",
                                             style: TextStyles.textFieldTitle
                                                 .copyWith(
                                               fontSize: 12,
