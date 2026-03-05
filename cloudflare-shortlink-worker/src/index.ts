@@ -7,12 +7,14 @@ interface Env {
   EMAIL_ACTION_CONFIRM_URL: string;
   AASA_JSON: string;
   ASSETLINKS_JSON: string;
+  FIREBASE_PROJECT_ID?: string;
+  SHORT_LINK_RESOLVE_URL?: string;
 }
 
 type LinkType = "p" | "s" | "u" | "e" | "i";
 
 type LinkMeta = {
-  type?: "post" | "story" | "user" | "edu";
+  type?: "post" | "story" | "user" | "edu" | "job";
   entityId?: string;
   shortId?: string;
   slug?: string;
@@ -34,6 +36,10 @@ export default {
     const path = url.pathname;
     const ua = (request.headers.get("user-agent") || "").toLowerCase();
 
+    if (path === "/og-image") {
+      return proxyOgImage(request, url, env);
+    }
+
     if (path === "/.well-known/apple-app-site-association") {
       return jsonResponse(env.AASA_JSON, 200, {
         "cache-control": "public, max-age=3600",
@@ -52,9 +58,25 @@ const route = parseRoute(path);
     }
 
     const kvKey = `${route.kind}:${route.id}`;
-    const kvRaw = await env.TURQ_KV.get(kvKey);
+    let kvRaw = await env.TURQ_KV.get(kvKey);
     if (!kvRaw) {
-      if (route.kind === "e") {
+      const resolvedMeta = await resolveFromFunction(route, env);
+      if (resolvedMeta) {
+        kvRaw = JSON.stringify(resolvedMeta);
+        await env.TURQ_KV.put(kvKey, kvRaw, {
+          expirationTtl: CACHE_TTL_SECONDS,
+        });
+      }
+    }
+
+    if (!kvRaw) {
+      const refreshed = await resolveFromFunction(route, env);
+      if (refreshed) {
+        kvRaw = JSON.stringify(refreshed);
+        await env.TURQ_KV.put(kvKey, kvRaw, {
+          expirationTtl: CACHE_TTL_SECONDS,
+        });
+      } else if (route.kind === "e") {
         const fallback = fallbackHtml({
           title: "TurqApp eğitim bağlantısı",
           desc: "Paylaşımı açmak için uygulamayı kullan.",
@@ -62,12 +84,14 @@ const route = parseRoute(path);
           deepLink: buildDeepLink(env.APP_SCHEME, "e", route.id),
           iosStore: env.IOS_STORE_URL,
           androidStore: env.ANDROID_STORE_URL,
+          ctaLabel: "İçeriği İncele",
         });
         return new Response(fallback, {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
+      } else {
+        return notFoundHtml("Link bulunamadı");
       }
-      return notFoundHtml("Link bulunamadı");
     }
 
     let meta: LinkMeta;
@@ -75,6 +99,25 @@ const route = parseRoute(path);
       meta = JSON.parse(kvRaw) as LinkMeta;
     } catch {
       return notFoundHtml("Link verisi bozuk");
+    }
+
+    // Eski KV kayitlarinda imageUrl bos / hatali / proxy'siz kalabiliyor.
+    // Tum tipler icin function'dan tekrar cozup KV'yi iyilestir.
+    const hasImage = String(meta.imageUrl || "").trim().length > 0;
+    const isOgProxyImage = String(meta.imageUrl || "").includes("/og-image?src=");
+    const isDirectCdnImage = String(meta.imageUrl || "").startsWith("https://cdn.turqapp.com/");
+    const shouldRefreshMeta =
+      !hasImage ||
+      (!isOgProxyImage && !isDirectCdnImage);
+
+    if (shouldRefreshMeta) {
+      const refreshed = await resolveFromFunction(route, env);
+      if (refreshed) {
+        meta = { ...meta, ...refreshed };
+        await env.TURQ_KV.put(kvKey, JSON.stringify(meta), {
+          expirationTtl: CACHE_TTL_SECONDS,
+        });
+      }
     }
 
     if (meta.status === "inactive") {
@@ -140,6 +183,7 @@ const route = parseRoute(path);
         deepLink,
         iosStore: env.IOS_STORE_URL,
         androidStore: env.ANDROID_STORE_URL,
+        ctaLabel: ctaLabelFor(route, meta),
       }),
       {
         headers: {
@@ -150,6 +194,41 @@ const route = parseRoute(path);
     );
   },
 };
+
+async function proxyOgImage(request: Request, url: URL, env: Env): Promise<Response> {
+  const src = safeUrl(url.searchParams.get("src") || "");
+  const fallback = safeUrl(env.DEFAULT_OG_IMAGE || "");
+  const target = src || fallback;
+  if (!target) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  try {
+    const upstream = await fetch(target, {
+      headers: {
+        "user-agent": request.headers.get("user-agent") || "TurqAppBot/1.0",
+        "accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+      },
+      cf: { cacheTtl: CACHE_TTL_SECONDS, cacheEverything: true },
+    });
+    if (!upstream.ok) {
+      return Response.redirect(fallback, 302);
+    }
+
+    const headers = new Headers(upstream.headers);
+    headers.set("cache-control", `public, max-age=${CACHE_TTL_SECONDS}`);
+    headers.set("access-control-allow-origin", "*");
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers,
+    });
+  } catch {
+    if (fallback && fallback !== target) {
+      return Response.redirect(fallback, 302);
+    }
+    return new Response("Not found", { status: 404 });
+  }
+}
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
   const match = pathname.match(/^\/(p|s|u|e|i)\/([A-Za-z0-9._-]{2,80})$/);
@@ -164,6 +243,29 @@ function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {
   if (kind === "e") return `${base}://e/${id}`;
   if (kind === "i") return `${base}://job/${id}`;
   return `${base}://profile/${id}`;
+}
+
+function ctaLabelFor(route: { kind: LinkType; id: string }, meta?: LinkMeta): string {
+  const entityId = String(meta?.entityId || "");
+  if (route.kind === "e" && entityId.startsWith("scholarship:")) {
+    return "Bursu İncele";
+  }
+  if (entityId.startsWith("practice-exam:")) {
+    return "Testi İncele";
+  }
+  if (entityId.startsWith("answer-key:")) {
+    return "Cevap Anahtarını İncele";
+  }
+  if (entityId.startsWith("question:")) {
+    return "Soruyu İncele";
+  }
+  if (entityId.startsWith("tutoring:")) {
+    return "Özel Dersi İncele";
+  }
+  if (entityId.startsWith("job:") || route.kind === "i") {
+    return "İlanı İncele";
+  }
+  return "Uygulamada Aç";
 }
 
 function isBot(ua: string): boolean {
@@ -212,6 +314,9 @@ function ogHtml(input: { title: string; desc: string; image: string; canonical: 
   <meta property="og:title" content="${input.title}" />
   <meta property="og:description" content="${input.desc}" />
   <meta property="og:image" content="${input.image}" />
+  <meta property="og:image:secure_url" content="${input.image}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:url" content="${input.canonical}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${input.title}" />
@@ -229,6 +334,7 @@ function fallbackHtml(input: {
   deepLink: string;
   iosStore: string;
   androidStore: string;
+  ctaLabel: string;
 }): string {
   return `<!doctype html>
 <html lang="tr">
@@ -236,22 +342,41 @@ function fallbackHtml(input: {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${input.title}</title>
+  <meta property="og:type" content="website" />
   <meta property="og:title" content="${input.title}" />
   <meta property="og:description" content="${input.desc}" />
   <meta property="og:image" content="${input.image}" />
+  <meta property="og:image:secure_url" content="${input.image}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${input.title}" />
+  <meta name="twitter:description" content="${input.desc}" />
+  <meta name="twitter:image" content="${input.image}" />
   <style>
     body { font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; background: #f8f9fb; color: #111; }
     .card { max-width: 480px; margin: 48px auto; background: white; border-radius: 14px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
     h1 { font-size: 18px; margin: 0 0 8px; }
     p { font-size: 14px; margin: 0 0 16px; color: #444; }
-    button { width: 100%; border: 0; border-radius: 10px; background: #111; color: white; padding: 12px; font-size: 15px; }
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2a4f76 0%, #3a6a98 100%);
+      color: white;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      box-shadow: 0 8px 22px rgba(42,79,118,.35);
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>${input.title}</h1>
     <p>${input.desc}</p>
-    <button id="openBtn">Uygulamada Aç</button>
+    <button id="openBtn">${input.ctaLabel}</button>
   </div>
   <script>
     (function () {
@@ -300,4 +425,50 @@ function jsonResponse(jsonText: string, status = 200, extraHeaders?: Record<stri
       ...(extraHeaders || {}),
     },
   });
+}
+
+async function resolveFromFunction(
+  route: { kind: LinkType; id: string },
+  env: Env
+): Promise<LinkMeta | null> {
+  const type = route.kind === "p"
+    ? "post"
+    : route.kind === "s"
+    ? "story"
+    : route.kind === "u"
+    ? "user"
+    : route.kind === "i"
+    ? "job"
+    : "edu";
+
+  const explicitUrl = String(env.SHORT_LINK_RESOLVE_URL || "").trim();
+  const projectId = String(env.FIREBASE_PROJECT_ID || "").trim();
+  const endpoint =
+    explicitUrl ||
+    (projectId
+      ? `https://us-central1-${projectId}.cloudfunctions.net/resolveShortLink`
+      : "");
+
+  if (!endpoint) return null;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          type,
+          id: route.id,
+        },
+      }),
+    });
+
+    if (!response.ok) return null;
+    const json = (await response.json()) as {
+      result?: { data?: LinkMeta };
+    };
+    return json.result?.data || null;
+  } catch {
+    return null;
+  }
 }
