@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:uuid/uuid.dart';
 import '../../../Models/posts_model.dart';
 import '../../../Services/firebase_my_store.dart';
-import '../../../Services/current_user_service.dart';
 import '../../../Services/reshare_helper.dart';
 import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -171,53 +170,46 @@ class PhotoShortsContentController extends GetxController {
     if (uid == null) return;
     _likeDocSub?.cancel();
     _savedDocSub?.cancel();
-    _likeDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('likes')
-        .doc(uid)
-        .snapshots()
-        .listen((doc) {
-      if (doc.exists) {
+    final postRef =
+        FirebaseFirestore.instance.collection('Posts').doc(model.docID);
+    Future.wait([
+      postRef.collection('likes').doc(uid).get(),
+      postRef.collection('saveds').doc(uid).get(),
+    ]).then((docs) {
+      final likeDoc = docs[0];
+      final savedDoc = docs[1];
+      if (likeDoc.exists) {
         if (!likes.contains(uid)) likes.add(uid);
         isLiked.value = true;
       } else {
         likes.remove(uid);
         isLiked.value = false;
       }
-    });
-    _savedDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('saveds')
-        .doc(uid)
-        .snapshots()
-        .listen((doc) {
-      if (doc.exists) {
+      if (savedDoc.exists) {
         if (!saved.contains(uid)) saved.add(uid);
         isSaved.value = true;
       } else {
         saved.remove(uid);
         isSaved.value = false;
       }
-    });
+    }).catchError((_) {});
   }
 
   void _bindReshareListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     _reshareDocSub?.cancel();
-    _reshareDocSub = FirebaseFirestore.instance
+    FirebaseFirestore.instance
         .collection('Posts')
         .doc(model.docID)
         .collection('reshares')
         .doc(uid)
-        .snapshots()
-        .listen((doc) {
+        .get()
+        .then((doc) {
       final exists = doc.exists;
       yenidenPaylasildiMi.value = exists;
       isReshared.value = exists;
-    });
+    }).catchError((_) {});
   }
 
   void _bindPostDocCounts() {

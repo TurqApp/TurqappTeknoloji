@@ -198,43 +198,36 @@ class PostContentController extends GetxController {
     if (uid == null) return;
     _likeDocSub?.cancel();
     _savedDocSub?.cancel();
-    _likeDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('likes')
-        .doc(uid)
-        .snapshots()
-        .listen((doc) {
-      if (doc.exists) {
+    final postRef =
+        FirebaseFirestore.instance.collection('Posts').doc(model.docID);
+    Future.wait([
+      postRef.collection('likes').doc(uid).get(),
+      postRef.collection('saveds').doc(uid).get(),
+    ]).then((docs) {
+      final likeDoc = docs[0];
+      final savedDoc = docs[1];
+      if (likeDoc.exists) {
         if (!likes.contains(uid)) likes.add(uid);
       } else {
         likes.remove(uid);
       }
-    });
-    _savedDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('saveds')
-        .doc(uid)
-        .snapshots()
-        .listen((doc) {
-      saved.value = doc.exists;
-    });
+      saved.value = savedDoc.exists;
+    }).catchError((_) {});
   }
 
   void _bindReshareListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     _reshareDocSub?.cancel();
-    _reshareDocSub = FirebaseFirestore.instance
+    FirebaseFirestore.instance
         .collection('Posts')
         .doc(model.docID)
         .collection('reshares')
         .doc(uid)
-        .snapshots()
-        .listen((doc) {
+        .get()
+        .then((doc) {
       yenidenPaylasildiMi.value = doc.exists;
-    });
+    }).catchError((_) {});
   }
 
   void _bindPostDocCounts() {
