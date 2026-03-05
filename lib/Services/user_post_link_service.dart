@@ -33,6 +33,7 @@ class UserPostLinkService {
         .doc(userId)
         .collection(collection)
         .orderBy('timeStamp', descending: true)
+        .limit(_maxRefsPerFetch)
         .snapshots()
         .map((snap) => snap.docs.map(UserPostReference.fromDoc).toList());
   }
