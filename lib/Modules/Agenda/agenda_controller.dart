@@ -177,9 +177,21 @@ class AgendaController extends GetxController {
     final videoPosts = agendaList.where((p) => p.hasPlayableVideo).toList();
     if (videoPosts.isEmpty) return;
 
-    final int safeCurrent = centeredIndex.value < 0
-        ? 0
-        : centeredIndex.value.clamp(0, videoPosts.length - 1);
+    int safeCurrent = 0;
+    final centered = centeredIndex.value;
+    if (centered >= 0 && centered < agendaList.length) {
+      final centeredDocID = agendaList[centered].docID;
+      final mapped = videoPosts.indexWhere((p) => p.docID == centeredDocID);
+      if (mapped >= 0) {
+        safeCurrent = mapped;
+      } else {
+        int beforeCount = 0;
+        for (int i = 0; i < centered; i++) {
+          if (agendaList[i].hasPlayableVideo) beforeCount++;
+        }
+        safeCurrent = beforeCount.clamp(0, videoPosts.length - 1);
+      }
+    }
     final docIds = videoPosts.map((p) => p.docID).toList();
 
     try {

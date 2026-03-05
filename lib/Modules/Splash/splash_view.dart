@@ -41,6 +41,7 @@ import '../../Services/current_user_service.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
+import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Services/offline_mode_service.dart';
 import '../../Core/Services/deep_link_service.dart';
@@ -64,6 +65,7 @@ class _SplashViewState extends State<SplashView> {
   bool _minimumStartupPrepared = false;
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
+  Timer? _uiTickTimer;
 
   @override
   void initState() {
@@ -82,6 +84,10 @@ class _SplashViewState extends State<SplashView> {
 
     // Firebase hazır olmadan FirebasePerformance çağrısı yapılmasın.
     unawaited(_initApp());
+
+    _uiTickTimer = Timer.periodic(const Duration(milliseconds: 240), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<void> _initApp() async {
@@ -245,10 +251,11 @@ class _SplashViewState extends State<SplashView> {
         await server.start();
       }
 
-      if (!Get.isRegistered<SegmentCacheManager>()) {
-        final cache = Get.put(SegmentCacheManager(), permanent: true);
-        await cache.init();
-      }
+      final cache = Get.isRegistered<SegmentCacheManager>()
+          ? Get.find<SegmentCacheManager>()
+          : Get.put(SegmentCacheManager(), permanent: true);
+      await cache.init();
+      await _applyGlobalMediaCacheQuota();
 
       if (!Get.isRegistered<PrefetchScheduler>()) {
         Get.put(PrefetchScheduler(), permanent: true);
@@ -260,6 +267,16 @@ class _SplashViewState extends State<SplashView> {
     } finally {
       _globalCacheProxyInitFuture = null;
     }
+  }
+
+  Future<void> _applyGlobalMediaCacheQuota() async {
+    try {
+      if (!Get.isRegistered<SegmentCacheManager>()) return;
+      final prefs = await SharedPreferences.getInstance();
+      final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
+      final quotaGb = savedGb.clamp(2, 5);
+      await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
+    } catch (_) {}
   }
 
   Future<void> _initAudioContext() async {
@@ -324,6 +341,9 @@ class _SplashViewState extends State<SplashView> {
     if (!Get.isRegistered<IndexPoolStore>()) {
       Get.put(IndexPoolStore(), permanent: true);
     }
+    if (!Get.isRegistered<UserProfileCacheService>()) {
+      Get.put(UserProfileCacheService(), permanent: true);
+    }
   }
 
   Future<void> _runCriticalWarmStartLoads({required bool isFirstLaunch}) async {
@@ -348,6 +368,7 @@ class _SplashViewState extends State<SplashView> {
                   onWiFi ? (isFirstLaunch ? 6 : 8) : (isFirstLaunch ? 3 : 4),
               maxPages: onWiFi ? 2 : 1,
             );
+            _primeShortVideoSegments(shorts);
           } catch (_) {}
         })(),
         // Stories
@@ -367,6 +388,7 @@ class _SplashViewState extends State<SplashView> {
                   onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 5 : 6),
               maxExtraFetch: onWiFi ? 2 : 1,
             );
+            _primeFeedVideoSegments(agendaController);
           } catch (_) {}
         })(),
         // Recommended users
@@ -388,6 +410,34 @@ class _SplashViewState extends State<SplashView> {
         recommendedController: recommended,
         onWiFi: onWiFi,
       ));
+    } catch (_) {}
+  }
+
+  void _primeShortVideoSegments(ShortController shorts) {
+    try {
+      if (!Get.isRegistered<PrefetchScheduler>()) return;
+      final docIds = shorts.shorts
+          .where((p) => p.hasPlayableVideo)
+          .map((p) => p.docID)
+          .where((id) => id.isNotEmpty)
+          .take(12)
+          .toList();
+      if (docIds.isEmpty) return;
+      unawaited(Get.find<PrefetchScheduler>().updateQueue(docIds, 0));
+    } catch (_) {}
+  }
+
+  void _primeFeedVideoSegments(AgendaController agendaController) {
+    try {
+      if (!Get.isRegistered<PrefetchScheduler>()) return;
+      final docIds = agendaController.agendaList
+          .where((p) => p.hasPlayableVideo)
+          .map((p) => p.docID)
+          .where((id) => id.isNotEmpty)
+          .take(15)
+          .toList();
+      if (docIds.isEmpty) return;
+      unawaited(Get.find<PrefetchScheduler>().updateFeedQueue(docIds, 0));
     } catch (_) {}
   }
 
@@ -730,25 +780,149 @@ class _SplashViewState extends State<SplashView> {
 
   @override
   void dispose() {
+    _uiTickTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final cacheReady = _globalCacheProxyReady;
+    final feedReady = _isFeedReady();
+    final shortsReady = _isShortsReady();
+    final storyReady = _isStoryReady();
+    final readyCount = [
+      cacheReady,
+      feedReady,
+      shortsReady,
+      storyReady,
+    ].where((v) => v).length;
+    final progress = readyCount / 4.0;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: const Center(
-        child: Text(
-          'TurqApp',
-          style: TextStyle(
-            // İlk frame'de özel font yükünü azalt.
-            fontFamily: 'MontserratBold',
-            fontSize: 36,
-            letterSpacing: 1.4,
-            color: Colors.black,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFF8FCFF),
+                  Color(0xFFEFF7FF),
+                  Color(0xFFF6FBF4),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: const Color(0xFF7BC6FF).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -90,
+            left: -70,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                color: const Color(0xFF7FD8A6).withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0.96, end: 1.0),
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) {
+                      return Transform.scale(scale: value, child: child);
+                    },
+                    child: const Text(
+                      'TurqApp',
+                      style: TextStyle(
+                        fontFamily: 'MontserratBold',
+                        fontSize: 38,
+                        letterSpacing: 1.2,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    progress >= 0.99
+                        ? 'Hazır'
+                        : 'İlk içerikler hazırlanıyor...',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 8,
+                      value: progress == 0 ? null : progress.clamp(0.0, 1.0),
+                      backgroundColor: Colors.black12,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF00A86B),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _statusRow('Feed', feedReady),
+                  const SizedBox(height: 8),
+                  _statusRow('Shorts', shortsReady),
+                  const SizedBox(height: 8),
+                  _statusRow('Cache', cacheReady),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusRow(String label, bool ready) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: ready ? const Color(0xFF00A86B) : Colors.black26,
+            shape: BoxShape.circle,
           ),
         ),
-      ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: ready ? Colors.black87 : Colors.black45,
+            fontFamily: 'MontserratMedium',
+          ),
+        ),
+      ],
     );
   }
 }

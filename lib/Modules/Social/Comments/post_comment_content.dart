@@ -18,6 +18,7 @@ class PostCommentContent extends StatelessWidget {
     super.key,
     required this.model,
     required this.postID,
+    this.isPending = false,
     this.onReplyTap,
   }) {
     Get.put(
@@ -28,6 +29,7 @@ class PostCommentContent extends StatelessWidget {
 
   final PostCommentModel model;
   final String postID;
+  final bool isPending;
   final void Function(String commentId, String nickname)? onReplyTap;
 
   @override
@@ -101,6 +103,25 @@ class PostCommentContent extends StatelessWidget {
                           fontFamily: AppFontFamilies.mmedium,
                         ),
                       ),
+                      if (isPending) ...[
+                        8.pw,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Gönderiliyor',
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontSize: 10,
+                              fontFamily: AppFontFamilies.mmedium,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   2.ph,
@@ -114,76 +135,78 @@ class PostCommentContent extends StatelessWidget {
                     ),
                   ),
                   4.ph,
-                  Row(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          onReplyTap?.call(
-                            model.docID,
-                            controller.nickname.value.trim().isEmpty
-                                ? 'kullanıcı'
-                                : controller.nickname.value.trim(),
-                          );
-                        },
-                        child: Text(
-                          'Yanıtla',
-                          style: TextStyle(
-                            color: Colors.black54,
-                            fontSize: 12,
-                            fontFamily: AppFontFamilies.mmedium,
-                          ),
-                        ),
-                      ),
-                      if (model.userID == currentUID) ...[
-                        10.pw,
+                  if (!isPending)
+                    Row(
+                      children: [
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => _showActionsMenu(context, controller),
+                          onTap: () {
+                            onReplyTap?.call(
+                              model.docID,
+                              controller.nickname.value.trim().isEmpty
+                                  ? 'kullanıcı'
+                                  : controller.nickname.value.trim(),
+                            );
+                          },
                           child: Text(
-                            'Sil',
+                            'Yanıtla',
                             style: TextStyle(
-                              color: AppColors.deleteText,
+                              color: Colors.black54,
                               fontSize: 12,
                               fontFamily: AppFontFamilies.mmedium,
                             ),
                           ),
                         ),
+                        if (model.userID == currentUID) ...[
+                          10.pw,
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _showActionsMenu(context, controller),
+                            child: Text(
+                              'Sil',
+                              style: TextStyle(
+                                color: AppColors.deleteText,
+                                fontSize: 12,
+                                fontFamily: AppFontFamilies.mmedium,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
-            SizedBox(
-              width: 30,
-              child: GestureDetector(
-                onTap: controller.toggleLike,
-                behavior: HitTestBehavior.opaque,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Kalp yok: referansa göre yalnızca beğeni (thumb) ikonu
-                    Icon(
-                      hasLiked
-                          ? CupertinoIcons.hand_thumbsup_fill
-                          : CupertinoIcons.hand_thumbsup,
-                      color: hasLiked ? Colors.blueAccent : Colors.black54,
-                      size: 18,
-                    ),
-                    if (controller.likes.isNotEmpty)
-                      Text(
-                        controller.likes.length.toString(),
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 11,
-                          fontFamily: 'MontserratMedium',
-                        ),
+            if (!isPending)
+              SizedBox(
+                width: 30,
+                child: GestureDetector(
+                  onTap: controller.toggleLike,
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Kalp yok: referansa göre yalnızca beğeni (thumb) ikonu
+                      Icon(
+                        hasLiked
+                            ? CupertinoIcons.hand_thumbsup_fill
+                            : CupertinoIcons.hand_thumbsup,
+                        color: hasLiked ? Colors.blueAccent : Colors.black54,
+                        size: 18,
                       ),
-                  ],
+                      if (controller.likes.isNotEmpty)
+                        Text(
+                          controller.likes.length.toString(),
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 11,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       );

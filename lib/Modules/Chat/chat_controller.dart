@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
 import 'package:uuid/uuid.dart';
@@ -240,11 +241,12 @@ class ChatController extends GetxController {
 
   void getUserData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-      final data = doc.data() ?? <String, dynamic>{};
+      final data = (await Get.find<UserProfileCacheService>().getProfile(
+            userID,
+            preferCache: true,
+            cacheOnly: _isOffline,
+          )) ??
+          <String, dynamic>{};
 
       nickname.value = (data["nickname"] ?? "").toString();
       pfImage.value = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();

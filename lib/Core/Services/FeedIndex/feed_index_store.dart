@@ -53,7 +53,9 @@ class FeedIndexEntry {
 }
 
 class FeedIndexStore {
+  static const int _schemaVersion = 2;
   static const int _maxEntries = 250;
+  static const Duration _cacheTtl = Duration(hours: 24);
   late final String _indexFilePath;
   bool _ready = false;
 
@@ -68,7 +70,10 @@ class FeedIndexStore {
     _ready = true;
   }
 
-  Future<List<FeedIndexEntry>> loadEntries({int limit = 30}) async {
+  Future<List<FeedIndexEntry>> loadEntries({
+    int limit = 30,
+    bool allowStale = true,
+  }) async {
     if (!_ready) await init();
     final file = File(_indexFilePath);
     if (!await file.exists()) return const [];
@@ -77,8 +82,32 @@ class FeedIndexStore {
       final content = await file.readAsString();
       if (content.trim().isEmpty) return const [];
       final raw = jsonDecode(content);
-      if (raw is! List) return const [];
-      final entries = raw
+      List<dynamic> entriesRaw = const [];
+      int updatedAtMs = 0;
+      if (raw is List) {
+        // Legacy format (v1): plain list.
+        entriesRaw = raw;
+      } else if (raw is Map<String, dynamic>) {
+        final version = (raw['schemaVersion'] as num?)?.toInt() ?? 0;
+        if (version != _schemaVersion) {
+          await _deleteIndexFile();
+          return const [];
+        }
+        entriesRaw = (raw['entries'] as List?) ?? const [];
+        updatedAtMs = (raw['updatedAt'] as num?)?.toInt() ?? 0;
+      } else {
+        await _deleteIndexFile();
+        return const [];
+      }
+
+      if (updatedAtMs > 0 && !allowStale) {
+        final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAtMs;
+        if (ageMs > _cacheTtl.inMilliseconds) {
+          return const [];
+        }
+      }
+
+      final entries = entriesRaw
           .whereType<Map>()
           .map((m) => FeedIndexEntry.fromJson(m.cast<String, dynamic>()))
           .where((e) => e.docID.isNotEmpty && e.postData.isNotEmpty)
@@ -86,6 +115,7 @@ class FeedIndexStore {
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return entries.take(limit).toList();
     } catch (_) {
+      await _deleteIndexFile();
       return const [];
     }
   }
@@ -98,7 +128,7 @@ class FeedIndexStore {
     if (!_ready) await init();
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    final existing = await loadEntries(limit: _maxEntries);
+    final existing = await loadEntries(limit: _maxEntries, allowStale: true);
     final map = <String, FeedIndexEntry>{
       for (final e in existing) e.docID: e,
     };
@@ -124,10 +154,23 @@ class FeedIndexStore {
     final file = File(_indexFilePath);
     final tmp = File('$_indexFilePath.tmp');
     await tmp.writeAsString(
-      jsonEncode(trimmed.map((e) => e.toJson()).toList()),
+      jsonEncode({
+        'schemaVersion': _schemaVersion,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'entries': trimmed.map((e) => e.toJson()).toList(),
+      }),
       flush: true,
     );
     await tmp.rename(file.path);
   }
-}
 
+  Future<void> _deleteIndexFile() async {
+    if (!_ready) await init();
+    try {
+      final file = File(_indexFilePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+  }
+}

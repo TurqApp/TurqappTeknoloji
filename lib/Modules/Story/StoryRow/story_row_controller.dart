@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../Core/Services/performance_service.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
+import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Services/firebase_my_store.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
@@ -16,6 +17,7 @@ import 'story_user_model.dart';
 class StoryRowController extends GetxController {
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userStore = Get.find<FirebaseMyStore>();
+  UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
   StreamSubscription? _followingSub;
   final int initialLimit = 30;
   final int fullLimit = 100;
@@ -51,23 +53,12 @@ class StoryRowController extends GetxController {
     try {
       final myUid = FirebaseAuth.instance.currentUser?.uid;
       if (myUid != null) {
-        DocumentSnapshot<Map<String, dynamic>> userSnap;
-        try {
-          // Önce cache'ten dene
-          userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get(const GetOptions(source: Source.cache));
-        } catch (_) {
-          // Cache yoksa ağdan çek
-          userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get();
-        }
-
-        if (userSnap.exists) {
-          final data = userSnap.data()!;
+        final data = await _userCache.getProfile(
+          myUid,
+          preferCache: true,
+          cacheOnly: !ContentPolicy.isConnected,
+        );
+        if (data != null) {
           final myUser = StoryUserModel(
             nickname: data['nickname'] ?? "",
             pfImage: data['pfImage'] ?? "",
@@ -190,18 +181,11 @@ class StoryRowController extends GetxController {
       // Kullanıcı profil verilerini batched whereIn ile çek
       final userIds = userStories.keys.toList();
       Map<String, Map<String, dynamic>> userDataMap = {};
-      const chunkSize = 10; // Firestore whereIn max 10
-      for (var i = 0; i < userIds.length; i += chunkSize) {
-        final chunk = userIds.sublist(
-            i, i + chunkSize > userIds.length ? userIds.length : i + chunkSize);
-        final qs = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final d in qs.docs) {
-          userDataMap[d.id] = d.data();
-        }
-      }
+      userDataMap = await _userCache.getProfiles(
+        userIds,
+        preferCache: true,
+        cacheOnly: !ContentPolicy.isConnected,
+      );
 
       // Takip edilen kullanıcılar (gizli hesap filtresi için)
       final Set<String> followingIDs = {};
@@ -263,12 +247,12 @@ class StoryRowController extends GetxController {
 
         // Eğer kendi kullanıcının hiç story'si yoksa yine de başa ekle!
         if (myStoryUser == null) {
-          final userSnap = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(myUid)
-              .get();
-          if (userSnap.exists) {
-            final data = userSnap.data()!;
+          final data = await _userCache.getProfile(
+            myUid,
+            preferCache: true,
+            cacheOnly: !ContentPolicy.isConnected,
+          );
+          if (data != null) {
             myStoryUser = StoryUserModel(
               nickname: data['nickname'] ?? "",
               pfImage: data['pfImage'] ?? "",

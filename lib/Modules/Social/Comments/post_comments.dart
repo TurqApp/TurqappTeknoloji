@@ -90,18 +90,22 @@ class _PostCommentsState extends State<PostComments> {
                                   PostCommentContent(
                                     model: controller.list[i],
                                     postID: widget.postID,
+                                    isPending: controller.isPendingComment(
+                                        controller.list[i].docID),
                                     onReplyTap: (commentId, nickname) {
                                       controller.setReplyTarget(
                                         commentId: commentId,
                                         nickname: nickname,
                                       );
                                       final mention = '@$nickname ';
-                                      if (textEditingController.text != mention) {
+                                      if (textEditingController.text !=
+                                          mention) {
                                         textEditingController.text = mention;
                                         textEditingController.selection =
                                             TextSelection.fromPosition(
                                           TextPosition(
-                                            offset: textEditingController.text.length,
+                                            offset: textEditingController
+                                                .text.length,
                                           ),
                                         );
                                       }
@@ -160,7 +164,8 @@ class _PostCommentsState extends State<PostComments> {
                               textEditingController.text += e;
                               setState(() {});
                             },
-                            child: Text(e, style: const TextStyle(fontSize: 24)),
+                            child:
+                                Text(e, style: const TextStyle(fontSize: 24)),
                           );
                         }).toList(),
                       ),
@@ -298,7 +303,9 @@ class _PostCommentsState extends State<PostComments> {
                         maxLines: null,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
-                        inputFormatters: [LengthLimitingTextInputFormatter(280)],
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(280)
+                        ],
                         decoration: const InputDecoration(
                           hintText: "Bunun hakkında ne düşünüyorsun?",
                           hintStyle: TextStyle(
@@ -343,31 +350,31 @@ class _PostCommentsState extends State<PostComments> {
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: GestureDetector(
-                onTap: () {
-                  controller.yorumYap(
-                    context,
-                    textEditingController.text,
-                    onComplete: () {
-                      textEditingController.clear();
-                      setState(() {});
-                    },
-                  );
-                  setState(() {});
-                },
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const Icon(
-                    Icons.send,
-                    color: Colors.white,
-                    size: 16,
+                  onTap: () {
+                    controller.yorumYap(
+                      context,
+                      textEditingController.text,
+                      onComplete: () {
+                        textEditingController.clear();
+                        setState(() {});
+                      },
+                    );
+                    setState(() {});
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Icon(
+                      Icons.send,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
-              ),
               ),
           ],
         ),

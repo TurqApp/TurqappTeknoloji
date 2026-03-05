@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 
 class _PermissionItem {
   final String title;
@@ -128,6 +129,11 @@ class _PermissionsViewState extends State<PermissionsView> {
   Future<void> _setQuota(int gb) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_quotaKey, gb);
+    try {
+      if (Get.isRegistered<SegmentCacheManager>()) {
+        await Get.find<SegmentCacheManager>().setUserLimitGB(gb);
+      }
+    } catch (_) {}
     if (!mounted) return;
     setState(() => _selectedQuota = gb);
   }

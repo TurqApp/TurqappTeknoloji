@@ -58,7 +58,9 @@ class IndexPoolEntry {
 }
 
 class IndexPoolStore {
+  static const int _schemaVersion = 2;
   static const int _maxEntriesPerKind = 250;
+  static const Duration _cacheTtl = Duration(hours: 24);
   late final String _filePath;
   bool _ready = false;
 
@@ -73,7 +75,7 @@ class IndexPoolStore {
     _ready = true;
   }
 
-  Future<List<IndexPoolEntry>> _loadAll() async {
+  Future<List<IndexPoolEntry>> _loadAll({bool allowStale = true}) async {
     if (!_ready) await init();
     final file = File(_filePath);
     if (!await file.exists()) return const [];
@@ -81,13 +83,39 @@ class IndexPoolStore {
       final content = await file.readAsString();
       if (content.trim().isEmpty) return const [];
       final raw = jsonDecode(content);
-      if (raw is! List) return const [];
-      return raw
+      List<dynamic> entriesRaw = const [];
+      int updatedAtMs = 0;
+
+      if (raw is List) {
+        // Legacy format (v1): plain entries list.
+        entriesRaw = raw;
+      } else if (raw is Map<String, dynamic>) {
+        final version = (raw['schemaVersion'] as num?)?.toInt() ?? 0;
+        if (version != _schemaVersion) {
+          await _deletePoolFile();
+          return const [];
+        }
+        entriesRaw = (raw['entries'] as List?) ?? const [];
+        updatedAtMs = (raw['updatedAt'] as num?)?.toInt() ?? 0;
+      } else {
+        await _deletePoolFile();
+        return const [];
+      }
+
+      if (updatedAtMs > 0 && !allowStale) {
+        final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAtMs;
+        if (ageMs > _cacheTtl.inMilliseconds) {
+          return const [];
+        }
+      }
+
+      return entriesRaw
           .whereType<Map>()
           .map((m) => IndexPoolEntry.fromJson(m.cast<String, dynamic>()))
           .where((e) => e.docID.isNotEmpty && e.kind.isNotEmpty)
           .toList();
     } catch (_) {
+      await _deletePoolFile();
       return const [];
     }
   }
@@ -97,18 +125,33 @@ class IndexPoolStore {
     final file = File(_filePath);
     final tmp = File('$_filePath.tmp');
     await tmp.writeAsString(
-      jsonEncode(all.map((e) => e.toJson()).toList()),
+      jsonEncode({
+        'schemaVersion': _schemaVersion,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'entries': all.map((e) => e.toJson()).toList(),
+      }),
       flush: true,
     );
     await tmp.rename(file.path);
   }
 
+  Future<void> _deletePoolFile() async {
+    if (!_ready) await init();
+    try {
+      final file = File(_filePath);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+  }
+
   Future<List<PostsModel>> loadPosts(
     IndexPoolKind kind, {
     int limit = 20,
+    bool allowStale = true,
   }) async {
     final k = kind.name;
-    final all = await _loadAll();
+    final all = await _loadAll(allowStale: allowStale);
     final filtered = all.where((e) => e.kind == k).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return filtered
@@ -125,7 +168,7 @@ class IndexPoolStore {
     if (posts.isEmpty) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     final k = kind.name;
-    final all = await _loadAll();
+    final all = await _loadAll(allowStale: true);
 
     final map = <String, IndexPoolEntry>{};
     for (final entry in all) {
@@ -167,7 +210,7 @@ class IndexPoolStore {
     if (docIDs.isEmpty) return;
     final k = kind.name;
     final removeSet = docIDs.toSet();
-    final all = await _loadAll();
+    final all = await _loadAll(allowStale: true);
     final filtered = all
         .where((e) => !(e.kind == k && removeSet.contains(e.docID)))
         .toList();

@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
@@ -68,6 +70,7 @@ class ExploreController extends GetxController {
   int _photoEmptyScans = 0;
   int _floodsEmptyScans = 0;
   // ... diğer kodlar
+  UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
 
   @override
   void onInit() {
@@ -251,6 +254,7 @@ class ExploreController extends GetxController {
 
         final prioritized = _prioritizeCachedVideos(uniqueAccumulated);
         explorePosts.addAll(prioritized);
+        _scheduleExplorePrefetchFromPosts(explorePosts);
         unawaited(_saveExplorePostsToPool(prioritized));
         _exploreEmptyScans = 0;
       } else if (pagesFetched >= maxPages && exploreHasMore.value) {
@@ -269,6 +273,7 @@ class ExploreController extends GetxController {
 
   Future<void> _quickFillExploreFromPoolAndBootstrap() async {
     await _tryQuickFillExploreFromPool();
+    _scheduleExplorePrefetchFromPosts(explorePosts);
     if (explorePosts.isEmpty) {
       await fetchExplorePosts();
     } else {
@@ -289,9 +294,11 @@ class ExploreController extends GetxController {
         .where((p) => p.deletedPost != true)
         .toList();
     if (filtered.isEmpty) return;
-    final valid = _dedupeExplorePosts(await _validatePoolPostsAndPrune(filtered));
+    final valid =
+        _dedupeExplorePosts(await _validatePoolPostsAndPrune(filtered));
     if (valid.isEmpty) return;
     explorePosts.assignAll(valid);
+    _scheduleExplorePrefetchFromPosts(explorePosts);
   }
 
   Future<void> _saveExplorePostsToPool(List<PostsModel> posts) async {
@@ -352,16 +359,12 @@ class ExploreController extends GetxController {
       }
     }
 
-    final validUserIds = <String>{};
-    for (final chunk in _chunkList(userIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final d in snap.docs) {
-        validUserIds.add(d.id);
-      }
-    }
+    final profiles = await _userCache.getProfiles(
+      userIds.toList(),
+      preferCache: true,
+      cacheOnly: !ContentPolicy.isConnected,
+    );
+    final validUserIds = profiles.keys.toSet();
 
     final valid = posts
         .where((p) =>
@@ -528,6 +531,7 @@ class ExploreController extends GetxController {
       if (accumulated.isNotEmpty) {
         final prioritized = _prioritizeCachedVideos(accumulated);
         exploreVideos.addAll(prioritized);
+        _scheduleExplorePrefetchFromPosts(exploreVideos);
         _videoEmptyScans = 0;
         // Eğer bu turda sayfa sınırına ulaştıysak, spinner'ı kapat
         if (pagesFetched >= maxPages && videoHasMore.value) {
@@ -784,21 +788,16 @@ class ExploreController extends GetxController {
     if (items.isEmpty) return items;
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
     final me = FirebaseAuth.instance.currentUser?.uid;
-    Map<String, bool> userPrivacy = {};
+    final userProfiles = await _userCache.getProfiles(
+      uniqueUserIDs,
+      preferCache: true,
+      cacheOnly: !ContentPolicy.isConnected,
+    );
+    final userPrivacy = <String, bool>{};
     final initial = items.length;
-    // Firestore whereIn sınırı 10, bu yüzden parçalara böl
-    for (var i = 0; i < uniqueUserIDs.length; i += 10) {
-      final chunk = uniqueUserIDs.sublist(
-          i, i + 10 > uniqueUserIDs.length ? uniqueUserIDs.length : i + 10);
-      try {
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final d in usersSnap.docs) {
-          userPrivacy[d.id] = (d.data()['gizliHesap'] ?? false) == true;
-        }
-      } catch (_) {}
+    for (final uid in uniqueUserIDs) {
+      final data = userProfiles[uid];
+      userPrivacy[uid] = (data?['gizliHesap'] ?? false) == true;
     }
 
     final filtered = items.where((post) {
@@ -848,6 +847,21 @@ class ExploreController extends GetxController {
     return sorted;
   }
 
+  void _scheduleExplorePrefetchFromPosts(List<PostsModel> source) {
+    if (source.isEmpty) return;
+    if (!Get.isRegistered<PrefetchScheduler>()) return;
+
+    final docIds = source
+        .where((p) => p.hasPlayableVideo)
+        .map((p) => p.docID)
+        .where((id) => id.isNotEmpty)
+        .take(20)
+        .toList();
+    if (docIds.isEmpty) return;
+
+    unawaited(Get.find<PrefetchScheduler>().updateQueue(docIds, 0));
+  }
+
   Future<dynamic> _callTypesenseCallable(
       String callableName, Map<String, dynamic> payload) async {
     final targets = <FirebaseFunctions>[
@@ -874,22 +888,19 @@ class ExploreController extends GetxController {
     final blocked = <String>{};
     final ids = users.map((e) => e.userID).where((e) => e.isNotEmpty).toList();
 
-    for (int i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final deletedAccount = (data['deletedAccount'] ?? false) == true;
-        final status = (data['accountStatus'] ?? '').toString().toLowerCase();
-        final pendingOrDeleted =
-            status == 'pending_deletion' || status == 'deleted';
-        if (deletedAccount || pendingOrDeleted) {
-          blocked.add(doc.id);
-        }
+    final profiles = await _userCache.getProfiles(
+      ids,
+      preferCache: true,
+      cacheOnly: !ContentPolicy.isConnected,
+    );
+    for (final entry in profiles.entries) {
+      final data = entry.value;
+      final deletedAccount = (data['deletedAccount'] ?? false) == true;
+      final status = (data['accountStatus'] ?? '').toString().toLowerCase();
+      final pendingOrDeleted =
+          status == 'pending_deletion' || status == 'deleted';
+      if (deletedAccount || pendingOrDeleted) {
+        blocked.add(entry.key);
       }
     }
 

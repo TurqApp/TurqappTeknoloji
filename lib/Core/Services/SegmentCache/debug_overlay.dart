@@ -90,6 +90,11 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
 
   Widget _buildExpanded(CacheMetrics metrics, SegmentCacheManager cache) {
     final prefetch = _prefetch;
+    final soft = cache.softLimitBytes;
+    final hard = cache.hardLimitBytes;
+    final used = cache.totalSizeBytes;
+    final usagePct = hard > 0 ? ((used / hard) * 100).clamp(0, 999) : 0;
+    final softPct = hard > 0 ? ((soft / hard) * 100).clamp(0, 999) : 0;
 
     final lines = <String>[
       'HIT: ${metrics.cacheHits}  MISS: ${metrics.cacheMisses}',
@@ -99,9 +104,15 @@ class _CacheDebugOverlayState extends State<CacheDebugOverlay> {
       'Evictions: ${metrics.evictions}',
       'Entries: ${cache.entryCount}',
       'Disk: ${CacheMetrics.formatBytes(cache.totalSizeBytes)}',
+      'Soft: ${CacheMetrics.formatBytes(soft)} (${softPct.toStringAsFixed(0)}%)',
+      'Hard: ${CacheMetrics.formatBytes(hard)}',
+      'Usage: ${usagePct.toStringAsFixed(1)}%',
       if (prefetch != null) ...[
         'Prefetch: ${prefetch.isPaused ? "PAUSED" : "ACTIVE"}',
         'Queue: ${prefetch.queueSize}  DL: ${prefetch.activeDownloads}',
+        'Ready: ${prefetch.feedReadyCount}/${prefetch.feedWindowCount} '
+            '(${(prefetch.feedReadyRatio * 100).toStringAsFixed(0)}%)',
+        'Q-Latency: ${prefetch.avgQueueDispatchLatencyMs.toStringAsFixed(0)}ms',
       ],
     ];
 

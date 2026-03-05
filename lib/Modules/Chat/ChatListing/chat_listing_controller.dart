@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
+import '../../../Core/Services/user_profile_cache_service.dart';
 import '../CreateChat/create_chat.dart';
 
 class ChatListingController extends GetxController {
@@ -224,7 +225,6 @@ class ChatListingController extends GetxController {
     final tempList = <ChatListingModel>[];
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final prefs = await SharedPreferences.getInstance();
-    final usersRef = FirebaseFirestore.instance.collection("users");
 
     final query = FirebaseFirestore.instance
         .collection("conversations")
@@ -235,6 +235,7 @@ class ChatListingController extends GetxController {
       cacheOnly: cacheOnly,
     );
 
+    final userCache = Get.find<UserProfileCacheService>();
     for (final doc in snap.docs) {
       final data = doc.data();
       final archivedMap = Map<String, dynamic>.from(data["archived"] ?? {});
@@ -246,13 +247,12 @@ class ChatListingController extends GetxController {
       final participants = List<String>.from(data["participants"] ?? []);
       final otherUserId = participants.firstWhereOrNull((v) => v != uid);
       if (otherUserId == null || otherUserId.isEmpty) continue;
-      final userDoc = await _getDocWithCachePreference(
-        usersRef.doc(otherUserId),
+      final userData = await userCache.getProfile(
+        otherUserId,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
-      if (!userDoc.exists) continue;
-      final userData = userDoc.data() ?? {};
+      if (userData == null) continue;
       final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
       final rawUnread = unreadMap[uid];
       final serverUnread = rawUnread is num
@@ -338,23 +338,6 @@ class ChatListingController extends GetxController {
       return query.get(const GetOptions(source: Source.cache));
     }
     return query.get(const GetOptions(source: Source.server));
-  }
-
-  Future<DocumentSnapshot<Map<String, dynamic>>> _getDocWithCachePreference(
-    DocumentReference<Map<String, dynamic>> ref, {
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    if (preferCache) {
-      try {
-        final cached = await ref.get(const GetOptions(source: Source.cache));
-        if (cached.exists) return cached;
-      } catch (_) {}
-    }
-    if (cacheOnly) {
-      return ref.get(const GetOptions(source: Source.cache));
-    }
-    return ref.get(const GetOptions(source: Source.server));
   }
 
   void setTab(String tab) {

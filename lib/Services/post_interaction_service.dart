@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import '../Models/post_interactions_models_new.dart';
 import '../Models/posts_model.dart';
 import '../Models/user_interactions_models.dart';
+import 'offline_mode_service.dart';
 
 /// Post etkileşimlerini yöneten servis.
 ///
@@ -27,6 +28,9 @@ class PostInteractionService extends GetxController {
   bool _permissionDeniedLogged = false;
 
   String? get currentUserID => _auth.currentUser?.uid;
+  bool get _isOffline =>
+      Get.isRegistered<OfflineModeService>() &&
+      !Get.find<OfflineModeService>().isOnline.value;
 
   // ---------------------------------------------------------------------------
   // BEĞENİ
@@ -36,6 +40,24 @@ class PostInteractionService extends GetxController {
   Future<bool> toggleLike(String postId) async {
     final userId = currentUserID;
     if (userId == null) return false;
+
+    if (_isOffline) {
+      final currentLiked = await _isLikedFromLocal(postId, userId);
+      final target = !currentLiked;
+      await OfflineModeService.instance.queueAction(
+        PendingAction(
+          type: 'set_like_post',
+          dedupeKey: 'set_like_post:$userId:$postId',
+          data: {
+            'postId': postId,
+            'userId': userId,
+            'value': target,
+          },
+        ),
+      );
+      _updateInteractionCache(postId, like: target);
+      return target;
+    }
 
     final postRef = _postRef(postId);
     final likeDocRef = postRef.collection('likes').doc(userId);
@@ -97,6 +119,26 @@ class PostInteractionService extends GetxController {
     final userId = currentUserID;
     if (userId == null) return null;
     if (text.trim().isEmpty) return null;
+
+    if (_isOffline) {
+      final suffix = userId.length > 6 ? userId.substring(0, 6) : userId;
+      final tempId = 'offline_${_nowMs()}_$suffix';
+      await OfflineModeService.instance.queueAction(
+        PendingAction(
+          type: 'add_comment_post',
+          data: {
+            'postId': postId,
+            'userId': userId,
+            'text': text,
+            'imgs': imgs ?? const <String>[],
+            'videos': videos ?? const <String>[],
+            'clientCommentId': tempId,
+          },
+        ),
+      );
+      _updateInteractionCache(postId, comment: true);
+      return tempId;
+    }
 
     final postRef = _postRef(postId);
     final commentRef = postRef.collection('comments').doc();
@@ -311,6 +353,24 @@ class PostInteractionService extends GetxController {
   Future<bool> toggleSave(String postId) async {
     final userId = currentUserID;
     if (userId == null) return false;
+
+    if (_isOffline) {
+      final currentSaved = await _isSavedFromLocal(postId, userId);
+      final target = !currentSaved;
+      await OfflineModeService.instance.queueAction(
+        PendingAction(
+          type: 'set_save_post',
+          dedupeKey: 'set_save_post:$userId:$postId',
+          data: {
+            'postId': postId,
+            'userId': userId,
+            'value': target,
+          },
+        ),
+      );
+      _updateInteractionCache(postId, saved: target);
+      return target;
+    }
 
     final postRef = _postRef(postId);
     final saveDocRef = postRef.collection('saveds').doc(userId);
@@ -712,6 +772,32 @@ class PostInteractionService extends GetxController {
     if (reported != null) updated['reported'] = reported;
     _interactionStatusCache[key] =
         _InteractionCacheEntry(status: updated, fetchedAt: DateTime.now());
+  }
+
+  Future<bool> _isLikedFromLocal(String postId, String userId) async {
+    try {
+      final doc = await _postRef(postId)
+          .collection('likes')
+          .doc(userId)
+          .get(const GetOptions(source: Source.cache));
+      return doc.exists;
+    } catch (_) {
+      final key = _cacheKey(userId, postId);
+      return _interactionStatusCache[key]?.status['liked'] ?? false;
+    }
+  }
+
+  Future<bool> _isSavedFromLocal(String postId, String userId) async {
+    try {
+      final doc = await _postRef(postId)
+          .collection('saveds')
+          .doc(userId)
+          .get(const GetOptions(source: Source.cache));
+      return doc.exists;
+    } catch (_) {
+      final key = _cacheKey(userId, postId);
+      return _interactionStatusCache[key]?.status['saved'] ?? false;
+    }
   }
 }
 

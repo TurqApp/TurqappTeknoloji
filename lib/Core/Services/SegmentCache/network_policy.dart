@@ -1,6 +1,4 @@
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
-import 'cache_manager.dart';
 import '../network_awareness_service.dart';
 
 /// Cache sistemi için ağ politikası.
@@ -8,7 +6,7 @@ import '../network_awareness_service.dart';
 ///
 /// Politika:
 /// - Wi-Fi: prefetch + on-demand CDN fetch
-/// - Cellular: sadece cache'den serv et (cache miss = oynatma yok)
+/// - Cellular: arka plan prefetch kapalı, on-demand segment fetch açık
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
   /// Wi-Fi'de mi? Prefetch sadece Wi-Fi'de çalışır.
@@ -21,22 +19,17 @@ class CacheNetworkPolicy {
   }
 
   /// On-demand CDN fetch izni.
-  /// SADECE Wi-Fi'de true — mobil veride cache miss olursa CDN'e gitmez.
+  /// Wi-Fi'de her zaman true.
+  /// Cellular'da sadece oynatma anındaki cache-miss segmentleri için true.
+  /// (Arka plan prefetch yine canPrefetch ile Wi-Fi'a bağlıdır.)
   static bool get canFetchOnDemand {
     try {
       final net = Get.find<NetworkAwarenessService>();
       if (net.isOnWiFi) return true;
 
-      // Mobilde istisna: keş 50 videonun altındaysa, izlenen videodan
-      // gelen anlık segment isteğine izin ver (izledikçe keş dolsun).
+      // Mobilde oynatma akışını kilitlememek için on-demand segment'e izin ver.
       if (net.isOnCellular) {
-
-        // Cache manager henüz ayağa kalkmadıysa bootstrap için izin ver.
-        if (!Get.isRegistered<SegmentCacheManager>()) {
-          return true;
-        }
-        final cache = Get.find<SegmentCacheManager>();
-        return cache.cachedVideoCount < ContentPolicy.minGlobalCachedVideos;
+        return net.isConnected;
       }
       // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
       return net.isConnected;

@@ -38,6 +38,7 @@ import 'package:turqappv2/Core/Services/media_enhancement_service.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Services/offline_mode_service.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -93,7 +94,9 @@ class SettingsView extends StatelessWidget {
                         try {
                           await userService
                               .updateFields({"gizliHesap": newValue});
-                        } catch (e) {}
+                        } catch (e) {
+                          debugPrint("Gizlilik güncellenemedi: $e");
+                        }
                       }),
                       buildRow(
                         "Engellenenler",
@@ -322,6 +325,14 @@ class SettingsView extends StatelessWidget {
         ? CacheMetrics.formatBytes(
             Get.find<SegmentCacheManager>().totalSizeBytes)
         : "Bilinmiyor";
+    final offline = Get.isRegistered<OfflineModeService>()
+        ? Get.find<OfflineModeService>()
+        : Get.put(OfflineModeService.instance);
+    final queueStats = offline.getQueueStats();
+    final queueLastSyncMs = (queueStats['lastSyncAt'] as int?) ?? 0;
+    final queueLastSyncText = queueLastSyncMs <= 0
+        ? 'Henüz yok'
+        : DateTime.fromMillisecondsSinceEpoch(queueLastSyncMs).toString();
     final lastSignIn =
         FirebaseAuth.instance.currentUser?.metadata.lastSignInTime;
     final loginDate = lastSignIn == null
@@ -391,6 +402,18 @@ class SettingsView extends StatelessWidget {
             Text("Kayıtlı Medya Sayısı: $cacheEntryCount"),
             Text("Kaplanan Alan: $cacheSizeText"),
             const SizedBox(height: 8),
+            const Text(
+              "Offline Kuyruk",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text("Bekleyen: ${queueStats['pending'] ?? 0}"),
+            Text("Dead-letter: ${queueStats['deadLetter'] ?? 0}"),
+            Text(
+                "Durum: ${(queueStats['isSyncing'] ?? false) ? 'Senkronize ediliyor' : 'Boşta'}"),
+            Text("İşlenen (toplam): ${queueStats['processedCount'] ?? 0}"),
+            Text("Hata (toplam): ${queueStats['failedCount'] ?? 0}"),
+            Text("Son Senkron: $queueLastSyncText"),
+            const SizedBox(height: 8),
             Text("Giriş Tarihi: $loginDate"),
             Text("Giriş Saati: $loginTime"),
           ],
@@ -426,6 +449,9 @@ class SettingsView extends StatelessWidget {
     }
     if (!Get.isRegistered<MediaEnhancementService>()) {
       Get.put(MediaEnhancementService());
+    }
+    if (!Get.isRegistered<OfflineModeService>()) {
+      Get.put(OfflineModeService.instance);
     }
   }
 
@@ -480,6 +506,14 @@ class SettingsView extends StatelessWidget {
                 onTap: () {
                   Get.back();
                   _showQuickActions();
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.tray_2),
+                title: const Text("Offline Kuyruk Detayı"),
+                onTap: () {
+                  Get.back();
+                  _showOfflineQueueDetails();
                 },
               ),
               ListTile(
@@ -580,6 +614,35 @@ class SettingsView extends StatelessWidget {
                 },
               ),
               ListTile(
+                leading: const Icon(CupertinoIcons.refresh_circled),
+                title: const Text("Offline Kuyruğu Şimdi Senkronla"),
+                onTap: () async {
+                  Get.back();
+                  await OfflineModeService.instance.processPendingNow(
+                    ignoreBackoff: true,
+                  );
+                  AppSnackbar("Tamam", "Offline kuyruk senkron tetiklendi");
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.arrow_2_circlepath_circle),
+                title: const Text("Dead-letter Yeniden Dene"),
+                onTap: () async {
+                  Get.back();
+                  await OfflineModeService.instance.retryDeadLetter();
+                  AppSnackbar("Tamam", "Dead-letter işlemleri kuyruğa alındı");
+                },
+              ),
+              ListTile(
+                leading: const Icon(CupertinoIcons.clear_circled),
+                title: const Text("Dead-letter Temizle"),
+                onTap: () async {
+                  Get.back();
+                  await OfflineModeService.instance.clearDeadLetter();
+                  AppSnackbar("Tamam", "Dead-letter kuyruğu temizlendi");
+                },
+              ),
+              ListTile(
                 leading: const Icon(CupertinoIcons.pause_circle),
                 title: const Text("Prefetch Duraklat"),
                 onTap: () {
@@ -608,6 +671,133 @@ class SettingsView extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showOfflineQueueDetails() {
+    final offline = Get.isRegistered<OfflineModeService>()
+        ? Get.find<OfflineModeService>()
+        : Get.put(OfflineModeService.instance);
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Offline Kuyruk Detayı"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Obx(() {
+            final pending = offline.pendingActions.toList();
+            final dead = offline.deadLetterActions.toList();
+            final stats = offline.getQueueStats();
+
+            String fmtMs(int ms) {
+              if (ms <= 0) return '-';
+              final dt = DateTime.fromMillisecondsSinceEpoch(ms);
+              return dt.toString();
+            }
+
+            Widget buildItem(PendingAction a) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        a.type,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        'attempt=${a.attemptCount}  next=${fmtMs(a.nextAttemptAtMs)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      if ((a.lastError ?? '').isNotEmpty)
+                        Text(
+                          'error=${a.lastError}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Online: ${stats['isOnline']}'),
+                  Text('Sync: ${stats['isSyncing']}'),
+                  Text('Pending: ${pending.length}'),
+                  Text('Dead-letter: ${dead.length}'),
+                  Text('Processed: ${stats['processedCount'] ?? 0}'),
+                  Text('Failed: ${stats['failedCount'] ?? 0}'),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Pending (ilk 8)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  if (pending.isEmpty)
+                    const Text('-', style: TextStyle(color: Colors.black54)),
+                  ...pending.take(8).map(buildItem),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Dead-letter (ilk 8)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  if (dead.isEmpty)
+                    const Text('-', style: TextStyle(color: Colors.black54)),
+                  ...dead.take(8).map(buildItem),
+                ],
+              ),
+            );
+          }),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await OfflineModeService.instance
+                  .processPendingNow(ignoreBackoff: true);
+            },
+            child: const Text('Şimdi Senkronla'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await OfflineModeService.instance.retryDeadLetter(limit: 100);
+            },
+            child: const Text('Dead-letter Retry'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await OfflineModeService.instance.clearDeadLetter();
+            },
+            child: const Text('Dead-letter Clear'),
+          ),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Kapat"),
+          ),
+        ],
       ),
     );
   }

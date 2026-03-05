@@ -35,8 +35,7 @@ class CachedSegment {
         segmentUri: json['segmentUri'] as String,
         diskPath: json['diskPath'] as String,
         sizeBytes: json['sizeBytes'] as int,
-        cachedAt:
-            DateTime.fromMillisecondsSinceEpoch(json['cachedAt'] as int),
+        cachedAt: DateTime.fromMillisecondsSinceEpoch(json['cachedAt'] as int),
       );
 }
 
@@ -110,8 +109,8 @@ class CacheIndex {
   /// 3 GB hard limit
   static const int maxSizeBytes = 3 * 1024 * 1024 * 1024;
 
-  /// 2.5 GB soft limit — eviction tetiklenir
-  static const int softLimitBytes = 2684354560;
+  /// Soft limit = hard limit'in %70'i — eviction bu eşikte tetiklenir.
+  static const int softLimitBytes = (maxSizeBytes * 70) ~/ 100;
 
   CacheIndex({
     Map<String, VideoCacheEntry>? entries,

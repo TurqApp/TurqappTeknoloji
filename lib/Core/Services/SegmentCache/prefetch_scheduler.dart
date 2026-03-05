@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -15,36 +14,41 @@ import 'network_policy.dart';
 /// Wi-Fi prefetch kuyruğu.
 ///
 /// Breadth-first strateji:
-/// 1. Sonraki 5 videonun ilk 2 segmenti (hızlı başlangıç garantisi)
-/// 2. Aktif videonun tüm segmentleri (tam cache)
-/// 3. current+1, current+2'nin tüm segmentleri
+/// 1. Sonraki videolarda ilk 2 segment hazır
+/// 2. Aktif videoda ilk 2 segment hazır
+/// 3. İzleme sırasında yalnızca 1 sonraki segment hazırlanır
 class PrefetchScheduler extends GetxController {
   static const String _cdnOrigin = 'https://cdn.turqapp.com';
   static const Map<String, String> _cdnHeaders = {
     'X-Turq-App': 'turqapp-mobile',
     'Referer': '$_cdnOrigin/',
   };
+  static const int _targetReadySegments = 2;
   // +5/-5 kuralı: önündeki 5 videonun min 2 segmenti hazır olmalı
   static const int _fallbackBreadthCount = 5;
-  static const int _fallbackBreadthSegments = 2;
   static const int _fallbackDepthCount = 3;
   static const int _fallbackMaxConcurrent = 2;
-  static const int _fallbackFeedFullWindow = 5;
+  static const int _fallbackFeedFullWindow = 15;
   static const int _fallbackFeedPrepWindow = 8;
-  static const int _fallbackFeedPrepSegments = 2;
   static const int _wifiMinBreadthCount = 12;
-  static const int _wifiMinBreadthSegments = 4;
   static const int _wifiMinDepthCount = 7;
   static const int _wifiMinMaxConcurrent = 4;
-  static const int _wifiMinFeedFullWindow = 10;
+  static const int _wifiMinFeedFullWindow = 15;
   static const int _wifiMinFeedPrepWindow = 20;
-  static const int _wifiMinFeedPrepSegments = 4;
 
   final List<_PrefetchJob> _queue = [];
   bool _paused = false;
   bool _mobileSeedMode = false;
   int _activeDownloads = 0;
   int _pendingDownloadBytes = 0;
+  final Map<String, DateTime> _jobEnqueuedAt = {};
+  List<String> _lastFeedDocIDs = const [];
+  int _lastFeedCurrentIndex = 0;
+  int _lastFeedReadyCount = 0;
+  int _lastFeedWindowCount = 0;
+  double _lastFeedReadyRatio = 0.0;
+  int _queueLatencySamples = 0;
+  double _avgQueueDispatchLatencyMs = 0.0;
   DownloadWorker? _worker;
   StreamSubscription? _workerSub;
   Timer? _watchdogTimer;
@@ -53,6 +57,10 @@ class PrefetchScheduler extends GetxController {
   int get activeDownloads => _activeDownloads;
   int get queueSize => _queue.length;
   bool get isPaused => _paused;
+  double get feedReadyRatio => _lastFeedReadyRatio;
+  int get feedReadyCount => _lastFeedReadyCount;
+  int get feedWindowCount => _lastFeedWindowCount;
+  double get avgQueueDispatchLatencyMs => _avgQueueDispatchLatencyMs;
   bool get _isOnWiFi {
     try {
       if (Get.isRegistered<NetworkAwarenessService>()) {
@@ -67,15 +75,6 @@ class PrefetchScheduler extends GetxController {
     return _isOnWiFi
         ? base < _wifiMinBreadthCount
             ? _wifiMinBreadthCount
-            : base
-        : base;
-  }
-
-  int get _breadthSegments {
-    final base = _remote?.prefetchBreadthSegments ?? _fallbackBreadthSegments;
-    return _isOnWiFi
-        ? base < _wifiMinBreadthSegments
-            ? _wifiMinBreadthSegments
             : base
         : base;
   }
@@ -111,12 +110,6 @@ class PrefetchScheduler extends GetxController {
           : _fallbackFeedPrepWindow)
       : _fallbackFeedPrepWindow;
 
-  int get _feedPrepSegments => _isOnWiFi
-      ? (_fallbackFeedPrepSegments < _wifiMinFeedPrepSegments
-          ? _wifiMinFeedPrepSegments
-          : _fallbackFeedPrepSegments)
-      : _fallbackFeedPrepSegments;
-
   VideoRemoteConfigService? get _remote {
     if (Get.isRegistered<VideoRemoteConfigService>()) {
       return Get.find<VideoRemoteConfigService>();
@@ -139,6 +132,7 @@ class PrefetchScheduler extends GetxController {
     }
 
     _queue.clear();
+    _jobEnqueuedAt.clear();
 
     // Öncelik 1: Breadth-first — sonraki N videonun ilk K segmenti
     for (var i = 1; i <= _breadthCount; i++) {
@@ -152,25 +146,27 @@ class PrefetchScheduler extends GetxController {
 
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: _breadthSegments,
+        maxSegments: _targetReadySegments,
         priority: 0,
       ));
+      _jobEnqueuedAt[docID] = DateTime.now();
     }
 
-    // Öncelik 2: Depth — aktif videonun tümü
+    // Öncelik 2: Aktif videoda ilk 2 segment
     if (currentIndex >= 0 && currentIndex < docIDs.length) {
       final docID = docIDs[currentIndex];
       final entry = cacheManager.getEntry(docID);
       if (entry == null || !entry.isFullyCached) {
         _queue.add(_PrefetchJob(
           docID: docID,
-          maxSegments: -1, // tümü
+          maxSegments: _targetReadySegments,
           priority: 1,
         ));
+        _jobEnqueuedAt[docID] = DateTime.now();
       }
     }
 
-    // Öncelik 3: Depth — sonraki 2 videonun tümü
+    // Öncelik 3: Sonraki videolarda ilk 2 segment
     for (var i = 1; i <= _depthCount - 1; i++) {
       final idx = currentIndex + i;
       if (idx >= docIDs.length) break;
@@ -180,9 +176,10 @@ class PrefetchScheduler extends GetxController {
 
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: -1,
+        maxSegments: _targetReadySegments,
         priority: 2,
       ));
+      _jobEnqueuedAt[docID] = DateTime.now();
     }
 
     // -5 kuralı: gerideki 5 videonun izlenen kısmını cache'de tut
@@ -201,9 +198,10 @@ class PrefetchScheduler extends GetxController {
     _processQueue();
   }
 
-  /// Feed için agresif prefetch:
-  /// 1) current dahil ilk 5 postu TAM cache
-  /// 2) sonraki pencerede (varsayılan 8) ilk birkaç segmenti hazırlık
+  /// Feed için prefetch:
+  /// 1) Açılışta ilk 15 videonun ilk 2 segmenti
+  /// 2) Scroll sırasında current etrafında ±5 video için ilk 2 segment
+  /// 3) Sonraki pencere için ek hazırlık (2 segment)
   Future<void> updateFeedQueue(List<String> docIDs, int currentIndex) async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
@@ -218,34 +216,47 @@ class PrefetchScheduler extends GetxController {
     if (docIDs.isEmpty) return;
 
     _queue.clear();
+    _jobEnqueuedAt.clear();
 
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
-    final fullEnd =
-        (safeCurrent + _feedFullWindow - 1).clamp(0, docIDs.length - 1);
-    final prepEnd = (fullEnd + _feedPrepWindow).clamp(0, docIDs.length - 1);
+    _lastFeedDocIDs = List<String>.from(docIDs);
+    _lastFeedCurrentIndex = safeCurrent;
+    final aroundStart = (safeCurrent - 5).clamp(0, docIDs.length - 1);
+    final aroundEnd = (safeCurrent + 5).clamp(0, docIDs.length - 1);
+    final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
+      0,
+      docIDs.length - 1,
+    );
+    final prepEnd = (initialEnd + _feedPrepWindow).clamp(0, docIDs.length - 1);
 
-    // Öncelik 0: ekranda gösterilecek ilk pencere TAM cache
-    for (int i = safeCurrent; i <= fullEnd; i++) {
-      final docID = docIDs[i];
+    final queued = <String>{};
+    void addJob(int index, int priority) {
+      if (index < 0 || index >= docIDs.length) return;
+      final docID = docIDs[index];
+      if (!queued.add(docID)) return;
       final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
+      if (entry != null && entry.isFullyCached) return;
       _queue.add(_PrefetchJob(
         docID: docID,
-        maxSegments: -1,
-        priority: 0,
+        maxSegments: _targetReadySegments,
+        priority: priority,
       ));
+      _jobEnqueuedAt[docID] = DateTime.now();
     }
 
-    // Öncelik 1: sonraki pencere hazırlık (ilk segmentler)
-    for (int i = fullEnd + 1; i <= prepEnd; i++) {
-      final docID = docIDs[i];
-      final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
-      _queue.add(_PrefetchJob(
-        docID: docID,
-        maxSegments: _feedPrepSegments,
-        priority: 1,
-      ));
+    // Öncelik 0A: açılış/konum penceresi (ilk 15 içerik hazır olsun)
+    for (int i = safeCurrent; i <= initialEnd; i++) {
+      addJob(i, 0);
+    }
+
+    // Öncelik 0B: current etrafında ±5 her zaman hazır
+    for (int i = aroundStart; i <= aroundEnd; i++) {
+      addJob(i, 0);
+    }
+
+    // Öncelik 1: ileri hazırlık penceresi
+    for (int i = initialEnd + 1; i <= prepEnd; i++) {
+      addJob(i, 1);
     }
 
     // -5 kuralı: gerideki 5 videonun cache'ini koru
@@ -258,6 +269,7 @@ class PrefetchScheduler extends GetxController {
     }
 
     _queue.sort((a, b) => a.priority.compareTo(b.priority));
+    _updateFeedReadyRatio();
     _processQueue();
   }
 
@@ -266,6 +278,7 @@ class PrefetchScheduler extends GetxController {
   void pause() {
     _paused = true;
     _queue.clear();
+    _jobEnqueuedAt.clear();
 
     // Aktif indirme varsa worker'ı durdur
     if (_activeDownloads > 0) {
@@ -305,6 +318,7 @@ class PrefetchScheduler extends GetxController {
 
     while (_queue.isNotEmpty && _activeDownloads < _maxConcurrent && !_paused) {
       final job = _queue.removeAt(0);
+      _trackQueueDispatchLatency(job.docID);
       await _processJob(job);
     }
   }
@@ -391,8 +405,8 @@ class PrefetchScheduler extends GetxController {
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
 
-      // İZLENMEYEN: mevcut agresif davranış korunur (tam cache olabilir).
-      // İZLENEN: tüm segmentler asla inmez, ilerleyici ve sınırlı indirilir.
+      // İZLENMEYEN: sadece ilk 2 segment hazır tutulur.
+      // İZLENEN: sadece bir sonraki segment indirilir.
       final Iterable<String> toDownload;
       if (_mobileSeedMode && isUnwatched) {
         final mobileOrdered = _pickMobileSeedSegments(
@@ -401,13 +415,13 @@ class PrefetchScheduler extends GetxController {
           variantDir: variantDir,
           cacheManager: cacheManager,
         );
-        final int mobileCap = job.maxSegments > 0
-            ? job.maxSegments
-            : mobileOrdered.length;
+        final int mobileCap =
+            job.maxSegments > 0 ? job.maxSegments : mobileOrdered.length;
         toDownload = mobileOrdered.take(mobileCap);
       } else if (isUnwatched) {
-        toDownload =
-            job.maxSegments > 0 ? uncached.take(job.maxSegments) : uncached;
+        final readyCap =
+            job.maxSegments > 0 ? job.maxSegments : _targetReadySegments;
+        toDownload = uncached.take(readyCap);
       } else {
         final preferred = _pickWatchedPrioritySegments(
           docID: job.docID,
@@ -416,10 +430,7 @@ class PrefetchScheduler extends GetxController {
           cacheManager: cacheManager,
           watchProgress: watchedProgress,
         );
-        final int watchedCap = job.maxSegments > 0
-            ? math.min(job.maxSegments, 3)
-            : 3; // watched videoda full asla indirme
-        toDownload = preferred.take(watchedCap);
+        toDownload = preferred.take(1);
       }
 
       for (final segUri in toDownload) {
@@ -447,17 +458,9 @@ class PrefetchScheduler extends GetxController {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    if (!CacheNetworkPolicy.isOnCellular) return false;
-    if (docIDs.isEmpty) return false;
-
-    // Keş havuzu boşsa (listede segmenti olan hiçbir entry yoksa) aç.
-    for (final docID in docIDs.take(20)) {
-      final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.cachedSegmentCount > 0) {
-        return false;
-      }
-    }
-    return true;
+    // Mobilde prefetch tamamen kapalı.
+    // Segmentler sadece oynatma anında HLS proxy on-demand yolundan gelir.
+    return false;
   }
 
   Iterable<String> _pickMobileSeedSegments({
@@ -504,12 +507,10 @@ class PrefetchScheduler extends GetxController {
     );
 
     // Kural:
-    // 1. segment izlenirken 3. segment
-    // 2. segment izlenirken 5. segment
-    // 3. segment izlenirken 6. segment
-    // 4. segment izlenirken 7. segment
-    // sonrası seri devam.
-    final baseTarget = watchedSeg <= 1 ? 3 : watchedSeg + 3;
+    // İlk 2 segment başlangıçta hazır.
+    // Oynatma sırasında sadece bir sonraki segment hazırlanır.
+    // (1-2 aralığında 3. segmente geçilir.)
+    final baseTarget = watchedSeg <= 2 ? 3 : watchedSeg + 1;
 
     final ordered = <String>[];
     final seen = <int>{};
@@ -553,11 +554,18 @@ class PrefetchScheduler extends GetxController {
       final bytes = result.bytes!;
       _trackDownloadBytes(bytes.length);
       final cacheManager = _getCacheManager();
-      cacheManager?.writeSegment(
-        result.docID,
-        result.segmentKey,
-        bytes,
-      );
+      if (cacheManager != null) {
+        unawaited(
+          cacheManager
+              .writeSegment(
+                result.docID,
+                result.segmentKey,
+                bytes,
+              )
+              .then((_) => _updateFeedReadyRatio())
+              .catchError((_) {}),
+        );
+      }
     } else {
       debugPrint(
           '[Prefetch] Download failed: ${result.docID}/${result.segmentKey} — ${result.error}');
@@ -565,6 +573,63 @@ class PrefetchScheduler extends GetxController {
 
     // Kuyrukta daha var mı?
     _processQueue();
+  }
+
+  void _trackQueueDispatchLatency(String docID) {
+    final enqueuedAt = _jobEnqueuedAt.remove(docID);
+    if (enqueuedAt == null) return;
+    final latencyMs = DateTime.now().difference(enqueuedAt).inMilliseconds;
+    if (latencyMs < 0) return;
+    _queueLatencySamples += 1;
+    _avgQueueDispatchLatencyMs +=
+        (latencyMs - _avgQueueDispatchLatencyMs) / _queueLatencySamples;
+  }
+
+  void _updateFeedReadyRatio() {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) {
+      _lastFeedReadyCount = 0;
+      _lastFeedWindowCount = 0;
+      _lastFeedReadyRatio = 0.0;
+      return;
+    }
+    if (_lastFeedDocIDs.isEmpty) {
+      _lastFeedReadyCount = 0;
+      _lastFeedWindowCount = 0;
+      _lastFeedReadyRatio = 0.0;
+      return;
+    }
+
+    final safeCurrent =
+        _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final aroundStart = (safeCurrent - 5).clamp(0, _lastFeedDocIDs.length - 1);
+    final aroundEnd = (safeCurrent + 5).clamp(0, _lastFeedDocIDs.length - 1);
+    final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
+      0,
+      _lastFeedDocIDs.length - 1,
+    );
+
+    final targetIndices = <int>{};
+    for (int i = safeCurrent; i <= initialEnd; i++) {
+      targetIndices.add(i);
+    }
+    for (int i = aroundStart; i <= aroundEnd; i++) {
+      targetIndices.add(i);
+    }
+
+    int ready = 0;
+    for (final idx in targetIndices) {
+      final docID = _lastFeedDocIDs[idx];
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.cachedSegmentCount >= _targetReadySegments) {
+        ready++;
+      }
+    }
+
+    _lastFeedReadyCount = ready;
+    _lastFeedWindowCount = targetIndices.length;
+    _lastFeedReadyRatio =
+        targetIndices.isEmpty ? 0.0 : (ready / targetIndices.length);
   }
 
   /// Watchdog: 30sn boyunca hiç download result gelmezse _activeDownloads sıkışmıştır.
@@ -633,7 +698,7 @@ class PrefetchScheduler extends GetxController {
 
 class _PrefetchJob {
   final String docID;
-  final int maxSegments; // -1 = tümü
+  final int maxSegments; // Bu job için indirilecek maksimum segment.
   final int priority; // düşük = önce
 
   _PrefetchJob({

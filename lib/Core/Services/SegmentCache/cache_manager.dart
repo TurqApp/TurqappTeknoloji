@@ -67,6 +67,8 @@ class SegmentCacheManager extends GetxController {
   int get totalSegmentCount =>
       _index.entries.values.fold(0, (sum, e) => sum + e.cachedSegmentCount);
   List<String> get recentlyPlayed => List.unmodifiable(_recentlyPlayed);
+  int get softLimitBytes => _softLimitBytes;
+  int get hardLimitBytes => _hardLimitBytes;
   int get _softLimitBytes =>
       _userSoftLimitBytes ??
       _remote?.cacheSoftLimitBytes ??
@@ -587,11 +589,11 @@ class SegmentCacheManager extends GetxController {
   }
 
   /// Kullanıcı cache kotasını (GB) runtime'da uygular.
-  /// 2-5 GB aralığına clamp edilir, soft limit hard limit'in %85'i olur.
+  /// 2-5 GB aralığına clamp edilir, soft limit hard limit'in %70'i olur.
   Future<void> setUserLimitGB(int gb) async {
     final normalized = gb.clamp(2, 5);
     final hard = normalized * 1024 * 1024 * 1024;
-    final soft = (hard * 0.85).round();
+    final soft = (hard * 0.70).round();
 
     _userHardLimitBytes = hard;
     _userSoftLimitBytes = soft;
