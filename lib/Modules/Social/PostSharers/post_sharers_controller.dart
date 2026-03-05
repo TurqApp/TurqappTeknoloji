@@ -11,6 +11,17 @@ class PostSharersController extends GetxController {
   final RxMap<String, Map<String, dynamic>> usersData =
       <String, Map<String, dynamic>>{}.obs;
   final RxBool isLoading = true.obs;
+  static const int _whereInChunkSize = 10;
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
+  }
 
   @override
   void onInit() {
@@ -55,45 +66,54 @@ class PostSharersController extends GetxController {
   Future<void> loadUsersData(List<String> userIDs) async {
     try {
       final Map<String, Map<String, dynamic>> userData = {};
-
-      for (final userID in userIDs) {
+      for (final chunk
+          in _chunkList(userIDs.toSet().toList(), _whereInChunkSize)) {
         try {
-          final userDoc = await FirebaseFirestore.instance
+          final snap = await FirebaseFirestore.instance
               .collection('users')
-              .doc(userID)
+              .where(FieldPath.documentId, whereIn: chunk)
               .get();
+          final foundIds = snap.docs.map((d) => d.id).toSet();
 
-          if (userDoc.exists) {
-            final data = userDoc.data() ?? {};
+          for (final userDoc in snap.docs) {
+            final data = userDoc.data();
             final firstName = data['firstName'] ?? '';
             final lastName = data['lastName'] ?? '';
             final fullName = ('$firstName $lastName').trim();
 
-            userData[userID] = {
+            userData[userDoc.id] = {
               'nickname': data['nickname'] ?? '',
               'pfImage': data['pfImage'] ?? '',
-              'pfImageUrl':
-                  data['pfImage'] ?? '', // For compatibility with the view
+              'pfImageUrl': data['pfImage'] ?? '',
               'fullName':
                   fullName.isNotEmpty ? fullName : 'Bilinmeyen Kullanıcı',
               'firstName': firstName,
               'lastName': lastName,
             };
-            print('PostSharers: Loaded data for $userID: ${userData[userID]}');
-          } else {
-            print('PostSharers: User document not found for $userID');
+          }
+
+          for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
+            userData[missingId] = {
+              'nickname': 'Bilinmeyen Kullanıcı',
+              'pfImage': '',
+              'pfImageUrl': '',
+              'fullName': 'Bilinmeyen Kullanıcı',
+              'firstName': '',
+              'lastName': '',
+            };
           }
         } catch (e) {
-          print('Error loading user data for $userID: $e');
-          // Add placeholder data for failed requests
-          userData[userID] = {
-            'nickname': 'Bilinmeyen Kullanıcı',
-            'pfImage': '',
-            'pfImageUrl': '',
-            'fullName': 'Bilinmeyen Kullanıcı',
-            'firstName': '',
-            'lastName': '',
-          };
+          print('Error loading users data chunk: $e');
+          for (final userID in chunk) {
+            userData[userID] = {
+              'nickname': 'Bilinmeyen Kullanıcı',
+              'pfImage': '',
+              'pfImageUrl': '',
+              'fullName': 'Bilinmeyen Kullanıcı',
+              'firstName': '',
+              'lastName': '',
+            };
+          }
         }
       }
 

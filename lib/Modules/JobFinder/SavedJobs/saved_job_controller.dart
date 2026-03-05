@@ -8,6 +8,17 @@ import 'package:turqappv2/Models/job_model.dart';
 class SavedJobsController extends GetxController {
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;
+  static const int _whereInChunkSize = 10;
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
+  }
 
   Future<void> getStartData() async {
     isLoading.value = true;
@@ -33,37 +44,57 @@ class SavedJobsController extends GetxController {
       final now = DateTime.now().millisecondsSinceEpoch;
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-      List<JobModel> jobs = [];
+      final jobs = <JobModel>[];
+      final staleSavedIds = <String>[];
+      final idsToMarkEnded = <String>[];
 
-      for (String docId in savedIds) {
-        final jobDoc = await FirebaseFirestore.instance
+      for (final chunk in _chunkList(savedIds, _whereInChunkSize)) {
+        final snap = await FirebaseFirestore.instance
             .collection(JobCollection.name)
-            .doc(docId)
+            .where(FieldPath.documentId, whereIn: chunk)
             .get();
-
-        if (!jobDoc.exists) {
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(uid)
-              .collection("SavedIsBul")
-              .doc(docId)
-              .delete();
-          continue;
+        final foundIds = snap.docs.map((d) => d.id).toSet();
+        for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
+          staleSavedIds.add(missingId);
         }
 
-        final data = jobDoc.data()!;
-        final job = JobModel.fromMap(data, docId);
-
-        if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(docId)
-              .update({"ended": true});
-          continue;
+        for (final doc in snap.docs) {
+          final job = JobModel.fromMap(doc.data(), doc.id);
+          if (job.timeStamp < thirtyDaysAgo && !job.ended) {
+            idsToMarkEnded.add(doc.id);
+            continue;
+          }
+          if (!job.ended) {
+            jobs.add(job);
+          }
         }
+      }
 
-        if (!job.ended) {
-          jobs.add(job);
+      // DB yan etkilerini batch ile uygula (tek tek write yerine).
+      if (staleSavedIds.isNotEmpty) {
+        for (final chunk in _chunkList(staleSavedIds, 450)) {
+          final batch = FirebaseFirestore.instance.batch();
+          for (final docId in chunk) {
+            final ref = FirebaseFirestore.instance
+                .collection("users")
+                .doc(uid)
+                .collection("SavedIsBul")
+                .doc(docId);
+            batch.delete(ref);
+          }
+          await batch.commit();
+        }
+      }
+      if (idsToMarkEnded.isNotEmpty) {
+        for (final chunk in _chunkList(idsToMarkEnded, 450)) {
+          final batch = FirebaseFirestore.instance.batch();
+          for (final docId in chunk) {
+            final ref = FirebaseFirestore.instance
+                .collection(JobCollection.name)
+                .doc(docId);
+            batch.update(ref, {"ended": true});
+          }
+          await batch.commit();
         }
       }
 

@@ -56,6 +56,17 @@ class FirebaseMyStore extends GetxController {
   var totalFollower = 0.obs;
   var totalFollowing = 0.obs;
   final scrollController = ScrollController();
+  static const int _whereInChunkSize = 10;
+
+  List<List<T>> _chunkList<T>(List<T> input, int size) {
+    if (input.isEmpty) return <List<T>>[];
+    final chunks = <List<T>>[];
+    for (int i = 0; i < input.length; i += size) {
+      final end = (i + size > input.length) ? input.length : i + size;
+      chunks.add(input.sublist(i, end));
+    }
+    return chunks;
+  }
 
   @override
   void onInit() {
@@ -119,15 +130,24 @@ class FirebaseMyStore extends GetxController {
 
     try {
       lastSearchedUserList.clear();
+      final uniqueIds =
+          searchList.where((id) => id.trim().isNotEmpty).toSet().toList();
+      final byId = <String, OgrenciModel>{};
 
-      for (var userId in searchList) {
-        final doc = await FirebaseFirestore.instance
+      for (final chunk in _chunkList(uniqueIds, _whereInChunkSize)) {
+        final snap = await FirebaseFirestore.instance
             .collection("users")
-            .doc(userId)
+            .where(FieldPath.documentId, whereIn: chunk)
             .get();
+        for (final doc in snap.docs) {
+          byId[doc.id] = OgrenciModel.fromDocument(doc);
+        }
+      }
 
-        if (doc.exists) {
-          final model = OgrenciModel.fromDocument(doc);
+      // Arama geçmişindeki sıralamayı koru.
+      for (final userId in searchList) {
+        final model = byId[userId];
+        if (model != null) {
           lastSearchedUserList.add(model);
         }
       }
