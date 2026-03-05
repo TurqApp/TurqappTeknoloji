@@ -9,6 +9,7 @@ class UserPostLinkService {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  static const int _maxRefsPerFetch = 240;
 
   Stream<List<UserPostReference>> listenLikedPosts(String userId) =>
       _listenUserRefs(userId, 'liked_posts');
@@ -45,13 +46,21 @@ class UserPostLinkService {
   }) async {
     if (refs.isEmpty) return const [];
 
-    final referenceTimes = {for (final ref in refs) ref.postId: ref.timeStamp};
+    final normalizedRefs = _dedupeRefsByPostId(refs);
+    final limitedRefs = normalizedRefs.length > _maxRefsPerFetch
+        ? normalizedRefs.sublist(0, _maxRefsPerFetch)
+        : normalizedRefs;
+    final referenceTimes = {
+      for (final ref in limitedRefs) ref.postId: ref.timeStamp
+    };
     final List<PostsModel> result = [];
     final List<String> missingIds = [];
 
-    for (var i = 0; i < refs.length; i += 10) {
-      final chunk =
-          refs.sublist(i, i + 10 > refs.length ? refs.length : i + 10);
+    for (var i = 0; i < limitedRefs.length; i += 10) {
+      final chunk = limitedRefs.sublist(
+        i,
+        i + 10 > limitedRefs.length ? limitedRefs.length : i + 10,
+      );
       final ids = chunk.map((e) => e.postId).toSet().toList();
 
       final query = await _firestore
@@ -83,6 +92,17 @@ class UserPostLinkService {
       return timeB.compareTo(timeA);
     });
     return result;
+  }
+
+  List<UserPostReference> _dedupeRefsByPostId(List<UserPostReference> refs) {
+    final seen = <String>{};
+    final out = <UserPostReference>[];
+    for (final ref in refs) {
+      if (ref.postId.isEmpty) continue;
+      if (!seen.add(ref.postId)) continue;
+      out.add(ref);
+    }
+    return out;
   }
 
   Future<void> _removeMissingRefs(
