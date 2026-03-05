@@ -82,9 +82,18 @@ class PostSharersController extends GetxController {
             final fullName = ('$firstName $lastName').trim();
 
             userData[userDoc.id] = {
-              'nickname': data['nickname'] ?? '',
-              'pfImage': data['pfImage'] ?? '',
-              'pfImageUrl': data['pfImage'] ?? '',
+              'nickname': data['displayName'] ??
+                  data['username'] ??
+                  data['nickname'] ??
+                  '',
+              'pfImage': data['avatarUrl'] ??
+                  data['pfImage'] ??
+                  data['photoURL'] ??
+                  '',
+              'pfImageUrl': data['avatarUrl'] ??
+                  data['pfImage'] ??
+                  data['photoURL'] ??
+                  '',
               'fullName':
                   fullName.isNotEmpty ? fullName : 'Bilinmeyen Kullanıcı',
               'firstName': firstName,

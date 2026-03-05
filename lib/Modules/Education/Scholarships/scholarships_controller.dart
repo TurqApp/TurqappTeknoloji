@@ -494,9 +494,20 @@ class ScholarshipsController extends GetxController {
       return {'pfImage': '', 'nickname': '', 'userID': userId};
     }
     final data = userDoc.data() as Map<String, dynamic>? ?? {};
+    final profileName =
+        (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+            .toString();
+    final profileImage = (data['avatarUrl'] ??
+            data['pfImage'] ??
+            data['photoURL'] ??
+            data['profileImageUrl'] ??
+            '')
+        .toString();
     return {
-      'pfImage': data['pfImage'] as String? ?? '',
-      'nickname': data['nickname'] as String? ?? '',
+      'pfImage': profileImage,
+      'avatarUrl': profileImage,
+      'nickname': profileName,
+      'displayName': profileName,
       'userID': userId,
       'meslekKategori': data['meslekKategori'] as String? ?? '',
       'firstName': data['firstName'] as String? ?? '',

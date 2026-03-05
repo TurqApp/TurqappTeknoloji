@@ -186,8 +186,11 @@ class UserProfileCacheService extends GetxService {
     _dirty = true;
     _schedulePersist();
 
-    final imageUrl =
-        (profile['pfImage'] ?? profile['photoUrl'] ?? '').toString();
+    final imageUrl = (profile['avatarUrl'] ??
+            profile['pfImage'] ??
+            profile['photoUrl'] ??
+            '')
+        .toString();
     if (imageUrl.isNotEmpty) {
       unawaited(TurqImageCacheManager.instance.getSingleFile(imageUrl));
     }
@@ -249,18 +252,43 @@ class UserProfileCacheService extends GetxService {
   }
 
   Map<String, dynamic> _sanitizeProfile(Map<String, dynamic> raw) {
+    final nickname =
+        (raw['displayName'] ?? raw['username'] ?? raw['nickname'] ?? '')
+            .toString();
+    final avatarUrl = (raw['avatarUrl'] ??
+            raw['pfImage'] ??
+            raw['photoURL'] ??
+            raw['profileImageUrl'] ??
+            raw['photoUrl'] ??
+            '')
+        .toString();
+    final followerCount = raw['followerCount'] ??
+        raw['counterOfFollowers'] ??
+        raw['followersCount'] ??
+        raw['takipci'] ??
+        0;
+    final followingCount = raw['followingCount'] ??
+        raw['counterOfFollowings'] ??
+        raw['takip'] ??
+        0;
+    final postCount =
+        raw['postCount'] ?? raw['counterOfPosts'] ?? raw['gonderi'] ?? 0;
+
     return <String, dynamic>{
-      'nickname': (raw['nickname'] ?? '').toString(),
-      'pfImage': (raw['pfImage'] ?? raw['photoUrl'] ?? '').toString(),
+      'displayName': nickname,
+      'nickname': nickname,
+      'avatarUrl': avatarUrl,
+      'pfImage': avatarUrl,
       'photoUrl': (raw['photoUrl'] ?? '').toString(),
       'firstName': (raw['firstName'] ?? '').toString(),
       'lastName': (raw['lastName'] ?? '').toString(),
       'fullName': (raw['fullName'] ?? '').toString(),
       'token': (raw['token'] ?? '').toString(),
       'bio': (raw['bio'] ?? '').toString(),
-      'followersCount': raw['followersCount'] ?? raw['takipci'] ?? 0,
-      'followingCount': raw['followingCount'] ?? raw['takip'] ?? 0,
-      'postCount': raw['postCount'] ?? raw['gonderi'] ?? 0,
+      'followerCount': followerCount,
+      'followersCount': followerCount,
+      'followingCount': followingCount,
+      'postCount': postCount,
       'gizliHesap': raw['gizliHesap'] == true,
       'deletedAccount': raw['deletedAccount'] == true,
       'accountStatus': (raw['accountStatus'] ?? '').toString(),

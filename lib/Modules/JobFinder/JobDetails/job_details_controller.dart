@@ -65,8 +65,15 @@ class JobDetailsController extends GetxController {
 
       fullname.value = '${data['firstName'] ?? ''} '
           '${data['lastName'] ?? ''}';
-      nickname.value = data['nickname'] as String? ?? '';
-      pfImage.value = data['pfImage'] as String? ?? '';
+      nickname.value =
+          (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+              .toString();
+      pfImage.value = (data['avatarUrl'] ??
+              data['pfImage'] ??
+              data['photoURL'] ??
+              data['profileImageUrl'] ??
+              '')
+          .toString();
     } catch (e) {
       print('getUserData hatası: $e');
     }

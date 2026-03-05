@@ -79,7 +79,10 @@ class PostCommentController extends GetxController {
           .doc(userID)
           .get();
       if (doc.exists) {
-        postUserNickname.value = doc.get('nickname') ?? '';
+        final data = doc.data() ?? const <String, dynamic>{};
+        postUserNickname.value =
+            (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+                .toString();
       }
     } catch (e) {
       postUserNickname.value = '';

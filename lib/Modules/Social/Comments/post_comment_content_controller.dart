@@ -32,8 +32,16 @@ class PostCommentContentController extends GetxController {
           .doc(userID)
           .get();
       if (doc.exists) {
-        nickname.value = doc.get('nickname') ?? '';
-        pfImage.value = doc.get('pfImage') ?? '';
+        final data = doc.data() ?? const <String, dynamic>{};
+        nickname.value =
+            (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+                .toString();
+        pfImage.value = (data['avatarUrl'] ??
+                data['pfImage'] ??
+                data['photoURL'] ??
+                data['profileImageUrl'] ??
+                '')
+            .toString();
       }
     } catch (_) {}
   }
