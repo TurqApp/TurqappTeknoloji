@@ -82,6 +82,9 @@ class ChatController extends GetxController {
   Timer? _typingDebounce;
   Timer? _recordingTimer;
   StreamSubscription<DocumentSnapshot>? _typingStream;
+  bool _typingActive = false;
+  int _lastTypingHeartbeatMs = 0;
+  static const int _typingHeartbeatIntervalMs = 1500;
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _recordingPath;
   static const int _localChatWindowLimit = 180;
@@ -294,11 +297,21 @@ class ChatController extends GetxController {
     if (uid == null) return;
     final text = textEditingController.text;
     if (text.isNotEmpty) {
-      try {
-        FirebaseFirestore.instance.collection("conversations").doc(chatID).set({
-          "typing.$uid": DateTime.now().millisecondsSinceEpoch,
-        }, SetOptions(merge: true));
-      } catch (_) {}
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final shouldSendHeartbeat = !_typingActive ||
+          (nowMs - _lastTypingHeartbeatMs) >= _typingHeartbeatIntervalMs;
+      if (shouldSendHeartbeat) {
+        try {
+          FirebaseFirestore.instance
+              .collection("conversations")
+              .doc(chatID)
+              .set({
+            "typing.$uid": nowMs,
+          }, SetOptions(merge: true));
+          _typingActive = true;
+          _lastTypingHeartbeatMs = nowMs;
+        } catch (_) {}
+      }
       _typingDebounce?.cancel();
       _typingDebounce = Timer(const Duration(seconds: 2), () {
         _clearTyping();
@@ -311,11 +324,14 @@ class ChatController extends GetxController {
   void _clearTyping() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+    if (!_typingActive) return;
     try {
       FirebaseFirestore.instance
           .collection("conversations")
           .doc(chatID)
           .set({"typing.$uid": 0}, SetOptions(merge: true));
+      _typingActive = false;
+      _lastTypingHeartbeatMs = 0;
     } catch (_) {}
   }
 
@@ -356,9 +372,11 @@ class ChatController extends GetxController {
     // İlk açılışta cache-first: ekrandaki mesajlar anında local cache'ten gelsin.
     _loadInitialMessages(forceServer: false);
     _listenRealtimeMessages();
-    _messageSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      _syncMessages(forceServer: false);
-    });
+    if (_isOffline) {
+      _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+        _syncMessages(forceServer: false);
+      });
+    }
   }
 
   Future<void> loadChatBackgroundPreference() async {
@@ -409,9 +427,18 @@ class ChatController extends GetxController {
         .limit(_syncHeadSize)
         .snapshots()
         .listen((snapshot) {
+      if (!_isOffline) {
+        _messageSyncTimer?.cancel();
+        _messageSyncTimer = null;
+      }
       _applyConversationSnapshot(snapshot.docs, replace: false);
       _refreshMergedMessages();
-    }, onError: (_) {});
+    }, onError: (_) {
+      if (_messageSyncTimer != null) return;
+      _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+        _syncMessages(forceServer: true);
+      });
+    });
   }
 
   Future<void> _loadInitialMessages({required bool forceServer}) async {

@@ -28,6 +28,13 @@ class ChatListingController extends GetxController {
           : null;
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
+  bool get _isOnWiFi => _network?.isOnWiFi ?? true;
+  Duration get _syncInterval {
+    if (_isOffline) return const Duration(seconds: 25);
+    return _isOnWiFi
+        ? const Duration(seconds: 12)
+        : const Duration(seconds: 18);
+  }
 
   @override
   void onInit() {
@@ -295,7 +302,7 @@ class ChatListingController extends GetxController {
 
   void startConversationListener() {
     _syncTimer?.cancel();
-    _syncTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _syncTimer = Timer.periodic(_syncInterval, (_) {
       getList(forceServer: false, silent: true);
     });
   }
