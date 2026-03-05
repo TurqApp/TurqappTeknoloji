@@ -151,135 +151,134 @@ class MessageContent extends StatelessWidget {
   Widget messageBubble() {
     final isMine = model.userID == FirebaseAuth.instance.currentUser!.uid;
     final bubbleColor = isMine ? const Color(0xFFE7FFDB) : Colors.white;
-    final hasReactions = model.reactions.entries
-        .where((e) => e.value.isNotEmpty)
-        .isNotEmpty;
+    final hasReactions =
+        model.reactions.entries.where((e) => e.value.isNotEmpty).isNotEmpty;
     return Padding(
       padding: EdgeInsets.only(bottom: hasReactions ? 14 : 0),
       child: Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        Flexible(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {},
-            onTapDown: _captureTapDown,
-            onDoubleTap: () {
-              controller.likeImage();
-            },
-            onLongPressStart: _openMenuFromLongPressStart,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  constraints: BoxConstraints(
-                    maxWidth: Get.width * 0.78,
-                  ),
-                  padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(isMine ? 18 : 4),
-                      topRight: Radius.circular(isMine ? 4 : 18),
-                      bottomLeft: const Radius.circular(18),
-                      bottomRight: const Radius.circular(18),
+        mainAxisAlignment:
+            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          Flexible(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              onTapDown: _captureTapDown,
+              onDoubleTap: () {
+                controller.likeImage();
+              },
+              onLongPressStart: _openMenuFromLongPressStart,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: Get.width * 0.78,
                     ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x0A000000),
-                        blurRadius: 3,
-                        offset: Offset(0, 1),
-                      )
-                    ],
-                  ),
-                  child: IntrinsicWidth(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (model.replyMessageId.trim().isNotEmpty ||
-                            model.replyText.trim().isNotEmpty)
-                          _buildReplyCard(),
-                        if (model.isForwarded)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                    CupertinoIcons
-                                        .arrowshape_turn_up_right_fill,
-                                    size: 11,
-                                    color: Colors.black45),
-                                const SizedBox(width: 3),
-                                Text(
-                                  "İletildi",
-                                  style: TextStyle(
-                                    color: Colors.black45,
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                    fontFamily: "Montserrat",
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Flexible(child: _buildMessageText()),
-                            const SizedBox(width: 6),
-                            _buildMessageMetaRow(isMine),
-                          ],
-                        ),
+                    padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+                    decoration: BoxDecoration(
+                      color: bubbleColor,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(isMine ? 18 : 4),
+                        topRight: Radius.circular(isMine ? 4 : 18),
+                        bottomLeft: const Radius.circular(18),
+                        bottomRight: const Radius.circular(18),
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x0A000000),
+                          blurRadius: 3,
+                          offset: Offset(0, 1),
+                        )
                       ],
                     ),
-                  ),
-                ),
-                // Beğeni ikonu - sağ üst
-                if (model.begeniler
-                    .contains(FirebaseAuth.instance.currentUser!.uid))
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
+                    child: IntrinsicWidth(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (model.replyMessageId.trim().isNotEmpty ||
+                              model.replyText.trim().isNotEmpty)
+                            _buildReplyCard(),
+                          if (model.isForwarded)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                      CupertinoIcons
+                                          .arrowshape_turn_up_right_fill,
+                                      size: 11,
+                                      color: Colors.black45),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    "İletildi",
+                                    style: TextStyle(
+                                      color: Colors.black45,
+                                      fontSize: 11,
+                                      fontStyle: FontStyle.italic,
+                                      fontFamily: "Montserrat",
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Flexible(child: _buildMessageText()),
+                              const SizedBox(width: 6),
+                              _buildMessageMetaRow(isMine),
+                            ],
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        CupertinoIcons.hand_thumbsup_fill,
-                        color: Colors.blueAccent,
-                        size: 13,
-                      ),
                     ),
                   ),
-                // Reaksiyonlar - alt
-                if (model.reactions.entries
-                    .where((e) => e.value.isNotEmpty)
-                    .isNotEmpty)
-                  Positioned(
-                    bottom: -14,
-                    right: 4,
-                    child: _reactionBadges(),
-                  ),
-              ],
+                  // Beğeni ikonu - sağ üst
+                  if (model.begeniler
+                      .contains(FirebaseAuth.instance.currentUser!.uid))
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.hand_thumbsup_fill,
+                          color: Colors.blueAccent,
+                          size: 13,
+                        ),
+                      ),
+                    ),
+                  // Reaksiyonlar - alt
+                  if (model.reactions.entries
+                      .where((e) => e.value.isNotEmpty)
+                      .isNotEmpty)
+                    Positioned(
+                      bottom: -14,
+                      right: 4,
+                      child: _reactionBadges(),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
+        ],
+      ),
     );
   }
 
@@ -421,7 +420,8 @@ class MessageContent extends StatelessWidget {
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.08),
+                                        color: Colors.black
+                                            .withValues(alpha: 0.08),
                                         blurRadius: 4,
                                         offset: const Offset(0, 1),
                                       ),
@@ -839,9 +839,8 @@ class MessageContent extends StatelessWidget {
   }) {
     final status = model.status;
     final bool isRead = status == "read" || (status.isEmpty && model.isRead);
-    final Color tickColor = isRead
-        ? const Color(0xFF53BDEB)
-        : (defaultColor ?? Colors.black38);
+    final Color tickColor =
+        isRead ? const Color(0xFF53BDEB) : (defaultColor ?? Colors.black38);
 
     return Icon(
       CupertinoIcons.checkmark,
@@ -885,14 +884,39 @@ class MessageContent extends StatelessWidget {
   Future<void> _openMentionProfile(String mention) async {
     final nick = mention.trim().replaceFirst('@', '');
     if (nick.isEmpty) return;
-    final snap = await FirebaseFirestore.instance
-        .collection('users')
-        .where('nickname', isEqualTo: nick)
-        .limit(1)
-        .get();
-    if (snap.docs.isNotEmpty) {
-      Get.to(() => SocialProfile(userID: snap.docs.first.id));
-    }
+    try {
+      final handle = nick.toLowerCase();
+      final usernameDoc = await FirebaseFirestore.instance
+          .collection('usernames')
+          .doc(handle)
+          .get();
+      final mappedUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
+      if (mappedUid.isNotEmpty) {
+        Get.to(() => SocialProfile(userID: mappedUid));
+        return;
+      }
+    } catch (_) {}
+    try {
+      final byUsername = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: nick.toLowerCase())
+          .limit(1)
+          .get();
+      if (byUsername.docs.isNotEmpty) {
+        Get.to(() => SocialProfile(userID: byUsername.docs.first.id));
+        return;
+      }
+    } catch (_) {}
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('nickname', isEqualTo: nick)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) {
+        Get.to(() => SocialProfile(userID: snap.docs.first.id));
+      }
+    } catch (_) {}
   }
 
   List<InlineSpan> _buildInteractiveSpans(String text, TextStyle baseStyle) {

@@ -46,8 +46,16 @@ class MessageContentController extends GetxController {
         .doc(model.userID)
         .get()
         .then((doc) {
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
+      final data = doc.data() ?? const <String, dynamic>{};
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
     });
 
     if (model.postID != "") {
@@ -476,8 +484,18 @@ class MessageContentController extends GetxController {
             .doc(postModel.value!.userID)
             .get()
             .then((doc) {
-          postNickname.value = doc.get("nickname");
-          postPfImage.value = doc.get("pfImage");
+          final data = doc.data() ?? const <String, dynamic>{};
+          postNickname.value = (data["displayName"] ??
+                  data["username"] ??
+                  data["nickname"] ??
+                  "")
+              .toString();
+          postPfImage.value = (data["avatarUrl"] ??
+                  data["pfImage"] ??
+                  data["photoURL"] ??
+                  data["profileImageUrl"] ??
+                  "")
+              .toString();
         });
       }
     });

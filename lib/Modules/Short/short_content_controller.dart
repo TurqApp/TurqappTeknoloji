@@ -477,14 +477,22 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> fetchUserData(String userID) async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get();
-    pfImage.value = doc.get("pfImage");
-    nickname.value = doc.get("nickname");
-    token.value = doc.get("token");
-    fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
+    final doc =
+        await FirebaseFirestore.instance.collection("users").doc(userID).get();
+    final data = doc.data() ?? const <String, dynamic>{};
+    pfImage.value = (data["avatarUrl"] ??
+            data["pfImage"] ??
+            data["photoURL"] ??
+            data["profileImageUrl"] ??
+            "")
+        .toString();
+    nickname.value =
+        (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+            .toString();
+    token.value = (data["token"] ?? "").toString();
+    fullName.value =
+        "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
+            .trim();
 
     final takipDoc = await FirebaseFirestore.instance
         .collection("users")

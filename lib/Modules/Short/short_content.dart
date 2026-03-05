@@ -340,18 +340,53 @@ class ShortsContent extends StatelessWidget {
                       volumeOff(true);
                     },
                     onMentionTap: (mention) {
-                      FirebaseFirestore.instance
-                          .collection("users")
-                          .where("nickname", isEqualTo: mention)
-                          .get()
-                          .then((snap) async {
-                        final doc = snap.docs.first;
-                        if (doc.id != FirebaseAuth.instance.currentUser!.uid) {
+                      (() async {
+                        final normalizedMention =
+                            mention.trim().replaceFirst('@', '');
+                        final handle = normalizedMention.toLowerCase();
+                        if (handle.isEmpty) return;
+                        String targetUid = "";
+                        try {
+                          final usernameDoc = await FirebaseFirestore.instance
+                              .collection("usernames")
+                              .doc(handle)
+                              .get();
+                          targetUid = (usernameDoc.data()?["uid"] ?? "")
+                              .toString()
+                              .trim();
+                        } catch (_) {}
+                        if (targetUid.isEmpty) {
+                          try {
+                            final byUsername = await FirebaseFirestore.instance
+                                .collection("users")
+                                .where("username", isEqualTo: handle)
+                                .limit(1)
+                                .get();
+                            if (byUsername.docs.isNotEmpty) {
+                              targetUid = byUsername.docs.first.id;
+                            }
+                          } catch (_) {}
+                        }
+                        if (targetUid.isEmpty) {
+                          try {
+                            final byNickname = await FirebaseFirestore.instance
+                                .collection("users")
+                                .where("nickname", isEqualTo: normalizedMention)
+                                .limit(1)
+                                .get();
+                            if (byNickname.docs.isNotEmpty) {
+                              targetUid = byNickname.docs.first.id;
+                            }
+                          } catch (_) {}
+                        }
+                        if (targetUid.isNotEmpty &&
+                            targetUid !=
+                                FirebaseAuth.instance.currentUser!.uid) {
                           volumeOff(false);
-                          await Get.to(() => SocialProfile(userID: doc.id));
+                          await Get.to(() => SocialProfile(userID: targetUid));
                           volumeOff(true);
                         }
-                      });
+                      })();
                     },
                   ),
                 ],

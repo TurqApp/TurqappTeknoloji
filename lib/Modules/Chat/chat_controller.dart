@@ -251,8 +251,15 @@ class ChatController extends GetxController {
           )) ??
           <String, dynamic>{};
 
-      nickname.value = (data["nickname"] ?? "").toString();
-      pfImage.value = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["photoUrl"] ??
+              "")
+          .toString();
       token.value = (data["token"] ?? "").toString();
 
       final firstName = (data["firstName"] ?? "").toString().trim();
@@ -1295,7 +1302,11 @@ class ChatController extends GetxController {
       items.add({
         "chatID": doc.id,
         "userID": other,
-        "nickname": userDoc.data()?["nickname"] ?? "",
+        "nickname": (userDoc.data()?["displayName"] ??
+                userDoc.data()?["username"] ??
+                userDoc.data()?["nickname"] ??
+                "")
+            .toString(),
       });
     }
 

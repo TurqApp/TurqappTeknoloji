@@ -16,9 +16,19 @@ class CreateChatContentController extends GetxController {
         .doc(userID)
         .get()
         .then((doc) {
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
-      fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
+      final data = doc.data() ?? const <String, dynamic>{};
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
+      fullName.value =
+          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
+              .trim();
     });
   }
 }

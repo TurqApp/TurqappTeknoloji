@@ -7,12 +7,24 @@ class PostLikeContentController extends GetxController {
   var nickname = "".obs;
 
   Future<void> getUserData(String userID) async {
-    FirebaseFirestore.instance.collection("users").doc(userID)
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(userID)
         .get()
-        .then((doc){
-       fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
-       pfImage.value = doc.get("pfImage");
-       nickname.value = doc.get("nickname");
+        .then((doc) {
+      final data = doc.data() ?? const <String, dynamic>{};
+      fullName.value =
+          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
+              .trim();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
     });
   }
 }

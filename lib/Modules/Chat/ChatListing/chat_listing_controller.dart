@@ -287,10 +287,18 @@ class ChatListingController extends GetxController {
         userID: otherUserId,
         timeStamp: ts.toString(),
         deleted: isArchived ? const ["__archived__"] : const [],
-        nickname: userData["nickname"] ?? "",
+        nickname: (userData["displayName"] ??
+                userData["username"] ??
+                userData["nickname"] ??
+                "")
+            .toString(),
         fullName: "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}"
             .trim(),
-        pfImage: userData["pfImage"] ?? "",
+        pfImage: (userData["avatarUrl"] ??
+                userData["pfImage"] ??
+                userData["photoURL"] ??
+                "")
+            .toString(),
         lastMessage: data["lastMessage"] ?? "",
         unreadCount: unreadCount,
         isConversation: true,

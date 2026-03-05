@@ -761,8 +761,15 @@ class PostContentController extends GetxController {
 
     bool applyFromMap(Map<String, dynamic>? data, {required String uid}) {
       if (data == null) return false;
-      final nick = (data["nickname"] ?? "").toString();
-      final image = (data["pfImage"] ?? "").toString();
+      final nick =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      final image = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
       final pushToken = (data["token"] ?? "").toString();
       final name =
           "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
