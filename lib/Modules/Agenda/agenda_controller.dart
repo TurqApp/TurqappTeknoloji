@@ -80,6 +80,9 @@ class AgendaController extends GetxController {
   final int _initialShuffleSize = 100; // İlk karışık yükleme miktarı
   // null => no time window limit
   static const Duration? _agendaWindow = null;
+  static const int _reshareScanPostLimit = 12;
+  static const int _followedReshareUserLimit = 8;
+  static const int _perFollowedUserReshareLimit = 5;
 
   int _agendaCutoffMs(int nowMs) {
     if (_agendaWindow == null) return 0;
@@ -431,7 +434,16 @@ class AgendaController extends GetxController {
       {int perPostLimit = 2}) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      for (final p in posts) {
+      final targetPosts = posts.take(_reshareScanPostLimit).toList();
+      if (targetPosts.isEmpty) return;
+
+      final existingKeys = publicReshareEvents
+          .map((e) => '${e['postID']}::${e['userID']}')
+          .toSet();
+      final buffered = <Map<String, dynamic>>[];
+      final maybeUnknownUsers = <String>{};
+
+      for (final p in targetPosts) {
         try {
           final qs = await FirebaseFirestore.instance
               .collection('Posts')
@@ -445,22 +457,17 @@ class AgendaController extends GetxController {
             if (uid != null && rid == uid) {
               continue; // my own handled via myReshares
             }
+            final key = '${p.docID}::$rid';
+            if (existingKeys.contains(key)) continue;
+
             final data = d.data();
             final ts = (data['timeStamp'] ?? 0) as int;
             final originalUserID = data['originalUserID'] as String?;
             final originalPostID = data['originalPostID'] as String?;
-
-            bool include = false;
-            if (followingIDs.contains(rid)) {
-              include = true;
-            } else {
-              final isPrivate = await _isUserPrivate(rid);
-              include = !isPrivate;
+            if (!followingIDs.contains(rid) &&
+                !_userPrivacyCache.containsKey(rid)) {
+              maybeUnknownUsers.add(rid);
             }
-            if (!include) continue;
-            final exists = publicReshareEvents
-                .any((e) => e['postID'] == p.docID && e['userID'] == rid);
-            if (exists) continue;
 
             // Twitter benzeri reshare event'i ekle - orijinal post bilgileriyle
             final reshareEvent = {
@@ -479,9 +486,25 @@ class AgendaController extends GetxController {
               reshareEvent['originalPostID'] = p.docID;
             }
 
-            publicReshareEvents.add(reshareEvent);
+            buffered.add(reshareEvent);
+            existingKeys.add(key);
           }
         } catch (_) {}
+      }
+
+      await _warmPrivacyCacheForUsers(maybeUnknownUsers.toList());
+
+      for (final event in buffered) {
+        final rid = (event['userID'] ?? '').toString();
+        if (rid.isEmpty) continue;
+        if (followingIDs.contains(rid)) {
+          publicReshareEvents.add(event);
+          continue;
+        }
+        final isPrivate = _userPrivacyCache[rid] ?? false;
+        if (!isPrivate) {
+          publicReshareEvents.add(event);
+        }
       }
     } catch (_) {}
   }
@@ -550,6 +573,38 @@ class AgendaController extends GetxController {
     } catch (_) {
       _userDeactivatedCache[userID] = false;
       return false;
+    }
+  }
+
+  Future<void> _warmPrivacyCacheForUsers(List<String> userIds) async {
+    final unresolved = userIds
+        .where((id) =>
+            id.isNotEmpty &&
+            (!_userPrivacyCache.containsKey(id) ||
+                !_userDeactivatedCache.containsKey(id)))
+        .toSet()
+        .toList();
+    if (unresolved.isEmpty) return;
+
+    for (final chunk in _chunkList(unresolved, 10)) {
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        final found = <String>{};
+        for (final d in snap.docs) {
+          found.add(d.id);
+          final data = d.data();
+          _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+          _userDeactivatedCache[d.id] = _isUserMarkedDeactivated(data);
+        }
+        for (final id in chunk) {
+          if (found.contains(id)) continue;
+          _userPrivacyCache[id] = false;
+          _userDeactivatedCache[id] = false;
+        }
+      } catch (_) {}
     }
   }
 
@@ -1445,15 +1500,15 @@ class AgendaController extends GetxController {
 
       // Takip edilen kullanıcıların reshare eventleri
       if (followingIDs.isNotEmpty) {
-        for (final followedUserId in followingIDs.take(20)) {
-          // İlk 20 takip edilen
+        for (final followedUserId
+            in followingIDs.take(_followedReshareUserLimit)) {
           try {
             final userReshareSnap = await FirebaseFirestore.instance
                 .collection('users')
                 .doc(followedUserId)
                 .collection('reshared_posts')
                 .orderBy('timeStamp', descending: true)
-                .limit(10)
+                .limit(_perFollowedUserReshareLimit)
                 .get();
 
             for (final doc in userReshareSnap.docs) {
