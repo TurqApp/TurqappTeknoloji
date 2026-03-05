@@ -9,7 +9,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 
@@ -46,9 +46,11 @@ class MyQRCodeController extends GetxController {
       profileLink.value = await _buildProfileLink();
     } catch (_) {
       final slug = user.nickname.value.trim().toLowerCase();
-      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
+      profileLink.value =
+          'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
     }
   }
+
   void showQrScannerModal() {
     Get.bottomSheet(
       QrScannerView(),
@@ -65,7 +67,11 @@ class MyQRCodeController extends GetxController {
     await ShareActionGuard.run(() async {
       final link = await _buildProfileLink();
       profileLink.value = link;
-      await SharePlus.instance.share(ShareParams(text: link));
+      await ShareLinkService.shareUrl(
+        url: link,
+        title: '@${user.nickname.value} - TurqApp',
+        subject: 'TurqApp Profili',
+      );
     });
   }
 

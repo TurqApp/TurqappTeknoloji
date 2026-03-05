@@ -1,8 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/formatters.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 
@@ -55,6 +58,9 @@ class AnswerKeyContent extends StatelessWidget {
     BuildContext context,
     AnswerKeyContentController controller,
   ) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final canShareFeed = AdminAccessService.isKnownAdminSync() ||
+        controller.model.userID == currentUid;
     return Container(
       height: 40,
       padding: EdgeInsets.only(left: 10, right: 5),
@@ -77,27 +83,36 @@ class AnswerKeyContent extends StatelessWidget {
           ),
           SizedBox(width: 7),
           Expanded(
-            child: GestureDetector(
-              child: Text(
-                controller.nickname.value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 12,
-                  fontFamily: "MontserratBold",
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    child: Text(
+                      controller.nickname.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
+                  ),
                 ),
+                SizedBox(width: 4),
+                RozetContent(size: 13, userID: controller.model.userID),
+              ],
+            ),
+          ),
+          if (canShareFeed)
+            GestureDetector(
+              onTap: controller.shareBooklet,
+              child: Icon(
+                CupertinoIcons.share_up,
+                color: Colors.grey,
+                size: 20,
               ),
             ),
-          ),
-          GestureDetector(
-            onTap: controller.shareBooklet,
-            child: Icon(
-              CupertinoIcons.share_up,
-              color: Colors.grey,
-              size: 20,
-            ),
-          ),
         ],
       ),
     );

@@ -7,10 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
@@ -709,7 +710,6 @@ class ShortsContent extends StatelessWidget {
                 : (model.img.isNotEmpty ? model.img.first.trim() : null);
             final url = await ShortLinkService().getPostPublicUrl(
               postId: model.docID,
-              title: 'TurqApp Gönderisi',
               desc: model.metin,
               imageUrl: previewImage,
             );
@@ -728,19 +728,21 @@ class ShortsContent extends StatelessWidget {
                   : (model.img.isNotEmpty ? model.img.first.trim() : null);
               final url = await ShortLinkService().getPostPublicUrl(
                 postId: model.docID,
-                title: 'TurqApp Gönderisi',
                 desc: model.metin,
                 imageUrl: previewImage,
               );
-              await SharePlus.instance.share(ShareParams(text: url));
+              await ShareLinkService.shareUrl(
+                url: url,
+                title: 'TurqApp Gönderisi',
+                subject: 'TurqApp Gönderisi',
+              );
             });
           },
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
         if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            FirebaseAuth.instance.currentUser!.uid ==
-                "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2")
+            AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
               // Videoyu durdur
@@ -768,8 +770,7 @@ class ShortsContent extends StatelessWidget {
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == false &&
             (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -782,8 +783,7 @@ class ShortsContent extends StatelessWidget {
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == true &&
             (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();

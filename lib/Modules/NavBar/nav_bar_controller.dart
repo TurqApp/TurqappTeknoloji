@@ -106,7 +106,7 @@ class NavBarController extends GetxController
 
     _startBackgroundCacheLoop();
     _startUploadIndicatorSync();
-    _startEmailVerificationPromptLoop();
+    // Baslangicta e-posta dogrulama popup'i kapali.
   }
 
   void _startBackgroundCacheLoop() {
@@ -160,15 +160,7 @@ class NavBarController extends GetxController
 
   void _startEmailVerificationPromptLoop() {
     _emailVerifyPromptTimer?.cancel();
-    _emailVerifyPromptTimer =
-        Timer.periodic(const Duration(minutes: 6), (_) async {
-      if (_isDisposed) return;
-      try {
-        await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
-          actionName: "mesajlaşma ve içerik paylaşımı",
-        );
-      } catch (_) {}
-    });
+    _emailVerifyPromptTimer = null;
   }
 
   Future<void> _runAcilisAnimation() async {

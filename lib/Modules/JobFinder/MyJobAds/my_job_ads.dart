@@ -45,7 +45,11 @@ class MyJobAds extends StatelessWidget {
                               return Padding(
                                 padding:
                                     EdgeInsets.only(top: index == 0 ? 7 : 0),
-                                child: JobContent(model: model, isGrid: false),
+                                child: JobContent(
+                                  key: ValueKey('myjob-active-${model.docID}'),
+                                  model: model,
+                                  isGrid: false,
+                                ),
                               );
                             },
                           )
@@ -60,7 +64,11 @@ class MyJobAds extends StatelessWidget {
                               return Padding(
                                 padding:
                                     EdgeInsets.only(top: index == 0 ? 7 : 0),
-                                child: JobContent(model: model, isGrid: false),
+                                child: JobContent(
+                                  key: ValueKey('myjob-ended-${model.docID}'),
+                                  model: model,
+                                  isGrid: false,
+                                ),
                               );
                             },
                           )

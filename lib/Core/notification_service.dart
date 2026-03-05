@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart'; // navigatorKey için
@@ -79,7 +80,7 @@ class NotificationService {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance.collection("users").doc(user.uid).set(
-        {"token": token, "fcmToken": token, "fcm_token": token},
+        {"fcmToken": token},
         SetOptions(merge: true),
       );
     }
@@ -118,7 +119,7 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     const androidSettings =
-        AndroidInitializationSettings('@drawable/ic_notification');
+        AndroidInitializationSettings('@drawable/ic_notification_small');
     const iosSettings = DarwinInitializationSettings();
     await _localNotifications.initialize(
       settings: const InitializationSettings(
@@ -141,6 +142,12 @@ class NotificationService {
       return;
     }
     if (title.isNotEmpty || body.isNotEmpty) {
+      final imageUrl = (msg.data['imageUrl'] ?? '').toString();
+      AndroidBitmap<Object>? largeIcon;
+      if (imageUrl.isNotEmpty) {
+        final bitmap = await _fetchImageBitmap(imageUrl);
+        if (bitmap != null) largeIcon = bitmap;
+      }
       await _localNotifications.show(
         id: Object.hash(title, body, type),
         title: title,
@@ -152,12 +159,9 @@ class NotificationService {
             channelDescription: 'Önemli bildirimler için kanal.',
             importance: Importance.high,
             priority: Priority.high,
-            icon: '@drawable/ic_notification',
-            largeIcon: DrawableResourceAndroidBitmap(
-              'ic_notification_badge',
-            ),
+            icon: '@drawable/ic_notification_small',
             color: const Color(0xFF4F718E),
-            colorized: true,
+            largeIcon: largeIcon,
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,
@@ -168,6 +172,16 @@ class NotificationService {
         payload: jsonEncode(msg.data),
       );
     }
+  }
+
+  Future<ByteArrayAndroidBitmap?> _fetchImageBitmap(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        return ByteArrayAndroidBitmap(response.bodyBytes);
+      }
+    } catch (_) {}
+    return null;
   }
 
   void _setupMessageHandlers() {
@@ -286,28 +300,12 @@ class NotificationService {
 
   Future<String?> _resolveUserIdByToken(String token) async {
     try {
-      final byToken = await FirebaseFirestore.instance
-          .collection("users")
-          .where("token", isEqualTo: token)
-          .limit(1)
-          .get();
-      if (byToken.docs.isNotEmpty) return byToken.docs.first.id;
-
-      final byFcmToken = await FirebaseFirestore.instance
+      final snap = await FirebaseFirestore.instance
           .collection("users")
           .where("fcmToken", isEqualTo: token)
           .limit(1)
           .get();
-      if (byFcmToken.docs.isNotEmpty) return byFcmToken.docs.first.id;
-
-      final byFcmTokenSnake = await FirebaseFirestore.instance
-          .collection("users")
-          .where("fcm_token", isEqualTo: token)
-          .limit(1)
-          .get();
-      if (byFcmTokenSnake.docs.isNotEmpty) return byFcmTokenSnake.docs.first.id;
-
-      return null;
+      return snap.docs.isNotEmpty ? snap.docs.first.id : null;
     } catch (_) {
       return null;
     }

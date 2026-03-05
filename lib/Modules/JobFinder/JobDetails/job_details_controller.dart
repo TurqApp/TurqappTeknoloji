@@ -3,10 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -134,6 +135,13 @@ class JobDetailsController extends GetxController {
 
   Future<void> shareJob() async {
     final current = model.value;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final canShare =
+        AdminAccessService.isKnownAdminSync() || uid == current.userID;
+    if (!canShare) {
+      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      return;
+    }
     await ShareActionGuard.run(() async {
       var shortUrl = '';
       try {
@@ -153,21 +161,10 @@ class JobDetailsController extends GetxController {
 
       final title =
           current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek;
-      final brand = current.brand.trim();
-      final location = '${current.city}, ${current.town}'
-          .trim()
-          .replaceAll(RegExp(r'^,+\s*|,\s*$'), '');
-
-      final shareText = '''
-$title
-${brand.isNotEmpty ? '$brand\n' : ''}${location.isNotEmpty ? '$location\n\n' : '\n'}$shortUrl
-''';
-
-      await SharePlus.instance.share(
-        ShareParams(
-          text: shareText.trim(),
-          subject: title,
-        ),
+      await ShareLinkService.shareUrl(
+        url: shortUrl,
+        title: title,
+        subject: title,
       );
     });
   }

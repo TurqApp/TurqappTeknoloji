@@ -26,21 +26,12 @@ class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
   static const Duration _userProfileCacheTtl = Duration(hours: 6);
   static const Set<String> _adminPushUserIds = {
-    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-  };
-  static const Set<String> _adminPushNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const Set<String> _activePushTargetUserIds = {
-    "i7RhJD0T5AazadgXl1iCc6ueeHf2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-    "CePvRgjSPobQrDQwH8SXJFuG1Jw2",
-  };
-  static const Set<String> _activePushTargetNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const int _pushTargetCutoffMs = 1772409600000;
 
@@ -56,17 +47,12 @@ class PostContentController extends GetxController {
 
   bool get canSendAdminPush {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final currentNickname =
-        CurrentUserService.instance.nickname.trim().toLowerCase();
-    return _adminPushUserIds.contains(currentUid) ||
-        _adminPushNicknames.contains(currentNickname);
+    return _adminPushUserIds.contains(currentUid);
   }
 
   bool _shouldSendPushToUser(DocumentSnapshot<Map<String, dynamic>> userDoc) {
     if (_activePushTargetUserIds.contains(userDoc.id)) return true;
     final data = userDoc.data() ?? const <String, dynamic>{};
-    final nickname = (data['nickname'] ?? '').toString().trim().toLowerCase();
-    if (_activePushTargetNicknames.contains(nickname)) return true;
     final rawCreatedDate = data['createdDate'];
     final createdAtMs = rawCreatedDate is num
         ? rawCreatedDate.toInt()

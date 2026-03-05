@@ -7,6 +7,8 @@ routes = [
   { pattern = "turqapp.com/s/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/u/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/e/*", zone_name = "turqapp.com" },
+  { pattern = "turqapp.com/i/*", zone_name = "turqapp.com" },
+  { pattern = "turqapp.com/og-image", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/.well-known/*", zone_name = "turqapp.com" }
 ]
 
@@ -20,9 +22,11 @@ IOS_STORE_URL = "https://apps.apple.com/tr/app/turqapp/id6740809479?l=tr"
 ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.turqapp.app"
 DEFAULT_OG_IMAGE = "https://cdn.turqapp.com/og/default.jpg"
 EMAIL_ACTION_CONFIRM_URL = "https://europe-west3-turqappteknoloji.cloudfunctions.net/confirmEmailAction"
+FIREBASE_PROJECT_ID = "turqappteknoloji"
+SHORT_LINK_RESOLVE_URL = "https://us-central1-turqappteknoloji.cloudfunctions.net/resolveShortLink"
 
 # JSON string olarak verilir.
 # iOS Universal Links:
-AASA_JSON = "{\"applinks\":{\"apps\":[],\"details\":[{\"appID\":\"WS86Q9VZN2.com.turqapp.app\",\"paths\":[\"/p/*\",\"/s/*\",\"/u/*\",\"/e/*\"]}]}}"
+AASA_JSON = "{\"applinks\":{\"apps\":[],\"details\":[{\"appID\":\"WS86Q9VZN2.com.turqapp.app\",\"paths\":[\"/p/*\",\"/s/*\",\"/u/*\",\"/e/*\",\"/i/*\"]}]}}"
 # Android App Links:
 ASSETLINKS_JSON = "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"android_app\",\"package_name\":\"com.turqapp.app\",\"sha256_cert_fingerprints\":[\"6C:59:2D:CD:98:7A:0E:D2:5F:E7:3C:0F:49:1A:D6:75:A5:E9:9C:E8:68:DF:BE:E2:E8:68:44:14:AA:EA:D3:E0\"]}}]"

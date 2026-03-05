@@ -15,13 +15,8 @@ class AdminPushView extends StatefulWidget {
 
 class _AdminPushViewState extends State<AdminPushView> {
   static const Set<String> _activePushTargetUserIds = {
-    "i7RhJD0T5AazadgXl1iCc6ueeHf2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-    "CePvRgjSPobQrDQwH8SXJFuG1Jw2",
-  };
-  static const Set<String> _activePushTargetNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const int _pushTargetCutoffMs = 1772409600000;
   final _uidController = TextEditingController();
@@ -153,8 +148,6 @@ class _AdminPushViewState extends State<AdminPushView> {
 
   bool _isEligiblePushTarget(String userId, Map<String, dynamic> data) {
     if (_activePushTargetUserIds.contains(userId)) return true;
-    final nickname = (data['nickname'] ?? '').toString().trim().toLowerCase();
-    if (_activePushTargetNicknames.contains(nickname)) return true;
     final rawCreatedDate = data['createdDate'];
     final createdAtMs = rawCreatedDate is num
         ? rawCreatedDate.toInt()

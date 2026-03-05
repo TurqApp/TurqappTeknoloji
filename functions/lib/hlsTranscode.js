@@ -34,6 +34,31 @@ const getVideoDurationSeconds = async (inputPath) => {
     }
     return duration;
 };
+// B2: Gerçek video FPS'ini tespit et — GOP hesabında 30fps varsayımı yerine
+const getVideoFPS = async (inputPath) => {
+    try {
+        const { stdout } = await execFileAsync("ffprobe", [
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=r_frame_rate",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            inputPath,
+        ]);
+        // Çıktı "30000/1001" gibi olabilir (NTSC) → eval et
+        const raw = String(stdout).trim().split("\n")[0];
+        const parts = raw.split("/");
+        if (parts.length === 2) {
+            const fps = Number(parts[0]) / Number(parts[1]);
+            if (Number.isFinite(fps) && fps > 0 && fps <= 120)
+                return Math.round(fps);
+        }
+        const fps = Number(raw);
+        if (Number.isFinite(fps) && fps > 0 && fps <= 120)
+            return Math.round(fps);
+    }
+    catch (_) { }
+    return 30; // Güvenli varsayılan
+};
 const buildForceKeyFrames = (durationSeconds, firstSegmentSeconds, restSegmentSeconds) => {
     const marks = [];
     const epsilon = 0.25;
@@ -147,8 +172,10 @@ exports.onVideoUpload = functions
     const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
     try {
         // Segment konfigürasyonu oku
+        // B2: segment1 (ilk segment) varsayılanı 2→1 → daha hızlı TTFF
+        // Not: adminConfig/hlsSegment.segment1 override edebilir (0 deploy gerek yok)
         const configSnap = await db.doc("adminConfig/hlsSegment").get();
-        const segment1 = clampSegment(configSnap.data()?.segment1, 2);
+        const segment1 = clampSegment(configSnap.data()?.segment1, 1); // B2: 2→1
         const segment2 = clampSegment(configSnap.data()?.segment2, 2);
         console.log(`[HLS] Segment config: first=${segment1}s, rest=${segment2}s`);
         // Temp dizini oluştur
@@ -159,9 +186,13 @@ exports.onVideoUpload = functions
         // Video'yu indir
         console.log(`[HLS] Downloading video...`);
         await bucket.file(filePath).download({ destination: inputPath });
-        const durationSeconds = await getVideoDurationSeconds(inputPath);
+        // B2: FPS tespiti ve duration paralel al
+        const [durationSeconds, videoFPS] = await Promise.all([
+            getVideoDurationSeconds(inputPath),
+            getVideoFPS(inputPath),
+        ]);
         const forceKeyFrames = buildForceKeyFrames(durationSeconds, segment1, segment2);
-        console.log(`[HLS] duration=${durationSeconds.toFixed(2)}s, forced_keyframes=${forceKeyFrames || "none"}`);
+        console.log(`[HLS] duration=${durationSeconds.toFixed(2)}s, fps=${videoFPS}, forced_keyframes=${forceKeyFrames || "none"}`);
         // ABR multi-rendition ladder
         // Kaynak çözünürlüğünü al
         const probeResult = await execFileAsync("ffprobe", [
@@ -176,17 +207,20 @@ exports.onVideoUpload = functions
         // Eğer kaynak dikey (portrait) ise width'i baz al
         const isPortrait = (srcH || 0) > (srcW || 0);
         const srcShortSide = isPortrait ? (srcW || 720) : (srcH || 720);
-        // Rendition ladder — kaynaktan yüksek olanları atla
+        // B2: ABR ladder — 1080p rendition eklendi, bufsize 2x bitrate (daha sıkı ABR)
+        // bufsize = 2x bitrate → ABR geçiş tepkisi iyileşir
         const renditions = [
-            { height: 360, bitrate: 800, maxrate: 856, bufsize: 1200, label: "360p" },
-            { height: 480, bitrate: 1400, maxrate: 1498, bufsize: 2100, label: "480p" },
-            { height: 720, bitrate: 2800, maxrate: 2996, bufsize: 4200, label: "720p" },
+            { height: 360, bitrate: 800, maxrate: 856, bufsize: 1600, label: "360p" },
+            { height: 480, bitrate: 1400, maxrate: 1498, bufsize: 2800, label: "480p" },
+            { height: 720, bitrate: 2800, maxrate: 2996, bufsize: 5600, label: "720p" },
+            { height: 1080, bitrate: 5000, maxrate: 5350, bufsize: 10000, label: "1080p" },
         ].filter((r) => r.height <= srcShortSide + 50); // +50 tolerans
         // Kaynak çok düşükse en az 1 rendition olsun
         if (renditions.length === 0) {
-            renditions.push({ height: 360, bitrate: 800, maxrate: 856, bufsize: 1200, label: "360p" });
+            renditions.push({ height: 360, bitrate: 800, maxrate: 856, bufsize: 1600, label: "360p" });
         }
-        const gopSize = segment2 * 30;
+        // B2: Gerçek FPS kullan — GOP = segment_duration × actual_fps
+        const gopSize = Math.round(segment2 * videoFPS);
         const masterPlaylist = path.join(outputDir, "master.m3u8");
         console.log(`[HLS] Starting ABR transcode (${renditions.map(r => r.label).join(", ")})...`);
         // Her rendition için ayrı dizin oluştur
@@ -249,26 +283,50 @@ exports.onVideoUpload = functions
         walkDir(outputDir, "");
         await Promise.all(uploadPromises);
         // Thumbnail üret (sadece post tipi için)
+        // B9: WebP + JPEG çift format — tarayıcı/istemci desteğine göre seç
         let thumbnailUrl = "";
         if (target.generateThumbnail && target.thumbnailStoragePath) {
-            const thumbnailPath = path.join(tempDir, "thumbnail.jpg");
+            const thumbnailJpgPath = path.join(tempDir, "thumbnail.jpg");
+            const thumbnailWebpPath = path.join(tempDir, "thumbnail.webp");
+            const thumbnailWebpStoragePath = target.thumbnailStoragePath.replace(/\.(jpg|jpeg)$/i, ".webp");
             try {
+                // JPEG thumbnail (geri uyumluluk)
                 await execFileAsync("ffmpeg", [
-                    "-i",
-                    inputPath,
-                    "-ss",
-                    "1",
-                    "-vframes",
-                    "1",
-                    "-q:v",
-                    "2",
-                    thumbnailPath,
+                    "-i", inputPath,
+                    "-ss", "1",
+                    "-vframes", "1",
+                    "-q:v", "2",
+                    thumbnailJpgPath,
                 ]);
-                await bucket.upload(thumbnailPath, {
-                    destination: target.thumbnailStoragePath,
-                    metadata: { contentType: "image/jpeg" },
-                });
+                // B9: WebP thumbnail — JPEG'den dönüştür (ffmpeg + libwebp veya sharp)
+                await execFileAsync("ffmpeg", [
+                    "-i", thumbnailJpgPath,
+                    "-c:v", "libwebp",
+                    "-quality", "82", // JPEG 85 eşdeğeri kalite
+                    "-preset", "photo",
+                    "-y",
+                    thumbnailWebpPath,
+                ]);
+                // Her iki formatı paralel yükle
+                const [jpgResult] = await Promise.all([
+                    bucket.upload(thumbnailJpgPath, {
+                        destination: target.thumbnailStoragePath,
+                        metadata: {
+                            contentType: "image/jpeg",
+                            cacheControl: "public, max-age=86400, s-maxage=86400",
+                        },
+                    }),
+                    // WebP thumbnail (istemciler Accept: image/webp ile tercih edebilir)
+                    bucket.upload(thumbnailWebpPath, {
+                        destination: thumbnailWebpStoragePath,
+                        metadata: {
+                            contentType: "image/webp",
+                            cacheControl: "public, max-age=86400, s-maxage=86400",
+                        },
+                    }).catch((e) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
+                ]);
                 thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
+                console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
             }
             catch (thumbErr) {
                 console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);

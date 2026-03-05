@@ -14,8 +14,8 @@ service cloud.firestore {
     function isAdmin() {
       return isAuth() && (
         request.auth.token.admin == true ||
-        request.auth.uid == "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2" ||
-        request.auth.uid == "hiv3UzAABlRWJaePerm3mtPEolI3"
+        request.auth.uid == "rlvJgi4VAoO7O78OwrooZc6puPW2" ||
+        request.auth.uid == "pGlxhtQEVEYeLIa1G2IKhb743E73"
       );
     }
 

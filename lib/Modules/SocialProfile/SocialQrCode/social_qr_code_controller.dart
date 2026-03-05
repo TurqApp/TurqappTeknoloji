@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
 
@@ -13,6 +13,7 @@ class SocialQrCodeController extends GetxController {
   String userID;
   SocialQrCodeController({required this.userID});
   var nickname = "".obs;
+  var profileImage = "".obs;
   final RxString profileLink = ''.obs;
   final ShortLinkService _shortLinkService = ShortLinkService();
   @override
@@ -25,6 +26,7 @@ class SocialQrCodeController extends GetxController {
         .get()
         .then((doc) {
       nickname.value = doc.get("nickname");
+      profileImage.value = (doc.data()?['pfImage'] ?? '').toString();
       unawaited(_prepareProfileLink());
     });
   }
@@ -37,6 +39,9 @@ class SocialQrCodeController extends GetxController {
       slug: safeSlug,
       title: '@${nickname.value} - TurqApp',
       desc: 'TurqApp profilini görüntüle',
+      imageUrl: profileImage.value.trim().isNotEmpty
+          ? profileImage.value.trim()
+          : null,
     );
     final url = (result['url'] ?? '').toString().trim();
     return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
@@ -47,7 +52,8 @@ class SocialQrCodeController extends GetxController {
       profileLink.value = await _buildProfileLink();
     } catch (_) {
       final slug = nickname.value.trim().toLowerCase();
-      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
+      profileLink.value =
+          'https://turqapp.com/u/${slug.isEmpty ? userID : slug}';
     }
   }
 
@@ -67,7 +73,11 @@ class SocialQrCodeController extends GetxController {
     await ShareActionGuard.run(() async {
       final link = await _buildProfileLink();
       profileLink.value = link;
-      await SharePlus.instance.share(ShareParams(text: link));
+      await ShareLinkService.shareUrl(
+        url: link,
+        title: '@${nickname.value} - TurqApp',
+        subject: 'TurqApp Profili',
+      );
     });
   }
 

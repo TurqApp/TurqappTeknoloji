@@ -32,6 +32,8 @@ class NavBarView extends StatelessWidget {
       : Get.put(NavBarController());
   final SettingsController settingController = Get.put(SettingsController());
   final FirebaseMyStore userStore = Get.find<FirebaseMyStore>();
+  final DeepLinkService? deepLinkService =
+      Get.isRegistered<DeepLinkService>() ? Get.find<DeepLinkService>() : null;
 
   // Ensure controllers are available
   void _ensureControllersReady() {
@@ -113,6 +115,9 @@ class NavBarView extends StatelessWidget {
   Widget build(BuildContext context) {
     _ensureControllersReady(); // Ensure all controllers are ready before building
     return Obx(() {
+      final waitingInitialLink =
+          deepLinkService != null && !deepLinkService!.initialLinkResolved.value;
+
       // Define pages and icons
       final icons = [
         'assets/icons/house',
@@ -137,17 +142,20 @@ class NavBarView extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             children: [
               // Current page
-              Column(
-                children: [
-                  const OfflineIndicator(),
-                  Expanded(
-                    child: _buildSelectedPage(),
-                  ),
-                ],
-              ),
+              if (waitingInitialLink)
+                const ColoredBox(color: Colors.white)
+              else
+                Column(
+                  children: [
+                    const OfflineIndicator(),
+                    Expanded(
+                      child: _buildSelectedPage(),
+                    ),
+                  ],
+                ),
 
               // Feed sekmesinde status bar altına beyaz zemin (üst katman)
-              if (controller.selectedIndex.value == 0)
+              if (!waitingInitialLink && controller.selectedIndex.value == 0)
                 Positioned(
                   top: 0,
                   left: 0,

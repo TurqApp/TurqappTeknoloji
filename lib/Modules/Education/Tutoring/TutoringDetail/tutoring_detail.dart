@@ -4,7 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -82,17 +82,10 @@ class TutoringDetail extends StatelessWidget {
           shortUrl = 'https://turqapp.com/i/tutoring:${tutoring.docID}';
         }
 
-        await SharePlus.instance.share(
-          ShareParams(
-            title: tutoring.baslik,
-            text: '''
-${tutoring.baslik}
-${tutoring.brans} • ${tutoring.sehir}/${tutoring.ilce}
-
-$shortUrl
-'''
-                .trim(),
-          ),
+        await ShareLinkService.shareUrl(
+          url: shortUrl,
+          title: tutoring.baslik,
+          subject: tutoring.baslik,
         );
       });
     }

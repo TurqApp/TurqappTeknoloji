@@ -3,12 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/external.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart';
@@ -23,6 +25,13 @@ class DenemeGrid extends StatelessWidget {
   const DenemeGrid({super.key, required this.model, required this.getData});
 
   Future<void> _shareExam() async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final canShareFeed =
+        AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
+    if (!canShareFeed) {
+      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      return;
+    }
     final shareId = 'practice-exam:${model.docID}';
     final shortTail =
         model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
@@ -50,22 +59,10 @@ class DenemeGrid extends StatelessWidget {
           shortUrl = fallbackUrl;
         }
 
-        final shareText = '''
-TurqApp Online Sinav
-
-${model.sinavAdi}
-${model.sinavTuru}
-
-${model.sinavAciklama}
-
-$shortUrl
-''';
-
-        await SharePlus.instance.share(
-          ShareParams(
-            text: shareText,
-            subject: model.sinavAdi,
-          ),
+        await ShareLinkService.shareUrl(
+          url: shortUrl,
+          title: model.sinavAdi,
+          subject: model.sinavAdi,
         );
       });
     } catch (_) {
@@ -75,6 +72,9 @@ $shortUrl
 
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final canShareFeed =
+        AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     final DenemeGridController controller = Get.put(
       DenemeGridController(),
       tag: model.docID,
@@ -261,40 +261,49 @@ $shortUrl
                       ),
                       SizedBox(width: 7),
                       Expanded(
-                        child: Obx(
-                          () => Text(
-                            controller.isLoadingProfile.value
-                                ? 'Yükleniyor...'
-                                : controller.nickname.value.isEmpty
-                                    ? 'Kullanıcı Bulunamadı'
-                                    : controller.nickname.value,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontFamily: "MontserratBold",
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Obx(
+                                () => Text(
+                                  controller.isLoadingProfile.value
+                                      ? 'Yükleniyor...'
+                                      : controller.nickname.value.isEmpty
+                                          ? 'Kullanıcı Bulunamadı'
+                                          : controller.nickname.value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 12,
+                                    fontFamily: "MontserratBold",
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            RozetContent(size: 13, userID: model.userID),
+                          ],
+                        ),
+                      ),
+                      if (canShareFeed)
+                        GestureDetector(
+                          onTap: _shareExam,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              CupertinoIcons.share_up,
+                              color: Colors.black87,
+                              size: 17,
                             ),
                           ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: _shareExam,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            CupertinoIcons.share_up,
-                            color: Colors.black87,
-                            size: 17,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

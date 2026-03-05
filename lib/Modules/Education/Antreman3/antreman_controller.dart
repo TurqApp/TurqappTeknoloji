@@ -11,9 +11,9 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/connectivity_helper.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
@@ -643,25 +643,10 @@ class AntremanController extends GetxController {
           shortUrl = fallbackUrl;
         }
 
-        final shareText = '''
-✨ TurqApp ile 'Çöz Geç' Jimnastiği! ✨
-📚 Sınav Türü: ${question.sinavTuru}
-📖 Ders: ${question.ders}
-🔢 Soru Numarası: ${question.soruNo}
-
-Bu zorlu soruyu çözmeye hazır mısın? 🚀 
-TurqApp ile kendini test et, bilgini güçlendir! 💪
-
-$shortUrl
-
-#TurqApp #Eğitim #ÇözGeç
-''';
-
-        await SharePlus.instance.share(
-          ShareParams(
-            text: shareText,
-            subject: 'TurqApp - ${question.sinavTuru} ${question.ders} Sorusu',
-          ),
+        await ShareLinkService.shareUrl(
+          url: shortUrl,
+          title: 'TurqApp - ${question.sinavTuru} ${question.ders} Sorusu',
+          subject: 'TurqApp - ${question.sinavTuru} ${question.ders} Sorusu',
         );
 
         // İstatistik için en iyi gayretle yaz; başarısız olursa paylaşımı bozma.

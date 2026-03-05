@@ -5,10 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
@@ -38,6 +39,8 @@ class ScholarshipsController extends GetxController {
   final Map<String, String> _shortLinkCache = <String, String>{};
   final Set<String> _shortLinkInFlight = <String>{};
   static const int _shortLinkPrefetchLimit = 6;
+  static const String _defaultOgImage =
+      'https://cdn.turqapp.com/og/default.jpg';
   DateTime? lastRefresh;
   final RxMap<int, RxInt> pageIndices = <int, RxInt>{}.obs;
   final RxDouble scrollOffset = 0.0.obs;
@@ -481,7 +484,6 @@ class ScholarshipsController extends GetxController {
     return result;
   }
 
-
   Map<String, dynamic> _buildUserDataFromDoc(
     String userId,
     DocumentSnapshot? userDoc,
@@ -570,8 +572,7 @@ class ScholarshipsController extends GetxController {
 
         final begeniler = data['begeniler'] as List<dynamic>? ?? [];
         final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-        final likesCount =
-            (data['likesCount'] as int?) ?? begeniler.length;
+        final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
         final bookmarksCount =
             (data['bookmarksCount'] as int?) ?? kaydedenler.length;
         combined.add({
@@ -693,8 +694,7 @@ class ScholarshipsController extends GetxController {
 
         final begeniler = data['begeniler'] as List<dynamic>? ?? [];
         final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-        final likesCount =
-            (data['likesCount'] as int?) ?? begeniler.length;
+        final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
         final bookmarksCount =
             (data['bookmarksCount'] as int?) ?? kaydedenler.length;
         combined.add({
@@ -857,63 +857,69 @@ class ScholarshipsController extends GetxController {
     BuildContext context,
   ) async {
     final burs = scholarshipData['model'];
-    final String docId = (scholarshipData['docId'] ??
-            scholarshipData['scholarshipId'] ??
-            '')
-        .toString();
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final ownerUid =
+        (burs?.userID ?? scholarshipData['userID'] ?? '').toString();
+    final canShare = AdminAccessService.isKnownAdminSync() ||
+        (ownerUid.isNotEmpty && ownerUid == currentUid);
+    if (!canShare) {
+      AppSnackbar('Yetki', 'Sadece admin ve ilan sahibi paylaşabilir.');
+      return;
+    }
+    final String docId =
+        (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
+            .toString();
     if (docId.isEmpty) {
       AppSnackbar('Hata', 'Paylaşım için burs ID bulunamadı.');
       return;
     }
     final String shareId = 'scholarship:$docId';
-    final String shortTail =
-        docId.length >= 8 ? docId.substring(0, 8) : docId;
+    final String shortTail = docId.length >= 8 ? docId.substring(0, 8) : docId;
     final String fallbackId = 'scholarship-$shortTail';
     final String fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-    final String title = "${burs.baslik} BURS BAŞVURULARI";
-    final String desc = (burs.aciklama ?? '').toString().trim();
-
+    final String title = _pickScholarshipTitle(scholarshipData, burs);
+    final String shortDesc = burs.shortDescription.trim();
+    final String providerDesc = burs.bursVeren.trim();
+    final String desc = shortDesc.isNotEmpty &&
+            shortDesc.toLowerCase() != title.trim().toLowerCase()
+        ? shortDesc
+        : (providerDesc.isNotEmpty &&
+                providerDesc.toLowerCase() != title.trim().toLowerCase()
+            ? providerDesc
+            : 'TurqApp burs ilani');
+    final String existingShortUrl = _readTextField(scholarshipData, 'shortUrl');
+    final String? shareImageUrl =
+        _pickScholarshipImageFromData(scholarshipData, burs);
     try {
       await ShareActionGuard.run(() async {
         String shortUrl = '';
-        if (_shortLinkCache.containsKey(shareId)) {
-          shortUrl = _shortLinkCache[shareId] ?? '';
-        } else {
-          try {
-            shortUrl = await ShortLinkService().getEducationPublicUrl(
-              shareId: shareId,
-              title: title,
-              desc: desc.isNotEmpty ? desc : 'TurqApp Eğitim - Burs Detayı',
-              imageUrl: burs.img.isNotEmpty ? burs.img : null,
-            );
-            if (shortUrl.trim().isNotEmpty &&
-                shortUrl.trim() != 'https://turqapp.com') {
-              _shortLinkCache[shareId] = shortUrl;
-            }
-          } catch (_) {
-            shortUrl = fallbackUrl;
+        try {
+          shortUrl = await ShortLinkService().getEducationPublicUrl(
+            shareId: shareId,
+            title: title,
+            desc: desc,
+            imageUrl: shareImageUrl,
+          );
+          if (shortUrl.trim().isNotEmpty &&
+              shortUrl.trim() != 'https://turqapp.com') {
+            _shortLinkCache[shareId] = shortUrl;
           }
-        }
-
-        if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
+        } catch (_) {
           shortUrl = fallbackUrl;
         }
 
-        final shareText = '''
-Bu bursun sana uygun olduğunu düşünüyorum.
+        if (shortUrl.trim().isEmpty ||
+            shortUrl.trim() == 'https://turqapp.com') {
+          shortUrl =
+              existingShortUrl.isNotEmpty ? existingShortUrl : fallbackUrl;
+        }
 
-$title
-
-$shortUrl
-''';
-
-        await SharePlus.instance.share(
-          ShareParams(
-            text: shareText,
-            subject: title,
-          ),
+        await ShareLinkService.shareUrl(
+          url: shortUrl,
+          title: title,
+          subject: title,
         );
-        print('Sharing: $shareText');
+        print('Sharing: $shortUrl');
       });
     } catch (e) {
       AppSnackbar('Hata', 'Paylaşım başarısız.');
@@ -934,17 +940,18 @@ $shortUrl
       _shortLinkInFlight.add(shareId);
       final model = item['model'] as IndividualScholarshipsModel?;
       final title = model != null
-          ? "${model.baslik} BURS BAŞVURULARI"
+          ? _pickScholarshipTitle(item, model)
           : 'TurqApp Eğitim - Burs Detayı';
-      final desc = (model?.aciklama ?? '').toString().trim();
       final imageUrl =
-          (model?.img.isNotEmpty == true) ? model!.img : null;
+          model != null ? _pickScholarshipImageFromData(item, model) : null;
       unawaited(() async {
         try {
           final shortUrl = await ShortLinkService().getEducationPublicUrl(
             shareId: shareId,
             title: title,
-            desc: desc.isNotEmpty ? desc : 'TurqApp Eğitim - Burs Detayı',
+            desc: model != null
+                ? _pickScholarshipShareDesc(model)
+                : 'TurqApp burs ilani',
             imageUrl: imageUrl,
           );
           if (shortUrl.trim().isNotEmpty &&
@@ -958,6 +965,57 @@ $shortUrl
         }
       }());
     }
+  }
+
+  String? _pickScholarshipShareImage(IndividualScholarshipsModel model) {
+    final img = model.img.trim();
+    if (img.isNotEmpty) return img;
+    final img2 = model.img2.trim();
+    if (img2.isNotEmpty) return img2;
+    final logo = model.logo.trim();
+    if (logo.isNotEmpty) return logo;
+    return _defaultOgImage;
+  }
+
+  String _readTextField(Map<String, dynamic> data, String key) {
+    final value = data[key];
+    if (value == null) return '';
+    return value.toString().trim();
+  }
+
+  String _pickScholarshipTitle(
+    Map<String, dynamic> data,
+    IndividualScholarshipsModel model,
+  ) {
+    final fromBaslik = _readTextField(data, 'baslik');
+    if (fromBaslik.isNotEmpty) return fromBaslik;
+    return model.baslik.trim();
+  }
+
+  String? _pickScholarshipImageFromData(
+    Map<String, dynamic> data,
+    IndividualScholarshipsModel model,
+  ) {
+    final img = _readTextField(data, 'img');
+    if (img.isNotEmpty) return img;
+    final img2 = _readTextField(data, 'img2');
+    if (img2.isNotEmpty) return img2;
+    final logo = _readTextField(data, 'logo');
+    if (logo.isNotEmpty) return logo;
+    return _pickScholarshipShareImage(model);
+  }
+
+  String _pickScholarshipShareDesc(IndividualScholarshipsModel model) {
+    final normalizedTitle = model.baslik.trim().toLowerCase();
+    final shortDesc = model.shortDescription.trim();
+    if (shortDesc.isNotEmpty && shortDesc.toLowerCase() != normalizedTitle) {
+      return shortDesc;
+    }
+    final provider = model.bursVeren.trim();
+    if (provider.isNotEmpty && provider.toLowerCase() != normalizedTitle) {
+      return provider;
+    }
+    return 'TurqApp burs ilani';
   }
 
   void toggleExpanded(int index) {

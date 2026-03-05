@@ -163,8 +163,16 @@ class StoryRowController extends GetxController {
             continue;
           }
           final story = StoryModel.fromDoc(doc);
+          if (myUid != null && story.userId == myUid) {
+            print(
+                "📚 My story candidate: id=${story.id} createdAt=${story.createdAt.toIso8601String()} deleted=${data['deleted'] ?? false}");
+          }
           // 24 saatten eski hikayeleri listeye dahil etme
           if (story.createdAt.isBefore(expiry)) {
+            if (myUid != null && story.userId == myUid) {
+              print(
+                  "📚 My story filtered as expired: id=${story.id} createdAt=${story.createdAt.toIso8601String()} expiry=${expiry.toIso8601String()}");
+            }
             // Expire olan karşı taraf hikayelerini göstermiyoruz.
             // Kendi hikayelerimiz için arşivleme/temizlik aşağıda yapılacak.
             continue;
@@ -219,11 +227,17 @@ class StoryRowController extends GetxController {
         final isMine = myUid != null && userId == myUid;
         final iFollow = followingIDs.contains(userId);
         if (isPrivate && !isMine && !iFollow) {
+          if (isMine) {
+            print("📚 My story user unexpectedly filtered as private");
+          }
           continue;
         }
 
         // Engellediklerimi gösterme
         if (userStore.blockedUsers.contains(userId)) {
+          if (isMine) {
+            print("📚 My story user unexpectedly filtered as blocked");
+          }
           continue;
         }
         final userModel = StoryUserModel(
@@ -234,6 +248,10 @@ class StoryRowController extends GetxController {
           stories: stories,
         );
         tempList.add(userModel);
+        if (isMine) {
+          print(
+              "📚 My story user added to row with ${stories.length} active stories");
+        }
       }
 
       // Önce kendi kullanıcını oluştur/çek
@@ -258,6 +276,7 @@ class StoryRowController extends GetxController {
               userID: myUid,
               stories: [], // Burada boş!
             );
+            print("📚 My story user fallback added with 0 stories");
           }
         }
 
@@ -302,6 +321,11 @@ class StoryRowController extends GetxController {
         ...unseen,
         ...seen,
       ];
+      if (myUid != null) {
+        final me = users.firstWhereOrNull((u) => u.userID == myUid);
+        print(
+            "📚 Story row final self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
+      }
       unawaited(_saveStoriesToMiniCache(users));
 
       // Kendi süresi dolmuş hikayelerini arşivle ve kaldır

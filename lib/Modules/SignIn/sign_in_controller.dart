@@ -382,19 +382,32 @@ class SignInController extends GetxController
         userData: userDoc,
       );
 
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('TakipEdilenler')
-          .doc('CePvRgjSPobQrDQwH8SXJFuG1Jw2')
-          .set({"timeStamp": DateTime.now().millisecondsSinceEpoch});
-
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc('CePvRgjSPobQrDQwH8SXJFuG1Jw2')
-          .collection('Takipciler')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .set({"timeStamp": DateTime.now().millisecondsSinceEpoch});
+      const requiredFollowUids = <String>[
+        'rlvJgi4VAoO7O78OwrooZc6puPW2',
+        'pGlxhtQEVEYeLIa1G2IKhb743E73',
+      ];
+      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final followBatch = FirebaseFirestore.instance.batch();
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      for (final adminUid in requiredFollowUids) {
+        followBatch.set(
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUid)
+              .collection('TakipEdilenler')
+              .doc(adminUid),
+          {"timeStamp": nowMs},
+        );
+        followBatch.set(
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(adminUid)
+              .collection('Takipciler')
+              .doc(currentUid),
+          {"timeStamp": nowMs},
+        );
+      }
+      await followBatch.commit();
 
       // 🔥 CRITICAL: Initialize CurrentUserService with new user data
       print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
@@ -466,10 +479,7 @@ class SignInController extends GetxController
       // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
       await Future.delayed(const Duration(milliseconds: 300));
 
-      await CurrentUserService.instance.sendVerificationEmailIfNeeded();
-      await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
-        actionName: "mesajlaşma ve içerik paylaşımı",
-      );
+      // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
 
       Get.off(() => NavBarView());
     } on PhoneAccountLimitReached catch (e) {
@@ -810,9 +820,7 @@ class SignInController extends GetxController
       // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
       await Future.delayed(const Duration(milliseconds: 300));
 
-      await CurrentUserService.instance.maybeShowEmailVerificationPrompt(
-        actionName: "mesajlaşma ve içerik paylaşımı",
-      );
+      // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
 
       Get.offAll(() => NavBarView());
     } on FirebaseAuthException catch (e) {

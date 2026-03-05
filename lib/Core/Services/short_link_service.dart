@@ -2,6 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 class ShortLinkService {
   static const String _defaultDomain = 'turqapp.com';
+  static const Duration _callTimeout = Duration(milliseconds: 8000);
   static final Map<String, String> _postUrlCache = <String, String>{};
   static final Map<String, String> _storyUrlCache = <String, String>{};
   static final Map<String, String> _eduUrlCache = <String, String>{};
@@ -78,6 +79,23 @@ class ShortLinkService {
     );
   }
 
+  Future<Map<String, dynamic>> upsertJob({
+    required String jobId,
+    String? title,
+    String? desc,
+    String? imageUrl,
+    String? shortId,
+  }) async {
+    return _upsert(
+      type: 'job',
+      entityId: 'job:$jobId',
+      title: title,
+      desc: desc,
+      imageUrl: imageUrl,
+      shortId: shortId,
+    );
+  }
+
   Future<Map<String, dynamic>> resolve({
     required String type,
     required String id,
@@ -97,17 +115,23 @@ class ShortLinkService {
     String? title,
     String? desc,
     String? imageUrl,
+    bool forceRefresh = false,
+    String? shortId,
   }) async {
     final cached = _postUrlCache[postId];
-    if (cached != null && cached.isNotEmpty) return cached;
+    if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
 
-    final result = await upsertPost(
-      postId: postId,
-      title: title,
-      desc: desc,
-      imageUrl: imageUrl,
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/p/',
+      fallbackId: postId,
+      request: () => upsertPost(
+        postId: postId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+        shortId: shortId,
+      ),
     );
-    final url = _extractUrl(result, fallbackPath: '/p/');
     if (url.isNotEmpty) _postUrlCache[postId] = url;
     return url;
   }
@@ -122,14 +146,17 @@ class ShortLinkService {
     final cached = _storyUrlCache[storyId];
     if (cached != null && cached.isNotEmpty) return cached;
 
-    final result = await upsertStory(
-      storyId: storyId,
-      title: title,
-      desc: desc,
-      imageUrl: imageUrl,
-      expiresAt: expiresAt,
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/s/',
+      fallbackId: storyId,
+      request: () => upsertStory(
+        storyId: storyId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+        expiresAt: expiresAt,
+      ),
     );
-    final url = _extractUrl(result, fallbackPath: '/s/');
     if (url.isNotEmpty) _storyUrlCache[storyId] = url;
     return url;
   }
@@ -139,17 +166,23 @@ class ShortLinkService {
     String? title,
     String? desc,
     String? imageUrl,
+    bool forceRefresh = false,
+    String? shortId,
   }) async {
     final cached = _eduUrlCache[shareId];
-    if (cached != null && cached.isNotEmpty) return cached;
+    if (!forceRefresh && cached != null && cached.isNotEmpty) return cached;
 
-    final result = await upsertEducation(
-      shareId: shareId,
-      title: title,
-      desc: desc,
-      imageUrl: imageUrl,
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/e/',
+      fallbackId: shareId,
+      request: () => upsertEducation(
+        shareId: shareId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+        shortId: shortId,
+      ),
     );
-    final url = _extractUrl(result, fallbackPath: '/e/');
     if (url.isNotEmpty) _eduUrlCache[shareId] = url;
     return url;
   }
@@ -163,13 +196,16 @@ class ShortLinkService {
     final cached = _jobUrlCache[jobId];
     if (cached != null && cached.isNotEmpty) return cached;
 
-    final result = await upsertEducation(
-      shareId: 'job:$jobId',
-      title: title,
-      desc: desc,
-      imageUrl: imageUrl,
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/i/',
+      fallbackId: jobId,
+      request: () => upsertJob(
+        jobId: jobId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+      ),
     );
-    final url = _extractUrl(result, fallbackPath: '/i/');
     if (url.isNotEmpty) _jobUrlCache[jobId] = url;
     return url;
   }
@@ -183,13 +219,16 @@ class ShortLinkService {
     final cached = _internalEduUrlCache[shareId];
     if (cached != null && cached.isNotEmpty) return cached;
 
-    final result = await upsertEducation(
-      shareId: shareId,
-      title: title,
-      desc: desc,
-      imageUrl: imageUrl,
+    final url = await _safeUpsertUrl(
+      fallbackPath: '/i/',
+      fallbackId: shareId,
+      request: () => upsertEducation(
+        shareId: shareId,
+        title: title,
+        desc: desc,
+        imageUrl: imageUrl,
+      ),
     );
-    final url = _extractUrl(result, fallbackPath: '/i/');
     if (url.isNotEmpty) _internalEduUrlCache[shareId] = url;
     return url;
   }
@@ -224,22 +263,25 @@ class ShortLinkService {
     String callableName,
     Map<String, dynamic> payload,
   ) async {
-    final targets = <FirebaseFunctions>[
-      FirebaseFunctions.instance,
-      FirebaseFunctions.instanceFor(region: 'us-central1'),
-      FirebaseFunctions.instanceFor(region: 'europe-west1'),
-    ];
-
     Object? lastError;
-    for (final fn in targets) {
+    for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        final result = await fn.httpsCallable(callableName).call(payload);
+        final fn = FirebaseFunctions.instanceFor(region: 'us-central1');
+        final callable = fn.httpsCallable(
+          callableName,
+          options: HttpsCallableOptions(timeout: _callTimeout),
+        );
+        final result = await callable.call(payload);
         return result.data;
       } catch (e) {
         lastError = e;
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+          continue;
+        }
       }
     }
-    throw lastError ?? Exception('short_link_callable_failed');
+    throw lastError ?? Exception('Callable failed');
   }
 
   String _extractUrl(
@@ -251,5 +293,18 @@ class ShortLinkService {
     final id = (response['id'] ?? '').toString().trim();
     if (id.isEmpty) return 'https://$_defaultDomain';
     return 'https://$_defaultDomain$fallbackPath$id';
+  }
+
+  Future<String> _safeUpsertUrl({
+    required String fallbackPath,
+    required String fallbackId,
+    required Future<Map<String, dynamic>> Function() request,
+  }) async {
+    try {
+      final result = await request();
+      return _extractUrl(result, fallbackPath: fallbackPath);
+    } catch (_) {
+      return 'https://$_defaultDomain';
+    }
   }
 }

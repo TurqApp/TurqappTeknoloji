@@ -14,6 +14,7 @@ class AudioFocusCoordinator extends GetxService {
   final Set<HLSVideoAdapter> _players = <HLSVideoAdapter>{};
   final Set<AudioPlayer> _audioPlayers = <AudioPlayer>{};
   HLSVideoAdapter? _activePlayer;
+  int _focusEpoch = 0;
 
   void register(HLSVideoAdapter player) {
     _players.add(player);
@@ -27,14 +28,38 @@ class AudioFocusCoordinator extends GetxService {
   }
 
   Future<void> requestPlay(HLSVideoAdapter player) async {
+    final int epoch = ++_focusEpoch;
     _activePlayer = player;
+
+    // HLS başlarken uygulamadaki diğer audio player kaynaklarını da sustur.
+    for (final audio in _audioPlayers.toList()) {
+      try {
+        await audio.pause();
+      } catch (_) {}
+    }
 
     final others = _players.where((p) => !identical(p, player)).toList();
     for (final p in others) {
       try {
         await p.pause();
+        await p.setVolume(0.0);
       } catch (_) {}
     }
+
+    // iOS'ta hızlı page geçişlerinde eski player kısa süre tekrar ses verebilir.
+    // Kısa bir doğrulama turu ile sadece aktif player'ın sesini açık bırak.
+    Future.delayed(const Duration(milliseconds: 120), () async {
+      if (epoch != _focusEpoch) return;
+      final active = _activePlayer;
+      if (active == null) return;
+      for (final p in _players.toList()) {
+        if (identical(p, active)) continue;
+        try {
+          await p.pause();
+          await p.setVolume(0.0);
+        } catch (_) {}
+      }
+    });
   }
 
   void requestPause(HLSVideoAdapter player) {

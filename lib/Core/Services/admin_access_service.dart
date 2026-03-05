@@ -3,21 +3,13 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminAccessService {
   static const Set<String> adminUserIds = {
-    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-  };
-
-  static const Set<String> adminNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
 
   static bool isKnownAdminSync() {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final currentNickname =
-        CurrentUserService.instance.nickname.trim().toLowerCase();
-    return adminUserIds.contains(currentUid) ||
-        adminNicknames.contains(currentNickname);
+    return adminUserIds.contains(currentUid);
   }
 
   static Future<bool> canManageSliders() async {

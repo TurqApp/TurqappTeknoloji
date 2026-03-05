@@ -235,12 +235,7 @@ export const onUserNotificationCreate = functions.firestore
 
       const userDoc = await db.collection("users").doc(uid).get();
       const userData = (userDoc.data() || {}) as any;
-      const token = String(
-        (userData.token as string) ||
-          (userData.fcmToken as string) ||
-          (userData.fcm_token as string) ||
-          ""
-      );
+      const token = String((userData.fcmToken as string) || "");
       if (!token) {
         console.log("onUserNotificationCreate skip:no_token", { uid, type });
         return;
@@ -252,37 +247,29 @@ export const onUserNotificationCreate = functions.firestore
 
       await admin.messaging().send({
         token,
-        notification: {
-          title,
-          body,
-          ...(imageUrl ? { imageUrl } : {}),
-        },
+        notification: { title, body },
         data: {
           docID: targetDocID,
           type,
           title,
           body,
+          ...(fromUserID ? { fromUserID } : {}),
           ...(imageUrl ? { imageUrl } : {}),
         },
         android: {
           priority: "high",
           notification: {
             channelId: "high_importance_channel",
+            icon: "ic_notification_small",
             color: "#4F718E",
             ...(imageUrl ? { imageUrl } : {}),
           },
         },
         apns: {
-          headers: {
-            "apns-priority": "10",
-          },
-          fcmOptions: imageUrl ? { imageUrl } : undefined,
+          headers: { "apns-priority": "10" },
           payload: {
             aps: {
-              alert: {
-                title,
-                body,
-              },
+              alert: { title, body },
               "mutable-content": imageUrl ? 1 : 0,
               sound: "default",
             },

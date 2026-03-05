@@ -7,8 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
@@ -671,7 +672,6 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                     : null);
             final url = await ShortLinkService().getPostPublicUrl(
               postId: widget.model.docID,
-              title: 'TurqApp Gönderisi',
               desc: widget.model.metin,
               imageUrl: previewImage,
             );
@@ -693,19 +693,21 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                       : null);
               final url = await ShortLinkService().getPostPublicUrl(
                 postId: widget.model.docID,
-                title: 'TurqApp Gönderisi',
                 desc: widget.model.metin,
                 imageUrl: previewImage,
               );
-              await SharePlus.instance.share(ShareParams(text: url));
+              await ShareLinkService.shareUrl(
+                url: url,
+                title: 'TurqApp Gönderisi',
+                subject: 'TurqApp Gönderisi',
+              );
             });
           },
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            FirebaseAuth.instance.currentUser!.uid ==
-                "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2")
+            AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
               noYesAlert(
@@ -725,8 +727,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
             (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -738,8 +739,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
             (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();

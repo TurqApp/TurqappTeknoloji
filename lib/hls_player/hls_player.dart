@@ -134,7 +134,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              widget.controller.errorMessage ?? 'Video yüklenemedi',
+                              widget.controller.errorMessage ??
+                                  'Video yüklenemedi',
                               style: const TextStyle(color: Colors.white),
                               textAlign: TextAlign.center,
                             ),
@@ -300,11 +301,15 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                           return StreamBuilder<Duration>(
                             stream: widget.controller.onDurationChanged,
                             builder: (context, durationSnapshot) {
-                              final position = positionSnapshot.data ?? Duration.zero;
-                              final duration = durationSnapshot.data ?? Duration.zero;
+                              final position =
+                                  positionSnapshot.data ?? Duration.zero;
+                              final duration =
+                                  durationSnapshot.data ?? Duration.zero;
 
-                              final positionSeconds = position.inMilliseconds / 1000.0;
-                              final durationSeconds = duration.inMilliseconds / 1000.0;
+                              final positionSeconds =
+                                  position.inMilliseconds / 1000.0;
+                              final durationSeconds =
+                                  duration.inMilliseconds / 1000.0;
 
                               return Column(
                                 children: [
@@ -312,12 +317,16 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                                     value: _isDragging
                                         ? positionSeconds
                                         : (durationSeconds > 0
-                                            ? positionSeconds.clamp(0.0, durationSeconds)
+                                            ? positionSeconds.clamp(
+                                                0.0, durationSeconds)
                                             : 0.0),
                                     min: 0.0,
-                                    max: durationSeconds > 0 ? durationSeconds : 1.0,
+                                    max: durationSeconds > 0
+                                        ? durationSeconds
+                                        : 1.0,
                                     activeColor: Colors.white,
-                                    inactiveColor: Colors.white.withValues(alpha: 0.3),
+                                    inactiveColor:
+                                        Colors.white.withValues(alpha: 0.3),
                                     onChangeStart: (_) {
                                       setState(() {
                                         _isDragging = true;
@@ -334,9 +343,11 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                                     },
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           _formatDuration(position),

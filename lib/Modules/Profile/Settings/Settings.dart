@@ -44,12 +44,8 @@ import 'package:url_launcher/url_launcher.dart';
 class SettingsView extends StatelessWidget {
   SettingsView({super.key});
   static const Set<String> _adminUserIds = {
-    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-  };
-  static const Set<String> _adminNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   final controller = Get.put(SettingsController());
   final scholarshipsController = Get.put(ScholarshipsController());
@@ -61,9 +57,7 @@ class SettingsView extends StatelessWidget {
 
   bool get _isDiagnosticsAdmin {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final currentNickname = userService.nickname.trim().toLowerCase();
-    return _adminUserIds.contains(currentUid) ||
-        _adminNicknames.contains(currentNickname);
+    return _adminUserIds.contains(currentUid);
   }
 
   @override
@@ -654,12 +648,8 @@ class _AdminPushMenuTile extends StatelessWidget {
   const _AdminPushMenuTile({required this.buildRow});
 
   static const Set<String> _adminUserIds = {
-    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2",
-    "hiv3UzAABlRWJaePerm3mtPEolI3",
-  };
-  static const Set<String> _adminNicknames = {
-    "osmannafiz",
-    "turqapp",
+    "rlvJgi4VAoO7O78OwrooZc6puPW2",
+    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
 
   final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;
@@ -668,15 +658,12 @@ class _AdminPushMenuTile extends StatelessWidget {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
 
-    final currentNickname =
-        CurrentUserService.instance.nickname.trim().toLowerCase();
-    final isKnownAdmin = _adminUserIds.contains(currentUser.uid) ||
-        _adminNicknames.contains(currentNickname);
+    final isKnownAdmin = _adminUserIds.contains(currentUser.uid);
     if (!isKnownAdmin) return false;
 
     final token = await currentUser.getIdTokenResult(true);
     final isAdmin = token.claims?["admin"] == true;
-    if (!isAdmin && !_adminNicknames.contains(currentNickname)) return false;
+    if (!isAdmin && !isKnownAdmin) return false;
 
     final adminCfg =
         await FirebaseFirestore.instance.doc("adminConfig/admin").get();

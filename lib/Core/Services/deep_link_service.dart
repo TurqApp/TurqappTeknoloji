@@ -27,16 +27,20 @@ class DeepLinkService extends GetxService {
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
+  final RxBool initialLinkResolved = false.obs;
 
   void start() {
     if (_started) return;
     _started = true;
+    initialLinkResolved.value = false;
 
-    _appLinks.getInitialLink().then((initial) {
+    _appLinks.getInitialLink().then((initial) async {
       if (initial != null) {
-        unawaited(_handle(initial));
+        await _handle(initial);
       }
-    }).catchError((_) {});
+    }).catchError((_) {}).whenComplete(() {
+      initialLinkResolved.value = true;
+    });
 
     _subscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_handle(uri)),

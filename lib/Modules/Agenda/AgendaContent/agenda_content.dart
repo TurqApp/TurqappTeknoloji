@@ -7,12 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
@@ -1436,8 +1437,12 @@ class _AgendaContentState extends State<AgendaContent>
   Widget _buildImageContent(List<String> images) {
     switch (images.length) {
       case 1:
+        final double modelAspect = widget.model.aspectRatio.toDouble();
+        final double singleImageAspect = (modelAspect > 0 && modelAspect < 1)
+            ? 0.80
+            : (modelAspect > 0 ? modelAspect : 1.0);
         return AspectRatio(
-          aspectRatio: widget.model.aspectRatio.toDouble(),
+          aspectRatio: singleImageAspect,
           child: _buildImage(images[0], radius: BorderRadius.circular(12)),
         );
 
@@ -1686,8 +1691,7 @@ class _AgendaContentState extends State<AgendaContent>
           icon: CupertinoIcons.eye_slash,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            FirebaseAuth.instance.currentUser!.uid ==
-                "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2")
+            AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1723,7 +1727,6 @@ class _AgendaContentState extends State<AgendaContent>
                     : null);
             final url = await ShortLinkService().getPostPublicUrl(
               postId: widget.model.docID,
-              title: 'TurqApp Gönderisi',
               desc: widget.model.metin,
               imageUrl: previewImage,
             );
@@ -1746,19 +1749,21 @@ class _AgendaContentState extends State<AgendaContent>
                       : null);
               final url = await ShortLinkService().getPostPublicUrl(
                 postId: widget.model.docID,
-                title: 'TurqApp Gönderisi',
                 desc: widget.model.metin,
                 imageUrl: previewImage,
               );
-              await SharePlus.instance.share(ShareParams(text: url));
+              await ShareLinkService.shareUrl(
+                url: url,
+                title: 'TurqApp Gönderisi',
+                subject: 'TurqApp Gönderisi',
+              );
             });
           },
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            FirebaseAuth.instance.currentUser!.uid ==
-                "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2")
+            AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
               // 2) Videoyu durdur
@@ -1787,8 +1792,7 @@ class _AgendaContentState extends State<AgendaContent>
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
             (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -1801,8 +1805,7 @@ class _AgendaContentState extends State<AgendaContent>
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
             (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                FirebaseAuth.instance.currentUser!.uid ==
-                    "jp4ZnrD0CpX7VYkDNTGHeZvgwYA2"))
+                AdminAccessService.isKnownAdminSync()))
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();

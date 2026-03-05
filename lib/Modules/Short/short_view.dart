@@ -178,7 +178,8 @@ class _ShortViewState extends State<ShortView> {
 
     // A10: Eski video telemetry session'ını bitir
     if (currentPage < _cachedShorts.length) {
-      VideoTelemetryService.instance.endSession(_cachedShorts[currentPage].docID);
+      VideoTelemetryService.instance
+          .endSession(_cachedShorts[currentPage].docID);
     }
 
     currentPage = page;
@@ -200,12 +201,25 @@ class _ShortViewState extends State<ShortView> {
             : const Duration(milliseconds: 60), () {
       if (!mounted) return;
 
+      _enforceSingleActiveAudio(page);
       _schedulePlayForPage(currentPage);
 
       // Üç katmanlı cache güncellemesi
       _scheduleTierUpdate(currentPage);
       controller.loadMoreIfNeeded(currentPage);
     });
+  }
+
+  void _enforceSingleActiveAudio(int activePage) {
+    for (final entry in controller.cache.entries) {
+      final idx = entry.key;
+      final vc = entry.value;
+      if (idx == activePage) continue;
+      try {
+        vc.setVolume(0);
+        vc.pause();
+      } catch (_) {}
+    }
   }
 
   void _scheduleTierUpdate(int page) {
@@ -234,6 +248,7 @@ class _ShortViewState extends State<ShortView> {
             ? _playResumeDelayAndroid
             : _playResumeDelay, () {
       if (!mounted || page != currentPage) return;
+      _enforceSingleActiveAudio(page);
       final vc = controller.cache[page];
       if (vc == null) return;
       vc.setVolume(volume ? 1 : 0);
@@ -245,7 +260,8 @@ class _ShortViewState extends State<ShortView> {
       // A10: Telemetry session başlat
       if (page < _cachedShorts.length) {
         final post = _cachedShorts[page];
-        VideoTelemetryService.instance.startSession(post.docID, post.playbackUrl);
+        VideoTelemetryService.instance
+            .startSession(post.docID, post.playbackUrl);
         _telemetryFirstFrame = false;
         _telemetryAdapter = vc;
         vc.addListener(_telemetryListener);
@@ -321,7 +337,8 @@ class _ShortViewState extends State<ShortView> {
             now.difference(_lastProgressPersistAt!) >= _progressPersistInterval;
         final shouldPersistByDelta =
             (progress - _lastPersistedProgress).abs() >= _progressPersistDelta;
-        final shouldPersist = shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
+        final shouldPersist =
+            shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
         if (shouldPersist) {
           Get.find<SegmentCacheManager>().updateWatchProgress(
@@ -398,7 +415,8 @@ class _ShortViewState extends State<ShortView> {
 
     // A10: Açık kalan telemetry session'ı bitir
     if (currentPage < _cachedShorts.length) {
-      VideoTelemetryService.instance.endSession(_cachedShorts[currentPage].docID);
+      VideoTelemetryService.instance
+          .endSession(_cachedShorts[currentPage].docID);
     }
 
     super.dispose();
@@ -447,223 +465,224 @@ class _ShortViewState extends State<ShortView> {
       child: Scaffold(
         backgroundColor: Colors.black,
         body: Obx(() {
-        // Sadece bu değerleri oku (hedefli reaktivite)
-        final isRefreshingNow = controller.isRefreshing.value;
-        final isLoadingNow = controller.isLoading.value;
-        final hasMoreNow = controller.hasMore.value;
+          // Sadece bu değerleri oku (hedefli reaktivite)
+          final isRefreshingNow = controller.isRefreshing.value;
+          final isLoadingNow = controller.isLoading.value;
+          final hasMoreNow = controller.hasMore.value;
 
-        final list = _cachedShorts;
+          final list = _cachedShorts;
 
-        if (list.isEmpty) {
-          if (isLoadingNow || hasMoreNow) {
-            return const Center(
-              child: CupertinoActivityIndicator(color: Colors.white),
-            );
-          } else {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.video_library_outlined,
-                      color: Colors.white, size: 64),
-                  SizedBox(height: 16),
-                  Text(
-                    'Henüz video bulunamadı',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Yeni videolar için daha sonra tekrar deneyin',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                ],
-              ),
-            );
-          }
-        }
-
-        if (currentPage >= list.length) {
-          currentPage = list.length - 1;
-          if (currentPage < 0) currentPage = 0;
-          if (pageController.hasClients) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (pageController.hasClients) {
-                pageController.jumpToPage(currentPage);
-              }
-            });
-          }
-        }
-
-        if (!_didInitialAttach) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            final desiredIndex = controller.shorts.isEmpty
-                ? 0
-                : controller.lastIndex.value
-                    .clamp(0, controller.shorts.length - 1);
-            currentPage = desiredIndex;
-            try {
-              if (pageController.hasClients) {
-                pageController.jumpToPage(desiredIndex);
-              }
-            } catch (_) {}
-          });
-          _didInitialAttach = true;
-        }
-
-        final content = RefreshIndicator(
-          onRefresh: _handleRefresh,
-          backgroundColor: Colors.transparent,
-          color: Colors.white,
-          strokeWidth: 3.0,
-          displacement: 50.0,
-          child: PageView.builder(
-            controller: pageController,
-            scrollDirection: Axis.vertical,
-            physics: defaultTargetPlatform == TargetPlatform.android
-                ? const PageScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  )
-                : MomentumPageScrollPhysics(
-                    baseMinFlingVelocity: 600.0,
-                    parent: AlwaysScrollableScrollPhysics(),
-                  ),
-            itemCount: list.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (_, idx) {
-              final vp = controller.cache[idx];
-
-              if (vp == null) {
-                return const Center(
-                  child: CupertinoActivityIndicator(color: Colors.white),
-                );
-              }
-
-              // PURE BUILD — side effect yok, sadece widget döndür
-              final modelAr = list[idx].aspectRatio > 0
-                  ? list[idx].aspectRatio.toDouble()
-                  : (9 / 16);
-
-              // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
-              Widget videoWidget;
-              if (modelAr > 1.2) {
-                // Yatay dikdörtgen
-                videoWidget = Center(
-                  child: AspectRatio(
-                    aspectRatio: modelAr,
-                    child: vp.buildPlayer(useAspectRatio: false),
-                  ),
-                );
-              } else if (modelAr >= 0.8) {
-                // Kare frame
-                videoWidget = Center(
-                  child: AspectRatio(
-                    aspectRatio: 1.0,
-                    child: vp.buildPlayer(useAspectRatio: false),
-                  ),
-                );
-              } else {
-                // Dikey — ekranı doldur
-                videoWidget = SizedBox.expand(
-                  child: vp.buildPlayer(),
-                );
-              }
-
-              return RepaintBoundary(
-                child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Video layer
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onDoubleTap: () {
-                      // Çift dokunma: ses aç/kapa
-                      setState(() => volume = !volume);
-                      vp.setVolume(volume ? 1 : 0);
-                    },
-                    child: videoWidget,
-                  ),
-                  ShortsContent(
-                    model: list[idx],
-                    volumeOff: (v) {
-                      if (v) {
-                        vp.play();
-                        isManuallyPaused = false;
-                      } else {
-                        vp.pause();
-                        isManuallyPaused = true;
-                      }
-                    },
-                    videoPlayerController: vp,
-                    onEdited: (updatedDocId) async {
-                      await controller.updateShort(updatedDocId);
-                      await controller.refreshVideoController(idx);
-                      setState(() {});
-                    },
-                  ),
-                  // İnce progress bar — altta
-                  if (idx == currentPage)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _ShortProgressBar(adapter: vp),
+          if (list.isEmpty) {
+            if (isLoadingNow || hasMoreNow) {
+              return const Center(
+                child: CupertinoActivityIndicator(color: Colors.white),
+              );
+            } else {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.video_library_outlined,
+                        color: Colors.white, size: 64),
+                    SizedBox(height: 16),
+                    Text(
+                      'Henüz video bulunamadı',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    SizedBox(height: 8),
+                    Text(
+                      'Yeni videolar için daha sonra tekrar deneyin',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+
+          if (currentPage >= list.length) {
+            currentPage = list.length - 1;
+            if (currentPage < 0) currentPage = 0;
+            if (pageController.hasClients) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (pageController.hasClients) {
+                  pageController.jumpToPage(currentPage);
+                }
+              });
+            }
+          }
+
+          if (!_didInitialAttach) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              final desiredIndex = controller.shorts.isEmpty
+                  ? 0
+                  : controller.lastIndex.value
+                      .clamp(0, controller.shorts.length - 1);
+              currentPage = desiredIndex;
+              try {
+                if (pageController.hasClients) {
+                  pageController.jumpToPage(desiredIndex);
+                }
+              } catch (_) {}
+            });
+            _didInitialAttach = true;
+          }
+
+          final content = RefreshIndicator(
+            onRefresh: _handleRefresh,
+            backgroundColor: Colors.transparent,
+            color: Colors.white,
+            strokeWidth: 3.0,
+            displacement: 50.0,
+            child: PageView.builder(
+              controller: pageController,
+              scrollDirection: Axis.vertical,
+              physics: defaultTargetPlatform == TargetPlatform.android
+                  ? const PageScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    )
+                  : MomentumPageScrollPhysics(
+                      baseMinFlingVelocity: 600.0,
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+              itemCount: list.length,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (_, idx) {
+                final vp = controller.cache[idx];
+
+                if (vp == null) {
+                  return const Center(
+                    child: CupertinoActivityIndicator(color: Colors.white),
+                  );
+                }
+
+                // PURE BUILD — side effect yok, sadece widget döndür
+                final modelAr = list[idx].aspectRatio > 0
+                    ? list[idx].aspectRatio.toDouble()
+                    : (9 / 16);
+
+                // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
+                Widget videoWidget;
+                if (modelAr > 1.2) {
+                  // Yatay dikdörtgen
+                  videoWidget = Center(
+                    child: AspectRatio(
+                      aspectRatio: modelAr,
+                      child: vp.buildPlayer(useAspectRatio: false),
+                    ),
+                  );
+                } else if (modelAr >= 0.8) {
+                  // Kare frame
+                  videoWidget = Center(
+                    child: AspectRatio(
+                      aspectRatio: 1.0,
+                      child: vp.buildPlayer(useAspectRatio: false),
+                    ),
+                  );
+                } else {
+                  // Dikey — ekranı doldur
+                  videoWidget = SizedBox.expand(
+                    child: vp.buildPlayer(),
+                  );
+                }
+
+                return RepaintBoundary(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Video layer
+                      GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onDoubleTap: () {
+                          // Çift dokunma: ses aç/kapa
+                          setState(() => volume = !volume);
+                          vp.setVolume(volume ? 1 : 0);
+                        },
+                        child: videoWidget,
+                      ),
+                      ShortsContent(
+                        model: list[idx],
+                        volumeOff: (v) {
+                          if (v) {
+                            vp.play();
+                            isManuallyPaused = false;
+                          } else {
+                            vp.pause();
+                            isManuallyPaused = true;
+                          }
+                        },
+                        videoPlayerController: vp,
+                        onEdited: (updatedDocId) async {
+                          await controller.updateShort(updatedDocId);
+                          await controller.refreshVideoController(idx);
+                          setState(() {});
+                        },
+                      ),
+                      // İnce progress bar — altta
+                      if (idx == currentPage)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _ShortProgressBar(adapter: vp),
+                        ),
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
                             children: [
-                              _buildCircleButton(
-                                icon: CupertinoIcons.arrow_left,
-                                onTap: () => Get.back(),
-                              ),
-                              _buildCircleButton(
-                                icon: volume
-                                    ? CupertinoIcons.volume_up
-                                    : CupertinoIcons.volume_off,
-                                onTap: () {
-                                  setState(() => volume = !volume);
-                                  vp.setVolume(volume ? 1 : 0);
-                                },
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildCircleButton(
+                                    icon: CupertinoIcons.arrow_left,
+                                    onTap: () => Get.back(),
+                                  ),
+                                  _buildCircleButton(
+                                    icon: volume
+                                        ? CupertinoIcons.volume_up
+                                        : CupertinoIcons.volume_off,
+                                    onTap: () {
+                                      setState(() => volume = !volume);
+                                      vp.setVolume(volume ? 1 : 0);
+                                    },
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              );
-            },
-          ),
-        );
+                );
+              },
+            ),
+          );
 
-        return Stack(
-          children: [
-            content,
-            if (isRefreshingNow)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 24,
-                left: 0,
-                right: 0,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: _buildRefreshingBadge(),
+          return Stack(
+            children: [
+              content,
+              if (isRefreshingNow)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 24,
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: _buildRefreshingBadge(),
+                  ),
                 ),
-              ),
-            if (kDebugMode)
-              Positioned(
-                bottom: MediaQuery.of(context).padding.bottom + 60,
-                right: 8,
-                child: const CacheDebugOverlay(),
-              ),
-          ],
-        );
+              if (kDebugMode)
+                Positioned(
+                  bottom: MediaQuery.of(context).padding.bottom + 60,
+                  right: 8,
+                  child: const CacheDebugOverlay(),
+                ),
+            ],
+          );
         }),
       ),
     );
@@ -700,8 +719,7 @@ class _ShortProgressBar extends StatelessWidget {
         if (!v.isInitialized || v.duration.inMilliseconds <= 0) {
           return const SizedBox.shrink();
         }
-        final progress =
-            v.position.inMilliseconds / v.duration.inMilliseconds;
+        final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
         return LinearProgressIndicator(
           value: progress.clamp(0.0, 1.0),
           minHeight: 2,

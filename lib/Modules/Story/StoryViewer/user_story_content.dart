@@ -22,10 +22,10 @@ import '../StoryRow/story_row_controller.dart';
 import 'story_elements.dart';
 import 'story_video_widget.dart';
 import '../StoryHighlights/highlight_picker_sheet.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import '../../Chat/chat.dart';
 
 class UserStoryContent extends StatefulWidget {
@@ -1124,11 +1124,10 @@ class _UserStoryContentState extends State<UserStoryContent>
                       desc: 'TurqApp üzerinde hikayeyi görüntüle',
                       imageUrl: previewImage.isEmpty ? null : previewImage,
                     );
-                    await SharePlus.instance.share(
-                      ShareParams(
-                        text:
-                            '${widget.user.nickname} hikayesine bak!\n$shortUrl',
-                      ),
+                    await ShareLinkService.shareUrl(
+                      url: shortUrl,
+                      title: '${widget.user.nickname} hikayesi',
+                      subject: '${widget.user.nickname} hikayesi',
                     );
                   } catch (_) {}
                   _startProgress();

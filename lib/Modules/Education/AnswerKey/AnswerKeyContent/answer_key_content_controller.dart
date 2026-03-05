@@ -3,10 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
@@ -242,6 +243,13 @@ class AnswerKeyContentController extends GetxController {
   }
 
   Future<void> shareBooklet() async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final canShareFeed =
+        AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
+    if (!canShareFeed) {
+      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
+      return;
+    }
     final shareId = 'answer-key:${model.docID}';
     final shortTail =
         model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
@@ -269,21 +277,10 @@ class AnswerKeyContentController extends GetxController {
           shortUrl = fallbackUrl;
         }
 
-        final shareText = '''
-TurqApp Cevap Anahtari
-
-${model.baslik}
-${model.sinavTuru}
-${model.yayinEvi}
-
-$shortUrl
-''';
-
-        await SharePlus.instance.share(
-          ShareParams(
-            text: shareText,
-            subject: model.baslik,
-          ),
+        await ShareLinkService.shareUrl(
+          url: shortUrl,
+          title: model.baslik,
+          subject: model.baslik,
         );
       });
     } catch (_) {

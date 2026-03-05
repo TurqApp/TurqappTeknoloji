@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
@@ -19,6 +18,7 @@ import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
@@ -845,7 +845,11 @@ class _SocialProfileState extends State<SocialProfile> {
                             (result['url'] ?? '').toString().trim().isNotEmpty
                                 ? (result['url'] ?? '').toString().trim()
                                 : 'https://turqapp.com/u/$safeSlug';
-                        await SharePlus.instance.share(ShareParams(text: link));
+                        await ShareLinkService.shareUrl(
+                          url: link,
+                          title: '@${controller.nickname} - TurqApp',
+                          subject: 'TurqApp Profili',
+                        );
                       });
                     },
                     title: 'Paylaş',

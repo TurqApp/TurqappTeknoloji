@@ -14,21 +14,47 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.onVideoUpload = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const rateLimiter_1 = require("./rateLimiter");
 admin.initializeApp();
 const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// export { generateThumbnails } from "./thumbnails"; // ⏸️ Temporarily disabled (sharp build issue)
+// B9: generateThumbnails aktif — sharp build için package.json'da
+// "sharp": "^0.33.0" ve "engines": {"node": "20"} gerekli.
+// deploy öncesi: cd functions && npm install sharp --platform=linux --arch=x64
+var thumbnails_1 = require("./thumbnails");
+Object.defineProperty(exports, "generateThumbnails", { enumerable: true, get: function () { return thumbnails_1.generateThumbnails; } });
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🎬 HLS VIDEO TRANSCODE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 var hlsTranscode_1 = require("./hlsTranscode");
 Object.defineProperty(exports, "onVideoUpload", { enumerable: true, get: function () { return hlsTranscode_1.onVideoUpload; } });
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📊 AGGREGATION COUNTER SHARDING (A9)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var counterShards_1 = require("./counterShards");
+Object.defineProperty(exports, "recordViewBatch", { enumerable: true, get: function () { return counterShards_1.recordViewBatch; } });
+Object.defineProperty(exports, "aggregateCounterShards", { enumerable: true, get: function () { return counterShards_1.aggregateCounterShards; } });
+Object.defineProperty(exports, "initCounterShards", { enumerable: true, get: function () { return counterShards_1.initCounterShards; } });
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var hybridFeed_1 = require("./hybridFeed");
+Object.defineProperty(exports, "onPostCreate", { enumerable: true, get: function () { return hybridFeed_1.onPostCreate; } });
+Object.defineProperty(exports, "onPostDelete", { enumerable: true, get: function () { return hybridFeed_1.onPostDelete; } });
+Object.defineProperty(exports, "onNewFollower", { enumerable: true, get: function () { return hybridFeed_1.onNewFollower; } });
+Object.defineProperty(exports, "cleanupExpiredFeedItems", { enumerable: true, get: function () { return hybridFeed_1.cleanupExpiredFeedItems; } });
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 👤 AUTHOR FIELD DENORMALIZATION (B10)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var authorDenorm_1 = require("./authorDenorm");
+Object.defineProperty(exports, "denormAuthorOnPostWrite", { enumerable: true, get: function () { return authorDenorm_1.denormAuthorOnPostWrite; } });
+Object.defineProperty(exports, "syncAuthorFieldsOnProfileUpdate", { enumerable: true, get: function () { return authorDenorm_1.syncAuthorFieldsOnProfileUpdate; } });
 __exportStar(require("./04_tagSettings"), exports);
 __exportStar(require("./09_userProfile"), exports);
 __exportStar(require("./11_resend"), exports);
@@ -233,10 +259,7 @@ exports.onUserNotificationCreate = functions.firestore
             return;
         const userDoc = await db.collection("users").doc(uid).get();
         const userData = (userDoc.data() || {});
-        const token = String(userData.token ||
-            userData.fcmToken ||
-            userData.fcm_token ||
-            "");
+        const token = String(userData.fcmToken || "");
         if (!token) {
             console.log("onUserNotificationCreate skip:no_token", { uid, type });
             return;
@@ -246,30 +269,29 @@ exports.onUserNotificationCreate = functions.firestore
         const imageUrl = String(data.imageUrl || "");
         await admin.messaging().send({
             token,
-            notification: {
-                title,
-                body,
-                ...(imageUrl ? { imageUrl } : {}),
-            },
+            notification: { title, body },
             data: {
                 docID: targetDocID,
                 type,
+                title,
+                body,
+                ...(fromUserID ? { fromUserID } : {}),
                 ...(imageUrl ? { imageUrl } : {}),
             },
             android: {
                 priority: "high",
                 notification: {
                     channelId: "high_importance_channel",
+                    icon: "ic_notification_small",
+                    color: "#4F718E",
                     ...(imageUrl ? { imageUrl } : {}),
                 },
             },
             apns: {
-                headers: {
-                    "apns-priority": "10",
-                },
-                fcmOptions: imageUrl ? { imageUrl } : undefined,
+                headers: { "apns-priority": "10" },
                 payload: {
                     aps: {
+                        alert: { title, body },
                         "mutable-content": imageUrl ? 1 : 0,
                         sound: "default",
                     },
@@ -673,6 +695,12 @@ exports.purgePostSubcollections = functions
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Authentication required");
     }
+    // SECURITY: Sadece admin silme işlemi yapabilir
+    const isAdmin = context.auth.token?.admin === true;
+    if (!isAdmin) {
+        throw new functions.https.HttpsError("permission-denied", "Admin privileges required");
+    }
+    rateLimiter_1.RateLimits.admin(context.auth.uid);
     const docPathRaw = typeof data?.docPath === "string" ? data.docPath : "";
     const docPath = docPathRaw.trim();
     if (!docPath || !/^posts\/[A-Za-z0-9_-]+$/.test(docPath)) {
@@ -729,6 +757,12 @@ exports.purgeStudentSubcollections = functions
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
     }
+    // SECURITY: Sadece admin silme işlemi yapabilir
+    const isAdmin = context.auth.token?.admin === true;
+    if (!isAdmin) {
+        throw new functions.https.HttpsError('permission-denied', 'Admin privileges required');
+    }
+    rateLimiter_1.RateLimits.admin(context.auth.uid);
     const docPathRaw = typeof data?.docPath === 'string' ? data.docPath : '';
     const docPath = docPathRaw.trim();
     if (!docPath || !/^users\/[A-Za-z0-9_-]+$/.test(docPath)) {
