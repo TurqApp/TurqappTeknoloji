@@ -228,20 +228,38 @@ class AntremanCommentsController extends GetxController {
       if (data == null) {
         userInfoCache[userID] = {
           'pfImage': '',
+          'avatarUrl': '',
           'nickname': 'Bilinmeyen Kullanıcı',
+          'displayName': 'Bilinmeyen Kullanıcı',
         };
         return userInfoCache[userID]!;
       }
+      final profileImage = (data['avatarUrl'] ??
+              data['pfImage'] ??
+              data['photoURL'] ??
+              data['profileImageUrl'] ??
+              '')
+          .toString();
+      final profileName = (data['displayName'] ??
+              data['username'] ??
+              data['nickname'] ??
+              'Bilinmeyen Kullanıcı')
+          .toString();
       userInfoCache[userID] = {
-        'pfImage': data['pfImage']?.toString() ?? '',
-        'nickname': data['nickname']?.toString() ?? 'Bilinmeyen Kullanıcı',
+        'pfImage': profileImage,
+        'avatarUrl': profileImage,
+        'nickname': profileName,
+        'username': (data['username'] ?? '').toString(),
+        'displayName': profileName,
       };
       return userInfoCache[userID]!;
     } catch (e) {
       log("Kullanıcı bilgisi alınırken hata: $e");
       userInfoCache[userID] = {
         'pfImage': '',
+        'avatarUrl': '',
         'nickname': 'Bilinmeyen Kullanıcı',
+        'displayName': 'Bilinmeyen Kullanıcı',
       };
       return userInfoCache[userID]!;
     }

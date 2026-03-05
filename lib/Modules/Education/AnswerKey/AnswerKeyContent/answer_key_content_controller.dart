@@ -52,8 +52,16 @@ class AnswerKeyContentController extends GetxController {
           .collection("users")
           .doc(model.userID)
           .get();
-      pfImage.value = doc.get("pfImage") ?? '';
-      nickname.value = doc.get("nickname") ?? '';
+      final data = doc.data() ?? const <String, dynamic>{};
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
       log(
         "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
       );

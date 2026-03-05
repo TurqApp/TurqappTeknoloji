@@ -57,8 +57,17 @@ class ApplicationsController extends GetxController {
         final data = bursDoc.data();
         final bursOwnerID = data['userID'] as String? ?? '';
         final ownerData = userDocsById[bursOwnerID];
-        final nickname = ownerData?['nickname'] as String? ?? 'Bilinmiyor';
-        final pfImage = ownerData?['pfImage'] as String? ?? '';
+        final nickname = (ownerData?['displayName'] ??
+                ownerData?['username'] ??
+                ownerData?['nickname'] ??
+                'Bilinmiyor')
+            .toString();
+        final pfImage = (ownerData?['avatarUrl'] ??
+                ownerData?['pfImage'] ??
+                ownerData?['photoURL'] ??
+                ownerData?['profileImageUrl'] ??
+                '')
+            .toString();
 
         applicationList.add({
           'bursID': bursDoc.id,

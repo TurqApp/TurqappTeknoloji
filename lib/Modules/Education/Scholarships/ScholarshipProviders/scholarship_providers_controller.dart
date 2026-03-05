@@ -50,11 +50,25 @@ class ScholarshipProvidersController extends GetxController {
             .where(FieldPath.documentId, whereIn: batchIds)
             .get();
         for (final userDoc in snap.docs) {
+          final user = userDoc.data();
+          final profileImage = (user['avatarUrl'] ??
+                  user['pfImage'] ??
+                  user['photoURL'] ??
+                  user['profileImageUrl'] ??
+                  '')
+              .toString();
+          final profileName = (user['displayName'] ??
+                  user['username'] ??
+                  user['nickname'] ??
+                  'Bilinmeyen')
+              .toString();
           providerList.add({
             'userID': userDoc.id,
-            'pfImage': userDoc.data()['pfImage'] as String? ?? '',
-            'nickname': userDoc.data()['nickname'] as String? ?? 'Bilinmeyen',
-            'rozet': userDoc.data()['rozet'] as String? ?? '',
+            'pfImage': profileImage,
+            'avatarUrl': profileImage,
+            'nickname': profileName,
+            'displayName': profileName,
+            'rozet': user['rozet'] as String? ?? '',
           });
         }
       }

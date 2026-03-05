@@ -40,10 +40,18 @@ class TestsGridController extends GetxController {
         .collection("users")
         .doc(model.userID)
         .get();
-    final firstName = doc.get("firstName") as String;
-    final lastName = doc.get("lastName") as String;
-    final pfImage = doc.get("pfImage") as String;
-    final nickname = doc.get("nickname") as String;
+    final data = doc.data() ?? const <String, dynamic>{};
+    final firstName = (data["firstName"] ?? "").toString();
+    final lastName = (data["lastName"] ?? "").toString();
+    final pfImage = (data["avatarUrl"] ??
+            data["pfImage"] ??
+            data["photoURL"] ??
+            data["profileImageUrl"] ??
+            "")
+        .toString();
+    final nickname =
+        (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+            .toString();
 
     fullName.value = "$firstName $lastName";
     this.pfImage.value = pfImage;

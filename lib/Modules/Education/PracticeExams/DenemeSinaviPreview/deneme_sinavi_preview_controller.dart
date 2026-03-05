@@ -37,8 +37,16 @@ class DenemeSinaviPreviewController extends GetxController {
           .collection("users")
           .doc(model.userID)
           .get();
-      nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
+      final data = doc.data() as Map<String, dynamic>? ?? {};
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
     } catch (error) {
       AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
     } finally {

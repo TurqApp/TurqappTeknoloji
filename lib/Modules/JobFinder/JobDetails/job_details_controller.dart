@@ -375,8 +375,17 @@ class JobDetailsController extends GetxController {
         ].where((e) => e.isNotEmpty).join(' ').trim();
         final applicantLabel = applicantName.isNotEmpty
             ? applicantName
-            : (currentUserData['nickname'] ?? 'Bir kullanıcı').toString();
-        final applicantImage = (currentUserData['pfImage'] ?? '').toString();
+            : (currentUserData['displayName'] ??
+                    currentUserData['username'] ??
+                    currentUserData['nickname'] ??
+                    'Bir kullanıcı')
+                .toString();
+        final applicantImage = (currentUserData['avatarUrl'] ??
+                currentUserData['pfImage'] ??
+                currentUserData['photoURL'] ??
+                currentUserData['profileImageUrl'] ??
+                '')
+            .toString();
 
         batch.set(jobRef, {
           'timeStamp': now,
@@ -387,8 +396,12 @@ class JobDetailsController extends GetxController {
           'companyName': job.brand,
           'companyLogo': job.logo,
           'applicantName': applicantName,
-          'applicantNickname':
-              (currentUserData['nickname'] ?? '').toString().trim(),
+          'applicantNickname': (currentUserData['displayName'] ??
+                  currentUserData['username'] ??
+                  currentUserData['nickname'] ??
+                  '')
+              .toString()
+              .trim(),
           'applicantPfImage': applicantImage,
           'userID': uid,
         });
@@ -401,8 +414,12 @@ class JobDetailsController extends GetxController {
           'status': 'pending',
           'userID': uid,
           'applicantName': applicantName,
-          'applicantNickname':
-              (currentUserData['nickname'] ?? '').toString().trim(),
+          'applicantNickname': (currentUserData['displayName'] ??
+                  currentUserData['username'] ??
+                  currentUserData['nickname'] ??
+                  '')
+              .toString()
+              .trim(),
           'applicantPfImage': applicantImage,
         });
 

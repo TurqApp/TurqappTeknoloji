@@ -84,10 +84,19 @@ class ScholarshipApplicationsContentController extends GetxController {
           .get();
 
       if (doc.exists) {
-        nickname.value = doc.get("nickname") ?? "";
-        pfImage.value = doc.get("pfImage") ?? "";
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        nickname.value =
+            (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+                .toString();
+        pfImage.value = (data["avatarUrl"] ??
+                data["pfImage"] ??
+                data["photoURL"] ??
+                data["profileImageUrl"] ??
+                "")
+            .toString();
         fullName.value =
-            "${doc.get("firstName") ?? ""} ${doc.get("lastName") ?? ""}";
+            "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
+                .trim();
       }
     } catch (e) {
       print("Error loading initial data: $e");

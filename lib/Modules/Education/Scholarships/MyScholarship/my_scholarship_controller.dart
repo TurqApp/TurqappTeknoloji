@@ -50,9 +50,23 @@ class MyScholarshipController extends GetxController {
             .where(FieldPath.documentId, whereIn: batch)
             .get();
         for (final d in usersSnap.docs) {
+          final user = d.data();
+          final profileImage = (user['avatarUrl'] ??
+                  user['pfImage'] ??
+                  user['photoURL'] ??
+                  user['profileImageUrl'] ??
+                  '')
+              .toString();
+          final profileName = (user['displayName'] ??
+                  user['username'] ??
+                  user['nickname'] ??
+                  '')
+              .toString();
           userDataMap[d.id] = {
-            'pfImage': d.data()['pfImage'] as String? ?? '',
-            'nickname': d.data()['nickname'] as String? ?? '',
+            'pfImage': profileImage,
+            'avatarUrl': profileImage,
+            'nickname': profileName,
+            'displayName': profileName,
             'userID': d.id,
           };
         }

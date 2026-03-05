@@ -165,7 +165,11 @@ class TutoringDetailController extends GetxController {
         final tutorName =
             '${ownerData?['firstName'] ?? ''} ${ownerData?['lastName'] ?? ''}'
                 .trim();
-        final tutorImage = ownerData?['pfImage'] as String? ?? '';
+        final tutorImage = (ownerData?['avatarUrl'] ??
+                ownerData?['pfImage'] ??
+                ownerData?['photoURL'] ??
+                '')
+            .toString();
         final currentUserDoc =
             await FirebaseFirestore.instance.collection('users').doc(uid).get();
         final currentUserData = currentUserDoc.data() ?? const {};
@@ -175,8 +179,17 @@ class TutoringDetailController extends GetxController {
         ].where((e) => e.isNotEmpty).join(' ').trim();
         final applicantLabel = applicantName.isNotEmpty
             ? applicantName
-            : (currentUserData['nickname'] ?? 'Bir kullanıcı').toString();
-        final applicantImage = (currentUserData['pfImage'] ?? '').toString();
+            : (currentUserData['displayName'] ??
+                    currentUserData['username'] ??
+                    currentUserData['nickname'] ??
+                    'Bir kullanıcı')
+                .toString();
+        final applicantImage = (currentUserData['avatarUrl'] ??
+                currentUserData['pfImage'] ??
+                currentUserData['photoURL'] ??
+                currentUserData['profileImageUrl'] ??
+                '')
+            .toString();
 
         batch.set(educatorAppRef, {
           'timeStamp': now,

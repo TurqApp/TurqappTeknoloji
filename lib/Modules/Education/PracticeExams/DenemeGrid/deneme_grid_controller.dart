@@ -34,8 +34,16 @@ class DenemeGridController extends GetxController {
           .collection("users")
           .doc(userID)
           .get();
-      pfImage.value = doc.get("pfImage") ?? '';
-      nickname.value = doc.get("nickname") ?? '';
+      final data = doc.data() ?? const <String, dynamic>{};
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
     } catch (e) {
       debugPrint('[DenemeGrid] profile fetch failed for $userID: $e');
       pfImage.value = '';

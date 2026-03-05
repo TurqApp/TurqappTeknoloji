@@ -78,9 +78,22 @@ class BookletPreviewController extends GetxController {
           .collection("users")
           .doc(model.userID)
           .get();
-      nickname.value = doc.get("nickname") ?? '';
-      pfImage.value = doc.get("pfImage") ?? '';
-      fullName.value = doc.get("firstName") ?? '';
+      final data = doc.data() ?? const <String, dynamic>{};
+      nickname.value =
+          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+              .toString();
+      pfImage.value = (data["avatarUrl"] ??
+              data["pfImage"] ??
+              data["photoURL"] ??
+              data["profileImageUrl"] ??
+              "")
+          .toString();
+      fullName.value =
+          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
+              .trim();
+      if (fullName.value.isEmpty) {
+        fullName.value = nickname.value;
+      }
       log(
         "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
       );
