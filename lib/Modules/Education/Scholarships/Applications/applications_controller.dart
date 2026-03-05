@@ -24,6 +24,8 @@ class ApplicationsController extends GetxController {
       }
 
       final bursSnapshot = await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .where('basvurular', arrayContains: userID)
           .orderBy('timeStamp', descending: true)
@@ -38,8 +40,7 @@ class ApplicationsController extends GetxController {
           .toList();
       final userDocsById = <String, Map<String, dynamic>>{};
       for (var i = 0; i < ownerIds.length; i += 30) {
-        final end =
-            (i + 30) > ownerIds.length ? ownerIds.length : (i + 30);
+        final end = (i + 30) > ownerIds.length ? ownerIds.length : (i + 30);
         final batchIds = ownerIds.sublist(i, end);
         final snap = await FirebaseFirestore.instance
             .collection('users')
@@ -56,8 +57,7 @@ class ApplicationsController extends GetxController {
         final data = bursDoc.data();
         final bursOwnerID = data['userID'] as String? ?? '';
         final ownerData = userDocsById[bursOwnerID];
-        final nickname =
-            ownerData?['nickname'] as String? ?? 'Bilinmiyor';
+        final nickname = ownerData?['nickname'] as String? ?? 'Bilinmiyor';
         final pfImage = ownerData?['pfImage'] as String? ?? '';
 
         applicationList.add({
@@ -106,8 +106,11 @@ class ApplicationsController extends GetxController {
       }
 
       final batch = FirebaseFirestore.instance.batch();
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(bursID);
+      final docRef = FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
+          .collection('scholarships')
+          .doc(bursID);
       batch.update(docRef, {
         'basvurular': FieldValue.arrayRemove([userID]),
       });

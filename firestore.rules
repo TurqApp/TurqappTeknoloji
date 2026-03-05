@@ -348,11 +348,13 @@ service cloud.firestore {
       }
     }
 
-    // Burslar
-    match /scholarships/{docId} {
-      allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
-      allow update: if isAuth() && (
+    // Burslar (root yerine katalog altı)
+    match /catalog/{catalogId}/scholarships/{docId} {
+      allow read: if isAuth() && catalogId == "education";
+      allow create: if isAuth()
+        && catalogId == "education"
+        && request.resource.data.userID == request.auth.uid;
+      allow update: if isAuth() && catalogId == "education" && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
            .hasOnly([
@@ -364,16 +366,16 @@ service cloud.firestore {
              'bookmarksCount'
            ])
       );
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow delete: if isAuth() && catalogId == "education" && resource.data.userID == request.auth.uid;
 
       match /Basvurular/{applicantId} {
-        allow read: if isAuth();
-        allow create: if isOwner(applicantId);
-        allow update: if isAuth() && (
+        allow read: if isAuth() && catalogId == "education";
+        allow create: if isOwner(applicantId) && catalogId == "education";
+        allow update: if isAuth() && catalogId == "education" && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/scholarships/$(docId)).data.userID == request.auth.uid
+          || get(/databases/$(database)/documents/catalog/$(catalogId)/scholarships/$(docId)).data.userID == request.auth.uid
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isOwner(applicantId) && catalogId == "education";
       }
     }
 

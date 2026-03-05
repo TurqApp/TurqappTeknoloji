@@ -25,6 +25,8 @@ class MyScholarshipController extends GetxController {
     isLoading.value = true;
     try {
       final snapshot = await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .where('userID', isEqualTo: user.uid)
           .orderBy('timeStamp', descending: true)

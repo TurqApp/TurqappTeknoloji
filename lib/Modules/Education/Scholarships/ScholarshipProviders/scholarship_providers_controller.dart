@@ -18,6 +18,8 @@ class ScholarshipProvidersController extends GetxController {
 
       // Sadece son 200 burstan unique provider'ları çek
       final bursSnapshot = await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .orderBy('timeStamp', descending: true)
           .limit(200)
@@ -51,8 +53,7 @@ class ScholarshipProvidersController extends GetxController {
           providerList.add({
             'userID': userDoc.id,
             'pfImage': userDoc.data()['pfImage'] as String? ?? '',
-            'nickname':
-                userDoc.data()['nickname'] as String? ?? 'Bilinmeyen',
+            'nickname': userDoc.data()['nickname'] as String? ?? 'Bilinmeyen',
             'rozet': userDoc.data()['rozet'] as String? ?? '',
           });
         }

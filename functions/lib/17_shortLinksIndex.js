@@ -352,7 +352,11 @@ function parseEntityTarget(db, type, entityId) {
         return { ref, path: ref.path };
     }
     if (entityId.startsWith("scholarship:")) {
-        const ref = db.collection("scholarships").doc(entityId.replace(/^scholarship:/, ""));
+        const ref = db
+            .collection("catalog")
+            .doc("education")
+            .collection("scholarships")
+            .doc(entityId.replace(/^scholarship:/, ""));
         return { ref, path: ref.path };
     }
     if (entityId.startsWith("practice-exam:")) {

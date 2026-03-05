@@ -42,6 +42,8 @@ class SavedItemsController extends GetxController {
   }) async {
     try {
       final snapshot = await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .where(
             isLiked ? 'begeniler' : 'kaydedenler',
@@ -118,8 +120,11 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
+      final docRef = FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
+          .collection('scholarships')
+          .doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {
@@ -151,8 +156,11 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
+      final docRef = FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
+          .collection('scholarships')
+          .doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {

@@ -156,6 +156,8 @@ class PersonalizedController extends GetxController {
   // Load vitrin data
   void _loadVitrinData() {
     FirebaseFirestore.instance
+        .collection("catalog")
+        .doc("education")
         .collection("scholarships")
         .orderBy("timeStamp", descending: true)
         .limit(10)
@@ -179,6 +181,8 @@ class PersonalizedController extends GetxController {
 
     try {
       final snapshot = await FirebaseFirestore.instance
+          .collection("catalog")
+          .doc("education")
           .collection("scholarships")
           .orderBy("timeStamp", descending: true)
           .limit(50)
@@ -229,8 +233,9 @@ class PersonalizedController extends GetxController {
   // Score by priority: location (3), school (2), target audience (1)
   int _scoreScholarship(IndividualScholarshipsModel item) {
     int score = 0;
-    final locationCity =
-        locationSehir.value.isNotEmpty ? locationSehir.value : ikametSehir.value;
+    final locationCity = locationSehir.value.isNotEmpty
+        ? locationSehir.value
+        : ikametSehir.value;
     final hasLocation = locationCity.trim().isNotEmpty;
     final hasSchoolCity = hasSchoolInfo.value && schoolCity.value.isNotEmpty;
 
@@ -394,7 +399,8 @@ class PersonalizedController extends GetxController {
     }
   }
 
-  Future<void> _saveCachedList(List<IndividualScholarshipsModel> allItems) async {
+  Future<void> _saveCachedList(
+      List<IndividualScholarshipsModel> allItems) async {
     try {
       if (allItems.isEmpty) return;
       final sorted = List<IndividualScholarshipsModel>.from(allItems)

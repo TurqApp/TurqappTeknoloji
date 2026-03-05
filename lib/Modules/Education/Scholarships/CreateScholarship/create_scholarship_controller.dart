@@ -130,8 +130,7 @@ class CreateScholarshipController extends GetxController {
 
   final GlobalKey templateKey = GlobalKey();
 
-  Future<Uint8List?> _compressFileToWebp(File file,
-      {int quality = 85}) async {
+  Future<Uint8List?> _compressFileToWebp(File file, {int quality = 85}) async {
     try {
       return await FlutterImageCompress.compressWithFile(
         file.path,
@@ -439,8 +438,9 @@ class CreateScholarshipController extends GetxController {
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = _storage.ref().child(
-          'scholarships/${isLogo ? 'logos' : 'images'}/$timestamp.webp');
+      final ref = _storage
+          .ref()
+          .child('scholarships/${isLogo ? 'logos' : 'images'}/$timestamp.webp');
       await ref.putData(
         webpBytes,
         SettableMetadata(
@@ -668,13 +668,18 @@ class CreateScholarshipController extends GetxController {
         );
 
         final docRef = await _firestore
+            .collection('catalog')
+            .doc('education')
             .collection('scholarships')
             .add(scholarship.toJson());
 
         await _firestore
+            .collection('catalog')
+            .doc('education')
             .collection('scholarships')
             .doc(docRef.id)
-            .set({'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
+            .set({'likesCount': 0, 'bookmarksCount': 0},
+                SetOptions(merge: true));
 
         // Refresh scholarships after successful save
         final scholarshipsController = Get.find<ScholarshipsController>();
@@ -793,6 +798,8 @@ class CreateScholarshipController extends GetxController {
         );
 
         await _firestore
+            .collection('catalog')
+            .doc('education')
             .collection('scholarships')
             .doc(scholarshipId.value)
             .update(scholarship.toJson());

@@ -148,6 +148,8 @@ class ScholarshipsController extends GetxController {
           (userDoc.data() as Map<String, dynamic>? ?? <String, dynamic>{});
 
       final bursSnap = await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .where('userID', isEqualTo: userId)
           .orderBy('timeStamp', descending: true)
@@ -756,8 +758,11 @@ class ScholarshipsController extends GetxController {
     final wasLiked = likedScholarships[docId] ?? false;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
+      final docRef = FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
+          .collection('scholarships')
+          .doc(docId);
       likedScholarships[docId] = !wasLiked;
       if (wasLiked) {
         _likedByCurrentUser.remove(docId);
@@ -809,8 +814,11 @@ class ScholarshipsController extends GetxController {
     final wasBookmarked = bookmarkedScholarships[docId] ?? false;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('scholarships').doc(docId);
+      final docRef = FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
+          .collection('scholarships')
+          .doc(docId);
       bookmarkedScholarships[docId] = !wasBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.remove(docId);

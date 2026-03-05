@@ -43,6 +43,8 @@ class ScholarshipDetailController extends GetxController {
       return;
     }
     FirebaseFirestore.instance
+        .collection('catalog')
+        .doc('education')
         .collection('scholarships')
         .doc(docId)
         .update({
@@ -300,6 +302,8 @@ class ScholarshipDetailController extends GetxController {
     try {
       isLoading.value = true;
       await FirebaseFirestore.instance
+          .collection('catalog')
+          .doc('education')
           .collection('scholarships')
           .doc(scholarshipId)
           .delete();
