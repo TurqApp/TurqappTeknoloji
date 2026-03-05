@@ -57,6 +57,16 @@
       "fields": [
         { "fieldPath": "userID", "order": "ASCENDING" },
         { "fieldPath": "arsiv", "order": "ASCENDING" },
+        { "fieldPath": "flood", "order": "ASCENDING" },
+        { "fieldPath": "timeStamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" },
+        { "fieldPath": "arsiv", "order": "ASCENDING" },
         { "fieldPath": "video", "order": "ASCENDING" },
         { "fieldPath": "flood", "order": "ASCENDING" },
         { "fieldPath": "timeStamp", "order": "DESCENDING" }

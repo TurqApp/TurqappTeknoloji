@@ -318,6 +318,9 @@ class SocialProfileController extends GetxController {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       Query query = FirebaseFirestore.instance
           .collection('Posts')
+          .where('userID', isEqualTo: userID)
+          .where('arsiv', isEqualTo: false)
+          .where('flood', isEqualTo: false)
           .where('timeStamp', isGreaterThan: nowMs)
           .orderBy('timeStamp')
           .limit(pageSizeScheduled);
@@ -326,11 +329,33 @@ class SocialProfileController extends GetxController {
         query = query.startAfterDocument(lastScheduledDoc!);
       }
 
-      final snap = await PerformanceService.traceFeedLoad(
-        () => query.get(),
-        postCount: scheduledPosts.length,
-        feedMode: 'profile_scheduled',
-      );
+      QuerySnapshot snap;
+      try {
+        snap = await PerformanceService.traceFeedLoad(
+          () => query.get(),
+          postCount: scheduledPosts.length,
+          feedMode: 'profile_scheduled',
+        );
+      } catch (e) {
+        final isIndexError = e is FirebaseException
+            ? e.code == 'failed-precondition'
+            : e.toString().contains('requires an index');
+        if (!isIndexError) rethrow;
+
+        Query fallback = FirebaseFirestore.instance
+            .collection('Posts')
+            .where('timeStamp', isGreaterThan: nowMs)
+            .orderBy('timeStamp')
+            .limit(pageSizeScheduled);
+        if (!initial && lastScheduledDoc != null) {
+          fallback = fallback.startAfterDocument(lastScheduledDoc!);
+        }
+        snap = await PerformanceService.traceFeedLoad(
+          () => fallback.get(),
+          postCount: scheduledPosts.length,
+          feedMode: 'profile_scheduled_fallback',
+        );
+      }
       final posts = snap.docs
           .map(
               (d) => PostsModel.fromMap(d.data() as Map<String, dynamic>, d.id))
@@ -344,7 +369,7 @@ class SocialProfileController extends GetxController {
       }
 
       if (snap.docs.isNotEmpty) lastScheduledDoc = snap.docs.last;
-      if (posts.length < pageSizeScheduled) hasMoreScheduled.value = false;
+      if (snap.docs.length < pageSizeScheduled) hasMoreScheduled.value = false;
     } catch (e) {
       print('fetchScheduledPosts(SocialProfile) error: $e');
     }
