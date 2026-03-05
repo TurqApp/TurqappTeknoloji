@@ -77,7 +77,8 @@ class AgendaController extends GetxController {
   int _shuffledIndex = 0; // Karışık postlardaki mevcut index
   DateTime? _lastCacheTime; // Son cache zamanı
   final int _cacheValidMinutes = 5; // Cache geçerlilik süresi (dakika)
-  final int _initialShuffleSize = 100; // İlk karışık yükleme miktarı
+  final int _initialShuffleSize = 60; // İlk karışık yükleme miktarı
+  final int _backgroundShuffleFetchSize = 300; // Arka plan tarama üst sınırı
   // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
@@ -1322,7 +1323,7 @@ class AgendaController extends GetxController {
           .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
           .where('timeStamp', isLessThanOrEqualTo: nowMs)
           .orderBy("timeStamp", descending: true)
-          .limit(1000); // 2000 yerine 1000 (daha hızlı)
+          .limit(_backgroundShuffleFetchSize);
 
       final snap = await query.get();
       // nowMs already computed above
