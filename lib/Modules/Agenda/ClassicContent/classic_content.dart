@@ -613,7 +613,7 @@ class _ClassicContentState extends State<ClassicContent>
           ? userVoteRaw.toInt()
           : int.tryParse('${userVoteRaw ?? ''}');
 
-      final createdAt = (poll['createdAt'] ?? model.timeStamp) as num;
+      final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
       final durationHours = (poll['durationHours'] ?? 24) as num;
       final expiresAt =
           createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
@@ -1053,12 +1053,18 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget headerUserInfoBar() {
+    final primaryName = controller.fullName.value.trim().isNotEmpty
+        ? controller.fullName.value.replaceAll("  ", " ")
+        : controller.nickname.value.trim();
+    final handle = controller.nickname.value.trim().isNotEmpty
+        ? controller.nickname.value.trim()
+        : controller.username.value.trim();
     final displayTime = controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final shouldHideFollow = controller.fullName.value.length +
+    final shouldHideFollow = primaryName.length +
             controller.nickname.value.length +
             displayTime.length >
         28;
@@ -1110,7 +1116,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 }
                               },
                               child: Text(
-                                controller.fullName.value.replaceAll("  ", " "),
+                                primaryName,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black,
@@ -1120,11 +1126,10 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
-                          RozetContent(size: 13, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 4),
                             child: Text(
-                              '@${controller.nickname.value}',
+                              '@$handle',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1145,6 +1150,7 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
+                          RozetContent(size: 13, userID: widget.model.userID),
                         ],
                       ),
                     ),
@@ -1224,12 +1230,18 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget headerUserInfoWhite() {
+    final primaryName = controller.fullName.value.trim().isNotEmpty
+        ? controller.fullName.value.replaceAll("  ", " ")
+        : controller.username.value.trim();
+    final handle = controller.username.value.trim().isNotEmpty
+        ? controller.username.value.trim()
+        : controller.nickname.value.trim();
     final displayTime = controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final shouldHideFollow = controller.fullName.value.length +
+    final shouldHideFollow = primaryName.length +
             controller.nickname.value.length +
             displayTime.length >
         28;
@@ -1281,7 +1293,7 @@ class _ClassicContentState extends State<ClassicContent>
                                 }
                               },
                               child: Text(
-                                controller.fullName.value.replaceAll("  ", " "),
+                                primaryName,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -1295,7 +1307,7 @@ class _ClassicContentState extends State<ClassicContent>
                           Padding(
                             padding: const EdgeInsets.only(left: 4),
                             child: Text(
-                              '@${controller.nickname.value}',
+                              '@$handle',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(

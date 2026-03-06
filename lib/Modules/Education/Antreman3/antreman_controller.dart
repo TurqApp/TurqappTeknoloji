@@ -529,7 +529,7 @@ class AntremanController extends GetxController {
       final batch = FirebaseFirestore.instance.batch();
       batch.set(viewRef, {
         'questionId': question.docID,
-        'viewedAt': FieldValue.serverTimestamp(),
+        'viewedAt': DateTime.now().millisecondsSinceEpoch,
       });
       batch.update(
         FirebaseFirestore.instance
@@ -558,7 +558,7 @@ class AntremanController extends GetxController {
       } else {
         await savedRef.set({
           'questionId': question.docID,
-          'savedAt': FieldValue.serverTimestamp(),
+          'savedAt': DateTime.now().millisecondsSinceEpoch,
         });
       }
       savedQuestions[key] = !isSaved;
@@ -714,7 +714,7 @@ class AntremanController extends GetxController {
         'categoryKey': question.categoryKey.isNotEmpty
             ? question.categoryKey
             : _activeCategoryKey.value,
-        'answeredAt': FieldValue.serverTimestamp(),
+        'answeredAt': DateTime.now().millisecondsSinceEpoch,
       });
 
       batch.set(
@@ -754,7 +754,7 @@ class AntremanController extends GetxController {
           'pfImage': profileImage,
           'rozet': (userData['rozet'] ?? '').toString(),
           'antPoint': newAntPoint,
-          'updatedAt': FieldValue.serverTimestamp(),
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
         },
         SetOptions(merge: true),
       );
@@ -894,7 +894,7 @@ class AntremanController extends GetxController {
       'a': _coprimeStep(n, random),
       'b': n > 0 ? random.nextInt(n) : 0,
       'cycle': cycle,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedDate': DateTime.now().millisecondsSinceEpoch,
     };
   }
 
@@ -1007,7 +1007,7 @@ class AntremanController extends GetxController {
       'a': a,
       'b': b,
       'cycle': cycle,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedDate': DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
 
     questions.addAll(appended);

@@ -143,8 +143,8 @@ class FamilyInfoController extends GetxController {
             scope: 'family',
             fallback: "Seçim Yap",
           );
-          city.value = userString(data, key: 'ikametSehir');
-          town.value = userString(data, key: 'ikametIlce');
+          city.value = userString(data, key: 'ikametSehir', scope: 'profile');
+          town.value = userString(data, key: 'ikametIlce', scope: 'profile');
         } else {
           _resetToDefaults();
         }
@@ -394,8 +394,13 @@ class FamilyInfoController extends GetxController {
             "evMulkiyeti": evMulkiyeti.value,
           },
         ),
-        "ikametSehir": city.value,
-        "ikametIlce": town.value,
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            "ikametSehir": city.value,
+            "ikametIlce": town.value,
+          },
+        ),
       });
 
       Get.back();
@@ -433,8 +438,13 @@ class FamilyInfoController extends GetxController {
             "evMulkiyeti": "Seçim Yap",
           },
         ),
-        "ikametSehir": "",
-        "ikametIlce": "",
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            "ikametSehir": "",
+            "ikametIlce": "",
+          },
+        ),
       });
 
       // UI'yi hemen güncelle

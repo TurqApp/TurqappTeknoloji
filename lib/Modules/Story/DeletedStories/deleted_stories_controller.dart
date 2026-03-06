@@ -42,7 +42,7 @@ class DeletedStoriesController extends GetxController {
       Query q = FirebaseFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: uid)
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdDate', descending: true)
           .limit(pageSize);
       if (lastDoc != null) {
         q = (q as Query<Map<String, dynamic>>).startAfterDocument(lastDoc!);
@@ -78,7 +78,7 @@ class DeletedStoriesController extends GetxController {
         final q = await FirebaseFirestore.instance
             .collection('stories')
             .where('userId', isEqualTo: uid)
-            .orderBy('createdAt', descending: true)
+            .orderBy('createdDate', descending: true)
             .limit(pageSize)
             .get();
         final items2 = <StoryModel>[];

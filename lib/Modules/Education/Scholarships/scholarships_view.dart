@@ -582,7 +582,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           final isNowFollowing = await FirebaseFirestore.instance
               .collection('users')
               .doc(uid)
-              .collection('Takipciler')
+              .collection('followers')
               .doc(FirebaseAuth.instance.currentUser!.uid)
               .get()
               .then((d) => d.exists);

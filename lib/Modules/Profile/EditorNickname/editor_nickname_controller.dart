@@ -129,7 +129,7 @@ class EditorNicknameController extends GetxController {
   }
 
   int? _extractCreatedAt(Map<String, dynamic> data) {
-    return _parseMillis(data['createdAt']) ??
+    return _parseMillis(data['createdDate']) ??
         _parseMillis(data['createdDate']) ??
         _parseMillis(data['timeStamp']);
   }

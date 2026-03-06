@@ -74,10 +74,7 @@ function extractProfileFields(data) {
         combined ??
         "";
     const username = data.username ?? "";
-    const avatarUrl = data.avatarUrl ??
-        data.profileImageUrl ??
-        data.photoUrl ??
-        null;
+    const avatarUrl = data.avatarUrl ?? null;
     const isVerified = data.isVerified ?? false;
     return { username, displayName, avatarUrl, isVerified };
 }
@@ -101,7 +98,7 @@ async function updatePostsInBatches(posts, updateData, userId) {
             const batch = admin.firestore().batch();
             chunk.forEach((postDoc) => {
                 const update = {
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: Date.now(),
                 };
                 if (updateData.username !== undefined)
                     update["author.username"] = updateData.username;
@@ -150,7 +147,7 @@ async function logSyncMetrics(userId, result) {
         await admin.firestore().collection("sync_metrics").add({
             userId,
             type: "user_profile_sync",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: Date.now(),
             postsFound: result.postsFound,
             postsUpdated: result.postsUpdated,
             batchesExecuted: result.batchesExecuted,

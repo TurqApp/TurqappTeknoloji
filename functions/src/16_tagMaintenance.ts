@@ -195,7 +195,7 @@ function buildMeta(data: Record<string, any>) {
     isHidden: data.isHidden === true || data.gizlendi === true,
     isUploading: data.isUploading === true,
     hlsReady,
-    createdAt: data.createdAt || data.timeStamp || FieldValue.serverTimestamp(),
+    createdAt: data.createdAt || data.timeStamp || Date.now(),
   };
 }
 

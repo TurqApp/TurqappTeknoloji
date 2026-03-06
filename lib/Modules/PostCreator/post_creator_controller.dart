@@ -65,7 +65,7 @@ class PreparedPostModel {
         'text': text,
         'location': location,
         'gif': gif,
-        'timeStamp': FieldValue.serverTimestamp(),
+        'timeStamp': DateTime.now().millisecondsSinceEpoch,
       };
 }
 
@@ -1095,7 +1095,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     normalized['totalVotes'] = totalVotes;
     normalized['durationHours'] =
         (normalized['durationHours'] is num) ? normalized['durationHours'] : 24;
-    normalized['createdAt'] = createdAtMs;
+    normalized['createdDate'] = createdAtMs;
     normalized['userVotes'] = normalized['userVotes'] is Map
         ? Map<String, dynamic>.from(normalized['userVotes'])
         : <String, dynamic>{};

@@ -23,14 +23,6 @@ class SearchUserContent extends StatelessWidget {
     final handle = model.nickname.trim().toLowerCase();
     if (handle.isEmpty) return "";
     try {
-      final usernameDoc = await FirebaseFirestore.instance
-          .collection("usernames")
-          .doc(handle)
-          .get();
-      final mappedUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-      if (mappedUid.isNotEmpty) return mappedUid;
-    } catch (_) {}
-    try {
       final snap = await FirebaseFirestore.instance
           .collection("users")
           .where("username", isEqualTo: handle)
@@ -53,12 +45,18 @@ class SearchUserContent extends StatelessWidget {
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID == null || currentUserID.isEmpty) return;
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .update({
-        "lastSearchList": FieldValue.arrayUnion([targetUid])
-      });
+      final userRef =
+          FirebaseFirestore.instance.collection("users").doc(currentUserID);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(
+        userRef.collection("lastSearches").doc(targetUid),
+        {
+          "userID": targetUid,
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
       if (Get.isRegistered<FirebaseMyStore>()) {
         final store = Get.find<FirebaseMyStore>();
         if (!store.lastSearchList.contains(targetUid)) {
@@ -76,7 +74,7 @@ class SearchUserContent extends StatelessWidget {
           .get();
       final data = snap.data();
       if (data == null) return false;
-      final deletedAccount = (data['deletedAccount'] ?? false) == true;
+      final deletedAccount = (data['isDeleted'] ?? false) == true;
       final status = (data['accountStatus'] ?? '').toString().toLowerCase();
       if (deletedAccount ||
           status == 'pending_deletion' ||
@@ -95,12 +93,11 @@ class SearchUserContent extends StatelessWidget {
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID != null && currentUserID.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(currentUserID)
-            .update({
-          "lastSearchList": FieldValue.arrayRemove([targetUid])
-        });
+        final userRef =
+            FirebaseFirestore.instance.collection("users").doc(currentUserID);
+        final batch = FirebaseFirestore.instance.batch();
+        batch.delete(userRef.collection("lastSearches").doc(targetUid));
+        await batch.commit();
       }
     } catch (_) {}
     if (Get.isRegistered<FirebaseMyStore>()) {

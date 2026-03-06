@@ -35,7 +35,7 @@ class UserAnalyticsService {
           .add({
         'cacheHit': cacheHit,
         'loadTimeMs': loadTimeMs,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
         'device': 'mobile', // TODO: Get from device info
       });
     } on FirebaseException catch (e) {
@@ -63,10 +63,10 @@ class UserAnalyticsService {
           .doc('UserSessions')
           .collection(_userService.userId)
           .add({
-        'startTime': Timestamp.fromDate(startTime),
-        'endTime': Timestamp.fromDate(endTime),
+        'startTime': startTime.millisecondsSinceEpoch,
+        'endTime': endTime.millisecondsSinceEpoch,
         'durationMinutes': durationMinutes,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -89,7 +89,7 @@ class UserAnalyticsService {
           .collection(_userService.userId)
           .add({
         'feature': featureName,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       });
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {

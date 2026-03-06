@@ -23,11 +23,9 @@ import '../../../Services/post_delete_service.dart';
 class PhotoShortsContentController extends GetxController {
   static const Set<String> _adminPushUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const Set<String> _activePushTargetUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const int _pushTargetCutoffMs = 1772409600000;
   PostsModel model;
@@ -612,7 +610,7 @@ class PhotoShortsContentController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .get()
         .then((doc) {
@@ -1096,7 +1094,7 @@ class PhotoShortsContentController extends GetxController {
           if (imageUrl != null) 'imageUrl': imageUrl,
           'targetCount': written,
           'postID': model.docID,
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdDate': DateTime.now().millisecondsSinceEpoch,
         });
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;

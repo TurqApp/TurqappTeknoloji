@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class BankInfoController extends GetxController {
   // Reactive variables
@@ -61,9 +62,15 @@ class BankInfoController extends GetxController {
         .listen(
       (DocumentSnapshot doc) {
         isLoading.value = false;
-        String bank = doc.get("bank") ?? "";
-        String iban = doc.get("iban") ?? "";
-        String kolayAdresFromDb = doc.get("kolayAdresSelection") ?? "E-Posta";
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final bank = userString(data, key: "bank", scope: "finance");
+        final iban = userString(data, key: "iban", scope: "finance");
+        final kolayAdresFromDb = userString(
+          data,
+          key: "kolayAdresSelection",
+          scope: "preferences",
+          fallback: "E-Posta",
+        );
         selectedBank.value = bank.isNotEmpty ? bank : "Banka Seç";
         this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
         kolayAdres.value = kolayAdresList.contains(kolayAdresFromDb)
@@ -141,9 +148,19 @@ class BankInfoController extends GetxController {
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .update({
-      "iban": kolayAdres.value == "IBAN" ? "TR${iban.text}" : iban.text,
-      "bank": selectedBank.value,
-      "kolayAdresSelection": kolayAdres.value,
+      ...scopedUserUpdate(
+        scope: 'finance',
+        values: {
+          "iban": kolayAdres.value == "IBAN" ? "TR${iban.text}" : iban.text,
+          "bank": selectedBank.value,
+        },
+      ),
+      ...scopedUserUpdate(
+        scope: 'preferences',
+        values: {
+          "kolayAdresSelection": kolayAdres.value,
+        },
+      ),
     }).then((_) {
       Get.back();
       AppSnackbar('Başarılı', 'Banka bilgileri kaydedildi.');

@@ -49,8 +49,7 @@ class _StoryViewerState extends State<StoryViewer>
   late Animation<double> _opacityAnim;
   late Animation<double> _scaleAnim;
   // Screenshot detection
-  static const _screenshotChannel =
-      MethodChannel('com.turqapp/screenshot');
+  static const _screenshotChannel = MethodChannel('com.turqapp/screenshot');
 
   @override
   void initState() {
@@ -69,13 +68,18 @@ class _StoryViewerState extends State<StoryViewer>
         final idx = currentPageIndex >= 0 ? currentPageIndex : 0;
         if (widget.storyOwnerUsers.isEmpty) return;
         final currentUserId = widget.storyOwnerUsers[idx].userID;
-        // Sadece readStories listesine ekle; zaman bilgisini izleme akışı günceller
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(uid)
-            .update({
-          "readStories": FieldValue.arrayUnion([currentUserId])
-        });
+        final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
+        final batch = FirebaseFirestore.instance.batch();
+        batch.set(
+          userRef.collection("readStories").doc(currentUserId),
+          {
+            "storyId": currentUserId,
+            "readDate": DateTime.now().millisecondsSinceEpoch,
+            "updatedDate": DateTime.now().millisecondsSinceEpoch,
+          },
+          SetOptions(merge: true),
+        );
+        await batch.commit();
         _prefetchNext(idx);
       } catch (e) {
         print("readStories init update error: $e");
@@ -404,9 +408,18 @@ class _StoryViewerState extends State<StoryViewer>
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null && index < widget.storyOwnerUsers.length) {
         final targetUserId = widget.storyOwnerUsers[index].userID;
-        FirebaseFirestore.instance.collection("users").doc(uid).update({
-          "readStories": FieldValue.arrayUnion([targetUserId])
-        });
+        final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
+        final batch = FirebaseFirestore.instance.batch();
+        batch.set(
+          userRef.collection("readStories").doc(targetUserId),
+          {
+            "storyId": targetUserId,
+            "readDate": DateTime.now().millisecondsSinceEpoch,
+            "updatedDate": DateTime.now().millisecondsSinceEpoch,
+          },
+          SetOptions(merge: true),
+        );
+        batch.commit();
         print(
             "📝 Added user ${widget.storyOwnerUsers[index].nickname} to read list");
       }
@@ -430,10 +443,14 @@ class _StoryViewerState extends State<StoryViewer>
           await FirebaseFirestore.instance
               .collection('users')
               .doc(uid)
-              .update({
-            'readStoriesTimes.$targetUserId': latestStoryTime,
-            "readStories": FieldValue.arrayUnion([targetUserId])
-          });
+              .collection('readStories')
+              .doc(targetUserId)
+              .set({
+            "storyId": targetUserId,
+            "readDate": latestStoryTime,
+            "lastSeenAt": latestStoryTime,
+            "updatedDate": DateTime.now().millisecondsSinceEpoch,
+          }, SetOptions(merge: true));
 
           print(
               "✅ User ${user.nickname} fully viewed - Latest story time: $latestStoryTime");

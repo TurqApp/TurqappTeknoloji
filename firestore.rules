@@ -14,9 +14,14 @@ service cloud.firestore {
     function isAdmin() {
       return isAuth() && (
         request.auth.token.admin == true ||
-        request.auth.uid == "rlvJgi4VAoO7O78OwrooZc6puPW2" ||
-        request.auth.uid == "pGlxhtQEVEYeLIa1G2IKhb743E73"
+        request.auth.uid == "rlvJgi4VAoO7O78OwrooZc6puPW2"
       );
+    }
+    function isValidUsernameLower(v) {
+      return v is string
+        && v.size() >= 3
+        && v.size() <= 30
+        && v.matches('^[a-z0-9._]+$');
     }
 
     // ──────────────────────────────────────────────
@@ -33,15 +38,15 @@ service cloud.firestore {
                      'gonderSayisi', 'followerCount', 'followingCount', 'postCount']);
       allow delete: if false;
 
-      // Takipciler (followers)
-      match /Takipciler/{followerId} {
+      // followers (followers)
+      match /followers/{followerId} {
         allow read: if isAuth();
         allow create, update: if isAuth();
         allow delete: if isAuth() && (request.auth.uid == followerId || request.auth.uid == uid);
       }
 
-      // TakipEdilenler (following)
-      match /TakipEdilenler/{followingId} {
+      // followings (following)
+      match /followings/{followingId} {
         allow read: if isAuth();
         allow create, update: if isOwner(uid);
         allow delete: if isOwner(uid);
@@ -52,6 +57,35 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow create: if isAuth();
         allow update, delete: if isOwner(uid);
+      }
+
+      // Canonical user sub-docs
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /education/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /family/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /stats/{docId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) || isAdmin();
+      }
+      match /settings/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Canonical growing sets as subcollections
+      match /blockedUsers/{otherUid} {
+        allow read, write: if isOwner(uid);
+      }
+      match /readStories/{storyId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /lastSearches/{searchId} {
+        allow read, write: if isOwner(uid);
       }
 
       // User interaction subcollections
@@ -108,11 +142,66 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
-      // Analytics subcollections
-      match /{analyticsCollection}/{docId} {
-        allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+      // Unknown subcollections are denied by default.
+      match /{anySubcollection}/{docId} {
+        allow read, write: if false;
       }
+    }
+
+    // Username reservation (uniqueness lock)
+    match /users_usernames/{usernameLower} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && isValidUsernameLower(usernameLower)
+        && request.resource.data.uid == request.auth.uid
+        && !exists(/databases/$(database)/documents/users_usernames/$(usernameLower));
+      allow update: if isAuth()
+        && isValidUsernameLower(usernameLower)
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+    }
+
+    // Ad center (owner + admin). Reports write-side is server only.
+    match /adCampaigns/{campaignId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow create: if isAuth()
+        && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAuth()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+    match /adCreatives/{creativeId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow create: if isAuth()
+        && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAuth()
+        && (isAdmin() || resource.data.ownerId == request.auth.uid);
+    }
+    match /adPlacements/{placementId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+    match /adImpressions/{docId} {
+      allow create: if isAuth();
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update, delete: if false;
+    }
+    match /adClicks/{docId} {
+      allow create: if isAuth();
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow update, delete: if false;
+    }
+    match /adBudgets/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAuth() && (isAdmin() || request.resource.data.ownerId == request.auth.uid);
+    }
+    match /adReportsDaily/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+    match /adBilling/{docId} {
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
+      allow write: if isAdmin();
     }
 
     // ──────────────────────────────────────────────

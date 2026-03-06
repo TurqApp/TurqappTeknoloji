@@ -354,11 +354,16 @@ class PersonalizedController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
         await FirebaseFirestore.instance.collection("users").doc(uid).set({
-          "locationSehir": newLocationSehir,
-          "ikametSehir": newIkametSehir,
-          "ikametIlce": newIkametIlce,
-          "nufusSehir": newIkametSehir,
-          "nufusIlce": newIkametIlce,
+          ...scopedUserUpdate(
+            scope: 'profile',
+            values: {
+              "locationSehir": newLocationSehir,
+              "ikametSehir": newIkametSehir,
+              "ikametIlce": newIkametIlce,
+              "nufusSehir": newIkametSehir,
+              "nufusIlce": newIkametIlce,
+            },
+          ),
         }, SetOptions(merge: true));
       }
     } catch (e) {

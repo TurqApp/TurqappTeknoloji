@@ -18,8 +18,8 @@ class _TestUsersState extends State<TestUsers> {
   bool _isProcessing = false;
 
   static const Set<String> _protectedCollections = <String>{
-    'TakipEdilenler',
-    'Takipciler',
+    'followings',
+    'followers',
     'SosyalMedyaLinkleri',
   };
 

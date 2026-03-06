@@ -31,7 +31,7 @@ class RecommendedUserContentController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .get()
         .then((DocumentSnapshot doc) {
@@ -44,7 +44,7 @@ class RecommendedUserContentController extends GetxController {
     _followSub = FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .snapshots()
         .listen((doc) {

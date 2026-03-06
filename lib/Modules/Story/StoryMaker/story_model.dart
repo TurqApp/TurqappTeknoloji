@@ -67,7 +67,7 @@ class StoryModel {
 
     // createdAt field'ının güvenli parsing'i
     DateTime parseCreatedAt() {
-      final createdAtData = data['createdAt'];
+      final createdAtData = data['createdDate'];
       if (createdAtData is Timestamp) {
         return createdAtData.toDate();
       } else if (createdAtData is int) {
@@ -91,7 +91,7 @@ class StoryModel {
   /// StoryModel’ı Firestore’a yazmak üzere Map’e çevirir
   Map<String, dynamic> toMap() => {
         'userId': userId,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
         'musicUrl': musicUrl,
         'elements': elements
@@ -130,7 +130,7 @@ class StoryModel {
   Map<String, dynamic> toCacheMap() => {
         'id': id,
         'userId': userId,
-        'createdAt': createdAt.millisecondsSinceEpoch,
+        'createdDate': createdAt.millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
         'musicUrl': musicUrl,
         'elements': elements
@@ -212,7 +212,7 @@ class StoryModel {
       id: (data['id'] ?? '').toString(),
       userId: (data['userId'] ?? '').toString(),
       createdAt: DateTime.fromMillisecondsSinceEpoch(
-          (data['createdAt'] as num?)?.toInt() ??
+          (data['createdDate'] as num?)?.toInt() ??
               DateTime.now().millisecondsSinceEpoch),
       backgroundColor:
           Color((data['backgroundColor'] as num?)?.toInt() ?? 0xFF000000),

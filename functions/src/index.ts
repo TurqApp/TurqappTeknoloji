@@ -51,7 +51,7 @@ export const cleanupExpiredStories = functions.pubsub
 
     const snap = await db
       .collection("stories")
-      .where("createdAt", "<=", cutoff)
+      .where("createdDate", "<=", cutoff)
       .limit(500)
       .get();
 
@@ -123,6 +123,173 @@ const normalizePhone = (raw: string | undefined | null): string => {
   }
   return digits;
 };
+
+const normalizeUsernameLower = (raw: unknown): string => {
+  const s = String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  return s.replace(/[^a-z0-9._]/g, "");
+};
+
+const parseLegacyCreatedDateToTimestamp = (raw: unknown) => {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return admin.firestore.Timestamp.fromMillis(Math.floor(raw));
+  }
+  if (typeof raw === "string") {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) {
+      return admin.firestore.Timestamp.fromMillis(Math.floor(n));
+    }
+  }
+  return null;
+};
+
+const toNonNegativeInt = (raw: unknown): number => {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.trunc(n));
+};
+
+// USER SCHEMA NORMALIZER (canonical-only)
+export const syncUserSchemaAndFlags = functions.firestore
+  .document("users/{uid}")
+  .onWrite(async (change, context) => {
+    const uid = context.params.uid as string;
+    const afterExists = change.after.exists;
+    const afterData = (afterExists ? change.after.data() : undefined) as any | undefined;
+
+    // Delete case: nothing to normalize.
+    if (!afterExists) {
+      return;
+    }
+
+    const patch: Record<string, unknown> = {};
+    const canonicalUsername = normalizeUsernameLower(
+      afterData?.usernameLower ||
+      afterData?.username ||
+      afterData?.nickname ||
+      afterData?.displayName ||
+      afterData?.firstName
+    );
+
+    if (afterData?.isPrivate === undefined) patch.isPrivate = false;
+    if (afterData?.isApproved === undefined) patch.isApproved = false;
+    if (afterData?.isDeleted === undefined) patch.isDeleted = false;
+    if (afterData?.isBanned === undefined) patch.isBanned = false;
+    if (afterData?.isBot === undefined) patch.isBot = false;
+    if (!afterData?.avatarUrl) {
+      const fallbackAvatar = String(
+        afterData?.pfImage || afterData?.photoURL || afterData?.profileImageUrl || ""
+      );
+      if (fallbackAvatar) patch.avatarUrl = fallbackAvatar;
+    }
+    if (afterData?.pfImage !== undefined) {
+      patch.pfImage = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.photoURL !== undefined) {
+      patch.photoURL = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.profileImageUrl !== undefined) {
+      patch.profileImageUrl = admin.firestore.FieldValue.delete();
+    }
+
+    if (!afterData?.version) patch.version = 3;
+    if (!afterData?.locale) patch.locale = "tr_TR";
+    if (!afterData?.timezone) patch.timezone = "Europe/Istanbul";
+    if (afterData?.isOnboarded === undefined) patch.isOnboarded = false;
+    if (afterData?.deletedAt === undefined) patch.deletedAt = null;
+    if (canonicalUsername) {
+      if (String(afterData?.usernameLower || "") !== canonicalUsername) {
+        patch.usernameLower = canonicalUsername;
+      }
+      if (String(afterData?.username || "") !== canonicalUsername) {
+        patch.username = canonicalUsername;
+      }
+      if (String(afterData?.nickname || "") !== canonicalUsername) {
+        patch.nickname = canonicalUsername;
+      }
+    }
+    const firstName = String(afterData?.firstName || "").trim();
+    const lastName = String(afterData?.lastName || "").trim();
+    const fullName = [firstName, lastName].filter((v) => v.length > 0).join(" ").trim();
+    const displayName = fullName || canonicalUsername;
+    if (displayName && String(afterData?.displayName || "") !== displayName) {
+      patch.displayName = displayName;
+    }
+    const createdDateTs = parseLegacyCreatedDateToTimestamp(afterData?.createdDate);
+    if (!afterData?.createdDate) {
+      patch.createdDate = createdDateTs?.toMillis() ?? Date.now();
+    } else if (typeof afterData?.createdDate !== "number") {
+      patch.createdDate = Number(afterData.createdDate) || Date.now();
+    }
+    if (afterData?.createdAt !== undefined) {
+      patch.createdAt = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.updatedAt !== undefined) {
+      const updatedTs = parseLegacyCreatedDateToTimestamp(afterData?.updatedAt);
+      patch.updatedDate = updatedTs?.toMillis() ?? Date.now();
+      patch.updatedAt = admin.firestore.FieldValue.delete();
+    } else if (typeof afterData?.updatedDate !== "number") {
+      patch.updatedDate = Number(afterData?.updatedDate) || Date.now();
+    }
+    if (afterData?.lastActiveAt !== undefined) {
+      patch.lastActiveAt = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.lastActiveDate !== undefined) {
+      patch.lastActiveDate = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.sifre !== undefined) {
+      patch.sifre = admin.firestore.FieldValue.delete();
+    }
+    if (afterData?.userID !== undefined) {
+      patch.userID = admin.firestore.FieldValue.delete();
+    }
+    const followersCount = toNonNegativeInt(afterData?.counterOfFollowers);
+    const followingsCount = toNonNegativeInt(afterData?.counterOfFollowings);
+    const postsCount = toNonNegativeInt(afterData?.counterOfPosts);
+    if (followersCount !== Number(afterData?.counterOfFollowers)) {
+      patch.counterOfFollowers = followersCount;
+    }
+    if (followingsCount !== Number(afterData?.counterOfFollowings)) {
+      patch.counterOfFollowings = followingsCount;
+    }
+    if (postsCount !== Number(afterData?.counterOfPosts)) {
+      patch.counterOfPosts = postsCount;
+    }
+
+    const adRoot = (afterData?.ad && typeof afterData.ad === "object") ? afterData.ad : undefined;
+    const adInfo = {
+      isAdvertiser: Boolean(afterData?.isAdvertiser ?? adRoot?.isAdvertiser ?? false),
+      accountStatus: String(adRoot?.accountStatus ?? "inactive"),
+      campaignCount: Number(adRoot?.campaignCount ?? 0),
+      spendTotal: Number(adRoot?.spendTotal ?? 0),
+      lastCampaignAt: adRoot?.lastCampaignAt ?? null,
+      lastImpressionAt: adRoot?.lastImpressionAt ?? null,
+      lastClickAt: adRoot?.lastClickAt ?? null,
+      updatedDate: Date.now(),
+    };
+    if (afterData?.isAdvertiser === undefined) {
+      patch.isAdvertiser = adInfo.isAdvertiser;
+    }
+    // Enforce single source of truth: keep advertising data only in users/{uid}/ad/info.
+    // Delete root ad on every run to prevent legacy writers from reintroducing duplication.
+    patch.ad = admin.firestore.FieldValue.delete();
+
+    const userRef = db.collection("users").doc(uid);
+    await db.runTransaction(async (tx) => {
+      if (Object.keys(patch).length > 0) {
+        tx.set(userRef, patch, { merge: true });
+      }
+      // Root canonical fields must not be mirrored into users/{uid}/profile/info.
+      tx.delete(userRef.collection("profile").doc("info"));
+      // Keep signup lightweight: only touch canonical subdocs when they already exist,
+      // or when ad data must be materialized for advertiser accounts.
+      if (afterData?.ad !== undefined || afterData?.isAdvertiser === true) {
+        tx.set(userRef.collection("ad").doc("info"), adInfo, { merge: true });
+      }
+    });
+  });
 
 // SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted
 export const onUserDocDelete = functions.firestore
@@ -287,7 +454,7 @@ export const processScheduledAccountDeletions = functions.pubsub
   .schedule("0 0 * * *")
   .timeZone("UTC")
   .onRun(async () => {
-    const now = admin.firestore.Timestamp.now();
+    const now = Date.now();
     let processedCount = 0;
     let errorCount = 0;
 
@@ -310,7 +477,7 @@ export const processScheduledAccountDeletions = functions.pubsub
             .collection("account_actions")
             .where("type", "==", "deletion")
             .where("status", "==", "pending")
-            .orderBy("createdAt", "desc")
+            .orderBy("createdDate", "desc")
             .limit(1)
             .get();
 
@@ -320,8 +487,8 @@ export const processScheduledAccountDeletions = functions.pubsub
 
           const actionDoc = actionsSnap.docs[0];
           const action = actionDoc.data() as Record<string, unknown>;
-          const scheduledAt = action.scheduledAt as admin.firestore.Timestamp | undefined;
-          if (!scheduledAt || scheduledAt.toMillis() > now.toMillis()) {
+          const scheduledAt = Number(action.scheduledAt || 0);
+          if (!scheduledAt || scheduledAt > now) {
             continue;
           }
 
@@ -335,8 +502,8 @@ export const processScheduledAccountDeletions = functions.pubsub
               accountStatus: "deleted",
               username: deletedName,
               nickname: deletedName,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-              deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+              updatedAt: Date.now(),
+              deletedAt: Date.now(),
             },
             { merge: true },
           );
@@ -344,7 +511,7 @@ export const processScheduledAccountDeletions = functions.pubsub
           await actionDoc.ref.set(
             {
               status: "completed",
-              completedAt: admin.firestore.FieldValue.serverTimestamp(),
+              completedAt: Date.now(),
               originalUsername: String(userData.username || ""),
               originalNickname: String(userData.nickname || ""),
             },
@@ -437,7 +604,7 @@ export const resetMonthlyAntPoint = functions.pubsub
         return query;
       },
       {
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: Date.now(),
       },
     );
 
@@ -651,6 +818,14 @@ export const backfillPhoneAccounts = functions.https.onCall(async (data, context
   return { done: false, processed: snap.size, lastId: lastDoc.id };
 });
 
+// ADMIN UTILITY: disabled (users_usernames removed)
+export const backfillUsernames = functions.https.onCall(async (data, context) => {
+  throw new functions.https.HttpsError(
+    "failed-precondition",
+    "users_usernames is deprecated and disabled"
+  );
+});
+
 // ADMIN UTILITY: Backfill Posts with missing originalUserID/originalUserNickname (String '')
 export const backfillPostsOriginalFields = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -748,8 +923,8 @@ type PurgeFailure = {
 };
 
 const STUDENT_PROTECTED_COLLECTIONS = new Set<string>([
-  'TakipEdilenler',
-  'Takipciler',
+  'followings',
+  'followers',
   'SosyalMedyaLinkleri',
 ]);
 
@@ -948,7 +1123,7 @@ export const purgeStudentSubcollections = functions
         skippedCollections: skipped,
         totalDeletedDocuments: totalDeleted,
         totalCollections: subcollections.length,
-        processedAt: admin.firestore.Timestamp.now().toMillis(),
+        processedAt: Date.now(),
       };
     } catch (err: any) {
       console.error('purgeStudentSubcollections fatal error', docPath, err);

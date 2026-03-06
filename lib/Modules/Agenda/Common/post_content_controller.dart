@@ -27,11 +27,9 @@ class PostContentController extends GetxController {
   static const Duration _userProfileCacheTtl = Duration(hours: 6);
   static const Set<String> _adminPushUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const Set<String> _activePushTargetUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const int _pushTargetCutoffMs = 1772409600000;
 
@@ -114,6 +112,7 @@ class PostContentController extends GetxController {
 
   // user info
   final nickname = "".obs;
+  final username = "".obs;
   final pfImage = "".obs;
   final fullName = "".obs;
   final token = "".obs;
@@ -267,7 +266,7 @@ class PostContentController extends GetxController {
     try {
       final localPoll = Map<String, dynamic>.from(model.poll);
       if (localPoll.isEmpty) return;
-      final createdAt = (localPoll['createdAt'] ?? model.timeStamp) as num;
+      final createdAt = (localPoll['createdDate'] ?? model.timeStamp) as num;
       final durationHours = (localPoll['durationHours'] ?? 24) as num;
       final expiresAt =
           createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
@@ -308,7 +307,7 @@ class PostContentController extends GetxController {
         final poll = Map<String, dynamic>.from(data['poll'] ?? {});
         if (poll.isEmpty) return;
 
-        final createdAt = (poll['createdAt'] ?? data['timeStamp'] ?? 0) as num;
+        final createdAt = (poll['createdDate'] ?? data['timeStamp'] ?? 0) as num;
         final durationHours = (poll['durationHours'] ?? 24) as num;
         final expiresAt =
             createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
@@ -723,7 +722,7 @@ class PostContentController extends GetxController {
       final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("TakipEdilenler")
+          .collection("followings")
           .doc(model.userID)
           .get();
       isFollowing.value = doc.exists;
@@ -733,11 +732,13 @@ class PostContentController extends GetxController {
   Future<void> getUserData(String userID) async {
     void applyProfile({
       required String nick,
+      required String uname,
       required String image,
       required String pushToken,
       required String name,
     }) {
       nickname.value = nick;
+      username.value = uname;
       pfImage.value = image;
       token.value = pushToken;
       fullName.value = name;
@@ -746,12 +747,14 @@ class PostContentController extends GetxController {
     void cacheProfile({
       required String uid,
       required String nick,
+      required String uname,
       required String image,
       required String pushToken,
       required String name,
     }) {
       _userProfileCache[uid] = _UserProfileCacheEntry(
         nickname: nick,
+        username: uname,
         pfImage: image,
         token: pushToken,
         fullName: name,
@@ -761,8 +764,11 @@ class PostContentController extends GetxController {
 
     bool applyFromMap(Map<String, dynamic>? data, {required String uid}) {
       if (data == null) return false;
+      final uname =
+          (data["username"] ?? data["nickname"] ?? data["displayName"] ?? "")
+              .toString();
       final nick =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
       final image = (data["avatarUrl"] ??
               data["pfImage"] ??
@@ -771,11 +777,16 @@ class PostContentController extends GetxController {
               "")
           .toString();
       final pushToken = (data["token"] ?? "").toString();
-      final name =
+      final fullNameFromParts =
           "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
               .trim();
+      final displayName = (data["displayName"] ?? "").toString().trim();
+      final name = fullNameFromParts.isNotEmpty
+          ? fullNameFromParts
+          : (displayName.isNotEmpty ? displayName : nick);
       applyProfile(
         nick: nick,
+        uname: uname,
         image: image,
         pushToken: pushToken,
         name: name,
@@ -783,6 +794,7 @@ class PostContentController extends GetxController {
       cacheProfile(
         uid: uid,
         nick: nick,
+        uname: uname,
         image: image,
         pushToken: pushToken,
         name: name,
@@ -797,6 +809,7 @@ class PostContentController extends GetxController {
             _userProfileCacheTtl) {
       applyProfile(
         nick: cachedProfile.nickname,
+        uname: cachedProfile.username,
         image: cachedProfile.pfImage,
         pushToken: cachedProfile.token,
         name: cachedProfile.fullName,
@@ -808,18 +821,22 @@ class PostContentController extends GetxController {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == userID && userService.currentUser != null) {
       final user = userService.currentUser!;
+      final currentUserDisplayName =
+          user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
       applyProfile(
         nick: user.nickname,
+        uname: user.nickname,
         image: user.pfImage,
         pushToken: user.token,
-        name: user.fullName,
+        name: currentUserDisplayName,
       );
       cacheProfile(
         uid: userID,
         nick: user.nickname,
+        uname: user.nickname,
         image: user.pfImage,
         pushToken: user.token,
-        name: user.fullName,
+        name: currentUserDisplayName,
       );
       return;
     }
@@ -1089,7 +1106,7 @@ class PostContentController extends GetxController {
       FirebaseFirestore.instance
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("TakipEdilenler")
+          .collection("followings")
           .doc(model.userID)
           .get()
           .then((doc) {
@@ -1108,7 +1125,7 @@ class PostContentController extends GetxController {
       final myRef = FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('TakipEdilenler')
+          .collection('followings')
           .doc(model.userID);
 
       final snap = await myRef.get();
@@ -1245,7 +1262,7 @@ class PostContentController extends GetxController {
           if (imageUrl != null) 'imageUrl': imageUrl,
           'targetCount': written,
           'postID': model.docID,
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdDate': DateTime.now().millisecondsSinceEpoch,
         });
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
@@ -1327,6 +1344,7 @@ class PostContentController extends GetxController {
 
 class _UserProfileCacheEntry {
   final String nickname;
+  final String username;
   final String pfImage;
   final String token;
   final String fullName;
@@ -1334,6 +1352,7 @@ class _UserProfileCacheEntry {
 
   const _UserProfileCacheEntry({
     required this.nickname,
+    required this.username,
     required this.pfImage,
     required this.token,
     required this.fullName,

@@ -170,9 +170,9 @@ async function ensureUsersCollection() {
                 { name: "lastName", type: "string", optional: true },
                 { name: "pfImage", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
-                { name: "gizliHesap", type: "bool", optional: true },
-                { name: "deletedAccount", type: "bool", optional: true },
-                { name: "hesapOnayi", type: "bool", optional: true },
+                { name: "isPrivate", type: "bool", optional: true },
+                { name: "isDeleted", type: "bool", optional: true },
+                { name: "isApproved", type: "bool", optional: true },
             ];
             const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
             if (missing.length) {
@@ -194,9 +194,9 @@ async function ensureUsersCollection() {
                 { name: "lastName", type: "string", optional: true },
                 { name: "pfImage", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
-                { name: "gizliHesap", type: "bool", optional: true },
-                { name: "deletedAccount", type: "bool", optional: true },
-                { name: "hesapOnayi", type: "bool", optional: true },
+                { name: "isPrivate", type: "bool", optional: true },
+                { name: "isDeleted", type: "bool", optional: true },
+                { name: "isApproved", type: "bool", optional: true },
                 { name: "updatedAtTs", type: "int32" },
             ],
             default_sorting_field: "updatedAtTs",
@@ -353,11 +353,12 @@ function buildUserSearchDoc(userId, data) {
         nickname: asString(data.nickname) || asString(data.username),
         firstName: asString(data.firstName),
         lastName: asString(data.lastName),
-        pfImage: asString(data.pfImage) || asString(data.avatarUrl) || asString(data.profileImageUrl),
+        pfImage: asString(data.avatarUrl),
         rozet: asString(data.rozet),
-        gizliHesap: asBool(data.gizliHesap),
-        deletedAccount: asBool(data.deletedAccount) || asBool(data.isDeleted) || isPendingOrDeleted,
-        hesapOnayi: asBool(data.hesapOnayi) || asBool(data.isVerified),
+        isPrivate: asBool(data.isPrivate),
+        isDeleted: asBool(data.isDeleted) ||
+            isPendingOrDeleted,
+        isApproved: asBool(data.isApproved) || asBool(data.isVerified),
         updatedAtTs: asEpochSeconds(data.updatedAt) ||
             asEpochSeconds(data.createdAt) ||
             createdDateTs ||
@@ -499,7 +500,7 @@ async function searchUsersFromTypesense(q, limit, page) {
             per_page: limit,
             page,
             sort_by: "updatedAtTs:desc",
-            filter_by: "deletedAccount:=false && gizliHesap:=false",
+            filter_by: "isDeleted:=false && isPrivate:=false",
             prefix: "true,true,true",
             typo_tokens_threshold: 1,
         },
@@ -514,7 +515,7 @@ async function searchUsersFromTypesense(q, limit, page) {
         out_of: Number(body.out_of || 0),
         search_time_ms: Number(body.search_time_ms || 0),
         hits: hits
-            .filter((h) => h?.document?.deletedAccount !== true && h?.document?.gizliHesap !== true)
+            .filter((h) => h?.document?.isDeleted !== true && h?.document?.isPrivate !== true)
             .map((h) => ({
             id: h?.document?.id,
             nickname: h?.document?.nickname || "",
@@ -522,9 +523,9 @@ async function searchUsersFromTypesense(q, limit, page) {
             lastName: h?.document?.lastName || "",
             pfImage: h?.document?.pfImage || "",
             rozet: h?.document?.rozet || "",
-            gizliHesap: h?.document?.gizliHesap === true,
-            deletedAccount: h?.document?.deletedAccount === true,
-            hesapOnayi: h?.document?.hesapOnayi === true,
+            isPrivate: h?.document?.isPrivate === true,
+            isDeleted: h?.document?.isDeleted === true,
+            isApproved: h?.document?.isApproved === true,
             text_match: h?.text_match || 0,
         })),
     };

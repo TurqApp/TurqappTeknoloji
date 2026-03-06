@@ -61,9 +61,14 @@ class EducationInfoView extends StatelessWidget {
                                   'sinif': '',
                                 },
                               ),
-                              'ulke': '',
-                              'il': '',
-                              'ilce': '',
+                              ...scopedUserUpdate(
+                                scope: 'profile',
+                                values: {
+                                  'ulke': '',
+                                  'il': '',
+                                  'ilce': '',
+                                },
+                              ),
                             });
                             await controller.loadSavedData();
                             controller.hasMiddleSchoolData.value = false;

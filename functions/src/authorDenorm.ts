@@ -43,11 +43,7 @@ export const denormAuthorOnPostWrite = functions
         userData.displayName || userData.username || userData.nickname || ""
       );
       const authorAvatarUrl = String(
-        userData.avatarUrl ||
-          userData.pfImage ||
-          userData.photoURL ||
-          userData.profileImageUrl ||
-          ""
+        userData.avatarUrl || ""
       );
 
       if (!authorNickname && !authorAvatarUrl) return;
@@ -75,24 +71,14 @@ export const syncAuthorFieldsOnProfileUpdate = functions
       before?.displayName !== after?.displayName ||
       before?.username !== after?.username ||
       before?.nickname !== after?.nickname;
-    const avatarChanged =
-      before?.avatarUrl !== after?.avatarUrl ||
-      before?.pfImage !== after?.pfImage ||
-      before?.photoURL !== after?.photoURL ||
-      before?.profileImageUrl !== after?.profileImageUrl;
+    const avatarChanged = before?.avatarUrl !== after?.avatarUrl;
 
     if (!nicknameChanged && !avatarChanged) return;
 
     const newNickname = String(
       after?.displayName || after?.username || after?.nickname || ""
     );
-    const newAvatarUrl = String(
-      after?.avatarUrl ||
-        after?.pfImage ||
-        after?.photoURL ||
-        after?.profileImageUrl ||
-        ""
-    );
+    const newAvatarUrl = String(after?.avatarUrl || "");
 
     try {
       // Son 200 postu güncelle (maliyet/latency kontrolü için)

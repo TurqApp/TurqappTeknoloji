@@ -107,7 +107,7 @@ class MessageModel {
 
   factory MessageModel.fromConversationSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    final createdAt = data['createdAt'];
+    final createdAt = data['createdDate'];
     num ts = 0;
     if (createdAt is Timestamp) {
       ts = createdAt.millisecondsSinceEpoch;

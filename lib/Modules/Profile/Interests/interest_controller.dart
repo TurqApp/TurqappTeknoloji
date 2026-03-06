@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/interests_list.dart';
 
 class InterestsController extends GetxController {
@@ -51,7 +52,12 @@ class InterestsController extends GetxController {
         .doc(FirebaseAuth.instance.currentUser!.uid)
         .get()
         .then((doc) {
-      final raw = doc.data()?["ilgialanlari"];
+      final data = doc.data() ?? const <String, dynamic>{};
+      final raw = userField(
+        data,
+        key: "ilgialanlari",
+        scope: "preferences",
+      );
       if (!_userInteracted && raw is List) {
         selecteds.value = raw.map((e) => _canonicalize(e.toString())).toList();
       }
@@ -105,7 +111,12 @@ class InterestsController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"ilgialanlari": selecteds});
+        .update(
+          scopedUserUpdate(
+            scope: 'preferences',
+            values: {"ilgialanlari": selecteds},
+          ),
+        );
 
     Get.back();
   }

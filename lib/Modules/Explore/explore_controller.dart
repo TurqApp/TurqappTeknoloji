@@ -166,7 +166,7 @@ class ExploreController extends GetxController {
       final snap = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('TakipEdilenler')
+          .collection('followings')
           .get(); // ✅ get() instead of snapshots()
 
       followingIDs.assignAll(snap.docs.map((d) => d.id).toSet());
@@ -838,7 +838,7 @@ class ExploreController extends GetxController {
     final initial = items.length;
     for (final uid in uniqueUserIDs) {
       final data = userProfiles[uid];
-      userPrivacy[uid] = (data?['gizliHesap'] ?? false) == true;
+      userPrivacy[uid] = (data?['isPrivate'] ?? false) == true;
     }
 
     final filtered = items.where((post) {
@@ -936,7 +936,7 @@ class ExploreController extends GetxController {
     );
     for (final entry in profiles.entries) {
       final data = entry.value;
-      final deletedAccount = (data['deletedAccount'] ?? false) == true;
+      final deletedAccount = (data['isDeleted'] ?? false) == true;
       final status = (data['accountStatus'] ?? '').toString().toLowerCase();
       final pendingOrDeleted =
           status == 'pending_deletion' || status == 'deleted';

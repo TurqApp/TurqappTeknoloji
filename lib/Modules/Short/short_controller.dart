@@ -116,7 +116,7 @@ class ShortController extends GetxController {
       final qs = await FirebaseFirestore.instance
           .collection('users')
           .doc(myUid)
-          .collection('TakipEdilenler')
+          .collection('followings')
           .get(); // ✅ get() instead of snapshots()
 
       _followingIDs
@@ -558,7 +558,7 @@ class ShortController extends GetxController {
             .get();
 
         for (final d in qs.docs) {
-          final isPrivate = (d.data()['gizliHesap'] ?? false) == true;
+          final isPrivate = (d.data()['isPrivate'] ?? false) == true;
           result[d.id] = isPrivate;
           _privacyCache.put(d.id, isPrivate);
         }

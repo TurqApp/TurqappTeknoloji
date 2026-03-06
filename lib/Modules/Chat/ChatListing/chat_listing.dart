@@ -30,7 +30,7 @@ class ChatListing extends StatelessWidget {
       "userID": item.userID,
       "chatID": item.chatID,
       "archived": true,
-      "updatedAt": DateTime.now().millisecondsSinceEpoch,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
     await db.collection("conversations").doc(item.chatID).set({
       "archived.$_uid": true,
@@ -49,7 +49,7 @@ class ChatListing extends StatelessWidget {
       "userID": item.userID,
       "chatID": item.chatID,
       "archived": false,
-      "updatedAt": DateTime.now().millisecondsSinceEpoch,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
     await db.collection("conversations").doc(item.chatID).set({
       "archived.$_uid": false,

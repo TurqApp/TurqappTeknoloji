@@ -39,7 +39,7 @@ class SocialProfileFollowersController extends GetxController {
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userID)
-        .collection("Takipciler")
+        .collection("followers")
         .orderBy("timeStamp", descending: true)
         .limit(limit);
 
@@ -65,7 +65,7 @@ class SocialProfileFollowersController extends GetxController {
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userID)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .orderBy("timeStamp", descending: true)
         .limit(limit);
 

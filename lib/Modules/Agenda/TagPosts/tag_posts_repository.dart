@@ -41,7 +41,8 @@ class TagPostsRepository {
     return set.toList();
   }
 
-  Future<List<PostsModel>> _queryPostsByTag(List<String> queries, int nowMs) async {
+  Future<List<PostsModel>> _queryPostsByTag(
+      List<String> queries, int nowMs) async {
     if (queries.isEmpty) return const [];
     final snap = await _db
         .collection("Posts")
@@ -115,7 +116,7 @@ class TagPostsRepository {
     if (uid == null) return items;
 
     final followingSnap =
-        await _db.collection('users').doc(uid).collection('TakipEdilenler').get();
+        await _db.collection('users').doc(uid).collection('followings').get();
     final followingIDs = followingSnap.docs.map((d) => d.id).toSet();
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
 
@@ -131,7 +132,7 @@ class TagPostsRepository {
             .where(FieldPath.documentId, whereIn: chunk)
             .get();
         for (final d in usersSnap.docs) {
-          userPrivacy[d.id] = (d.data()['gizliHesap'] ?? false) == true;
+          userPrivacy[d.id] = (d.data()['isPrivate'] ?? false) == true;
         }
       } catch (_) {}
     }

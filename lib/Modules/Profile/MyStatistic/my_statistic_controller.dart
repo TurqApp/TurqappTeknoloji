@@ -105,15 +105,17 @@ class MyStatisticController extends GetxController {
   Future<void> _loadFollowerCounts(String uid) async {
     try {
       final now = DateTime.now();
-      final tsNow = Timestamp.fromDate(now);
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
-      final ts60 = Timestamp.fromDate(now.subtract(const Duration(days: 60)));
+      final tsNow = now.millisecondsSinceEpoch;
+      final ts30 =
+          now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
+      final ts60 =
+          now.subtract(const Duration(days: 60)).millisecondsSinceEpoch;
 
       // Total followers
       final totalAgg = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('Takipciler')
+          .collection('followers')
           .count()
           .get();
       followerCount.value = totalAgg.count ?? 0;
@@ -122,7 +124,7 @@ class MyStatisticController extends GetxController {
       final last30Agg = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('Takipciler')
+          .collection('followers')
           .where('timeStamp', isGreaterThanOrEqualTo: ts30)
           .where('timeStamp', isLessThanOrEqualTo: tsNow)
           .count()
@@ -132,7 +134,7 @@ class MyStatisticController extends GetxController {
       final prev30Agg = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('Takipciler')
+          .collection('followers')
           .where('timeStamp', isGreaterThanOrEqualTo: ts60)
           .where('timeStamp', isLessThan: ts30)
           .count()
@@ -149,7 +151,8 @@ class MyStatisticController extends GetxController {
       // Count posts (visible, not deleted/archived)
       final now = DateTime.now();
       final nowMs = now.millisecondsSinceEpoch;
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
+      final ts30 =
+          now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
 
       final postsSnap = await FirebaseFirestore.instance
           .collection('Posts')
@@ -169,7 +172,7 @@ class MyStatisticController extends GetxController {
 
       // Posts created in last 30 days (filter in-memory to tolerate missing fields)
       try {
-        final startMs = ts30.millisecondsSinceEpoch;
+        final startMs = ts30;
         int recent = 0;
         for (final d in postDocs) {
           final t = d.data()['timeStamp'];
@@ -194,10 +197,8 @@ class MyStatisticController extends GetxController {
           } catch (e) {
             // Fallback: manual count (bounded)
             try {
-              final snap = await d.reference
-                  .collection('viewers')
-                  .limit(10000)
-                  .get();
+              final snap =
+                  await d.reference.collection('viewers').limit(10000).get();
               return snap.size;
             } catch (_) {
               return 0;
@@ -213,7 +214,7 @@ class MyStatisticController extends GetxController {
           try {
             final agg = await d.reference
                 .collection('viewers')
-                .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
+                .where('timeStamp', isGreaterThanOrEqualTo: ts30)
                 .count()
                 .get();
             return agg.count ?? 0;
@@ -222,7 +223,7 @@ class MyStatisticController extends GetxController {
             try {
               final snap = await d.reference
                   .collection('viewers')
-                  .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
+                  .where('timeStamp', isGreaterThanOrEqualTo: ts30)
                   .limit(10000)
                   .get();
               return snap.size;
@@ -244,7 +245,8 @@ class MyStatisticController extends GetxController {
     try {
       // Last 30 days stories (approx profile visits)
       final now = DateTime.now();
-      final ts30 = Timestamp.fromDate(now.subtract(const Duration(days: 30)));
+      final ts30 =
+          now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
 
       final storiesSnap = await FirebaseFirestore.instance
           .collection('stories')
@@ -256,7 +258,7 @@ class MyStatisticController extends GetxController {
       final threshold = nowDt.subtract(const Duration(days: 30));
       final recentStories = storiesSnap.docs.where((d) {
         final data = d.data();
-        final v = data['createdAt'];
+        final v = data['createdDate'];
         DateTime created;
         if (v is int) {
           created = DateTime.fromMillisecondsSinceEpoch(v);
@@ -282,7 +284,7 @@ class MyStatisticController extends GetxController {
             .collection('users')
             .doc(uid)
             .collection('ProfileVisits')
-            .where('timeStamp', isGreaterThanOrEqualTo: ts30.millisecondsSinceEpoch)
+            .where('timeStamp', isGreaterThanOrEqualTo: ts30)
             .count()
             .get();
         profileVisitsApprox.value = actualVisitsAgg.count ?? 0;

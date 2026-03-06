@@ -26,6 +26,17 @@ class StoryRowController extends GetxController {
   static const Duration _miniCacheTtl = Duration(minutes: 15);
   String? _miniCachePath;
 
+  String _resolveStoryNickname(Map<String, dynamic> data) {
+    final nickname = (data['nickname'] ?? '').toString().trim();
+    final username = (data['username'] ?? '').toString().trim();
+    final usernameLower = (data['usernameLower'] ?? '').toString().trim();
+    final hasSpace = nickname.contains(RegExp(r'\s'));
+    if (nickname.isNotEmpty && !hasSpace) return nickname;
+    if (username.isNotEmpty) return username;
+    if (usernameLower.isNotEmpty) return usernameLower;
+    return '';
+  }
+
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
@@ -60,7 +71,7 @@ class StoryRowController extends GetxController {
         );
         if (data != null) {
           final myUser = StoryUserModel(
-            nickname: data['displayName'] ?? data['nickname'] ?? "",
+            nickname: _resolveStoryNickname(data),
             pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
             fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
             userID: myUid,
@@ -111,7 +122,7 @@ class StoryRowController extends GetxController {
           'story_load_cache_first',
           () => FirebaseFirestore.instance
               .collection("stories")
-              .orderBy("createdAt", descending: true)
+              .orderBy("createdDate", descending: true)
               .limit(lim)
               .get(const GetOptions(source: Source.cache)),
         );
@@ -123,7 +134,7 @@ class StoryRowController extends GetxController {
             'story_load_network_fallback',
             () => FirebaseFirestore.instance
                 .collection("stories")
-                .orderBy("createdAt", descending: true)
+                .orderBy("createdDate", descending: true)
                 .limit(lim)
                 .get(),
           );
@@ -134,7 +145,7 @@ class StoryRowController extends GetxController {
           'story_load_network',
           () => FirebaseFirestore.instance
               .collection("stories")
-              .orderBy("createdAt", descending: true)
+              .orderBy("createdDate", descending: true)
               .limit(lim)
               .get(),
         );
@@ -193,7 +204,7 @@ class StoryRowController extends GetxController {
         final followingSnap = await FirebaseFirestore.instance
             .collection('users')
             .doc(myUid)
-            .collection('TakipEdilenler')
+            .collection('followings')
             .get();
         followingIDs.addAll(followingSnap.docs.map((d) => d.id));
       }
@@ -207,7 +218,7 @@ class StoryRowController extends GetxController {
         if (data == null) continue;
 
         // Gizlilik filtresi: gizli hesapsa sadece ben veya takip ettiğim kullanıcılar
-        final isPrivate = (data['gizliHesap'] ?? false) == true;
+        final isPrivate = (data['isPrivate'] ?? false) == true;
         final isMine = myUid != null && userId == myUid;
         final iFollow = followingIDs.contains(userId);
         if (isPrivate && !isMine && !iFollow) {
@@ -225,7 +236,7 @@ class StoryRowController extends GetxController {
           continue;
         }
         final userModel = StoryUserModel(
-          nickname: data['displayName'] ?? data['nickname'] ?? "",
+          nickname: _resolveStoryNickname(data),
           pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
           fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
           userID: userId,
@@ -254,7 +265,7 @@ class StoryRowController extends GetxController {
           );
           if (data != null) {
             myStoryUser = StoryUserModel(
-              nickname: data['displayName'] ?? data['nickname'] ?? "",
+              nickname: _resolveStoryNickname(data),
               pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
               fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
               userID: myUid,
@@ -342,7 +353,7 @@ class StoryRowController extends GetxController {
       if (!await storyDir.exists()) {
         await storyDir.create(recursive: true);
       }
-      _miniCachePath = '${storyDir.path}/story_row.json';
+      _miniCachePath = '${storyDir.path}/story_row_v2.json';
     } catch (e) {
       print('Story mini cache init error: $e');
     }
@@ -422,7 +433,7 @@ class StoryRowController extends GetxController {
       final expiredSnap = await FirebaseFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: myUid)
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdDate', descending: true)
           .get();
 
       for (final doc in expiredSnap.docs) {

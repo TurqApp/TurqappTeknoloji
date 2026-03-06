@@ -37,7 +37,6 @@ class EditProfileController extends GetxController {
 
   final uid = FirebaseAuth.instance.currentUser!.uid;
 
-
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
   String get defaultAvatarUrl =>
       'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
@@ -70,10 +69,8 @@ class EditProfileController extends GetxController {
       lastNameController.text = currentUser.lastName;
     } else {
       // Fallback: Firebase'den çek (ilk açılış)
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection("users").doc(uid).get();
 
       if (doc.exists) {
         final data = doc.data();
@@ -205,7 +202,7 @@ class EditProfileController extends GetxController {
       await userService.updateFields({
         "firstName": firstNameController.text,
         "lastName": lastNameController.text,
-        if (newImageUrl != null) "pfImage": newImageUrl,
+        if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
 
       // Backward compatibility: FirebaseMyStore otomatik güncellenir (wrapper)
@@ -230,7 +227,7 @@ class EditProfileController extends GetxController {
       onYesPressed: () async {
         try {
           // 🎯 Using CurrentUserService.updateFields
-          await userService.updateFields({'pfImage': defaultAvatarUrl});
+          await userService.updateFields({'avatarUrl': defaultAvatarUrl});
 
           // Yerel önizlemeleri temizle
           croppedImage.value = null;

@@ -119,7 +119,7 @@ class ChatListingContent extends StatelessWidget {
       "userID": model.userID,
       "chatID": model.chatID,
       "archived": true,
-      "updatedAt": DateTime.now().millisecondsSinceEpoch,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
     wrote = true;
 
@@ -170,7 +170,7 @@ class ChatListingContent extends StatelessWidget {
         "userID": model.userID,
         "chatID": model.chatID,
         "archived": false,
-        "updatedAt": DateTime.now().millisecondsSinceEpoch,
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
     } catch (_) {}
 

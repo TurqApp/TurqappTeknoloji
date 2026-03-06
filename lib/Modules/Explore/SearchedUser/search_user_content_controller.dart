@@ -20,12 +20,18 @@ class SearchUserContentController extends GetxController {
       );
 
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .update({
-        "lastSearchList": FieldValue.arrayUnion([userID])
-      });
+      final userRef =
+          FirebaseFirestore.instance.collection("users").doc(currentUserID);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(
+        userRef.collection("lastSearches").doc(userID),
+        {
+          "userID": userID,
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
 
       Get.find<FirebaseMyStore>().getUserData();
     } catch (_) {
@@ -36,9 +42,11 @@ class SearchUserContentController extends GetxController {
 
   void removeFromLastSearch() {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    FirebaseFirestore.instance.collection("users").doc(currentUserID).update({
-      "lastSearchList": FieldValue.arrayRemove([userID])
-    });
+    final userRef =
+        FirebaseFirestore.instance.collection("users").doc(currentUserID);
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(userRef.collection("lastSearches").doc(userID));
+    batch.commit();
     Get.find<FirebaseMyStore>().lastSearchList.remove(userID);
   }
 }

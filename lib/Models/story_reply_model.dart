@@ -21,14 +21,18 @@ class StoryReplyModel {
       docID: doc.id,
       userID: data['userID'] ?? '',
       message: data['message'] ?? '',
-      timeStamp: (data['timeStamp'] as Timestamp).toDate(),
+      timeStamp: data['timeStamp'] is Timestamp
+          ? (data['timeStamp'] as Timestamp).toDate()
+          : DateTime.fromMillisecondsSinceEpoch(
+              (data['timeStamp'] as num?)?.toInt() ?? 0,
+            ),
     );
   }
 
   /// (İstersen) gelecekte yazma işlemleri için toJson ekleyebilirsin
   Map<String, dynamic> toJson() => {
-    'userID': userID,
-    'message': message,
-    'timeStamp': Timestamp.fromDate(timeStamp),
-  };
+        'userID': userID,
+        'message': message,
+        'timeStamp': timeStamp.millisecondsSinceEpoch,
+      };
 }

@@ -296,17 +296,11 @@ class CurrentUserModel {
     return CurrentUserModel(
       userID: doc.id,
       nickname:
-          (data['displayName'] ?? data['nickname'] ?? data['username'] ?? '')
+          (data['username'] ?? data['nickname'] ?? data['displayName'] ?? '')
               .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: (data['avatarUrl'] ??
-              data['pfImage'] ??
-              data['photoURL'] ??
-              data['profileImageUrl'] ??
-              data['photoUrl'] ??
-              '')
-          .toString(),
+      pfImage: (data['avatarUrl'] ?? '').toString(),
       email: data['email'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
       tc: data['tc'] ?? '',
@@ -314,8 +308,8 @@ class CurrentUserModel {
       cinsiyet: data['cinsiyet'] ?? '',
       bio: data['bio'] ?? '',
       rozet: data['rozet'] ?? '',
-      hesapOnayi: data['hesapOnayi'] ?? false,
-      gizliHesap: data['gizliHesap'] ?? false,
+      hesapOnayi: (data['isApproved'] ?? false) == true,
+      gizliHesap: (data['isPrivate'] ?? false) == true,
       viewSelection: data['viewSelection'] ?? 1,
       ilgialanlari: List<String>.from(data['ilgialanlari'] ?? []),
       favoriMuzikler: List<String>.from(data['favoriMuzikler'] ?? []),
@@ -416,18 +410,19 @@ class CurrentUserModel {
       isDisabled: _pickScopedBool(data, family, 'isDisabled', fallback: false),
       bank: data['bank'] ?? '',
       iban: data['iban'] ?? '',
-      ban: data['ban'] ?? false,
-      deletedAccount: data['deletedAccount'] ?? false,
-      bot: data['bot'] ?? false,
+      ban: (data['isBanned'] ?? false) == true,
+      deletedAccount: (data['isDeleted'] ?? false) == true,
+      bot: (data['isBot'] ?? false) == true,
       signInMethod: data['signInMethod'] ?? '',
-      sifre: data['sifre'] ?? '',
+      sifre: '',
       refCode: data['refCode'] ?? '',
       blockedUsers: List<String>.from(data['blockedUsers'] ?? []),
       device: data['device'] ?? '',
       deviceID: data['deviceID'] ?? '',
       deviceVersion: data['deviceVersion'] ?? '',
       token: data['token'] ?? '',
-      createdDate: data['createdDate'] ?? '',
+      createdDate:
+          _createdDateFromAny(data['createdDate'] ?? data['createdDate']),
       bildirim: data['bildirim'] ?? false,
       aramaIzin: data['aramaIzin'] ?? false,
       mailIzin: data['mailIzin'] ?? false,
@@ -453,7 +448,6 @@ class CurrentUserModel {
       'displayName': nickname,
       'firstName': firstName,
       'lastName': lastName,
-      'pfImage': pfImage,
       'avatarUrl': pfImage,
       'email': email,
       'phoneNumber': phoneNumber,
@@ -462,8 +456,8 @@ class CurrentUserModel {
       'cinsiyet': cinsiyet,
       'bio': bio,
       'rozet': rozet,
-      'hesapOnayi': hesapOnayi,
-      'gizliHesap': gizliHesap,
+      'isApproved': hesapOnayi,
+      'isPrivate': gizliHesap,
       'viewSelection': viewSelection,
       'ilgialanlari': ilgialanlari,
       'favoriMuzikler': favoriMuzikler,
@@ -537,11 +531,10 @@ class CurrentUserModel {
       'isDisabled': isDisabled,
       'bank': bank,
       'iban': iban,
-      'ban': ban,
-      'deletedAccount': deletedAccount,
-      'bot': bot,
+      'isBanned': ban,
+      'isDeleted': deletedAccount,
+      'isBot': bot,
       'signInMethod': signInMethod,
-      'sifre': sifre,
       'refCode': refCode,
       'blockedUsers': blockedUsers,
       'device': device,
@@ -573,15 +566,12 @@ class CurrentUserModel {
 
     return CurrentUserModel(
       userID: json['userID'] ?? '',
-      nickname: (json['displayName'] ?? json['nickname'] ?? '').toString(),
+      nickname:
+          (json['username'] ?? json['nickname'] ?? json['displayName'] ?? '')
+              .toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
-      pfImage: (json['avatarUrl'] ??
-              json['pfImage'] ??
-              json['photoURL'] ??
-              json['profileImageUrl'] ??
-              '')
-          .toString(),
+      pfImage: (json['avatarUrl'] ?? '').toString(),
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       tc: json['tc'] ?? '',
@@ -589,8 +579,8 @@ class CurrentUserModel {
       cinsiyet: json['cinsiyet'] ?? '',
       bio: json['bio'] ?? '',
       rozet: json['rozet'] ?? '',
-      hesapOnayi: json['hesapOnayi'] ?? false,
-      gizliHesap: json['gizliHesap'] ?? false,
+      hesapOnayi: (json['isApproved'] ?? false) == true,
+      gizliHesap: (json['isPrivate'] ?? false) == true,
       viewSelection: json['viewSelection'] ?? 1,
       ilgialanlari: List<String>.from(json['ilgialanlari'] ?? []),
       favoriMuzikler: List<String>.from(json['favoriMuzikler'] ?? []),
@@ -691,9 +681,9 @@ class CurrentUserModel {
       isDisabled: _pickScopedBool(json, family, 'isDisabled', fallback: false),
       bank: json['bank'] ?? '',
       iban: json['iban'] ?? '',
-      ban: json['ban'] ?? false,
-      deletedAccount: json['deletedAccount'] ?? false,
-      bot: json['bot'] ?? false,
+      ban: (json['isBanned'] ?? false) == true,
+      deletedAccount: (json['isDeleted'] ?? false) == true,
+      bot: (json['isBot'] ?? false) == true,
       signInMethod: json['signInMethod'] ?? '',
       sifre: json['sifre'] ?? '',
       refCode: json['refCode'] ?? '',
@@ -702,7 +692,8 @@ class CurrentUserModel {
       deviceID: json['deviceID'] ?? '',
       deviceVersion: json['deviceVersion'] ?? '',
       token: json['token'] ?? '',
-      createdDate: json['createdDate'] ?? '',
+      createdDate:
+          _createdDateFromAny(json['createdDate'] ?? json['createdDate']),
       bildirim: json['bildirim'] ?? false,
       aramaIzin: json['aramaIzin'] ?? false,
       mailIzin: json['mailIzin'] ?? false,
@@ -964,5 +955,22 @@ class CurrentUserModel {
       return int.tryParse(value) ?? 0;
     }
     return 0;
+  }
+
+  static String _createdDateFromAny(dynamic value) {
+    if (value == null) return '';
+    if (value is Timestamp) {
+      return value.millisecondsSinceEpoch.toString();
+    }
+    if (value is DateTime) {
+      return value.millisecondsSinceEpoch.toString();
+    }
+    if (value is int) {
+      return value.toString();
+    }
+    if (value is num) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 }

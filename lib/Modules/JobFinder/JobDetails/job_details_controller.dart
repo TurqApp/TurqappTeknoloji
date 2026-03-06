@@ -130,7 +130,7 @@ class JobDetailsController extends GetxController {
         await userSavedRef.delete();
         saved.value = false;
       } else {
-        final ts = {'timeStamp': FieldValue.serverTimestamp()};
+        final ts = {'timeStamp': DateTime.now().millisecondsSinceEpoch};
         await userSavedRef.set(ts);
         saved.value = true;
       }

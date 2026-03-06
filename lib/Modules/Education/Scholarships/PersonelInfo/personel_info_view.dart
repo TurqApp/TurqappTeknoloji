@@ -58,14 +58,19 @@ class PersonelInfoView extends StatelessWidget {
                                   scope: 'family',
                                   values: {"engelliRaporu": "Yok"},
                                 ),
-                                "tc": "",
-                                "medeniHal": "Bekar",
-                                "ulke": "Türkiye",
-                                "nufusSehir": "",
-                                "nufusIlce": "",
-                                "cinsiyet": "Seçim Yap",
-                                "calismaDurumu": "Çalışmıyor",
-                                "dogumTarihi": "",
+                                ...scopedUserUpdate(
+                                  scope: 'profile',
+                                  values: {
+                                    "tc": "",
+                                    "medeniHal": "Bekar",
+                                    "ulke": "Türkiye",
+                                    "nufusSehir": "",
+                                    "nufusIlce": "",
+                                    "cinsiyet": "Seçim Yap",
+                                    "calismaDurumu": "Çalışmıyor",
+                                    "dogumTarihi": "",
+                                  },
+                                ),
                               });
                               // 3) Yeni veriyi çek
                               await controller.fetchData();

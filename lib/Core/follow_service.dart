@@ -31,13 +31,13 @@ class FollowService {
     final myFollowingRef = firestore
         .collection('users')
         .doc(currentUserID)
-        .collection('TakipEdilenler')
+        .collection('followings')
         .doc(otherUserID);
 
     final otherFollowersRef = firestore
         .collection('users')
         .doc(otherUserID)
-        .collection('Takipciler')
+        .collection('followers')
         .doc(currentUserID);
 
     final counterRef = firestore
@@ -84,9 +84,9 @@ class FollowService {
 
       // Proceed to follow and increment counter atomically
       transaction
-          .set(myFollowingRef, {'timeStamp': FieldValue.serverTimestamp()});
+          .set(myFollowingRef, {'timeStamp': DateTime.now().millisecondsSinceEpoch});
       transaction
-          .set(otherFollowersRef, {'timeStamp': FieldValue.serverTimestamp()});
+          .set(otherFollowersRef, {'timeStamp': DateTime.now().millisecondsSinceEpoch});
       transaction.set(counterRef, {'date': today, 'count': currentCount + 1},
           SetOptions(merge: true));
 

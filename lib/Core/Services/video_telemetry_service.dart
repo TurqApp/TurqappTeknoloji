@@ -75,7 +75,7 @@ class VideoSessionMetrics {
         'seekCount': seekCount,
         'videoDurationSec': videoDuration.round(),
         'error': errorMessage,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
 }
 

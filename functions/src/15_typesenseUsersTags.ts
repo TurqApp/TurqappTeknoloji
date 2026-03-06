@@ -180,9 +180,9 @@ async function ensureUsersCollection() {
         { name: "lastName", type: "string", optional: true },
         { name: "pfImage", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
-        { name: "gizliHesap", type: "bool", optional: true },
-        { name: "deletedAccount", type: "bool", optional: true },
-        { name: "hesapOnayi", type: "bool", optional: true },
+        { name: "isPrivate", type: "bool", optional: true },
+        { name: "isDeleted", type: "bool", optional: true },
+        { name: "isApproved", type: "bool", optional: true },
       ];
       const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
       if (missing.length) {
@@ -209,9 +209,9 @@ async function ensureUsersCollection() {
           { name: "lastName", type: "string", optional: true },
           { name: "pfImage", type: "string", optional: true },
           { name: "rozet", type: "string", optional: true },
-          { name: "gizliHesap", type: "bool", optional: true },
-          { name: "deletedAccount", type: "bool", optional: true },
-          { name: "hesapOnayi", type: "bool", optional: true },
+          { name: "isPrivate", type: "bool", optional: true },
+          { name: "isDeleted", type: "bool", optional: true },
+          { name: "isApproved", type: "bool", optional: true },
           { name: "updatedAtTs", type: "int32" },
         ],
         default_sorting_field: "updatedAtTs",
@@ -406,9 +406,9 @@ type UserSearchDoc = {
   lastName: string;
   pfImage: string;
   rozet: string;
-  gizliHesap: boolean;
-  deletedAccount: boolean;
-  hesapOnayi: boolean;
+  isPrivate: boolean;
+  isDeleted: boolean;
+  isApproved: boolean;
   updatedAtTs: number;
 };
 
@@ -424,11 +424,13 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
     nickname: asString(data.nickname) || asString((data as any).username),
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
-    pfImage: asString(data.pfImage) || asString((data as any).avatarUrl) || asString((data as any).profileImageUrl),
+    pfImage: asString((data as any).avatarUrl),
     rozet: asString((data as any).rozet),
-    gizliHesap: asBool((data as any).gizliHesap),
-    deletedAccount: asBool((data as any).deletedAccount) || asBool((data as any).isDeleted) || isPendingOrDeleted,
-    hesapOnayi: asBool((data as any).hesapOnayi) || asBool((data as any).isVerified),
+    isPrivate: asBool((data as any).isPrivate),
+    isDeleted:
+      asBool((data as any).isDeleted) ||
+      isPendingOrDeleted,
+    isApproved: asBool((data as any).isApproved) || asBool((data as any).isVerified),
     updatedAtTs:
       asEpochSeconds(data.updatedAt) ||
       asEpochSeconds(data.createdAt) ||
@@ -597,7 +599,7 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
       per_page: limit,
       page,
       sort_by: "updatedAtTs:desc",
-      filter_by: "deletedAccount:=false && gizliHesap:=false",
+      filter_by: "isDeleted:=false && isPrivate:=false",
       prefix: "true,true,true",
       typo_tokens_threshold: 1,
     },
@@ -614,7 +616,7 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
     out_of: Number(body.out_of || 0),
     search_time_ms: Number(body.search_time_ms || 0),
     hits: hits
-      .filter((h: any) => h?.document?.deletedAccount !== true && h?.document?.gizliHesap !== true)
+      .filter((h: any) => h?.document?.isDeleted !== true && h?.document?.isPrivate !== true)
       .map((h: any) => ({
         id: h?.document?.id,
         nickname: h?.document?.nickname || "",
@@ -622,9 +624,9 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
         lastName: h?.document?.lastName || "",
         pfImage: h?.document?.pfImage || "",
         rozet: h?.document?.rozet || "",
-        gizliHesap: h?.document?.gizliHesap === true,
-        deletedAccount: h?.document?.deletedAccount === true,
-        hesapOnayi: h?.document?.hesapOnayi === true,
+        isPrivate: h?.document?.isPrivate === true,
+        isDeleted: h?.document?.isDeleted === true,
+        isApproved: h?.document?.isApproved === true,
         text_match: h?.text_match || 0,
       })),
   };

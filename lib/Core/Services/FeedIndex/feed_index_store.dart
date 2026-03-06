@@ -35,7 +35,7 @@ class FeedIndexEntry {
         'avatarUrl': avatarUrl,
         'caption': caption,
         'isPrivate': isPrivate,
-        'updatedAt': updatedAt,
+        'updatedDate': updatedAt,
       };
 
   factory FeedIndexEntry.fromJson(Map<String, dynamic> json) {
@@ -47,7 +47,7 @@ class FeedIndexEntry {
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
       caption: (json['caption'] ?? '').toString(),
       isPrivate: json['isPrivate'] == true,
-      updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
+      updatedAt: (json['updatedDate'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -94,7 +94,7 @@ class FeedIndexStore {
           return const [];
         }
         entriesRaw = (raw['entries'] as List?) ?? const [];
-        updatedAtMs = (raw['updatedAt'] as num?)?.toInt() ?? 0;
+        updatedAtMs = (raw['updatedDate'] as num?)?.toInt() ?? 0;
       } else {
         await _deleteIndexFile();
         return const [];
@@ -142,7 +142,7 @@ class FeedIndexStore {
         nickname: (user['nickname'] ?? '').toString(),
         avatarUrl: (user['pfImage'] ?? '').toString(),
         caption: post.metin,
-        isPrivate: user['gizliHesap'] == true,
+        isPrivate: (user['isPrivate'] ?? false) == true,
         updatedAt: now,
       );
     }
@@ -156,7 +156,7 @@ class FeedIndexStore {
     await tmp.writeAsString(
       jsonEncode({
         'schemaVersion': _schemaVersion,
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
         'entries': trimmed.map((e) => e.toJson()).toList(),
       }),
       flush: true,

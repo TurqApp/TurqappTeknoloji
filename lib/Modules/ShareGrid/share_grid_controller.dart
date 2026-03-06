@@ -29,7 +29,7 @@ class ShareGridController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .orderBy("timeStamp")
         .limit(20)
         .get()
@@ -42,7 +42,8 @@ class ShareGridController extends GetxController {
             .then((doc) {
           final data = doc.data() ?? <String, dynamic>{};
           final nickname = (data["nickname"] ?? "").toString();
-          final pfImage = (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
+          final pfImage =
+              (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
           final firstName = (data["firstName"] ?? "").toString();
           final lastName = (data["lastName"] ?? "").toString();
 
@@ -77,7 +78,7 @@ class ShareGridController extends GetxController {
           .set({
         "participants": [currentUID, userID],
         "lastMessage": "Gönderi",
-        "lastMessageAt": FieldValue.serverTimestamp(),
+        "lastMessageAt": DateTime.now().millisecondsSinceEpoch,
         "lastSenderId": currentUID,
         "unread.$currentUID": 0,
         "unread.$userID": FieldValue.increment(1),
@@ -90,7 +91,7 @@ class ShareGridController extends GetxController {
           .add({
         "senderId": currentUID,
         "text": "",
-        "createdAt": FieldValue.serverTimestamp(),
+        "createdDate": DateTime.now().millisecondsSinceEpoch,
         "seenBy": [currentUID],
         "type": "post",
         "mediaUrls": [],

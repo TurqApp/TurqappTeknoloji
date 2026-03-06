@@ -47,7 +47,7 @@ class JobContentController extends GetxController {
         await ref.delete();
         saved.value = false;
       } else {
-        final ts = {"timeStamp": FieldValue.serverTimestamp()};
+        final ts = {"timeStamp": DateTime.now().millisecondsSinceEpoch};
         await ref.set(ts);
         saved.value = true;
       }

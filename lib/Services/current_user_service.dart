@@ -183,9 +183,9 @@ class CurrentUserService extends GetxController {
 
       await userRef.set({
         'accountStatus': 'active',
-        'deletedAccount': false,
-        'gizliHesap': false,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'isDeleted': false,
+        'isPrivate': false,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
 
       try {
@@ -198,7 +198,7 @@ class CurrentUserService extends GetxController {
         if (actionSnap.docs.isNotEmpty) {
           await actionSnap.docs.first.reference.set({
             'status': 'cancelled',
-            'cancelledAt': FieldValue.serverTimestamp(),
+            'cancelledAt': DateTime.now().millisecondsSinceEpoch,
           }, SetOptions(merge: true));
         }
       } catch (_) {}
@@ -218,7 +218,7 @@ class CurrentUserService extends GetxController {
           batch.update(doc.reference, {
             'deletedPost': false,
             'deletedPostTime': 0,
-            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedDate': DateTime.now().millisecondsSinceEpoch,
           });
         }
         await batch.commit();
@@ -248,7 +248,11 @@ class CurrentUserService extends GetxController {
           .get();
 
       if (doc.exists) {
-        await _updateUser(CurrentUserModel.fromFirestore(doc));
+        final merged = await _buildMergedUserData(
+          uid: firebaseUser.uid,
+          rootData: doc.data() ?? const <String, dynamic>{},
+        );
+        await _updateUser(CurrentUserModel.fromJson(merged));
       }
       await refreshEmailVerificationStatus(reloadAuthUser: true);
     } catch (e) {
@@ -365,7 +369,11 @@ class CurrentUserService extends GetxController {
             return;
           }
 
-          final user = CurrentUserModel.fromFirestore(doc);
+          final merged = await _buildMergedUserData(
+            uid: firebaseUser.uid,
+            rootData: doc.data() ?? const <String, dynamic>{},
+          );
+          final user = CurrentUserModel.fromJson(merged);
           await _updateUser(user);
         },
         onError: (error) {
@@ -378,6 +386,99 @@ class CurrentUserService extends GetxController {
       print('❌ Firebase sync start error: $e');
       _isSyncing = false;
     }
+  }
+
+  Future<Map<String, dynamic>> _buildMergedUserData({
+    required String uid,
+    required Map<String, dynamic> rootData,
+  }) async {
+    final merged = <String, dynamic>{...rootData};
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+
+    Future<Map<String, dynamic>> readSubdoc(String col, String doc) async {
+      try {
+        final s = await userRef.collection(col).doc(doc).get();
+        if (!s.exists) return <String, dynamic>{};
+        return Map<String, dynamic>.from(s.data() ?? const <String, dynamic>{});
+      } catch (_) {
+        return <String, dynamic>{};
+      }
+    }
+
+    final privateAccount = await readSubdoc('private', 'account');
+    final education = await readSubdoc('education', 'info');
+    final family = await readSubdoc('family', 'info');
+    final settings = await readSubdoc('settings', 'preferences');
+    final stats = await readSubdoc('stats', 'summary');
+
+    void mergeOverride(Map<String, dynamic> source) {
+      source.forEach((k, v) {
+        merged[k] = v;
+      });
+    }
+
+    void mergeRootScope(String scope) {
+      final raw = rootData[scope];
+      if (raw is Map<String, dynamic>) {
+        mergeOverride(raw);
+        return;
+      }
+      if (raw is Map) {
+        mergeOverride(
+          raw.map((key, value) => MapEntry(key.toString(), value)),
+        );
+      }
+    }
+
+    // Support canonical map blocks on root document.
+    mergeRootScope('profile');
+    mergeRootScope('private');
+    mergeRootScope('education');
+    mergeRootScope('family');
+    mergeRootScope('settings');
+    mergeRootScope('stats');
+    mergeRootScope('account');
+    mergeRootScope('preferences');
+    mergeRootScope('finance');
+
+    // Canonical source is sub-docs; override root values when present.
+    mergeOverride(privateAccount);
+    mergeOverride(education);
+    mergeOverride(family);
+    mergeOverride(settings);
+    mergeOverride(stats);
+
+    // blockedUsers/readStories/lastSearches canonical subcollections.
+    if (merged['blockedUsers'] is! List) {
+      try {
+        final snap = await userRef.collection('blockedUsers').get();
+        merged['blockedUsers'] = snap.docs.map((d) => d.id).toList();
+      } catch (_) {}
+    }
+    if (merged['readStories'] is! List) {
+      try {
+        final snap = await userRef.collection('readStories').get();
+        merged['readStories'] = snap.docs.map((d) => d.id).toList();
+        final times = <String, int>{};
+        for (final d in snap.docs) {
+          final t = d.data()['readDate'];
+          if (t is num) times[d.id] = t.toInt();
+        }
+        if (times.isNotEmpty) merged['readStoriesTimes'] = times;
+      } catch (_) {}
+    }
+    if (merged['lastSearchList'] is! List) {
+      try {
+        final snap = await userRef
+            .collection('lastSearches')
+            .orderBy('timeStamp', descending: true)
+            .limit(100)
+            .get();
+        merged['lastSearchList'] = snap.docs.map((d) => d.id).toList();
+      } catch (_) {}
+    }
+
+    return merged;
   }
 
   /// Stop Firebase sync
@@ -463,18 +564,31 @@ class CurrentUserService extends GetxController {
       }
     }
 
-    // Canonical public profile aliases (single source of truth: displayName/pfImage)
-    if (out.containsKey('nickname') && !out.containsKey('displayName')) {
-      out['displayName'] = out['nickname'];
+    // Canonical public profile aliases (single source of truth: displayName/avatarUrl)
+    if (!out.containsKey('displayName')) {
+      final firstName = (out['firstName'] ?? '').toString().trim();
+      final lastName = (out['lastName'] ?? '').toString().trim();
+      final fullName = [firstName, lastName]
+          .where((v) => v.isNotEmpty)
+          .join(' ')
+          .trim();
+      if (fullName.isNotEmpty) {
+        out['displayName'] = fullName;
+      } else if (out.containsKey('nickname')) {
+        out['displayName'] = out['nickname'];
+      }
     }
-    if (out.containsKey('avatarUrl') && !out.containsKey('pfImage')) {
-      out['pfImage'] = out['avatarUrl'];
+    if (!out.containsKey('avatarUrl')) {
+      if (out.containsKey('pfImage')) out['avatarUrl'] = out['pfImage'];
+      if (out.containsKey('photoURL')) out['avatarUrl'] = out['photoURL'];
+      if (out.containsKey('profileImageUrl')) {
+        out['avatarUrl'] = out['profileImageUrl'];
+      }
     }
-    if (out.containsKey('photoURL') && !out.containsKey('pfImage')) {
-      out['pfImage'] = out['photoURL'];
-    }
-    if (out.containsKey('profileImageUrl') && !out.containsKey('pfImage')) {
-      out['pfImage'] = out['profileImageUrl'];
+    if (out.containsKey('pfImage')) out['pfImage'] = FieldValue.delete();
+    if (out.containsKey('photoURL')) out['photoURL'] = FieldValue.delete();
+    if (out.containsKey('profileImageUrl')) {
+      out['profileImageUrl'] = FieldValue.delete();
     }
     if (out.containsKey('account.fcmToken')) {
       if (!out.containsKey('fcmToken')) {

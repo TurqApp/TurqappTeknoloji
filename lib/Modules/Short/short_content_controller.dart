@@ -497,7 +497,7 @@ class ShortContentController extends GetxController {
     final takipDoc = await FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .get();
 
@@ -520,7 +520,7 @@ class ShortContentController extends GetxController {
     final myRef = FirebaseFirestore.instance
         .collection('users')
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('TakipEdilenler')
+        .collection('followings')
         .doc(model.userID);
 
     try {

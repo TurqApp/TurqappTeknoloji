@@ -126,9 +126,10 @@ class ScholarshipApplicationsContentController extends GetxController {
         educationLevel.value =
             userString(data, key: "educationLevel", scope: "education");
         bolum.value = userString(data, key: "bolum", scope: "education");
-        ulke.value = userString(data, key: "ulke");
-        nufusSehir.value = userString(data, key: "nufusSehir");
-        nufusIlce.value = userString(data, key: "nufusIlce");
+        ulke.value = userString(data, key: "ulke", scope: "profile");
+        nufusSehir.value =
+            userString(data, key: "nufusSehir", scope: "profile");
+        nufusIlce.value = userString(data, key: "nufusIlce", scope: "profile");
         fakulte.value = userString(data, key: "fakulte", scope: "education");
       }
     } catch (e) {
@@ -145,12 +146,14 @@ class ScholarshipApplicationsContentController extends GetxController {
 
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>? ?? {};
-        dogumTarigi.value = userString(data, key: "dogumTarihi");
-        medeniHal.value = userString(data, key: "medeniHal");
-        cinsiyet.value = userString(data, key: "cinsiyet");
+        dogumTarigi.value =
+            userString(data, key: "dogumTarihi", scope: "profile");
+        medeniHal.value = userString(data, key: "medeniHal", scope: "profile");
+        cinsiyet.value = userString(data, key: "cinsiyet", scope: "profile");
         engelliRaporu.value =
             userString(data, key: "engelliRaporu", scope: "family");
-        calismaDurumu.value = userString(data, key: "calismaDurumu");
+        calismaDurumu.value =
+            userString(data, key: "calismaDurumu", scope: "profile");
 
         babaAdi.value = userString(data, key: "fatherName", scope: "family");
         babaSoyadi.value =
@@ -174,8 +177,10 @@ class ScholarshipApplicationsContentController extends GetxController {
 
         evMulkiyeti.value =
             userString(data, key: "evMulkiyeti", scope: "family");
-        ikametSehir.value = userString(data, key: "ikametSehir");
-        ikametIlce.value = userString(data, key: "ikametIlce");
+        ikametSehir.value =
+            userString(data, key: "ikametSehir", scope: "profile");
+        ikametIlce.value =
+            userString(data, key: "ikametIlce", scope: "profile");
       }
     } catch (e) {
       print("Error checking student info: $e");

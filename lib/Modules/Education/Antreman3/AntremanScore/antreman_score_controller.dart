@@ -87,7 +87,7 @@ class AntremanScoreController extends GetxController {
   }
 
   DateTime _resolveUpdatedAt(Map<String, dynamic> data) {
-    final rawUpdatedAt = data['updatedAt'];
+    final rawUpdatedAt = data['updatedDate'];
     if (rawUpdatedAt is Timestamp) {
       return rawUpdatedAt.toDate();
     }

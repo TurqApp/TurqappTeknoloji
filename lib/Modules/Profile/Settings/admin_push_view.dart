@@ -16,7 +16,6 @@ class AdminPushView extends StatefulWidget {
 class _AdminPushViewState extends State<AdminPushView> {
   static const Set<String> _activePushTargetUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   static const int _pushTargetCutoffMs = 1772409600000;
   final _uidController = TextEditingController();
@@ -353,7 +352,7 @@ class _AdminPushViewState extends State<AdminPushView> {
             "minAge": minAge,
             "maxAge": maxAge,
           },
-          "createdAt": FieldValue.serverTimestamp(),
+          "createdDate": DateTime.now().millisecondsSinceEpoch,
         });
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
@@ -591,7 +590,7 @@ class _AdminPushViewState extends State<AdminPushView> {
               children: [
                 StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: _reportsRef()
-                      .orderBy("createdAt", descending: true)
+                      .orderBy("createdDate", descending: true)
                       .limit(20)
                       .snapshots(),
                   builder: (context, snap) {
@@ -626,7 +625,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                         final filters =
                             (data["filters"] as Map<String, dynamic>? ??
                                 <String, dynamic>{});
-                        final ts = data["createdAt"];
+                        final ts = data["createdDate"];
                         DateTime? dt;
                         if (ts is Timestamp) dt = ts.toDate();
                         final timeText = dt == null

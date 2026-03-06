@@ -15,7 +15,7 @@ class StoryService {
     }
 
     // userId alanına göre sorgulayalım, en yeni en başta
-    final query = await _col.orderBy('createdAt', descending: true).get();
+    final query = await _col.orderBy('createdDate', descending: true).get();
 
     // Her dokümandan StoryModel örneği üret
     return query.docs.map((doc) => StoryModel.fromDoc(doc)).toList();

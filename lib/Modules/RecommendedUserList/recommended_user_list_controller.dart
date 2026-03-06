@@ -54,7 +54,8 @@ class RecommendedUserListController extends GetxController {
   /// Takip listesi cache'i geçerli mi?
   bool _isFollowingCacheValid() {
     if (_lastFollowingLoadTime == null) return false;
-    return DateTime.now().difference(_lastFollowingLoadTime!) < _followingCacheValidDuration;
+    return DateTime.now().difference(_lastFollowingLoadTime!) <
+        _followingCacheValidDuration;
   }
 
   /// Zorunlu olmayan: mevcut listeyi yeniden karıştır (ağ isteği olmadan)
@@ -91,7 +92,7 @@ class RecommendedUserListController extends GetxController {
       Query query = FirebaseFirestore.instance
           .collection("users")
           .doc(currentUserId)
-          .collection("TakipEdilenler")
+          .collection("followings")
           .orderBy("timeStamp", descending: true)
           .limit(followingLimit);
 
@@ -152,16 +153,16 @@ class RecommendedUserListController extends GetxController {
       // Timeout ekle - 10 saniye içinde cevap gelmezse iptal et
       final snap = await FirebaseFirestore.instance
           .collection('users')
-          .where('gizliHesap', isEqualTo: false)
+          .where('isPrivate', isEqualTo: false)
           .orderBy('createdDate', descending: true)
           .limit(lim)
           .get(const GetOptions(source: Source.serverAndCache))
           .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw TimeoutException('Kullanıcılar yüklenemedi');
-            },
-          );
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Kullanıcılar yüklenemedi');
+        },
+      );
 
       // Filtre: ne kendimiz ne de takip ettiklerimiz; rozetler client-side elenir
       final filtered = snap.docs

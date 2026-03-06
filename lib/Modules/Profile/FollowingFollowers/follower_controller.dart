@@ -15,7 +15,8 @@ class FollowerController extends GetxController {
   Future<void> getData(String userID) async {
     if (isLoaded.value) return;
 
-    final userDoc = await FirebaseFirestore.instance.collection("users").doc(userID).get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection("users").doc(userID).get();
     final data = userDoc.data();
     if (data != null) {
       pfImage.value = data['pfImage'] ?? '';
@@ -25,12 +26,16 @@ class FollowerController extends GetxController {
 
     isLoaded.value = true;
   }
-  
+
   Future<void> followControl(String userID) async {
-    FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid)
-        .collection("TakipEdilenler").doc(userID).get()
-        .then((doc){
-          isFollowed.value = doc.exists;
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .collection("followings")
+        .doc(userID)
+        .get()
+        .then((doc) {
+      isFollowed.value = doc.exists;
     });
   }
 

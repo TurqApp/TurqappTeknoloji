@@ -46,7 +46,6 @@ class SettingsView extends StatelessWidget {
   SettingsView({super.key});
   static const Set<String> _adminUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
   final controller = Get.put(SettingsController());
   final scholarshipsController = Get.put(ScholarshipsController());
@@ -89,11 +88,11 @@ class SettingsView extends StatelessWidget {
                       buildRow("Hesap Gizliliği", CupertinoIcons.lock,
                           () async {
                         final currentPrivacy =
-                            userService.currentUser?.gizliHesap ?? false;
+                            userService.currentUser?.isPrivate ?? false;
                         final newValue = !currentPrivacy;
                         try {
                           await userService
-                              .updateFields({"gizliHesap": newValue});
+                              .updateFields({"isPrivate": newValue});
                         } catch (e) {
                           debugPrint("Gizlilik güncellenemedi: $e");
                         }
@@ -256,7 +255,7 @@ class SettingsView extends StatelessWidget {
               // 🎯 Using CurrentUserService reactive
               Obx(() {
                 return TurqAppToggle(
-                  isOn: userService.currentUserRx.value?.gizliHesap ?? false,
+                  isOn: userService.currentUserRx.value?.isPrivate ?? false,
                 );
               })
             else ...[
@@ -839,7 +838,6 @@ class _AdminPushMenuTile extends StatelessWidget {
 
   static const Set<String> _adminUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
 
   final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;

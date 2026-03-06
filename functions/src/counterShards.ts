@@ -109,7 +109,7 @@ export const aggregateCounterShards = functions
     // Dirty shard'ları bul (updatedAt son 70s içinde)
     const dirtySnaps = await db
       .collectionGroup("_counters")
-      .where("updatedAt", ">=", cutoff)
+      .where("updatedDate", ">=", cutoff)
       .limit(500)
       .get();
 

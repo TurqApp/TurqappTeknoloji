@@ -124,6 +124,13 @@ function buildUserUpdate(data) {
   const stats = asMap(data.stats);
   const education = asMap(data.education);
   const family = asMap(data.family);
+  const usernameLower = String(
+    data.usernameLower || data.username || data.nickname || ""
+  )
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9._]/g, "");
 
   // fcmToken: root canonical
   if (!hasOwn(data, "fcmToken") && typeof account.fcmToken === "string") {
@@ -145,6 +152,74 @@ function buildUserUpdate(data) {
       update[key] = account[key];
       touched = true;
     }
+  }
+
+  // Legacy/new flag mirrors
+  const boolMirrors = [
+    ["gizliHesap", "isPrivate"],
+    ["hesapOnayi", "isApproved"],
+    ["deletedAccount", "isDeleted"],
+    ["ban", "isBanned"],
+    ["bot", "isBot"],
+  ];
+  for (const [legacy, modern] of boolMirrors) {
+    if (hasOwn(data, legacy) && !hasOwn(data, modern)) {
+      update[modern] = Boolean(data[legacy]);
+      touched = true;
+    } else if (hasOwn(data, modern) && !hasOwn(data, legacy)) {
+      update[legacy] = Boolean(data[modern]);
+      touched = true;
+    }
+  }
+
+  // Base schema defaults
+  if (!hasOwn(data, "version")) {
+    update.version = 3;
+    touched = true;
+  }
+  if (!hasOwn(data, "locale")) {
+    update.locale = "tr_TR";
+    touched = true;
+  }
+  if (!hasOwn(data, "timezone")) {
+    update.timezone = "Europe/Istanbul";
+    touched = true;
+  }
+  if (!hasOwn(data, "isOnboarded")) {
+    update.isOnboarded = false;
+    touched = true;
+  }
+  if (!hasOwn(data, "deletedAt")) {
+    update.deletedAt = null;
+    touched = true;
+  }
+  if (usernameLower && !hasOwn(data, "usernameLower")) {
+    update.usernameLower = usernameLower;
+    touched = true;
+  }
+  if (!hasOwn(data, "createdAt")) {
+    update.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    touched = true;
+  }
+  if (!hasOwn(data, "updatedAt")) {
+    update.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    touched = true;
+  }
+  if (!hasOwn(data, "lastActiveAt")) {
+    update.lastActiveAt = admin.firestore.FieldValue.serverTimestamp();
+    touched = true;
+  }
+  if (!hasOwn(data, "ad") || typeof data.ad !== "object" || Array.isArray(data.ad)) {
+    update.ad = {
+      isAdvertiser: false,
+      accountStatus: "inactive",
+      campaignCount: 0,
+      spendTotal: 0,
+      lastCampaignAt: null,
+      lastImpressionAt: null,
+      lastClickAt: null,
+    };
+    touched = true;
   }
 
   // Counter canonicalization

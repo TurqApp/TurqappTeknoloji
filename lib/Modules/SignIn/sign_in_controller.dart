@@ -107,9 +107,9 @@ class SignInController extends GetxController
     // Hesabı yeniden aktif et
     await userRef.set({
       "accountStatus": "active",
-      "deletedAccount": false,
-      "gizliHesap": false,
-      "updatedAt": FieldValue.serverTimestamp(),
+      "isDeleted": false,
+      "isPrivate": false,
+      "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
 
     // Bekleyen silme aksiyonunu iptal işaretle
@@ -123,7 +123,7 @@ class SignInController extends GetxController
       if (actionSnap.docs.isNotEmpty) {
         await actionSnap.docs.first.reference.set({
           "status": "cancelled",
-          "cancelledAt": FieldValue.serverTimestamp(),
+          "cancelledAt": DateTime.now().millisecondsSinceEpoch,
         }, SetOptions(merge: true));
       }
     } catch (_) {}
@@ -144,7 +144,7 @@ class SignInController extends GetxController
         batch.update(doc.reference, {
           "deletedPost": false,
           "deletedPostTime": 0,
-          "updatedAt": FieldValue.serverTimestamp(),
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
         });
       }
       await batch.commit();
@@ -269,14 +269,13 @@ class SignInController extends GetxController
       }
       final uid = authUser.uid;
       final Map<String, dynamic> userDoc = buildInitialUserDocument(
-        uid: uid,
         firstName: firstName.value,
         lastName: lastName.value,
         nickname: nickname.value,
         email: email.value,
         phoneNumber: phoneNumber.value,
-        password: password.value,
       );
+      final userSubdocs = buildInitialUserSubdocuments(userDoc: userDoc);
 
       // Transactional create + increment phone limiter.
       // phoneAccounts read rule kapalıysa fallback ile users dokümanını yine oluştur.
@@ -305,6 +304,19 @@ class SignInController extends GetxController
           .collection('users')
           .doc(uid)
           .set(userDoc, SetOptions(merge: true));
+      final rootRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final subBatch = FirebaseFirestore.instance.batch();
+      userSubdocs.forEach((path, data) {
+        final segments = path.split('/');
+        if (segments.length == 2) {
+          subBatch.set(
+            rootRef.collection(segments[0]).doc(segments[1]),
+            data,
+            SetOptions(merge: true),
+          );
+        }
+      });
+      await subBatch.commit();
       accountProvisioned = true;
 
       final createdUserSnap =
@@ -315,7 +327,6 @@ class SignInController extends GetxController
 
       const requiredFollowUids = <String>[
         'rlvJgi4VAoO7O78OwrooZc6puPW2',
-        'pGlxhtQEVEYeLIa1G2IKhb743E73',
       ];
       final currentUid = FirebaseAuth.instance.currentUser!.uid;
       final followBatch = FirebaseFirestore.instance.batch();
@@ -325,7 +336,7 @@ class SignInController extends GetxController
           FirebaseFirestore.instance
               .collection('users')
               .doc(currentUid)
-              .collection('TakipEdilenler')
+              .collection('followings')
               .doc(adminUid),
           {"timeStamp": nowMs},
         );
@@ -333,7 +344,7 @@ class SignInController extends GetxController
           FirebaseFirestore.instance
               .collection('users')
               .doc(adminUid)
-              .collection('Takipciler')
+              .collection('followers')
               .doc(currentUid),
           {"timeStamp": nowMs},
         );
@@ -430,6 +441,17 @@ class SignInController extends GetxController
               ? e.message
               : 'Bu telefon numarası için en fazla 5 hesap oluşturulabilir.');
       wait.value = false;
+    } on UsernameAlreadyTaken catch (e) {
+      try {
+        await FirebaseAuth.instance.currentUser?.delete();
+      } catch (_) {}
+      AppSnackbar(
+        'Kullanıcı adı kullanımda',
+        e.message.isNotEmpty
+            ? e.message
+            : 'Lütfen farklı bir kullanıcı adı seç.',
+      );
+      wait.value = false;
     } catch (e) {
       print('Hata: $e');
       wait.value = false;
@@ -491,17 +513,21 @@ class SignInController extends GetxController
     nicknameAvilable.value = false;
 
     if (nickname.value.length >= 6) {
+      final usernameLower = nickname.value.trim().toLowerCase();
+      if (usernameLower.isEmpty) {
+        nicknameAvilable.value = false;
+        return;
+      }
       if (FirebaseAuth.instance.currentUser == null) {
-        // Giriş öncesi users koleksiyonu auth ister; UI akışını kilitleme.
+        // Auth yoksa sorgu yok; akış bloklanmasın.
         nicknameAvilable.value = true;
         return;
       }
-      final plainNickname = nickname.value;
       final plainSnap = await FirebaseFirestore.instance
           .collection("users")
-          .where("nickname", isEqualTo: plainNickname)
+          .where("usernameLower", isEqualTo: usernameLower)
+          .limit(1)
           .get();
-
       nicknameAvilable.value = plainSnap.docs.isEmpty;
     }
   }
@@ -557,7 +583,6 @@ class SignInController extends GetxController
       // Email ile eşleşen kayıt bulundu
       final doc = emailSnap.docs.first;
       resetPhoneNumber.value = doc.get("phoneNumber");
-      resetOldPassword.value = doc.get("sifre");
       resetUserID.value = doc.id;
       return;
     }
@@ -571,7 +596,6 @@ class SignInController extends GetxController
     if (nickSnap.docs.isNotEmpty) {
       final doc = nickSnap.docs.first;
       resetPhoneNumber.value = doc.get("phoneNumber");
-      resetOldPassword.value = doc.get("sifre");
       resetUserID.value = doc.id;
     }
   }
@@ -590,11 +614,7 @@ class SignInController extends GetxController
       // 2. Giriş başarılıysa, şifreyi güncelle
       await userCredential.user!.updatePassword(newPassword);
 
-      FirebaseFirestore.instance
-          .collection("users")
-          .doc(resetUserID.value)
-          .update({"sifre": newPassword});
-      print("Şifre başarıyla güncellendi.");
+      print("Şifre Firebase Auth üzerinde güncellendi.");
 
       // 🔥 CRITICAL: Re-initialize CurrentUserService after password reset login
       print("🔄 CurrentUserService yeniden başlatılıyor...");

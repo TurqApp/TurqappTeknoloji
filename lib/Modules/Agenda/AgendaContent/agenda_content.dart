@@ -858,7 +858,7 @@ class _AgendaContentState extends State<AgendaContent>
           ? userVoteRaw.toInt()
           : int.tryParse('${userVoteRaw ?? ''}');
 
-      final createdAt = (poll['createdAt'] ?? model.timeStamp) as num;
+      final createdAt = (poll['createdDate'] ?? model.timeStamp) as num;
       final durationHours = (poll['durationHours'] ?? 24) as num;
       final expiresAt =
           createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
@@ -1214,12 +1214,18 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget headerUserInfoBar() {
+    final primaryName = controller.fullName.value.trim().isNotEmpty
+        ? controller.fullName.value.replaceAll("  ", " ")
+        : controller.nickname.value.trim();
+    final handle = controller.nickname.value.trim().isNotEmpty
+        ? controller.nickname.value.trim()
+        : controller.username.value.trim();
     final displayTime = controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final shouldHideFollow = controller.fullName.value.length +
+    final shouldHideFollow = primaryName.length +
             controller.nickname.value.length +
             displayTime.length >
         28;
@@ -1272,7 +1278,7 @@ class _AgendaContentState extends State<AgendaContent>
                                 }
                               },
                               child: Text(
-                                controller.fullName.value.replaceAll("  ", " "),
+                                primaryName,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.black,
@@ -1282,11 +1288,10 @@ class _AgendaContentState extends State<AgendaContent>
                               ),
                             ),
                           ),
-                          RozetContent(size: 13, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 4),
                             child: Text(
-                              '@${controller.nickname.value}',
+                              '@$handle',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1307,6 +1312,7 @@ class _AgendaContentState extends State<AgendaContent>
                               ),
                             ),
                           ),
+                          RozetContent(size: 13, userID: widget.model.userID),
                         ],
                       ),
                     ),

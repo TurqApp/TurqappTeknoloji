@@ -406,7 +406,7 @@ class PendingAction {
         .doc(postId)
         .collection('likes')
         .doc(userId)
-        .set({'timeStamp': FieldValue.serverTimestamp()});
+        .set({'timeStamp': DateTime.now().millisecondsSinceEpoch});
   }
 
   Future<void> _executeSetLikePost() async {
@@ -554,17 +554,17 @@ class PendingAction {
       firestore
           .collection('users')
           .doc(targetUid)
-          .collection('Takipciler')
+          .collection('followers')
           .doc(currentUid),
-      {'timeStamp': FieldValue.serverTimestamp()},
+      {'timeStamp': DateTime.now().millisecondsSinceEpoch},
     );
     batch.set(
       firestore
           .collection('users')
           .doc(currentUid)
-          .collection('TakipEdilenler')
+          .collection('followings')
           .doc(targetUid),
-      {'timeStamp': FieldValue.serverTimestamp()},
+      {'timeStamp': DateTime.now().millisecondsSinceEpoch},
     );
 
     await batch.commit();

@@ -273,7 +273,7 @@ class DeepLinkService extends GetxService {
     final storiesSnap = await FirebaseFirestore.instance
         .collection('stories')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
+        .orderBy('createdDate', descending: true)
         .get();
 
     final stories = storiesSnap.docs

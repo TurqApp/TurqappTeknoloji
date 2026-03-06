@@ -74,32 +74,40 @@ class ScholarshipDetailController extends GetxController {
             userString(data, key: 'motherLiving', scope: 'family');
 
         bool isPersonalInfoComplete =
-            userString(data, key: 'ulke').isNotEmpty &&
-                userString(data, key: 'nufusSehir').isNotEmpty &&
-                userString(data, key: 'nufusIlce').isNotEmpty &&
-                userString(data, key: 'dogumTarihi').isNotEmpty &&
-                userString(data, key: 'medeniHal').isNotEmpty &&
-                userString(data, key: 'cinsiyet') != "Seçim Yap" &&
+            userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&
+                userString(data, key: 'nufusSehir', scope: 'profile')
+                    .isNotEmpty &&
+                userString(data, key: 'nufusIlce', scope: 'profile')
+                    .isNotEmpty &&
+                userString(data, key: 'dogumTarihi', scope: 'profile')
+                    .isNotEmpty &&
+                userString(data, key: 'medeniHal', scope: 'profile')
+                    .isNotEmpty &&
+                userString(data, key: 'cinsiyet', scope: 'profile') !=
+                    "Seçim Yap" &&
                 userString(data, key: 'engelliRaporu', scope: 'family')
                     .isNotEmpty &&
-                userString(data, key: 'calismaDurumu').isNotEmpty;
+                userString(data, key: 'calismaDurumu', scope: 'profile')
+                    .isNotEmpty;
 
         bool isEducationInfoComplete = educationLevel.isNotEmpty &&
-            userString(data, key: 'ulke').isNotEmpty &&
+            userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&
             (educationLevel == 'Ortaokul'
                 ? (userString(data, key: 'ortaOkul', scope: 'education')
                         .isNotEmpty &&
                     userString(data, key: 'sinif', scope: 'education')
                         .isNotEmpty &&
-                    userString(data, key: 'il').isNotEmpty &&
-                    userString(data, key: 'ilce').isNotEmpty)
+                    userString(data, key: 'il', scope: 'profile').isNotEmpty &&
+                    userString(data, key: 'ilce', scope: 'profile').isNotEmpty)
                 : educationLevel == 'Lise'
                     ? (userString(data, key: 'lise', scope: 'education')
                             .isNotEmpty &&
                         userString(data, key: 'sinif', scope: 'education')
                             .isNotEmpty &&
-                        userString(data, key: 'il').isNotEmpty &&
-                        userString(data, key: 'ilce').isNotEmpty)
+                        userString(data, key: 'il', scope: 'profile')
+                            .isNotEmpty &&
+                        userString(data, key: 'ilce', scope: 'profile')
+                            .isNotEmpty)
                     : (userString(data,
                                 key: 'universite', scope: 'education')
                             .isNotEmpty &&
@@ -107,15 +115,16 @@ class ScholarshipDetailController extends GetxController {
                             .isNotEmpty &&
                         userString(data, key: 'bolum', scope: 'education')
                             .isNotEmpty &&
-                        userString(data, key: 'il').isNotEmpty));
+                        userString(data, key: 'il', scope: 'profile')
+                            .isNotEmpty));
 
         bool isFamilyInfoComplete = fatherLiving != "Seçiniz" &&
             motherLiving != "Seçiniz" &&
             userInt(data, key: 'totalLiving', scope: 'family') > 0 &&
             userString(data, key: 'evMulkiyeti', scope: 'family') !=
                 "Seçim Yap" &&
-            userString(data, key: 'ikametSehir').isNotEmpty &&
-            userString(data, key: 'ikametIlce').isNotEmpty;
+            userString(data, key: 'ikametSehir', scope: 'profile').isNotEmpty &&
+            userString(data, key: 'ikametIlce', scope: 'profile').isNotEmpty;
 
         if (fatherLiving == "Evet") {
           isFamilyInfoComplete = isFamilyInfoComplete &&
@@ -252,7 +261,7 @@ class ScholarshipDetailController extends GetxController {
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(followedId)
-        .collection('Takipciler')
+        .collection('followers')
         .doc(followerId)
         .get();
     isFollowing.value = doc.exists;

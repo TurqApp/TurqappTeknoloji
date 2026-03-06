@@ -35,7 +35,7 @@ class NotificationContentController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .get()
         .then((doc) {

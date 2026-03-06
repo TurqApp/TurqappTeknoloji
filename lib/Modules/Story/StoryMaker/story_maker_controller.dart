@@ -900,7 +900,7 @@ class StoryMakerController extends GetxController {
       // 5) Firestore'a yaz
       final storyData = {
         'userId': user.uid,
-        'createdAt': Timestamp.now().millisecondsSinceEpoch,
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
         'musicUrl': musicSnapshot,
         'elements': serialized,

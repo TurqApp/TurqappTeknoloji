@@ -153,11 +153,12 @@ class _DeleteAccountState extends State<DeleteAccount> {
                           child: Text(
                             _countdown > 0
                                 ? "${_countdown}s"
-                                : (_isCodeSent ? "Tekrar Gönder" : "Kod Gönder"),
+                                : (_isCodeSent
+                                    ? "Tekrar Gönder"
+                                    : "Kod Gönder"),
                             style: TextStyle(
-                              color: _countdown > 0
-                                  ? Colors.grey
-                                  : Color(_color),
+                              color:
+                                  _countdown > 0 ? Colors.grey : Color(_color),
                               fontSize: 14,
                               fontFamily: "MontserratMedium",
                             ),
@@ -185,7 +186,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
                         color: _isBusy
                             ? Colors.black.withValues(alpha: 0.35)
                             : Color(_color),
-                        borderRadius: const BorderRadius.all(Radius.circular(12)),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(12)),
                       ),
                       child: Text(
                         _isBusy ? "İşleniyor..." : "Hesabımı Sil",
@@ -242,7 +244,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
       setState(() {
         _isCodeSent = true;
       });
-      AppSnackbar("Kod Gönderildi", "Silme onay kodu e-posta adresinize gönderildi.");
+      AppSnackbar(
+          "Kod Gönderildi", "Silme onay kodu e-posta adresinize gönderildi.");
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       AppSnackbar("Uyarı", e.message ?? "Kod gönderilemedi.");
@@ -348,19 +351,19 @@ class _DeleteAccountState extends State<DeleteAccount> {
 
       await userRef.update({
         "accountStatus": "pending_deletion",
-        "deletedAccount": true,
-        "gizliHesap": true,
-        "deletionRequestedAt": FieldValue.serverTimestamp(),
-        "deletionScheduledAt": Timestamp.fromDate(scheduledAt),
-        "updatedAt": FieldValue.serverTimestamp(),
+        "isDeleted": true,
+        "isPrivate": true,
+        "deletionRequestedAt": DateTime.now().millisecondsSinceEpoch,
+        "deletionScheduledAt": scheduledAt.millisecondsSinceEpoch,
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
       });
 
       await userRef.collection("account_actions").add({
         "type": "deletion",
         "status": "pending",
         "reason": "self_service_request",
-        "createdAt": FieldValue.serverTimestamp(),
-        "scheduledAt": Timestamp.fromDate(scheduledAt),
+        "createdDate": DateTime.now().millisecondsSinceEpoch,
+        "scheduledAt": scheduledAt.millisecondsSinceEpoch,
       });
 
       await _hideUserPosts(user.uid);
@@ -413,10 +416,10 @@ class _DeleteAccountState extends State<DeleteAccount> {
       final batch = FirebaseFirestore.instance.batch();
       for (final doc in snap.docs) {
         batch.update(doc.reference, {
-          "deletedAccount": true,
+          "isDeleted": true,
           "deletedPost": true,
           "deletedPostTime": nowMs,
-          "updatedAt": FieldValue.serverTimestamp(),
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
         });
       }
       await batch.commit();

@@ -187,15 +187,15 @@ async function ensurePurposeEmailRules(request, purpose, emailLower) {
 }
 async function sendCodeInternal(request, emailLower, purpose) {
     await ensurePurposeEmailRules(request, purpose, emailLower);
-    const now = admin.firestore.Timestamp.now();
-    const nowDate = now.toDate();
+    const nowMs = Date.now();
+    const nowDate = new Date(nowMs);
     const dayKey = nowDate.toISOString().slice(0, 10);
     const codeRef = verificationRef(emailLower, purpose);
     const existing = await codeRef.get();
     if (existing.exists) {
         const data = existing.data() || {};
-        const lastSentAt = data.lastSentAt;
-        if (lastSentAt && nowDate.getTime() - lastSentAt.toDate().getTime() < EMAIL_MIN_INTERVAL_MS) {
+        const lastSentAt = Number(data.lastSentAt || 0);
+        if (lastSentAt > 0 && nowDate.getTime() - lastSentAt < EMAIL_MIN_INTERVAL_MS) {
             throw new https_1.HttpsError("failed-precondition", "Lütfen yeni kod istemeden önce 1 dakika bekleyin");
         }
         const dailyKey = String(data.dailyKey || "");
@@ -227,11 +227,11 @@ async function sendCodeInternal(request, emailLower, purpose) {
         email: emailLower,
         purpose,
         verificationCode,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        lastSentAt: now,
+        createdAt: Date.now(),
+        lastSentAt: nowMs,
         dailyKey: dayKey,
         dailyCount,
-        expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + VERIFY_TTL_MS)),
+        expiresAt: Date.now() + VERIFY_TTL_MS,
         verified: false,
         verifiedAt: admin.firestore.FieldValue.delete(),
         attempts: 0,
@@ -247,7 +247,7 @@ async function sendCodeInternal(request, emailLower, purpose) {
     await codeRef.set(payload, { merge: true });
     await accountRef(emailLower).set({
         email: emailLower,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
         lastPurpose: purpose,
     }, { merge: true });
 }
@@ -290,9 +290,9 @@ exports.verifyEmailCode = (0, https_1.onCall)({
     if (verificationData.verified === true) {
         throw new https_1.HttpsError("failed-precondition", "Bu doğrulama kodu zaten kullanılmış");
     }
-    const now = admin.firestore.Timestamp.now();
-    const expiresAt = verificationData.expiresAt;
-    if (!expiresAt || expiresAt.toMillis() < now.toMillis()) {
+    const now = Date.now();
+    const expiresAt = Number(verificationData.expiresAt || 0);
+    if (!expiresAt || expiresAt < now) {
         throw new https_1.HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
     }
     const attempts = Number(verificationData.attempts || 0);
@@ -307,7 +307,7 @@ exports.verifyEmailCode = (0, https_1.onCall)({
     }
     await codeRef.update({
         verified: true,
-        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        verifiedAt: Date.now(),
         attempts,
     });
     return { success: true, message: "E-posta doğrulaması başarılı" };
@@ -329,8 +329,8 @@ exports.updateUserEmail = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli e-posta doğrulaması gerekli");
     }
@@ -340,11 +340,11 @@ exports.updateUserEmail = (0, https_1.onCall)({
     });
     await db.collection("users").doc(caller.uid).update({
         email: newEmail,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
     }, { merge: true });
     return { success: true, message: "E-posta adresi güncellendi" };
 });
@@ -367,8 +367,8 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli e-posta onayı bulunamadı");
     }
@@ -409,11 +409,11 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     await db.collection("users").doc(caller.uid).set({
         email: emailToConfirm,
         emailVerified: true,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     }, { merge: true });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
     }, { merge: true });
     return { success: true, message: "E-posta onayı tamamlandı" };
 });
@@ -435,19 +435,19 @@ exports.updateUserPhoneNumberAfterEmailVerification = (0, https_1.onCall)({
     }
     const verificationData = verificationSnap.data() || {};
     const verified = verificationData.verified === true;
-    const verifiedAt = verificationData.verifiedAt;
+    const verifiedAt = Number(verificationData.verifiedAt || 0);
     const verifiedPhone = String(verificationData.newPhone || "");
-    const withinWindow = !!verifiedAt && (Date.now() - verifiedAt.toDate().getTime()) <= VERIFY_USE_WINDOW_MS;
+    const withinWindow = verifiedAt > 0 && (Date.now() - verifiedAt) <= VERIFY_USE_WINDOW_MS;
     if (!verified || !withinWindow || verifiedPhone !== newPhone) {
         throw new https_1.HttpsError("failed-precondition", "Geçerli telefon değişikliği doğrulaması bulunamadı");
     }
     await db.collection("users").doc(caller.uid).update({
         phoneNumber: newPhone,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: Date.now(),
     });
     await codeRef.set({
         verified: false,
-        consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+        consumedAt: Date.now(),
         consumedPhone: newPhone,
     }, { merge: true });
     return { success: true, message: "Telefon numarası güncellendi" };

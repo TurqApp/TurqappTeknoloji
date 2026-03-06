@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'turq_image_cache_manager.dart';
 
 class UserProfileCacheService extends GetxService {
-  static const String _prefsKey = 'user_profile_cache_v1';
+  static const String _prefsKey = 'user_profile_cache_v2';
   static const int _maxEntries = 400;
   static const Duration _ttl = Duration(days: 7);
 
@@ -252,9 +252,20 @@ class UserProfileCacheService extends GetxService {
   }
 
   Map<String, dynamic> _sanitizeProfile(Map<String, dynamic> raw) {
-    final nickname =
-        (raw['displayName'] ?? raw['username'] ?? raw['nickname'] ?? '')
-            .toString();
+    final username = (raw['username'] ?? '').toString().trim();
+    final usernameLower = (raw['usernameLower'] ?? '').toString().trim();
+    final rawNickname = (raw['nickname'] ?? '').toString().trim();
+    final nickname = _resolveHandle(
+      nickname: rawNickname,
+      username: username,
+      usernameLower: usernameLower,
+    );
+    final firstName = (raw['firstName'] ?? '').toString().trim();
+    final lastName = (raw['lastName'] ?? '').toString().trim();
+    final fullNameParts = [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
+    final displayName = (raw['displayName'] ?? '').toString().trim().isNotEmpty
+        ? (raw['displayName'] ?? '').toString().trim()
+        : (fullNameParts.isNotEmpty ? fullNameParts : nickname);
     final avatarUrl = (raw['avatarUrl'] ??
             raw['pfImage'] ??
             raw['photoURL'] ??
@@ -275,13 +286,15 @@ class UserProfileCacheService extends GetxService {
         raw['postCount'] ?? raw['counterOfPosts'] ?? raw['gonderi'] ?? 0;
 
     return <String, dynamic>{
-      'displayName': nickname,
+      'displayName': displayName,
       'nickname': nickname,
+      'username': username,
+      'usernameLower': usernameLower,
       'avatarUrl': avatarUrl,
       'pfImage': avatarUrl,
       'photoUrl': (raw['photoUrl'] ?? '').toString(),
-      'firstName': (raw['firstName'] ?? '').toString(),
-      'lastName': (raw['lastName'] ?? '').toString(),
+      'firstName': firstName,
+      'lastName': lastName,
       'fullName': (raw['fullName'] ?? '').toString(),
       'token': (raw['token'] ?? '').toString(),
       'bio': (raw['bio'] ?? '').toString(),
@@ -289,10 +302,26 @@ class UserProfileCacheService extends GetxService {
       'followersCount': followerCount,
       'followingCount': followingCount,
       'postCount': postCount,
-      'gizliHesap': raw['gizliHesap'] == true,
-      'deletedAccount': raw['deletedAccount'] == true,
+      'isPrivate': raw['isPrivate'] == true,
+      'isDeleted': raw['isDeleted'] == true,
       'accountStatus': (raw['accountStatus'] ?? '').toString(),
     };
+  }
+
+  String _resolveHandle({
+    required String nickname,
+    required String username,
+    required String usernameLower,
+  }) {
+    final n = nickname.trim();
+    final u = username.trim();
+    final ul = usernameLower.trim();
+
+    final hasSpace = n.contains(RegExp(r'\s'));
+    if (n.isNotEmpty && !hasSpace) return n;
+    if (u.isNotEmpty) return u;
+    if (ul.isNotEmpty) return ul;
+    return n;
   }
 }
 

@@ -1106,7 +1106,7 @@ class ScholarshipsController extends GetxController {
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(followedId)
-        .collection('Takipciler')
+        .collection('followers')
         .doc(followerId)
         .get();
     return doc.exists;
@@ -1121,7 +1121,7 @@ class ScholarshipsController extends GetxController {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(followedId)
-          .collection('Takipciler')
+          .collection('followers')
           .doc(followerId)
           .delete();
       followedUsers[followedId] = false;
@@ -1129,11 +1129,11 @@ class ScholarshipsController extends GetxController {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(followedId)
-          .collection('Takipciler')
+          .collection('followers')
           .doc(followerId)
           .set({
         'followerId': followerId,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
       followedUsers[followedId] = true;
     }

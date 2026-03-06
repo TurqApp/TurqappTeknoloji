@@ -342,7 +342,7 @@ class AgendaController extends GetxController {
       final followSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .collection('TakipEdilenler')
+          .collection('followings')
           .get();
       followingIDs.assignAll(followSnap.docs.map((d) => d.id).toSet());
     } catch (_) {}
@@ -481,7 +481,7 @@ class AgendaController extends GetxController {
           .doc(userID)
           .get();
       final data = d.data();
-      final gizli = (data?['gizliHesap'] ?? false) == true;
+      final gizli = (data?['isPrivate'] ?? false) == true;
       _userDeactivatedCache[userID] = _isUserMarkedDeactivated(data);
       _userPrivacyCache[userID] = gizli;
       return gizli;
@@ -494,7 +494,7 @@ class AgendaController extends GetxController {
 
   bool _isUserMarkedDeactivated(Map<String, dynamic>? data) {
     if (data == null) return false;
-    final deletedAccount = (data['deletedAccount'] ?? false) == true;
+    final deletedAccount = (data['isDeleted'] ?? false) == true;
     final status = (data['accountStatus'] ?? '').toString().toLowerCase();
     return deletedAccount ||
         status == 'pending_deletion' ||
@@ -513,7 +513,7 @@ class AgendaController extends GetxController {
       final data = d.data();
       final deactivated = _isUserMarkedDeactivated(data);
       _userDeactivatedCache[userID] = deactivated;
-      _userPrivacyCache[userID] = (data?['gizliHesap'] ?? false) == true;
+      _userPrivacyCache[userID] = (data?['isPrivate'] ?? false) == true;
       return deactivated;
     } catch (_) {
       _userDeactivatedCache[userID] = false;
@@ -541,7 +541,7 @@ class AgendaController extends GetxController {
         for (final d in snap.docs) {
           found.add(d.id);
           final data = d.data();
-          _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+          _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
           _userDeactivatedCache[d.id] = _isUserMarkedDeactivated(data);
         }
         for (final id in chunk) {
@@ -708,7 +708,7 @@ class AgendaController extends GetxController {
             .get();
         for (final d in usersSnap.docs) {
           final data = d.data();
-          final gizli = (data['gizliHesap'] ?? false) == true;
+          final gizli = (data['isPrivate'] ?? false) == true;
           final deactivated = _isUserMarkedDeactivated(data);
           userPrivacy[d.id] = gizli;
           userDeactivated[d.id] = deactivated;
@@ -824,7 +824,7 @@ class AgendaController extends GetxController {
           .get(const GetOptions(source: Source.cache));
       for (final d in usersSnap.docs) {
         final data = d.data();
-        final gizli = (data['gizliHesap'] ?? false) == true;
+        final gizli = (data['isPrivate'] ?? false) == true;
         final deactivated = _isUserMarkedDeactivated(data);
         userPrivacy[d.id] = gizli;
         userDeactivated[d.id] = deactivated;
@@ -892,7 +892,7 @@ class AgendaController extends GetxController {
           final deactivated = _isUserMarkedDeactivated(data);
           userDeactivated[d.id] = deactivated;
           _userDeactivatedCache[d.id] = deactivated;
-          _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+          _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
         }
       } catch (_) {}
     }
@@ -945,7 +945,7 @@ class AgendaController extends GetxController {
               .get();
           for (final d in usersSnap.docs) {
             final data = d.data();
-            final gizli = (data['gizliHesap'] ?? false) == true;
+            final gizli = (data['isPrivate'] ?? false) == true;
             final deactivated = _isUserMarkedDeactivated(data);
             userPrivacy[d.id] = gizli;
             userDeactivated[d.id] = deactivated;
@@ -1027,7 +1027,7 @@ class AgendaController extends GetxController {
         final data = d.data();
         final deactivated = _isUserMarkedDeactivated(data);
         _userDeactivatedCache[d.id] = deactivated;
-        _userPrivacyCache[d.id] = (data['gizliHesap'] ?? false) == true;
+        _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
         if (!deactivated) {
           validUserIds.add(d.id);
         }
@@ -1301,7 +1301,7 @@ class AgendaController extends GetxController {
             .get();
         for (final d in usersSnap.docs) {
           final data = d.data();
-          final gizli = (data['gizliHesap'] ?? false) == true;
+          final gizli = (data['isPrivate'] ?? false) == true;
           final deactivated = _isUserMarkedDeactivated(data);
           userPrivacy[d.id] = gizli;
           userDeactivated[d.id] = deactivated;

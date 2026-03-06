@@ -39,11 +39,7 @@ exports.denormAuthorOnPostWrite = functions
         if (!userData)
             return;
         const authorNickname = String(userData.displayName || userData.username || userData.nickname || "");
-        const authorAvatarUrl = String(userData.avatarUrl ||
-            userData.pfImage ||
-            userData.photoURL ||
-            userData.profileImageUrl ||
-            "");
+        const authorAvatarUrl = String(userData.avatarUrl || "");
         if (!authorNickname && !authorAvatarUrl)
             return;
         await snap.ref.update({ authorNickname, authorAvatarUrl });
@@ -66,18 +62,11 @@ exports.syncAuthorFieldsOnProfileUpdate = functions
     const nicknameChanged = before?.displayName !== after?.displayName ||
         before?.username !== after?.username ||
         before?.nickname !== after?.nickname;
-    const avatarChanged = before?.avatarUrl !== after?.avatarUrl ||
-        before?.pfImage !== after?.pfImage ||
-        before?.photoURL !== after?.photoURL ||
-        before?.profileImageUrl !== after?.profileImageUrl;
+    const avatarChanged = before?.avatarUrl !== after?.avatarUrl;
     if (!nicknameChanged && !avatarChanged)
         return;
     const newNickname = String(after?.displayName || after?.username || after?.nickname || "");
-    const newAvatarUrl = String(after?.avatarUrl ||
-        after?.pfImage ||
-        after?.photoURL ||
-        after?.profileImageUrl ||
-        "");
+    const newAvatarUrl = String(after?.avatarUrl || "");
     try {
         // Son 200 postu güncelle (maliyet/latency kontrolü için)
         const postsSnap = await db

@@ -339,13 +339,29 @@ class PersonelInfoController extends GetxController
           await FirebaseFirestore.instance.collection("users").doc(uid).get();
       if (doc.exists) {
         final data = doc.data()!;
-        tc.value = originalTC.value = data["tc"] ?? "";
+        tc.value = originalTC.value =
+            userString(data, key: "tc", scope: "profile");
         medeniHal.value =
-            originalMedeniHal.value = data["medeniHal"] ?? "Bekar";
+            originalMedeniHal.value = userString(
+          data,
+          key: "medeniHal",
+          scope: "profile",
+          fallback: "Bekar",
+        );
         county.value =
-            originalCounty.value = (data["ulke"] ?? "Türkiye").trim();
+            originalCounty.value = userString(
+          data,
+          key: "ulke",
+          scope: "profile",
+          fallback: "Türkiye",
+        ).trim();
         cinsiyet.value =
-            originalCinsiyet.value = data["cinsiyet"] ?? "Seçim Yap";
+            originalCinsiyet.value = userString(
+          data,
+          key: "cinsiyet",
+          scope: "profile",
+          fallback: "Seçim Yap",
+        );
         engelliRaporu.value = originalEngelliRaporu.value = userString(
           data,
           key: "engelliRaporu",
@@ -353,14 +369,23 @@ class PersonelInfoController extends GetxController
           fallback: "Yok",
         );
         calismaDurumu.value =
-            originalCalismaDurumu.value = data["calismaDurumu"] ?? "Çalışmıyor";
+            originalCalismaDurumu.value = userString(
+          data,
+          key: "calismaDurumu",
+          scope: "profile",
+          fallback: "Çalışmıyor",
+        );
         city.value = originalCity.value =
-            (county.value == "Türkiye" ? data["nufusSehir"] ?? "" : "");
+            (county.value == "Türkiye"
+                ? userString(data, key: "nufusSehir", scope: "profile")
+                : "");
         town.value = originalTown.value =
-            (county.value == "Türkiye" ? data["nufusIlce"] ?? "" : "");
+            (county.value == "Türkiye"
+                ? userString(data, key: "nufusIlce", scope: "profile")
+                : "");
 
-        final dateStr = data["dogumTarihi"];
-        if (dateStr != null && dateStr.isNotEmpty) {
+        final dateStr = userString(data, key: "dogumTarihi", scope: "profile");
+        if (dateStr.isNotEmpty) {
           try {
             selectedDate.value = originalSelectedDate.value = DateFormat(
               "dd.MM.yyyy",
@@ -429,14 +454,19 @@ class PersonelInfoController extends GetxController
           scope: 'family',
           values: {"engelliRaporu": engelliRaporu.value},
         ),
-        "tc": tc.value,
-        "medeniHal": medeniHal.value,
-        "ulke": county.value,
-        "nufusSehir": county.value == "Türkiye" ? city.value : "",
-        "nufusIlce": county.value == "Türkiye" ? town.value : "",
-        "cinsiyet": cinsiyet.value,
-        "calismaDurumu": calismaDurumu.value,
-        "dogumTarihi": formattedDate,
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            "tc": tc.value,
+            "medeniHal": medeniHal.value,
+            "ulke": county.value,
+            "nufusSehir": county.value == "Türkiye" ? city.value : "",
+            "nufusIlce": county.value == "Türkiye" ? town.value : "",
+            "cinsiyet": cinsiyet.value,
+            "calismaDurumu": calismaDurumu.value,
+            "dogumTarihi": formattedDate,
+          },
+        ),
       });
 
       originalTC.value = tc.value;

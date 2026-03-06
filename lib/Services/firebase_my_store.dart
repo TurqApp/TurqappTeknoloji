@@ -198,7 +198,7 @@ class FirebaseMyStore extends GetxController {
         FirebaseFirestore.instance
             .collection("stories")
             .where("userId", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-            .orderBy('createdAt', descending: true)
+            .orderBy('createdDate', descending: true)
             .limit(5)
             .get()
             .then((snap) {

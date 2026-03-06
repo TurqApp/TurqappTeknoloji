@@ -230,13 +230,13 @@ class ProfileController extends GetxController {
         final followersAgg = await FirebaseFirestore.instance
             .collection("users")
             .doc(uid)
-            .collection("Takipciler")
+            .collection("followers")
             .count()
             .get();
         final followingAgg = await FirebaseFirestore.instance
             .collection("users")
             .doc(uid)
-            .collection("TakipEdilenler")
+            .collection("followings")
             .count()
             .get();
 

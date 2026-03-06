@@ -430,7 +430,7 @@ class ChatController extends GetxController {
         .collection("conversations")
         .doc(chatID)
         .collection("messages")
-        .orderBy("createdAt", descending: true)
+        .orderBy("createdDate", descending: true)
         .limit(_syncHeadSize)
         .snapshots()
         .listen((snapshot) {
@@ -456,7 +456,7 @@ class ChatController extends GetxController {
           .collection("conversations")
           .doc(chatID)
           .collection("messages")
-          .orderBy("createdAt", descending: true);
+          .orderBy("createdDate", descending: true);
 
       final conversationSnapshot = await _getWithCachePreference(
         convBase.limit(_initialPageSize),
@@ -491,7 +491,7 @@ class ChatController extends GetxController {
           .collection("conversations")
           .doc(chatID)
           .collection("messages")
-          .orderBy("createdAt", descending: true)
+          .orderBy("createdDate", descending: true)
           .limit(_syncHeadSize);
 
       final conversationSnapshot = await _getWithCachePreference(
@@ -526,7 +526,7 @@ class ChatController extends GetxController {
             .collection("conversations")
             .doc(chatID)
             .collection("messages")
-            .orderBy("createdAt", descending: true)
+            .orderBy("createdDate", descending: true)
             .startAfterDocument(_conversationOldestCursor!)
             .limit(_olderPageSize);
         final convSnapshot = await _getWithCachePreference(
@@ -1030,7 +1030,7 @@ class ChatController extends GetxController {
       final conversationMessageData = {
         "senderId": FirebaseAuth.instance.currentUser!.uid,
         "text": text,
-        "createdAt": Timestamp.fromDate(now),
+        "createdDate": now.millisecondsSinceEpoch,
         "seenBy": [FirebaseAuth.instance.currentUser!.uid],
         "type": messageType,
         "mediaUrls": gif != null ? [gif] : (imageUrls ?? []),
@@ -1100,7 +1100,7 @@ class ChatController extends GetxController {
         await convRef.set({
           "participants": [FirebaseAuth.instance.currentUser!.uid, userID],
           "lastMessage": previewText,
-          "lastMessageAt": FieldValue.serverTimestamp(),
+          "lastMessageAt": DateTime.now().millisecondsSinceEpoch,
           "lastMessageAtMs": now.millisecondsSinceEpoch,
           "lastSenderId": FirebaseAuth.instance.currentUser!.uid,
           "archived.${FirebaseAuth.instance.currentUser!.uid}": false,
@@ -1353,7 +1353,7 @@ class ChatController extends GetxController {
     final convMessage = {
       "senderId": currentUID,
       "text": model.metin,
-      "createdAt": FieldValue.serverTimestamp(),
+      "createdDate": DateTime.now().millisecondsSinceEpoch,
       "seenBy": [currentUID],
       "type": model.postID.isNotEmpty
           ? "post"
@@ -1408,7 +1408,7 @@ class ChatController extends GetxController {
         .set({
       "participants": [currentUID, targetUserId],
       "lastMessage": model.metin.isNotEmpty ? model.metin : "İletilen mesaj",
-      "lastMessageAt": FieldValue.serverTimestamp(),
+      "lastMessageAt": DateTime.now().millisecondsSinceEpoch,
       "lastMessageAtMs": DateTime.now().millisecondsSinceEpoch,
       "lastSenderId": currentUID,
       "archived.$currentUID": false,

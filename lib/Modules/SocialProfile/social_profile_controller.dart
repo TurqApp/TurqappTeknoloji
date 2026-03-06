@@ -162,13 +162,13 @@ class SocialProfileController extends GetxController {
         final followersAgg = await FirebaseFirestore.instance
             .collection("users")
             .doc(userID)
-            .collection("Takipciler")
+            .collection("followers")
             .count()
             .get();
         final followingAgg = await FirebaseFirestore.instance
             .collection("users")
             .doc(userID)
-            .collection("TakipEdilenler")
+            .collection("followings")
             .count()
             .get();
 
@@ -287,7 +287,7 @@ class SocialProfileController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .doc(userID)
         .get()
         .then((doc) {
@@ -568,9 +568,10 @@ class SocialProfileController extends GetxController {
       } catch (_) {
         aramaIzin.value = false;
       }
-      ban.value = doc.get("ban");
-      gizliHesap.value = doc.get("gizliHesap");
-      hesapOnayi.value = doc.get("hesapOnayi");
+      final raw = doc.data() ?? <String, dynamic>{};
+      ban.value = (raw["isBanned"] ?? false) == true;
+      gizliHesap.value = (raw["isPrivate"] ?? false) == true;
+      hesapOnayi.value = (raw["isApproved"] ?? false) == true;
       meslek.value = doc.get("meslekKategori");
       blockedUsers.value = List.from(doc.get("blockedUsers"));
       totalMarket.value = 0; // when end of the market coding
@@ -628,25 +629,29 @@ class SocialProfileController extends GetxController {
       onYesPressed: () async {
         final currentUid = FirebaseAuth.instance.currentUser!.uid;
 
-        // 1) Engellenenler listesine ekle
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(currentUid)
-            .update({
-          "blockedUsers": FieldValue.arrayUnion([userID])
+        // 1) Engellenenler listesine ekle (canonical subcollection + legacy array)
+        final meDoc =
+            FirebaseFirestore.instance.collection("users").doc(currentUid);
+        await FirebaseFirestore.instance.runTransaction((tx) async {
+          tx.set(
+            meDoc.collection("blockedUsers").doc(userID),
+            {
+              "userID": userID,
+              "updatedDate": DateTime.now().millisecondsSinceEpoch,
+            },
+            SetOptions(merge: true),
+          );
         });
 
         // 2) Takip ilişkilerini temizle (batch ile topluca)
         final batch = FirebaseFirestore.instance.batch();
-        final meDoc =
-            FirebaseFirestore.instance.collection("users").doc(currentUid);
         final otherDoc =
             FirebaseFirestore.instance.collection("users").doc(userID);
 
-        batch.delete(meDoc.collection("TakipEdilenler").doc(userID));
-        batch.delete(meDoc.collection("Takipciler").doc(userID));
-        batch.delete(otherDoc.collection("TakipEdilenler").doc(currentUid));
-        batch.delete(otherDoc.collection("Takipciler").doc(currentUid));
+        batch.delete(meDoc.collection("followings").doc(userID));
+        batch.delete(meDoc.collection("followers").doc(userID));
+        batch.delete(otherDoc.collection("followings").doc(currentUid));
+        batch.delete(otherDoc.collection("followers").doc(currentUid));
 
         await batch.commit();
 
@@ -666,12 +671,10 @@ class SocialProfileController extends GetxController {
       yesText: "Engeli Kaldır",
       onYesPressed: () async {
         // 1) Engellenenler listesinden kaldır
-        await FirebaseFirestore.instance
+        final meDoc = FirebaseFirestore.instance
             .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({
-          "blockedUsers": FieldValue.arrayRemove([userID])
-        });
+            .doc(FirebaseAuth.instance.currentUser!.uid);
+        await meDoc.collection("blockedUsers").doc(userID).delete();
         // 2) Verileri yenile
         user.getUserData();
         getUserData();
@@ -685,7 +688,7 @@ class SocialProfileController extends GetxController {
     final snap = await FirebaseFirestore.instance
         .collection("stories")
         .where("userId", isEqualTo: userId)
-        .orderBy("createdAt", descending: true)
+        .orderBy("createdDate", descending: true)
         .get();
 
     if (snap.docs.isEmpty) {

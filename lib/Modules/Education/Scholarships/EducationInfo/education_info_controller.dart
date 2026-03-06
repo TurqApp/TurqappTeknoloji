@@ -196,18 +196,22 @@ class EducationInfoController extends GetxController
         clearFields();
 
         if (educationLevel == 'Ortaokul') {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
-          selectedDistrict.value = data['ilce'] ?? '';
+          selectedCountry.value =
+              userString(data, key: 'ulke', scope: 'profile');
+          selectedCity.value = userString(data, key: 'il', scope: 'profile');
+          selectedDistrict.value =
+              userString(data, key: 'ilce', scope: 'profile');
           selectedSchool.value =
               userString(data, key: 'ortaOkul', scope: 'education');
           selectedClassLevel.value =
               userString(data, key: 'sinif', scope: 'education');
           hasMiddleSchoolData.value = true;
         } else if (educationLevel == 'Lise') {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
-          selectedDistrict.value = data['ilce'] ?? '';
+          selectedCountry.value =
+              userString(data, key: 'ulke', scope: 'profile');
+          selectedCity.value = userString(data, key: 'il', scope: 'profile');
+          selectedDistrict.value =
+              userString(data, key: 'ilce', scope: 'profile');
           selectedHighSchool.value =
               userString(data, key: 'lise', scope: 'education');
           selectedClassLevel.value =
@@ -219,8 +223,9 @@ class EducationInfoController extends GetxController
           'Yüksek Lisans',
           'Doktora',
         ].contains(educationLevel)) {
-          selectedCountry.value = data['ulke'] ?? '';
-          selectedCity.value = data['il'] ?? '';
+          selectedCountry.value =
+              userString(data, key: 'ulke', scope: 'profile');
+          selectedCity.value = userString(data, key: 'il', scope: 'profile');
           selectedUniversity.value =
               userString(data, key: 'universite', scope: 'education');
           selectedFaculty.value =
@@ -257,18 +262,22 @@ class EducationInfoController extends GetxController
 
         if (level == savedLevel) {
           if (level == 'Ortaokul') {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
-            selectedDistrict.value = data['ilce'] ?? '';
+            selectedCountry.value =
+                userString(data, key: 'ulke', scope: 'profile');
+            selectedCity.value = userString(data, key: 'il', scope: 'profile');
+            selectedDistrict.value =
+                userString(data, key: 'ilce', scope: 'profile');
             selectedSchool.value =
                 userString(data, key: 'ortaOkul', scope: 'education');
             selectedClassLevel.value =
                 userString(data, key: 'sinif', scope: 'education');
             hasMiddleSchoolData.value = true;
           } else if (level == 'Lise') {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
-            selectedDistrict.value = data['ilce'] ?? '';
+            selectedCountry.value =
+                userString(data, key: 'ulke', scope: 'profile');
+            selectedCity.value = userString(data, key: 'il', scope: 'profile');
+            selectedDistrict.value =
+                userString(data, key: 'ilce', scope: 'profile');
             selectedHighSchool.value =
                 userString(data, key: 'lise', scope: 'education');
             selectedClassLevel.value =
@@ -280,8 +289,9 @@ class EducationInfoController extends GetxController
             'Yüksek Lisans',
             'Doktora',
           ].contains(level)) {
-            selectedCountry.value = data['ulke'] ?? '';
-            selectedCity.value = data['il'] ?? '';
+            selectedCountry.value =
+                userString(data, key: 'ulke', scope: 'profile');
+            selectedCity.value = userString(data, key: 'il', scope: 'profile');
             selectedUniversity.value =
                 userString(data, key: 'universite', scope: 'education');
             selectedFaculty.value =
@@ -405,9 +415,14 @@ class EducationInfoController extends GetxController
             'bolum': '',
           },
         ),
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
-        'ilce': selectedDistrict.value,
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            'ulke': selectedCountry.value,
+            'il': selectedCity.value,
+            'ilce': selectedDistrict.value,
+          },
+        ),
       });
 
       hasMiddleSchoolData.value = true;
@@ -470,9 +485,14 @@ class EducationInfoController extends GetxController
             'bolum': '',
           },
         ),
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
-        'ilce': selectedDistrict.value,
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            'ulke': selectedCountry.value,
+            'il': selectedCity.value,
+            'ilce': selectedDistrict.value,
+          },
+        ),
       });
 
       hasHighSchoolData.value = true;
@@ -537,8 +557,13 @@ class EducationInfoController extends GetxController
             'sinif': '',
           },
         ),
-        'ulke': selectedCountry.value,
-        'il': selectedCity.value,
+        ...scopedUserUpdate(
+          scope: 'profile',
+          values: {
+            'ulke': selectedCountry.value,
+            'il': selectedCity.value,
+          },
+        ),
       });
 
       hasHigherEducationData.value = true;

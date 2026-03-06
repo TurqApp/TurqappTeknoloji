@@ -100,21 +100,19 @@ class StoryInteractionOptimizer extends GetxService {
       final userDocRef =
           FirebaseFirestore.instance.collection('users').doc(uid);
 
-      // Tüm pending updates'i tek batch'te yap
-      final Map<String, dynamic> updates = {};
-
-      // readStories array update
-      if (currentUsers.isNotEmpty) {
-        updates['readStories'] = FieldValue.arrayUnion(currentUsers.toList());
-      }
-
-      // readStoriesTimes map updates
+      // readStories subcollection updates
       for (var entry in currentWrites.entries) {
-        updates['readStoriesTimes.${entry.key}'] = entry.value;
+        batch.set(
+          userDocRef.collection('readStories').doc(entry.key),
+          {
+            'storyId': entry.key,
+            'readDate': entry.value,
+            'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          },
+          SetOptions(merge: true),
+        );
       }
-
-      if (updates.isNotEmpty) {
-        batch.update(userDocRef, updates);
+      if (currentUsers.isNotEmpty || currentWrites.isNotEmpty) {
         await batch.commit();
 
         print(

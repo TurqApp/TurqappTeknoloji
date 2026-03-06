@@ -40,7 +40,7 @@ class IndexPoolEntry {
         'nickname': nickname,
         'avatarUrl': avatarUrl,
         'caption': caption,
-        'updatedAt': updatedAt,
+        'updatedDate': updatedAt,
       };
 
   factory IndexPoolEntry.fromJson(Map<String, dynamic> json) {
@@ -52,7 +52,7 @@ class IndexPoolEntry {
       nickname: (json['nickname'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
       caption: (json['caption'] ?? '').toString(),
-      updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
+      updatedAt: (json['updatedDate'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -96,7 +96,7 @@ class IndexPoolStore {
           return const [];
         }
         entriesRaw = (raw['entries'] as List?) ?? const [];
-        updatedAtMs = (raw['updatedAt'] as num?)?.toInt() ?? 0;
+        updatedAtMs = (raw['updatedDate'] as num?)?.toInt() ?? 0;
       } else {
         await _deletePoolFile();
         return const [];
@@ -127,7 +127,7 @@ class IndexPoolStore {
     await tmp.writeAsString(
       jsonEncode({
         'schemaVersion': _schemaVersion,
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
         'entries': all.map((e) => e.toJson()).toList(),
       }),
       flush: true,

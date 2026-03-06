@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AdminAccessService {
   static const Set<String> adminUserIds = {
     "rlvJgi4VAoO7O78OwrooZc6puPW2",
-    "pGlxhtQEVEYeLIa1G2IKhb743E73",
   };
 
   static bool isKnownAdminSync() {

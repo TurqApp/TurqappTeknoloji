@@ -141,7 +141,7 @@ function buildMeta(data) {
         isHidden: data.isHidden === true || data.gizlendi === true,
         isUploading: data.isUploading === true,
         hlsReady,
-        createdAt: data.createdAt || data.timeStamp || firestore_1.FieldValue.serverTimestamp(),
+        createdAt: data.createdAt || data.timeStamp || Date.now(),
     };
 }
 function shouldKeepPostInTagIndex(data) {

@@ -38,7 +38,7 @@ class _SliderAdminViewState extends State<SliderAdminView> {
   Future<void> _ensureSliderMeta() {
     return _sliderMeta.set({
       'title': widget.title,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedDate': DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
   }
 
@@ -67,8 +67,8 @@ class _SliderAdminViewState extends State<SliderAdminView> {
         'imageUrl': imageUrl,
         'storagePath': '$storagePath.webp',
         'order': nextOrder,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       });
       AppSnackbar('Tamam', 'Slider görseli eklendi');
     } catch (e) {
@@ -104,15 +104,15 @@ class _SliderAdminViewState extends State<SliderAdminView> {
       await _ensureSliderMeta();
       await _sliderMeta.set({
         'hiddenDefaults': FieldValue.arrayRemove([index]),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
 
       await _sliderItems.doc(itemId).set({
         'imageUrl': imageUrl,
         'storagePath': '$storagePath.webp',
         'order': index,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'createdDate': DateTime.now().millisecondsSinceEpoch,
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
 
       if (oldStoragePath.isNotEmpty && oldStoragePath != '$storagePath.webp') {
@@ -147,7 +147,7 @@ class _SliderAdminViewState extends State<SliderAdminView> {
         await _ensureSliderMeta();
         await _sliderMeta.set({
           'hiddenDefaults': FieldValue.arrayUnion([index]),
-          'updatedAt': FieldValue.serverTimestamp(),
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
         }, SetOptions(merge: true));
       }
 
@@ -168,7 +168,7 @@ class _SliderAdminViewState extends State<SliderAdminView> {
       await _ensureSliderMeta();
       await _sliderMeta.set({
         'hiddenDefaults': FieldValue.arrayRemove([index]),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
       AppSnackbar('Tamam', 'Varsayılan görsel geri açıldı');
     } catch (e) {
@@ -205,11 +205,11 @@ class _SliderAdminViewState extends State<SliderAdminView> {
 
       batch.update(currentDoc.reference, {
         'order': targetOrder,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       });
       batch.update(targetDoc.reference, {
         'order': currentOrder,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedDate': DateTime.now().millisecondsSinceEpoch,
       });
       await batch.commit();
     } catch (e) {

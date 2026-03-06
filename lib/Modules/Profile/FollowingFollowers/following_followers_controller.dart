@@ -69,7 +69,7 @@ class FollowingFollowersController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("Takipciler")
+        .collection("followers")
         .count()
         .get()
         .then((aggregateQuerySnapshot) {
@@ -80,7 +80,7 @@ class FollowingFollowersController extends GetxController {
     FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .count()
         .get()
         .then((aggregateQuerySnapshot) {
@@ -105,7 +105,7 @@ class FollowingFollowersController extends GetxController {
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("Takipciler")
+        .collection("followers")
         .orderBy("timeStamp", descending: true)
         .limit(fetchLimit);
 
@@ -132,7 +132,8 @@ class FollowingFollowersController extends GetxController {
 
   Future<void> getFollowing({bool initial = false}) async {
     if (isLoadingFollowing) return;
-    if (!isSelf && takipEdilenler.isNotEmpty) return; // başkasında tek sefer getir
+    if (!isSelf && takipEdilenler.isNotEmpty)
+      return; // başkasında tek sefer getir
 
     isLoadingFollowing = true;
     if (initial) {
@@ -146,7 +147,7 @@ class FollowingFollowersController extends GetxController {
     Query query = FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .orderBy("timeStamp", descending: true)
         .limit(fetchLimit);
 
@@ -181,7 +182,7 @@ class FollowingFollowersController extends GetxController {
     final allFollowersSnap = await FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("Takipciler")
+        .collection("followers")
         .get();
     final followerIDs = allFollowersSnap.docs.map((doc) => doc.id).toSet();
 
@@ -212,7 +213,7 @@ class FollowingFollowersController extends GetxController {
     final allFollowingSnap = await FirebaseFirestore.instance
         .collection("users")
         .doc(userId)
-        .collection("TakipEdilenler")
+        .collection("followings")
         .get();
     final followingIDs = allFollowingSnap.docs.map((doc) => doc.id).toSet();
 

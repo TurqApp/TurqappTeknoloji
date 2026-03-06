@@ -16,11 +16,21 @@ class BlockedUsersController extends GetxController {
   }
 
   Future<void> fetchBlockedUserIDsAndDetails() async {
-    final doc = await FirebaseFirestore.instance
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final subSnap = await FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(uid)
+        .collection("blockedUsers")
         .get();
+    if (subSnap.docs.isNotEmpty) {
+      blockedUsers.value = subSnap.docs.map((d) => d.id).toList();
+      await fetchBlockedUserDetails();
+      return;
+    }
 
+    // Legacy fallback
+    final doc =
+        await FirebaseFirestore.instance.collection("users").doc(uid).get();
     if (doc.exists && doc.data()!.containsKey("blockedUsers")) {
       blockedUsers.value = List<String>.from(doc.get("blockedUsers"));
       await fetchBlockedUserDetails();
@@ -102,12 +112,11 @@ class BlockedUsersController extends GetxController {
                   child: GestureDetector(
                     onTap: () async {
                       try {
-                        await FirebaseFirestore.instance
+                        final uid = FirebaseAuth.instance.currentUser!.uid;
+                        final userRef = FirebaseFirestore.instance
                             .collection("users")
-                            .doc(FirebaseAuth.instance.currentUser!.uid)
-                            .update({
-                          "blockedUsers": FieldValue.arrayRemove([userID])
-                        });
+                            .doc(uid);
+                        await userRef.collection("blockedUsers").doc(userID).delete();
 
                         blockedUsers.remove(userID);
                         blockedUserDetails
