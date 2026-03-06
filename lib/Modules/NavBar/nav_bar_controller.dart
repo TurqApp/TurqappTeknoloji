@@ -17,7 +17,6 @@ import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/video_state_manager.dart';
-import '../../Services/current_user_service.dart';
 
 typedef TextUpdate = String;
 
@@ -57,7 +56,6 @@ class NavBarController extends GetxController
   bool _proactiveShortPreloadStarted = false;
   Timer? _backgroundCacheTimer;
   Timer? _uploadIndicatorTimer;
-  Timer? _emailVerifyPromptTimer;
 
   @override
   void onInit() {
@@ -158,11 +156,6 @@ class NavBarController extends GetxController
     });
   }
 
-  void _startEmailVerificationPromptLoop() {
-    _emailVerifyPromptTimer?.cancel();
-    _emailVerifyPromptTimer = null;
-  }
-
   Future<void> _runAcilisAnimation() async {
     try {
       // ⚠️ CRITICAL FIX: Check if controller is still alive before animating
@@ -193,8 +186,6 @@ class NavBarController extends GetxController
     _backgroundCacheTimer = null;
     _uploadIndicatorTimer?.cancel();
     _uploadIndicatorTimer = null;
-    _emailVerifyPromptTimer?.cancel();
-    _emailVerifyPromptTimer = null;
     WidgetsBinding.instance.removeObserver(this);
 
     // Dispose animation controllers safely

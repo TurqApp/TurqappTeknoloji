@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 
 class ScholarshipProvidersController extends GetxController {
   final isLoading = true.obs;
@@ -17,10 +18,7 @@ class ScholarshipProvidersController extends GetxController {
       isLoading.value = true;
 
       // Sadece son 200 burstan unique provider'ları çek
-      final bursSnapshot = await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
+      final bursSnapshot = await ScholarshipFirestorePath.collection()
           .orderBy('timeStamp', descending: true)
           .limit(200)
           .get();

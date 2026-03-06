@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 
 class AdminAccessService {
   static const Set<String> adminUserIds = {

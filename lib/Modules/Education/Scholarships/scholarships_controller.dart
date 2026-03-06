@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -57,7 +58,6 @@ class ScholarshipsController extends GetxController {
   static const String _scholarshipsCacheKey = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
   static const int _maxUserFetchBatch = 30;
-  static const String _collection = 'scholarships';
 
   @override
   void onInit() {
@@ -79,10 +79,7 @@ class ScholarshipsController extends GetxController {
 
   Future<void> refreshTotalCount() async {
     try {
-      final agg = await FirebaseFirestore.instance
-          .collection(_collection)
-          .count()
-          .get();
+      final agg = await ScholarshipFirestorePath.collection().count().get();
       totalCount.value = agg.count ?? 0;
     } catch (e) {
       // ignore silently; keep last known count
@@ -147,10 +144,7 @@ class ScholarshipsController extends GetxController {
       final Map<String, dynamic> userMap =
           (userDoc.data() as Map<String, dynamic>? ?? <String, dynamic>{});
 
-      final bursSnap = await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
+      final bursSnap = await ScholarshipFirestorePath.collection()
           .where('userID', isEqualTo: userId)
           .orderBy('timeStamp', descending: true)
           .limit(20)
@@ -537,8 +531,7 @@ class ScholarshipsController extends GetxController {
       }
 
       final startQueryTime = DateTime.now();
-      final snapshot = await FirebaseFirestore.instance
-          .collection(_collection)
+      final snapshot = await ScholarshipFirestorePath.collection()
           .orderBy('timeStamp', descending: true)
           .limit(initialBatchSize)
           .get();
@@ -646,8 +639,7 @@ class ScholarshipsController extends GetxController {
       print('Starting loadMoreScholarships at ${DateTime.now()}');
 
       final startQueryTime = DateTime.now();
-      final snapshot = await FirebaseFirestore.instance
-          .collection(_collection)
+      final snapshot = await ScholarshipFirestorePath.collection()
           .orderBy('timeStamp', descending: true)
           .startAfterDocument(lastBireyselDoc!)
           .limit(batchSize)
@@ -769,11 +761,7 @@ class ScholarshipsController extends GetxController {
     final wasLiked = likedScholarships[docId] ?? false;
 
     try {
-      final docRef = FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(docId);
+      final docRef = ScholarshipFirestorePath.doc(docId);
       likedScholarships[docId] = !wasLiked;
       if (wasLiked) {
         _likedByCurrentUser.remove(docId);
@@ -825,11 +813,7 @@ class ScholarshipsController extends GetxController {
     final wasBookmarked = bookmarkedScholarships[docId] ?? false;
 
     try {
-      final docRef = FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(docId);
+      final docRef = ScholarshipFirestorePath.doc(docId);
       bookmarkedScholarships[docId] = !wasBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.remove(docId);

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 
 class ApplicationsController extends GetxController {
   final isLoading = true.obs;
@@ -23,10 +24,7 @@ class ApplicationsController extends GetxController {
         return;
       }
 
-      final bursSnapshot = await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
+      final bursSnapshot = await ScholarshipFirestorePath.collection()
           .where('basvurular', arrayContains: userID)
           .orderBy('timeStamp', descending: true)
           .limit(50)
@@ -115,11 +113,7 @@ class ApplicationsController extends GetxController {
       }
 
       final batch = FirebaseFirestore.instance.batch();
-      final docRef = FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(bursID);
+      final docRef = ScholarshipFirestorePath.doc(bursID);
       batch.update(docRef, {
         'basvurular': FieldValue.arrayRemove([userID]),
       });

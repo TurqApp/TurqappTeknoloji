@@ -328,62 +328,6 @@ class AgendaController extends GetxController {
     }
   }
 
-  void _applyVisibilityDecision() {
-    // Uzun süre güncellenmeyen visibility değerlerini temizle (stale veri).
-    final now = DateTime.now();
-    final staleKeys = <int>[];
-    _visibleUpdatedAt.forEach((idx, ts) {
-      if (now.difference(ts).inMilliseconds > 700) {
-        staleKeys.add(idx);
-      }
-    });
-    for (final k in staleKeys) {
-      _visibleUpdatedAt.remove(k);
-      _visibleFractions.remove(k);
-    }
-
-    final current = centeredIndex.value;
-    int bestIndex = -1;
-    double bestFraction = 0.0;
-
-    _visibleFractions.forEach((idx, fraction) {
-      if (fraction > bestFraction) {
-        bestFraction = fraction;
-        bestIndex = idx;
-      }
-    });
-
-    // Oynayan video görünür kaldıkça devam etsin; erken stop hissini azalt.
-    if (current >= 0) {
-      final currentVisible = _visibleFractions[current] ?? 0.0;
-      if (currentVisible < 0.18) {
-        centeredIndex.value = -1;
-        return;
-      }
-    }
-
-    // Video alanı görünürlüğüne geçtiğimiz için daha düşük eşik doğal his verir.
-    if (bestIndex >= 0 && bestFraction >= 0.35) {
-      if (current != bestIndex) {
-        final currentVisible =
-            current >= 0 ? (_visibleFractions[current] ?? 0.0) : 0.0;
-        if (current >= 0 &&
-            currentVisible >= 0.28 &&
-            bestFraction < currentVisible + 0.10) {
-          return;
-        }
-        centeredIndex.value = bestIndex;
-        lastCenteredIndex = bestIndex;
-      }
-      return;
-    }
-
-    // Hiçbir post yeterince görünmüyorsa durdur.
-    if (current != -1 && (bestIndex == -1 || bestFraction < 0.18)) {
-      centeredIndex.value = -1;
-    }
-  }
-
   void _bindFollowingListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -1170,42 +1114,6 @@ class AgendaController extends GetxController {
       print("refreshAgenda error: $e");
       pauseAll.value = false;
     }
-  }
-
-  // Feed refresh: son 100 gönderiyi çek, shuffle yap, ilk partiyi göster.
-  Future<void> _fetchRefreshShuffledLast100() async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final cutoffMs = _agendaCutoffMs(nowMs);
-    final snap = await FirebaseFirestore.instance
-        .collection("Posts")
-        .where("arsiv", isEqualTo: false)
-        .where("flood", isEqualTo: false)
-        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
-        .orderBy("timeStamp", descending: true)
-        .limit(100)
-        .get();
-
-    final items = snap.docs
-        .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
-        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
-        .where((p) => p.deletedPost != true)
-        .toList();
-
-    final visibleItemsRaw = await _filterPrivateItems(items);
-    final Map<String, PostsModel> uniqueMap = {
-      for (final p in visibleItemsRaw) p.docID: p,
-    };
-    final visibleItems = uniqueMap.values.toList()..shuffle(Random());
-
-    _shuffledPosts = visibleItems;
-    _shuffledIndex = 0;
-    _lastCacheTime = DateTime.now();
-
-    final initialItems = _shuffledPosts.take(fetchLimit).toList();
-    _addUniqueToAgenda(initialItems);
-    _shuffledIndex = initialItems.length;
-    hasMore.value = _shuffledPosts.length > _shuffledIndex;
   }
 
   // Refresh sırasında karışık gönderi getir - HIZLI VERSİYON

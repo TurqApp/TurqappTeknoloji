@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 
@@ -42,12 +43,7 @@ class ScholarshipDetailController extends GetxController {
         model.userID == currentUser.uid) {
       return;
     }
-    FirebaseFirestore.instance
-        .collection('catalog')
-        .doc('education')
-        .collection('scholarships')
-        .doc(docId)
-        .update({
+    ScholarshipFirestorePath.doc(docId).update({
       'goruntuleme': FieldValue.arrayUnion([currentUser.uid]),
     }).catchError((_) {});
   }
@@ -158,24 +154,17 @@ class ScholarshipDetailController extends GetxController {
       print('Burs ID: $scholarshipId, Tür: $type');
 
       if (scholarshipId.isNotEmpty) {
-        final collection = 'scholarships';
+        final docRef = ScholarshipFirestorePath.doc(scholarshipId);
         final field = 'basvurular';
 
-        print('Koleksiyon kontrol ediliyor: $collection');
+        print('Koleksiyon kontrol ediliyor: ${docRef.path}');
 
-        final doc = await FirebaseFirestore.instance
-            .collection(collection)
-            .doc(scholarshipId)
-            .collection('Basvurular')
-            .doc(currentUser.uid)
-            .get();
+        final doc =
+            await docRef.collection('Basvurular').doc(currentUser.uid).get();
 
         allreadyApplied.value = doc.exists;
         if (!allreadyApplied.value) {
-          final parentDoc = await FirebaseFirestore.instance
-              .collection(collection)
-              .doc(scholarshipId)
-              .get();
+          final parentDoc = await docRef.get();
           final applicants = List<String>.from(parentDoc.data()?[field] ?? []);
           allreadyApplied.value = applicants.contains(currentUser.uid);
           print('Başvurular dizisi kontrolü: ${allreadyApplied.value}');
@@ -208,22 +197,14 @@ class ScholarshipDetailController extends GetxController {
         return;
       }
 
-      final collection = 'scholarships';
+      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
       final field = 'basvurular';
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(scholarshipId)
-          .collection('Basvurular')
-          .doc(currentUser.uid)
-          .set({
+      await docRef.collection('Basvurular').doc(currentUser.uid).set({
         'timeStamp': DateTime.now().millisecondsSinceEpoch,
       });
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(scholarshipId)
-          .update({
+      await docRef.update({
         field: FieldValue.arrayUnion([currentUser.uid]),
       });
 
@@ -301,12 +282,7 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(scholarshipId)
-          .delete();
+      await ScholarshipFirestorePath.doc(scholarshipId).delete();
       Get.back();
       final scholarshipsController = Get.find<ScholarshipsController>();
       await scholarshipsController.fetchScholarships();
@@ -328,20 +304,12 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      final collection = 'scholarships';
+      final docRef = ScholarshipFirestorePath.doc(scholarshipId);
       final field = 'basvurular';
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(scholarshipId)
-          .collection('Basvurular')
-          .doc(currentUser.uid)
-          .delete();
+      await docRef.collection('Basvurular').doc(currentUser.uid).delete();
 
-      await FirebaseFirestore.instance
-          .collection(collection)
-          .doc(scholarshipId)
-          .update({
+      await docRef.update({
         field: FieldValue.arrayRemove([currentUser.uid]),
       });
 

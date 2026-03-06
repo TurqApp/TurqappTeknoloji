@@ -8,6 +8,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class PersonalizedController extends GetxController {
@@ -155,10 +156,7 @@ class PersonalizedController extends GetxController {
 
   // Load vitrin data
   void _loadVitrinData() {
-    FirebaseFirestore.instance
-        .collection("catalog")
-        .doc("education")
-        .collection("scholarships")
+    ScholarshipFirestorePath.collection()
         .orderBy("timeStamp", descending: true)
         .limit(10)
         .get()
@@ -180,10 +178,7 @@ class PersonalizedController extends GetxController {
     if (!isUserDataLoaded.value) return;
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("catalog")
-          .doc("education")
-          .collection("scholarships")
+      final snapshot = await ScholarshipFirestorePath.collection()
           .orderBy("timeStamp", descending: true)
           .limit(50)
           .get();

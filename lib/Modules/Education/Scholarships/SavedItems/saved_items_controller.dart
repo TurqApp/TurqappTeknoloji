@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class SavedItemsController extends GetxController {
@@ -41,10 +42,7 @@ class SavedItemsController extends GetxController {
     bool isBookmarked = false,
   }) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
+      final snapshot = await ScholarshipFirestorePath.collection()
           .where(
             isLiked ? 'begeniler' : 'kaydedenler',
             arrayContains: userId,
@@ -134,11 +132,7 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef = FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(docId);
+      final docRef = ScholarshipFirestorePath.doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {
@@ -170,11 +164,7 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef = FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
-          .doc(docId);
+      final docRef = ScholarshipFirestorePath.doc(docId);
 
       final doc = await docRef.get();
       if (!doc.exists) {

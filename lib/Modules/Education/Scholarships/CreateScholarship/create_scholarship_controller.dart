@@ -11,6 +11,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/scholarship_preview_view.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -667,19 +668,14 @@ class CreateScholarshipController extends GetxController {
           ulke: ulke.value,
         );
 
-        final docRef = await _firestore
-            .collection('catalog')
-            .doc('education')
-            .collection('scholarships')
-            .add(scholarship.toJson());
+        final docRef = await ScholarshipFirestorePath.collection(
+          firestore: _firestore,
+        ).add(scholarship.toJson());
 
-        await _firestore
-            .collection('catalog')
-            .doc('education')
-            .collection('scholarships')
-            .doc(docRef.id)
-            .set({'likesCount': 0, 'bookmarksCount': 0},
-                SetOptions(merge: true));
+        await ScholarshipFirestorePath.doc(
+          docRef.id,
+          firestore: _firestore,
+        ).set({'likesCount': 0, 'bookmarksCount': 0}, SetOptions(merge: true));
 
         // Refresh scholarships after successful save
         final scholarshipsController = Get.find<ScholarshipsController>();
@@ -797,12 +793,10 @@ class CreateScholarshipController extends GetxController {
           ulke: ulke.value,
         );
 
-        await _firestore
-            .collection('catalog')
-            .doc('education')
-            .collection('scholarships')
-            .doc(scholarshipId.value)
-            .update(scholarship.toJson());
+        await ScholarshipFirestorePath.doc(
+          scholarshipId.value,
+          firestore: _firestore,
+        ).update(scholarship.toJson());
 
         // Refresh scholarships after successful update
         final scholarshipsController = Get.find<ScholarshipsController>();

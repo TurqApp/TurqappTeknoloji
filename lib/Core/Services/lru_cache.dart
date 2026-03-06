@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 /// TTL'li in-memory LRU cache.
 ///
 /// Kullanım örnekleri:
@@ -24,7 +22,7 @@ class LRUCache<K, V> {
   final Duration ttl;
 
   /// LinkedHashMap: insertion order korunur → LRU eviction için son eklenen sonda
-  final _map = LinkedHashMap<K, _CacheEntry<V>>();
+  final _map = <K, _CacheEntry<V>>{};
 
   LRUCache({required this.capacity, required this.ttl})
       : assert(capacity > 0, 'capacity > 0 olmalı');

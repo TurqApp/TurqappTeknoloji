@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
-import 'package:turqappv2/Services/phone_account_limiter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../Core/Helpers/custom_nickname_formatter.dart';
@@ -1307,28 +1306,47 @@ class SignIn extends StatelessWidget {
                             if (code ==
                                 controller.wasSentCode.value.toString()) {
                               try {
-                                // Pre-check phone limit to avoid creating auth user unnecessarily
-                                final limiter = PhoneAccountLimiter();
-                                final check = await limiter.checkCanCreate(
-                                    controller.phoneNumber.value);
-                                if (!check.allowed) {
-                                  controller.wait.value = false;
-                                  AppSnackbar(
-                                    'Limit Aşıldı',
-                                    'Bu telefon numarası için en fazla ${check.limit} hesap oluşturulabilir.',
-                                  );
-                                  return;
-                                }
                                 await FirebaseAuth.instance
                                     .createUserWithEmailAndPassword(
                                   email: controller.email.value.trim(),
                                   password: controller.password.value.trim(),
                                 );
                                 controller.addToFirestore(context);
-                              } on FirebaseAuthException {
+                              } on FirebaseAuthException catch (e) {
                                 controller.wait.value = false;
-                                AppSnackbar('Bir sorun oluştu',
-                                    'Şu anda devam edemiyoruz. Lütfen daha sonra tekrar deneyin.');
+                                final code = e.code;
+                                String message;
+                                switch (code) {
+                                  case 'email-already-in-use':
+                                    message =
+                                        'Bu e-posta adresi zaten kullanımda.';
+                                    break;
+                                  case 'invalid-email':
+                                    message = 'E-posta adresi geçersiz.';
+                                    break;
+                                  case 'weak-password':
+                                    message =
+                                        'Şifre çok zayıf. Daha güçlü bir şifre deneyin.';
+                                    break;
+                                  case 'operation-not-allowed':
+                                    message =
+                                        'E-posta/şifre kayıt yöntemi kapalı.';
+                                    break;
+                                  case 'network-request-failed':
+                                    message =
+                                        'İnternet bağlantısı kurulamadı.';
+                                    break;
+                                  default:
+                                    message =
+                                        '${e.message ?? 'Kayıt işlemi başarısız.'} ($code)';
+                                }
+                                AppSnackbar('Hesap oluşturulamadı', message);
+                              } catch (e) {
+                                controller.wait.value = false;
+                                AppSnackbar(
+                                  'Hesap oluşturulamadı',
+                                  'Kayıt sırasında beklenmeyen bir hata oluştu.',
+                                );
                               }
                             } else {
                               controller.wait.value = false;

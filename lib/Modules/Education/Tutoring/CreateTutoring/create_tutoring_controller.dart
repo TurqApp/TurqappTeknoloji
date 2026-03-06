@@ -40,12 +40,23 @@ class CreateTutoringController extends GetxController {
   final availability = <String, List<String>>{}.obs;
 
   static const List<String> weekDays = [
-    'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar',
   ];
 
   static const List<String> timeSlots = [
-    '08:00-10:00', '10:00-12:00', '12:00-14:00',
-    '14:00-16:00', '16:00-18:00', '18:00-20:00', '20:00-22:00',
+    '08:00-10:00',
+    '10:00-12:00',
+    '12:00-14:00',
+    '14:00-16:00',
+    '16:00-18:00',
+    '18:00-20:00',
+    '20:00-22:00',
   ];
 
   double? _lat;
@@ -58,7 +69,7 @@ class CreateTutoringController extends GetxController {
   Future<void> _geocodeLocation() async {
     try {
       final query = town.isNotEmpty
-          ? '${town}, ${city.value}, Türkiye'
+          ? '$town, ${city.value}, Türkiye'
           : '${city.value}, Türkiye';
       final locations = await locationFromAddress(query);
       if (locations.isNotEmpty) {
@@ -320,7 +331,9 @@ class CreateTutoringController extends GetxController {
         timeStamp: DateTime.now().millisecondsSinceEpoch,
         userID: FirebaseAuth.instance.currentUser?.uid ?? '',
         whatsapp: false,
-        availability: availability.isNotEmpty ? Map<String, List<String>>.from(availability) : null,
+        availability: availability.isNotEmpty
+            ? Map<String, List<String>>.from(availability)
+            : null,
         lat: _lat,
         long: _long,
         verificationDocs: verDocUrls.isNotEmpty ? verDocUrls : null,
@@ -390,7 +403,8 @@ class CreateTutoringController extends GetxController {
 
       // Availability
       if (availability.isNotEmpty) {
-        updateData['availability'] = Map<String, List<String>>.from(availability);
+        updateData['availability'] =
+            Map<String, List<String>>.from(availability);
       }
 
       // Lat/Long (şehir/ilçe değiştiyse geocode edilmiştir)

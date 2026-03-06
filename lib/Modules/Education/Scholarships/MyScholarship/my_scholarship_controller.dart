@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class MyScholarshipController extends GetxController {
@@ -24,10 +25,7 @@ class MyScholarshipController extends GetxController {
 
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('catalog')
-          .doc('education')
-          .collection('scholarships')
+      final snapshot = await ScholarshipFirestorePath.collection()
           .where('userID', isEqualTo: user.uid)
           .orderBy('timeStamp', descending: true)
           .limit(50)

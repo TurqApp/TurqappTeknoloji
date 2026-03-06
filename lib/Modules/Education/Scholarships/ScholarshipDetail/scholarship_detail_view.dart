@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -50,6 +51,9 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
     final IndividualScholarshipsModel baseModel =
         scholarshipData['model'] as IndividualScholarshipsModel;
     final String type = 'bireysel';
+    final String scholarshipDocId =
+        (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
+            .toString();
     final Map<String, dynamic> userData =
         (scholarshipData['userData'] as Map<String, dynamic>?) ??
             <String, dynamic>{};
@@ -748,17 +752,23 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                               onTap: isLoading
                                                   ? null
                                                   : () async {
+                                                      final scholarshipId =
+                                                          scholarshipDocId;
+                                                      if (scholarshipId
+                                                          .isEmpty) {
+                                                        AppSnackbar(
+                                                          'Hata',
+                                                          'Burs ID bulunamadı.',
+                                                        );
+                                                        return;
+                                                      }
                                                       List<String> basvuranlar =
                                                           [];
-                                                      final doc = await FirebaseFirestore
-                                                          .instance
-                                                          .collection(
-                                                              'scholarships')
-                                                          .doc(scholarshipData[
-                                                                  'docId'] ??
-                                                              scholarshipData[
-                                                                  'scholarshipId'])
-                                                          .get();
+                                                      final doc =
+                                                          await ScholarshipFirestorePath
+                                                                  .doc(
+                                                                      scholarshipId)
+                                                              .get();
                                                       if (doc.exists) {
                                                         basvuranlar = List<
                                                             String>.from(doc
@@ -769,11 +779,8 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                       Get.to(
                                                         () =>
                                                             ScholarshipApplicationsList(
-                                                          docID: scholarshipData[
-                                                                  'docId'] ??
-                                                              scholarshipData[
-                                                                  'scholarshipId'] ??
-                                                              '',
+                                                          docID:
+                                                              scholarshipDocId,
                                                           basvuranlar:
                                                               basvuranlar,
                                                         ),
@@ -789,35 +796,41 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                 ),
                                                 child: isLoading
                                                     ? CupertinoActivityIndicator()
-                                                    : FutureBuilder<
-                                                        QuerySnapshot>(
-                                                        future: FirebaseFirestore
-                                                            .instance
-                                                            .collection(
-                                                                'scholarships')
-                                                            .doc(
-                                                                scholarshipData[
-                                                                    'docId'])
-                                                            .collection(
-                                                                'Basvurular')
-                                                            .get(),
-                                                        builder: (ctx, snap) {
-                                                          final count =
-                                                              snap.hasData
+                                                    : scholarshipDocId.isEmpty
+                                                        ? Text(
+                                                            "Başvurular (0)",
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            style: TextStyles
+                                                                .bold16White,
+                                                          )
+                                                        : FutureBuilder<
+                                                            QuerySnapshot>(
+                                                            future: ScholarshipFirestorePath
+                                                                    .doc(
+                                                                        scholarshipDocId)
+                                                                .collection(
+                                                                    'Basvurular')
+                                                                .get(),
+                                                            builder:
+                                                                (ctx, snap) {
+                                                              final count = snap
+                                                                      .hasData
                                                                   ? snap
                                                                       .data!
                                                                       .docs
                                                                       .length
                                                                   : 0;
-                                                          return Text(
-                                                            "Başvurular ($count)",
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                            style: TextStyles
-                                                                .bold16White,
-                                                          );
-                                                        },
-                                                      ),
+                                                              return Text(
+                                                                "Başvurular ($count)",
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                style: TextStyles
+                                                                    .bold16White,
+                                                              );
+                                                            },
+                                                          ),
                                               ),
                                             ),
                                           ),

@@ -79,8 +79,7 @@ class CreatorContentController extends GetxController {
       optionCtrls.removeRange(5, optionCtrls.length);
     }
 
-    InputDecoration _fieldDecoration(String hint,
-            {String? prefixText}) =>
+    InputDecoration fieldDecoration(String hint, {String? prefixText}) =>
         InputDecoration(
           hintText: hint,
           prefixText: prefixText,
@@ -104,7 +103,7 @@ class CreatorContentController extends GetxController {
 
     int selectedDurationHours =
         (existing?['durationHours'] is num) ? existing!['durationHours'] : 24;
-    String _durationLabel(int hours) {
+    String durationLabel(int hours) {
       switch (hours) {
         case 6:
           return '6 sa';
@@ -157,7 +156,7 @@ class CreatorContentController extends GetxController {
                     ),
                     const Spacer(),
                     Text(
-                      _durationLabel(selectedDurationHours),
+                      durationLabel(selectedDurationHours),
                       style: const TextStyle(
                         color: Colors.black54,
                         fontSize: 12,
@@ -235,7 +234,7 @@ class CreatorContentController extends GetxController {
                     maxLines: 1,
                     maxLength: 25,
                     inputFormatters: [LengthLimitingTextInputFormatter(25)],
-                    decoration: _fieldDecoration(
+                    decoration: fieldDecoration(
                       'Seçenek ${i + 1}',
                       prefixText: '${String.fromCharCode(65 + i)}) ',
                     ),
@@ -672,8 +671,7 @@ class CreatorContentController extends GetxController {
       final metadata = validation.metadata;
       final duration = metadata?['duration'] ?? 0;
       final size = UploadConstants.formatBytes(await file.length());
-      debugPrint(
-          '[Creator] Video added: size=$size, duration=${duration}s');
+      debugPrint('[Creator] Video added: size=$size, duration=${duration}s');
     }
   }
 
@@ -1073,8 +1071,8 @@ class CreatorContentController extends GetxController {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          side:
-                              BorderSide(color: Colors.black.withValues(alpha: 0.2)),
+                          side: BorderSide(
+                              color: Colors.black.withValues(alpha: 0.2)),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
@@ -1112,7 +1110,8 @@ class CreatorContentController extends GetxController {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primaryColor.withValues(alpha: 0.25),
+                                color: AppColors.primaryColor
+                                    .withValues(alpha: 0.25),
                                 blurRadius: 10,
                                 offset: Offset(0, 6),
                               ),

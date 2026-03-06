@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/notification_service.dart';
+import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
@@ -260,127 +261,57 @@ class SignInController extends GetxController
   void addToFirestore(BuildContext context) async {
     closeKeyboard(context);
     wait.value = true;
+    var accountProvisioned = false;
     try {
-      // 🔥 CRITICAL: Clear old user cache before creating new account
-      await CurrentUserService.instance.logout();
-
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final Map<String, dynamic> userDoc = {
-        "adres": "",
-        "antPoint": 100,
-        "aramaIzin": false,
-        "ban": false,
-        "bank": "",
-        "bildirim": false,
-        "bio": "",
-        "blockedUsers": [],
-        "bolum": "",
-        "bot": false,
-        "bursVerebilir": false,
-        "calismaDurumu": "",
-        "canliYayin": "",
-        "cinsiyet": "",
-        "city": "",
-        "counterOfFollowers": 0,
-        "counterOfFollowings": 1,
-        "counterOfLikes": 0,
-        "counterOfPosts": 0,
-        "createdDate": "${DateTime.now().millisecondsSinceEpoch.toInt()}",
-        "dailyDurations": 0,
-        "defAnaBaslik": "YKS",
-        "defDers": "Türkçe",
-        "defSinavTuru": "TYT",
-        "deletedAccount": false,
-        "device": "",
-        "deviceID": "",
-        "deviceVersion": "",
-        "dogumTarihi": "",
-        "educationLevel": "",
-        "email": email.value,
-        "engelliRaporu": "",
-        "evMulkiyeti": "",
-        "fakulte": "",
-        "familyInfo": "",
-        "fatherJob": "",
-        "fatherLiving": "",
-        "fatherName": "",
-        "fatherPhone": "",
-        "fatherSalary": "",
-        "fatherSurname": "",
-        "favoriMuzikler": [],
-        "firstName": firstName.value,
-        "gizliHesap": false,
-        "hesapOnayi": false,
-        "iban": "",
-        "ikametIlce": "",
-        "ikametSehir": "",
-        "il": "",
-        "ilce": "",
-        "ilgialanlari": [],
-        "isDisabled": false,
-        "kolayAdresSelection": "",
-        "lastName": lastName.value,
-        "lastSearchList": [],
-        "lise": "",
-        "locationSehir": "",
-        "mail": "",
-        "mailIzin": false,
-        "medeniHal": "",
-        "meslekKategori": "",
-        "motherJob": "",
-        "motherLiving": "",
-        "motherName": "",
-        "motherPhone": "",
-        "motherSalary": "",
-        "motherSurname": "",
-        "mulkiyet": "",
-        "nickname": nickname.value,
-        "nufusIlce": "",
-        "nufusSehir": "",
-        "nufusaKayitliOlduguYer": "",
-        "ogrenciNo": "",
-        "ogretimTipi": "",
-        "okul": "",
-        "okulIlce": "",
-        "okulSehir": "",
-        "ortaOkul": "",
-        "ortalamaPuan": "",
-        "ortalamaPuan1": "",
-        "ortalamaPuan2": "",
-        "osymPuanTuru": "",
-        "osysPuan": "",
-        "osysPuani1": "",
-        "osysPuani2": "",
-        "pfImage":
-            "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2",
-        "phoneNumber": phoneNumber.value,
-        "readStories": [],
-        "refCode": "",
-        "rehber": false,
-        "rozet": "",
-        "settings": "",
-        "sifre": password.value,
-        "signInMethod": "Email",
-        "sinif": "",
-        "tc": "",
-        "themeSettings": "",
-        "token": "",
-        "totalLiving": 0,
-        "town": "",
-        "ulke": "",
-        "universite": "",
-        "viewSelection": 1,
-        "whatsappIzin": false,
-        "yurt": "",
-        "yuzlukSistem": true,
-      };
-
-      // Transactional create + increment phone limiter
-      await PhoneAccountLimiter().createUserWithLimit(
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        throw Exception('auth-user-null-after-create');
+      }
+      final uid = authUser.uid;
+      final Map<String, dynamic> userDoc = buildInitialUserDocument(
         uid: uid,
-        phone: phoneNumber.value,
-        userData: userDoc,
+        firstName: firstName.value,
+        lastName: lastName.value,
+        nickname: nickname.value,
+        email: email.value,
+        phoneNumber: phoneNumber.value,
+        password: password.value,
       );
+
+      // Transactional create + increment phone limiter.
+      // phoneAccounts read rule kapalıysa fallback ile users dokümanını yine oluştur.
+      try {
+        await PhoneAccountLimiter().createUserWithLimit(
+          uid: uid,
+          phone: phoneNumber.value,
+          userData: userDoc,
+        );
+      } on FirebaseException catch (e) {
+        if (e.code == 'permission-denied') {
+          print(
+            '⚠️ phoneAccounts permission-denied, users fallback create uygulanıyor',
+          );
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .set(userDoc, SetOptions(merge: true));
+        } else {
+          rethrow;
+        }
+      }
+
+      // Güvenlik: users dokümanında eksik alan kalmaması için merge ile kesinleştir.
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .set(userDoc, SetOptions(merge: true));
+      accountProvisioned = true;
+
+      final createdUserSnap =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!createdUserSnap.exists) {
+        throw Exception('users-doc-not-created-after-signup');
+      }
 
       const requiredFollowUids = <String>[
         'rlvJgi4VAoO7O78OwrooZc6puPW2',
@@ -408,15 +339,21 @@ class SignInController extends GetxController
         );
       }
       await followBatch.commit();
+      accountProvisioned = true;
 
       // 🔥 CRITICAL: Initialize CurrentUserService with new user data
-      print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
+      try {
+        print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
+        await CurrentUserService.instance.initialize();
+        await NotificationService.instance.initialize();
 
-      // Force refresh to load newly created user document
-      await CurrentUserService.instance.forceRefresh();
-      print("✅ Yeni kullanıcı verisi yüklendi");
+        // Force refresh to load newly created user document
+        await CurrentUserService.instance.forceRefresh();
+        print("✅ Yeni kullanıcı verisi yüklendi");
+      } catch (e) {
+        // Kullanıcı oluşturulduysa bu adım hatası onboarding'i bloklamasın.
+        print("⚠️ Yeni kullanıcı servis init hatası: $e");
+      }
 
       // 🔥 CRITICAL: Load stories and posts after registration
       try {
@@ -496,6 +433,19 @@ class SignInController extends GetxController
     } catch (e) {
       print('Hata: $e');
       wait.value = false;
+      if (accountProvisioned) {
+        // Hesap oluştuysa OTP ekranında kalmasın; uygulamaya devam etsin.
+        Get.off(() => NavBarView());
+        return;
+      }
+      // users dokümanı hiç oluşmadıysa auth hesabını geri al.
+      try {
+        await FirebaseAuth.instance.currentUser?.delete();
+      } catch (_) {}
+      AppSnackbar(
+        'Kayıt tamamlanamadı',
+        'Hesap oluşturma sırasında bir hata oluştu. Lütfen tekrar deneyin.',
+      );
     }
   }
 
