@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class PersonalizedController extends GetxController {
@@ -130,10 +131,11 @@ class PersonalizedController extends GetxController {
 
   // Update user data observables
   void _updateUserData(Map<String, dynamic> data) {
-    final educationLevel = (data['educationLevel'] ?? '').toString();
-    final uni = (data['universite'] ?? '').toString();
-    final hs = (data['lise'] ?? '').toString();
-    final ms = (data['ortaOkul'] ?? '').toString();
+    final educationLevel =
+        userString(data, key: 'educationLevel', scope: 'education');
+    final uni = userString(data, key: 'universite', scope: 'education');
+    final hs = userString(data, key: 'lise', scope: 'education');
+    final ms = userString(data, key: 'ortaOkul', scope: 'education');
     final il = (data['il'] ?? '').toString();
 
     hasSchoolInfo.value = educationLevel.isNotEmpty ||
@@ -147,9 +149,9 @@ class PersonalizedController extends GetxController {
     ikametIlce.value = data['ikametIlce'] ?? '';
     nufusSehir.value = data['nufusSehir'] ?? '';
     nufusIlce.value = data['nufusIlce'] ?? '';
-    universite.value = data['universite'] ?? '';
-    ortaokul.value = data['ortaOkul'] ?? '';
-    lise.value = data['lise'] ?? '';
+    universite.value = uni;
+    ortaokul.value = ms;
+    lise.value = hs;
     cinsiyet.value = data['cinsiyet'] ?? '';
     locationSehir.value = data['locationSehir'] ?? '';
   }

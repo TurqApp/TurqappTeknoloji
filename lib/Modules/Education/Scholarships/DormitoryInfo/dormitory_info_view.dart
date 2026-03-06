@@ -8,6 +8,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_controller.dart';
 
 class DormitoryInfoView extends StatelessWidget {
@@ -55,7 +56,12 @@ class DormitoryInfoView extends StatelessWidget {
                             await FirebaseFirestore.instance
                                 .collection("users")
                                 .doc(FirebaseAuth.instance.currentUser?.uid)
-                                .update({"yurt": ""});
+                                .update(
+                                  scopedUserUpdate(
+                                    scope: 'family',
+                                    values: {"yurt": ""},
+                                  ),
+                                );
 
                             AppSnackbar(
                               "Başarılı",
@@ -130,7 +136,8 @@ class DormitoryInfoView extends StatelessWidget {
                                         height: 50,
                                         alignment: Alignment.center,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withValues(alpha: 0.1),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.all(
                                             Radius.circular(12),
                                           ),
@@ -174,7 +181,8 @@ class DormitoryInfoView extends StatelessWidget {
                                         height: 50,
                                         alignment: Alignment.center,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withValues(alpha: 0.1),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.all(
                                             Radius.circular(12),
                                           ),
@@ -223,7 +231,8 @@ class DormitoryInfoView extends StatelessWidget {
                                     child: Container(
                                       height: 50,
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.withValues(alpha: 0.1),
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.all(
                                           Radius.circular(12),
                                         ),

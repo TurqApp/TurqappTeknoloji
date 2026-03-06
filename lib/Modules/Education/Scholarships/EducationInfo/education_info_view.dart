@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/container_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -48,16 +49,21 @@ class EducationInfoView extends StatelessWidget {
                                 .collection("users")
                                 .doc(FirebaseAuth.instance.currentUser?.uid)
                                 .update({
+                              ...scopedUserUpdate(
+                                scope: 'education',
+                                values: {
+                                  'educationLevel': '',
+                                  'ortaOkul': '',
+                                  'lise': '',
+                                  'universite': '',
+                                  'fakulte': '',
+                                  'bolum': '',
+                                  'sinif': '',
+                                },
+                              ),
                               'ulke': '',
                               'il': '',
                               'ilce': '',
-                              'ortaOkul': '',
-                              'lise': '',
-                              'universite': '',
-                              'fakulte': '',
-                              'bolum': '',
-                              'sinif': '',
-                              'educationLevel': '',
                             });
                             await controller.loadSavedData();
                             controller.hasMiddleSchoolData.value = false;

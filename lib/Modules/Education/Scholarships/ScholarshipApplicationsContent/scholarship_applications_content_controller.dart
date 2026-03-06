@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsContentController extends GetxController {
@@ -113,19 +114,22 @@ class ScholarshipApplicationsContentController extends GetxController {
           .get();
 
       if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
         // ad.value = doc.get("firstName") ?? "";
         // soyad.value = doc.get("lastName") ?? "";
-        phoneNumber.value = doc.get("phoneNumber") ?? "";
-        email.value = doc.get("email") ?? "";
-        universite.value = doc.get("universite") ?? "";
-        lise.value = doc.get("lise") ?? "";
-        ortaOkul.value = doc.get("ortaOkul") ?? "";
-        educationLevel.value = doc.get("educationLevel") ?? "";
-        bolum.value = doc.get("bolum") ?? "";
-        ulke.value = doc.get("ulke") ?? "";
-        nufusSehir.value = doc.get("nufusSehir") ?? "";
-        nufusIlce.value = doc.get("nufusIlce") ?? "";
-        fakulte.value = doc.get("fakulte") ?? "";
+        phoneNumber.value = userString(data, key: "phoneNumber");
+        email.value = userString(data, key: "email");
+        universite.value =
+            userString(data, key: "universite", scope: "education");
+        lise.value = userString(data, key: "lise", scope: "education");
+        ortaOkul.value = userString(data, key: "ortaOkul", scope: "education");
+        educationLevel.value =
+            userString(data, key: "educationLevel", scope: "education");
+        bolum.value = userString(data, key: "bolum", scope: "education");
+        ulke.value = userString(data, key: "ulke");
+        nufusSehir.value = userString(data, key: "nufusSehir");
+        nufusIlce.value = userString(data, key: "nufusIlce");
+        fakulte.value = userString(data, key: "fakulte", scope: "education");
       }
     } catch (e) {
       print("Error getting data: $e");
@@ -140,29 +144,38 @@ class ScholarshipApplicationsContentController extends GetxController {
           .get();
 
       if (doc.exists) {
-        dogumTarigi.value = doc.get("dogumTarihi") ?? "";
-        medeniHal.value = doc.get("medeniHal") ?? "";
-        cinsiyet.value = doc.get("cinsiyet") ?? "";
-        engelliRaporu.value = doc.get("engelliRaporu") ?? "";
-        calismaDurumu.value = doc.get("calismaDurumu") ?? "";
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        dogumTarigi.value = userString(data, key: "dogumTarihi");
+        medeniHal.value = userString(data, key: "medeniHal");
+        cinsiyet.value = userString(data, key: "cinsiyet");
+        engelliRaporu.value =
+            userString(data, key: "engelliRaporu", scope: "family");
+        calismaDurumu.value = userString(data, key: "calismaDurumu");
 
-        babaAdi.value = doc.get("fatherName") ?? "";
-        babaSoyadi.value = doc.get("fatherSurname") ?? "";
-        babaHayata.value = doc.get("fatherLiving") ?? "";
-        babaPhone.value = doc.get("fatherPhone") ?? "";
-        babaJob.value = doc.get("fatherJob") ?? "";
-        babaSalary.value = doc.get("fatherSalary") ?? "";
+        babaAdi.value = userString(data, key: "fatherName", scope: "family");
+        babaSoyadi.value =
+            userString(data, key: "fatherSurname", scope: "family");
+        babaHayata.value =
+            userString(data, key: "fatherLiving", scope: "family");
+        babaPhone.value = userString(data, key: "fatherPhone", scope: "family");
+        babaJob.value = userString(data, key: "fatherJob", scope: "family");
+        babaSalary.value =
+            userString(data, key: "fatherSalary", scope: "family");
 
-        anneAdi.value = doc.get("motherName") ?? "";
-        anneSoyadi.value = doc.get("motherSurname") ?? "";
-        anneHayata.value = doc.get("motherLiving") ?? "";
-        annePhone.value = doc.get("motherPhone") ?? "";
-        anneJob.value = doc.get("motherJob") ?? "";
-        anneSalary.value = doc.get("motherSalary") ?? "";
+        anneAdi.value = userString(data, key: "motherName", scope: "family");
+        anneSoyadi.value =
+            userString(data, key: "motherSurname", scope: "family");
+        anneHayata.value =
+            userString(data, key: "motherLiving", scope: "family");
+        annePhone.value = userString(data, key: "motherPhone", scope: "family");
+        anneJob.value = userString(data, key: "motherJob", scope: "family");
+        anneSalary.value =
+            userString(data, key: "motherSalary", scope: "family");
 
-        evMulkiyeti.value = doc.get("evMulkiyeti") ?? "";
-        ikametSehir.value = doc.get("ikametSehir") ?? "";
-        ikametIlce.value = doc.get("ikametIlce") ?? "";
+        evMulkiyeti.value =
+            userString(data, key: "evMulkiyeti", scope: "family");
+        ikametSehir.value = userString(data, key: "ikametSehir");
+        ikametIlce.value = userString(data, key: "ikametIlce");
       }
     } catch (e) {
       print("Error checking student info: $e");

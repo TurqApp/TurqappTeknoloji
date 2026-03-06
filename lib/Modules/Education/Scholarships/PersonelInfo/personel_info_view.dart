@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/date_picker_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_controller.dart';
 
 class PersonelInfoView extends StatelessWidget {
@@ -53,13 +54,16 @@ class PersonelInfoView extends StatelessWidget {
                                   .collection("users")
                                   .doc(FirebaseAuth.instance.currentUser?.uid)
                                   .update({
+                                ...scopedUserUpdate(
+                                  scope: 'family',
+                                  values: {"engelliRaporu": "Yok"},
+                                ),
                                 "tc": "",
                                 "medeniHal": "Bekar",
                                 "ulke": "Türkiye",
                                 "nufusSehir": "",
                                 "nufusIlce": "",
                                 "cinsiyet": "Seçim Yap",
-                                "engelliRaporu": "Yok",
                                 "calismaDurumu": "Çalışmıyor",
                                 "dogumTarihi": "",
                               });

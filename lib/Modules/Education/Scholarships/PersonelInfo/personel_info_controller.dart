@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 
 class FieldConfig {
@@ -334,10 +335,8 @@ class PersonelInfoController extends GetxController
 
     try {
       isLoading.value = true;
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection("users").doc(uid).get();
       if (doc.exists) {
         final data = doc.data()!;
         tc.value = originalTC.value = data["tc"] ?? "";
@@ -347,8 +346,12 @@ class PersonelInfoController extends GetxController
             originalCounty.value = (data["ulke"] ?? "Türkiye").trim();
         cinsiyet.value =
             originalCinsiyet.value = data["cinsiyet"] ?? "Seçim Yap";
-        engelliRaporu.value =
-            originalEngelliRaporu.value = data["engelliRaporu"] ?? "Yok";
+        engelliRaporu.value = originalEngelliRaporu.value = userString(
+          data,
+          key: "engelliRaporu",
+          scope: "family",
+          fallback: "Yok",
+        );
         calismaDurumu.value =
             originalCalismaDurumu.value = data["calismaDurumu"] ?? "Çalışmıyor";
         city.value = originalCity.value =
@@ -421,17 +424,17 @@ class PersonelInfoController extends GetxController
           ? DateFormat("dd.MM.yyyy", "tr_TR").format(selectedDate.value!)
           : "";
 
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .update({
+      await FirebaseFirestore.instance.collection("users").doc(uid).update({
+        ...scopedUserUpdate(
+          scope: 'family',
+          values: {"engelliRaporu": engelliRaporu.value},
+        ),
         "tc": tc.value,
         "medeniHal": medeniHal.value,
         "ulke": county.value,
         "nufusSehir": county.value == "Türkiye" ? city.value : "",
         "nufusIlce": county.value == "Türkiye" ? town.value : "",
         "cinsiyet": cinsiyet.value,
-        "engelliRaporu": engelliRaporu.value,
         "calismaDurumu": calismaDurumu.value,
         "dogumTarihi": formattedDate,
       });

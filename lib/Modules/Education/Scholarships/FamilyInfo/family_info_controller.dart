@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class FamilyInfoController extends GetxController {
   final isLoading = true.obs;
@@ -86,23 +87,64 @@ class FamilyInfoController extends GetxController {
       if (doc.exists) {
         final data = doc.data();
         if (data != null) {
-          familyInfo.value = data['familyInfo'] ?? '';
-          fatherName.value.text = data['fatherName'] ?? '';
-          fatherSurname.value.text = data['fatherSurname'] ?? '';
-          fatherSalary.value.text = data['fatherSalary'] ?? '';
-          fatherPhoneNumber.value.text = data['fatherPhone'] ?? '';
-          fatherLiving.value = data['fatherLiving'] ?? "Seçiniz";
-          fatherJob.value = data['fatherJob'] ?? "Meslek Seç";
-          motherName.value.text = data['motherName'] ?? '';
-          motherSurname.value.text = data['motherSurname'] ?? '';
-          motherSalary.value.text = data['motherSalary'] ?? '';
-          motherPhoneNumber.value.text = data['motherPhone'] ?? '';
-          motherLiving.value = data['motherLiving'] ?? "Seçiniz";
-          motherJob.value = data['motherJob'] ?? "Meslek Seç";
-          totalLiving.value.text = data['totalLiving']?.toString() ?? '';
-          evMulkiyeti.value = data['evMulkiyeti'] ?? "Seçim Yap";
-          city.value = data['ikametSehir'] ?? '';
-          town.value = data['ikametIlce'] ?? '';
+          familyInfo.value =
+              userString(data, key: 'familyInfo', scope: 'family');
+          fatherName.value.text =
+              userString(data, key: 'fatherName', scope: 'family');
+          fatherSurname.value.text =
+              userString(data, key: 'fatherSurname', scope: 'family');
+          fatherSalary.value.text =
+              userString(data, key: 'fatherSalary', scope: 'family');
+          fatherPhoneNumber.value.text =
+              userString(data, key: 'fatherPhone', scope: 'family');
+          fatherLiving.value = userString(
+            data,
+            key: 'fatherLiving',
+            scope: 'family',
+            fallback: "Seçiniz",
+          );
+          fatherJob.value = userString(
+            data,
+            key: 'fatherJob',
+            scope: 'family',
+            fallback: "Meslek Seç",
+          );
+          motherName.value.text =
+              userString(data, key: 'motherName', scope: 'family');
+          motherSurname.value.text =
+              userString(data, key: 'motherSurname', scope: 'family');
+          motherSalary.value.text =
+              userString(data, key: 'motherSalary', scope: 'family');
+          motherPhoneNumber.value.text =
+              userString(data, key: 'motherPhone', scope: 'family');
+          motherLiving.value = userString(
+            data,
+            key: 'motherLiving',
+            scope: 'family',
+            fallback: "Seçiniz",
+          );
+          motherJob.value = userString(
+            data,
+            key: 'motherJob',
+            scope: 'family',
+            fallback: "Meslek Seç",
+          );
+          totalLiving.value.text = userInt(
+            data,
+            key: 'totalLiving',
+            scope: 'family',
+          ).toString();
+          if (totalLiving.value.text == '0') {
+            totalLiving.value.clear();
+          }
+          evMulkiyeti.value = userString(
+            data,
+            key: 'evMulkiyeti',
+            scope: 'family',
+            fallback: "Seçim Yap",
+          );
+          city.value = userString(data, key: 'ikametSehir');
+          town.value = userString(data, key: 'ikametIlce');
         } else {
           _resetToDefaults();
         }
@@ -322,32 +364,38 @@ class FamilyInfoController extends GetxController {
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .update({
-        "familyInfo": familyInfo.value,
-        // Baba bilgileri - sadece hayatta ise kaydet
-        "fatherName": fatherLiving.value == "Evet" ? fatherName.value.text : "",
-        "fatherSurname":
-            fatherLiving.value == "Evet" ? fatherSurname.value.text : "",
-        "fatherJob": fatherLiving.value == "Evet" ? fatherJob.value : "",
-        "fatherPhone":
-            fatherLiving.value == "Evet" ? fatherPhoneNumber.value.text : "",
-        "fatherLiving": fatherLiving.value,
-        "fatherSalary":
-            fatherLiving.value == "Evet" ? fatherSalary.value.text : "",
-        // Anne bilgileri - sadece hayatta ise kaydet
-        "motherName": motherLiving.value == "Evet" ? motherName.value.text : "",
-        "motherSurname":
-            motherLiving.value == "Evet" ? motherSurname.value.text : "",
-        "motherJob": motherLiving.value == "Evet" ? motherJob.value : "",
-        "motherPhone":
-            motherLiving.value == "Evet" ? motherPhoneNumber.value.text : "",
-        "motherLiving": motherLiving.value,
-        "motherSalary":
-            motherLiving.value == "Evet" ? motherSalary.value.text : "",
-        // Genel bilgiler
-        "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
+        ...scopedUserUpdate(
+          scope: 'family',
+          values: {
+            "familyInfo": familyInfo.value,
+            "fatherName":
+                fatherLiving.value == "Evet" ? fatherName.value.text : "",
+            "fatherSurname":
+                fatherLiving.value == "Evet" ? fatherSurname.value.text : "",
+            "fatherJob": fatherLiving.value == "Evet" ? fatherJob.value : "",
+            "fatherPhone": fatherLiving.value == "Evet"
+                ? fatherPhoneNumber.value.text
+                : "",
+            "fatherLiving": fatherLiving.value,
+            "fatherSalary":
+                fatherLiving.value == "Evet" ? fatherSalary.value.text : "",
+            "motherName":
+                motherLiving.value == "Evet" ? motherName.value.text : "",
+            "motherSurname":
+                motherLiving.value == "Evet" ? motherSurname.value.text : "",
+            "motherJob": motherLiving.value == "Evet" ? motherJob.value : "",
+            "motherPhone": motherLiving.value == "Evet"
+                ? motherPhoneNumber.value.text
+                : "",
+            "motherLiving": motherLiving.value,
+            "motherSalary":
+                motherLiving.value == "Evet" ? motherSalary.value.text : "",
+            "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
+            "evMulkiyeti": evMulkiyeti.value,
+          },
+        ),
         "ikametSehir": city.value,
         "ikametIlce": town.value,
-        "evMulkiyeti": evMulkiyeti.value,
       });
 
       Get.back();
@@ -365,26 +413,28 @@ class FamilyInfoController extends GetxController {
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .update({
-        "familyInfo": "",
-        // Baba bilgileri
-        "fatherName": "",
-        "fatherSurname": "",
-        "fatherJob": "",
-        "fatherPhone": "",
-        "fatherLiving": "Seçiniz",
-        "fatherSalary": "",
-        // Anne bilgileri
-        "motherName": "",
-        "motherSurname": "",
-        "motherJob": "",
-        "motherPhone": "",
-        "motherLiving": "Seçiniz",
-        "motherSalary": "",
-        // Genel bilgiler
-        "totalLiving": "",
+        ...scopedUserUpdate(
+          scope: 'family',
+          values: {
+            "familyInfo": "",
+            "fatherName": "",
+            "fatherSurname": "",
+            "fatherJob": "",
+            "fatherPhone": "",
+            "fatherLiving": "Seçiniz",
+            "fatherSalary": "",
+            "motherName": "",
+            "motherSurname": "",
+            "motherJob": "",
+            "motherPhone": "",
+            "motherLiving": "Seçiniz",
+            "motherSalary": "",
+            "totalLiving": 0,
+            "evMulkiyeti": "Seçim Yap",
+          },
+        ),
         "ikametSehir": "",
         "ikametIlce": "",
-        "evMulkiyeti": "Seçim Yap",
       });
 
       // UI'yi hemen güncelle

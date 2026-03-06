@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
@@ -83,7 +84,11 @@ class DormitoryInfoController extends GetxController {
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .get();
       if (doc.exists) {
-        yurt.value = doc.get("yurt") ?? "";
+        yurt.value = userString(
+          doc.data() ?? const <String, dynamic>{},
+          key: "yurt",
+          scope: "family",
+        );
       }
     } catch (e) {
       print("Error fetching Firestore data: $e");
@@ -199,7 +204,12 @@ class DormitoryInfoController extends GetxController {
         await FirebaseFirestore.instance
             .collection("users")
             .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update({"yurt": savedYurt});
+            .update(
+              scopedUserUpdate(
+                scope: 'family',
+                values: {"yurt": savedYurt},
+              ),
+            );
         yurt.value = savedYurt;
         Get.back();
         AppSnackbar("Başarılı", "Yurt Bilgileriniz Kaydedildi.");

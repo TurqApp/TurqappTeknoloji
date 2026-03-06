@@ -290,6 +290,8 @@ class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   factory CurrentUserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    final education = _asMap(data['education']);
+    final family = _asMap(data['family']);
 
     return CurrentUserModel(
       userID: doc.id,
@@ -336,29 +338,41 @@ class CurrentUserModel {
       counterOfLikes: data['counterOfLikes'] ?? 0,
       antPoint: data['antPoint'] ?? 100,
       dailyDurations: data['dailyDurations'] ?? 1,
-      educationLevel: data['educationLevel'] ?? '',
-      universite: data['universite'] ?? '',
-      fakulte: data['fakulte'] ?? '',
-      bolum: data['bolum'] ?? '',
-      ogrenciNo: data['ogrenciNo'] ?? '',
-      ogretimTipi: data['ogretimTipi'] ?? '',
-      sinif: data['sinif'] ?? '',
-      lise: data['lise'] ?? '',
-      ortaOkul: data['ortaOkul'] ?? '',
-      okul: data['okul'] ?? '',
-      okulSehir: data['okulSehir'] ?? '',
-      okulIlce: data['okulIlce'] ?? '',
-      ortalamaPuan: data['ortalamaPuan'] ?? '',
-      ortalamaPuan1: data['ortalamaPuan1'] ?? '',
-      ortalamaPuan2: data['ortalamaPuan2'] ?? '',
-      defAnaBaslik: data['defAnaBaslik'] ?? '',
-      defDers: data['defDers'] ?? '',
-      defSinavTuru: data['defSinavTuru'] ?? '',
-      osymPuanTuru: data['osymPuanTuru'] ?? '',
-      osysPuan: data['osysPuan'] ?? '',
-      osysPuani1: data['osysPuani1'] ?? '',
-      osysPuani2: data['osysPuani2'] ?? '',
-      yuzlukSistem: data['yuzlukSistem'] ?? true,
+      educationLevel:
+          _pickScopedString(data, education, 'educationLevel', fallback: ''),
+      universite:
+          _pickScopedString(data, education, 'universite', fallback: ''),
+      fakulte: _pickScopedString(data, education, 'fakulte', fallback: ''),
+      bolum: _pickScopedString(data, education, 'bolum', fallback: ''),
+      ogrenciNo: _pickScopedString(data, education, 'ogrenciNo', fallback: ''),
+      ogretimTipi:
+          _pickScopedString(data, education, 'ogretimTipi', fallback: ''),
+      sinif: _pickScopedString(data, education, 'sinif', fallback: ''),
+      lise: _pickScopedString(data, education, 'lise', fallback: ''),
+      ortaOkul: _pickScopedString(data, education, 'ortaOkul', fallback: ''),
+      okul: _pickScopedString(data, education, 'okul', fallback: ''),
+      okulSehir: _pickScopedString(data, education, 'okulSehir', fallback: ''),
+      okulIlce: _pickScopedString(data, education, 'okulIlce', fallback: ''),
+      ortalamaPuan:
+          _pickScopedString(data, education, 'ortalamaPuan', fallback: ''),
+      ortalamaPuan1:
+          _pickScopedString(data, education, 'ortalamaPuan1', fallback: ''),
+      ortalamaPuan2:
+          _pickScopedString(data, education, 'ortalamaPuan2', fallback: ''),
+      defAnaBaslik:
+          _pickScopedString(data, education, 'defAnaBaslik', fallback: ''),
+      defDers: _pickScopedString(data, education, 'defDers', fallback: ''),
+      defSinavTuru:
+          _pickScopedString(data, education, 'defSinavTuru', fallback: ''),
+      osymPuanTuru:
+          _pickScopedString(data, education, 'osymPuanTuru', fallback: ''),
+      osysPuan: _pickScopedString(data, education, 'osysPuan', fallback: ''),
+      osysPuani1:
+          _pickScopedString(data, education, 'osysPuani1', fallback: ''),
+      osysPuani2:
+          _pickScopedString(data, education, 'osysPuani2', fallback: ''),
+      yuzlukSistem:
+          _pickScopedBool(data, education, 'yuzlukSistem', fallback: true),
       adres: data['adres'] ?? '',
       ulke: data['ulke'] ?? '',
       city: data['city'] ?? '',
@@ -372,26 +386,34 @@ class CurrentUserModel {
       nufusaKayitliOlduguYer: data['nufusaKayitliOlduguYer'] ?? '',
       locationSehir: data['locationSehir'] ?? '',
       kolayAdresSelection: data['kolayAdresSelection'] ?? '',
-      familyInfo: data['familyInfo'] ?? '',
-      totalLiving: _parseToInt(data['totalLiving']),
-      motherName: data['motherName'] ?? '',
-      motherSurname: data['motherSurname'] ?? '',
-      motherPhone: data['motherPhone'] ?? '',
-      motherJob: data['motherJob'] ?? '',
-      motherSalary: data['motherSalary'] ?? '',
-      motherLiving: data['motherLiving'] ?? '',
-      fatherName: data['fatherName'] ?? '',
-      fatherSurname: data['fatherSurname'] ?? '',
-      fatherPhone: data['fatherPhone'] ?? '',
-      fatherJob: data['fatherJob'] ?? '',
-      fatherSalary: data['fatherSalary'] ?? '',
-      fatherLiving: data['fatherLiving'] ?? '',
-      evMulkiyeti: data['evMulkiyeti'] ?? '',
-      mulkiyet: data['mulkiyet'] ?? '',
-      yurt: data['yurt'] ?? '',
-      bursVerebilir: data['bursVerebilir'] ?? false,
-      engelliRaporu: data['engelliRaporu'] ?? '',
-      isDisabled: data['isDisabled'] ?? false,
+      familyInfo: _pickScopedString(data, family, 'familyInfo', fallback: ''),
+      totalLiving: _pickScopedInt(data, family, 'totalLiving', fallback: 0),
+      motherName: _pickScopedString(data, family, 'motherName', fallback: ''),
+      motherSurname:
+          _pickScopedString(data, family, 'motherSurname', fallback: ''),
+      motherPhone: _pickScopedString(data, family, 'motherPhone', fallback: ''),
+      motherJob: _pickScopedString(data, family, 'motherJob', fallback: ''),
+      motherSalary:
+          _pickScopedString(data, family, 'motherSalary', fallback: ''),
+      motherLiving:
+          _pickScopedString(data, family, 'motherLiving', fallback: ''),
+      fatherName: _pickScopedString(data, family, 'fatherName', fallback: ''),
+      fatherSurname:
+          _pickScopedString(data, family, 'fatherSurname', fallback: ''),
+      fatherPhone: _pickScopedString(data, family, 'fatherPhone', fallback: ''),
+      fatherJob: _pickScopedString(data, family, 'fatherJob', fallback: ''),
+      fatherSalary:
+          _pickScopedString(data, family, 'fatherSalary', fallback: ''),
+      fatherLiving:
+          _pickScopedString(data, family, 'fatherLiving', fallback: ''),
+      evMulkiyeti: _pickScopedString(data, family, 'evMulkiyeti', fallback: ''),
+      mulkiyet: _pickScopedString(data, family, 'mulkiyet', fallback: ''),
+      yurt: _pickScopedString(data, family, 'yurt', fallback: ''),
+      bursVerebilir:
+          _pickScopedBool(data, family, 'bursVerebilir', fallback: false),
+      engelliRaporu:
+          _pickScopedString(data, family, 'engelliRaporu', fallback: ''),
+      isDisabled: _pickScopedBool(data, family, 'isDisabled', fallback: false),
       bank: data['bank'] ?? '',
       iban: data['iban'] ?? '',
       ban: data['ban'] ?? false,
@@ -546,6 +568,9 @@ class CurrentUserModel {
   // 📥 From JSON (for SharedPreferences cache)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   factory CurrentUserModel.fromJson(Map<String, dynamic> json) {
+    final education = _asMap(json['education']);
+    final family = _asMap(json['family']);
+
     return CurrentUserModel(
       userID: json['userID'] ?? '',
       nickname: (json['displayName'] ?? json['nickname'] ?? '').toString(),
@@ -588,29 +613,41 @@ class CurrentUserModel {
       counterOfLikes: json['counterOfLikes'] ?? 0,
       antPoint: json['antPoint'] ?? 100,
       dailyDurations: json['dailyDurations'] ?? 1,
-      educationLevel: json['educationLevel'] ?? '',
-      universite: json['universite'] ?? '',
-      fakulte: json['fakulte'] ?? '',
-      bolum: json['bolum'] ?? '',
-      ogrenciNo: json['ogrenciNo'] ?? '',
-      ogretimTipi: json['ogretimTipi'] ?? '',
-      sinif: json['sinif'] ?? '',
-      lise: json['lise'] ?? '',
-      ortaOkul: json['ortaOkul'] ?? '',
-      okul: json['okul'] ?? '',
-      okulSehir: json['okulSehir'] ?? '',
-      okulIlce: json['okulIlce'] ?? '',
-      ortalamaPuan: json['ortalamaPuan'] ?? '',
-      ortalamaPuan1: json['ortalamaPuan1'] ?? '',
-      ortalamaPuan2: json['ortalamaPuan2'] ?? '',
-      defAnaBaslik: json['defAnaBaslik'] ?? '',
-      defDers: json['defDers'] ?? '',
-      defSinavTuru: json['defSinavTuru'] ?? '',
-      osymPuanTuru: json['osymPuanTuru'] ?? '',
-      osysPuan: json['osysPuan'] ?? '',
-      osysPuani1: json['osysPuani1'] ?? '',
-      osysPuani2: json['osysPuani2'] ?? '',
-      yuzlukSistem: json['yuzlukSistem'] ?? true,
+      educationLevel:
+          _pickScopedString(json, education, 'educationLevel', fallback: ''),
+      universite:
+          _pickScopedString(json, education, 'universite', fallback: ''),
+      fakulte: _pickScopedString(json, education, 'fakulte', fallback: ''),
+      bolum: _pickScopedString(json, education, 'bolum', fallback: ''),
+      ogrenciNo: _pickScopedString(json, education, 'ogrenciNo', fallback: ''),
+      ogretimTipi:
+          _pickScopedString(json, education, 'ogretimTipi', fallback: ''),
+      sinif: _pickScopedString(json, education, 'sinif', fallback: ''),
+      lise: _pickScopedString(json, education, 'lise', fallback: ''),
+      ortaOkul: _pickScopedString(json, education, 'ortaOkul', fallback: ''),
+      okul: _pickScopedString(json, education, 'okul', fallback: ''),
+      okulSehir: _pickScopedString(json, education, 'okulSehir', fallback: ''),
+      okulIlce: _pickScopedString(json, education, 'okulIlce', fallback: ''),
+      ortalamaPuan:
+          _pickScopedString(json, education, 'ortalamaPuan', fallback: ''),
+      ortalamaPuan1:
+          _pickScopedString(json, education, 'ortalamaPuan1', fallback: ''),
+      ortalamaPuan2:
+          _pickScopedString(json, education, 'ortalamaPuan2', fallback: ''),
+      defAnaBaslik:
+          _pickScopedString(json, education, 'defAnaBaslik', fallback: ''),
+      defDers: _pickScopedString(json, education, 'defDers', fallback: ''),
+      defSinavTuru:
+          _pickScopedString(json, education, 'defSinavTuru', fallback: ''),
+      osymPuanTuru:
+          _pickScopedString(json, education, 'osymPuanTuru', fallback: ''),
+      osysPuan: _pickScopedString(json, education, 'osysPuan', fallback: ''),
+      osysPuani1:
+          _pickScopedString(json, education, 'osysPuani1', fallback: ''),
+      osysPuani2:
+          _pickScopedString(json, education, 'osysPuani2', fallback: ''),
+      yuzlukSistem:
+          _pickScopedBool(json, education, 'yuzlukSistem', fallback: true),
       adres: json['adres'] ?? '',
       ulke: json['ulke'] ?? '',
       city: json['city'] ?? '',
@@ -624,26 +661,34 @@ class CurrentUserModel {
       nufusaKayitliOlduguYer: json['nufusaKayitliOlduguYer'] ?? '',
       locationSehir: json['locationSehir'] ?? '',
       kolayAdresSelection: json['kolayAdresSelection'] ?? '',
-      familyInfo: json['familyInfo'] ?? '',
-      totalLiving: json['totalLiving'] ?? 0,
-      motherName: json['motherName'] ?? '',
-      motherSurname: json['motherSurname'] ?? '',
-      motherPhone: json['motherPhone'] ?? '',
-      motherJob: json['motherJob'] ?? '',
-      motherSalary: json['motherSalary'] ?? '',
-      motherLiving: json['motherLiving'] ?? '',
-      fatherName: json['fatherName'] ?? '',
-      fatherSurname: json['fatherSurname'] ?? '',
-      fatherPhone: json['fatherPhone'] ?? '',
-      fatherJob: json['fatherJob'] ?? '',
-      fatherSalary: json['fatherSalary'] ?? '',
-      fatherLiving: json['fatherLiving'] ?? '',
-      evMulkiyeti: json['evMulkiyeti'] ?? '',
-      mulkiyet: json['mulkiyet'] ?? '',
-      yurt: json['yurt'] ?? '',
-      bursVerebilir: json['bursVerebilir'] ?? false,
-      engelliRaporu: json['engelliRaporu'] ?? '',
-      isDisabled: json['isDisabled'] ?? false,
+      familyInfo: _pickScopedString(json, family, 'familyInfo', fallback: ''),
+      totalLiving: _pickScopedInt(json, family, 'totalLiving', fallback: 0),
+      motherName: _pickScopedString(json, family, 'motherName', fallback: ''),
+      motherSurname:
+          _pickScopedString(json, family, 'motherSurname', fallback: ''),
+      motherPhone: _pickScopedString(json, family, 'motherPhone', fallback: ''),
+      motherJob: _pickScopedString(json, family, 'motherJob', fallback: ''),
+      motherSalary:
+          _pickScopedString(json, family, 'motherSalary', fallback: ''),
+      motherLiving:
+          _pickScopedString(json, family, 'motherLiving', fallback: ''),
+      fatherName: _pickScopedString(json, family, 'fatherName', fallback: ''),
+      fatherSurname:
+          _pickScopedString(json, family, 'fatherSurname', fallback: ''),
+      fatherPhone: _pickScopedString(json, family, 'fatherPhone', fallback: ''),
+      fatherJob: _pickScopedString(json, family, 'fatherJob', fallback: ''),
+      fatherSalary:
+          _pickScopedString(json, family, 'fatherSalary', fallback: ''),
+      fatherLiving:
+          _pickScopedString(json, family, 'fatherLiving', fallback: ''),
+      evMulkiyeti: _pickScopedString(json, family, 'evMulkiyeti', fallback: ''),
+      mulkiyet: _pickScopedString(json, family, 'mulkiyet', fallback: ''),
+      yurt: _pickScopedString(json, family, 'yurt', fallback: ''),
+      bursVerebilir:
+          _pickScopedBool(json, family, 'bursVerebilir', fallback: false),
+      engelliRaporu:
+          _pickScopedString(json, family, 'engelliRaporu', fallback: ''),
+      isDisabled: _pickScopedBool(json, family, 'isDisabled', fallback: false),
       bank: json['bank'] ?? '',
       iban: json['iban'] ?? '',
       ban: json['ban'] ?? false,
@@ -686,6 +731,65 @@ class CurrentUserModel {
           ));
     }
     return {};
+  }
+
+  static Map<String, dynamic> _asMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(key.toString(), val));
+    }
+    return const <String, dynamic>{};
+  }
+
+  static dynamic _pickScoped(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key,
+  ) {
+    if (scoped.containsKey(key)) return scoped[key];
+    return root[key];
+  }
+
+  static String _pickScopedString(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    String fallback = '',
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    return value?.toString() ?? fallback;
+  }
+
+  static int _pickScopedInt(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    int fallback = 0,
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    if (value == null) return fallback;
+    return _parseToInt(value);
+  }
+
+  static bool _pickScopedBool(
+    Map<String, dynamic> root,
+    Map<String, dynamic> scoped,
+    String key, {
+    bool fallback = false,
+  }) {
+    final value = _pickScoped(root, scoped, key);
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+        return true;
+      }
+      if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+        return false;
+      }
+    }
+    return fallback;
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

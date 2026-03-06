@@ -431,32 +431,126 @@ class CurrentUserService extends GetxController {
   Map<String, dynamic> _normalizeUserWriteFields(Map<String, dynamic> input) {
     final out = <String, dynamic>{...input};
 
-    void syncPair(String a, String b) {
-      if (out.containsKey(a) && !out.containsKey(b)) {
-        out[b] = out[a];
-      } else if (out.containsKey(b) && !out.containsKey(a)) {
-        out[a] = out[b];
+    void promoteAlias({
+      required String canonical,
+      required List<String> aliases,
+    }) {
+      if (out.containsKey(canonical)) {
+        for (final alias in aliases) {
+          if (out.containsKey(alias)) {
+            out[alias] = FieldValue.delete();
+          }
+        }
+        return;
+      }
+      for (final alias in aliases) {
+        if (out.containsKey(alias)) {
+          out[canonical] = out[alias];
+          out[alias] = FieldValue.delete();
+          break;
+        }
       }
     }
 
-    syncPair('displayName', 'nickname');
-    syncPair('avatarUrl', 'pfImage');
-    syncPair('avatarUrl', 'photoURL');
-    syncPair('avatarUrl', 'profileImageUrl');
-    syncPair('followerCount', 'counterOfFollowers');
-    syncPair('followingCount', 'counterOfFollowings');
-    syncPair('postCount', 'counterOfPosts');
+    void mapRootFields({
+      required String scope,
+      required List<String> keys,
+    }) {
+      for (final key in keys) {
+        if (!out.containsKey(key)) continue;
+        out['$scope.$key'] = out[key];
+        out[key] = FieldValue.delete();
+      }
+    }
 
-    if (out.containsKey('followerCount') && !out.containsKey('takipciSayisi')) {
-      out['takipciSayisi'] = out['followerCount'];
+    // Canonical public profile aliases (single source of truth: displayName/pfImage)
+    if (out.containsKey('nickname') && !out.containsKey('displayName')) {
+      out['displayName'] = out['nickname'];
     }
-    if (out.containsKey('followingCount') &&
-        !out.containsKey('takipEdilenSayisi')) {
-      out['takipEdilenSayisi'] = out['followingCount'];
+    if (out.containsKey('avatarUrl') && !out.containsKey('pfImage')) {
+      out['pfImage'] = out['avatarUrl'];
     }
-    if (out.containsKey('postCount') && !out.containsKey('gonderSayisi')) {
-      out['gonderSayisi'] = out['postCount'];
+    if (out.containsKey('photoURL') && !out.containsKey('pfImage')) {
+      out['pfImage'] = out['photoURL'];
     }
+    if (out.containsKey('profileImageUrl') && !out.containsKey('pfImage')) {
+      out['pfImage'] = out['profileImageUrl'];
+    }
+    if (out.containsKey('account.fcmToken')) {
+      if (!out.containsKey('fcmToken')) {
+        out['fcmToken'] = out['account.fcmToken'];
+      }
+      out['account.fcmToken'] = FieldValue.delete();
+    }
+
+    // Counter canonicalization (single source of truth: counterOf*)
+    promoteAlias(
+      canonical: 'counterOfFollowers',
+      aliases: const ['followerCount', 'takipciSayisi'],
+    );
+    promoteAlias(
+      canonical: 'counterOfFollowings',
+      aliases: const ['followingCount', 'takipEdilenSayisi'],
+    );
+    promoteAlias(
+      canonical: 'counterOfPosts',
+      aliases: const ['postCount', 'gonderSayisi'],
+    );
+
+    // Move legacy root fields into scoped maps and remove root duplicates.
+    mapRootFields(
+      scope: 'education',
+      keys: const [
+        'bolum',
+        'defAnaBaslik',
+        'defDers',
+        'defSinavTuru',
+        'educationLevel',
+        'fakulte',
+        'lise',
+        'ogrenciNo',
+        'ogretimTipi',
+        'okul',
+        'okulIlce',
+        'okulSehir',
+        'ortaOkul',
+        'ortalamaPuan',
+        'ortalamaPuan1',
+        'ortalamaPuan2',
+        'osymPuanTuru',
+        'osysPuan',
+        'osysPuani1',
+        'osysPuani2',
+        'sinif',
+        'universite',
+        'yuzlukSistem',
+      ],
+    );
+    mapRootFields(
+      scope: 'family',
+      keys: const [
+        'bursVerebilir',
+        'engelliRaporu',
+        'evMulkiyeti',
+        'familyInfo',
+        'fatherJob',
+        'fatherLiving',
+        'fatherName',
+        'fatherPhone',
+        'fatherSalary',
+        'fatherSurname',
+        'isDisabled',
+        'motherJob',
+        'motherLiving',
+        'motherName',
+        'motherPhone',
+        'motherSalary',
+        'motherSurname',
+        'mulkiyet',
+        'totalLiving',
+        'yurt',
+      ],
+    );
 
     return out;
   }

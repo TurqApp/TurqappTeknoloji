@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/follow_service.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 
@@ -65,59 +66,79 @@ class ScholarshipDetailController extends GetxController {
 
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
+        final educationLevel =
+            userString(data, key: 'educationLevel', scope: 'education');
+        final fatherLiving =
+            userString(data, key: 'fatherLiving', scope: 'family');
+        final motherLiving =
+            userString(data, key: 'motherLiving', scope: 'family');
 
-        bool isPersonalInfoComplete = data['ulke']?.isNotEmpty == true &&
-            data['nufusSehir']?.isNotEmpty == true &&
-            data['nufusIlce']?.isNotEmpty == true &&
-            data['dogumTarihi']?.isNotEmpty == true &&
-            data['medeniHal']?.isNotEmpty == true &&
-            data['cinsiyet'] != "Seçim Yap" &&
-            data['engelliRaporu']?.isNotEmpty == true &&
-            data['calismaDurumu']?.isNotEmpty == true;
+        bool isPersonalInfoComplete =
+            userString(data, key: 'ulke').isNotEmpty &&
+                userString(data, key: 'nufusSehir').isNotEmpty &&
+                userString(data, key: 'nufusIlce').isNotEmpty &&
+                userString(data, key: 'dogumTarihi').isNotEmpty &&
+                userString(data, key: 'medeniHal').isNotEmpty &&
+                userString(data, key: 'cinsiyet') != "Seçim Yap" &&
+                userString(data, key: 'engelliRaporu', scope: 'family')
+                    .isNotEmpty &&
+                userString(data, key: 'calismaDurumu').isNotEmpty;
 
-        bool isEducationInfoComplete =
-            data['educationLevel']?.isNotEmpty == true &&
-                data['ulke']?.isNotEmpty == true &&
-                (data['educationLevel'] == 'Ortaokul'
-                    ? (data['ortaOkul']?.isNotEmpty == true &&
-                        data['sinif']?.isNotEmpty == true &&
-                        data['il']?.isNotEmpty == true &&
-                        data['ilce']?.isNotEmpty == true)
-                    : data['educationLevel'] == 'Lise'
-                        ? (data['lise']?.isNotEmpty == true &&
-                            data['sinif']?.isNotEmpty == true &&
-                            data['il']?.isNotEmpty == true &&
-                            data['ilce']?.isNotEmpty == true)
-                        : (data['universite']?.isNotEmpty == true &&
-                            data['fakulte']?.isNotEmpty == true &&
-                            data['bolum']?.isNotEmpty == true &&
-                            data['il']?.isNotEmpty == true));
+        bool isEducationInfoComplete = educationLevel.isNotEmpty &&
+            userString(data, key: 'ulke').isNotEmpty &&
+            (educationLevel == 'Ortaokul'
+                ? (userString(data, key: 'ortaOkul', scope: 'education')
+                        .isNotEmpty &&
+                    userString(data, key: 'sinif', scope: 'education')
+                        .isNotEmpty &&
+                    userString(data, key: 'il').isNotEmpty &&
+                    userString(data, key: 'ilce').isNotEmpty)
+                : educationLevel == 'Lise'
+                    ? (userString(data, key: 'lise', scope: 'education')
+                            .isNotEmpty &&
+                        userString(data, key: 'sinif', scope: 'education')
+                            .isNotEmpty &&
+                        userString(data, key: 'il').isNotEmpty &&
+                        userString(data, key: 'ilce').isNotEmpty)
+                    : (userString(data,
+                                key: 'universite', scope: 'education')
+                            .isNotEmpty &&
+                        userString(data, key: 'fakulte', scope: 'education')
+                            .isNotEmpty &&
+                        userString(data, key: 'bolum', scope: 'education')
+                            .isNotEmpty &&
+                        userString(data, key: 'il').isNotEmpty));
 
-        bool isFamilyInfoComplete = data['fatherLiving'] != "Seçiniz" &&
-            data['motherLiving'] != "Seçiniz" &&
-            data['totalLiving'] != null &&
-            data['totalLiving'] is int &&
-            data['totalLiving'] > 0 &&
-            data['evMulkiyeti'] != "Seçim Yap" &&
-            data['ikametSehir']?.isNotEmpty == true &&
-            data['ikametIlce']?.isNotEmpty == true;
+        bool isFamilyInfoComplete = fatherLiving != "Seçiniz" &&
+            motherLiving != "Seçiniz" &&
+            userInt(data, key: 'totalLiving', scope: 'family') > 0 &&
+            userString(data, key: 'evMulkiyeti', scope: 'family') !=
+                "Seçim Yap" &&
+            userString(data, key: 'ikametSehir').isNotEmpty &&
+            userString(data, key: 'ikametIlce').isNotEmpty;
 
-        if (data['fatherLiving'] == "Evet") {
+        if (fatherLiving == "Evet") {
           isFamilyInfoComplete = isFamilyInfoComplete &&
-              data['fatherName']?.isNotEmpty == true &&
-              data['fatherSurname']?.isNotEmpty == true &&
-              data['fatherJob'] != "Meslek Seç" &&
-              data['fatherSalary']?.isNotEmpty == true &&
-              data['fatherPhone']?.isNotEmpty == true;
+              userString(data, key: 'fatherName', scope: 'family').isNotEmpty &&
+              userString(data, key: 'fatherSurname', scope: 'family')
+                  .isNotEmpty &&
+              userString(data, key: 'fatherJob', scope: 'family') !=
+                  "Meslek Seç" &&
+              userString(data, key: 'fatherSalary', scope: 'family')
+                  .isNotEmpty &&
+              userString(data, key: 'fatherPhone', scope: 'family').isNotEmpty;
         }
 
-        if (data['motherLiving'] == "Evet") {
+        if (motherLiving == "Evet") {
           isFamilyInfoComplete = isFamilyInfoComplete &&
-              data['motherName']?.isNotEmpty == true &&
-              data['motherSurname']?.isNotEmpty == true &&
-              data['motherJob'] != "Meslek Seç" &&
-              data['motherSalary']?.isNotEmpty == true &&
-              data['motherPhone']?.isNotEmpty == true;
+              userString(data, key: 'motherName', scope: 'family').isNotEmpty &&
+              userString(data, key: 'motherSurname', scope: 'family')
+                  .isNotEmpty &&
+              userString(data, key: 'motherJob', scope: 'family') !=
+                  "Meslek Seç" &&
+              userString(data, key: 'motherSalary', scope: 'family')
+                  .isNotEmpty &&
+              userString(data, key: 'motherPhone', scope: 'family').isNotEmpty;
         }
 
         applyReady.value = isPersonalInfoComplete &&

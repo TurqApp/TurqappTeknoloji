@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
 import 'package:turqappv2/Models/Education/higher_education_model.dart';
@@ -185,7 +186,11 @@ class EducationInfoController extends GetxController
           .get();
       if (doc.exists) {
         final data = doc.data()!;
-        String educationLevel = data['educationLevel'] ?? '';
+        String educationLevel = userString(
+          data,
+          key: 'educationLevel',
+          scope: 'education',
+        );
         selectedEducationLevel.value = educationLevel;
 
         clearFields();
@@ -194,15 +199,19 @@ class EducationInfoController extends GetxController
           selectedCountry.value = data['ulke'] ?? '';
           selectedCity.value = data['il'] ?? '';
           selectedDistrict.value = data['ilce'] ?? '';
-          selectedSchool.value = data['ortaOkul'] ?? '';
-          selectedClassLevel.value = data['sinif'] ?? '';
+          selectedSchool.value =
+              userString(data, key: 'ortaOkul', scope: 'education');
+          selectedClassLevel.value =
+              userString(data, key: 'sinif', scope: 'education');
           hasMiddleSchoolData.value = true;
         } else if (educationLevel == 'Lise') {
           selectedCountry.value = data['ulke'] ?? '';
           selectedCity.value = data['il'] ?? '';
           selectedDistrict.value = data['ilce'] ?? '';
-          selectedHighSchool.value = data['lise'] ?? '';
-          selectedClassLevel.value = data['sinif'] ?? '';
+          selectedHighSchool.value =
+              userString(data, key: 'lise', scope: 'education');
+          selectedClassLevel.value =
+              userString(data, key: 'sinif', scope: 'education');
           hasHighSchoolData.value = true;
         } else if ([
           'Önlisans',
@@ -212,9 +221,12 @@ class EducationInfoController extends GetxController
         ].contains(educationLevel)) {
           selectedCountry.value = data['ulke'] ?? '';
           selectedCity.value = data['il'] ?? '';
-          selectedUniversity.value = data['universite'] ?? '';
-          selectedFaculty.value = data['fakulte'] ?? '';
-          selectedDepartment.value = data['bolum'] ?? '';
+          selectedUniversity.value =
+              userString(data, key: 'universite', scope: 'education');
+          selectedFaculty.value =
+              userString(data, key: 'fakulte', scope: 'education');
+          selectedDepartment.value =
+              userString(data, key: 'bolum', scope: 'education');
           hasHigherEducationData.value = true;
         }
       }
@@ -238,7 +250,8 @@ class EducationInfoController extends GetxController
           .get();
       if (doc.exists) {
         final data = doc.data()!;
-        String savedLevel = data['educationLevel'] ?? '';
+        String savedLevel =
+            userString(data, key: 'educationLevel', scope: 'education');
 
         clearFields();
 
@@ -247,15 +260,19 @@ class EducationInfoController extends GetxController
             selectedCountry.value = data['ulke'] ?? '';
             selectedCity.value = data['il'] ?? '';
             selectedDistrict.value = data['ilce'] ?? '';
-            selectedSchool.value = data['ortaOkul'] ?? '';
-            selectedClassLevel.value = data['sinif'] ?? '';
+            selectedSchool.value =
+                userString(data, key: 'ortaOkul', scope: 'education');
+            selectedClassLevel.value =
+                userString(data, key: 'sinif', scope: 'education');
             hasMiddleSchoolData.value = true;
           } else if (level == 'Lise') {
             selectedCountry.value = data['ulke'] ?? '';
             selectedCity.value = data['il'] ?? '';
             selectedDistrict.value = data['ilce'] ?? '';
-            selectedHighSchool.value = data['lise'] ?? '';
-            selectedClassLevel.value = data['sinif'] ?? '';
+            selectedHighSchool.value =
+                userString(data, key: 'lise', scope: 'education');
+            selectedClassLevel.value =
+                userString(data, key: 'sinif', scope: 'education');
             hasHighSchoolData.value = true;
           } else if ([
             'Önlisans',
@@ -265,9 +282,12 @@ class EducationInfoController extends GetxController
           ].contains(level)) {
             selectedCountry.value = data['ulke'] ?? '';
             selectedCity.value = data['il'] ?? '';
-            selectedUniversity.value = data['universite'] ?? '';
-            selectedFaculty.value = data['fakulte'] ?? '';
-            selectedDepartment.value = data['bolum'] ?? '';
+            selectedUniversity.value =
+                userString(data, key: 'universite', scope: 'education');
+            selectedFaculty.value =
+                userString(data, key: 'fakulte', scope: 'education');
+            selectedDepartment.value =
+                userString(data, key: 'bolum', scope: 'education');
             hasHigherEducationData.value = true;
           }
         }
@@ -373,12 +393,21 @@ class EducationInfoController extends GetxController
           .collection('users')
           .doc(user.uid)
           .update({
+        ...scopedUserUpdate(
+          scope: 'education',
+          values: {
+            'educationLevel': 'Ortaokul',
+            'ortaOkul': selectedSchool.value,
+            'sinif': selectedClassLevel.value,
+            'lise': '',
+            'universite': '',
+            'fakulte': '',
+            'bolum': '',
+          },
+        ),
         'ulke': selectedCountry.value,
         'il': selectedCity.value,
         'ilce': selectedDistrict.value,
-        'ortaOkul': selectedSchool.value,
-        'sinif': selectedClassLevel.value,
-        'educationLevel': 'Ortaokul',
       });
 
       hasMiddleSchoolData.value = true;
@@ -429,12 +458,21 @@ class EducationInfoController extends GetxController
           .collection('users')
           .doc(user.uid)
           .update({
+        ...scopedUserUpdate(
+          scope: 'education',
+          values: {
+            'educationLevel': 'Lise',
+            'lise': selectedHighSchool.value,
+            'sinif': selectedClassLevel.value,
+            'ortaOkul': '',
+            'universite': '',
+            'fakulte': '',
+            'bolum': '',
+          },
+        ),
         'ulke': selectedCountry.value,
         'il': selectedCity.value,
         'ilce': selectedDistrict.value,
-        'lise': selectedHighSchool.value,
-        'sinif': selectedClassLevel.value,
-        'educationLevel': 'Lise',
       });
 
       hasHighSchoolData.value = true;
@@ -487,12 +525,20 @@ class EducationInfoController extends GetxController
           .collection('users')
           .doc(user.uid)
           .update({
+        ...scopedUserUpdate(
+          scope: 'education',
+          values: {
+            'educationLevel': educationLevel,
+            'universite': selectedUniversity.value,
+            'fakulte': selectedFaculty.value,
+            'bolum': selectedDepartment.value,
+            'ortaOkul': '',
+            'lise': '',
+            'sinif': '',
+          },
+        ),
         'ulke': selectedCountry.value,
         'il': selectedCity.value,
-        'universite': selectedUniversity.value,
-        'fakulte': selectedFaculty.value,
-        'bolum': selectedDepartment.value,
-        'educationLevel': educationLevel,
       });
 
       hasHigherEducationData.value = true;
