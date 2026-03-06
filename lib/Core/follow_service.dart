@@ -105,4 +105,73 @@ class FollowService {
 
     return result;
   }
+
+  /// Ensure current user follows [otherUserID].
+  /// Returns true when a new follow relation is created, false when already following
+  /// or when operation is not possible.
+  static Future<bool> ensureFollowing(
+    String otherUserID, {
+    bool bypassDailyLimit = true,
+  }) async {
+    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserID == null || currentUserID == otherUserID) return false;
+
+    final firestore = FirebaseFirestore.instance;
+    final myFollowingRef = firestore
+        .collection('users')
+        .doc(currentUserID)
+        .collection('followings')
+        .doc(otherUserID);
+    final otherFollowersRef = firestore
+        .collection('users')
+        .doc(otherUserID)
+        .collection('followers')
+        .doc(currentUserID);
+    final counterRef = firestore
+        .collection('users')
+        .doc(currentUserID)
+        .collection('Stats')
+        .doc('FollowDaily');
+
+    final created = await firestore.runTransaction<bool>((transaction) async {
+      final existing = await transaction.get(myFollowingRef);
+      if (existing.exists) return false;
+
+      if (!bypassDailyLimit) {
+        final today = _todayKey();
+        int currentCount = 0;
+        String storedDay = today;
+
+        final counterSnap = await transaction.get(counterRef);
+        if (counterSnap.exists) {
+          final data = counterSnap.data();
+          storedDay = (data?['date'] as String?) ?? today;
+          if (storedDay == today) {
+            final dynamic raw = data?['count'];
+            if (raw is int) currentCount = raw;
+          } else {
+            currentCount = 0;
+          }
+        }
+
+        if (currentCount >= dailyLimit) {
+          return false;
+        }
+        transaction.set(counterRef, {'date': today, 'count': currentCount + 1},
+            SetOptions(merge: true));
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      transaction.set(myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
+      return true;
+    });
+
+    if (created && Get.isRegistered<AgendaController>()) {
+      final agenda = Get.find<AgendaController>();
+      agenda.followingIDs.add(otherUserID);
+    }
+
+    return created;
+  }
 }

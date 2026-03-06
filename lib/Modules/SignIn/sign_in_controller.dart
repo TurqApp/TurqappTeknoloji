@@ -13,6 +13,7 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/phone_account_limiter.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -325,31 +326,7 @@ class SignInController extends GetxController
         throw Exception('users-doc-not-created-after-signup');
       }
 
-      const requiredFollowUids = <String>[
-        'rlvJgi4VAoO7O78OwrooZc6puPW2',
-      ];
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
-      final followBatch = FirebaseFirestore.instance.batch();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      for (final adminUid in requiredFollowUids) {
-        followBatch.set(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(currentUid)
-              .collection('followings')
-              .doc(adminUid),
-          {"timeStamp": nowMs},
-        );
-        followBatch.set(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(adminUid)
-              .collection('followers')
-              .doc(currentUid),
-          {"timeStamp": nowMs},
-        );
-      }
-      await followBatch.commit();
+      await MandatoryFollowService.instance.enforceForCurrentUser();
       accountProvisioned = true;
 
       // 🔥 CRITICAL: Initialize CurrentUserService with new user data
@@ -610,6 +587,7 @@ class SignInController extends GetxController
         password: newPassword,
       );
       await _restoreAccountIfPendingDeletion();
+      await MandatoryFollowService.instance.enforceForCurrentUser();
 
       // 2. Giriş başarılıysa, şifreyi güncelle
       await userCredential.user!.updatePassword(newPassword);
@@ -719,6 +697,7 @@ class SignInController extends GetxController
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
+      await MandatoryFollowService.instance.enforceForCurrentUser();
 
       // 🔥 CRITICAL: Re-initialize CurrentUserService after login
       print("🔄 CurrentUserService yeniden başlatılıyor...");

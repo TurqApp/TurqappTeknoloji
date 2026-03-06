@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
@@ -33,6 +32,36 @@ class SocialMediaController extends GetxController {
     "pinterest",
   ];
 
+  String embeddedLogoAsset(String key) => "assets/icons/${key}_s.webp";
+
+  bool isKnownEmbeddedKey(String key) => sosyal.contains(key);
+
+  String normalizeEmbeddedKeyFromTitle(String title) {
+    final normalized = title.trim().toLowerCase();
+    switch (normalized) {
+      case 'instagram':
+        return 'instagram';
+      case 'facebook':
+        return 'facebook';
+      case 'whatsapp':
+        return 'whatsApp';
+      case 'x':
+        return 'x';
+      case 'youtube':
+        return 'youtube';
+      case 'linkedin':
+        return 'linkedin';
+      case 'tiktok':
+        return 'tiktok';
+      case 'pinterest':
+        return 'pinterest';
+      case 'turqapp':
+        return 'TurqApp';
+      default:
+        return '';
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -61,13 +90,7 @@ class SocialMediaController extends GetxController {
         .get();
     List<SocialMediaModel> temp = [];
     for (var doc in snap.docs) {
-      temp.add(SocialMediaModel(
-        docID: doc.id,
-        title: doc.get("title"),
-        url: doc.get("url"),
-        sira: doc.get("sira"),
-        logo: doc.get("logo"),
-      ));
+      temp.add(SocialMediaModel.fromFirestore(doc));
     }
 
     list.value = temp;
@@ -126,18 +149,6 @@ class SocialMediaController extends GetxController {
     }
   }
 
-  Future<String> uploadAssetImage(String assetPath, String docID) async {
-    isUploading.value = true;
-    final byteData = await rootBundle.load(assetPath);
-    final data = byteData.buffer.asUint8List();
-    return WebpUploadService.uploadBytesAsWebp(
-      storage: FirebaseStorage.instance,
-      bytes: data,
-      storagePathWithoutExt:
-          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
-    );
-  }
-
   Future<String> uploadFileImage(File file, String docID) async {
     isUploading.value = true;
     final nsfw = await OptimizedNSFWService.checkImage(file);
@@ -151,7 +162,7 @@ class SocialMediaController extends GetxController {
       storage: FirebaseStorage.instance,
       file: file,
       storagePathWithoutExt:
-          "social_icons/${FirebaseAuth.instance.currentUser!.uid}/$docID",
+          "users/${FirebaseAuth.instance.currentUser!.uid}/social_links/$docID",
     );
   }
 }

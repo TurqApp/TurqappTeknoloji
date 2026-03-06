@@ -267,6 +267,18 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               final docID = DateTime.now()
                                   .millisecondsSinceEpoch
                                   .toString();
+                              String logoValue = "";
+                              if (controller.selected.value.isNotEmpty) {
+                                logoValue = controller.embeddedLogoAsset(
+                                  controller.selected.value,
+                                );
+                              } else if (controller.imageFile.value != null) {
+                                logoValue = await controller.uploadFileImage(
+                                  controller.imageFile.value!,
+                                  docID,
+                                );
+                              }
+
                               final ref = FirebaseFirestore.instance
                                   .collection("users")
                                   .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -277,28 +289,17 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                 "title": controller.textController.text.trim(),
                                 "url": controller.urlController.text.trim(),
                                 "sira": controller.list.length + 1,
-                                "logo": "",
+                                "logo": logoValue,
                               });
-
-                              String logoURL = "";
-                              if (controller.selected.value.isNotEmpty) {
-                                logoURL = await controller.uploadAssetImage(
-                                    "assets/icons/${controller.selected.value}_s.webp",
-                                    docID);
-                              } else if (controller.imageFile.value != null) {
-                                logoURL = await controller.uploadFileImage(
-                                    controller.imageFile.value!, docID);
-                              }
-
-                              if (logoURL.isNotEmpty) {
-                                await ref.update({"logo": logoURL});
-                              }
 
                               await controller.getData();
                               controller.resetFields();
                               Get.back();
                             } catch (e) {
-                              AppSnackbar("Hata", "Bir sorun oluştu.");
+                              final msg = e.toString().toLowerCase().contains('permission-denied')
+                                  ? "İzin hatası: bağlantı kaydetmeye yetki yok."
+                                  : "Bir sorun oluştu.";
+                              AppSnackbar("Hata", msg);
                             } finally {
                               controller.isUploading.value = false;
                             }

@@ -293,6 +293,8 @@ class EditorNicknameController extends GetxController {
 
         final Map<String, dynamic> userPatch = {
           'nickname': normalized,
+          'username': normalized,
+          'usernameLower': normalized,
           'nicknameChangedAt': nowMs,
         };
 
@@ -359,20 +361,6 @@ class EditorNicknameController extends GetxController {
         final freshSnap = await userDoc.get();
         final patch = await buildPatch(freshSnap);
         await userDoc.update(patch);
-      }
-
-      final previousNickname = _originalNickname;
-      if (previousNickname.isNotEmpty && previousNickname != normalized) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .collection('username')
-            .doc(nowMs.toString())
-            .set({
-              'from': previousNickname,
-              'to': normalized,
-              'changedAt': nowMs,
-            });
       }
 
       _originalNickname = normalized;

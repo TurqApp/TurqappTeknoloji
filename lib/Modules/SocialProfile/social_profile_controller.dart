@@ -543,41 +543,71 @@ class SocialProfileController extends GetxController {
         .doc(userID)
         .snapshots()
         .listen((doc) {
-      nickname.value = doc.get("nickname") ?? "";
-      pfImage.value = doc.get("pfImage");
-      firstName.value = doc.get("firstName");
-      lastName.value = doc.get("lastName");
-      email.value = doc.get("email");
-      rozet.value = doc.get("rozet");
-      bio.value = doc.get("bio");
-      adres.value = doc.get("adres");
-      token.value = doc.get("token");
-      phoneNumber.value = doc.get("phoneNumber");
-      // İletişim izinleri
-      try {
-        mailIzin.value = (doc.data().toString().contains('mailIzin'))
-            ? (doc.get("mailIzin") ?? false)
-            : false;
-      } catch (_) {
-        mailIzin.value = false;
-      }
-      try {
-        aramaIzin.value = (doc.data().toString().contains('aramaIzin'))
-            ? (doc.get("aramaIzin") ?? false)
-            : false;
-      } catch (_) {
-        aramaIzin.value = false;
-      }
       final raw = doc.data() ?? <String, dynamic>{};
-      ban.value = (raw["isBanned"] ?? false) == true;
-      gizliHesap.value = (raw["isPrivate"] ?? false) == true;
-      hesapOnayi.value = (raw["isApproved"] ?? false) == true;
-      meslek.value = doc.get("meslekKategori");
-      blockedUsers.value = List.from(doc.get("blockedUsers"));
+      final profile = (raw["profile"] is Map)
+          ? Map<String, dynamic>.from(raw["profile"] as Map)
+          : const <String, dynamic>{};
+      final preferences = (raw["preferences"] is Map)
+          ? Map<String, dynamic>.from(raw["preferences"] as Map)
+          : const <String, dynamic>{};
+      final stats = (raw["stats"] is Map)
+          ? Map<String, dynamic>.from(raw["stats"] as Map)
+          : const <String, dynamic>{};
+
+      nickname.value = (raw["nickname"] ??
+              profile["nickname"] ??
+              raw["username"] ??
+              profile["username"] ??
+              "")
+          .toString();
+      pfImage.value = (raw["avatarUrl"] ??
+              raw["pfImage"] ??
+              raw["photoURL"] ??
+              raw["profileImageUrl"] ??
+              profile["avatarUrl"] ??
+              profile["pfImage"] ??
+              profile["photoURL"] ??
+              profile["profileImageUrl"] ??
+              "")
+          .toString();
+      firstName.value = (raw["firstName"] ?? profile["firstName"] ?? "").toString();
+      lastName.value = (raw["lastName"] ?? profile["lastName"] ?? "").toString();
+      email.value = (raw["email"] ?? profile["email"] ?? "").toString();
+      rozet.value = (raw["rozet"] ?? profile["rozet"] ?? "").toString();
+      bio.value = (raw["bio"] ?? profile["bio"] ?? "").toString();
+      adres.value = (raw["adres"] ?? profile["adres"] ?? "").toString();
+      token.value = (raw["token"] ?? "").toString();
+      phoneNumber.value =
+          (raw["phoneNumber"] ?? profile["phoneNumber"] ?? "").toString();
+
+      // İletişim izinleri (root yoksa preferences fallback)
+      mailIzin.value = (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
+      aramaIzin.value =
+          (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
+
+      ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
+      gizliHesap.value = (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
+      hesapOnayi.value = (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
+      meslek.value =
+          (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
+
+      final blocked = raw["blockedUsers"];
+      if (blocked is List) {
+        blockedUsers.value = blocked.map((e) => e.toString()).toList();
+      } else {
+        blockedUsers.clear();
+      }
+
       totalMarket.value = 0; // when end of the market coding
-      // Gönderi ve beğeni sayısı kullanıcı doc'undan dinamik
-      totalPosts.value = doc.get("counterOfPosts") ?? 0;
-      totalLikes.value = doc.get("counterOfLikes") ?? 0;
+
+      // Gönderi / beğeni sayaçlarında root -> stats fallback
+      final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
+      final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
+      totalPosts.value = (postsCount is num) ? postsCount.toInt() : 0;
+      totalLikes.value = (likesCount is num) ? likesCount.toInt() : 0;
+    }, onError: (e) {
+      // ignore: avoid_print
+      print("SocialProfile.getUserData listener error: $e");
     });
   }
 

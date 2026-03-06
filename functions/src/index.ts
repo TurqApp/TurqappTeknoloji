@@ -132,6 +132,33 @@ const normalizeUsernameLower = (raw: unknown): string => {
   return s.replace(/[^a-z0-9._]/g, "");
 };
 
+const parseForceFollowUids = (data: FirebaseFirestore.DocumentData | undefined): string[] => {
+  if (!data) return [];
+  const enabled = data.enabled;
+  if (enabled === false) return [];
+
+  const out = new Set<string>();
+  const addOne = (v: unknown) => {
+    if (typeof v !== "string") return;
+    const trimmed = v.trim();
+    if (trimmed) out.add(trimmed);
+  };
+  const addMany = (arr: unknown) => {
+    if (!Array.isArray(arr)) return;
+    for (const v of arr) addOne(v);
+  };
+
+  addOne(data.requiredUserIds);
+  addMany(data.requiredUserIds);
+  addOne(data.equiredUserIds);
+  addMany(data.equiredUserIds);
+  addOne(data.requiredUserId);
+  addOne(data.uid);
+  addOne(data.userId);
+
+  return Array.from(out);
+};
+
 const parseLegacyCreatedDateToTimestamp = (raw: unknown) => {
   if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
     return admin.firestore.Timestamp.fromMillis(Math.floor(raw));
@@ -289,6 +316,54 @@ export const syncUserSchemaAndFlags = functions.firestore
         tx.set(userRef.collection("ad").doc("info"), adInfo, { merge: true });
       }
     });
+  });
+
+// FORCE FOLLOW ON NEW USER CREATE (server-side guarantee)
+export const enforceMandatoryFollowOnUserCreate = functions.firestore
+  .document("users/{uid}")
+  .onCreate(async (_snap, context) => {
+    const uid = context.params.uid as string;
+    if (!uid) return;
+
+    try {
+      const configSnap = await db.collection("adminConfig").doc("forceFollow").get();
+      const required = parseForceFollowUids(configSnap.data()).filter((target) => target !== uid);
+      if (required.length === 0) return;
+
+      const now = Date.now();
+      for (const targetUid of required) {
+        const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
+        const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
+        const meRootRef = db.doc(`users/${uid}`);
+        const targetRootRef = db.doc(`users/${targetUid}`);
+
+        await db.runTransaction(async (tx) => {
+          const existing = await tx.get(myFollowingRef);
+          if (existing.exists) return;
+
+          tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
+          tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
+          tx.set(
+            meRootRef,
+            {
+              counterOfFollowings: admin.firestore.FieldValue.increment(1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+          tx.set(
+            targetRootRef,
+            {
+              counterOfFollowers: admin.firestore.FieldValue.increment(1),
+              updatedDate: now,
+            },
+            { merge: true }
+          );
+        });
+      }
+    } catch (e) {
+      console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
   });
 
 // SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted

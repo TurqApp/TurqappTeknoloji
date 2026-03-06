@@ -27,7 +27,7 @@ class StoryRow extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: hasData
             ? SizedBox(
-                height: 95,
+                height: 107,
                 width: double.infinity,
                 child: ListView.builder(
                   key: const ValueKey('story_real'),

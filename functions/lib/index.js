@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.syncUserSchemaAndFlags = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -150,6 +150,35 @@ const normalizeUsernameLower = (raw) => {
         .toLowerCase()
         .replace(/\s+/g, "");
     return s.replace(/[^a-z0-9._]/g, "");
+};
+const parseForceFollowUids = (data) => {
+    if (!data)
+        return [];
+    const enabled = data.enabled;
+    if (enabled === false)
+        return [];
+    const out = new Set();
+    const addOne = (v) => {
+        if (typeof v !== "string")
+            return;
+        const trimmed = v.trim();
+        if (trimmed)
+            out.add(trimmed);
+    };
+    const addMany = (arr) => {
+        if (!Array.isArray(arr))
+            return;
+        for (const v of arr)
+            addOne(v);
+    };
+    addOne(data.requiredUserIds);
+    addMany(data.requiredUserIds);
+    addOne(data.equiredUserIds);
+    addMany(data.equiredUserIds);
+    addOne(data.requiredUserId);
+    addOne(data.uid);
+    addOne(data.userId);
+    return Array.from(out);
 };
 const parseLegacyCreatedDateToTimestamp = (raw) => {
     if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
@@ -310,6 +339,45 @@ exports.syncUserSchemaAndFlags = functions.firestore
             tx.set(userRef.collection("ad").doc("info"), adInfo, { merge: true });
         }
     });
+});
+// FORCE FOLLOW ON NEW USER CREATE (server-side guarantee)
+exports.enforceMandatoryFollowOnUserCreate = functions.firestore
+    .document("users/{uid}")
+    .onCreate(async (_snap, context) => {
+    const uid = context.params.uid;
+    if (!uid)
+        return;
+    try {
+        const configSnap = await db.collection("adminConfig").doc("forceFollow").get();
+        const required = parseForceFollowUids(configSnap.data()).filter((target) => target !== uid);
+        if (required.length === 0)
+            return;
+        const now = Date.now();
+        for (const targetUid of required) {
+            const myFollowingRef = db.doc(`users/${uid}/followings/${targetUid}`);
+            const targetFollowerRef = db.doc(`users/${targetUid}/followers/${uid}`);
+            const meRootRef = db.doc(`users/${uid}`);
+            const targetRootRef = db.doc(`users/${targetUid}`);
+            await db.runTransaction(async (tx) => {
+                const existing = await tx.get(myFollowingRef);
+                if (existing.exists)
+                    return;
+                tx.set(myFollowingRef, { timeStamp: now }, { merge: true });
+                tx.set(targetFollowerRef, { timeStamp: now }, { merge: true });
+                tx.set(meRootRef, {
+                    counterOfFollowings: admin.firestore.FieldValue.increment(1),
+                    updatedDate: now,
+                }, { merge: true });
+                tx.set(targetRootRef, {
+                    counterOfFollowers: admin.firestore.FieldValue.increment(1),
+                    updatedDate: now,
+                }, { merge: true });
+            });
+        }
+    }
+    catch (e) {
+        console.error("enforceMandatoryFollowOnUserCreate error", e);
+    }
 });
 // SAFETY NET: Keep phoneAccounts in sync when a user doc is deleted
 exports.onUserDocDelete = functions.firestore

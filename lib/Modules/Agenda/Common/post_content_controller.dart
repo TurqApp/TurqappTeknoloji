@@ -20,17 +20,12 @@ import 'dart:async';
 import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_delete_service.dart';
 import '../../../Services/post_interaction_service.dart';
+import '../../../Core/Services/admin_access_service.dart';
 
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
   static const Duration _userProfileCacheTtl = Duration(hours: 6);
-  static const Set<String> _adminPushUserIds = {
-    "rlvJgi4VAoO7O78OwrooZc6puPW2",
-  };
-  static const Set<String> _activePushTargetUserIds = {
-    "rlvJgi4VAoO7O78OwrooZc6puPW2",
-  };
   static const int _pushTargetCutoffMs = 1772409600000;
 
   PostContentController({
@@ -44,12 +39,10 @@ class PostContentController extends GetxController {
   final bool scrollFeedToTopOnReshare;
 
   bool get canSendAdminPush {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    return _adminPushUserIds.contains(currentUid);
+    return AdminAccessService.isKnownAdminSync();
   }
 
   bool _shouldSendPushToUser(DocumentSnapshot<Map<String, dynamic>> userDoc) {
-    if (_activePushTargetUserIds.contains(userDoc.id)) return true;
     final data = userDoc.data() ?? const <String, dynamic>{};
     final rawCreatedDate = data['createdDate'];
     final createdAtMs = rawCreatedDate is num
@@ -1208,18 +1201,6 @@ class PostContentController extends GetxController {
         });
         written++;
         opCount++;
-      }
-
-      for (final forcedUid in _activePushTargetUserIds) {
-        if (forcedUid == currentUid) continue;
-        final forcedDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(forcedUid)
-            .get();
-        if (forcedDoc.exists) {
-          enqueueNotification(forcedDoc);
-          if (opCount >= 400) await commitBatch();
-        }
       }
 
       Query<Map<String, dynamic>> query = FirebaseFirestore.instance

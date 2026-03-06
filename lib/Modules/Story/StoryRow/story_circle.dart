@@ -36,12 +36,12 @@ class _StoryCircleState extends State<StoryCircle> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Flexible(
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
+        SizedBox(
+          width: 85,
+          height: 85,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
                 GestureDetector(
                   onTap: () {
                     final cont = Get.isRegistered<AgendaController>()
@@ -274,20 +274,25 @@ class _StoryCircleState extends State<StoryCircle> {
                             ),
                           )
                         : RozetContent(size: 20, userID: widget.model.userID))
-              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 85,
+          child: Text(
+            widget.model.nickname,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 11,
+              height: 1.2,
+              fontFamily: "MontserratMedium",
             ),
           ),
         ),
-        SizedBox(
-          height: 3,
-        ),
-        Text(
-          widget.model.nickname,
-          style: TextStyle(
-              color: Colors.black,
-              fontSize: 12,
-              fontFamily: "MontserratMedium"),
-        )
       ],
     );
   }

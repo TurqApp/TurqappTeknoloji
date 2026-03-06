@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
+import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -1234,14 +1235,19 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
           if (user.adres.value != "")
-            Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                user.adres.value,
-                style: TextStyle(
-                  color: Colors.indigo,
-                  fontSize: 12,
-                  fontFamily: "Montserrat",
+            GestureDetector(
+              onTap: () {
+                showMapsSheetWithAdres(user.adres.value);
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(
+                  user.adres.value,
+                  style: TextStyle(
+                    color: Colors.indigo,
+                    fontSize: 12,
+                    fontFamily: "Montserrat",
+                  ),
                 ),
               ),
             ),

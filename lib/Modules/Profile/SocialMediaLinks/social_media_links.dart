@@ -80,10 +80,25 @@ class SocialMediaLinks extends StatelessWidget {
                                         AspectRatio(
                                           aspectRatio: 1,
                                           child: ClipOval(
-                                            child: CachedNetworkImage(
-                                              imageUrl: model.logo,
-                                              fit: BoxFit.cover,
-                                            ),
+                                            child: model.logo.startsWith('assets/')
+                                                ? Image.asset(
+                                                    model.logo,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : model.logo.trim().isNotEmpty
+                                                    ? CachedNetworkImage(
+                                                        imageUrl: model.logo,
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : Container(
+                                                        color: Colors.grey.withValues(
+                                                          alpha: 0.15,
+                                                        ),
+                                                        child: const Icon(
+                                                          CupertinoIcons.link,
+                                                          color: Colors.black54,
+                                                        ),
+                                                      ),
                                           ),
                                         ),
                                         Positioned(

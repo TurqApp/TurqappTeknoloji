@@ -43,6 +43,7 @@ import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
+import '../../Core/Services/mandatory_follow_service.dart';
 import '../../Services/offline_mode_service.dart';
 import '../../Core/Services/deep_link_service.dart';
 import '../../main.dart';
@@ -138,6 +139,11 @@ class _SplashViewState extends State<SplashView> {
 
       // GetX bağımlılıklarını hazırla
       _registerDependencies();
+
+      // Zorunlu takip listesi (adminConfig) arka planda uygulanır.
+      if (FirebaseAuth.instance.currentUser != null) {
+        unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+      }
 
       // Login kullanıcıda: feed açılmadan önce minimum hazırlık (timeout'lu)
       final bool loggedIn = FirebaseAuth.instance.currentUser != null;

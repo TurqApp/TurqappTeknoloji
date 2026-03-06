@@ -12,10 +12,7 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
     function isAdmin() {
-      return isAuth() && (
-        request.auth.token.admin == true ||
-        request.auth.uid == "rlvJgi4VAoO7O78OwrooZc6puPW2"
-      );
+      return isAuth() && request.auth.token.admin == true;
     }
     function isValidUsernameLower(v) {
       return v is string
@@ -91,6 +88,11 @@ service cloud.firestore {
       // User interaction subcollections
       match /liked_posts/{postId} {
         allow read: if isOwner(uid);
+        allow write: if isOwner(uid);
+      }
+      // Social media links (profile)
+      match /SosyalMedyaLinkleri/{docId} {
+        allow read: if isAuth();
         allow write: if isOwner(uid);
       }
       match /saved_posts/{postId} {

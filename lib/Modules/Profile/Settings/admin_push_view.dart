@@ -14,9 +14,6 @@ class AdminPushView extends StatefulWidget {
 }
 
 class _AdminPushViewState extends State<AdminPushView> {
-  static const Set<String> _activePushTargetUserIds = {
-    "rlvJgi4VAoO7O78OwrooZc6puPW2",
-  };
   static const int _pushTargetCutoffMs = 1772409600000;
   final _uidController = TextEditingController();
   final _konumController = TextEditingController();
@@ -146,7 +143,6 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   bool _isEligiblePushTarget(String userId, Map<String, dynamic> data) {
-    if (_activePushTargetUserIds.contains(userId)) return true;
     final rawCreatedDate = data['createdDate'];
     final createdAtMs = rawCreatedDate is num
         ? rawCreatedDate.toInt()
@@ -193,18 +189,6 @@ class _AdminPushViewState extends State<AdminPushView> {
       final ok = meslekOk && konumOk && genderOk && minAgeOk && maxAgeOk;
       if (ok) seen.add(userId);
       return ok;
-    }
-
-    for (final forcedUid in _activePushTargetUserIds) {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(forcedUid)
-          .get();
-      if (!doc.exists) continue;
-      final data = doc.data() ?? const <String, dynamic>{};
-      if (matchesFilters(doc.id, data)) {
-        targets.add(doc.id);
-      }
     }
 
     const pageSize = 350;
