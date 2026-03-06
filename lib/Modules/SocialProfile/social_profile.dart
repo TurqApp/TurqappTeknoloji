@@ -917,12 +917,12 @@ class _SocialProfileState extends State<SocialProfile> {
           if (controller.socialMediaList.isNotEmpty &&
               !user.blockedUsers.contains(widget.userID))
             Padding(
-              padding: const EdgeInsets.only(bottom: 12, top: 7),
+              padding: const EdgeInsets.only(bottom: 2, top: 7),
               child: socialMediaLinks(),
             ),
           // Story Highlights row
           _buildHighlightsRow(),
-          Padding(padding: const EdgeInsets.only(top: 10), child: counters()),
+          Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: postButtons(context),
