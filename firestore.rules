@@ -25,11 +25,25 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['timeStamp'])
         && request.resource.data.timeStamp is int;
     }
+    function isAllowedNotificationType(v) {
+      return v in [
+        'Posts', 'posts', 'Comment', 'comment',
+        'like', 'reshared_posts', 'shared_as_posts',
+        'job_application', 'tutoring_application', 'tutoring_status',
+        'chat', 'message', 'follow', 'user', 'User', 'Chat'
+      ];
+    }
+    function isActiveSender(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.isBanned != true
+        && get(/databases/$(database)/documents/users/$(uid)).data.isDeleted != true;
+    }
     function canCreateNotification(uid) {
       return isAdmin()
         || (isAuth()
           && request.auth.uid != uid
           && request.resource.data.fromUserID == request.auth.uid
+          && isActiveSender(request.auth.uid)
           && (!request.resource.data.keys().hasAny(['hideInAppInbox'])
             || request.resource.data.hideInAppInbox != true)
           && (!request.resource.data.keys().hasAny(['adminPush'])
@@ -45,6 +59,7 @@ service cloud.firestore {
         && request.resource.data.type is string
         && request.resource.data.type.size() > 0
         && request.resource.data.type.size() <= 64
+        && isAllowedNotificationType(request.resource.data.type)
         && request.resource.data.fromUserID is string
         && request.resource.data.fromUserID.size() > 0
         && request.resource.data.fromUserID.size() <= 128
