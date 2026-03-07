@@ -287,6 +287,7 @@ class ExploreController extends GetxController {
     final fromPool = await pool.loadPosts(
       IndexPoolKind.explore,
       limit: ContentPolicy.mobileWarmWindow,
+      allowStale: false,
     );
     if (fromPool.isEmpty) return;
     final filtered = fromPool

@@ -60,7 +60,14 @@ class IndexPoolEntry {
 class IndexPoolStore {
   static const int _schemaVersion = 2;
   static const int _maxEntriesPerKind = 250;
-  static const Duration _cacheTtl = Duration(hours: 24);
+  static const Duration _poolFileTtl = Duration(hours: 24);
+  static const Duration _fallbackTtl = Duration(minutes: 5);
+  static const Map<IndexPoolKind, Duration> _kindTtl = {
+    IndexPoolKind.feed: Duration(minutes: 5),
+    IndexPoolKind.explore: Duration(minutes: 5),
+    IndexPoolKind.shortFullscreen: Duration(minutes: 3),
+    IndexPoolKind.story: Duration(minutes: 2),
+  };
   late final String _filePath;
   bool _ready = false;
 
@@ -104,7 +111,7 @@ class IndexPoolStore {
 
       if (updatedAtMs > 0 && !allowStale) {
         final ageMs = DateTime.now().millisecondsSinceEpoch - updatedAtMs;
-        if (ageMs > _cacheTtl.inMilliseconds) {
+        if (ageMs > _poolFileTtl.inMilliseconds) {
           return const [];
         }
       }
@@ -152,7 +159,13 @@ class IndexPoolStore {
   }) async {
     final k = kind.name;
     final all = await _loadAll(allowStale: allowStale);
-    final filtered = all.where((e) => e.kind == k).toList()
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final ttlMs = (_kindTtl[kind] ?? _fallbackTtl).inMilliseconds;
+    final filtered = all.where((e) => e.kind == k).where((entry) {
+      if (allowStale) return true;
+      if (entry.updatedAt <= 0) return false;
+      return (now - entry.updatedAt) <= ttlMs;
+    }).toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return filtered
         .take(limit)

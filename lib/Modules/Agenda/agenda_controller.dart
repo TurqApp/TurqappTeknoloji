@@ -875,6 +875,7 @@ class AgendaController extends GetxController {
     final fromPool = await pool.loadPosts(
       IndexPoolKind.feed,
       limit: ContentPolicy.feedInitialFromPool,
+      allowStale: false,
     );
     if (fromPool.isEmpty) return;
 

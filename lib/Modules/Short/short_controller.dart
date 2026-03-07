@@ -734,6 +734,7 @@ class ShortController extends GetxController {
     final fromPool = await pool.loadPosts(
       IndexPoolKind.shortFullscreen,
       limit: ContentPolicy.mobileWarmWindow,
+      allowStale: false,
     );
     if (fromPool.isEmpty) return;
 
