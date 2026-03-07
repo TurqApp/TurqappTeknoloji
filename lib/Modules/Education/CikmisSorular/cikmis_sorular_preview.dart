@@ -494,7 +494,8 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
                     ),
                   ),
                   Container(
-                    height: 260,
+                    height: (MediaQuery.of(context).size.height * 0.34)
+                        .clamp(220.0, 260.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.only(

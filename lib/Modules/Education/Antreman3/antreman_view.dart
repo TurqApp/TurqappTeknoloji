@@ -497,7 +497,8 @@ class AntremanView2 extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.16),
                         alignment: Alignment.center,
                         child: Container(
-                          width: 180,
+                          width: (MediaQuery.of(context).size.width * 0.5)
+                              .clamp(150.0, 180.0),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 18,
                             vertical: 18,
