@@ -826,10 +826,17 @@ class SettingsView extends StatelessWidget {
   }
 }
 
-class _AdminPushMenuTile extends StatelessWidget {
+class _AdminPushMenuTile extends StatefulWidget {
   const _AdminPushMenuTile({required this.buildRow});
 
   final Widget Function(String, IconData, VoidCallback, {bool isNew}) buildRow;
+
+  @override
+  State<_AdminPushMenuTile> createState() => _AdminPushMenuTileState();
+}
+
+class _AdminPushMenuTileState extends State<_AdminPushMenuTile> {
+  late final Future<bool> _canShowFuture;
 
   Future<bool> _canShowAdminPushMenu() async {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -845,14 +852,20 @@ class _AdminPushMenuTile extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _canShowFuture = _canShowAdminPushMenu();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: _canShowAdminPushMenu(),
+      future: _canShowFuture,
       builder: (context, snapshot) {
         if (snapshot.data != true) {
           return const SizedBox.shrink();
         }
-        return buildRow(
+        return widget.buildRow(
           "Yönetim / Push Gönder",
           CupertinoIcons.paperplane,
           () => Get.to(() => const AdminPushView()),
