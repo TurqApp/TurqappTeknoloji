@@ -24,7 +24,9 @@ service cloud.firestore {
       return isAdmin()
         || (isAuth()
           && request.auth.uid != uid
-          && request.resource.data.fromUserID == request.auth.uid);
+          && request.resource.data.fromUserID == request.auth.uid
+          && (!request.resource.data.keys().hasAny(['adminPush'])
+            || request.resource.data.adminPush != true));
     }
     function isValidNotificationPayload(uid) {
       return request.resource.data.keys().hasOnly([
@@ -48,7 +50,8 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['isRead']) || request.resource.data.isRead is bool)
         && (!request.resource.data.keys().hasAny(['postType']) || request.resource.data.postType is string)
         && (!request.resource.data.keys().hasAny(['thumbnail']) || request.resource.data.thumbnail is string)
-        && (!request.resource.data.keys().hasAny(['userID']) || request.resource.data.userID is string)
+        && (!request.resource.data.keys().hasAny(['userID'])
+          || (request.resource.data.userID is string && request.resource.data.userID == uid))
         && (!request.resource.data.keys().hasAny(['desc']) || request.resource.data.desc is string);
     }
     function isValidUsernameLower(v) {
