@@ -8,7 +8,6 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 
 class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
@@ -53,15 +52,13 @@ class SearchUserContent extends StatelessWidget {
         {
           "userID": targetUid,
           "updatedDate": DateTime.now().millisecondsSinceEpoch,
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
         },
         SetOptions(merge: true),
       );
       await batch.commit();
-      if (Get.isRegistered<FirebaseMyStore>()) {
-        final store = Get.find<FirebaseMyStore>();
-        if (!store.lastSearchList.contains(targetUid)) {
-          store.lastSearchList.add(targetUid);
-        }
+      if (Get.isRegistered<ExploreController>()) {
+        await Get.find<ExploreController>().refreshRecentSearchUsers();
       }
     } catch (_) {}
   }
@@ -100,12 +97,8 @@ class SearchUserContent extends StatelessWidget {
         await batch.commit();
       }
     } catch (_) {}
-    if (Get.isRegistered<FirebaseMyStore>()) {
-      final store = Get.find<FirebaseMyStore>();
-      store.lastSearchList.remove(targetUid);
-      store.lastSearchedUserList.removeWhere((u) => u.userID == targetUid);
-    }
     if (Get.isRegistered<ExploreController>()) {
+      await Get.find<ExploreController>().refreshRecentSearchUsers();
       Get.find<ExploreController>().isSearchMode.value = true;
     }
   }

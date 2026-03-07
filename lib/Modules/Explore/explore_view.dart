@@ -10,7 +10,6 @@ import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import '../../Core/empty_row.dart';
 import '../../Core/Helpers/RoadToTop/road_to_top.dart';
-import '../../Services/firebase_my_store.dart';
 import '../Agenda/TagPosts/tag_media_widgets.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
@@ -54,8 +53,6 @@ class SliverStaggeredGrid {
 
 class ExploreView extends StatelessWidget {
   ExploreView({super.key});
-
-  final FirebaseMyStore user = Get.find<FirebaseMyStore>();
 
   ExploreController get controller {
     if (Get.isRegistered<ExploreController>()) {
@@ -587,7 +584,7 @@ class ExploreView extends StatelessWidget {
                         children: controller.searchText.value.trim().isEmpty
                             ? [
                                 Obx(() {
-                                  final recent = user.lastSearchedUserList;
+                                  final recent = controller.recentSearchUsers;
                                   if (recent.isEmpty) {
                                     return const SizedBox.shrink();
                                   }

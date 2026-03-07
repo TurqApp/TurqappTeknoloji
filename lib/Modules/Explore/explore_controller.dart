@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
@@ -27,6 +28,7 @@ class ExploreController extends GetxController {
   final FocusNode searchFocus = FocusNode();
   RxString searchText = "".obs;
   RxList<OgrenciModel> searchedList = <OgrenciModel>[].obs;
+  RxList<OgrenciModel> recentSearchUsers = <OgrenciModel>[].obs;
   RxList<HashtagModel> searchedHashtags = <HashtagModel>[].obs;
   RxList<HashtagModel> searchedTags = <HashtagModel>[].obs;
   RxBool showAllRecent = false.obs;
@@ -71,6 +73,7 @@ class ExploreController extends GetxController {
   int _floodsEmptyScans = 0;
   // ... diğer kodlar
   UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
+  Worker? _currentUserWorker;
 
   @override
   void onInit() {
@@ -79,6 +82,7 @@ class ExploreController extends GetxController {
     UserAnalyticsService.instance.trackFeatureUsage('explore_open');
     fetchTrendingTags();
     unawaited(_quickFillExploreFromPoolAndBootstrap());
+    _bindRecentSearchUsers();
     _bindFollowingListener();
     exploreScroll.addListener(() {
       if (exploreScroll.position.pixels >=
@@ -151,6 +155,61 @@ class ExploreController extends GetxController {
     } catch (e) {
       print('Explore cache quota apply error: $e');
     }
+  }
+
+  void _bindRecentSearchUsers() {
+    _currentUserWorker?.dispose();
+    _currentUserWorker = ever(
+      CurrentUserService.instance.currentUserRx,
+      (_) => unawaited(_reloadRecentSearchUsers()),
+    );
+    unawaited(_reloadRecentSearchUsers());
+  }
+
+  Future<void> _reloadRecentSearchUsers() async {
+    final ids = CurrentUserService.instance.currentUser?.lastSearchList ??
+        const <String>[];
+    if (ids.isEmpty) {
+      recentSearchUsers.clear();
+      return;
+    }
+
+    final orderedIds = <String>[];
+    final seen = <String>{};
+    for (final id in ids) {
+      final normalized = id.trim();
+      if (normalized.isEmpty) continue;
+      if (!seen.add(normalized)) continue;
+      orderedIds.add(normalized);
+    }
+    if (orderedIds.isEmpty) {
+      recentSearchUsers.clear();
+      return;
+    }
+
+    final byId = <String, OgrenciModel>{};
+    for (final chunk in _chunkList(orderedIds, 10)) {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snap.docs) {
+        byId[doc.id] = OgrenciModel.fromDocument(doc);
+      }
+    }
+
+    final sorted = <OgrenciModel>[];
+    for (final id in orderedIds) {
+      final model = byId[id];
+      if (model != null) {
+        sorted.add(model);
+      }
+    }
+    recentSearchUsers.value = await _filterPendingOrDeletedUsers(sorted);
+  }
+
+  Future<void> refreshRecentSearchUsers() async {
+    await _reloadRecentSearchUsers();
   }
 
   void _bindFollowingListener() {
@@ -1049,6 +1108,8 @@ class ExploreController extends GetxController {
 
   @override
   void onClose() {
+    _currentUserWorker?.dispose();
+    _currentUserWorker = null;
     exploreScroll.dispose();
     videoScroll.dispose();
     photoScroll.dispose();
