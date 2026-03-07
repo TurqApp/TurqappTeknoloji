@@ -193,10 +193,7 @@ class _ProfileViewState extends State<ProfileView> {
                               return combinedPosts.isNotEmpty
                                   ? NotificationListener<ScrollNotification>(
                                       onNotification: (notification) {
-                                        WidgetsBinding.instance
-                                            .addPostFrameCallback(
-                                          (_) => _onScroll(),
-                                        );
+                                        _onScroll();
                                         return false;
                                       },
                                       child: ListView.builder(
