@@ -20,6 +20,11 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['timeStamp'])
         && request.resource.data.timeStamp is int;
     }
+    function isFollowingEdgeWrite(uid) {
+      return isOwner(uid)
+        && request.resource.data.keys().hasOnly(['timeStamp'])
+        && request.resource.data.timeStamp is int;
+    }
     function canCreateNotification(uid) {
       return isAdmin()
         || (isAuth()
@@ -78,14 +83,16 @@ service cloud.firestore {
       // followers (followers)
       match /followers/{followerId} {
         allow read: if isAuth();
-        allow create, update: if isFollowerEdgeWrite(followerId) || isAdmin();
+        allow create: if isFollowerEdgeWrite(followerId) || isAdmin();
+        allow update: if isAdmin();
         allow delete: if isAuth() && (request.auth.uid == followerId || request.auth.uid == uid);
       }
 
       // followings (following)
       match /followings/{followingId} {
         allow read: if isAuth();
-        allow create, update: if isOwner(uid);
+        allow create: if isFollowingEdgeWrite(uid);
+        allow update: if isAdmin();
         allow delete: if isOwner(uid);
       }
 
