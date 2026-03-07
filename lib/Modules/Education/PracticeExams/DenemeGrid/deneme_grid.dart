@@ -282,7 +282,7 @@ class DenemeGrid extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 1),
+                            const SizedBox(width: 0),
                             RozetContent(size: 13, userID: model.userID),
                           ],
                         ),
