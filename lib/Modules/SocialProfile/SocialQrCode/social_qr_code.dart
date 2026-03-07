@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:turqappv2/Core/sizes.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -14,7 +13,6 @@ class SocialQrCode extends StatelessWidget {
   final String userID;
   SocialQrCode({super.key, required this.userID});
   late final SocialQrCodeController controller;
-  final user = Get.find<FirebaseMyStore>();
   @override
   Widget build(BuildContext context) {
     controller = Get.put(SocialQrCodeController(userID: userID));

@@ -26,7 +26,7 @@ import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import '../../Core/Helpers/seen_count_label.dart';
@@ -52,9 +52,16 @@ class SocialProfile extends StatefulWidget {
 class _SocialProfileState extends State<SocialProfile> {
   late SocialProfileController controller;
   final ScrollController scrollController = ScrollController();
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   final chatListingController = Get.put(ChatListingController());
   final ShortLinkService _shortLinkService = ShortLinkService();
+
+  String get _myUserId => userService.currentUserRx.value?.userID ?? '';
+  bool _isBlockedByMe(String otherUserId) {
+    final blocked =
+        userService.currentUserRx.value?.blockedUsers ?? const <String>[];
+    return blocked.contains(otherUserId);
+  }
 
   @override
   void initState() {
@@ -131,11 +138,11 @@ class _SocialProfileState extends State<SocialProfile> {
                   },
                   child: Column(
                     children: [
-                      if (!user.blockedUsers.contains(widget.userID))
+                      if (!_isBlockedByMe(widget.userID))
                         Expanded(
                           child: (controller.gizliHesap.value &&
                                   controller.takipEdiyorum.value == false &&
-                                  widget.userID != user.userID.value)
+                                  widget.userID != _myUserId)
                               ? Column(
                                   children: [
                                     header(),
@@ -855,7 +862,7 @@ class _SocialProfileState extends State<SocialProfile> {
                     title: 'Paylaş',
                     icon: CupertinoIcons.share_up,
                   ),
-                  if (!user.blockedUsers.contains(widget.userID))
+                  if (!_isBlockedByMe(widget.userID))
                     PullDownMenuItem(
                       onTap: () {
                         controller.centeredIndex.value = -1;
@@ -864,7 +871,7 @@ class _SocialProfileState extends State<SocialProfile> {
                       title: 'Engelle',
                       icon: CupertinoIcons.xmark_circle,
                     ),
-                  if (user.blockedUsers.contains(widget.userID))
+                  if (_isBlockedByMe(widget.userID))
                     PullDownMenuItem(
                       onTap: () {
                         controller.centeredIndex.value = -1;
@@ -915,7 +922,7 @@ class _SocialProfileState extends State<SocialProfile> {
           const SizedBox(height: 12),
           textInfoBody(),
           if (controller.socialMediaList.isNotEmpty &&
-              !user.blockedUsers.contains(widget.userID))
+              !_isBlockedByMe(widget.userID))
             Padding(
               padding: const EdgeInsets.only(bottom: 2, top: 7),
               child: socialMediaLinks(),
@@ -946,7 +953,7 @@ class _SocialProfileState extends State<SocialProfile> {
             onTap: () async {
               final isPrivateBlocked = controller.gizliHesap.value &&
                   controller.takipEdiyorum.value == false &&
-                  widget.userID != user.userID.value;
+                  widget.userID != _myUserId;
               if (isPrivateBlocked) {
                 AppSnackbar("Gizli hesap",
                     "Hikayeleri görmek için önce takip etmeniz gerekir.");
@@ -988,11 +995,10 @@ class _SocialProfileState extends State<SocialProfile> {
           const SizedBox(width: 12),
 
           // --- Takip / Engelleme butonları ---
-          if (controller.complatedCheck.value &&
-              !user.blockedUsers.contains(widget.userID))
+          if (controller.complatedCheck.value && !_isBlockedByMe(widget.userID))
             followButtons()
           else if (controller.complatedCheck.value &&
-              user.blockedUsers.contains(widget.userID))
+              _isBlockedByMe(widget.userID))
             unblockButton(),
         ],
       ),
@@ -1157,7 +1163,7 @@ class _SocialProfileState extends State<SocialProfile> {
                     print("SOHBET VARMIS");
                   } else {
                     final chatId = buildConversationId(
-                      user.userID.value,
+                      _myUserId,
                       widget.userID,
                     );
                     Get.to(
@@ -1527,7 +1533,7 @@ class _SocialProfileState extends State<SocialProfile> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      user.blockedUsers.contains(widget.userID)
+                      _isBlockedByMe(widget.userID)
                           ? "0"
                           : NumberFormatter.format(
                               controller.totalPosts.toInt(),
@@ -1574,7 +1580,7 @@ class _SocialProfileState extends State<SocialProfile> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      user.blockedUsers.contains(widget.userID)
+                      _isBlockedByMe(widget.userID)
                           ? "0"
                           : NumberFormatter.format(
                               controller.totalFollower.toInt(),
@@ -1625,7 +1631,7 @@ class _SocialProfileState extends State<SocialProfile> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      user.blockedUsers.contains(widget.userID)
+                      _isBlockedByMe(widget.userID)
                           ? "0"
                           : NumberFormatter.format(
                               controller.totalFollowing.toInt(),
@@ -1659,7 +1665,7 @@ class _SocialProfileState extends State<SocialProfile> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    user.blockedUsers.contains(widget.userID)
+                    _isBlockedByMe(widget.userID)
                         ? "0"
                         : NumberFormatter.format(
                             controller.totalLikes.value.toInt(),
@@ -1700,7 +1706,7 @@ class _SocialProfileState extends State<SocialProfile> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      user.blockedUsers.contains(widget.userID)
+                      _isBlockedByMe(widget.userID)
                           ? "0"
                           : NumberFormatter.format(
                               controller.totalMarket.toInt(),

@@ -50,10 +50,6 @@ class SettingsView extends StatelessWidget {
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
-  @Deprecated('Use userService instead')
-  final user = Get.isRegistered<FirebaseMyStore>()
-      ? Get.find<FirebaseMyStore>()
-      : Get.put(FirebaseMyStore()); // Backward compatibility
 
   bool get _isDiagnosticsAdmin {
     return AdminAccessService.isKnownAdminSync();
@@ -174,7 +170,9 @@ class SettingsView extends StatelessWidget {
 
                             try {
                               await CurrentUserService.instance.logout();
-                              Get.find<FirebaseMyStore>().rvesertUserData();
+                              if (Get.isRegistered<FirebaseMyStore>()) {
+                                Get.find<FirebaseMyStore>().rvesertUserData();
+                              }
                               await FirebaseAuth.instance.signOut();
                               await Get.offAll(() => SignIn());
                             } catch (e) {

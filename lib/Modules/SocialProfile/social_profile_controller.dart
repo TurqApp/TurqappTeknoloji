@@ -9,7 +9,6 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import '../../Models/posts_model.dart';
 import '../../Models/user_post_reference.dart';
 import '../../Services/user_post_link_service.dart';
@@ -38,7 +37,6 @@ class SocialProfileController extends GetxController {
   StreamSubscription<List<UserPostReference>>? _resharesSub;
   final UserPostLinkService _linkService = Get.put(UserPostLinkService());
   final Map<int, GlobalKey> _postKeys = {};
-  final user = Get.find<FirebaseMyStore>();
   var showPfImage = false.obs;
 
   String userID;
@@ -634,7 +632,7 @@ class SocialProfileController extends GetxController {
         totalFollower.value++;
         NotificationService.instance.sendNotification(
           token: token.value,
-          title: user.nickname.value,
+          title: CurrentUserService.instance.nickname,
           body: "seni takip etmeye başladı",
           docID: userID,
           type: "User",
