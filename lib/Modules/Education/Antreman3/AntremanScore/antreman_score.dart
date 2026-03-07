@@ -40,13 +40,16 @@ class AntremanScore extends StatelessWidget {
                       child: ListView(
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          SizedBox(height: 180),
-                          Center(
+                        children: [
+                          SizedBox(
+                            height: (MediaQuery.of(context).size.height * 0.22)
+                                .clamp(130.0, 180.0),
+                          ),
+                          const Center(
                             child: Text("Henüz puan tablosu oluşmadı."),
                           ),
-                          SizedBox(height: 8),
-                          Center(
+                          const SizedBox(height: 8),
+                          const Center(
                             child: Text(
                                 "Listeye girmek için Çöz Geç'te soru çöz."),
                           ),
