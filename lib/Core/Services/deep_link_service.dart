@@ -33,6 +33,8 @@ class DeepLinkService extends GetxService {
       <String, _UserLookupCache>{};
   static final Map<String, _StoryListLookupCache> _storyListLookupCache =
       <String, _StoryListLookupCache>{};
+  static final Map<String, _StoryDocLookupCache> _storyDocLookupCache =
+      <String, _StoryDocLookupCache>{};
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
@@ -87,6 +89,22 @@ class DeepLinkService extends GetxService {
       cachedAt: DateTime.now(),
     );
     _userLookupCache[userId] = lookup;
+    return lookup;
+  }
+
+  Future<_StoryDocLookupCache> _getStoryDocLookup(String storyId) async {
+    final cached = _storyDocLookupCache[storyId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return cached;
+    }
+    final storyRef = FirebaseFirestore.instance.collection('stories').doc(storyId);
+    final storyDoc = await storyRef.get();
+    final lookup = _StoryDocLookupCache(
+      data: storyDoc.exists ? storyDoc.data() : null,
+      cachedAt: DateTime.now(),
+    );
+    _storyDocLookupCache[storyId] = lookup;
     return lookup;
   }
 
@@ -306,15 +324,12 @@ class DeepLinkService extends GetxService {
   }
 
   Future<void> _openStory(String storyId) async {
-    final storyRef =
-        FirebaseFirestore.instance.collection('stories').doc(storyId);
-    final storyDoc = await storyRef.get();
-    if (!storyDoc.exists) {
+    final storyLookup = await _getStoryDocLookup(storyId);
+    final storyData = storyLookup.data;
+    if (storyData == null) {
       AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
       return;
     }
-
-    final storyData = storyDoc.data() as Map<String, dynamic>;
     if ((storyData['deleted'] ?? false) == true) {
       AppSnackbar('Bilgi', 'Hikaye süresi dolmuş veya silinmiş.');
       return;
@@ -507,6 +522,16 @@ class _StoryListLookupCache {
 
   const _StoryListLookupCache({
     required this.stories,
+    required this.cachedAt,
+  });
+}
+
+class _StoryDocLookupCache {
+  final Map<String, dynamic>? data;
+  final DateTime cachedAt;
+
+  const _StoryDocLookupCache({
+    required this.data,
     required this.cachedAt,
   });
 }
