@@ -18,6 +18,22 @@ import 'video_cover_selector.dart';
 class ShareOfPost extends StatelessWidget {
   ShareOfPost({super.key});
   final controller = Get.put(ShareOfPostController());
+
+  double _videoPreviewHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    return (screenHeight * 0.32).clamp(200.0, 250.0);
+  }
+
+  double _thumbnailFrameSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return (screenWidth * 0.31).clamp(96.0, 120.0);
+  }
+
+  double _textBodyHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    return (screenHeight * 0.19).clamp(120.0, 150.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,8 +83,8 @@ class ShareOfPost extends StatelessWidget {
                         if (controller.croppedImages.isNotEmpty)
                           imageWasSelected(),
                         if (controller.selectedVideo.value != null)
-                          videoWasSelected(),
-                        textBody(),
+                          videoWasSelected(context),
+                        textBody(context),
                         if (controller.selection.value == 3)
                           SizedBox(
                             height: 50,
@@ -326,7 +342,11 @@ class ShareOfPost extends StatelessWidget {
         : Image.memory(controller.croppedImages.first);
   }
 
-  Widget videoWasSelected() {
+  Widget videoWasSelected(BuildContext context) {
+    final previewHeight = _videoPreviewHeight(context);
+    final thumbnailFrame = _thumbnailFrameSize(context);
+    final thumbnailInner = (thumbnailFrame - 10).clamp(88.0, 110.0);
+
     return Padding(
       padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
       child: Row(
@@ -338,11 +358,11 @@ class ShareOfPost extends StatelessWidget {
                 Obx(() {
                   final aspectRatio =
                       controller.videoController?.value.aspectRatio ?? 1.0;
-                  final videoWidth = 250 * aspectRatio;
+                  final videoWidth = previewHeight * aspectRatio;
 
                   return Center(
                     child: SizedBox(
-                      height: 250,
+                      height: previewHeight,
                       width: videoWidth,
                       child: Stack(
                         alignment: Alignment.center,
@@ -413,15 +433,15 @@ class ShareOfPost extends StatelessWidget {
                     children: [
                       // Çizgili arka plan (köşe L’leri)
                       SizedBox(
-                        width: 120,
-                        height: 120,
+                        width: thumbnailFrame,
+                        height: thumbnailFrame,
                         child: CustomPaint(painter: GridCornerPainter()),
                       ),
 
                       // Ortadaki küçük kapak
                       SizedBox(
-                        width: 110,
-                        height: 110,
+                        width: thumbnailInner,
+                        height: thumbnailInner,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: Image.file(
@@ -471,9 +491,9 @@ class ShareOfPost extends StatelessWidget {
     );
   }
 
-  Widget textBody() {
+  Widget textBody(BuildContext context) {
     return Container(
-      height: 150,
+      height: _textBodyHeight(context),
       decoration: BoxDecoration(color: Colors.grey.withAlpha(20)),
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Scrollbar(
