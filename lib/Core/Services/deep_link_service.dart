@@ -24,10 +24,69 @@ import 'package:turqappv2/Modules/Short/single_short_view.dart';
 class DeepLinkService extends GetxService {
   final AppLinks _appLinks = AppLinks();
   final ShortLinkService _shortLinkService = ShortLinkService();
+  static const Duration _lookupTtl = Duration(seconds: 30);
+  static final Map<String, _PostLookupCache> _postLookupCache =
+      <String, _PostLookupCache>{};
+  static final Map<String, _JobLookupCache> _jobLookupCache =
+      <String, _JobLookupCache>{};
+  static final Map<String, _UserLookupCache> _userLookupCache =
+      <String, _UserLookupCache>{};
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
+
+  Future<_PostLookupCache> _getPostLookup(String postId) async {
+    final cached = _postLookupCache[postId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return cached;
+    }
+    final doc =
+        await FirebaseFirestore.instance.collection('Posts').doc(postId).get();
+    final lookup = _PostLookupCache(
+      model: doc.exists ? PostsModel.fromFirestore(doc) : null,
+      cachedAt: DateTime.now(),
+    );
+    _postLookupCache[postId] = lookup;
+    return lookup;
+  }
+
+  Future<_JobLookupCache> _getJobLookup(String jobId) async {
+    final cached = _jobLookupCache[jobId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return cached;
+    }
+    final doc = await FirebaseFirestore.instance
+        .collection(JobCollection.name)
+        .doc(jobId)
+        .get();
+    final lookup = _JobLookupCache(
+      model: (doc.exists && doc.data() != null)
+          ? JobModel.fromMap(doc.data()!, doc.id)
+          : null,
+      cachedAt: DateTime.now(),
+    );
+    _jobLookupCache[jobId] = lookup;
+    return lookup;
+  }
+
+  Future<_UserLookupCache> _getUserLookup(String userId) async {
+    final cached = _userLookupCache[userId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return cached;
+    }
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final lookup = _UserLookupCache(
+      data: doc.exists ? doc.data() : null,
+      cachedAt: DateTime.now(),
+    );
+    _userLookupCache[userId] = lookup;
+    return lookup;
+  }
 
   void start() {
     if (_started) return;
@@ -208,14 +267,12 @@ class DeepLinkService extends GetxService {
   }
 
   Future<void> _openPost(String postId) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(postId).get();
-    if (!doc.exists) {
+    final lookup = await _getPostLookup(postId);
+    final model = lookup.model;
+    if (model == null) {
       AppSnackbar('Bilgi', 'Gönderi bulunamadı.');
       return;
     }
-
-    final model = PostsModel.fromFirestore(doc);
     if (model.deletedPost) {
       AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
       return;
@@ -267,9 +324,9 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    final userSnap =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    if (!userSnap.exists) {
+    final userLookup = await _getUserLookup(userId);
+    final userData = userLookup.data;
+    if (userData == null) {
       AppSnackbar('Bilgi', 'Hikaye sahibi bulunamadı.');
       return;
     }
@@ -287,7 +344,6 @@ class DeepLinkService extends GetxService {
       stories.insert(0, target);
     }
 
-    final userData = userSnap.data() as Map<String, dynamic>;
     final user = StoryUserModel(
       nickname: (userData['nickname'] ?? '').toString(),
       avatarUrl: (userData['avatarUrl'] ?? '').toString(),
@@ -373,16 +429,12 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    final doc = await FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(cleanId)
-        .get();
-    if (!doc.exists || doc.data() == null) {
+    final lookup = await _getJobLookup(cleanId);
+    final model = lookup.model;
+    if (model == null) {
       AppSnackbar('Bilgi', 'İlan bulunamadı.');
       return;
     }
-
-    final model = JobModel.fromMap(doc.data()!, doc.id);
     if (model.ended) {
       AppSnackbar('Bilgi', 'İlan yayından kaldırılmış.');
       return;
@@ -405,4 +457,34 @@ class _ParsedDeepLink {
   final String id;
 
   _ParsedDeepLink({required this.type, required this.id});
+}
+
+class _PostLookupCache {
+  final PostsModel? model;
+  final DateTime cachedAt;
+
+  const _PostLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _JobLookupCache {
+  final JobModel? model;
+  final DateTime cachedAt;
+
+  const _JobLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _UserLookupCache {
+  final Map<String, dynamic>? data;
+  final DateTime cachedAt;
+
+  const _UserLookupCache({
+    required this.data,
+    required this.cachedAt,
+  });
 }
