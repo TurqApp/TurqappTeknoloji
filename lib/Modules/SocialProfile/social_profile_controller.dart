@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../Models/posts_model.dart';
@@ -62,6 +63,14 @@ class SocialProfileController extends GetxController {
   var complatedCheck = false.obs;
   var takipEdiyorum = false.obs;
   var followLoading = false.obs;
+  static const Duration _followCheckCacheTtl = Duration(seconds: 20);
+  static const Duration _counterCacheTtl = Duration(seconds: 30);
+  static const Duration _cacheStaleRetention = Duration(minutes: 3);
+  static const int _maxCacheEntries = 500;
+  static final Map<String, _SocialFollowCheckCacheEntry> _followCheckCache =
+      <String, _SocialFollowCheckCacheEntry>{};
+  static final Map<String, _SocialCounterCacheEntry> _counterCache =
+      <String, _SocialCounterCacheEntry>{};
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
 
@@ -87,6 +96,21 @@ class SocialProfileController extends GetxController {
   // Yukarı butonu
   final RxBool showScrollToTop = false.obs;
   StreamSubscription<DocumentSnapshot>? _userDocSub;
+
+  String _resolveNickname(
+    Map<String, dynamic> raw,
+    Map<String, dynamic> profile,
+  ) {
+    final nickname =
+        (raw["nickname"] ?? profile["nickname"] ?? "").toString().trim();
+    final username =
+        (raw["username"] ?? profile["username"] ?? "").toString().trim();
+    final displayName =
+        (raw["displayName"] ?? profile["displayName"] ?? "").toString().trim();
+    if (nickname.isNotEmpty) return nickname;
+    if (username.isNotEmpty) return username;
+    return displayName;
+  }
 
   @override
   void onInit() {
@@ -132,6 +156,15 @@ class SocialProfileController extends GetxController {
 
   Future<void> getCounters() async {
     try {
+      _pruneCaches();
+      final cached = _counterCache[userID];
+      if (cached != null &&
+          DateTime.now().difference(cached.cachedAt) <= _counterCacheTtl) {
+        totalFollower.value = cached.followers;
+        totalFollowing.value = cached.followings;
+        return;
+      }
+
       final userDoc = await FirebaseFirestore.instance
           .collection("users")
           .doc(userID)
@@ -176,6 +209,11 @@ class SocialProfileController extends GetxController {
         totalFollower.value = followers;
         totalFollowing.value = followings;
       }
+      _counterCache[userID] = _SocialCounterCacheEntry(
+        followers: totalFollower.value,
+        followings: totalFollowing.value,
+        cachedAt: DateTime.now(),
+      );
     } catch (e) {
       print("⚠️ SocialProfile getCounters error: $e");
     }
@@ -283,16 +321,29 @@ class SocialProfileController extends GetxController {
   }
 
   Future<void> isFollowingCheck() async {
-    FirebaseFirestore.instance
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return;
+    _pruneCaches();
+    final cacheKey = '$currentUid:$userID';
+    final cached = _followCheckCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _followCheckCacheTtl) {
+      takipEdiyorum.value = cached.isFollowing;
+      complatedCheck.value = true;
+      return;
+    }
+    final doc = await FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .doc(currentUid)
         .collection("followings")
         .doc(userID)
-        .get()
-        .then((doc) {
-      takipEdiyorum.value = doc.exists;
-      complatedCheck.value = true;
-    });
+        .get();
+    takipEdiyorum.value = doc.exists;
+    complatedCheck.value = true;
+    _followCheckCache[cacheKey] = _SocialFollowCheckCacheEntry(
+      isFollowing: doc.exists,
+      cachedAt: DateTime.now(),
+    );
   }
 
   Future<void> setPostSelection(int index) async {
@@ -553,22 +604,8 @@ class SocialProfileController extends GetxController {
           ? Map<String, dynamic>.from(raw["stats"] as Map)
           : const <String, dynamic>{};
 
-      nickname.value = (raw["nickname"] ??
-              profile["nickname"] ??
-              raw["username"] ??
-              profile["username"] ??
-              "")
-          .toString();
-      avatarUrl.value = (raw["avatarUrl"] ??
-              raw["avatarUrl"] ??
-              raw["avatarUrl"] ??
-              raw["avatarUrl"] ??
-              profile["avatarUrl"] ??
-              profile["avatarUrl"] ??
-              profile["avatarUrl"] ??
-              profile["avatarUrl"] ??
-              "")
-          .toString();
+      nickname.value = _resolveNickname(raw, profile);
+      avatarUrl.value = resolveAvatarUrl(raw, profile: profile);
       firstName.value =
           (raw["firstName"] ?? profile["firstName"] ?? "").toString();
       lastName.value =
@@ -625,6 +662,13 @@ class SocialProfileController extends GetxController {
       final outcome = await FollowService.toggleFollow(userID);
       // Reconcile with server outcome
       takipEdiyorum.value = outcome.nowFollowing;
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUid != null) {
+        _followCheckCache['$currentUid:$userID'] = _SocialFollowCheckCacheEntry(
+          isFollowing: outcome.nowFollowing,
+          cachedAt: DateTime.now(),
+        );
+      }
 
       // ⚠️ CRITICAL FIX: Update follower count after follow/unfollow
       if (outcome.nowFollowing && !wasFollowing) {
@@ -719,11 +763,19 @@ class SocialProfileController extends GetxController {
 
   Future<void> getUserStoryUserModelAndPrint(String userId) async {
     // Stories koleksiyonunda ilgili userId'ye ait tüm story'leri topla
-    final snap = await FirebaseFirestore.instance
-        .collection("stories")
-        .where("userId", isEqualTo: userId)
-        .orderBy("createdDate", descending: true)
-        .get();
+    QuerySnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await FirebaseFirestore.instance
+          .collection("stories")
+          .where("userId", isEqualTo: userId)
+          .orderBy("createdDate", descending: true)
+          .get();
+    } catch (_) {
+      snap = await FirebaseFirestore.instance
+          .collection("stories")
+          .where("userId", isEqualTo: userId)
+          .get();
+    }
 
     if (snap.docs.isEmpty) {
       print("Kullanıcıya ait hiç hikaye yok.");
@@ -736,7 +788,8 @@ class SocialProfileController extends GetxController {
           return (data['deleted'] ?? false) != true;
         })
         .map((doc) => StoryModel.fromDoc(doc))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     // Kullanıcı bilgisini çek
     final userSnap =
@@ -748,9 +801,8 @@ class SocialProfileController extends GetxController {
 
     final data = userSnap.data()!;
     final userModel = StoryUserModel(
-      nickname:
-          data['displayName'] ?? data['username'] ?? data['nickname'] ?? "",
-      avatarUrl: data['avatarUrl'] ?? "",
+      nickname: _resolveNickname(data, const <String, dynamic>{}),
+      avatarUrl: resolveAvatarUrl(data),
       fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
       userID: userId,
       stories: stories,
@@ -761,4 +813,45 @@ class SocialProfileController extends GetxController {
     print(
         "Nickname: ${userModel.nickname}, Story Sayısı: ${userModel.stories.length}");
   }
+
+  void _pruneCaches() {
+    final now = DateTime.now();
+    bool isStale(DateTime t) => now.difference(t) > _cacheStaleRetention;
+    _followCheckCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _counterCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _trimMap(_followCheckCache, (v) => v.cachedAt);
+    _trimMap(_counterCache, (v) => v.cachedAt);
+  }
+
+  void _trimMap<T>(Map<String, T> map, DateTime Function(T value) cachedAt) {
+    if (map.length <= _maxCacheEntries) return;
+    final entries = map.entries.toList()
+      ..sort((a, b) => cachedAt(a.value).compareTo(cachedAt(b.value)));
+    final removeCount = map.length - _maxCacheEntries;
+    for (var i = 0; i < removeCount; i++) {
+      map.remove(entries[i].key);
+    }
+  }
+}
+
+class _SocialFollowCheckCacheEntry {
+  final bool isFollowing;
+  final DateTime cachedAt;
+
+  const _SocialFollowCheckCacheEntry({
+    required this.isFollowing,
+    required this.cachedAt,
+  });
+}
+
+class _SocialCounterCacheEntry {
+  final int followers;
+  final int followings;
+  final DateTime cachedAt;
+
+  const _SocialCounterCacheEntry({
+    required this.followers,
+    required this.followings,
+    required this.cachedAt,
+  });
 }
