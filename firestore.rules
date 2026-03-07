@@ -28,17 +28,28 @@ service cloud.firestore {
     }
     function isValidNotificationPayload(uid) {
       return request.resource.data.keys().hasOnly([
-          'type', 'fromUserID', 'postID', 'timeStamp', 'read', 'title', 'body'
+          'type', 'fromUserID', 'postID', 'timeStamp', 'read',
+          'title', 'body', 'imageUrl', 'adminPush', 'hideInAppInbox',
+          'isRead', 'postType', 'thumbnail', 'userID', 'desc'
         ])
+        && request.resource.data.keys().hasAll(['type', 'fromUserID', 'timeStamp'])
         && request.resource.data.type is string
         && request.resource.data.fromUserID is string
-        && request.resource.data.postID is string
         && request.resource.data.timeStamp is int
-        && request.resource.data.read is bool
-        && request.resource.data.title is string
-        && request.resource.data.body is string
         && request.resource.data.fromUserID != uid
-        && request.resource.data.timeStamp > 0;
+        && request.resource.data.timeStamp > 0
+        && (!request.resource.data.keys().hasAny(['postID']) || request.resource.data.postID is string)
+        && (!request.resource.data.keys().hasAny(['read']) || request.resource.data.read is bool)
+        && (!request.resource.data.keys().hasAny(['title']) || request.resource.data.title is string)
+        && (!request.resource.data.keys().hasAny(['body']) || request.resource.data.body is string)
+        && (!request.resource.data.keys().hasAny(['imageUrl']) || request.resource.data.imageUrl is string)
+        && (!request.resource.data.keys().hasAny(['adminPush']) || request.resource.data.adminPush is bool)
+        && (!request.resource.data.keys().hasAny(['hideInAppInbox']) || request.resource.data.hideInAppInbox is bool)
+        && (!request.resource.data.keys().hasAny(['isRead']) || request.resource.data.isRead is bool)
+        && (!request.resource.data.keys().hasAny(['postType']) || request.resource.data.postType is string)
+        && (!request.resource.data.keys().hasAny(['thumbnail']) || request.resource.data.thumbnail is string)
+        && (!request.resource.data.keys().hasAny(['userID']) || request.resource.data.userID is string)
+        && (!request.resource.data.keys().hasAny(['desc']) || request.resource.data.desc is string);
     }
     function isValidUsernameLower(v) {
       return v is string

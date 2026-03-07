@@ -10,7 +10,6 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/Services/deep_link_service.dart';
@@ -38,7 +37,6 @@ class NavBarView extends StatelessWidget {
       Get.isRegistered<SettingsController>()
           ? Get.find<SettingsController>()
           : Get.put(SettingsController());
-  final FirebaseMyStore userStore = Get.find<FirebaseMyStore>();
   final DeepLinkService? deepLinkService =
       Get.isRegistered<DeepLinkService>() ? Get.find<DeepLinkService>() : null;
 
@@ -329,12 +327,10 @@ class NavBarView extends StatelessWidget {
                                   child: Builder(builder: (_) {
                                     if (icons[i] == 'profile_dynamic') {
                                       return Obx(() {
-                                        final raw =
-                                            userStore.avatarUrl.value.trim();
-                                        final img = raw.isEmpty
-                                            ? CurrentUserService
-                                                .instance.avatarUrl
-                                            : raw;
+                                        CurrentUserService
+                                            .instance.currentUserRx.value;
+                                        final img = CurrentUserService
+                                            .instance.avatarUrl;
                                         final uploading =
                                             controller.uploadingPosts.value;
                                         const double size = 28;
