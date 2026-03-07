@@ -397,7 +397,7 @@ class JobCreator extends StatelessWidget {
             ),
             15.ph,
             Container(
-              height: 150, // Sabit yükseklik
+              height: (Get.height * 0.2).clamp(120.0, 150.0),
               padding: const EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.03),
@@ -847,7 +847,7 @@ class JobCreator extends StatelessWidget {
                 ),
                 15.ph,
                 Container(
-                  height: 150, // Sabit yükseklik
+                  height: (Get.height * 0.2).clamp(120.0, 150.0),
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.03),
