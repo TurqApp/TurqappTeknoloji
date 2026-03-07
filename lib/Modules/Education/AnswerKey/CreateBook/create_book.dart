@@ -27,6 +27,16 @@ class CreateBook extends StatelessWidget {
 
   const CreateBook({required this.onBack, this.existingBook, super.key});
 
+  double _coverWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return (screenWidth * 0.44).clamp(150.0, 170.0);
+  }
+
+  double _coverHeight(BuildContext context) {
+    final width = _coverWidth(context);
+    return (width * 1.29).clamp(194.0, 220.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(
@@ -152,8 +162,8 @@ class CreateBook extends StatelessWidget {
                               Radius.circular(12),
                             ),
                             child: SizedBox(
-                              width: 170,
-                              height: 220,
+                              width: _coverWidth(context),
+                              height: _coverHeight(context),
                               child: Image.file(
                                 controller.imageFile.value!,
                                 fit: BoxFit.cover,
@@ -183,8 +193,8 @@ class CreateBook extends StatelessWidget {
                             }
                           },
                           child: Container(
-                            height: 220,
-                            width: 170,
+                            height: _coverHeight(context),
+                            width: _coverWidth(context),
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.grey.withValues(alpha: 0.1),
