@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class FollowerController extends GetxController {
   var avatarUrl = "".obs;
@@ -16,13 +17,7 @@ class FollowerController extends GetxController {
     final profile = (data['profile'] is Map)
         ? Map<String, dynamic>.from(data['profile'] as Map)
         : const <String, dynamic>{};
-    return (data['avatarUrl'] ??
-            data['avatarUrl'] ??
-            profile['avatarUrl'] ??
-            profile['avatarUrl'] ??
-            '')
-        .toString()
-        .trim();
+    return resolveAvatarUrl(data, profile: profile).trim();
   }
 
   String _resolveNickname(Map<String, dynamic> data) {
@@ -58,39 +53,6 @@ class FollowerController extends GetxController {
         await FirebaseFirestore.instance.collection("users").doc(userID).get();
     final data = Map<String, dynamic>.from(userDoc.data() ?? const {});
     if (data.isNotEmpty) {
-      if (_resolveAvatar(data).isEmpty ||
-          _resolveNickname(data).isEmpty ||
-          _resolveFullName(data).isEmpty) {
-        try {
-          final profileInfo = await FirebaseFirestore.instance
-              .collection("users")
-              .doc(userID)
-              .collection("profile")
-              .doc("info")
-              .get();
-          if (profileInfo.exists) {
-            final info = profileInfo.data() ?? const <String, dynamic>{};
-            for (final key in const <String>[
-              'avatarUrl',
-              'avatarUrl',
-              'avatarUrl',
-              'avatarUrl',
-              'nickname',
-              'username',
-              'usernameLower',
-              'firstName',
-              'lastName',
-            ]) {
-              final current = (data[key] ?? '').toString().trim();
-              final incoming = (info[key] ?? '').toString().trim();
-              if (current.isEmpty && incoming.isNotEmpty) {
-                data[key] = incoming;
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
       avatarUrl.value = _resolveAvatar(data);
       nickname.value = _resolveNickname(data);
       fullname.value = _resolveFullName(data);
