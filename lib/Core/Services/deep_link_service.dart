@@ -35,12 +35,14 @@ class DeepLinkService extends GetxService {
       <String, _StoryListLookupCache>{};
   static final Map<String, _StoryDocLookupCache> _storyDocLookupCache =
       <String, _StoryDocLookupCache>{};
+  static const Duration _staleRetention = Duration(minutes: 3);
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
 
   Future<_PostLookupCache> _getPostLookup(String postId) async {
+    _pruneStaleLookups();
     final cached = _postLookupCache[postId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
@@ -57,6 +59,7 @@ class DeepLinkService extends GetxService {
   }
 
   Future<_JobLookupCache> _getJobLookup(String jobId) async {
+    _pruneStaleLookups();
     final cached = _jobLookupCache[jobId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
@@ -77,6 +80,7 @@ class DeepLinkService extends GetxService {
   }
 
   Future<_UserLookupCache> _getUserLookup(String userId) async {
+    _pruneStaleLookups();
     final cached = _userLookupCache[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
@@ -93,6 +97,7 @@ class DeepLinkService extends GetxService {
   }
 
   Future<_StoryDocLookupCache> _getStoryDocLookup(String storyId) async {
+    _pruneStaleLookups();
     final cached = _storyDocLookupCache[storyId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
@@ -378,6 +383,7 @@ class DeepLinkService extends GetxService {
   }
 
   Future<List<StoryModel>> _fetchStoriesByUserIndexSafe(String userId) async {
+    _pruneStaleLookups();
     final cached = _storyListLookupCache[userId];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
@@ -409,6 +415,17 @@ class DeepLinkService extends GetxService {
       cachedAt: DateTime.now(),
     );
     return stories;
+  }
+
+  void _pruneStaleLookups() {
+    final now = DateTime.now();
+    bool isStale(DateTime t) => now.difference(t) > _staleRetention;
+
+    _postLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _jobLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _userLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _storyListLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _storyDocLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
   }
 
   Future<void> _openEducationLink(String entityId) async {
