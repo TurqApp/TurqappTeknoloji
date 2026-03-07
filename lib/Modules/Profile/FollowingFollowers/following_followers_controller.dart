@@ -33,6 +33,9 @@ class FollowingFollowersController extends GetxController {
   final TextEditingController searchTakipEdilenController =
       TextEditingController();
   final String userId;
+  static const Duration _relationSearchCacheTtl = Duration(seconds: 30);
+  final Map<String, _RelationIdSetCacheEntry> _relationIdSetCache =
+      <String, _RelationIdSetCacheEntry>{};
 
   var nickname = "".obs;
 
@@ -178,13 +181,7 @@ class FollowingFollowersController extends GetxController {
     final next = q.substring(0, q.length - 1) +
         String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
 
-    // 1. Bu kullanıcının tüm takipçi ID'lerini çek
-    final allFollowersSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followers")
-        .get();
-    final followerIDs = allFollowersSnap.docs.map((doc) => doc.id).toSet();
+    final followerIDs = await _getRelationIdsCached('followers');
 
     // 2. Nickname'e göre filtrele
     final querySnap = await FirebaseFirestore.instance
@@ -209,13 +206,7 @@ class FollowingFollowersController extends GetxController {
     final next = q.substring(0, q.length - 1) +
         String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
 
-    // 1. Tüm takip edilen ID'leri çek
-    final allFollowingSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followings")
-        .get();
-    final followingIDs = allFollowingSnap.docs.map((doc) => doc.id).toSet();
+    final followingIDs = await _getRelationIdsCached('followings');
 
     // 2. Nickname'e göre filtrele
     final querySnap = await FirebaseFirestore.instance
@@ -233,6 +224,27 @@ class FollowingFollowersController extends GetxController {
     takipEdilenler.value = results;
   }
 
+  Future<Set<String>> _getRelationIdsCached(String relation) async {
+    final now = DateTime.now();
+    final cached = _relationIdSetCache[relation];
+    if (cached != null &&
+        now.difference(cached.cachedAt) <= _relationSearchCacheTtl) {
+      return cached.ids;
+    }
+
+    final snap = await FirebaseFirestore.instance
+        .collection("users")
+        .doc(userId)
+        .collection(relation)
+        .get();
+    final ids = snap.docs.map((doc) => doc.id).toSet();
+    _relationIdSetCache[relation] = _RelationIdSetCacheEntry(
+      ids: ids,
+      cachedAt: now,
+    );
+    return ids;
+  }
+
   /// Sayfa değiştirme
   void goToPage(int index) {
     pageController.animateToPage(
@@ -241,4 +253,14 @@ class FollowingFollowersController extends GetxController {
       curve: Curves.easeInOut,
     );
   }
+}
+
+class _RelationIdSetCacheEntry {
+  final Set<String> ids;
+  final DateTime cachedAt;
+
+  const _RelationIdSetCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
 }
