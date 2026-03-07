@@ -1089,21 +1089,8 @@ class PostContentController extends GetxController {
   }
 
   Future<void> followUser() async {
-    if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
-      FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("followings")
-          .doc(model.userID)
-          .get()
-          .then((doc) {
-        if (doc.exists) {
-          isFollowing.value = true;
-        } else {
-          onlyFollowUserOneTime();
-        }
-      });
-    }
+    if (model.userID == FirebaseAuth.instance.currentUser!.uid) return;
+    await onlyFollowUserOneTime();
   }
 
   Future<void> onlyFollowUserOneTime() async {
