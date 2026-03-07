@@ -453,6 +453,15 @@ class CurrentUserService extends GetxController {
     final merged = <String, dynamic>{...rootData};
     final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
+    Map<String, dynamic> extractRootMap(String key) {
+      final raw = rootData[key];
+      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
+      if (raw is Map) {
+        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
+      }
+      return <String, dynamic>{};
+    }
+
     Future<Map<String, dynamic>> readSubdocCached(
         String col, String doc) async {
       final key = _subdocCacheKey(uid, col, doc);
@@ -504,19 +513,29 @@ class CurrentUserService extends GetxController {
       }
     }
 
-    final subdocResults = await Future.wait([
-      readSubdocCached('private', 'account'),
-      readSubdocCached('education', 'info'),
-      readSubdocCached('family', 'info'),
-      readSubdocCached('settings', 'preferences'),
-      readSubdocCached('stats', 'summary'),
-    ]);
+    // Read amplification guard:
+    // If root already has canonical map blocks, skip extra sub-doc reads.
+    final rootPrivate = extractRootMap('private');
+    final rootEducation = extractRootMap('education');
+    final rootFamily = extractRootMap('family');
+    final rootSettings = extractRootMap('settings');
+    final rootStats = extractRootMap('stats');
 
-    final privateAccount = subdocResults[0];
-    final education = subdocResults[1];
-    final family = subdocResults[2];
-    final settings = subdocResults[3];
-    final stats = subdocResults[4];
+    final privateAccount = rootPrivate.isNotEmpty
+        ? rootPrivate
+        : await readSubdocCached('private', 'account');
+    final education = rootEducation.isNotEmpty
+        ? rootEducation
+        : await readSubdocCached('education', 'info');
+    final family = rootFamily.isNotEmpty
+        ? rootFamily
+        : await readSubdocCached('family', 'info');
+    final settings = rootSettings.isNotEmpty
+        ? rootSettings
+        : await readSubdocCached('settings', 'preferences');
+    final stats = rootStats.isNotEmpty
+        ? rootStats
+        : await readSubdocCached('stats', 'summary');
 
     void mergeOverride(Map<String, dynamic> source) {
       source.forEach((k, v) {

@@ -30,6 +30,8 @@ service cloud.firestore {
         || (isAuth()
           && request.auth.uid != uid
           && request.resource.data.fromUserID == request.auth.uid
+          && (!request.resource.data.keys().hasAny(['hideInAppInbox'])
+            || request.resource.data.hideInAppInbox != true)
           && (!request.resource.data.keys().hasAny(['adminPush'])
             || request.resource.data.adminPush != true));
     }
@@ -41,23 +43,40 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasAll(['type', 'fromUserID', 'timeStamp'])
         && request.resource.data.type is string
+        && request.resource.data.type.size() > 0
+        && request.resource.data.type.size() <= 64
         && request.resource.data.fromUserID is string
+        && request.resource.data.fromUserID.size() > 0
+        && request.resource.data.fromUserID.size() <= 128
         && request.resource.data.timeStamp is int
         && request.resource.data.fromUserID != uid
         && request.resource.data.timeStamp > 0
-        && (!request.resource.data.keys().hasAny(['postID']) || request.resource.data.postID is string)
+        && request.resource.data.timeStamp <= request.time.toMillis() + 900000
+        && (!request.resource.data.keys().hasAny(['postID'])
+          || (request.resource.data.postID is string
+            && request.resource.data.postID.size() <= 256))
         && (!request.resource.data.keys().hasAny(['read']) || request.resource.data.read is bool)
-        && (!request.resource.data.keys().hasAny(['title']) || request.resource.data.title is string)
-        && (!request.resource.data.keys().hasAny(['body']) || request.resource.data.body is string)
-        && (!request.resource.data.keys().hasAny(['imageUrl']) || request.resource.data.imageUrl is string)
+        && (!request.resource.data.keys().hasAny(['title'])
+          || (request.resource.data.title is string
+            && request.resource.data.title.size() <= 160))
+        && (!request.resource.data.keys().hasAny(['body'])
+          || (request.resource.data.body is string
+            && request.resource.data.body.size() <= 4000))
+        && (!request.resource.data.keys().hasAny(['imageUrl'])
+          || (request.resource.data.imageUrl is string
+            && request.resource.data.imageUrl.size() <= 4096))
         && (!request.resource.data.keys().hasAny(['adminPush']) || request.resource.data.adminPush is bool)
         && (!request.resource.data.keys().hasAny(['hideInAppInbox']) || request.resource.data.hideInAppInbox is bool)
         && (!request.resource.data.keys().hasAny(['isRead']) || request.resource.data.isRead is bool)
         && (!request.resource.data.keys().hasAny(['postType']) || request.resource.data.postType is string)
-        && (!request.resource.data.keys().hasAny(['thumbnail']) || request.resource.data.thumbnail is string)
+        && (!request.resource.data.keys().hasAny(['thumbnail'])
+          || (request.resource.data.thumbnail is string
+            && request.resource.data.thumbnail.size() <= 4096))
         && (!request.resource.data.keys().hasAny(['userID'])
           || (request.resource.data.userID is string && request.resource.data.userID == uid))
-        && (!request.resource.data.keys().hasAny(['desc']) || request.resource.data.desc is string);
+        && (!request.resource.data.keys().hasAny(['desc'])
+          || (request.resource.data.desc is string
+            && request.resource.data.desc.size() <= 4000));
     }
     function isValidUsernameLower(v) {
       return v is string
