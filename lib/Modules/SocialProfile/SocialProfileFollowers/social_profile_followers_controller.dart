@@ -17,6 +17,11 @@ class SocialProfileFollowersController extends GetxController {
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
   bool hasMoreFollowing = true;
+  static const Duration _relationCacheTtl = Duration(seconds: 30);
+  static const Duration _relationCacheStaleRetention = Duration(minutes: 3);
+  static const int _maxRelationCacheEntries = 400;
+  static final Map<String, _RelationListCacheEntry> _relationCache =
+      <String, _RelationListCacheEntry>{};
 
   SocialProfileFollowersController(
       {required int initialPage, required this.userID}) {
@@ -32,6 +37,15 @@ class SocialProfileFollowersController extends GetxController {
   }
 
   Future<void> getFollowers() async {
+    _pruneRelationCache();
+    final followersCacheKey = 'followers:$userID';
+    final cachedFollowers = _relationCache[followersCacheKey];
+    if (cachedFollowers != null &&
+        DateTime.now().difference(cachedFollowers.cachedAt) <= _relationCacheTtl) {
+      takipciler.value = List<String>.from(cachedFollowers.ids);
+      hasMoreFollowers = false;
+      return;
+    }
     if (takipciler.isNotEmpty) return; // tek sefer gösterim
     if (isLoadingFollowers || !hasMoreFollowers) return;
     isLoadingFollowers = true;
@@ -52,12 +66,25 @@ class SocialProfileFollowersController extends GetxController {
       lastFollowerDoc = snap.docs.last;
       takipciler.addAll(snap.docs.map((val) => val.id));
     }
+    _relationCache[followersCacheKey] = _RelationListCacheEntry(
+      ids: List<String>.from(takipciler),
+      cachedAt: DateTime.now(),
+    );
 
     hasMoreFollowers = false; // başkasında yenileme/sayfalama yok
     isLoadingFollowers = false;
   }
 
   Future<void> getFollowing() async {
+    _pruneRelationCache();
+    final followingsCacheKey = 'followings:$userID';
+    final cachedFollowings = _relationCache[followingsCacheKey];
+    if (cachedFollowings != null &&
+        DateTime.now().difference(cachedFollowings.cachedAt) <= _relationCacheTtl) {
+      takipEdilenler.value = List<String>.from(cachedFollowings.ids);
+      hasMoreFollowing = false;
+      return;
+    }
     if (takipEdilenler.isNotEmpty) return; // tek sefer gösterim
     if (isLoadingFollowing || !hasMoreFollowing) return;
     isLoadingFollowing = true;
@@ -78,6 +105,10 @@ class SocialProfileFollowersController extends GetxController {
       lastFollowingDoc = snap.docs.last;
       takipEdilenler.addAll(snap.docs.map((val) => val.id));
     }
+    _relationCache[followingsCacheKey] = _RelationListCacheEntry(
+      ids: List<String>.from(takipEdilenler),
+      cachedAt: DateTime.now(),
+    );
 
     hasMoreFollowing = false; // başkasında yenileme/sayfalama yok
     isLoadingFollowing = false;
@@ -90,4 +121,29 @@ class SocialProfileFollowersController extends GetxController {
       curve: Curves.easeInOut,
     );
   }
+
+  void _pruneRelationCache() {
+    final now = DateTime.now();
+    _relationCache.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) > _relationCacheStaleRetention,
+    );
+    if (_relationCache.length <= _maxRelationCacheEntries) return;
+    final entries = _relationCache.entries.toList()
+      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
+    final removeCount = _relationCache.length - _maxRelationCacheEntries;
+    for (var i = 0; i < removeCount; i++) {
+      _relationCache.remove(entries[i].key);
+    }
+  }
+}
+
+class _RelationListCacheEntry {
+  final List<String> ids;
+  final DateTime cachedAt;
+
+  const _RelationListCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
 }
