@@ -34,7 +34,6 @@ import '../../Modules/Profile/SavedPosts/saved_posts_controller.dart';
 import '../../Modules/RecommendedUserList/recommended_user_list_controller.dart';
 import '../../Modules/Short/short_controller.dart';
 import '../../Modules/Story/StoryRow/story_row_controller.dart';
-import '../../Services/firebase_my_store.dart';
 import '../../Services/story_interaction_optimizer.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Services/current_user_service.dart';
@@ -325,7 +324,6 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => OfflineModeService.instance);
 
     Get.put(GlobalLoaderController());
-    Get.put(FirebaseMyStore());
     Get.put(StoryInteractionOptimizer());
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());

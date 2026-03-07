@@ -16,7 +16,6 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
@@ -67,8 +66,24 @@ class _ProfileViewState extends State<ProfileView> {
       Get.isRegistered<SocialMediaController>()
           ? Get.find<SocialMediaController>()
           : Get.put(SocialMediaController());
-  final FirebaseMyStore user = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
+
+  String get _myUserId => userService.currentUserRx.value?.userID ?? '';
+  String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
+  String get _myAvatarUrl => userService.avatarUrl;
+  String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
+  String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
+  String get _myRozet => userService.currentUserRx.value?.rozet ?? '';
+  String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';
+  String get _myBio => userService.currentUserRx.value?.bio ?? '';
+  String get _myAdres => userService.currentUserRx.value?.adres ?? '';
+  int get _myTotalPosts => userService.currentUserRx.value?.counterOfPosts ?? 0;
+  int get _myTotalLikes => userService.currentUserRx.value?.counterOfLikes ?? 0;
+  int get _myTotalMarket => 0;
+  bool get _hasMyStories =>
+      _myUserId.isNotEmpty &&
+      storyOwnerUsers.any((u) => u.userID == _myUserId && u.stories.isNotEmpty);
+
   List<StoryUserModel> get storyOwnerUsers {
     if (!Get.isRegistered<StoryRowController>()) {
       return const <StoryUserModel>[];
@@ -240,7 +255,7 @@ class _ProfileViewState extends State<ProfileView> {
                                                       isYenidenPaylasilanPost:
                                                           isReshare,
                                                       reshareUserID: isReshare
-                                                          ? user.userID.value
+                                                          ? _myUserId
                                                           : null,
                                                     ),
                                                   );
@@ -356,7 +371,7 @@ class _ProfileViewState extends State<ProfileView> {
                             aspectRatio: 1,
                             child: ClipOval(
                               child: CachedNetworkImage(
-                                imageUrl: user.avatarUrl.value,
+                                imageUrl: _myAvatarUrl,
                                 fit: BoxFit.cover,
                                 memCacheWidth: 300,
                                 memCacheHeight: 600,
@@ -912,7 +927,7 @@ class _ProfileViewState extends State<ProfileView> {
                           });
                         },
                         child: Text(
-                          user.nickname.value,
+                          _myNickname,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 20,
@@ -921,8 +936,8 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                       ),
                       4.pw,
-                      if (user.userID.value != "")
-                        RozetContent(size: 15, userID: user.userID.value),
+                      if (_myUserId.isNotEmpty)
+                        RozetContent(size: 15, userID: _myUserId),
                     ],
                   ),
                 ),
@@ -1024,7 +1039,7 @@ class _ProfileViewState extends State<ProfileView> {
                       final myUserID = FirebaseAuth.instance.currentUser!.uid;
 
                       // Kendi Story'un var mı?
-                      if (user.storyAvilable.value) {
+                      if (_hasMyStories) {
                         try {
                           // Kendi modelini güncel listede tekrar bul, referanslar karışmasın
                           final myStoryUser = storyOwnerUsers.firstWhereOrNull(
@@ -1171,7 +1186,7 @@ class _ProfileViewState extends State<ProfileView> {
           Row(
             children: [
               Text(
-                "${user.firstName.value} ${user.lastName.value}",
+                "$_myFirstName $_myLastName",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -1179,7 +1194,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
               4.pw,
-              if (user.rozet.value == "")
+              if (_myRozet.isEmpty)
                 GestureDetector(
                   onTap: () {
                     controller.pausetheall.value = true;
@@ -1207,11 +1222,11 @@ class _ProfileViewState extends State<ProfileView> {
                 )
             ],
           ),
-          if (user.meslek.value != "")
+          if (_myMeslek.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Text(
-                user.meslek.value,
+                _myMeslek,
                 style: TextStyle(
                   color: Colors.blueAccent,
                   fontSize: 15,
@@ -1219,7 +1234,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
             ),
-          if (user.bio.value != "")
+          if (_myBio.isNotEmpty)
             GestureDetector(
               onTap: () {
                 controller.pausetheall.value = true;
@@ -1231,7 +1246,7 @@ class _ProfileViewState extends State<ProfileView> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  user.bio.value,
+                  _myBio,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -1240,15 +1255,15 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
             ),
-          if (user.adres.value != "")
+          if (_myAdres.isNotEmpty)
             GestureDetector(
               onTap: () {
-                showMapsSheetWithAdres(user.adres.value);
+                showMapsSheetWithAdres(_myAdres);
               },
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  user.adres.value,
+                  _myAdres,
                   style: TextStyle(
                     color: Colors.indigo,
                     fontSize: 12,
@@ -1311,7 +1326,7 @@ class _ProfileViewState extends State<ProfileView> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      NumberFormatter.format(user.totalPosts.toInt()),
+                      NumberFormatter.format(_myTotalPosts),
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -1422,7 +1437,7 @@ class _ProfileViewState extends State<ProfileView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    NumberFormatter.format(user.totalLikes.value.toInt()),
+                    NumberFormatter.format(_myTotalLikes),
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -1456,7 +1471,7 @@ class _ProfileViewState extends State<ProfileView> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      NumberFormatter.format(user.totalMarket.toInt()),
+                      NumberFormatter.format(_myTotalMarket),
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 18,
@@ -1921,7 +1936,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   // Profil fotoğrafını hikaye durumuna göre border ile oluştur
   Widget _buildProfileImageWithBorder() {
-    final hasStories = user.storyAvilable.value;
+    final hasStories = _hasMyStories;
 
     if (hasStories) {
       // Hikaye varsa gradient border
