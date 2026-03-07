@@ -57,11 +57,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
     final Map<String, dynamic> userData =
         (scholarshipData['userData'] as Map<String, dynamic>?) ??
             <String, dynamic>{};
-    final userImage = (userData['avatarUrl'] ??
-            userData['pfImage'] ??
-            userData['photoURL'] ??
-            '')
-        .toString();
+    final userImage = (userData['avatarUrl'] ?? '').toString();
     final userNick = (userData['displayName'] ??
             userData['username'] ??
             userData['nickname'] ??

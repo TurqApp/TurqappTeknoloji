@@ -6,17 +6,17 @@ import '../../../Models/hashtag_model.dart';
 class HashtagListerController extends GetxController {
   RxList<HashtagModel> hashtags = <HashtagModel>[].obs;
 
-  
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    FirebaseFirestore.instance.collection("HashTags")
-    .orderBy("counter", descending: true)
-    .limit(20)
-    .get()
-    .then((snap){
-      for (var doc in snap.docs){
+    FirebaseFirestore.instance
+        .collection("HashTags")
+        .orderBy("counter", descending: true)
+        .limit(20)
+        .get()
+        .then((snap) {
+      for (var doc in snap.docs) {
         hashtags.add(HashtagModel(hashtag: doc.id, count: doc.get("counter")));
       }
     });

@@ -8,10 +8,8 @@ import '../formatters.dart';
 class PostServiceExternal {
   /// Gönderinin görüntülenme sayısını döner
   static Future<int> calculateSeenCount(String postID) async {
-    final doc = await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(postID)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance.collection("Posts").doc(postID).get();
     final data = doc.data();
     if (data == null) return 0;
     final stats = data['stats'] as Map<String, dynamic>? ?? {};
@@ -21,7 +19,6 @@ class PostServiceExternal {
     return 0;
   }
 }
-
 
 class SeenCountLabel extends StatelessWidget {
   final String postID;
@@ -48,9 +45,10 @@ class SeenCountLabel extends StatelessWidget {
             fontFamily: "MontserratBold",
             shadows: [
               Shadow(
-                offset: Offset(1, 1),           // Gölgenin kayma mesafesi
-                blurRadius: 2,                  // Gölgenin yayılma miktarı
-                color: Colors.black.withValues(alpha: 0.6), // Yarı saydam siyah gölge
+                offset: Offset(1, 1), // Gölgenin kayma mesafesi
+                blurRadius: 2, // Gölgenin yayılma miktarı
+                color: Colors.black
+                    .withValues(alpha: 0.6), // Yarı saydam siyah gölge
               ),
             ],
           ),

@@ -183,9 +183,8 @@ class UploadProgressWidget extends StatelessWidget {
               controller.status.value,
               style: TextStyle(
                 fontSize: 14,
-                color: controller.hasError.value
-                  ? Colors.red
-                  : Colors.grey[700],
+                color:
+                    controller.hasError.value ? Colors.red : Colors.grey[700],
               ),
               textAlign: TextAlign.center,
             ),
@@ -322,20 +321,20 @@ class StepProgressIndicator extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isActive
-                  ? (activeColor ?? Theme.of(context).primaryColor)
-                  : (inactiveColor ?? Colors.grey[300]),
+                    ? (activeColor ?? Theme.of(context).primaryColor)
+                    : (inactiveColor ?? Colors.grey[300]),
               ),
               child: Center(
                 child: isCompleted
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : Text(
-                      '${index + 1}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isActive ? Colors.white : Colors.grey[600],
-                        fontWeight: FontWeight.bold,
+                    ? const Icon(Icons.check, size: 12, color: Colors.white)
+                    : Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isActive ? Colors.white : Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
               ),
             ),
             const SizedBox(width: 12),

@@ -18,7 +18,7 @@ class AnswerKeyContentController extends GetxController {
   final Function(bool) onUpdate;
 
   final isBookmarked = false.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final secim = ''.obs;
 
@@ -53,14 +53,14 @@ class AnswerKeyContentController extends GetxController {
           .doc(model.userID)
           .get();
       final data = doc.data() ?? const <String, dynamic>{};
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
       log(
         "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",

@@ -37,13 +37,12 @@ class AddTestQuestionController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(testID)
-              .collection("Sorular")
-              .orderBy("id", descending: true)
-              .get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Testler")
+          .doc(testID)
+          .collection("Sorular")
+          .orderBy("id", descending: true)
+          .get();
 
       soruList.clear();
       for (var doc in snapshot.docs) {
@@ -94,12 +93,12 @@ class AddTestQuestionController extends GetxController {
           .collection("Sorular")
           .doc(soruList[index].docID)
           .set({
-            "img": downloadUrl,
-            "id": soruList[index].id,
-            "dogruCevap": soruList[index].dogruCevap,
-            "yanitlayanlar": [],
-            "max": 5,
-          }, SetOptions(merge: true));
+        "img": downloadUrl,
+        "id": soruList[index].id,
+        "dogruCevap": soruList[index].dogruCevap,
+        "yanitlayanlar": [],
+        "max": 5,
+      }, SetOptions(merge: true));
 
       soruList[index] = TestReadinessModel(
         id: soruList[index].id,

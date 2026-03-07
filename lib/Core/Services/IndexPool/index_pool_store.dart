@@ -184,7 +184,7 @@ class IndexPoolStore {
         postData: post.toMap(),
         userID: post.userID,
         nickname: (user['nickname'] ?? '').toString(),
-        avatarUrl: (user['pfImage'] ?? '').toString(),
+        avatarUrl: (user['avatarUrl'] ?? '').toString(),
         caption: post.metin,
         updatedAt: now,
       );

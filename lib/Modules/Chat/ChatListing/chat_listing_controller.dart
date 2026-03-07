@@ -294,9 +294,9 @@ class ChatListingController extends GetxController {
             .toString(),
         fullName: "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}"
             .trim(),
-        pfImage: (userData["avatarUrl"] ??
-                userData["pfImage"] ??
-                userData["photoURL"] ??
+        avatarUrl: (userData["avatarUrl"] ??
+                userData["avatarUrl"] ??
+                userData["avatarUrl"] ??
                 "")
             .toString(),
         lastMessage: data["lastMessage"] ?? "",

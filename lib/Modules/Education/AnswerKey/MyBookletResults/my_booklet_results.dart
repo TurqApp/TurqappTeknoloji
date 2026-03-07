@@ -146,7 +146,8 @@ class MyBookletResults extends StatelessWidget {
                                       child: Container(
                                         alignment: Alignment.centerLeft,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withValues(alpha: 0.1),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.1),
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(20),

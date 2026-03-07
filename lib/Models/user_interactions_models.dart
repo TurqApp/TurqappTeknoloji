@@ -92,7 +92,8 @@ class UserResharedPostModel {
   String postDocID;
   num timeStamp;
   String? originalUserID; // Orijinal post sahibi
-  String? originalPostID; // Orijinal post ID'si (eğer bu post zaten bir reshare ise)
+  String?
+      originalPostID; // Orijinal post ID'si (eğer bu post zaten bir reshare ise)
 
   UserResharedPostModel({
     required this.postDocID,

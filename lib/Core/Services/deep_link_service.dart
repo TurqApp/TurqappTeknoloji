@@ -34,13 +34,17 @@ class DeepLinkService extends GetxService {
     _started = true;
     initialLinkResolved.value = false;
 
-    _appLinks.getInitialLink().then((initial) async {
-      if (initial != null) {
-        await _handle(initial);
-      }
-    }).catchError((_) {}).whenComplete(() {
-      initialLinkResolved.value = true;
-    });
+    _appLinks
+        .getInitialLink()
+        .then((initial) async {
+          if (initial != null) {
+            await _handle(initial);
+          }
+        })
+        .catchError((_) {})
+        .whenComplete(() {
+          initialLinkResolved.value = true;
+        });
 
     _subscription = _appLinks.uriLinkStream.listen(
       (uri) => unawaited(_handle(uri)),
@@ -295,7 +299,7 @@ class DeepLinkService extends GetxService {
     final userData = userSnap.data() as Map<String, dynamic>;
     final user = StoryUserModel(
       nickname: (userData['nickname'] ?? '').toString(),
-      pfImage: (userData['pfImage'] ?? '').toString(),
+      avatarUrl: (userData['avatarUrl'] ?? '').toString(),
       fullName:
           '${(userData['firstName'] ?? '').toString()} ${(userData['lastName'] ?? '').toString()}'
               .trim(),

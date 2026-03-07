@@ -72,11 +72,11 @@ class AppSpacing {
   static const double massive = 64.0;
 
   // Named aliases
-  static const double screenPadding = lg;       // Ekran kenar boşluğu
-  static const double cardPadding = md;         // Kart iç boşluk
-  static const double itemSpacing = sm;         // Liste item arası
-  static const double sectionSpacing = xxl;     // Bölüm arası
-  static const double avatarGap = sm;           // Avatar → isim arası
+  static const double screenPadding = lg; // Ekran kenar boşluğu
+  static const double cardPadding = md; // Kart iç boşluk
+  static const double itemSpacing = sm; // Liste item arası
+  static const double sectionSpacing = xxl; // Bölüm arası
+  static const double avatarGap = sm; // Avatar → isim arası
 }
 
 // ─────────────────────────────────────────────────────────────────

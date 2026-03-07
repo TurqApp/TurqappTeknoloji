@@ -15,10 +15,8 @@ class FindingJobApplyController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("CV")
-          .doc(uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection("CV").doc(uid).get();
       cvVar.value = doc.exists;
       if (doc.exists) {
         final data = doc.data() ?? {};

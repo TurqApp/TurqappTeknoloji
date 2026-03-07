@@ -235,7 +235,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                                 width: 35,
                                 height: 35,
                                 child: Obx(
-                                  () => controller.pfImage.value != ""
+                                  () => controller.avatarUrl.value != ""
                                       ? GestureDetector(
                                           onTap: () {
                                             if (widget.model.userID !=
@@ -249,7 +249,8 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                                             }
                                           },
                                           child: CachedNetworkImage(
-                                            imageUrl: controller.pfImage.value,
+                                            imageUrl:
+                                                controller.avatarUrl.value,
                                             fit: BoxFit.cover,
                                             memCacheHeight: 100,
                                           ),
@@ -313,7 +314,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                             if (!controller.takipEdiyorum.value &&
                                 widget.model.userID !=
                                     FirebaseAuth.instance.currentUser!.uid &&
-                                controller.pfImage.value != "")
+                                controller.avatarUrl.value != "")
                               Transform.translate(
                                 offset: Offset(15, 0),
                                 child: Obx(() {

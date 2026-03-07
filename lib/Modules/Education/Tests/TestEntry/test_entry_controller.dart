@@ -39,11 +39,10 @@ class TestEntryController extends GetxController {
   Future<void> getTests(String testID) async {
     isLoading.value = true;
     try {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(testID)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection("Testler")
+          .doc(testID)
+          .get();
       if (doc.exists) {
         final data = doc.data()!;
         model.value = TestsModel(

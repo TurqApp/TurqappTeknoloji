@@ -235,9 +235,9 @@ class _PostCommentsState extends State<PostComments> {
               child: SizedBox(
                 width: 28,
                 height: 28,
-                child: user.pfImage.value.isNotEmpty
+                child: user.avatarUrl.value.isNotEmpty
                     ? CachedNetworkImage(
-                        imageUrl: user.pfImage.value,
+                        imageUrl: user.avatarUrl.value,
                         fit: BoxFit.cover,
                       )
                     : const Icon(

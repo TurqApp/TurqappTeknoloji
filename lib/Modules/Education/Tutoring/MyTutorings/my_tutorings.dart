@@ -30,8 +30,7 @@ class MyTutorings extends StatelessWidget {
       tag: "MyTutorings",
     );
 
-    final MyTutoringsController controller =
-        Get.find<MyTutoringsController>();
+    final MyTutoringsController controller = Get.find<MyTutoringsController>();
 
     return FutureBuilder(
       future: _initializeData(),

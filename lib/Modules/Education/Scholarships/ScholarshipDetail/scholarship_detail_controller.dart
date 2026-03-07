@@ -73,22 +73,18 @@ class ScholarshipDetailController extends GetxController {
         final motherLiving =
             userString(data, key: 'motherLiving', scope: 'family');
 
-        bool isPersonalInfoComplete =
-            userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&
-                userString(data, key: 'nufusSehir', scope: 'profile')
-                    .isNotEmpty &&
-                userString(data, key: 'nufusIlce', scope: 'profile')
-                    .isNotEmpty &&
-                userString(data, key: 'dogumTarihi', scope: 'profile')
-                    .isNotEmpty &&
-                userString(data, key: 'medeniHal', scope: 'profile')
-                    .isNotEmpty &&
-                userString(data, key: 'cinsiyet', scope: 'profile') !=
-                    "Seçim Yap" &&
-                userString(data, key: 'engelliRaporu', scope: 'family')
-                    .isNotEmpty &&
-                userString(data, key: 'calismaDurumu', scope: 'profile')
-                    .isNotEmpty;
+        bool isPersonalInfoComplete = userString(data,
+                    key: 'ulke', scope: 'profile')
+                .isNotEmpty &&
+            userString(data, key: 'nufusSehir', scope: 'profile').isNotEmpty &&
+            userString(data, key: 'nufusIlce', scope: 'profile').isNotEmpty &&
+            userString(data, key: 'dogumTarihi', scope: 'profile').isNotEmpty &&
+            userString(data, key: 'medeniHal', scope: 'profile').isNotEmpty &&
+            userString(data, key: 'cinsiyet', scope: 'profile') !=
+                "Seçim Yap" &&
+            userString(data, key: 'engelliRaporu', scope: 'family')
+                .isNotEmpty &&
+            userString(data, key: 'calismaDurumu', scope: 'profile').isNotEmpty;
 
         bool isEducationInfoComplete = educationLevel.isNotEmpty &&
             userString(data, key: 'ulke', scope: 'profile').isNotEmpty &&

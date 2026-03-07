@@ -176,7 +176,8 @@ class NotificationService {
 
   Future<ByteArrayAndroidBitmap?> _fetchImageBitmap(String url) async {
     try {
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         return ByteArrayAndroidBitmap(response.bodyBytes);
       }

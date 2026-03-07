@@ -69,7 +69,10 @@ class ErrorReportWidget extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [statusColor.withValues(alpha: 0.1), statusColor.withValues(alpha: 0.05)],
+            colors: [
+              statusColor.withValues(alpha: 0.1),
+              statusColor.withValues(alpha: 0.05)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -192,7 +195,8 @@ class ErrorReportWidget extends StatelessWidget {
     });
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -312,7 +316,8 @@ class ErrorReportWidget extends StatelessWidget {
                 _buildDetailRow('Hata Kodu', error.code),
                 _buildDetailRow('Kategori', error.category.label),
                 _buildDetailRow('Önem Derecesi', error.severity.label),
-                _buildDetailRow('Tekrarlanabilir', error.isRetryable ? 'Evet' : 'Hayır'),
+                _buildDetailRow(
+                    'Tekrarlanabilir', error.isRetryable ? 'Evet' : 'Hayır'),
                 if (error.metadata.isNotEmpty)
                   _buildDetailRow('Metadata', error.metadata.toString()),
                 if (error.stackTrace != null) ...[

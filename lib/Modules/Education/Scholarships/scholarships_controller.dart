@@ -160,7 +160,7 @@ class ScholarshipsController extends GetxController {
         if (existingIds.contains(d.id)) continue;
         final data = d.data();
         final userData = {
-          'pfImage': userMap['pfImage'] as String? ?? '',
+          'avatarUrl': userMap['avatarUrl'] as String? ?? '',
           'nickname': userMap['nickname'] as String? ?? '',
           'userID': userId,
           'meslekKategori': userMap['meslekKategori'] as String? ?? '',
@@ -485,20 +485,16 @@ class ScholarshipsController extends GetxController {
     DocumentSnapshot? userDoc,
   ) {
     if (userId.isEmpty || userDoc == null || !userDoc.exists) {
-      return {'pfImage': '', 'nickname': '', 'userID': userId};
+      return {'avatarUrl': '', 'nickname': '', 'userID': userId};
     }
     final data = userDoc.data() as Map<String, dynamic>? ?? {};
     final profileName =
         (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
             .toString();
-    final profileImage = (data['avatarUrl'] ??
-            data['pfImage'] ??
-            data['photoURL'] ??
-            data['profileImageUrl'] ??
-            '')
-        .toString();
+    final profileImage =
+        (  data['avatarUrl'] ?? '')
+            .toString();
     return {
-      'pfImage': profileImage,
       'avatarUrl': profileImage,
       'nickname': profileName,
       'displayName': profileName,

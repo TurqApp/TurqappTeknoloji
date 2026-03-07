@@ -92,9 +92,8 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
     if (!a.value.isPlaying) return;
 
     final durationMs = a.value.duration.inMilliseconds;
-    final loopCutoff = durationMs > 0
-        ? durationMs.clamp(700, _previewLoopMs)
-        : _previewLoopMs;
+    final loopCutoff =
+        durationMs > 0 ? durationMs.clamp(700, _previewLoopMs) : _previewLoopMs;
 
     // Preview'de sadece ilk segment döngüsü (yaklaşık 2 sn)
     if (a.value.position.inMilliseconds >= loopCutoff) {

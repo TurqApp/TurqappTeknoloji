@@ -28,10 +28,9 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
 
     RxList<String> filteredItems = <String>[].obs;
     void updateFilteredItems() {
-      final baseItems =
-          (relatedItems != null && parentSelection != null)
-              ? relatedItems![parentSelection!] ?? items
-              : items;
+      final baseItems = (relatedItems != null && parentSelection != null)
+          ? relatedItems![parentSelection!] ?? items
+          : items;
       if (searchQuery.value.isEmpty) {
         filteredItems.assignAll(baseItems);
       } else {
@@ -39,8 +38,8 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
           baseItems
               .where(
                 (item) => item.toLowerCase().contains(
-                  searchQuery.value.toLowerCase(),
-                ),
+                      searchQuery.value.toLowerCase(),
+                    ),
               )
               .toList(),
         );
@@ -91,16 +90,15 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
                   vertical: 12,
                 ),
                 suffixIcon: Obx(
-                  () =>
-                      searchQuery.value.isNotEmpty
-                          ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.grey),
-                            onPressed: () {
-                              searchController.clear();
-                              searchQuery.value = '';
-                            },
-                          )
-                          : const SizedBox.shrink(),
+                  () => searchQuery.value.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            searchController.clear();
+                            searchQuery.value = '';
+                          },
+                        )
+                      : const SizedBox.shrink(),
                 ),
               ),
               onChanged: (value) {
@@ -111,84 +109,82 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
           const SizedBox(height: 12),
           Expanded(
             child: Obx(
-              () =>
-                  filteredItems.isEmpty
-                      ? const Center(
-                        child: Text(
-                          'Sonuç bulunamadı',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                      : ListView.builder(
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredItems[index];
-                          return GestureDetector(
-                            onTap: () {
-                              if (item == 'Tüm Üniversiteler') {
-                                if (tempSelectedItems.contains(item)) {
-                                  tempSelectedItems.clear();
-                                } else {
-                                  tempSelectedItems.assignAll([item]);
-                                }
-                              } else {
-                                if (tempSelectedItems.contains(
-                                  'Tüm Üniversiteler',
-                                )) {
-                                  tempSelectedItems.remove('Tüm Üniversiteler');
-                                }
-                                if (tempSelectedItems.contains(item)) {
-                                  tempSelectedItems.remove(item);
-                                } else {
-                                  tempSelectedItems.add(item);
-                                }
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
-                              color: Colors.transparent,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item,
-                                          style: TextStyles.textFieldTitle
-                                              .copyWith(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                      Obx(
-                                        () => Icon(
-                                          tempSelectedItems.contains(item)
-                                              ? Icons.check_circle
-                                              : Icons.radio_button_unchecked,
-                                          color:
-                                              tempSelectedItems.contains(item)
-                                                  ? Colors.green
-                                                  : Colors.grey,
-                                          size: 21,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (index < filteredItems.length - 1)
-                                    Divider(
-                                      color: Colors.grey.withAlpha(50),
-                                      thickness: 1,
-                                      height: 6,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+              () => filteredItems.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Sonuç bulunamadı',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        return GestureDetector(
+                          onTap: () {
+                            if (item == 'Tüm Üniversiteler') {
+                              if (tempSelectedItems.contains(item)) {
+                                tempSelectedItems.clear();
+                              } else {
+                                tempSelectedItems.assignAll([item]);
+                              }
+                            } else {
+                              if (tempSelectedItems.contains(
+                                'Tüm Üniversiteler',
+                              )) {
+                                tempSelectedItems.remove('Tüm Üniversiteler');
+                              }
+                              if (tempSelectedItems.contains(item)) {
+                                tempSelectedItems.remove(item);
+                              } else {
+                                tempSelectedItems.add(item);
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            color: Colors.transparent,
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item,
+                                        style:
+                                            TextStyles.textFieldTitle.copyWith(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Obx(
+                                      () => Icon(
+                                        tempSelectedItems.contains(item)
+                                            ? Icons.check_circle
+                                            : Icons.radio_button_unchecked,
+                                        color: tempSelectedItems.contains(item)
+                                            ? Colors.green
+                                            : Colors.grey,
+                                        size: 21,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (index < filteredItems.length - 1)
+                                  Divider(
+                                    color: Colors.grey.withAlpha(50),
+                                    thickness: 1,
+                                    height: 6,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ),
           const SizedBox(height: 16),

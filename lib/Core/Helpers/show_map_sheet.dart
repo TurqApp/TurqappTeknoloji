@@ -12,9 +12,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24)
-          ),
+              topLeft: Radius.circular(24), topRight: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(15),
         child: Column(
@@ -72,8 +70,8 @@ Future<void> showMapsSheetWithAdres(String adres) async {
             if (Platform.isIOS)
               GestureDetector(
                 onTap: () async {
-                  final url = Uri.parse(
-                      "http://maps.apple.com/?q=$encodedAdres");
+                  final url =
+                      Uri.parse("http://maps.apple.com/?q=$encodedAdres");
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   }
@@ -107,12 +105,14 @@ Future<void> showMapsSheetWithAdres(String adres) async {
               onTap: () async {
                 final yandexAppUrl = Uri.parse(
                     "yandexmaps://maps.yandex.ru/?text=$encodedAdres");
-                final yandexWebUrl = Uri.parse(
-                    "https://yandex.com/maps/?text=$encodedAdres");
+                final yandexWebUrl =
+                    Uri.parse("https://yandex.com/maps/?text=$encodedAdres");
                 if (await canLaunchUrl(yandexAppUrl)) {
-                  await launchUrl(yandexAppUrl, mode: LaunchMode.externalApplication);
+                  await launchUrl(yandexAppUrl,
+                      mode: LaunchMode.externalApplication);
                 } else if (await canLaunchUrl(yandexWebUrl)) {
-                  await launchUrl(yandexWebUrl, mode: LaunchMode.externalApplication);
+                  await launchUrl(yandexWebUrl,
+                      mode: LaunchMode.externalApplication);
                 }
                 Get.back();
               },

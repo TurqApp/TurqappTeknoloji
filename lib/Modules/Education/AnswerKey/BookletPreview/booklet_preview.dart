@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -166,9 +167,9 @@ class BookletPreview extends StatelessWidget {
               child: SizedBox(
                 width: 40,
                 height: 40,
-                child: controller.pfImage.value.isNotEmpty
+                child: controller.avatarUrl.value.isNotEmpty
                     ? Image.network(
-                        controller.pfImage.value,
+                        controller.avatarUrl.value,
                         fit: BoxFit.cover,
                       )
                     : const CupertinoActivityIndicator(),
@@ -179,21 +180,26 @@ class BookletPreview extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    controller.fullName.value,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  Text(
-                    "@${controller.nickname.value}",
-                    style: const TextStyle(
-                      color: Colors.pink,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          controller.nickname.value.isEmpty
+                              ? ''
+                              : controller.nickname.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontFamily: "MontserratBold",
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      RozetContent(size: 14, userID: controller.model.userID),
+                    ],
                   ),
                 ],
               ),

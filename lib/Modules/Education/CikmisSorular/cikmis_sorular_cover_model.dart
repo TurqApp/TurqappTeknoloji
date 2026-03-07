@@ -1,5 +1,4 @@
-
-class CikmisSorularCoverModel{
+class CikmisSorularCoverModel {
   String anaBaslik;
   String sinavTuru;
   String docID;
@@ -8,7 +7,7 @@ class CikmisSorularCoverModel{
     required this.anaBaslik,
     required this.docID,
     required this.sinavTuru,
-});
+  });
 }
 
 class CikmisSorularinModeli {
@@ -21,12 +20,13 @@ class CikmisSorularinModeli {
 
   CikmisSorularinModeli(
       {required this.ders,
-        required this.dogruCevap,
-        required this.soru,
-        required this.kacCevap,
-        required this.docID,
-        required this.soruNo});
+      required this.dogruCevap,
+      required this.soru,
+      required this.kacCevap,
+      required this.docID,
+      required this.soruNo});
 }
+
 class SoruBankasiModel {
   String soru;
   String ders;

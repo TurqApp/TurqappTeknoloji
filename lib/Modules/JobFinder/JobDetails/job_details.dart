@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,7 +10,9 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/functions.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details_controller.dart';
@@ -36,8 +37,11 @@ class JobDetails extends StatelessWidget {
 
   Widget _buildLocationPreview(BuildContext context) {
     final hasLocation = _hasValidCoordinates(controller.model.value);
-    final canUseNativeMap =
-        hasLocation && defaultTargetPlatform != TargetPlatform.iOS;
+    final canUseNativeMap = hasLocation;
+    final location = LatLng(
+      controller.model.value.lat,
+      controller.model.value.long,
+    );
 
     return Stack(
       alignment: Alignment.center,
@@ -60,12 +64,15 @@ class JobDetails extends StatelessWidget {
                   ? AbsorbPointer(
                       child: GoogleMap(
                         initialCameraPosition: CameraPosition(
-                          target: LatLng(
-                            controller.model.value.lat,
-                            controller.model.value.long,
-                          ),
+                          target: location,
                           zoom: 14,
                         ),
+                        markers: {
+                          Marker(
+                            markerId: const MarkerId('job_location'),
+                            position: location,
+                          ),
+                        },
                         zoomControlsEnabled: false,
                         myLocationButtonEnabled: false,
                         scrollGesturesEnabled: false,
@@ -511,42 +518,51 @@ class JobDetails extends StatelessWidget {
                                       child: SizedBox(
                                         width: 50,
                                         height: 50,
-                                        child: controller.pfImage.value != ""
-                                            ? CachedNetworkImage(
-                                                imageUrl:
-                                                    controller.pfImage.value,
-                                                fit: BoxFit.cover)
-                                            : Center(
-                                                child:
-                                                    CupertinoActivityIndicator(
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
+                                        child: CachedNetworkImage(
+                                          imageUrl: controller.avatarUrl.value
+                                                  .trim()
+                                                  .isNotEmpty
+                                              ? controller.avatarUrl.value
+                                                  .trim()
+                                              : kDefaultAvatarUrl,
+                                          fit: BoxFit.cover,
+                                          errorWidget: (context, url, error) =>
+                                              const Icon(
+                                            CupertinoIcons.person_fill,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     SizedBox(
                                       width: 12,
                                     ),
                                     Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            controller.fullname.value,
-                                            style: TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 15,
-                                                fontFamily: "MontserratMedium"),
-                                          ),
-                                          Text(
-                                            "Profili Görüntüle",
-                                            style: TextStyle(
-                                                color: Colors.blueAccent,
-                                                fontSize: 15,
-                                                fontFamily: "Montserrat"),
-                                          ),
-                                        ],
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                controller.nickname.value,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontSize: 15,
+                                                    fontFamily:
+                                                        "MontserratMedium"),
+                                              ),
+                                            ),
+                                            SizedBox(width: 4),
+                                            RozetContent(
+                                              size: 14,
+                                              userID:
+                                                  controller.model.value.userID,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                     SizedBox(

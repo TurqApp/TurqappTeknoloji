@@ -119,14 +119,16 @@ class JobSelector extends StatelessWidget {
                                   height: 20,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color:
-                                        isSelected ? Colors.black : Colors.white,
+                                    color: isSelected
+                                        ? Colors.black
+                                        : Colors.white,
                                     borderRadius: const BorderRadius.all(
                                       Radius.circular(15),
                                     ),
                                     border: Border.all(
-                                      color:
-                                          isSelected ? Colors.black : Colors.grey,
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.grey,
                                     ),
                                   ),
                                   child: isSelected

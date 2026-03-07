@@ -42,7 +42,7 @@ class DenemeSinavlariController extends GetxController {
       }
 
       if (scrollController.position.pixels >=
-          scrollController.position.maxScrollExtent - 200 &&
+              scrollController.position.maxScrollExtent - 200 &&
           !isLoadingMore.value &&
           hasMore.value) {
         loadMore();

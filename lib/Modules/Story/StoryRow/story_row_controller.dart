@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import '../../../Core/Services/performance_service.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
@@ -37,6 +38,61 @@ class StoryRowController extends GetxController {
     return '';
   }
 
+  String _resolveAvatar(Map<String, dynamic> data) {
+    final profile = (data['profile'] is Map)
+        ? Map<String, dynamic>.from(data['profile'] as Map)
+        : const <String, dynamic>{};
+    return resolveAvatarUrl(data, profile: profile);
+  }
+
+  bool _needsProfileInfoHydration(Map<String, dynamic> data) {
+    final avatar = _resolveAvatar(data).trim();
+    final nick = _resolveStoryNickname(data).trim();
+    final firstName = (data['firstName'] ?? '').toString().trim();
+    final lastName = (data['lastName'] ?? '').toString().trim();
+    return avatar.isEmpty ||
+        nick.isEmpty ||
+        (firstName.isEmpty && lastName.isEmpty);
+  }
+
+  Future<Map<String, dynamic>> _hydrateFromProfileInfoIfNeeded(
+    String uid,
+    Map<String, dynamic> base,
+  ) async {
+    if (!_needsProfileInfoHydration(base)) return base;
+    try {
+      final infoDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('profile')
+          .doc('info')
+          .get();
+      if (!infoDoc.exists) return base;
+      final info = infoDoc.data() ?? const <String, dynamic>{};
+      final merged = Map<String, dynamic>.from(base);
+      for (final key in const <String>[
+        'avatarUrl',
+        'avatarUrl',
+        'avatarUrl',
+        'avatarUrl',
+        'nickname',
+        'username',
+        'usernameLower',
+        'firstName',
+        'lastName',
+      ]) {
+        final current = (merged[key] ?? '').toString().trim();
+        final incoming = (info[key] ?? '').toString().trim();
+        if (current.isEmpty && incoming.isNotEmpty) {
+          merged[key] = incoming;
+        }
+      }
+      return merged;
+    } catch (_) {
+      return base;
+    }
+  }
+
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
@@ -53,6 +109,8 @@ class StoryRowController extends GetxController {
     super.onInit();
     unawaited(_initMiniCache());
     unawaited(_loadStoriesFromMiniCache());
+    // Ensure profile changes (nickname/avatar) are reflected quickly.
+    unawaited(loadStories(silentLoad: true));
     // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
     _bindFollowingListener();
     // Arka planda tam listeyi genişlet (düşük öncelik)
@@ -66,13 +124,13 @@ class StoryRowController extends GetxController {
       if (myUid != null) {
         final data = await _userCache.getProfile(
           myUid,
-          preferCache: true,
+          preferCache: false,
           cacheOnly: !ContentPolicy.isConnected,
         );
         if (data != null) {
           final myUser = StoryUserModel(
             nickname: _resolveStoryNickname(data),
-            pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
+            avatarUrl: _resolveAvatar(data),
             fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
             userID: myUid,
             stories: [], // Boş hikayelerle başla
@@ -194,7 +252,7 @@ class StoryRowController extends GetxController {
       Map<String, Map<String, dynamic>> userDataMap = {};
       userDataMap = await _userCache.getProfiles(
         userIds,
-        preferCache: true,
+        preferCache: false,
         cacheOnly: !ContentPolicy.isConnected,
       );
 
@@ -214,8 +272,10 @@ class StoryRowController extends GetxController {
         // Newest-to-oldest within a user's stories
         final stories = [...entry.value]
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        final data = userDataMap[userId];
-        if (data == null) continue;
+        final rawData = userDataMap[userId];
+        if (rawData == null) continue;
+        final data = await _hydrateFromProfileInfoIfNeeded(
+            userId, Map<String, dynamic>.from(rawData));
 
         // Gizlilik filtresi: gizli hesapsa sadece ben veya takip ettiğim kullanıcılar
         final isPrivate = (data['isPrivate'] ?? false) == true;
@@ -237,7 +297,7 @@ class StoryRowController extends GetxController {
         }
         final userModel = StoryUserModel(
           nickname: _resolveStoryNickname(data),
-          pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
+          avatarUrl: _resolveAvatar(data),
           fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
           userID: userId,
           stories: stories,
@@ -260,13 +320,13 @@ class StoryRowController extends GetxController {
         if (myStoryUser == null) {
           final data = await _userCache.getProfile(
             myUid,
-            preferCache: true,
+            preferCache: false,
             cacheOnly: !ContentPolicy.isConnected,
           );
           if (data != null) {
             myStoryUser = StoryUserModel(
               nickname: _resolveStoryNickname(data),
-              pfImage: data['avatarUrl'] ?? data['pfImage'] ?? "",
+              avatarUrl: _resolveAvatar(data),
               fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
               userID: myUid,
               stories: [], // Burada boş!

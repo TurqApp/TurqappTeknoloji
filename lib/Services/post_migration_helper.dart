@@ -35,7 +35,8 @@ class PostMigrationHelper {
 
           batch.set(savedRef, {
             'userID': userId,
-            'timestamp': DateTime.now().millisecondsSinceEpoch, // Geçmiş tarih verileri yok
+            'timestamp': DateTime.now()
+                .millisecondsSinceEpoch, // Geçmiş tarih verileri yok
           });
         }
 
@@ -143,10 +144,10 @@ class PostMigrationHelper {
 
       // Batch arası bekleme
       await Future.delayed(Duration(seconds: 1));
-
     } while (true);
 
-    print('Migration completed. Total Migrated: $totalMigrated, Total Failed: $totalFailed');
+    print(
+        'Migration completed. Total Migrated: $totalMigrated, Total Failed: $totalFailed');
   }
 
   /// Belirli kullanıcının postlarını migrate et

@@ -15,8 +15,9 @@ Map<String, dynamic> buildInitialUserDocument({
   final normalizedPhone = phoneNumber.trim();
   final normalizedFirstName = firstName.trim();
   final normalizedLastName = lastName.trim();
-  final normalizedDisplayName =
-      [normalizedFirstName, normalizedLastName].where((e) => e.isNotEmpty).join(' ');
+  final normalizedDisplayName = [normalizedFirstName, normalizedLastName]
+      .where((e) => e.isNotEmpty)
+      .join(' ');
   final nowMs = DateTime.now().millisecondsSinceEpoch;
 
   return <String, dynamic>{

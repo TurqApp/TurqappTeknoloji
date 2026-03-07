@@ -142,8 +142,8 @@ class _CikmisSorularBaslik3SecimiState
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.black45,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -156,8 +156,8 @@ class _CikmisSorularBaslik3SecimiState
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(

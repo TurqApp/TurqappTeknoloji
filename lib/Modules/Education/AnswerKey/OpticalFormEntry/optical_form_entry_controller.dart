@@ -12,7 +12,7 @@ class OpticalFormEntryController extends GetxController {
   final searchText = ''.obs; // Reactive search text
   final model = Rx<OpticalFormModel?>(null);
   final fullName = ''.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = ''.obs;
 
   @override
   void onInit() {
@@ -75,15 +75,15 @@ class OpticalFormEntryController extends GetxController {
     final data = doc.data() ?? const <String, dynamic>{};
     final firstName = (data["firstName"] ?? "").toString();
     final lastName = (data["lastName"] ?? "").toString();
-    final pfImage = (data["avatarUrl"] ??
-            data["pfImage"] ??
-            data["photoURL"] ??
-            data["profileImageUrl"] ??
+    final avatarUrl = (data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
             "")
         .toString();
 
     fullName.value = "$firstName $lastName";
-    this.pfImage.value = pfImage;
+    this.avatarUrl.value = avatarUrl;
   }
 
   Future<void> showAlert() async {

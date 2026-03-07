@@ -50,8 +50,7 @@ class MyTutoringApplications extends StatelessWidget {
     );
   }
 
-  Widget _applicationCard(
-      TutoringApplicationModel app, BuildContext context) {
+  Widget _applicationCard(TutoringApplicationModel app, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
       child: Container(
@@ -129,8 +128,7 @@ class MyTutoringApplications extends StatelessWidget {
             ),
             if (app.status == 'pending')
               IconButton(
-                onPressed: () =>
-                    _showCancelDialog(app.tutoringDocID, context),
+                onPressed: () => _showCancelDialog(app.tutoringDocID, context),
                 icon: const Icon(CupertinoIcons.xmark_circle,
                     color: Colors.red, size: 22),
                 padding: EdgeInsets.zero,
@@ -190,12 +188,10 @@ class MyTutoringApplications extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         title: const Text("Başvuruyu İptal Et",
-            style:
-                TextStyle(fontFamily: "MontserratBold", fontSize: 16)),
+            style: TextStyle(fontFamily: "MontserratBold", fontSize: 16)),
         content: const Text(
             "Bu başvuruyu iptal etmek istediğinize emin misiniz?",
-            style: TextStyle(
-                fontFamily: "MontserratMedium", fontSize: 14)),
+            style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14)),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
@@ -208,8 +204,8 @@ class MyTutoringApplications extends StatelessWidget {
               controller.cancelApplication(tutoringDocID);
             },
             child: const Text("İptal Et",
-                style: TextStyle(
-                    color: Colors.red, fontFamily: "MontserratBold")),
+                style:
+                    TextStyle(color: Colors.red, fontFamily: "MontserratBold")),
           ),
         ],
       ),

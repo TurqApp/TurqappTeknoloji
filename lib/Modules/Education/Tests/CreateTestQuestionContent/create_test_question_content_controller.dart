@@ -80,12 +80,12 @@ class CreateTestQuestionContentController extends GetxController {
           .collection("Sorular")
           .doc(model.docID)
           .set({
-            "img": downloadUrl,
-            "id": model.id,
-            "dogruCevap": model.dogruCevap,
-            "yanitlayanlar": [],
-            "max": model.max,
-          }, SetOptions(merge: true));
+        "img": downloadUrl,
+        "id": model.id,
+        "dogruCevap": model.dogruCevap,
+        "yanitlayanlar": [],
+        "max": model.max,
+      }, SetOptions(merge: true));
 
       model.img = downloadUrl;
       selectedImage.value = null;

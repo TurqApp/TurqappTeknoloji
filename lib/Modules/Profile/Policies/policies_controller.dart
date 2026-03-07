@@ -14,8 +14,11 @@ class PoliciesController extends GetxController {
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    FirebaseFirestore.instance.collection('Yönetim').doc("Policies").get()
-    .then((doc){
+    FirebaseFirestore.instance
+        .collection('Yönetim')
+        .doc("Policies")
+        .get()
+        .then((doc) {
       privacyPolicy.value = doc.get("privacy");
       eula.value = doc.get("eula");
       ad.value = doc.get("ad");

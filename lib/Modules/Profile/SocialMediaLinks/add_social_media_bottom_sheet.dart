@@ -94,7 +94,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       border: Border.all(
-                                        color: Colors.grey.withValues(alpha: 0.4),
+                                        color:
+                                            Colors.grey.withValues(alpha: 0.4),
                                         width: 2,
                                       ),
                                       borderRadius: BorderRadius.all(
@@ -140,8 +141,8 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                           child: Container(
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
-                                              color: Colors.grey.withValues(alpha: 
-                                                0.1,
+                                              color: Colors.grey.withValues(
+                                                alpha: 0.1,
                                               ),
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(50),
@@ -296,7 +297,10 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                               controller.resetFields();
                               Get.back();
                             } catch (e) {
-                              final msg = e.toString().toLowerCase().contains('permission-denied')
+                              final msg = e
+                                      .toString()
+                                      .toLowerCase()
+                                      .contains('permission-denied')
                                   ? "İzin hatası: bağlantı kaydetmeye yetki yok."
                                   : "Bir sorun oluştu.";
                               AppSnackbar("Hata", msg);

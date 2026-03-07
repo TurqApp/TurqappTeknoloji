@@ -76,8 +76,10 @@ class LocationBasedTutoringController extends GetxController {
 
       // Mesafeye göre sırala (lat/long olan ilanlar önce, yakından uzağa)
       tempList.sort((a, b) {
-        final aDist = _distanceKm(position.latitude, position.longitude, a.lat, a.long);
-        final bDist = _distanceKm(position.latitude, position.longitude, b.lat, b.long);
+        final aDist =
+            _distanceKm(position.latitude, position.longitude, a.lat, a.long);
+        final bDist =
+            _distanceKm(position.latitude, position.longitude, b.lat, b.long);
         return aDist.compareTo(bDist);
       });
 

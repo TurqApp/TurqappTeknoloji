@@ -4,7 +4,6 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -24,6 +23,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 /// )
 /// ```
 class CachedUserAvatar extends StatelessWidget {
+  static const String _defaultProfileImageUrl =
+      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
   final String? userId;
   final double radius;
   final String? imageUrl; // Manual override
@@ -47,10 +48,19 @@ class CachedUserAvatar extends StatelessWidget {
 
     // 1️⃣ Current user - use reactive service (instant!)
     if (userId != null && userId == userService.userId) {
-      return Obx(() {
-        final currentUserImage = userService.currentUserRx.value?.pfImage ?? '';
-        return _buildAvatar(currentUserImage);
-      });
+      return StreamBuilder(
+        stream: userService.userStream,
+        initialData: userService.currentUser,
+        builder: (context, snapshot) {
+          final currentUserImage =
+              (snapshot.data?.avatarUrl ?? _defaultProfileImageUrl).trim();
+          return _buildAvatar(
+            currentUserImage.isEmpty
+                ? _defaultProfileImageUrl
+                : currentUserImage,
+          );
+        },
+      );
     }
 
     // 2️⃣ Manual URL provided
@@ -63,16 +73,17 @@ class CachedUserAvatar extends StatelessWidget {
   }
 
   Widget _buildAvatar(String url) {
+    final normalizedUrl = _normalizeUrl(url);
     return CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor ?? Colors.grey[300],
-      backgroundImage: url.isNotEmpty
+      backgroundImage: normalizedUrl.isNotEmpty
           ? CachedNetworkImageProvider(
-              url,
+              normalizedUrl,
               cacheManager: TurqImageCacheManager.instance,
             ) as ImageProvider
           : null,
-      child: url.isEmpty
+      child: normalizedUrl.isEmpty
           ? Icon(
               Icons.person,
               size: radius,
@@ -80,6 +91,12 @@ class CachedUserAvatar extends StatelessWidget {
             )
           : null,
     );
+  }
+
+  String _normalizeUrl(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return _defaultProfileImageUrl;
+    return trimmed;
   }
 }
 
@@ -108,39 +125,43 @@ class CachedUserAvatarWithName extends StatelessWidget {
 
     // Current user - reactive
     if (userId != null && userId == userService.userId) {
-      return Obx(() {
-        final user = userService.currentUserRx.value;
-        return Row(
-          children: [
-            CachedUserAvatar(
-              imageUrl: user?.pfImage,
-              radius: avatarRadius,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      user?.nickname ?? 'User',
-                      style: nameStyle,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (showVerifiedBadge && (user?.isVerified ?? false)) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.verified,
-                      size: 16,
-                      color: Colors.blue,
-                    ),
-                  ],
-                ],
+      return StreamBuilder(
+        stream: userService.userStream,
+        initialData: userService.currentUser,
+        builder: (context, snapshot) {
+          final user = snapshot.data;
+          return Row(
+            children: [
+              CachedUserAvatar(
+                imageUrl: user?.avatarUrl,
+                radius: avatarRadius,
               ),
-            ),
-          ],
-        );
-      });
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user?.nickname ?? 'User',
+                        style: nameStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (showVerifiedBadge && (user?.isVerified ?? false)) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.verified,
+                        size: 16,
+                        color: Colors.blue,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      );
     }
 
     // Other user - static

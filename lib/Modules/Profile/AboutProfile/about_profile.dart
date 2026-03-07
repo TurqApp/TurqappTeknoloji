@@ -32,9 +32,9 @@ class AboutProfile extends StatelessWidget {
                         child: SizedBox(
                             width: 70,
                             height: 70,
-                            child: controller.pfImage.value != ""
+                            child: controller.avatarUrl.value != ""
                                 ? CachedNetworkImage(
-                                    imageUrl: controller.pfImage.value,
+                                    imageUrl: controller.avatarUrl.value,
                                     fit: BoxFit.cover,
                                   )
                                 : Center(

@@ -15,9 +15,7 @@ extension MessageContentReplyParts on MessageContent {
           if (model.isEdited) ...[
             Text("düzenlendi",
                 style: TextStyle(
-                    color: metaColor,
-                    fontSize: 10,
-                    fontFamily: "Montserrat")),
+                    color: metaColor, fontSize: 10, fontFamily: "Montserrat")),
             const SizedBox(width: 3),
           ],
           Text(

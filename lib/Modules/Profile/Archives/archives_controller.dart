@@ -104,10 +104,8 @@ class ArchiveController extends GetxController {
         .orderBy('timeStamp', descending: true)
         .snapshots()
         .listen((snap) {
-      list.value = snap.docs
-          .map(
-              (d) => PostsModel.fromMap(d.data(), d.id))
-          .toList();
+      list.value =
+          snap.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
     }, onError: (e) => print('Archive listen error: $e'));
   }
 

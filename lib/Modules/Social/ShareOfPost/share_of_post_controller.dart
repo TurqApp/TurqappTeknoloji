@@ -482,7 +482,6 @@ class ShareOfPostController extends GetxController {
       final snapshot = await uploadTask;
       final url = CdnUrlBuilder.toCdnUrl(await snapshot.ref.getDownloadURL());
       urls.add(url);
-
     }
 
     await firestore.collection('Sosyal').doc(docID).set({

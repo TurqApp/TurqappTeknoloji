@@ -199,9 +199,9 @@ class ShortsContent extends StatelessWidget {
                           child: SizedBox(
                             width: 35,
                             height: 35,
-                            child: controller.pfImage.value != ""
+                            child: controller.avatarUrl.value != ""
                                 ? CachedNetworkImage(
-                                    imageUrl: controller.pfImage.value,
+                                    imageUrl: controller.avatarUrl.value,
                                     fit: BoxFit.cover,
                                     memCacheHeight: 100,
                                   )
@@ -267,7 +267,7 @@ class ShortsContent extends StatelessWidget {
                       if (!controller.takipEdiyorum.value &&
                           model.userID !=
                               FirebaseAuth.instance.currentUser!.uid &&
-                          controller.pfImage.value != "")
+                          controller.avatarUrl.value != "")
                         Transform.translate(
                           offset: Offset(20, 0),
                           child: Obx(() {

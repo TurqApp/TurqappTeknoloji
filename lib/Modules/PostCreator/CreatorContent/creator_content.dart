@@ -69,9 +69,9 @@ class CreatorContent extends StatelessWidget {
                       child: SizedBox(
                         width: 38,
                         height: 38,
-                        child: user.pfImage.value != ""
+                        child: user.avatarUrl.value != ""
                             ? CachedNetworkImage(
-                                imageUrl: user.pfImage.value,
+                                imageUrl: user.avatarUrl.value,
                                 fit: BoxFit.cover,
                               )
                             : Center(
@@ -101,9 +101,10 @@ class CreatorContent extends StatelessWidget {
                         textBody(),
                         SizedBox(height: 12),
                         Obx(() {
-                          final hasMedia = controller.croppedImages.isNotEmpty ||
-                              controller.videoPlayerController != null ||
-                              controller.waitingVideo.value;
+                          final hasMedia =
+                              controller.croppedImages.isNotEmpty ||
+                                  controller.videoPlayerController != null ||
+                                  controller.waitingVideo.value;
                           return hasMedia
                               ? const SizedBox.shrink()
                               : buildPollPreview();
@@ -160,9 +161,10 @@ class CreatorContent extends StatelessWidget {
                           ],
                         ),
                         Obx(() {
-                          final hasMedia = controller.croppedImages.isNotEmpty ||
-                              controller.videoPlayerController != null ||
-                              controller.waitingVideo.value;
+                          final hasMedia =
+                              controller.croppedImages.isNotEmpty ||
+                                  controller.videoPlayerController != null ||
+                                  controller.waitingVideo.value;
                           return hasMedia
                               ? Padding(
                                   padding: EdgeInsets.only(
@@ -394,7 +396,8 @@ class CreatorContent extends StatelessWidget {
                     );
                   }
                   final reusedThumb = controller.reusedVideoThumbnail.value;
-                  if (reusedThumb.trim().isEmpty) return const SizedBox.shrink();
+                  if (reusedThumb.trim().isEmpty)
+                    return const SizedBox.shrink();
                   return FittedBox(
                     fit: fit,
                     child: SizedBox(
@@ -417,7 +420,8 @@ class CreatorContent extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black.withAlpha(120),
                       borderRadius: BorderRadius.circular(8),
@@ -476,7 +480,8 @@ class CreatorContent extends StatelessWidget {
                       color: Colors.black.withAlpha(80),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(CupertinoIcons.photo, color: Colors.white, size: 18),
+                    child: const Icon(CupertinoIcons.photo,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ),
@@ -495,7 +500,8 @@ class CreatorContent extends StatelessWidget {
                     controller.isPlaying.value = false;
                     controller.hasVideo.value = false;
                     controller.hasVideo.refresh();
-                    controller.selectedThumbnail.value = null; // clear custom cover
+                    controller.selectedThumbnail.value =
+                        null; // clear custom cover
                   },
                   child: Container(
                     width: 30,

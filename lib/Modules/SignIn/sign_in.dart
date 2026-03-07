@@ -1333,8 +1333,7 @@ class SignIn extends StatelessWidget {
                                         'E-posta/şifre kayıt yöntemi kapalı.';
                                     break;
                                   case 'network-request-failed':
-                                    message =
-                                        'İnternet bağlantısı kurulamadı.';
+                                    message = 'İnternet bağlantısı kurulamadı.';
                                     break;
                                   default:
                                     message =

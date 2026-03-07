@@ -16,7 +16,7 @@ class TestsGridController extends GetxController {
   final Function? onUpdate;
 
   final fullName = ''.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = ''.obs;
   final nickname = ''.obs;
   final secim = ''.obs;
   final totalYanit = 0.obs;
@@ -43,18 +43,18 @@ class TestsGridController extends GetxController {
     final data = doc.data() ?? const <String, dynamic>{};
     final firstName = (data["firstName"] ?? "").toString();
     final lastName = (data["lastName"] ?? "").toString();
-    final pfImage = (data["avatarUrl"] ??
-            data["pfImage"] ??
-            data["photoURL"] ??
-            data["profileImageUrl"] ??
+    final avatarUrl = (data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
             "")
         .toString();
     final nickname =
-        (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+        (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
             .toString();
 
     fullName.value = "$firstName $lastName";
-    this.pfImage.value = pfImage;
+    this.avatarUrl.value = avatarUrl;
     this.nickname.value = nickname;
   }
 

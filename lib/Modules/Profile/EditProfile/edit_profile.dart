@@ -78,11 +78,11 @@ class _EditProfileState extends State<EditProfile> {
                                                   preview,
                                                   fit: BoxFit.cover,
                                                 )
-                                              : (user.pfImage.value != ""
+                                              : (user.avatarUrl.value != ""
                                                   ? CachedNetworkImage(
                                                       memCacheHeight: 400,
                                                       imageUrl:
-                                                          user.pfImage.value,
+                                                          user.avatarUrl.value,
                                                       fit: BoxFit.cover,
                                                     )
                                                   : Center(
@@ -95,7 +95,7 @@ class _EditProfileState extends State<EditProfile> {
                                       );
                                     }),
                                     PullDownButton(
-                                      key: ValueKey(user.pfImage.value),
+                                      key: ValueKey(user.avatarUrl.value),
                                       itemBuilder: (context) => [
                                         PullDownMenuItem(
                                           onTap: () => controller.pickImage(

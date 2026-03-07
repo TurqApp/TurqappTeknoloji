@@ -35,7 +35,7 @@ class SocialProfileFollowers extends StatelessWidget {
               ),
             ),
             PageLineBar(
-              barList: ["followers", "Takip Edilenler"],
+              barList: ["Takip Edenler", "Takip Edilenler"],
               pageName: "FollowersSocialProfile",
               initialIndex: selection,
               pageController: controller.pageController,

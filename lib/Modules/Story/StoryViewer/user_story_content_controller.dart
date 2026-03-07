@@ -22,7 +22,14 @@ class UserStoryContentController extends GetxController {
   var isLikedMe = false.obs;
 
   // Reaction emoji support
-  static const List<String> reactionEmojis = ['❤️', '😂', '😮', '😢', '🔥', '👏'];
+  static const List<String> reactionEmojis = [
+    '❤️',
+    '😂',
+    '😮',
+    '😢',
+    '🔥',
+    '👏'
+  ];
   final RxMap<String, int> reactionCounts = <String, int>{}.obs;
   final RxString myReaction = ''.obs;
 

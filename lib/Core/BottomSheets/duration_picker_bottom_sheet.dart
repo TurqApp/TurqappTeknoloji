@@ -115,17 +115,16 @@ class DurationPickerBottomSheet extends StatelessWidget {
                     scrollController: FixedExtentScrollController(
                       initialItem: durations.indexOf(tempPicked),
                     ),
-                    children:
-                        durations
-                            .map(
-                              (duration) => Center(
-                                child: Text(
-                                  '$duration dk',
-                                  style: TextStyles.bold20Black,
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    children: durations
+                        .map(
+                          (duration) => Center(
+                            child: Text(
+                              '$duration dk',
+                              style: TextStyles.bold20Black,
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),

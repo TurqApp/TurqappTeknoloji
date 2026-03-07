@@ -380,7 +380,8 @@ class CreateTutoringView extends StatelessWidget {
                                 AppSnackbar(
                                   "Yükleme Başarısız!",
                                   "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                  backgroundColor: Colors.red.withValues(alpha: 0.7),
+                                  backgroundColor:
+                                      Colors.red.withValues(alpha: 0.7),
                                 );
                               } else {
                                 controller.addImage(imageFile.path);
@@ -462,8 +463,9 @@ class CreateTutoringView extends StatelessWidget {
                                             ),
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,
-                                              color: Colors.grey.withValues(alpha: 
-                                                controller.carouselCurrentIndex
+                                              color: Colors.grey.withValues(
+                                                alpha: controller
+                                                            .carouselCurrentIndex
                                                             .value ==
                                                         entry.key
                                                     ? 0.9
@@ -552,7 +554,8 @@ class CreateTutoringView extends StatelessWidget {
                       ),
                       16.ph,
                       // Doğrulama Belgeleri
-                      Text("Doğrulama Belgeleri (Opsiyonel)", style: TextStyles.textFieldTitle),
+                      Text("Doğrulama Belgeleri (Opsiyonel)",
+                          style: TextStyles.textFieldTitle),
                       4.ph,
                       Text(
                         "Diploma veya sertifika yükleyerek doğrulanmış öğretmen rozeti alabilirsiniz.",
@@ -574,12 +577,15 @@ class CreateTutoringView extends StatelessWidget {
                                           : doc.split('/').last,
                                       style: const TextStyle(fontSize: 12),
                                     ),
-                                    deleteIcon: const Icon(Icons.close, size: 16),
-                                    onDeleted: () => controller.verificationDocs.remove(doc),
+                                    deleteIcon:
+                                        const Icon(Icons.close, size: 16),
+                                    onDeleted: () =>
+                                        controller.verificationDocs.remove(doc),
                                   )),
                               GestureDetector(
                                 onTap: () async {
-                                  final pickedFiles = await AppImagePickerService.pickImages(
+                                  final pickedFiles =
+                                      await AppImagePickerService.pickImages(
                                     context,
                                     maxAssets: 3,
                                   );
@@ -588,17 +594,24 @@ class CreateTutoringView extends StatelessWidget {
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.upload_file, size: 18, color: Colors.grey.shade600),
+                                      Icon(Icons.upload_file,
+                                          size: 18,
+                                          color: Colors.grey.shade600),
                                       const SizedBox(width: 4),
-                                      Text("Belge Ekle", style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                                      Text("Belge Ekle",
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey.shade600)),
                                     ],
                                   ),
                                 ),
@@ -607,7 +620,8 @@ class CreateTutoringView extends StatelessWidget {
                           )),
                       16.ph,
                       // Müsaitlik Takvimi
-                      Text("Müsaitlik Takvimi", style: TextStyles.textFieldTitle),
+                      Text("Müsaitlik Takvimi",
+                          style: TextStyles.textFieldTitle),
                       8.ph,
                       Obx(() {
                         return Container(
@@ -617,8 +631,10 @@ class CreateTutoringView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
-                            children: CreateTutoringController.weekDays.map((day) {
-                              final selectedSlots = controller.availability[day] ?? [];
+                            children:
+                                CreateTutoringController.weekDays.map((day) {
+                              final selectedSlots =
+                                  controller.availability[day] ?? [];
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Column(
@@ -636,17 +652,27 @@ class CreateTutoringView extends StatelessWidget {
                                     Wrap(
                                       spacing: 6,
                                       runSpacing: 6,
-                                      children: CreateTutoringController.timeSlots.map((slot) {
-                                        final isSelected = selectedSlots.contains(slot);
+                                      children: CreateTutoringController
+                                          .timeSlots
+                                          .map((slot) {
+                                        final isSelected =
+                                            selectedSlots.contains(slot);
                                         return GestureDetector(
-                                          onTap: () => controller.toggleTimeSlot(day, slot),
+                                          onTap: () => controller
+                                              .toggleTimeSlot(day, slot),
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 6),
                                             decoration: BoxDecoration(
-                                              color: isSelected ? Colors.black : Colors.white,
-                                              borderRadius: BorderRadius.circular(8),
+                                              color: isSelected
+                                                  ? Colors.black
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               border: Border.all(
-                                                color: isSelected ? Colors.black : Colors.grey.shade300,
+                                                color: isSelected
+                                                    ? Colors.black
+                                                    : Colors.grey.shade300,
                                               ),
                                             ),
                                             child: Text(
@@ -654,7 +680,9 @@ class CreateTutoringView extends StatelessWidget {
                                               style: TextStyle(
                                                 fontFamily: "MontserratMedium",
                                                 fontSize: 11,
-                                                color: isSelected ? Colors.white : Colors.black87,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : Colors.black87,
                                               ),
                                             ),
                                           ),

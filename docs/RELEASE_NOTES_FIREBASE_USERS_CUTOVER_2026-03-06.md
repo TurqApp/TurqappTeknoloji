@@ -41,7 +41,7 @@ Head: `8189675`
 - Canonical-first fields:
   - `displayName`, `avatarUrl`, `followerCount`, `followingCount`, `postCount`
 - Fallback preserved:
-  - `nickname`, `pfImage`, `takipciSayisi`, `counterOfFollowers`, etc.
+  - `nickname`, `avatarUrl`, `takipciSayisi`, `counterOfFollowers`, etc.
 - Updated:
   - `CurrentUserModel`, `CurrentUserService`
   - `authorDenorm`, `hybridFeed`, `tutoringNotifications`

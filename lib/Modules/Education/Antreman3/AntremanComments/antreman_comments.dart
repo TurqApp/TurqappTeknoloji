@@ -76,13 +76,10 @@ class AntremanComments extends StatelessWidget {
                     final userInfo = controller.userInfoCache[comment.userID] ??
                         {
                           'avatarUrl': '',
-                          'pfImage': '',
                           'displayName': 'Bilinmeyen Kullanıcı',
                           'nickname': 'Bilinmeyen Kullanıcı'
                         };
-                    final userImage =
-                        (userInfo['avatarUrl'] ?? userInfo['pfImage'] ?? '')
-                            .toString();
+                    final userImage = (userInfo['avatarUrl'] ?? '').toString();
                     final userName = (userInfo['displayName'] ??
                             userInfo['username'] ??
                             userInfo['nickname'] ??
@@ -329,14 +326,11 @@ class AntremanComments extends StatelessWidget {
                                     controller.userInfoCache[reply.userID] ??
                                         {
                                           'avatarUrl': '',
-                                          'pfImage': '',
                                           'displayName': 'Bilinmeyen Kullanıcı',
                                           'nickname': 'Bilinmeyen Kullanıcı',
                                         };
                                 final replyUserImage =
-                                    (replyUserInfo['avatarUrl'] ??
-                                            replyUserInfo['pfImage'] ??
-                                            '')
+                                    (replyUserInfo['avatarUrl'] ?? '')
                                         .toString();
                                 final replyUserName =
                                     (replyUserInfo['displayName'] ??
@@ -551,13 +545,10 @@ class AntremanComments extends StatelessWidget {
               final userInfo = controller.userInfoCache[controller.userID] ??
                   {
                     'avatarUrl': '',
-                    'pfImage': '',
                     'displayName': 'Bilinmeyen Kullanıcı',
                     'nickname': 'Bilinmeyen Kullanıcı'
                   };
-              final userImage =
-                  (userInfo['avatarUrl'] ?? userInfo['pfImage'] ?? '')
-                      .toString();
+              final userImage = (userInfo['avatarUrl'] ?? '').toString();
               controller.fetchUserInfo(controller.userID);
 
               return Column(
@@ -678,7 +669,6 @@ class AntremanComments extends StatelessWidget {
                                                       replyingComment.userID] ??
                                                   {
                                                     'avatarUrl': '',
-                                                    'pfImage': '',
                                                     'displayName':
                                                         'Bilinmeyen Kullanıcı',
                                                     'nickname':

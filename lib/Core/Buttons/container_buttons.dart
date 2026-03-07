@@ -30,17 +30,16 @@ class SaveButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
-            child:
-                isLoading.value
-                    ? CupertinoActivityIndicator()
-                    : Text(
-                      text,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontFamily: "MontserratMedium",
-                      ),
+            child: isLoading.value
+                ? CupertinoActivityIndicator()
+                : Text(
+                    text,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontFamily: "MontserratMedium",
                     ),
+                  ),
           ),
         ),
       ),

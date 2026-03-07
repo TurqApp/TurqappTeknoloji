@@ -68,50 +68,46 @@ class LocationShareViewChat extends StatelessWidget {
                   ],
                 ),
                 child: Obx(() => Text(
-                  controller.currentAddress.value.isEmpty
-                      ? "Adres alınıyor..."
-                      : controller.currentAddress.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Colors.black, fontFamily: "MontserratMedium"),
-                )),
+                      controller.currentAddress.value.isEmpty
+                          ? "Adres alınıyor..."
+                          : controller.currentAddress.value,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.black,
+                          fontFamily: "MontserratMedium"),
+                    )),
               ),
             ),
 
             // Konuma git butonu
             Positioned(
-              bottom: 100,
-              right: 20,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero
-                ),
-                onPressed: (){
-                  controller.moveToCurrentLocation();
-                },
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent,
-                    shape: BoxShape.circle
+                bottom: 100,
+                right: 20,
+                child: TextButton(
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  onPressed: () {
+                    controller.moveToCurrentLocation();
+                  },
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        color: Colors.blueAccent, shape: BoxShape.circle),
+                    child: Icon(
+                      CupertinoIcons.location_fill,
+                      color: Colors.white,
+                    ),
                   ),
-                  child: Icon(
-                    CupertinoIcons.location_fill,
-                    color: Colors.white,
-                  ),
-                ),
-              )
-            ),
+                )),
 
             Positioned(
                 bottom: 100,
                 left: 20,
                 child: TextButton(
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero
-                  ),
-                  onPressed: (){
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  onPressed: () {
                     Get.back();
                   },
                   child: Container(
@@ -121,16 +117,14 @@ class LocationShareViewChat extends StatelessWidget {
                     decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey)
-                    ),
+                        border: Border.all(color: Colors.grey)),
                     child: Icon(
                       CupertinoIcons.arrow_left,
                       color: Colors.black,
                       size: 25,
                     ),
                   ),
-                )
-            ),
+                )),
 
             // Paylaş butonu
             Positioned(

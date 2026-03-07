@@ -54,9 +54,9 @@ class PostCommentContent extends StatelessWidget {
                 child: SizedBox(
                   width: 34,
                   height: 34,
-                  child: controller.pfImage.value.isNotEmpty
+                  child: controller.avatarUrl.value.isNotEmpty
                       ? Image.network(
-                          controller.pfImage.value,
+                          controller.avatarUrl.value,
                           fit: BoxFit.cover,
                         )
                       : Container(

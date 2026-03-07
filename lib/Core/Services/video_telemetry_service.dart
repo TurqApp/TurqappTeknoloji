@@ -27,8 +27,9 @@ class VideoSessionMetrics {
   double get watchTimeSeconds =>
       DateTime.now().difference(sessionStart).inMilliseconds / 1000.0;
 
-  double get completionRate =>
-      videoDuration > 0 ? (maxPositionReached / videoDuration).clamp(0.0, 1.0) : 0.0;
+  double get completionRate => videoDuration > 0
+      ? (maxPositionReached / videoDuration).clamp(0.0, 1.0)
+      : 0.0;
 
   double get rebufferRatio {
     final total = watchTimeSeconds * 1000;

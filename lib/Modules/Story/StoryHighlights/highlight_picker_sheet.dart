@@ -135,16 +135,16 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
               autofocus: true,
               decoration: InputDecoration(
                 hintText: 'Baslik girin...',
-                hintStyle: TextStyle(
-                    color: Colors.grey.withAlpha(150), fontSize: 14),
+                hintStyle:
+                    TextStyle(color: Colors.grey.withAlpha(150), fontSize: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              style: const TextStyle(
-                  fontFamily: 'MontserratMedium', fontSize: 14),
+              style:
+                  const TextStyle(fontFamily: 'MontserratMedium', fontSize: 14),
             ),
           ),
           const SizedBox(width: 8),

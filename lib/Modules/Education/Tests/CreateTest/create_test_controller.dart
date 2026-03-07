@@ -31,10 +31,9 @@ class CreateTestController extends GetxController {
   final testID = DateTime.now().millisecondsSinceEpoch.obs;
   final showSilButon = false.obs;
   final kopyalandi = false.obs;
-  final sorularList =
-      <TestReadinessModel>[
-        TestReadinessModel(id: 0, img: "", max: 5, dogruCevap: "", docID: "0"),
-      ].obs;
+  final sorularList = <TestReadinessModel>[
+    TestReadinessModel(id: 0, img: "", max: 5, dogruCevap: "", docID: "0"),
+  ].obs;
   final isLoading = true.obs;
 
   CreateTestController(this.model);
@@ -63,11 +62,10 @@ class CreateTestController extends GetxController {
 
   Future<void> getUygulamaLinks() async {
     try {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection("Yönetim")
-              .doc("Genel")
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection("Yönetim")
+          .doc("Genel")
+          .get();
       appStore.value = doc.get("appStore") as String;
       googlePlay.value = doc.get("googlePlay") as String;
     } catch (e) {
@@ -79,12 +77,11 @@ class CreateTestController extends GetxController {
     if (model == null) return;
     sorularList.clear();
     try {
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(model!.docID)
-              .collection("Sorular")
-              .get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Testler")
+          .doc(model!.docID)
+          .collection("Sorular")
+          .get();
       if (snapshot.docs.isEmpty) {
         sorularList.add(
           TestReadinessModel(
@@ -173,11 +170,11 @@ class CreateTestController extends GetxController {
         .collection("Testler")
         .doc(testID.value.toString())
         .update({
-          "aciklama": aciklama.text,
-          "dersler": selectedDers.toList(),
-          "paylasilabilir": paylasilabilir.value,
-          "testTuru": testTuru.value,
-        });
+      "aciklama": aciklama.text,
+      "dersler": selectedDers.toList(),
+      "paylasilabilir": paylasilabilir.value,
+      "testTuru": testTuru.value,
+    });
     if (imageFile.value != null) {
       await yukle(imageFile.value!);
     }
@@ -189,15 +186,15 @@ class CreateTestController extends GetxController {
         .collection("Testler")
         .doc(testID.value.toString())
         .set({
-          "aciklama": aciklama.text,
-          "dersler": selectedDers.toList(),
-          "favoriler": [],
-          "paylasilabilir": paylasilabilir.value,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
-          "userID": FirebaseAuth.instance.currentUser!.uid,
-          "taslak": true,
-          "testTuru": testTuru.value,
-        }, SetOptions(merge: true));
+      "aciklama": aciklama.text,
+      "dersler": selectedDers.toList(),
+      "favoriler": [],
+      "paylasilabilir": paylasilabilir.value,
+      "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
+      "userID": FirebaseAuth.instance.currentUser!.uid,
+      "taslak": true,
+      "testTuru": testTuru.value,
+    }, SetOptions(merge: true));
     if (imageFile.value != null) {
       await yukle(imageFile.value!);
     }

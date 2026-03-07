@@ -151,12 +151,12 @@ class SearchUserContent extends StatelessWidget {
                           border: Border.all(color: Colors.grey.withAlpha(50)),
                         ),
                         child: ClipOval(
-                          child: model.pfImage != ""
+                          child: model.avatarUrl != ""
                               ? SizedBox(
                                   width: 40,
                                   height: 40,
                                   child: CachedNetworkImage(
-                                    imageUrl: model.pfImage,
+                                    imageUrl: model.avatarUrl,
                                     fit: BoxFit.cover,
                                   ),
                                 )

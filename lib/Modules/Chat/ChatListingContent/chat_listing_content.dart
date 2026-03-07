@@ -327,9 +327,9 @@ class ChatListingContent extends StatelessWidget {
                   child: SizedBox(
                     width: isSearchResult ? 40 : 50,
                     height: isSearchResult ? 40 : 50,
-                    child: model.pfImage != ""
+                    child: model.avatarUrl != ""
                         ? CachedNetworkImage(
-                            imageUrl: model.pfImage,
+                            imageUrl: model.avatarUrl,
                             fit: BoxFit.cover,
                           )
                         : const Center(

@@ -35,9 +35,9 @@ class PostLikeContent extends StatelessWidget {
                       child: SizedBox(
                         width: 40,
                         height: 40,
-                        child: controller.pfImage.value != ""
+                        child: controller.avatarUrl.value != ""
                             ? CachedNetworkImage(
-                                imageUrl: controller.pfImage.value,
+                                imageUrl: controller.avatarUrl.value,
                               )
                             : CupertinoActivityIndicator(
                                 color: Colors.grey,

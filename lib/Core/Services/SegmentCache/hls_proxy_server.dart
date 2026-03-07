@@ -108,7 +108,8 @@ class HLSProxyServer extends GetxController {
         final content = await cached.readAsString();
         request.response
           ..statusCode = HttpStatus.ok
-          ..headers.contentType = ContentType('application', 'vnd.apple.mpegurl')
+          ..headers.contentType =
+              ContentType('application', 'vnd.apple.mpegurl')
           ..headers.set('Access-Control-Allow-Origin', '*')
           ..headers.set('Connection', 'keep-alive')
           ..write(content)
@@ -192,7 +193,8 @@ class HLSProxyServer extends GetxController {
               ..statusCode = HttpStatus.ok
               ..headers.contentType = ContentType('video', 'mp2t')
               ..headers.set('Access-Control-Allow-Origin', '*')
-              ..headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+              ..headers
+                  .set('Cache-Control', 'public, max-age=31536000, immutable')
               ..headers.set('Connection', 'keep-alive')
               ..headers.contentLength = bytes.length
               ..add(bytes)

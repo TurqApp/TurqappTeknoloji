@@ -42,15 +42,14 @@ class ShareGridController extends GetxController {
             .then((doc) {
           final data = doc.data() ?? <String, dynamic>{};
           final nickname = (data["nickname"] ?? "").toString();
-          final pfImage =
-              (data["pfImage"] ?? data["photoUrl"] ?? "").toString();
+          final avatarUrl = (data["avatarUrl"] ?? "").toString();
           final firstName = (data["firstName"] ?? "").toString();
           final lastName = (data["lastName"] ?? "").toString();
 
           followings.add(OgrenciModel(
               userID: item.id,
               firstName: firstName,
-              pfImage: pfImage,
+              avatarUrl: avatarUrl,
               lastName: lastName,
               nickname: nickname));
         });

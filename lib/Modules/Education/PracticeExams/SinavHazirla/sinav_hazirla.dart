@@ -107,20 +107,22 @@ class SinavHazirla extends StatelessWidget {
                               padding: EdgeInsets.all(15),
                               child: GestureDetector(
                                 onTap: () async {
-                                  final pickedFile =
-                                      await AppImagePickerService
-                                          .pickSingleImage(context);
+                                  final pickedFile = await AppImagePickerService
+                                      .pickSingleImage(context);
                                   if (pickedFile != null) {
                                     controller.isLoadingImage.value = true;
                                     final file = pickedFile;
-                                    final r = await OptimizedNSFWService.checkImage(file);
+                                    final r =
+                                        await OptimizedNSFWService.checkImage(
+                                            file);
                                     controller.isLoadingImage.value = false;
                                     if (r.isNSFW) {
                                       controller.cover.value = null;
                                       AppSnackbar(
                                         "Yükleme Başarısız!",
                                         "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                        backgroundColor: Colors.red.withValues(alpha: 0.7),
+                                        backgroundColor:
+                                            Colors.red.withValues(alpha: 0.7),
                                       );
                                     } else {
                                       controller.cover.value = file;
@@ -374,8 +376,8 @@ class SinavHazirla extends StatelessWidget {
                                                 ? Alignment.centerRight
                                                 : Alignment.centerLeft,
                                             decoration: BoxDecoration(
-                                              color: Colors.grey.withValues(alpha: 
-                                                0.3,
+                                              color: Colors.grey.withValues(
+                                                alpha: 0.3,
                                               ),
                                               borderRadius: BorderRadius.all(
                                                 Radius.circular(50),
@@ -449,8 +451,8 @@ class SinavHazirla extends StatelessWidget {
                                                     sinavTurleriList[index]
                                                 ? renkler[
                                                     index % renkler.length]
-                                                : Colors.grey.withValues(alpha: 
-                                                    0.1,
+                                                : Colors.grey.withValues(
+                                                    alpha: 0.1,
                                                   ),
                                             borderRadius: BorderRadius.all(
                                               Radius.circular(50),
@@ -516,8 +518,8 @@ class SinavHazirla extends StatelessWidget {
                                                                       index]
                                                               ? Colors.indigo
                                                               : Colors.grey
-                                                                  .withValues(alpha: 
-                                                                  0.1,
+                                                                  .withValues(
+                                                                  alpha: 0.1,
                                                                 ),
                                                           borderRadius:
                                                               BorderRadius.all(

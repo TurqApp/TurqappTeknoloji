@@ -30,7 +30,6 @@ class BookletAnswerController extends GetxController {
     fetchAds();
   }
 
-
   Future<void> fetchAds() async {
     try {
       final doc = await FirebaseFirestore.instance

@@ -214,7 +214,8 @@ class PersonalizedView extends StatelessWidget {
     );
   }
 
-  Future<void> _navigateToIndividualDetail(IndividualScholarshipsModel item) async {
+  Future<void> _navigateToIndividualDetail(
+      IndividualScholarshipsModel item) async {
     final controller = Get.find<PersonalizedController>();
     final docId = controller.docIdByTimestamp[item.timeStamp] ?? '';
     final scholarshipData = {

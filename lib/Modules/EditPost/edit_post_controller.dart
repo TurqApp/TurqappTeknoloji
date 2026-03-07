@@ -61,7 +61,8 @@ class EditPostController extends GetxController {
     // Load existing video if any
     if (model.video.isNotEmpty) {
       waitingVideo.value = true;
-      final netCtrl = HLSVideoAdapter(url: model.playbackUrl, autoPlay: false, loop: true);
+      final netCtrl =
+          HLSVideoAdapter(url: model.playbackUrl, autoPlay: false, loop: true);
       netCtrl.setLooping(true);
       netCtrl.addListener(() {
         isPlaying.value = netCtrl.value.isPlaying;
@@ -444,12 +445,12 @@ class EditPostController extends GetxController {
         final vidKey =
             'Posts/${model.docID}/videos/${p.basename(videoFile.path)}';
         final vidTask = await storage.ref(vidKey).putFile(
-          videoFile,
-          SettableMetadata(
-            contentType: 'video/mp4',
-            cacheControl: 'public, max-age=31536000, immutable',
-          ),
-        );
+              videoFile,
+              SettableMetadata(
+                contentType: 'video/mp4',
+                cacheControl: 'public, max-age=31536000, immutable',
+              ),
+            );
         newVideoDownloadUrl = CdnUrlBuilder.toCdnUrl(
           await vidTask.ref.getDownloadURL(),
         );

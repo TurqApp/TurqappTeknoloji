@@ -1,5 +1,4 @@
-
-class CikmisSoruSonucModel{
+class CikmisSoruSonucModel {
   String anaBaslik;
   String sinavTuru;
   String yil;
@@ -12,17 +11,16 @@ class CikmisSoruSonucModel{
   String cikmisSoruID;
   String docID;
 
-  CikmisSoruSonucModel({
-    required this.anaBaslik,
-    required this.sinavTuru,
-    required this.yil,
-    required this.baslik2,
-    required this.baslik3,
-    required this.userID,
-    required this.cevaplar,
-    required this.timeStamp,
-    required this.cikmisSoruID,
-    required this.dogruCevaplar,
-    required this.docID
-});
+  CikmisSoruSonucModel(
+      {required this.anaBaslik,
+      required this.sinavTuru,
+      required this.yil,
+      required this.baslik2,
+      required this.baslik3,
+      required this.userID,
+      required this.cevaplar,
+      required this.timeStamp,
+      required this.cikmisSoruID,
+      required this.dogruCevaplar,
+      required this.docID});
 }

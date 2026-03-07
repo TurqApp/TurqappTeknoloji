@@ -25,7 +25,7 @@ Optional:
 3. Update Firestore rules whitelist to canonical update keys.
 
 Exit criteria:
-- No new write path creates `nickname/pfImage/photoURL`.
+- No new write path creates `nickname/avatarUrl/avatarUrl`.
 
 ## Phase B - Functions Alignment
 1. `authorDenorm.ts` -> source only `displayName` + `avatarUrl`.
@@ -75,9 +75,9 @@ Verification checklist per user:
 1. Remove all legacy field references from codebase.
 2. Confirm grep zero:
 - `nickname`
-- `pfImage`
-- `photoURL`
-- `profileImageUrl` (if not part of canonical)
+- `avatarUrl`
+- `avatarUrl`
+- `avatarUrl` (if not part of canonical)
 3. Keep rollback tag before final deploy.
 
 ## Scholarship Chain Safety Checks (Mandatory)

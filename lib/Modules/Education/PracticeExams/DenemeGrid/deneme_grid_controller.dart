@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeGridController extends GetxController {
-  var pfImage = ''.obs;
+  var avatarUrl = ''.obs;
   var nickname = ''.obs;
   var toplamBasvuru = 0.obs;
   var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
@@ -35,18 +35,18 @@ class DenemeGridController extends GetxController {
           .doc(userID)
           .get();
       final data = doc.data() ?? const <String, dynamic>{};
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
     } catch (e) {
       debugPrint('[DenemeGrid] profile fetch failed for $userID: $e');
-      pfImage.value = '';
+      avatarUrl.value = '';
       nickname.value = '';
     } finally {
       isLoadingProfile.value = false;

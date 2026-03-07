@@ -1,4 +1,3 @@
-
 // Nickname için Türkçe karakterleri ASCII'ye çeviren ve güvenli karakter seti uygulayan formatter
 import 'package:flutter/services.dart';
 

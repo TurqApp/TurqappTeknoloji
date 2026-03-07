@@ -367,112 +367,115 @@ class ExploreView extends StatelessWidget {
                                                   _shouldPlayExplorePreview(i);
                                               return RepaintBoundary(
                                                 child: GestureDetector(
-                                                onTap: () async {
-                                                  if (model.floodCount > 1 &&
-                                                      model.flood == false) {
+                                                  onTap: () async {
+                                                    if (model.floodCount > 1 &&
+                                                        model.flood == false) {
+                                                      await VideoControllerPool
+                                                          .pauseAll();
+                                                      Get.to(() => FloodListing(
+                                                          mainModel: model));
+                                                      return;
+                                                    }
                                                     await VideoControllerPool
                                                         .pauseAll();
-                                                    Get.to(() => FloodListing(
-                                                        mainModel: model));
-                                                    return;
-                                                  }
-                                                  await VideoControllerPool
-                                                      .pauseAll();
-                                                  final videos = list;
-                                                  Get.to(() => SingleShortView(
-                                                        startList: videos,
-                                                        startModel: model,
-                                                      ));
-                                                },
-                                                child: Stack(
-                                                  fit: StackFit.expand,
-                                                  children: [
-                                                    _buildCoverFrame(
-                                                      aspectRatio:
-                                                          _safeAspectRatio(
-                                                        model.aspectRatio,
+                                                    final videos = list;
+                                                    Get.to(
+                                                        () => SingleShortView(
+                                                              startList: videos,
+                                                              startModel: model,
+                                                            ));
+                                                  },
+                                                  child: Stack(
+                                                    fit: StackFit.expand,
+                                                    children: [
+                                                      _buildCoverFrame(
+                                                        aspectRatio:
+                                                            _safeAspectRatio(
+                                                          model.aspectRatio,
+                                                        ),
+                                                        child: shouldPlayPreview
+                                                            ? SmartMiniVideoPlayer(
+                                                                videoUrl: model
+                                                                    .playbackUrl,
+                                                                thumbnailUrl: model
+                                                                    .thumbnail,
+                                                                visibilityKey:
+                                                                    "${model.docID}_$i",
+                                                                muted: true,
+                                                                aspectRatio:
+                                                                    _safeAspectRatio(
+                                                                  model
+                                                                      .aspectRatio,
+                                                                ),
+                                                                useAspectRatio:
+                                                                    true,
+                                                              )
+                                                            : CachedNetworkImage(
+                                                                imageUrl: model
+                                                                    .thumbnail,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                memCacheWidth:
+                                                                    200,
+                                                                memCacheHeight:
+                                                                    600,
+                                                                placeholder: (c,
+                                                                        u) =>
+                                                                    Container(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      300],
+                                                                ),
+                                                                errorWidget: (c,
+                                                                        u, e) =>
+                                                                    const Icon(
+                                                                  Icons.error,
+                                                                ),
+                                                              ),
                                                       ),
-                                                      child: shouldPlayPreview
-                                                          ? SmartMiniVideoPlayer(
-                                                              videoUrl: model
-                                                                  .playbackUrl,
-                                                              thumbnailUrl: model
-                                                                  .thumbnail,
-                                                              visibilityKey:
-                                                                  "${model.docID}_$i",
-                                                              muted: true,
-                                                              aspectRatio:
-                                                                  _safeAspectRatio(
-                                                                model
-                                                                    .aspectRatio,
-                                                              ),
-                                                              useAspectRatio:
-                                                                  true,
-                                                            )
-                                                          : CachedNetworkImage(
-                                                              imageUrl: model
-                                                                  .thumbnail,
-                                                              fit: BoxFit.cover,
-                                                              memCacheWidth:
-                                                                  200,
-                                                              memCacheHeight:
-                                                                  600,
-                                                              placeholder:
-                                                                  (c, u) =>
-                                                                      Container(
-                                                                color: Colors
-                                                                        .grey[
-                                                                    300],
-                                                              ),
-                                                              errorWidget:
-                                                                  (c, u, e) =>
-                                                                      const Icon(
-                                                                Icons.error,
-                                                              ),
-                                                            ),
-                                                    ),
-                                                    Positioned(
-                                                      bottom: 6,
-                                                      left: 6,
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            shouldPlayPreview
-                                                                ? CupertinoIcons
-                                                                    .play_circle_fill
-                                                                : CupertinoIcons
-                                                                    .eye,
-                                                            color: Colors.white,
-                                                            size: 13,
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 4),
-                                                          Text(
-                                                            _formatCountCompact(
-                                                                model.stats
-                                                                    .statsCount),
-                                                            style:
-                                                                const TextStyle(
+                                                      Positioned(
+                                                        bottom: 6,
+                                                        left: 6,
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(
+                                                              shouldPlayPreview
+                                                                  ? CupertinoIcons
+                                                                      .play_circle_fill
+                                                                  : CupertinoIcons
+                                                                      .eye,
                                                               color:
                                                                   Colors.white,
-                                                              fontSize: 12,
-                                                              fontFamily:
-                                                                  "MontserratBold",
+                                                              size: 13,
                                                             ),
-                                                          ),
-                                                        ],
+                                                            const SizedBox(
+                                                                width: 4),
+                                                            Text(
+                                                              _formatCountCompact(
+                                                                  model.stats
+                                                                      .statsCount),
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 12,
+                                                                fontFamily:
+                                                                    "MontserratBold",
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                    if (model.floodCount > 1)
-                                                      Positioned(
-                                                        bottom: 0,
-                                                        right: 0,
-                                                        child: Texts
-                                                            .colorfulFloodForExplore,
-                                                      ),
-                                                  ],
+                                                      if (model.floodCount > 1)
+                                                        Positioned(
+                                                          bottom: 0,
+                                                          right: 0,
+                                                          child: Texts
+                                                              .colorfulFloodForExplore,
+                                                        ),
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
                                               );
                                             },
                                           ),
@@ -522,51 +525,51 @@ class ExploreView extends StatelessWidget {
                                         final p = list[i];
                                         return RepaintBoundary(
                                           child: GestureDetector(
-                                          onTap: () {
-                                            // Floods sekmesinde daima flood listesine git
-                                            Get.to(() =>
-                                                FloodListing(mainModel: p));
-                                          },
-                                          child: Stack(
-                                            fit: StackFit.expand,
-                                            alignment: Alignment.bottomRight,
-                                            children: [
-                                              _buildCoverFrame(
-                                                aspectRatio: _safeAspectRatio(
-                                                  p.aspectRatio,
-                                                  fallback: 1.0,
+                                            onTap: () {
+                                              // Floods sekmesinde daima flood listesine git
+                                              Get.to(() =>
+                                                  FloodListing(mainModel: p));
+                                            },
+                                            child: Stack(
+                                              fit: StackFit.expand,
+                                              alignment: Alignment.bottomRight,
+                                              children: [
+                                                _buildCoverFrame(
+                                                  aspectRatio: _safeAspectRatio(
+                                                    p.aspectRatio,
+                                                    fallback: 1.0,
+                                                  ),
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: p.img.isNotEmpty
+                                                        ? p.img.first
+                                                        : p.thumbnail,
+                                                    memCacheWidth: 200,
+                                                    memCacheHeight: 400,
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (c, u) =>
+                                                        Container(
+                                                            color: Colors
+                                                                .grey[300]),
+                                                    errorWidget: (c, u, e) =>
+                                                        const Icon(Icons.error),
+                                                  ),
                                                 ),
-                                                child: CachedNetworkImage(
-                                                  imageUrl: p.img.isNotEmpty
-                                                      ? p.img.first
-                                                      : p.thumbnail,
-                                                  memCacheWidth: 200,
-                                                  memCacheHeight: 400,
-                                                  fit: BoxFit.cover,
-                                                  placeholder: (c, u) =>
-                                                      Container(
-                                                          color:
-                                                              Colors.grey[300]),
-                                                  errorWidget: (c, u, e) =>
-                                                      const Icon(Icons.error),
-                                                ),
-                                              ),
-                                              if (p.floodCount > 1)
-                                                Positioned(
-                                                  bottom: 0,
-                                                  right: 0,
-                                                  child: Texts
-                                                      .colorfulFloodForExplore,
-                                                ),
-                                              if (p.gizlendi)
-                                                _overlayStatus("Gizlendi")
-                                              else if (p.arsiv)
-                                                _overlayStatus("Arşivlendi")
-                                              else if (p.deletedPost)
-                                                _overlayStatus("Silindi"),
-                                            ],
+                                                if (p.floodCount > 1)
+                                                  Positioned(
+                                                    bottom: 0,
+                                                    right: 0,
+                                                    child: Texts
+                                                        .colorfulFloodForExplore,
+                                                  ),
+                                                if (p.gizlendi)
+                                                  _overlayStatus("Gizlendi")
+                                                else if (p.arsiv)
+                                                  _overlayStatus("Arşivlendi")
+                                                else if (p.deletedPost)
+                                                  _overlayStatus("Silindi"),
+                                              ],
+                                            ),
                                           ),
-                                        ),
                                         );
                                       },
                                     ),

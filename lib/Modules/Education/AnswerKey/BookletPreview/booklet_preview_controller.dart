@@ -12,7 +12,7 @@ class BookletPreviewController extends GetxController {
 
   final isBookmarked = false.obs;
   final nickname = ''.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = ''.obs;
   final fullName = ''.obs;
   final answerKeys = <AnswerKeySubModel>[].obs;
 
@@ -80,12 +80,12 @@ class BookletPreviewController extends GetxController {
           .get();
       final data = doc.data() ?? const <String, dynamic>{};
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
       fullName.value =

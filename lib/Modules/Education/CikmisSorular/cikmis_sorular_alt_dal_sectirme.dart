@@ -156,8 +156,8 @@ class _CikmisSorularAltDalSectirmeState
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.deepOrange,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -170,8 +170,8 @@ class _CikmisSorularAltDalSectirmeState
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(

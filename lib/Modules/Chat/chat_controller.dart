@@ -33,7 +33,7 @@ class ChatController extends GetxController {
   String chatID;
   String userID;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var token = "".obs;
   var fullName = "".obs;
   var bio = "".obs;
@@ -254,12 +254,7 @@ class ChatController extends GetxController {
       nickname.value =
           (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
               .toString();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["photoUrl"] ??
-              "")
-          .toString();
+      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
       token.value = (data["token"] ?? "").toString();
 
       final firstName = (data["firstName"] ?? "").toString().trim();

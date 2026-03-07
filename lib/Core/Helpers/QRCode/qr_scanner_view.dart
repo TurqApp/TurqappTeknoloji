@@ -23,11 +23,9 @@ class QrScannerView extends StatelessWidget {
             height: 3,
             decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.all(Radius.circular(40))
-            ),
+                borderRadius: BorderRadius.all(Radius.circular(40))),
           ),
         ),
-
         Padding(
           padding: const EdgeInsets.all(15),
           child: Row(
@@ -38,8 +36,7 @@ class QrScannerView extends StatelessWidget {
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: FontSizes.size20,
-                    fontFamily: AppFontFamilies.mbold
-                ),
+                    fontFamily: AppFontFamilies.mbold),
               ),
             ],
           ),
@@ -56,24 +53,22 @@ class QrScannerView extends StatelessWidget {
                 if (code != null && code.isNotEmpty) {
                   controller.onDetect(code);
                 }
-                if (code.toString().length == 28){
+                if (code.toString().length == 28) {
                   Get.to(() => SocialProfile(userID: code.toString()));
                 }
               },
             ),
           ),
         ),
-
         Padding(
           padding: const EdgeInsets.all(25),
           child: Text(
             "Yeni tanıştığınız insanların profilinde bulunan qr kodunu okutarak, onun profiline\nanına gidebilirsin",
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textBlack,
-              fontSize: FontSizes.size14,
-              fontFamily: AppFontFamilies.mmedium
-            ),
+                color: AppColors.textBlack,
+                fontSize: FontSizes.size14,
+                fontFamily: AppFontFamilies.mmedium),
           ),
         ),
       ],

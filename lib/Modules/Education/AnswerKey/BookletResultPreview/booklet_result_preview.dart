@@ -58,85 +58,78 @@ class BookletResultPreview extends StatelessWidget {
                       return Column(
                         children: [
                           Obx(
-                            () =>
-                                controller.anaModel.value == null
-                                    ? const Center(
-                                      child: CupertinoActivityIndicator(),
-                                    )
-                                    : Padding(
-                                      padding: const EdgeInsets.all(15),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: const BorderRadius.all(
-                                            Radius.circular(12),
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.grey.withValues(alpha: 0.2),
-                                          ),
+                            () => controller.anaModel.value == null
+                                ? const Center(
+                                    child: CupertinoActivityIndicator(),
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.all(15),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(12),
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(15),
-                                          child: Row(
-                                            children: [
-                                              Image.network(
-                                                controller
-                                                    .anaModel
-                                                    .value!
-                                                    .cover,
-                                                fit: BoxFit.contain,
-                                                height: 50,
+                                        border: Border.all(
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.2),
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(15),
+                                        child: Row(
+                                          children: [
+                                            Image.network(
+                                              controller.anaModel.value!.cover,
+                                              fit: BoxFit.contain,
+                                              height: 50,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    controller
+                                                        .anaModel.value!.baslik,
+                                                    maxLines: 1,
+                                                    style: const TextStyle(
+                                                      color: Colors.black,
+                                                      fontSize: 15,
+                                                      fontFamily:
+                                                          'MontserratBold',
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    controller.anaModel.value!
+                                                        .yayinEvi,
+                                                    maxLines: 1,
+                                                    style: const TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 15,
+                                                      fontFamily:
+                                                          'MontserratMedium',
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    model.baslik,
+                                                    maxLines: 1,
+                                                    style: const TextStyle(
+                                                      color: Colors.indigo,
+                                                      fontSize: 15,
+                                                      fontFamily:
+                                                          'MontserratBold',
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      controller
-                                                          .anaModel
-                                                          .value!
-                                                          .baslik,
-                                                      maxLines: 1,
-                                                      style: const TextStyle(
-                                                        color: Colors.black,
-                                                        fontSize: 15,
-                                                        fontFamily:
-                                                            'MontserratBold',
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      controller
-                                                          .anaModel
-                                                          .value!
-                                                          .yayinEvi,
-                                                      maxLines: 1,
-                                                      style: const TextStyle(
-                                                        color: Colors.grey,
-                                                        fontSize: 15,
-                                                        fontFamily:
-                                                            'MontserratMedium',
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      model.baslik,
-                                                      maxLines: 1,
-                                                      style: const TextStyle(
-                                                        color: Colors.indigo,
-                                                        fontSize: 15,
-                                                        fontFamily:
-                                                            'MontserratBold',
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
+                                  ),
                           ),
                           SizedBox(
                             height: 70,
@@ -238,8 +231,8 @@ class BookletResultPreview extends StatelessWidget {
                       return Container(
                         height: 50,
                         decoration: BoxDecoration(
-                          color: Colors.pink.withValues(alpha: 
-                            index % 2 == 0 ? 0.2 : 0.4,
+                          color: Colors.pink.withValues(
+                            alpha: index % 2 == 0 ? 0.2 : 0.4,
                           ),
                         ),
                         child: Padding(
@@ -260,38 +253,37 @@ class BookletResultPreview extends StatelessWidget {
                                   width: 40,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color:
-                                        model.cevaplar[realindex] == ""
-                                            ? (model.dogruCevaplar[realindex] ==
-                                                    item
-                                                ? Colors.green
-                                                : Colors.orange)
-                                            : model.cevaplar[realindex] ==
-                                                    model
-                                                        .dogruCevaplar[realindex] &&
+                                    color: model.cevaplar[realindex] == ""
+                                        ? (model.dogruCevaplar[realindex] ==
+                                                item
+                                            ? Colors.green
+                                            : Colors.orange)
+                                        : model.cevaplar[realindex] ==
+                                                    model.dogruCevaplar[
+                                                        realindex] &&
                                                 model.cevaplar[realindex] ==
                                                     item
                                             ? Colors.green
                                             : model.cevaplar[realindex] !=
-                                                    model
-                                                        .dogruCevaplar[realindex] &&
-                                                model.dogruCevaplar[realindex] ==
-                                                    item
-                                            ? Colors.green
-                                            : model.cevaplar[realindex] == item
-                                            ? Colors.red
-                                            : Colors.white,
+                                                        model.dogruCevaplar[
+                                                            realindex] &&
+                                                    model.dogruCevaplar[
+                                                            realindex] ==
+                                                        item
+                                                ? Colors.green
+                                                : model.cevaplar[realindex] ==
+                                                        item
+                                                    ? Colors.red
+                                                    : Colors.white,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Text(
                                     item,
                                     style: TextStyle(
-                                      color:
-                                          model.cevaplar[realindex] == "" ||
-                                                  model.cevaplar[realindex] ==
-                                                      item
-                                              ? Colors.white
-                                              : Colors.black,
+                                      color: model.cevaplar[realindex] == "" ||
+                                              model.cevaplar[realindex] == item
+                                          ? Colors.white
+                                          : Colors.black,
                                       fontSize: 20,
                                       fontFamily: "MontserratBold",
                                     ),

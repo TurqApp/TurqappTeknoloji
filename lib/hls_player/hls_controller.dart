@@ -98,7 +98,8 @@ class HLSController {
   }
 
   // Load video URL
-  Future<void> loadVideo(String url, {bool autoPlay = true, bool loop = false}) async {
+  Future<void> loadVideo(String url,
+      {bool autoPlay = true, bool loop = false}) async {
     if (_viewId == null) {
       throw Exception('Controller not initialized. Call initialize() first.');
     }
@@ -235,7 +236,8 @@ class HLSController {
     if (_viewId == null) return 0.0;
 
     try {
-      final result = await _methodChannel.invokeMethod<double>('getCurrentTime', {
+      final result =
+          await _methodChannel.invokeMethod<double>('getCurrentTime', {
         'viewId': _viewId,
       });
       return result ?? 0.0;
@@ -310,9 +312,11 @@ class HLSController {
 
         switch (eventType) {
           case 'ready':
-            final durationSeconds = (event['duration'] as num?)?.toDouble() ?? 0.0;
+            final durationSeconds =
+                (event['duration'] as num?)?.toDouble() ?? 0.0;
             _duration = durationSeconds;
-            _durationController.add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
+            _durationController
+                .add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
             _updateState(PlayerState.ready);
             break;
 
@@ -349,14 +353,18 @@ class HLSController {
             final duration = (event['duration'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
             _duration = duration;
-            _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
-            _durationController.add(Duration(milliseconds: (duration * 1000).toInt()));
+            _positionController
+                .add(Duration(milliseconds: (position * 1000).toInt()));
+            _durationController
+                .add(Duration(milliseconds: (duration * 1000).toInt()));
             if (_telemetryVideoId != null) {
-              _telemetry.onPositionUpdate(_telemetryVideoId!, position, duration);
+              _telemetry.onPositionUpdate(
+                  _telemetryVideoId!, position, duration);
             }
             // Native tarafında 'ready/play' eventi erken kaçarsa timeUpdate ile state'i toparla.
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
-              _updateState(position > 0 ? PlayerState.playing : PlayerState.ready);
+              _updateState(
+                  position > 0 ? PlayerState.playing : PlayerState.ready);
             }
             break;
 
@@ -382,7 +390,8 @@ class HLSController {
           case 'seekCompleted':
             final position = (event['position'] as num?)?.toDouble() ?? 0.0;
             _currentPosition = position;
-            _positionController.add(Duration(milliseconds: (position * 1000).toInt()));
+            _positionController
+                .add(Duration(milliseconds: (position * 1000).toInt()));
             if (_telemetryVideoId != null) {
               _telemetry.onSeek(_telemetryVideoId!);
             }

@@ -404,7 +404,8 @@ class _PostTestState extends State<PostTest> {
                               AppSnackbar(
                                 "Hata",
                                 "Lütfen geçerli bir sayı girin",
-                                backgroundColor: Colors.orange.withValues(alpha: 0.8),
+                                backgroundColor:
+                                    Colors.orange.withValues(alpha: 0.8),
                                 colorText: Colors.white,
                               );
                             }

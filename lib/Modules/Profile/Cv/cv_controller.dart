@@ -105,7 +105,9 @@ class CvController extends GetxController {
                       AppSnackbar("Eksik Alan", "Okul adı boş bırakılamaz");
                       return;
                     }
-                    if (yil.text.isNotEmpty && yil.text != "Halen" && !_validateYear(yil.text)) {
+                    if (yil.text.isNotEmpty &&
+                        yil.text != "Halen" &&
+                        !_validateYear(yil.text)) {
                       AppSnackbar("Hata", "Geçerli bir yıl girin");
                       return;
                     }
@@ -212,14 +214,20 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Okul Düzenle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Okul Düzenle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 TextButton(
                   onPressed: () {
                     if (okul.text.trim().isEmpty) {
                       AppSnackbar("Eksik Alan", "Okul adı boş bırakılamaz");
                       return;
                     }
-                    if (yil.text.isNotEmpty && yil.text != "Halen" && !_validateYear(yil.text)) {
+                    if (yil.text.isNotEmpty &&
+                        yil.text != "Halen" &&
+                        !_validateYear(yil.text)) {
                       AppSnackbar("Hata", "Geçerli bir yıl girin");
                       return;
                     }
@@ -231,7 +239,10 @@ class CvController extends GetxController {
                     okullar.refresh();
                     Get.back();
                   },
-                  child: Text("Kaydet", style: TextStyle(color: Colors.blueAccent, fontFamily: "MontserratBold")),
+                  child: Text("Kaydet",
+                      style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontFamily: "MontserratBold")),
                 ),
               ],
             ),
@@ -259,15 +270,24 @@ class CvController extends GetxController {
                       ],
                       decoration: InputDecoration(
                         hintText: "Mezuniyet Yılı",
-                        hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
+                        hintStyle: TextStyle(
+                            color: Colors.grey, fontFamily: "MontserratMedium"),
                         border: InputBorder.none,
                       ),
-                      style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium"),
                     ),
                   ),
                   GestureDetector(
                     onTap: () => yil.text = "Halen",
-                    child: Text("Devam Ediyorum", style: TextStyle(color: Colors.blueAccent, fontSize: 14, fontFamily: "MontserratMedium", decoration: TextDecoration.underline)),
+                    child: Text("Devam Ediyorum",
+                        style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontSize: 14,
+                            fontFamily: "MontserratMedium",
+                            decoration: TextDecoration.underline)),
                   ),
                 ],
               ),
@@ -287,9 +307,15 @@ class CvController extends GetxController {
     RxInt selectedSeviye = 3.obs;
 
     final List<String> ornekdiller = [
-      "İngilizce", "Almanca", "Fransızca",
-      "İspanyolca", "Arapça", "Türkçe",
-      "Rusça", "İtalyanca", "Korece",
+      "İngilizce",
+      "Almanca",
+      "Fransızca",
+      "İspanyolca",
+      "Arapça",
+      "Türkçe",
+      "Rusça",
+      "İtalyanca",
+      "Korece",
     ];
 
     Get.bottomSheet(
@@ -307,56 +333,90 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Dil Ekle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Yeni Dil Ekle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 Obx(() => TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  onPressed: selectedDil.value.isEmpty ? null : () {
-                    diler.add(CVLanguegeModel(languege: selectedDil.value, level: selectedSeviye.toInt(), index: diler.length + 10000));
-                    Get.back();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text("Ekle", style: TextStyle(color: selectedDil.value.isEmpty ? Colors.grey : Colors.blueAccent, fontSize: 15, fontFamily: "MontserratBold")),
-                  ),
-                )),
+                      style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                      onPressed: selectedDil.value.isEmpty
+                          ? null
+                          : () {
+                              diler.add(CVLanguegeModel(
+                                  languege: selectedDil.value,
+                                  level: selectedSeviye.toInt(),
+                                  index: diler.length + 10000));
+                              Get.back();
+                            },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text("Ekle",
+                            style: TextStyle(
+                                color: selectedDil.value.isEmpty
+                                    ? Colors.grey
+                                    : Colors.blueAccent,
+                                fontSize: 15,
+                                fontFamily: "MontserratBold")),
+                      ),
+                    )),
               ],
             ),
             const SizedBox(height: 10),
             Obx(() => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ornekdiller.map((dil) {
-                  final bool isSelected = selectedDil.value == dil;
-                  return GestureDetector(
-                    onTap: () => selectedDil.value = dil,
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blueAccent : Colors.grey.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(dil, style: TextStyle(fontSize: 14, fontFamily: "MontserratMedium", color: isSelected ? Colors.white : Colors.black)),
-                    ),
-                  );
-                }).toList(),
-              ),
-            )),
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ornekdiller.map((dil) {
+                      final bool isSelected = selectedDil.value == dil;
+                      return GestureDetector(
+                        onTap: () => selectedDil.value = dil,
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.blueAccent
+                                : Colors.grey.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(dil,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: "MontserratMedium",
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )),
             const SizedBox(height: 20),
-            Text("Seviye", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
+            Text("Seviye",
+                style: TextStyle(
+                    fontFamily: "MontserratMedium",
+                    fontSize: 14,
+                    color: Colors.black)),
             const SizedBox(height: 8),
             Obx(() => Row(
-              children: List.generate(5, (index) {
-                return GestureDetector(
-                  onTap: () => selectedSeviye.value = index + 1,
-                  child: Icon(
-                    index < selectedSeviye.value ? CupertinoIcons.star_fill : CupertinoIcons.star,
-                    color: index < selectedSeviye.value ? Colors.amber : Colors.grey,
-                    size: 28,
-                  ),
-                );
-              }),
-            )),
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () => selectedSeviye.value = index + 1,
+                      child: Icon(
+                        index < selectedSeviye.value
+                            ? CupertinoIcons.star_fill
+                            : CupertinoIcons.star,
+                        color: index < selectedSeviye.value
+                            ? Colors.amber
+                            : Colors.grey,
+                        size: 28,
+                      ),
+                    );
+                  }),
+                )),
             SizedBox(height: 25),
           ],
         ),
@@ -371,9 +431,15 @@ class CvController extends GetxController {
     RxInt selectedSeviye = (model.level.toInt()).obs;
 
     final List<String> ornekdiller = [
-      "İngilizce", "Almanca", "Fransızca",
-      "İspanyolca", "Arapça", "Türkçe",
-      "Rusça", "İtalyanca", "Korece",
+      "İngilizce",
+      "Almanca",
+      "Fransızca",
+      "İspanyolca",
+      "Arapça",
+      "Türkçe",
+      "Rusça",
+      "İtalyanca",
+      "Korece",
     ];
 
     Get.bottomSheet(
@@ -391,53 +457,84 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Dil Düzenle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Dil Düzenle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 Obx(() => TextButton(
-                  onPressed: selectedDil.value.isEmpty ? null : () {
-                    diler[index] = CVLanguegeModel(languege: selectedDil.value, level: selectedSeviye.toInt(), index: model.index);
-                    diler.refresh();
-                    Get.back();
-                  },
-                  child: Text("Kaydet", style: TextStyle(color: selectedDil.value.isEmpty ? Colors.grey : Colors.blueAccent, fontFamily: "MontserratBold")),
-                )),
+                      onPressed: selectedDil.value.isEmpty
+                          ? null
+                          : () {
+                              diler[index] = CVLanguegeModel(
+                                  languege: selectedDil.value,
+                                  level: selectedSeviye.toInt(),
+                                  index: model.index);
+                              diler.refresh();
+                              Get.back();
+                            },
+                      child: Text("Kaydet",
+                          style: TextStyle(
+                              color: selectedDil.value.isEmpty
+                                  ? Colors.grey
+                                  : Colors.blueAccent,
+                              fontFamily: "MontserratBold")),
+                    )),
               ],
             ),
             const SizedBox(height: 10),
             Obx(() => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ornekdiller.map((dil) {
-                  final bool isSelected = selectedDil.value == dil;
-                  return GestureDetector(
-                    onTap: () => selectedDil.value = dil,
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blueAccent : Colors.grey.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(dil, style: TextStyle(fontSize: 14, fontFamily: "MontserratMedium", color: isSelected ? Colors.white : Colors.black)),
-                    ),
-                  );
-                }).toList(),
-              ),
-            )),
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ornekdiller.map((dil) {
+                      final bool isSelected = selectedDil.value == dil;
+                      return GestureDetector(
+                        onTap: () => selectedDil.value = dil,
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.blueAccent
+                                : Colors.grey.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(dil,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: "MontserratMedium",
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.black)),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )),
             const SizedBox(height: 20),
-            Text("Seviye", style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14, color: Colors.black)),
+            Text("Seviye",
+                style: TextStyle(
+                    fontFamily: "MontserratMedium",
+                    fontSize: 14,
+                    color: Colors.black)),
             const SizedBox(height: 8),
             Obx(() => Row(
-              children: List.generate(5, (i) {
-                return GestureDetector(
-                  onTap: () => selectedSeviye.value = i + 1,
-                  child: Icon(
-                    i < selectedSeviye.value ? CupertinoIcons.star_fill : CupertinoIcons.star,
-                    color: i < selectedSeviye.value ? Colors.amber : Colors.grey,
-                    size: 28,
-                  ),
-                );
-              }),
-            )),
+                  children: List.generate(5, (i) {
+                    return GestureDetector(
+                      onTap: () => selectedSeviye.value = i + 1,
+                      child: Icon(
+                        i < selectedSeviye.value
+                            ? CupertinoIcons.star_fill
+                            : CupertinoIcons.star,
+                        color: i < selectedSeviye.value
+                            ? Colors.amber
+                            : Colors.grey,
+                        size: 28,
+                      ),
+                    );
+                  }),
+                )),
             SizedBox(height: 25),
           ],
         ),
@@ -493,10 +590,13 @@ class CvController extends GetxController {
   void isDeneyimiDuzenle(int index) {
     final model = isDeneyimleri[index];
     TextEditingController firmaAdi = TextEditingController(text: model.company);
-    TextEditingController pozisyon = TextEditingController(text: model.position);
+    TextEditingController pozisyon =
+        TextEditingController(text: model.position);
     TextEditingController yil1 = TextEditingController(text: model.year1);
-    TextEditingController yil2 = TextEditingController(text: model.year2 == "Devam Ediyor" ? "" : model.year2);
-    TextEditingController aciklama = TextEditingController(text: model.description);
+    TextEditingController yil2 = TextEditingController(
+        text: model.year2 == "Devam Ediyor" ? "" : model.year2);
+    TextEditingController aciklama =
+        TextEditingController(text: model.description);
     RxBool halenCalisiyorum = (model.year2 == "Devam Ediyor").obs;
 
     _showExperienceSheet(
@@ -561,10 +661,17 @@ class CvController extends GetxController {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title, style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                  Text(title,
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontFamily: "MontserratBold")),
                   TextButton(
                     onPressed: onSave,
-                    child: Text(buttonText, style: TextStyle(color: Colors.blueAccent, fontFamily: "MontserratBold")),
+                    child: Text(buttonText,
+                        style: TextStyle(
+                            color: Colors.blueAccent,
+                            fontFamily: "MontserratBold")),
                   ),
                 ],
               ),
@@ -581,116 +688,142 @@ class CvController extends GetxController {
                   color: Colors.black.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 child: TextField(
                   controller: aciklama,
                   maxLines: 3,
                   maxLength: 200,
                   decoration: InputDecoration(
                     hintText: "Görev Tanımı (opsiyonel)",
-                    hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
+                    hintStyle: TextStyle(
+                        color: Colors.grey, fontFamily: "MontserratMedium"),
                     border: InputBorder.none,
                     counterText: "",
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+                  style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: "MontserratMedium"),
                 ),
               ),
               SizedBox(height: 15),
               // Years
               Obx(() => Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: TextField(
-                        controller: yil1,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          LengthLimitingTextInputFormatter(4),
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          hintText: "Başlangıç",
-                          hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
-                          border: InputBorder.none,
-                        ),
-                        style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Opacity(
-                      opacity: halenCalisiyorum.value ? 0.4 : 1.0,
-                      child: Container(
-                        height: 50,
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: TextField(
-                          controller: yil2,
-                          enabled: !halenCalisiyorum.value,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(4),
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          decoration: InputDecoration(
-                            hintText: halenCalisiyorum.value ? "Devam Ediyor" : "Ayrılış",
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontStyle: halenCalisiyorum.value ? FontStyle.italic : FontStyle.normal,
-                              fontFamily: "MontserratMedium",
-                            ),
-                            border: InputBorder.none,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
-                          style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          child: TextField(
+                            controller: yil1,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(4),
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              hintText: "Başlangıç",
+                              hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium"),
+                              border: InputBorder.none,
+                            ),
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium"),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              )),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Opacity(
+                          opacity: halenCalisiyorum.value ? 0.4 : 1.0,
+                          child: Container(
+                            height: 50,
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(12)),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            child: TextField(
+                              controller: yil2,
+                              enabled: !halenCalisiyorum.value,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(4),
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: InputDecoration(
+                                hintText: halenCalisiyorum.value
+                                    ? "Devam Ediyor"
+                                    : "Ayrılış",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontStyle: halenCalisiyorum.value
+                                      ? FontStyle.italic
+                                      : FontStyle.normal,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium"),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Obx(() => Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: GestureDetector(
-                      onTap: () {
-                        halenCalisiyorum.toggle();
-                        if (halenCalisiyorum.value) yil2.clear();
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 25,
-                            height: 25,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.all(Radius.circular(4)),
-                              color: halenCalisiyorum.value ? Colors.black : Colors.transparent,
-                              border: Border.all(color: Colors.black),
-                            ),
-                            child: Icon(CupertinoIcons.checkmark, color: Colors.white, size: 20),
+                        padding: const EdgeInsets.only(top: 10),
+                        child: GestureDetector(
+                          onTap: () {
+                            halenCalisiyorum.toggle();
+                            if (halenCalisiyorum.value) yil2.clear();
+                          },
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 25,
+                                height: 25,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(4)),
+                                  color: halenCalisiyorum.value
+                                      ? Colors.black
+                                      : Colors.transparent,
+                                  border: Border.all(color: Colors.black),
+                                ),
+                                child: Icon(CupertinoIcons.checkmark,
+                                    color: Colors.white, size: 20),
+                              ),
+                              SizedBox(width: 7),
+                              Text("Hâlen çalışıyorum",
+                                  style: TextStyle(
+                                      color: Colors.blueAccent,
+                                      fontSize: 14,
+                                      fontFamily: "MontserratMedium")),
+                            ],
                           ),
-                          SizedBox(width: 7),
-                          Text("Hâlen çalışıyorum", style: TextStyle(color: Colors.blueAccent, fontSize: 14, fontFamily: "MontserratMedium")),
-                        ],
-                      ),
-                    ),
-                  )),
+                        ),
+                      )),
                 ],
               ),
               SizedBox(height: 15),
@@ -723,7 +856,11 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Referans Ekle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Yeni Referans Ekle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 TextButton(
                   onPressed: () {
                     if (adsoyad.text.trim().isEmpty) {
@@ -732,10 +869,14 @@ class CvController extends GetxController {
                     }
                     String raw = telefon.text.replaceAll(RegExp(r'[^0-9]'), '');
                     String formatted = _formatPhoneNumber(raw);
-                    referanslar.add(CVReferenceHumans(nameSurname: adsoyad.text.trim(), phone: formatted));
+                    referanslar.add(CVReferenceHumans(
+                        nameSurname: adsoyad.text.trim(), phone: formatted));
                     Get.back();
                   },
-                  child: Text("Ekle", style: TextStyle(color: Colors.blueAccent, fontFamily: "MontserratBold")),
+                  child: Text("Ekle",
+                      style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontFamily: "MontserratBold")),
                 ),
               ],
             ),
@@ -758,10 +899,14 @@ class CvController extends GetxController {
                 ],
                 decoration: InputDecoration(
                   hintText: "Telefon (ör, 05xx..)",
-                  hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
+                  hintStyle: TextStyle(
+                      color: Colors.grey, fontFamily: "MontserratMedium"),
                   border: InputBorder.none,
                 ),
-                style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+                style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontFamily: "MontserratMedium"),
               ),
             ),
             SizedBox(height: 15),
@@ -774,8 +919,10 @@ class CvController extends GetxController {
 
   void referansDuzenle(int index) {
     final model = referanslar[index];
-    TextEditingController adsoyad = TextEditingController(text: model.nameSurname);
-    TextEditingController telefon = TextEditingController(text: model.phone.replaceAll(RegExp(r'[^0-9]'), ''));
+    TextEditingController adsoyad =
+        TextEditingController(text: model.nameSurname);
+    TextEditingController telefon = TextEditingController(
+        text: model.phone.replaceAll(RegExp(r'[^0-9]'), ''));
 
     Get.bottomSheet(
       Container(
@@ -792,7 +939,11 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Referans Düzenle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Referans Düzenle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 TextButton(
                   onPressed: () {
                     if (adsoyad.text.trim().isEmpty) {
@@ -801,11 +952,15 @@ class CvController extends GetxController {
                     }
                     String raw = telefon.text.replaceAll(RegExp(r'[^0-9]'), '');
                     String formatted = _formatPhoneNumber(raw);
-                    referanslar[index] = CVReferenceHumans(nameSurname: adsoyad.text.trim(), phone: formatted);
+                    referanslar[index] = CVReferenceHumans(
+                        nameSurname: adsoyad.text.trim(), phone: formatted);
                     referanslar.refresh();
                     Get.back();
                   },
-                  child: Text("Kaydet", style: TextStyle(color: Colors.blueAccent, fontFamily: "MontserratBold")),
+                  child: Text("Kaydet",
+                      style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontFamily: "MontserratBold")),
                 ),
               ],
             ),
@@ -828,10 +983,14 @@ class CvController extends GetxController {
                 ],
                 decoration: InputDecoration(
                   hintText: "Telefon (ör, 05xx..)",
-                  hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
+                  hintStyle: TextStyle(
+                      color: Colors.grey, fontFamily: "MontserratMedium"),
                   border: InputBorder.none,
                 ),
-                style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+                style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontFamily: "MontserratMedium"),
               ),
             ),
             SizedBox(height: 15),
@@ -862,7 +1021,11 @@ class CvController extends GetxController {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Yeni Beceri Ekle", style: TextStyle(color: Colors.black, fontSize: 18, fontFamily: "MontserratBold")),
+                Text("Yeni Beceri Ekle",
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold")),
                 TextButton(
                   onPressed: () {
                     final text = beceri.text.trim();
@@ -877,24 +1040,34 @@ class CvController extends GetxController {
                     skills.add(text);
                     Get.back();
                   },
-                  child: Text("Ekle", style: TextStyle(color: Colors.blueAccent, fontFamily: "MontserratBold")),
+                  child: Text("Ekle",
+                      style: TextStyle(
+                          color: Colors.blueAccent,
+                          fontFamily: "MontserratBold")),
                 ),
               ],
             ),
             _textFieldBox(beceri, "Beceri (ör. Flutter, Photoshop)"),
             SizedBox(height: 15),
             Obx(() => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: skills.map((s) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent.withAlpha(20),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(s, style: TextStyle(fontSize: 13, fontFamily: "MontserratMedium", color: Colors.blueAccent)),
-              )).toList(),
-            )),
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: skills
+                      .map((s) => Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent.withAlpha(20),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(s,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: "MontserratMedium",
+                                    color: Colors.blueAccent)),
+                          ))
+                      .toList(),
+                )),
             SizedBox(height: 15),
           ],
         ),
@@ -929,10 +1102,12 @@ class CvController extends GetxController {
         keyboardType: TextInputType.text,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
+          hintStyle:
+              TextStyle(color: Colors.grey, fontFamily: "MontserratMedium"),
           border: InputBorder.none,
         ),
-        style: TextStyle(color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
+        style: TextStyle(
+            color: Colors.black, fontSize: 15, fontFamily: "MontserratMedium"),
       ),
     );
   }
@@ -948,10 +1123,7 @@ class CvController extends GetxController {
     if (isSaving.value) return;
     isSaving.value = true;
     try {
-      await FirebaseFirestore.instance
-          .collection("CV")
-          .doc(uid)
-          .set({
+      await FirebaseFirestore.instance.collection("CV").doc(uid).set({
         "firstName": firstName.text.trim(),
         "lastName": lastName.text.trim(),
         "mail": mail.text.trim(),
@@ -967,7 +1139,8 @@ class CvController extends GetxController {
       });
       selection.value = 0;
       Get.back();
-      AppSnackbar("CV Oluşturuldu!", "Şimdi iş başvurusu yaparken daha hızlı bir şekilde başvurabilirsin");
+      AppSnackbar("CV Oluşturuldu!",
+          "Şimdi iş başvurusu yaparken daha hızlı bir şekilde başvurabilirsin");
     } catch (e) {
       AppSnackbar("Hata", "CV kaydedilemedi. Tekrar deneyin.");
     } finally {
@@ -979,7 +1152,8 @@ class CvController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final doc = await FirebaseFirestore.instance.collection("CV").doc(uid).get();
+      final doc =
+          await FirebaseFirestore.instance.collection("CV").doc(uid).get();
 
       if (doc.exists) {
         final data = doc.data() ?? {};

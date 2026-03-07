@@ -43,6 +43,12 @@ export const generateThumbnails = functions
       return null;
     }
 
+    // Skip profile avatar uploads: app now uploads finalized single avatar asset
+    if (filePath.startsWith("users/") && filePath.includes("_avatarUrl")) {
+      console.log("Profile avatar source file, skipping thumbnail generation:", filePath);
+      return null;
+    }
+
     // Check file extension
     const ext = path.extname(filePath).toLowerCase();
     if (!SUPPORTED_FORMATS.includes(ext)) {

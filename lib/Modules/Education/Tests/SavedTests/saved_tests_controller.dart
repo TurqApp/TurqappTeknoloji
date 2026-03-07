@@ -17,14 +17,13 @@ class SavedTestsController extends GetxController {
     isLoading.value = true;
     list.clear();
     try {
-      final snap =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .where(
-                "favoriler",
-                arrayContains: FirebaseAuth.instance.currentUser!.uid,
-              )
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection("Testler")
+          .where(
+            "favoriler",
+            arrayContains: FirebaseAuth.instance.currentUser!.uid,
+          )
+          .get();
 
       for (var doc in snap.docs) {
         final aciklama = doc.get("aciklama") as String;

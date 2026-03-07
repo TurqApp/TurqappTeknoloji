@@ -138,7 +138,10 @@ class DenemeSinaviYapController extends GetxController
   }
 
   void sinaviGecersizSay() {
-    FirebaseFirestore.instance.collection("practiceExams").doc(model.docID).set({
+    FirebaseFirestore.instance
+        .collection("practiceExams")
+        .doc(model.docID)
+        .set({
       "gecersizSayilanlar": FieldValue.arrayUnion([
         FirebaseAuth.instance.currentUser!.uid,
       ]),

@@ -202,10 +202,7 @@ class PostCountManager extends GetxController {
     getStatsCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
     try {
-      await FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(postID)
-          .update({
+      await FirebaseFirestore.instance.collection("Posts").doc(postID).update({
         "stats.statsCount": FieldValue.increment(inc),
       });
     } catch (e) {

@@ -120,11 +120,10 @@ class AntremanScoreController extends GetxController {
     List<Map<String, dynamic>> entries,
   ) async {
     final missingEntries = entries.where((entry) {
-      final pfImage =
-          (entry['avatarUrl'] ?? entry['pfImage'] ?? '').toString().trim();
+      final avatarUrl = (entry['avatarUrl'] ?? '').toString().trim();
       final firstName = (entry['firstName'] ?? '').toString().trim();
       final lastName = (entry['lastName'] ?? '').toString().trim();
-      return pfImage.isEmpty || firstName.isEmpty || lastName.isEmpty;
+      return avatarUrl.isEmpty || firstName.isEmpty || lastName.isEmpty;
     }).toList();
 
     if (missingEntries.isEmpty) return entries;
@@ -141,20 +140,17 @@ class AntremanScoreController extends GetxController {
         final userData = userDoc.data();
         if (userData == null) return;
 
-        final profileImage = (userData['avatarUrl'] ??
-                userData['pfImage'] ??
-                userData['photoURL'] ??
-                userData['profileImageUrl'] ??
-                '')
-            .toString()
-            .trim();
+        final profileImage =
+            (  '')
+                .toString()
+                .trim();
         if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
             profileImage.isNotEmpty) {
           entry['avatarUrl'] = profileImage;
         }
-        if ((entry['pfImage'] ?? '').toString().trim().isEmpty &&
+        if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
             profileImage.isNotEmpty) {
-          entry['pfImage'] = profileImage;
+          entry['avatarUrl'] = profileImage;
         }
 
         final profileName = (userData['displayName'] ??

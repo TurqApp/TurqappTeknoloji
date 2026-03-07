@@ -17,14 +17,13 @@ class MyTestsController extends GetxController {
     isLoading.value = true;
     list.clear();
     try {
-      final snap =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .where(
-                "userID",
-                isEqualTo: FirebaseAuth.instance.currentUser!.uid,
-              )
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection("Testler")
+          .where(
+            "userID",
+            isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+          )
+          .get();
 
       final tempList = <TestsModel>[];
 

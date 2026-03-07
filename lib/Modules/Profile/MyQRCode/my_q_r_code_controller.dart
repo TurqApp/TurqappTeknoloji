@@ -35,7 +35,7 @@ class MyQRCodeController extends GetxController {
       slug: safeSlug,
       title: '@${user.nickname.value} - TurqApp',
       desc: 'TurqApp profilini görüntüle',
-      imageUrl: user.pfImage.value,
+      imageUrl: user.avatarUrl.value,
     );
     final url = (result['url'] ?? '').toString().trim();
     return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 import 'turq_image_cache_manager.dart';
 
@@ -186,11 +187,7 @@ class UserProfileCacheService extends GetxService {
     _dirty = true;
     _schedulePersist();
 
-    final imageUrl = (profile['avatarUrl'] ??
-            profile['pfImage'] ??
-            profile['photoUrl'] ??
-            '')
-        .toString();
+    final imageUrl = (profile['avatarUrl'] ?? '').toString();
     if (imageUrl.isNotEmpty) {
       unawaited(TurqImageCacheManager.instance.getSingleFile(imageUrl));
     }
@@ -262,17 +259,12 @@ class UserProfileCacheService extends GetxService {
     );
     final firstName = (raw['firstName'] ?? '').toString().trim();
     final lastName = (raw['lastName'] ?? '').toString().trim();
-    final fullNameParts = [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
+    final fullNameParts =
+        [firstName, lastName].where((e) => e.isNotEmpty).join(' ');
     final displayName = (raw['displayName'] ?? '').toString().trim().isNotEmpty
         ? (raw['displayName'] ?? '').toString().trim()
         : (fullNameParts.isNotEmpty ? fullNameParts : nickname);
-    final avatarUrl = (raw['avatarUrl'] ??
-            raw['pfImage'] ??
-            raw['photoURL'] ??
-            raw['profileImageUrl'] ??
-            raw['photoUrl'] ??
-            '')
-        .toString();
+    final avatarUrl = resolveAvatarUrl(raw);
     final followerCount = raw['followerCount'] ??
         raw['counterOfFollowers'] ??
         raw['followersCount'] ??
@@ -291,8 +283,6 @@ class UserProfileCacheService extends GetxService {
       'username': username,
       'usernameLower': usernameLower,
       'avatarUrl': avatarUrl,
-      'pfImage': avatarUrl,
-      'photoUrl': (raw['photoUrl'] ?? '').toString(),
       'firstName': firstName,
       'lastName': lastName,
       'fullName': (raw['fullName'] ?? '').toString(),

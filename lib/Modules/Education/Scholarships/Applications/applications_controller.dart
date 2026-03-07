@@ -60,10 +60,10 @@ class ApplicationsController extends GetxController {
                 ownerData?['nickname'] ??
                 'Bilinmiyor')
             .toString();
-        final pfImage = (ownerData?['avatarUrl'] ??
-                ownerData?['pfImage'] ??
-                ownerData?['photoURL'] ??
-                ownerData?['profileImageUrl'] ??
+        final avatarUrl = (ownerData?['avatarUrl'] ??
+                ownerData?['avatarUrl'] ??
+                ownerData?['avatarUrl'] ??
+                ownerData?['avatarUrl'] ??
                 '')
             .toString();
 
@@ -92,7 +92,7 @@ class ApplicationsController extends GetxController {
           'hedefKitle': data['hedefKitle'] as String? ?? '',
           'nickname': nickname,
           'userID': bursOwnerID,
-          'pfImage': pfImage,
+          'avatarUrl': avatarUrl,
         });
       }
 

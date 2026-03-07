@@ -50,9 +50,8 @@ class ScholarshipProvidersController extends GetxController {
         for (final userDoc in snap.docs) {
           final user = userDoc.data();
           final profileImage = (user['avatarUrl'] ??
-                  user['pfImage'] ??
-                  user['photoURL'] ??
-                  user['profileImageUrl'] ??
+                  user['avatarUrl'] ??
+                  user['avatarUrl'] ??
                   '')
               .toString();
           final profileName = (user['displayName'] ??
@@ -62,7 +61,6 @@ class ScholarshipProvidersController extends GetxController {
               .toString();
           providerList.add({
             'userID': userDoc.id,
-            'pfImage': profileImage,
             'avatarUrl': profileImage,
             'nickname': profileName,
             'displayName': profileName,

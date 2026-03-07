@@ -552,8 +552,8 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   Widget _buildUserAvatar(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
     final imageUrl = (userData?['avatarUrl'] ??
-            userData?['pfImage'] ??
-            userData?['photoURL'] ??
+            userData?['avatarUrl'] ??
+            userData?['avatarUrl'] ??
             '')
         .toString();
     return CircleAvatar(

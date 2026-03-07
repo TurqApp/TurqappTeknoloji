@@ -13,7 +13,7 @@ class PostCommentContentController extends GetxController {
   final String postID;
 
   final RxString nickname = ''.obs;
-  final RxString pfImage = ''.obs;
+  final RxString avatarUrl = ''.obs;
   final RxList<String> likes = <String>[].obs;
   final PostInteractionService _interactionService =
       Get.put(PostInteractionService());
@@ -36,12 +36,8 @@ class PostCommentContentController extends GetxController {
         nickname.value =
             (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
                 .toString();
-        pfImage.value = (data['avatarUrl'] ??
-                data['pfImage'] ??
-                data['photoURL'] ??
-                data['profileImageUrl'] ??
-                '')
-            .toString();
+        avatarUrl.value =
+            (  '').toString();
       }
     } catch (_) {}
   }

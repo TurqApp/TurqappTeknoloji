@@ -24,7 +24,7 @@ class ShortContentController extends GetxController {
     required this.model,
   });
 
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var fullName = "".obs;
   var token = "".obs;
@@ -480,10 +480,10 @@ class ShortContentController extends GetxController {
     final doc =
         await FirebaseFirestore.instance.collection("users").doc(userID).get();
     final data = doc.data() ?? const <String, dynamic>{};
-    pfImage.value = (data["avatarUrl"] ??
-            data["pfImage"] ??
-            data["photoURL"] ??
-            data["profileImageUrl"] ??
+    avatarUrl.value = (data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
+            data["avatarUrl"] ??
             "")
         .toString();
     nickname.value =

@@ -27,12 +27,11 @@ class MyPastTestResultsPreviewController extends GetxController {
     isLoading.value = true;
     try {
       // Fetch answers
-      final yanitSnapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(model.docID)
-              .collection("Yanitlar")
-              .get();
+      final yanitSnapshot = await FirebaseFirestore.instance
+          .collection("Testler")
+          .doc(model.docID)
+          .collection("Yanitlar")
+          .get();
 
       for (var doc in yanitSnapshot.docs) {
         yanitlar.assignAll(List<String>.from(doc['cevaplar']));
@@ -40,13 +39,12 @@ class MyPastTestResultsPreviewController extends GetxController {
       }
 
       // Fetch questions
-      final soruSnapshot =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .doc(model.docID)
-              .collection("Sorular")
-              .orderBy("id", descending: false)
-              .get();
+      final soruSnapshot = await FirebaseFirestore.instance
+          .collection("Testler")
+          .doc(model.docID)
+          .collection("Sorular")
+          .orderBy("id", descending: false)
+          .get();
 
       soruList.clear();
       for (var doc in soruSnapshot.docs) {

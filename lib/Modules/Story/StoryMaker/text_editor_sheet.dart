@@ -213,8 +213,7 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                   const SizedBox(height: 4),
                   // Outline toggle
                   IconButton(
-                    onPressed: () =>
-                        setState(() => _hasOutline = !_hasOutline),
+                    onPressed: () => setState(() => _hasOutline = !_hasOutline),
                     icon: Icon(CupertinoIcons.textformat_abc,
                         color: _hasOutline ? Colors.greenAccent : Colors.white),
                   ),
@@ -295,25 +294,23 @@ class _TextEditorSheetState extends State<TextEditorSheet> {
                       ),
                       const SizedBox(height: 8),
                       // Color dots
-                      ..._colors
-                          .map((c) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 6, horizontal: 10),
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _textColor = c),
-                                  child: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: Color(c),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color: Colors.white, width: 1),
-                                    ),
-                                  ),
+                      ..._colors.map((c) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 10),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _textColor = c),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: Color(c),
+                                  shape: BoxShape.circle,
+                                  border:
+                                      Border.all(color: Colors.white, width: 1),
                                 ),
-                              ))
-                          ,
+                              ),
+                            ),
+                          )),
                     ],
                   ),
                 ),

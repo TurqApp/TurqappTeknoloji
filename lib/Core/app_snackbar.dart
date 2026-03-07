@@ -22,25 +22,27 @@ void AppSnackbar(
       title,
       style: titleStyle ??
           TextStyle(
-        color: colorText ?? Colors.white,
-        fontSize: 16,
-        fontFamily: "MontserratBold",
-      ),
+            color: colorText ?? Colors.white,
+            fontSize: 16,
+            fontFamily: "MontserratBold",
+          ),
     ),
     messageText: Text(
       message,
       style: messageStyle ??
           TextStyle(
-        color: colorText ?? Colors.white,
-        fontSize: 14,
-        fontFamily: "MontserratMedium",
-      ),
+            color: colorText ?? Colors.white,
+            fontSize: 14,
+            fontFamily: "MontserratMedium",
+          ),
     ),
-    backgroundColor: backgroundColor ?? Colors.grey.shade900.withValues(alpha: 0.5),
+    backgroundColor:
+        backgroundColor ?? Colors.grey.shade900.withValues(alpha: 0.5),
     snackPosition: snackPosition ?? SnackPosition.TOP,
     duration: duration ?? const Duration(seconds: 3),
     margin: margin ?? const EdgeInsets.all(12),
     borderRadius: borderRadius ?? 12,
-    icon: icon ?? const Icon(CupertinoIcons.info, color: Colors.white, size: 24),
+    icon:
+        icon ?? const Icon(CupertinoIcons.info, color: Colors.white, size: 24),
   );
 }

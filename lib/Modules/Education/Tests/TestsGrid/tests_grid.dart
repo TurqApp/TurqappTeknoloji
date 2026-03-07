@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid_controller.dart';
 
@@ -46,9 +47,9 @@ class TestsGrid extends StatelessWidget {
                               width: 23,
                               height: 23,
                               child: Obx(
-                                () => controller.pfImage.value.isNotEmpty
+                                () => controller.avatarUrl.value.isNotEmpty
                                     ? Image.network(
-                                        controller.pfImage.value,
+                                        controller.avatarUrl.value,
                                         fit: BoxFit.cover,
                                       )
                                     : Center(
@@ -59,18 +60,25 @@ class TestsGrid extends StatelessWidget {
                           ),
                           SizedBox(width: 7),
                           Expanded(
-                            child: Obx(
-                              () => Text(
-                                controller.nickname.value,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 12,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                            ),
+                            child: Obx(() => Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        controller.nickname.value,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontFamily: "MontserratBold",
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    RozetContent(
+                                        size: 12, userID: model.userID),
+                                  ],
+                                )),
                           ),
                         ],
                       ),

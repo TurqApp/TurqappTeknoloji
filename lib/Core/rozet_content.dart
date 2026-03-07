@@ -16,10 +16,8 @@ class RozetController extends GetxController {
   }
 
   void fetchRozet() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance.collection("users").doc(userID).get();
 
     if (doc.exists) {
       final rozet = doc.get("rozet") ?? "";
@@ -73,37 +71,39 @@ class RozetContent extends StatelessWidget {
 
     return Obx(() {
       final color = controller.color.value;
-      return controller.color.value != Colors.transparent ? Transform.translate(
-        offset: const Offset(0, -1),
-        child: Stack(
-          children: [
-            if (color != Colors.transparent)
-              Padding(
-                padding: const EdgeInsets.only(left: 3),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: size - 7,
-                      height: size - 7,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+      return controller.color.value != Colors.transparent
+          ? Transform.translate(
+              offset: const Offset(0, -1),
+              child: Stack(
+                children: [
+                  if (color != Colors.transparent)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 3),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: size - 7,
+                            height: size - 7,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Icon(
+                            CupertinoIcons.checkmark_seal_fill,
+                            color: color,
+                            size: size,
+                          ),
+                        ],
                       ),
-                    ),
-                    Icon(
-                      CupertinoIcons.checkmark_seal_fill,
-                      color: color,
-                      size: size,
-                    ),
-                  ],
-                ),
-              )
-            else
-              const SizedBox(width: 2),
-          ],
-        ),
-      ) : SizedBox();
+                    )
+                  else
+                    const SizedBox(width: 2),
+                ],
+              ),
+            )
+          : SizedBox();
     });
   }
 }

@@ -39,13 +39,13 @@ class BlockedUsers extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: Row(
                                 children: [
-                                  user.pfImage.isNotEmpty
+                                  user.avatarUrl.isNotEmpty
                                       ? ClipOval(
                                           child: SizedBox(
                                             width: 40,
                                             height: 40,
                                             child: CachedNetworkImage(
-                                              imageUrl: user.pfImage,
+                                              imageUrl: user.avatarUrl,
                                               fit: BoxFit.cover,
                                             ),
                                           ),

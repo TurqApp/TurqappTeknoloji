@@ -40,183 +40,182 @@ class Tests extends StatelessWidget {
 
     final bodyContent = Expanded(
       child: RefreshIndicator(
-                    color: Colors.white,
-                    backgroundColor: Colors.black,
-                    onRefresh: controller.getData,
-                    child: Container(
-                      color: Colors.white,
-                      child: ListView(
-                        controller: _scrollController,
-                        children: [
-                          EducationSlider(
-                            imageList: [
-                              AppAssets.test1,
-                              AppAssets.test2,
-                              AppAssets.test3,
+        color: Colors.white,
+        backgroundColor: Colors.black,
+        onRefresh: controller.getData,
+        child: Container(
+          color: Colors.white,
+          child: ListView(
+            controller: _scrollController,
+            children: [
+              EducationSlider(
+                imageList: [
+                  AppAssets.test1,
+                  AppAssets.test2,
+                  AppAssets.test3,
+                ],
+              ),
+              20.ph,
+              SizedBox(
+                height: 85,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  physics: BouncingScrollPhysics(),
+                  itemCount: dersler.length,
+                  itemBuilder: (context, index) {
+                    if (index >= dersRenkleri.length ||
+                        index >= derslerIconsOutlined.length) {
+                      return SizedBox.shrink();
+                    }
+
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: 7,
+                        left: index == 0 ? 20 : 0,
+                      ),
+                      child: GestureDetector(
+                        onTap: () {
+                          Get.to(
+                            () => LessonBasedTests(
+                              testTuru: dersler[index],
+                            ),
+                          );
+                        },
+                        child: SizedBox(
+                          width: 70,
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: dersRenkleri[index],
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(40),
+                                  ),
+                                ),
+                                child: Icon(
+                                  derslerIconsOutlined[index],
+                                  color: Colors.white,
+                                ),
+                              ),
+                              12.ph,
+                              Text(
+                                dersler[index],
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
                             ],
                           ),
-                          20.ph,
-                          SizedBox(
-                            height: 85,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              physics: BouncingScrollPhysics(),
-                              itemCount: dersler.length,
-                              itemBuilder: (context, index) {
-                                if (index >= dersRenkleri.length ||
-                                    index >= derslerIconsOutlined.length) {
-                                  return SizedBox.shrink();
-                                }
-
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    right: 7,
-                                    left: index == 0 ? 20 : 0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Get.to(
-                                        () => LessonBasedTests(
-                                          testTuru: dersler[index],
-                                        ),
-                                      );
-                                    },
-                                    child: SizedBox(
-                                      width: 70,
-                                      child: Column(
-                                        children: [
-                                          Container(
-                                            width: 50,
-                                            height: 50,
-                                            decoration: BoxDecoration(
-                                              color: dersRenkleri[index],
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(40),
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              derslerIconsOutlined[index],
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          12.ph,
-                                          Text(
-                                            dersler[index],
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.black,
-                                              fontFamily: "MontserratMedium",
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (!embedded)
+                GestureDetector(
+                  onTap: () {
+                    Get.to(() => SearchTests());
+                  },
+                  child: Container(
+                    color: Colors.white,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: 15,
+                        right: 15,
+                        bottom: 15,
+                      ),
+                      child: Container(
+                        height: 50,
+                        alignment: Alignment.centerLeft,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(12),
                           ),
-                          if (!embedded) GestureDetector(
-                            onTap: () {
-                              Get.to(() => SearchTests());
-                            },
-                            child: Container(
-                              color: Colors.white,
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  left: 15,
-                                  right: 15,
-                                  bottom: 15,
-                                ),
-                                child: Container(
-                                  height: 50,
-                                  alignment: Alignment.centerLeft,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(12),
-                                    ),
-                                  ),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          AppIcons.search,
-                                          color: Colors.pink,
-                                        ),
-                                        12.pw,
-                                        Expanded(
-                                          child: Text(
-                                            "Ara",
-                                            style: TextStyle(
-                                              color: Colors.grey,
-                                              fontFamily: "Montserrat",
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                AppIcons.search,
+                                color: Colors.pink,
+                              ),
+                              12.pw,
+                              Expanded(
+                                child: Text(
+                                  "Ara",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontFamily: "Montserrat",
+                                    fontSize: 15,
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20),
-                            child: Obx(
-                              () => controller.isLoading.value
-                                  ? EducationGridSkeleton(itemCount: 4)
-                                  : controller.list.isEmpty
-                                      ? Padding(
-                                          padding: EdgeInsets.all(20),
-                                          child: Text(
-                                            "Paylaşılan test yok.",
-                                            style: TextStyle(
-                                              fontFamily: "MontserratMedium",
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        )
-                                      : GridView.builder(
-                                          shrinkWrap: true,
-                                          physics:
-                                              NeverScrollableScrollPhysics(),
-                                          gridDelegate:
-                                              SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: 2,
-                                            crossAxisSpacing: 5.0,
-                                            mainAxisSpacing: 5.0,
-                                            childAspectRatio: 0.48,
-                                          ),
-                                          itemCount: controller.list.length,
-                                          itemBuilder: (context, index) {
-                                            return TestsGrid(
-                                              key: ValueKey(
-                                                controller.list[index].docID,
-                                              ),
-                                              model: controller.list[index],
-                                            );
-                                          },
-                                        ),
-                            ),
-                          ),
-                          Obx(() => controller.isLoadingMore.value
-                              ? Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                      child: CupertinoActivityIndicator()),
-                                )
-                              : SizedBox.shrink()),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                );
+                ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Obx(
+                  () => controller.isLoading.value
+                      ? EducationGridSkeleton(itemCount: 4)
+                      : controller.list.isEmpty
+                          ? Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text(
+                                "Paylaşılan test yok.",
+                                style: TextStyle(
+                                  fontFamily: "MontserratMedium",
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          : GridView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 5.0,
+                                mainAxisSpacing: 5.0,
+                                childAspectRatio: 0.48,
+                              ),
+                              itemCount: controller.list.length,
+                              itemBuilder: (context, index) {
+                                return TestsGrid(
+                                  key: ValueKey(
+                                    controller.list[index].docID,
+                                  ),
+                                  model: controller.list[index],
+                                );
+                              },
+                            ),
+                ),
+              ),
+              Obx(() => controller.isLoadingMore.value
+                  ? Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CupertinoActivityIndicator()),
+                    )
+                  : SizedBox.shrink()),
+            ],
+          ),
+        ),
+      ),
+    );
 
     final overlays = [
       ScrollTotopButton(

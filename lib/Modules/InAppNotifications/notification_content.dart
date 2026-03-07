@@ -85,13 +85,13 @@ class NotificationContent extends StatelessWidget {
                               shape: BoxShape.circle,
                               border:
                                   Border.all(color: Colors.grey.withAlpha(50))),
-                          child: controller.pfImage.value != ""
+                          child: controller.avatarUrl.value != ""
                               ? ClipOval(
                                   child: SizedBox(
                                     width: 40,
                                     height: 40,
                                     child: CachedNetworkImage(
-                                      imageUrl: controller.pfImage.value,
+                                      imageUrl: controller.avatarUrl.value,
                                       fit: BoxFit.cover,
                                     ),
                                   ),

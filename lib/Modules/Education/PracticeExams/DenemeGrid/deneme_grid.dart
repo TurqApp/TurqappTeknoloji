@@ -244,9 +244,9 @@ class DenemeGrid extends StatelessWidget {
                                     color: Colors.indigo,
                                     radius: 8,
                                   )
-                                : controller.pfImage.value.isNotEmpty
+                                : controller.avatarUrl.value.isNotEmpty
                                     ? Image.network(
-                                        controller.pfImage.value,
+                                        controller.avatarUrl.value,
                                         fit: BoxFit.cover,
                                       )
                                     : Center(
@@ -270,7 +270,7 @@ class DenemeGrid extends StatelessWidget {
                                       ? 'Yükleniyor...'
                                       : controller.nickname.value.isEmpty
                                           ? 'Kullanıcı Bulunamadı'
-                                          : controller.nickname.value,
+                                          : '@${controller.nickname.value}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(

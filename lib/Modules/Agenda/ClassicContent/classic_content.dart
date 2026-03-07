@@ -1085,10 +1085,10 @@ class _ClassicContentState extends State<ClassicContent>
                 });
               }
             },
-            child: Obx(() => controller.pfImage.isNotEmpty
+            child: Obx(() => controller.avatarUrl.isNotEmpty
                 ? CachedUserAvatar(
                     userId: widget.model.userID,
-                    imageUrl: controller.pfImage.value,
+                    imageUrl: controller.avatarUrl.value,
                     radius: 20, // 40px diameter / 2
                   )
                 : const SizedBox.shrink()),
@@ -1262,10 +1262,10 @@ class _ClassicContentState extends State<ClassicContent>
                 });
               }
             },
-            child: Obx(() => controller.pfImage.isNotEmpty
+            child: Obx(() => controller.avatarUrl.isNotEmpty
                 ? CachedUserAvatar(
                     userId: widget.model.userID,
-                    imageUrl: controller.pfImage.value,
+                    imageUrl: controller.avatarUrl.value,
                     radius: 20, // 40px diameter / 2
                   )
                 : const SizedBox.shrink()),

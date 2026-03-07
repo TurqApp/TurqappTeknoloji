@@ -62,8 +62,7 @@ class TutoringApplicationReview extends StatelessWidget {
     );
   }
 
-  Widget _applicantCard(
-      TutoringApplicationModel app, BuildContext context) {
+  Widget _applicantCard(TutoringApplicationModel app, BuildContext context) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: controller.getApplicantProfile(app.userID),
       builder: (context, profileSnap) {
@@ -72,11 +71,10 @@ class TutoringApplicationReview extends StatelessWidget {
             ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
                 .trim()
             : 'Yükleniyor...';
-        final pfImage = profile?['pfImage'] as String? ?? '';
+        final avatarUrl = profile?['avatarUrl'] as String? ?? '';
 
         return Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -94,16 +92,13 @@ class TutoringApplicationReview extends StatelessWidget {
                       child: SizedBox(
                         width: 40,
                         height: 40,
-                        child: pfImage.isNotEmpty
+                        child: avatarUrl.isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: pfImage,
-                                fit: BoxFit.cover)
+                                imageUrl: avatarUrl, fit: BoxFit.cover)
                             : Container(
                                 color: Colors.grey.withAlpha(30),
-                                child: const Icon(
-                                    CupertinoIcons.person_fill,
-                                    color: Colors.grey,
-                                    size: 20),
+                                child: const Icon(CupertinoIcons.person_fill,
+                                    color: Colors.grey, size: 20),
                               ),
                       ),
                     ),
@@ -137,11 +132,10 @@ class TutoringApplicationReview extends StatelessWidget {
                 const SizedBox(height: 10),
                 // CV preview button
                 GestureDetector(
-                  onTap: () =>
-                      _showCvPreview(app.userID, name, context),
+                  onTap: () => _showCvPreview(app.userID, name, context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.grey.withAlpha(20),
                       borderRadius: BorderRadius.circular(8),
@@ -167,21 +161,17 @@ class TutoringApplicationReview extends StatelessWidget {
                   children: [
                     if (app.status != 'accepted')
                       _actionButton("Kabul Et", Colors.green, () {
-                        controller.updateStatus(
-                            app.userID, 'accepted');
+                        controller.updateStatus(app.userID, 'accepted');
                       }),
                     const SizedBox(width: 8),
-                    if (app.status != 'reviewing' &&
-                        app.status != 'accepted')
+                    if (app.status != 'reviewing' && app.status != 'accepted')
                       _actionButton("İncele", Colors.blue, () {
-                        controller.updateStatus(
-                            app.userID, 'reviewing');
+                        controller.updateStatus(app.userID, 'reviewing');
                       }),
                     const SizedBox(width: 8),
                     if (app.status != 'rejected')
                       _actionButton("Reddet", Colors.red, () {
-                        controller.updateStatus(
-                            app.userID, 'rejected');
+                        controller.updateStatus(app.userID, 'rejected');
                       }),
                   ],
                 ),
@@ -193,13 +183,11 @@ class TutoringApplicationReview extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(
-      String text, Color color, VoidCallback onTap) {
+  Widget _actionButton(String text, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: color.withAlpha(20),
           borderRadius: BorderRadius.circular(20),
@@ -239,8 +227,7 @@ class TutoringApplicationReview extends StatelessWidget {
     }
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
@@ -256,12 +243,10 @@ class TutoringApplicationReview extends StatelessWidget {
     );
   }
 
-  void _showCvPreview(
-      String userID, String name, BuildContext context) async {
+  void _showCvPreview(String userID, String name, BuildContext context) async {
     final cv = await controller.getApplicantCV(userID);
     if (cv == null) {
-      Get.snackbar(
-          "CV Bulunamadı", "Bu kullanıcının CV'si mevcut değil",
+      Get.snackbar("CV Bulunamadı", "Bu kullanıcının CV'si mevcut değil",
           snackPosition: SnackPosition.BOTTOM);
       return;
     }
@@ -272,8 +257,7 @@ class TutoringApplicationReview extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -298,21 +282,17 @@ class TutoringApplicationReview extends StatelessWidget {
                   ),
                 ),
               ],
-              if (cv['mail'] != null &&
-                  cv['mail'].toString().isNotEmpty) ...[
+              if (cv['mail'] != null && cv['mail'].toString().isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text("E-posta: ${cv['mail']}",
                     style: const TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 13)),
+                        fontFamily: "MontserratMedium", fontSize: 13)),
               ],
-              if (cv['phone'] != null &&
-                  cv['phone'].toString().isNotEmpty) ...[
+              if (cv['phone'] != null && cv['phone'].toString().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text("Telefon: ${cv['phone']}",
                     style: const TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 13)),
+                        fontFamily: "MontserratMedium", fontSize: 13)),
               ],
               // Schools
               if (cv['okullar'] != null &&
@@ -330,8 +310,7 @@ class TutoringApplicationReview extends StatelessWidget {
                     child: Text(
                       "${e['school']} - ${e['branch']} (${e['lastYear']})",
                       style: const TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 13),
+                          fontFamily: "MontserratMedium", fontSize: 13),
                     ),
                   );
                 }),
@@ -355,12 +334,9 @@ class TutoringApplicationReview extends StatelessWidget {
                         Text(
                           "${e['position']} - ${e['company']} (${e['year1']}-${e['year2']})",
                           style: const TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 13),
+                              fontFamily: "MontserratMedium", fontSize: 13),
                         ),
-                        if ((e['description'] as String?)
-                                ?.isNotEmpty ==
-                            true)
+                        if ((e['description'] as String?)?.isNotEmpty == true)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(

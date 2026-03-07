@@ -236,7 +236,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         if (e.code != 'not-found') rethrow;
 
         // Eski/veri uyumsuz kayıtlar için: id alanından gerçek belgeyi bul.
-        final byId = await postsRef.where('id', isEqualTo: docID).limit(1).get();
+        final byId =
+            await postsRef.where('id', isEqualTo: docID).limit(1).get();
         if (byId.docs.isEmpty) {
           rethrow;
         }
@@ -247,7 +248,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       // Feed üzerinde anlık güncelle
       if (Get.isRegistered<AgendaController>()) {
         final agenda = Get.find<AgendaController>();
-        final idx = agenda.agendaList.indexWhere((e) => e.docID == docID || e.docID == targetDocID);
+        final idx = agenda.agendaList
+            .indexWhere((e) => e.docID == docID || e.docID == targetDocID);
         if (idx != -1) {
           final old = agenda.agendaList[idx];
           agenda.agendaList[idx] = old.copyWith(
@@ -272,7 +274,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       return true;
     } catch (e) {
       String msg = 'Gönderi güncellenemedi';
-      if (e is FirebaseException && e.message != null && e.message!.trim().isNotEmpty) {
+      if (e is FirebaseException &&
+          e.message != null &&
+          e.message!.trim().isNotEmpty) {
         msg = e.message!.trim();
       }
       AppSnackbar('Hata', msg);
@@ -1318,7 +1322,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           'reshareMap': {
             'visibility': paylasimSelection.value,
           },
-          if (controller.pollData.value != null) 'poll': controller.pollData.value,
+          if (controller.pollData.value != null)
+            'poll': controller.pollData.value,
           'scheduledAt':
               (publishMode.value == 1 && izBirakDateTime.value != null)
                   ? izBirakDateTime.value!.millisecondsSinceEpoch
@@ -1347,8 +1352,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
         // Create queued upload
         final poll = controller.pollData.value ?? const {};
-        final int scheduledAt =
-            (postData['scheduledAt'] is num) ? postData['scheduledAt'] as int : 0;
+        final int scheduledAt = (postData['scheduledAt'] is num)
+            ? postData['scheduledAt'] as int
+            : 0;
         final pollPayload = (poll.isNotEmpty)
             ? _normalizePollForSave(
                 poll,
@@ -1518,7 +1524,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             contentController.croppedImages.whereType<Uint8List>().toList();
         final video = contentController.selectedVideo.value;
         final reusedVideoUrl = contentController.reusedVideoUrl.value;
-        final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
+        final reusedVideoThumbnail =
+            contentController.reusedVideoThumbnail.value;
         final reusedVideoAspectRatio =
             contentController.reusedVideoAspectRatio.value;
         final location = contentController.adres.value;
@@ -1679,7 +1686,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
-          if (post.images.length == 1 && post.video == null && !isReusedVideoPost) {
+          if (post.images.length == 1 &&
+              post.video == null &&
+              !isReusedVideoPost) {
             try {
               final codec = await ui.instantiateImageCodec(post.images.first);
               final frame = await codec.getNextFrame();

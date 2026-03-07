@@ -53,11 +53,10 @@ class TutoringFilterController extends GetxController {
   }
 
   void showIlcelerSec() {
-    final List<String> ilceListesi =
-        sehirlerVeIlcelerData
-            .where((doc) => doc.il == city.value && city.value.isNotEmpty)
-            .map((doc) => doc.ilce)
-            .toList();
+    final List<String> ilceListesi = sehirlerVeIlcelerData
+        .where((doc) => doc.il == city.value && city.value.isNotEmpty)
+        .map((doc) => doc.ilce)
+        .toList();
 
     Get.bottomSheet(
       ListBottomSheet(
@@ -104,59 +103,52 @@ class TutoringFilterController extends GetxController {
 
     // Branş filtresi
     if (selectedBranch.value != null && selectedBranch.value!.isNotEmpty) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.brans == selectedBranch.value)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.brans == selectedBranch.value)
+          .toList();
     }
 
     // Cinsiyet filtresi
     if (selectedGender.value != null && selectedGender.value!.isNotEmpty) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.cinsiyet == selectedGender.value)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.cinsiyet == selectedGender.value)
+          .toList();
     }
 
     // Ders yeri filtresi
     if (selectedLessonPlace.value != null &&
         selectedLessonPlace.value!.isNotEmpty) {
-      filteredList =
-          filteredList
-              .where(
-                (tutoring) => selectedLessonPlace.value!.any(
-                  (place) => tutoring.dersYeri.contains(place),
-                ),
-              )
-              .toList();
+      filteredList = filteredList
+          .where(
+            (tutoring) => selectedLessonPlace.value!.any(
+              (place) => tutoring.dersYeri.contains(place),
+            ),
+          )
+          .toList();
     }
 
     // Fiyat aralığı filtresi
     if (maxPrice.value != null) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.fiyat <= maxPrice.value!)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.fiyat <= maxPrice.value!)
+          .toList();
     }
     if (minPrice.value != null) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.fiyat >= minPrice.value!)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.fiyat >= minPrice.value!)
+          .toList();
     }
 
     // Şehir ve ilçe filtresi (ayrı bir kontrolle)
     if (selectedCity.value != null && selectedCity.value!.isNotEmpty) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.sehir == selectedCity.value)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.sehir == selectedCity.value)
+          .toList();
     }
     if (selectedDistrict.value != null && selectedDistrict.value!.isNotEmpty) {
-      filteredList =
-          filteredList
-              .where((tutoring) => tutoring.ilce == selectedDistrict.value)
-              .toList();
+      filteredList = filteredList
+          .where((tutoring) => tutoring.ilce == selectedDistrict.value)
+          .toList();
     }
 
     // Sıralama ölçütü

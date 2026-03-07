@@ -227,7 +227,6 @@ class AntremanCommentsController extends GetxController {
       log("User data for $userID: ${doc.data()}");
       if (data == null) {
         userInfoCache[userID] = {
-          'pfImage': '',
           'avatarUrl': '',
           'nickname': 'Bilinmeyen Kullanıcı',
           'displayName': 'Bilinmeyen Kullanıcı',
@@ -235,9 +234,8 @@ class AntremanCommentsController extends GetxController {
         return userInfoCache[userID]!;
       }
       final profileImage = (data['avatarUrl'] ??
-              data['pfImage'] ??
-              data['photoURL'] ??
-              data['profileImageUrl'] ??
+              data['avatarUrl'] ??
+              data['avatarUrl'] ??
               '')
           .toString();
       final profileName = (data['displayName'] ??
@@ -246,7 +244,6 @@ class AntremanCommentsController extends GetxController {
               'Bilinmeyen Kullanıcı')
           .toString();
       userInfoCache[userID] = {
-        'pfImage': profileImage,
         'avatarUrl': profileImage,
         'nickname': profileName,
         'username': (data['username'] ?? '').toString(),
@@ -256,7 +253,6 @@ class AntremanCommentsController extends GetxController {
     } catch (e) {
       log("Kullanıcı bilgisi alınırken hata: $e");
       userInfoCache[userID] = {
-        'pfImage': '',
         'avatarUrl': '',
         'nickname': 'Bilinmeyen Kullanıcı',
         'displayName': 'Bilinmeyen Kullanıcı',

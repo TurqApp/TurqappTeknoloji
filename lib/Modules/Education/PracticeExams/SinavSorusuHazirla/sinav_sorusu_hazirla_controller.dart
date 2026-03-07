@@ -97,7 +97,10 @@ class SinavSorusuHazirlaController extends GetxController {
 
   void completeExam() async {
     try {
-      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).set({
+      await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(docID)
+          .set({
         "taslak": false,
       }, SetOptions(merge: true));
       complated();

@@ -70,9 +70,8 @@ class SavedItemsController extends GetxController {
         for (final d in usersSnap.docs) {
           final user = d.data();
           final profileImage = (user['avatarUrl'] ??
-                  user['pfImage'] ??
-                  user['photoURL'] ??
-                  user['profileImageUrl'] ??
+                  user['avatarUrl'] ??
+                  user['avatarUrl'] ??
                   '')
               .toString();
           final profileName = (user['displayName'] ??
@@ -81,7 +80,6 @@ class SavedItemsController extends GetxController {
                   '')
               .toString();
           userDataMap[d.id] = {
-            'pfImage': profileImage,
             'avatarUrl': profileImage,
             'nickname': profileName,
             'displayName': profileName,
@@ -98,7 +96,7 @@ class SavedItemsController extends GetxController {
         try {
           final userID = data['userID'] as String? ?? '';
           final userData = userDataMap[userID] ??
-              {'pfImage': '', 'nickname': '', 'userID': userID};
+              {'avatarUrl': '', 'nickname': '', 'userID': userID};
 
           scholarships.add({
             'model': IndividualScholarshipsModel.fromJson(data),

@@ -95,11 +95,11 @@ class ScholarshipProvidersView extends StatelessWidget {
                                                         alignment:
                                                             Alignment.center,
                                                         children: [
-                                                          provider['pfImage']
+                                                          provider['avatarUrl']
                                                                   .isNotEmpty
                                                               ? Image.network(
                                                                   provider[
-                                                                      'pfImage'],
+                                                                      'avatarUrl'],
                                                                   width: 50,
                                                                   height: 50,
                                                                   fit: BoxFit

@@ -76,9 +76,9 @@ class MyStatisticView extends StatelessWidget {
                                     child: SizedBox(
                                       width: 50,
                                       height: 50,
-                                      child: user.pfImage.value != ""
+                                      child: user.avatarUrl.value != ""
                                           ? CachedNetworkImage(
-                                              imageUrl: user.pfImage.value,
+                                              imageUrl: user.avatarUrl.value,
                                               fit: BoxFit.cover,
                                             )
                                           : const Center(

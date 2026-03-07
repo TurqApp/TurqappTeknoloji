@@ -72,7 +72,7 @@ class PhotoShortsContentController extends GetxController {
     return null;
   }
 
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var token = "".obs;
   var fullName = "".obs;
@@ -594,7 +594,7 @@ class PhotoShortsContentController extends GetxController {
         .doc(userID)
         .get()
         .then((DocumentSnapshot doc) {
-      pfImage.value = doc.get("pfImage");
+      avatarUrl.value = doc.get("avatarUrl");
       nickname.value = doc.get("nickname");
       token.value = doc.get("token");
       fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";

@@ -58,7 +58,9 @@ class _TagPostsState extends State<TagPosts> {
                 Column(
                   children: [
                     BackButtons(
-                      text: widget.tag.contains("#") ? widget.tag : "#${widget.tag}",
+                      text: widget.tag.contains("#")
+                          ? widget.tag
+                          : "#${widget.tag}",
                     ),
                     const Expanded(
                       child: Center(child: CupertinoActivityIndicator()),
@@ -72,7 +74,9 @@ class _TagPostsState extends State<TagPosts> {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return BackButtons(
-                        text: widget.tag.contains("#") ? widget.tag : "#${widget.tag}",
+                        text: widget.tag.contains("#")
+                            ? widget.tag
+                            : "#${widget.tag}",
                       );
                     }
                     final actualIndex = index - 1;

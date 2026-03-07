@@ -28,19 +28,21 @@ class BecomeVerifiedAccountController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-   FirebaseFirestore.instance.collection("TurqAppVerified").doc(FirebaseAuth.instance.currentUser!.uid)
-    .get()
-    .then((doc){
-      if (doc.exists){
+    FirebaseFirestore.instance
+        .collection("TurqAppVerified")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .get()
+        .then((doc) {
+      if (doc.exists) {
         bodySelection.value = 3;
-      }
-      else {
-        selectItem(VerifiedAccountModel(title: "Mavi Onay Rozeti", desc: ""), 0);
+      } else {
+        selectItem(
+            VerifiedAccountModel(title: "Mavi Onay Rozeti", desc: ""), 0);
         aciklama.addListener(() {
           aciklamaText.value = aciklama.text;
         });
       }
-   });
+    });
   }
 
   void selectItem(VerifiedAccountModel item, int index) {
@@ -116,7 +118,7 @@ class BecomeVerifiedAccountController extends GetxController {
       "linkedin": linkedin.text,
       "tiktok": tiktok.text,
       "talepNickname": nickname.text,
-      "eDevletBarCodeNo" : eDevletBarcodeNo.text
+      "eDevletBarCodeNo": eDevletBarcodeNo.text
     });
   }
 

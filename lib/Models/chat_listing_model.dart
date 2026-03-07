@@ -5,7 +5,7 @@ class ChatListingModel {
   List<String> deleted;
   String fullName;
   String nickname;
-  String pfImage;
+  String avatarUrl;
   String lastMessage;
   int unreadCount;
   bool isConversation;
@@ -19,7 +19,7 @@ class ChatListingModel {
     required this.deleted,
     required this.nickname,
     required this.fullName,
-    required this.pfImage,
+    required this.avatarUrl,
     this.lastMessage = "",
     this.unreadCount = 0,
     this.isConversation = false,

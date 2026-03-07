@@ -250,7 +250,7 @@ class _GridContentState extends State<_GridContent> {
     ];
     final startedUser = StoryUserModel(
       nickname: user.nickname.value,
-      pfImage: user.pfImage.value,
+      avatarUrl: user.avatarUrl.value,
       fullName: '${user.firstName.value} ${user.lastName.value}',
       userID: user.userID.value,
       stories: reordered,
@@ -340,7 +340,7 @@ class _VerticalStripState extends State<_VerticalStrip> {
     ];
     final startedUser = StoryUserModel(
       nickname: user.nickname.value,
-      pfImage: user.pfImage.value,
+      avatarUrl: user.avatarUrl.value,
       fullName: '${user.firstName.value} ${user.lastName.value}',
       userID: user.userID.value,
       stories: reordered,

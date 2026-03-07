@@ -161,7 +161,8 @@ class CreateTest extends StatelessWidget {
                                                       ),
                                                       border: Border.all(
                                                         color: Colors.grey
-                                                            .withValues(alpha: 0.5),
+                                                            .withValues(
+                                                                alpha: 0.5),
                                                       ),
                                                     ),
                                                     child: Padding(
@@ -297,7 +298,8 @@ class CreateTest extends StatelessWidget {
                                                       ),
                                                       border: Border.all(
                                                         color: Colors.grey
-                                                            .withValues(alpha: 0.5),
+                                                            .withValues(
+                                                                alpha: 0.5),
                                                       ),
                                                     ),
                                                     child: Padding(
@@ -422,11 +424,11 @@ class CreateTest extends StatelessWidget {
                                                 .pickSingleImage(context);
                                         if (pickedFile != null) {
                                           final file = pickedFile;
-                                          final r = await OptimizedNSFWService.checkImage(file);
+                                          final r = await OptimizedNSFWService
+                                              .checkImage(file);
                                           if (r.isNSFW) {
                                             controller.imageFile.value = null;
-                                            AppSnackbar(
-                                                "Yükleme Başarısız!",
+                                            AppSnackbar("Yükleme Başarısız!",
                                                 "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
                                                 backgroundColor: Colors.red
                                                     .withValues(alpha: 0.7));
@@ -679,7 +681,8 @@ class CreateTest extends StatelessWidget {
                                     color: controller.testTuru.value ==
                                             dersler[index]
                                         ? Colors.black
-                                        : Colors.black.withValues(alpha: 0.0001),
+                                        : Colors.black
+                                            .withValues(alpha: 0.0001),
                                     width: 2,
                                   ),
                                 ),

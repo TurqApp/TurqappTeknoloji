@@ -188,8 +188,8 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.indigo,
-                                        Colors.black.withValues(alpha: 
-                                          0.9,
+                                        Colors.black.withValues(
+                                          alpha: 0.9,
                                         ), // Alt renk
                                       ],
                                       begin: Alignment
@@ -202,8 +202,8 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.grey.withValues(alpha: 
-                                          0.3,
+                                        color: Colors.grey.withValues(
+                                          alpha: 0.3,
                                         ), // Gölge rengi ve opaklık
                                         blurRadius: 6, // Gölge bulanıklık
                                         offset: Offset(

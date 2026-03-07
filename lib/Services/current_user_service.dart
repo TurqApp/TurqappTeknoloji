@@ -34,6 +34,8 @@ import '../Models/current_user_model.dart';
 /// Obx(() => Text(userService.currentUserRx.value?.nickname ?? 'Guest'))
 /// ```
 class CurrentUserService extends GetxController {
+  static const String _defaultProfileImageUrl =
+      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Singleton Pattern
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -76,7 +78,10 @@ class CurrentUserService extends GetxController {
   String get nickname => _currentUser?.nickname ?? '';
 
   /// Current user profile image (shortcut)
-  String get pfImage => _currentUser?.pfImage ?? '';
+  String get avatarUrl {
+    final raw = (_currentUser?.avatarUrl ?? '').trim();
+    return raw.isEmpty ? _defaultProfileImageUrl : raw;
+  }
 
   /// Current user full name (shortcut)
   String get fullName => _currentUser?.fullName ?? '';
@@ -301,7 +306,7 @@ class CurrentUserService extends GetxController {
   Future<void> _saveToCache(CurrentUserModel user) async {
     try {
       final cacheSignature =
-          '${user.userID}|${user.nickname}|${user.pfImage}|${user.counterOfFollowers}|'
+          '${user.userID}|${user.nickname}|${user.avatarUrl}|${user.counterOfFollowers}|'
           '${user.counterOfFollowings}|${user.counterOfPosts}|${user.bio}|${user.gizliHesap}';
       // ⚠️ OPTIMIZATION: Skip if same user was just cached
       if (_lastCacheSignature == cacheSignature) {
@@ -568,10 +573,8 @@ class CurrentUserService extends GetxController {
     if (!out.containsKey('displayName')) {
       final firstName = (out['firstName'] ?? '').toString().trim();
       final lastName = (out['lastName'] ?? '').toString().trim();
-      final fullName = [firstName, lastName]
-          .where((v) => v.isNotEmpty)
-          .join(' ')
-          .trim();
+      final fullName =
+          [firstName, lastName].where((v) => v.isNotEmpty).join(' ').trim();
       if (fullName.isNotEmpty) {
         out['displayName'] = fullName;
       } else if (out.containsKey('nickname')) {
@@ -579,16 +582,11 @@ class CurrentUserService extends GetxController {
       }
     }
     if (!out.containsKey('avatarUrl')) {
-      if (out.containsKey('pfImage')) out['avatarUrl'] = out['pfImage'];
-      if (out.containsKey('photoURL')) out['avatarUrl'] = out['photoURL'];
-      if (out.containsKey('profileImageUrl')) {
-        out['avatarUrl'] = out['profileImageUrl'];
-      }
+      out['avatarUrl'] = _defaultProfileImageUrl;
     }
-    if (out.containsKey('pfImage')) out['pfImage'] = FieldValue.delete();
-    if (out.containsKey('photoURL')) out['photoURL'] = FieldValue.delete();
-    if (out.containsKey('profileImageUrl')) {
-      out['profileImageUrl'] = FieldValue.delete();
+    final normalizedAvatar = (out['avatarUrl'] ?? '').toString().trim();
+    if (normalizedAvatar.isEmpty) {
+      out['avatarUrl'] = _defaultProfileImageUrl;
     }
     if (out.containsKey('account.fcmToken')) {
       if (!out.containsKey('fcmToken')) {

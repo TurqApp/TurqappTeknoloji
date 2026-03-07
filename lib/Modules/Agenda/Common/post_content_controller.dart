@@ -21,6 +21,7 @@ import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_delete_service.dart';
 import '../../../Services/post_interaction_service.dart';
 import '../../../Core/Services/admin_access_service.dart';
+import '../../../Core/Utils/avatar_url.dart';
 
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 class PostContentController extends GetxController {
@@ -106,7 +107,7 @@ class PostContentController extends GetxController {
   // user info
   final nickname = "".obs;
   final username = "".obs;
-  final pfImage = "".obs;
+  final avatarUrl = "".obs;
   final fullName = "".obs;
   final token = "".obs;
 
@@ -300,7 +301,8 @@ class PostContentController extends GetxController {
         final poll = Map<String, dynamic>.from(data['poll'] ?? {});
         if (poll.isEmpty) return;
 
-        final createdAt = (poll['createdDate'] ?? data['timeStamp'] ?? 0) as num;
+        final createdAt =
+            (poll['createdDate'] ?? data['timeStamp'] ?? 0) as num;
         final durationHours = (poll['durationHours'] ?? 24) as num;
         final expiresAt =
             createdAt.toInt() + (durationHours.toInt() * 3600 * 1000);
@@ -730,9 +732,11 @@ class PostContentController extends GetxController {
       required String pushToken,
       required String name,
     }) {
+      final normalizedImage =
+          image.toString().trim().isEmpty ? kDefaultAvatarUrl : image.trim();
       nickname.value = nick;
       username.value = uname;
-      pfImage.value = image;
+      avatarUrl.value = normalizedImage;
       token.value = pushToken;
       fullName.value = name;
     }
@@ -748,7 +752,7 @@ class PostContentController extends GetxController {
       _userProfileCache[uid] = _UserProfileCacheEntry(
         nickname: nick,
         username: uname,
-        pfImage: image,
+        avatarUrl: image,
         token: pushToken,
         fullName: name,
         updatedAt: DateTime.now(),
@@ -763,12 +767,7 @@ class PostContentController extends GetxController {
       final nick =
           (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
-      final image = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
-              "")
-          .toString();
+      final image = resolveAvatarUrl(data);
       final pushToken = (data["token"] ?? "").toString();
       final fullNameFromParts =
           "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
@@ -803,7 +802,7 @@ class PostContentController extends GetxController {
       applyProfile(
         nick: cachedProfile.nickname,
         uname: cachedProfile.username,
-        image: cachedProfile.pfImage,
+        image: cachedProfile.avatarUrl,
         pushToken: cachedProfile.token,
         name: cachedProfile.fullName,
       );
@@ -819,7 +818,7 @@ class PostContentController extends GetxController {
       applyProfile(
         nick: user.nickname,
         uname: user.nickname,
-        image: user.pfImage,
+        image: userService.avatarUrl,
         pushToken: user.token,
         name: currentUserDisplayName,
       );
@@ -827,7 +826,7 @@ class PostContentController extends GetxController {
         uid: userID,
         nick: user.nickname,
         uname: user.nickname,
-        image: user.pfImage,
+        image: userService.avatarUrl,
         pushToken: user.token,
         name: currentUserDisplayName,
       );
@@ -1326,7 +1325,7 @@ class PostContentController extends GetxController {
 class _UserProfileCacheEntry {
   final String nickname;
   final String username;
-  final String pfImage;
+  final String avatarUrl;
   final String token;
   final String fullName;
   final DateTime updatedAt;
@@ -1334,7 +1333,7 @@ class _UserProfileCacheEntry {
   const _UserProfileCacheEntry({
     required this.nickname,
     required this.username,
-    required this.pfImage,
+    required this.avatarUrl,
     required this.token,
     required this.fullName,
     required this.updatedAt,

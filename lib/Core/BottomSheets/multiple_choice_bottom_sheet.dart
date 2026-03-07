@@ -51,67 +51,64 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
             ),
           ),
           Expanded(
-            child:
-                items.isEmpty
-                    ? const Center(child: Text("Bulunamadı"))
-                    : ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return GestureDetector(
-                          onTap: () {
-                            if (controller.selectedItems.contains(item)) {
-                              controller.selectedItems.remove(item);
-                            } else {
-                              controller.selectedItems.add(item);
-                            }
-                          },
-                          child: Container(
-                            color: Colors.transparent,
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item,
-                                        style: TextStyles.textFieldTitle
-                                            .copyWith(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+            child: items.isEmpty
+                ? const Center(child: Text("Bulunamadı"))
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return GestureDetector(
+                        onTap: () {
+                          if (controller.selectedItems.contains(item)) {
+                            controller.selectedItems.remove(item);
+                          } else {
+                            controller.selectedItems.add(item);
+                          }
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item,
+                                      style: TextStyles.textFieldTitle.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    Obx(
-                                      () => Icon(
-                                        controller.selectedItems.contains(item)
-                                            ? Icons.check_circle
-                                            : Icons.radio_button_unchecked,
-                                        color:
-                                            controller.selectedItems.contains(
-                                                  item,
-                                                )
-                                                ? Colors.green
-                                                : Colors.grey,
-                                        size: 21,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (index < items.length - 1)
-                                  Divider(
-                                    color: Colors.grey.withAlpha(50),
-                                    thickness: 1,
-                                    height: 20,
                                   ),
-                              ],
-                            ),
+                                  Obx(
+                                    () => Icon(
+                                      controller.selectedItems.contains(item)
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color: controller.selectedItems.contains(
+                                        item,
+                                      )
+                                          ? Colors.green
+                                          : Colors.grey,
+                                      size: 21,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (index < items.length - 1)
+                                Divider(
+                                  color: Colors.grey.withAlpha(50),
+                                  thickness: 1,
+                                  height: 20,
+                                ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
+                  ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -147,13 +144,12 @@ class MultipleChoiceBottomSheet extends StatelessWidget {
                           controller.basvuruKosullari.value;
                     } else if (title == "Gerekli Belgeler") {
                       controller.belgeler.assignAll(controller.selectedItems);
-                      controller.belgelerController.text = controller
-                          .selectedItems
-                          .join('\n');
+                      controller.belgelerController.text =
+                          controller.selectedItems.join('\n');
                     } else if (title == "Burs Verilecek Aylar") {
                       controller.aylar.assignAll(controller.selectedItems);
-                      controller.aylarController.text = controller.selectedItems
-                          .join('\n');
+                      controller.aylarController.text =
+                          controller.selectedItems.join('\n');
                     }
                     Navigator.pop(context);
                   },

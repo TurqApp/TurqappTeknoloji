@@ -7,7 +7,7 @@ class AboutProfileController extends GetxController {
   // 🎯 Using CurrentUserService for optimized access
   final userService = CurrentUserService.instance;
 
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var fullName = "".obs;
   var createdDate = "".obs;
@@ -18,7 +18,7 @@ class AboutProfileController extends GetxController {
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserId == userID && userService.currentUser != null) {
         final user = userService.currentUser!;
-        pfImage.value = user.pfImage;
+        avatarUrl.value = user.avatarUrl;
         nickname.value = user.nickname;
         createdDate.value = user.createdDate;
         fullName.value = user.fullName;
@@ -35,9 +35,15 @@ class AboutProfileController extends GetxController {
 
       final data = doc.data() ?? {};
 
-      pfImage.value = data.containsKey("pfImage") ? data["pfImage"] ?? "" : "";
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              "")
+          .toString();
       nickname.value =
-          data.containsKey("nickname") ? data["nickname"] ?? "" : "";
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
+              .toString();
       createdDate.value =
           data.containsKey("createdDate") ? data["createdDate"] ?? "" : "";
       fullName.value =

@@ -189,7 +189,7 @@ class AntremanScore extends StatelessWidget {
               ),
               ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl: user['pfImage'] ?? '',
+                  imageUrl: user['avatarUrl'] ?? '',
                   width: imageSize,
                   height: imageSize,
                   fit: BoxFit.cover,
@@ -305,7 +305,7 @@ class AntremanScore extends StatelessWidget {
                     children: [
                       ClipOval(
                         child: CachedNetworkImage(
-                          imageUrl: user['pfImage'] ?? '',
+                          imageUrl: user['avatarUrl'] ?? '',
                           width: 38,
                           height: 38,
                           fit: BoxFit.cover,

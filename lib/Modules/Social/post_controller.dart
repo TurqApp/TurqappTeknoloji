@@ -73,7 +73,7 @@ class PostController extends GetxController {
     //       .then((DocumentSnapshot doc) {
     //     ilkPaylasanUserID.value = model.mainUserID;
     //     ilkPaylasanNickname.value = doc.get("nickname");
-    //     ilkPaylasanPfImage.value = doc.get("pfImage");
+    //     ilkPaylasanPfImage.value = doc.get("avatarUrl");
     //   });
     // }
   }

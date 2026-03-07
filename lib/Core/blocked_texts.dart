@@ -1,8 +1,8 @@
-
 bool kufurKontrolEt(String text) {
   final words = text
       .toLowerCase()
-      .replaceAll(RegExp(r'[^\wçğıöşüÇĞİÖŞÜ\s]'), '') // Türkçe karakterlere göre temizle
+      .replaceAll(RegExp(r'[^\wçğıöşüÇĞİÖŞÜ\s]'),
+          '') // Türkçe karakterlere göre temizle
       .split(RegExp(r'\s+'));
 
   for (String word in words) {

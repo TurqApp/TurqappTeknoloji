@@ -42,8 +42,8 @@ class EditProfileController extends GetxController {
       'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
 
   bool get hasCustomProfilePhoto {
-    final pfImage = userService.currentUser?.pfImage ?? '';
-    return pfImage.isNotEmpty && pfImage != defaultAvatarUrl;
+    final avatarUrl = userService.currentUser?.avatarUrl ?? '';
+    return avatarUrl.isNotEmpty && avatarUrl != defaultAvatarUrl;
   }
 
   @override
@@ -190,12 +190,18 @@ class EditProfileController extends GetxController {
     try {
       // Eğer yeni bir kırpılmış resim varsa, önce storage'a yükle
       if (croppedImage.value != null) {
+        await _cleanupOldAvatarFiles(uid);
         final ts = DateTime.now().millisecondsSinceEpoch;
         newImageUrl = await WebpUploadService.uploadBytesAsWebp(
           storage: FirebaseStorage.instance,
           bytes: croppedImage.value!,
-          storagePathWithoutExt: 'users/$uid/${uid}_${ts}_pfImage',
+          storagePathWithoutExt: 'users/$uid/${uid}_${ts}_avatarUrl_thumb_150',
         );
+        // Hard guarantee: persist avatar URL directly to users root doc.
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'avatarUrl': newImageUrl,
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
+        }, SetOptions(merge: true));
       }
 
       // 🎯 Using CurrentUserService.updateFields (cache + Firebase sync)
@@ -211,7 +217,7 @@ class EditProfileController extends GetxController {
       Get.back();
       AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
     } catch (e) {
-      AppSnackbar('Hata', 'Güncelleme sırasında bir hata oluştu.');
+      AppSnackbar('Hata', 'Güncelleme hatası: $e');
     } finally {
       isCropping.value = false; // olası açık state'leri toparla
     }
@@ -241,5 +247,20 @@ class EditProfileController extends GetxController {
         }
       },
     );
+  }
+
+  Future<void> _cleanupOldAvatarFiles(String uid) async {
+    try {
+      final folderRef = FirebaseStorage.instance.ref().child('users/$uid');
+      final list = await folderRef.listAll();
+      for (final item in list.items) {
+        final name = item.name;
+        if (name.contains('_avatarUrl') && name.endsWith('.webp')) {
+          await item.delete();
+        }
+      }
+    } catch (_) {
+      // Best-effort cleanup; upload should continue even if deletion fails.
+    }
   }
 }

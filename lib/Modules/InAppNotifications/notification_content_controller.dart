@@ -9,7 +9,7 @@ class NotificationContentController extends GetxController {
   String userID;
 
   NotificationContentController({required this.userID});
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
   var following = false.obs;
   var followLoading = false.obs;
@@ -24,11 +24,11 @@ class NotificationContentController extends GetxController {
         .get()
         .then((doc) {
       if (!doc.exists) {
-        pfImage.value = "";
+        avatarUrl.value = "";
         nickname.value = "TurqApp";
         return;
       }
-      pfImage.value = (doc.data()?["pfImage"] ?? "").toString();
+      avatarUrl.value = (doc.data()?["avatarUrl"] ?? "").toString();
       nickname.value = (doc.data()?["nickname"] ?? "TurqApp").toString();
     });
 

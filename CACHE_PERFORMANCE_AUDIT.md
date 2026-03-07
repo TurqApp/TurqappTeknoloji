@@ -228,14 +228,14 @@ mixin PaginatedController<T> {
 
 ```
 feed_summaries/{docID}     ← 1KB, sadece feed gosterim icin
-  userID, nickname, pfImage, text(ilk 200 char), thumbnailUrl,
+  userID, nickname, avatarUrl, text(ilk 200 char), thumbnailUrl,
   mediaType, likeCount, commentCount, timeStamp
 
 Posts/{docID}              ← 5-20KB, detail sayfada lazy fetch
   ... tum alanlar ...
 
 users_public/{uid}         ← 500B, baska kullanicinin mini profili
-  nickname, pfImage, isVerified, followerCount
+  nickname, avatarUrl, isVerified, followerCount
 
 users/{uid}                ← 5KB+, sadece currentUser icin
   ... tum alanlar ...

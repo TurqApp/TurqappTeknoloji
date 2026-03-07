@@ -83,10 +83,10 @@ class FollowService {
       }
 
       // Proceed to follow and increment counter atomically
-      transaction
-          .set(myFollowingRef, {'timeStamp': DateTime.now().millisecondsSinceEpoch});
-      transaction
-          .set(otherFollowersRef, {'timeStamp': DateTime.now().millisecondsSinceEpoch});
+      transaction.set(
+          myFollowingRef, {'timeStamp': DateTime.now().millisecondsSinceEpoch});
+      transaction.set(otherFollowersRef,
+          {'timeStamp': DateTime.now().millisecondsSinceEpoch});
       transaction.set(counterRef, {'date': today, 'count': currentCount + 1},
           SetOptions(merge: true));
 
@@ -162,8 +162,10 @@ class FollowService {
       }
 
       final now = DateTime.now().millisecondsSinceEpoch;
-      transaction.set(myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
-      transaction.set(otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(
+          myFollowingRef, {'timeStamp': now}, SetOptions(merge: true));
+      transaction.set(
+          otherFollowersRef, {'timeStamp': now}, SetOptions(merge: true));
       return true;
     });
 

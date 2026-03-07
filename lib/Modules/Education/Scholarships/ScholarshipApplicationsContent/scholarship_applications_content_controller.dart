@@ -11,7 +11,7 @@ class ScholarshipApplicationsContentController extends GetxController {
   // Observable variables
   var fullName = "".obs;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var showDetails = false.obs;
   var isLoading = false.obs;
   var isDetailsLoading = false.obs;
@@ -89,10 +89,10 @@ class ScholarshipApplicationsContentController extends GetxController {
         nickname.value =
             (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
                 .toString();
-        pfImage.value = (data["avatarUrl"] ??
-                data["pfImage"] ??
-                data["photoURL"] ??
-                data["profileImageUrl"] ??
+        avatarUrl.value = (data["avatarUrl"] ??
+                data["avatarUrl"] ??
+                data["avatarUrl"] ??
+                data["avatarUrl"] ??
                 "")
             .toString();
         fullName.value =

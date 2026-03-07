@@ -13,7 +13,8 @@ class PostLikeListing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(PostLikeListingController(postID: postID), tag: postID);
+    controller =
+        Get.put(PostLikeListingController(postID: postID), tag: postID);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -22,25 +23,22 @@ class PostLikeListing extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-
               Container(
                 height: 3,
                 width: 70,
                 decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(50),
-                  borderRadius: BorderRadius.all(Radius.circular(12))
-                ),
+                    color: Colors.black.withAlpha(50),
+                    borderRadius: BorderRadius.all(Radius.circular(12))),
               ),
-
-              SizedBox(height: 12,),
-
+              SizedBox(
+                height: 12,
+              ),
               header(),
-
               Expanded(
-                child: Obx((){
+                child: Obx(() {
                   return ListView.builder(
                     itemCount: controller.list.length,
-                    itemBuilder: (context, index){
+                    itemBuilder: (context, index) {
                       return PostLikeContent(userID: controller.list[index]);
                     },
                   );
@@ -53,29 +51,28 @@ class PostLikeListing extends StatelessWidget {
     );
   }
 
-  Widget header () {
-    return Obx((){
+  Widget header() {
+    return Obx(() {
       return Row(
         children: [
           Expanded(
-            child: Divider(color: Colors.grey.withAlpha(50),),
+            child: Divider(
+              color: Colors.grey.withAlpha(50),
+            ),
           ),
-
           12.pw,
-
           Text(
             "Beğenenler ${NumberFormatter.format(controller.list.length)}",
             style: TextStyle(
                 color: Colors.black,
                 fontSize: 15,
-                fontFamily: "MontserratBold"
-            ),
+                fontFamily: "MontserratBold"),
           ),
-
           12.pw,
-
           Expanded(
-            child: Divider(color: Colors.grey.withAlpha(50),),
+            child: Divider(
+              color: Colors.grey.withAlpha(50),
+            ),
           )
         ],
       );

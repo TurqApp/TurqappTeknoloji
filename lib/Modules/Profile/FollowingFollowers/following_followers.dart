@@ -42,7 +42,7 @@ class FollowingFollowers extends StatelessWidget {
                 Obx(() {
                   return PageLineBar(
                     barList: [
-                      'followers ${NumberFormatter.format(controller.takipciCounter.value)}',
+                      'Takip Edenler ${NumberFormatter.format(controller.takipciCounter.value)}',
                       'Takip Edilenler ${NumberFormatter.format(controller.takipedilenCounter.value)}',
                     ],
                     pageName: 'Followers',

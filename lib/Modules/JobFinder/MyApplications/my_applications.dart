@@ -164,7 +164,8 @@ class MyApplications extends StatelessWidget {
       AlertDialog(
         title: const Text("Başvuruyu İptal Et",
             style: TextStyle(fontFamily: "MontserratBold", fontSize: 16)),
-        content: const Text("Bu başvuruyu iptal etmek istediğinize emin misiniz?",
+        content: const Text(
+            "Bu başvuruyu iptal etmek istediğinize emin misiniz?",
             style: TextStyle(fontFamily: "MontserratMedium", fontSize: 14)),
         actions: [
           TextButton(
@@ -178,8 +179,8 @@ class MyApplications extends StatelessWidget {
               controller.cancelApplication(jobDocID);
             },
             child: const Text("İptal Et",
-                style: TextStyle(
-                    color: Colors.red, fontFamily: "MontserratBold")),
+                style:
+                    TextStyle(color: Colors.red, fontFamily: "MontserratBold")),
           ),
         ],
       ),

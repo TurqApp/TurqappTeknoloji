@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
-class IconButtons{
+class IconButtons {
   static Icon searchIcon = Icon(
     CupertinoIcons.search,
     color: Colors.black,
@@ -27,8 +27,9 @@ class IconButtons{
   );
 
   static ButtonStyle storyButtons = TextButton.styleFrom(
-  padding: EdgeInsets.symmetric(vertical: 3),
-  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-  foregroundColor: Colors.white,
-  splashFactory: InkRipple.splashFactory,);
+    padding: EdgeInsets.symmetric(vertical: 3),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    foregroundColor: Colors.white,
+    splashFactory: InkRipple.splashFactory,
+  );
 }

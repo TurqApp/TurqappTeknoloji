@@ -3,14 +3,10 @@ import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
 class Texts {
-
   static Container colorfulFloodForExplore = Container(
     decoration: BoxDecoration(
         color: Colors.black.withAlpha(50),
-        borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(12)
-        )
-    ),
+        borderRadius: const BorderRadius.only(topLeft: Radius.circular(12))),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: ShaderMask(
@@ -25,7 +21,8 @@ class Texts {
           style: TextStyle(
             fontSize: 12,
             fontFamily: "MontserratBold",
-            color: Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color:
+                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
           ),
         ),
       ),
@@ -36,10 +33,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.black.withAlpha(50),
         borderRadius: const BorderRadius.only(
-            bottomRight: Radius.circular(12),
-            topLeft: Radius.circular(12)
-        )
-    ),
+            bottomRight: Radius.circular(12), topLeft: Radius.circular(12))),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: ShaderMask(
@@ -54,7 +48,8 @@ class Texts {
           style: TextStyle(
             fontSize: 12,
             fontFamily: "MontserratBold",
-            color: Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color:
+                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
           ),
         ),
       ),
@@ -65,10 +60,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.black.withAlpha(50),
         borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(12),
-            topRight: Radius.circular(12)
-        )
-    ),
+            bottomLeft: Radius.circular(12), topRight: Radius.circular(12))),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: ShaderMask(
@@ -83,7 +75,8 @@ class Texts {
           style: TextStyle(
             fontSize: 12,
             fontFamily: "MontserratBold",
-            color: Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color:
+                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
           ),
         ),
       ),
@@ -94,10 +87,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.black.withAlpha(50),
         borderRadius: const BorderRadius.only(
-            bottomRight: Radius.circular(12),
-            topLeft: Radius.circular(0)
-        )
-    ),
+            bottomRight: Radius.circular(12), topLeft: Radius.circular(0))),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: ShaderMask(
@@ -112,7 +102,8 @@ class Texts {
           style: TextStyle(
             fontSize: 12,
             fontFamily: "MontserratBold",
-            color: Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color:
+                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
           ),
         ),
       ),
@@ -123,10 +114,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.black.withAlpha(50),
         borderRadius: const BorderRadius.only(
-            bottomRight: Radius.circular(0),
-            topRight: Radius.circular(12)
-        )
-    ),
+            bottomRight: Radius.circular(0), topRight: Radius.circular(12))),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: ShaderMask(
@@ -141,7 +129,8 @@ class Texts {
           style: TextStyle(
             fontSize: 15,
             fontFamily: "MontserratBold",
-            color: Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
+            color:
+                Colors.white, // Burada renk önemli değil çünkü shader kaplıyor
           ),
         ),
       ),
@@ -154,8 +143,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.all(Radius.circular(12)),
-        border: Border.all(color: Colors.white)
-    ),
+        border: Border.all(color: Colors.white)),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Text(
@@ -163,8 +151,7 @@ class Texts {
         style: TextStyle(
             color: Colors.white,
             fontFamily: AppFontFamilies.mmedium,
-            fontSize: FontSizes.size12
-        ),
+            fontSize: FontSizes.size12),
       ),
     ),
   );
@@ -175,8 +162,7 @@ class Texts {
     decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.all(Radius.circular(12)),
-        border: Border.all(color: Colors.black)
-    ),
+        border: Border.all(color: Colors.black)),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: Text(
@@ -184,8 +170,7 @@ class Texts {
         style: TextStyle(
             color: Colors.black,
             fontFamily: AppFontFamilies.mmedium,
-            fontSize: FontSizes.size12
-        ),
+            fontSize: FontSizes.size12),
       ),
     ),
   );

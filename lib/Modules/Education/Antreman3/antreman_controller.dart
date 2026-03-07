@@ -737,9 +737,8 @@ class AntremanController extends GetxController {
               '')
           .toString();
       final profileImage = (userData['avatarUrl'] ??
-              userData['pfImage'] ??
-              userData['photoURL'] ??
-              userData['profileImageUrl'] ??
+              userData['avatarUrl'] ??
+              userData['avatarUrl'] ??
               '')
           .toString();
       batch.set(
@@ -751,7 +750,6 @@ class AntremanController extends GetxController {
           'firstName': (userData['firstName'] ?? '').toString(),
           'lastName': (userData['lastName'] ?? '').toString(),
           'avatarUrl': profileImage,
-          'pfImage': profileImage,
           'rozet': (userData['rozet'] ?? '').toString(),
           'antPoint': newAntPoint,
           'updatedDate': DateTime.now().millisecondsSinceEpoch,

@@ -19,11 +19,10 @@ class LessonBasedTestsController extends GetxController {
     isLoading.value = true;
     try {
       list.clear();
-      final snap =
-          await FirebaseFirestore.instance
-              .collection("Testler")
-              .where("testTuru", isEqualTo: testTuru)
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection("Testler")
+          .where("testTuru", isEqualTo: testTuru)
+          .get();
 
       for (var doc in snap.docs) {
         final aciklama = doc.get("aciklama") as String;

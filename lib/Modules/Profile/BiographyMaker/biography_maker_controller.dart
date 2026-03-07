@@ -25,10 +25,10 @@ class BiographyMakerController extends GetxController {
   }
 
   Future<void> setData() async {
-    FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser!.uid).update(
-        {
-          "bio" : bioController.text
-        });
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(FirebaseAuth.instance.currentUser!.uid)
+        .update({"bio": bioController.text});
 
     Get.back();
   }

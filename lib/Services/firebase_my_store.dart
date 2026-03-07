@@ -30,7 +30,7 @@ class FirebaseMyStore extends GetxController {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   var userID = "".obs;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var firstName = "".obs;
   var lastName = "".obs;
   var email = "".obs;
@@ -91,7 +91,7 @@ class FirebaseMyStore extends GetxController {
       // Update all reactive variables
       userID.value = user.userID;
       nickname.value = user.nickname;
-      pfImage.value = user.pfImage;
+      avatarUrl.value = _userService.avatarUrl;
       firstName.value = user.firstName;
       lastName.value = user.lastName;
       email.value = user.email;
@@ -171,7 +171,7 @@ class FirebaseMyStore extends GetxController {
   void rvesertUserData() {
     userID.value = "";
     nickname.value = "";
-    pfImage.value = "";
+    avatarUrl.value = "";
     firstName.value = "";
     lastName.value = "";
     email.value = "";

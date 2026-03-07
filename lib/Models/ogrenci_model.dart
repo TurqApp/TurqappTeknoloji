@@ -1,18 +1,19 @@
 // 📁 lib/Models/ogrenci_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class OgrenciModel {
   final String userID;
   final String firstName;
   final String lastName;
-  final String pfImage;
+  final String avatarUrl;
   final String nickname;
 
   OgrenciModel({
     required this.userID,
     required this.firstName,
     required this.lastName,
-    required this.pfImage,
+    required this.avatarUrl,
     required this.nickname,
   });
 
@@ -22,8 +23,10 @@ class OgrenciModel {
       userID: id,
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: data['pfImage'] ?? '',
-      nickname: data['nickname'] ?? '',
+      avatarUrl: resolveAvatarUrl(data),
+      nickname:
+          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
+              .toString(),
     );
   }
 

@@ -28,10 +28,8 @@ class CareerProfileController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      final doc = await FirebaseFirestore.instance
-          .collection('CV')
-          .doc(uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection('CV').doc(uid).get();
 
       if (doc.exists && doc.data() != null) {
         cvVar.value = true;

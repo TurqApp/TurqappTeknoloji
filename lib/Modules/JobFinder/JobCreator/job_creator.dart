@@ -141,12 +141,15 @@ class JobCreator extends StatelessWidget {
                   } else if (controller.maasOpen.value == true &&
                       controller.maas1.text.isNotEmpty &&
                       controller.maas2.text.isNotEmpty &&
-                      (int.tryParse(controller.maas2.text) ?? 0) < (int.tryParse(controller.maas1.text) ?? 0)) {
+                      (int.tryParse(controller.maas2.text) ?? 0) <
+                          (int.tryParse(controller.maas1.text) ?? 0)) {
                     AppSnackbar("Hatalı Aralık",
                         "Maksimum maaş, minimum maaştan düşük olamaz");
                   } else if (controller.pozisyonSayisi.text.isNotEmpty &&
-                      ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) < 1 ||
-                       (int.tryParse(controller.pozisyonSayisi.text) ?? 0) > 100)) {
+                      ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) <
+                              1 ||
+                          (int.tryParse(controller.pozisyonSayisi.text) ?? 0) >
+                              100)) {
                     AppSnackbar("Hatalı Değer",
                         "Pozisyon sayısı 1 ile 100 arasında olmalıdır");
                   } else {
@@ -261,16 +264,19 @@ class JobCreator extends StatelessWidget {
                           );
                           if (pickedFile != null) {
                             final file = pickedFile;
-                            final r = await OptimizedNSFWService.checkImage(file);
+                            final r =
+                                await OptimizedNSFWService.checkImage(file);
                             if (r.isNSFW) {
                               controller.croppedImage.value = null;
                               AppSnackbar(
                                 "Yükleme Başarısız!",
                                 "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                backgroundColor: Colors.red.withValues(alpha: 0.7),
+                                backgroundColor:
+                                    Colors.red.withValues(alpha: 0.7),
                               );
                             } else {
-                              controller.croppedImage.value = file.readAsBytesSync();
+                              controller.croppedImage.value =
+                                  file.readAsBytesSync();
                             }
                           }
                         },
@@ -309,16 +315,19 @@ class JobCreator extends StatelessWidget {
                           );
                           if (pickedFile != null) {
                             final file = File(pickedFile.path);
-                            final r = await OptimizedNSFWService.checkImage(file);
+                            final r =
+                                await OptimizedNSFWService.checkImage(file);
                             if (r.isNSFW) {
                               controller.croppedImage.value = null;
                               AppSnackbar(
                                 "Yükleme Başarısız!",
                                 "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                backgroundColor: Colors.red.withValues(alpha: 0.7),
+                                backgroundColor:
+                                    Colors.red.withValues(alpha: 0.7),
                               );
                             } else {
-                              controller.croppedImage.value = file.readAsBytesSync();
+                              controller.croppedImage.value =
+                                  file.readAsBytesSync();
                             }
                           }
                         },
@@ -637,7 +646,8 @@ class JobCreator extends StatelessWidget {
                                       BorderRadius.all(Radius.circular(50)),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.5),
                                       blurRadius: 10,
                                       offset: Offset(0, 0),
                                     ),

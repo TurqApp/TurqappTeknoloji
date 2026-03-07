@@ -29,42 +29,43 @@ class Archives extends StatelessWidget {
                         color: Colors.white,
                         onRefresh: () => controller.fetchData(initial: true),
                         child: ListView.builder(
-                        controller: controller.scrollController,
-                        itemCount: controller.list.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
+                          controller: controller.scrollController,
+                          itemCount: controller.list.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: BackButtons(text: "Arşiv"),
+                              );
+                            }
+
+                            final actualIndex = index - 1;
+
+                            final model = controller.list[actualIndex];
+                            final itemKey =
+                                controller.getAgendaKey(actualIndex);
+                            final isCentered =
+                                controller.centeredIndex.value == actualIndex;
+
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: BackButtons(text: "Arşiv"),
+                              padding: const EdgeInsets.only(bottom: 5),
+                              child: Column(
+                                children: [
+                                  AgendaContent(
+                                    key: itemKey,
+                                    model: model,
+                                    isPreview: false,
+                                    shouldPlay: isCentered,
+                                    showArchivePost: true,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Divider(color: Colors.grey.withAlpha(50)),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
                             );
-                          }
-
-                          final actualIndex = index - 1;
-
-                          final model = controller.list[actualIndex];
-                          final itemKey = controller.getAgendaKey(actualIndex);
-                          final isCentered =
-                              controller.centeredIndex.value == actualIndex;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 5),
-                            child: Column(
-                              children: [
-                                AgendaContent(
-                                  key: itemKey,
-                                  model: model,
-                                  isPreview: false,
-                                  shouldPlay: isCentered,
-                                  showArchivePost: true,
-                                ),
-                                const SizedBox(height: 2),
-                                Divider(color: Colors.grey.withAlpha(50)),
-                                const SizedBox(height: 12),
-                              ],
-                            ),
-                          );
-                        },
-                      ))
+                          },
+                        ))
                     : Column(
                         children: [
                           BackButtons(text: "Arşiv"),

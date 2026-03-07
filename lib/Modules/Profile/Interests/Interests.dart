@@ -152,8 +152,8 @@ class Interests extends StatelessWidget {
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color:
-                                              Colors.grey.withValues(alpha: 0.25),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.25),
                                         ),
                                       ),
                                       child: Text(
@@ -212,7 +212,8 @@ class Interests extends StatelessWidget {
                                     ),
                                   ),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
                                         child: Text(

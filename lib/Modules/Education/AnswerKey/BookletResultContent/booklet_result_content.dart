@@ -35,17 +35,16 @@ class BookletResultContent extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Obx(
-                          () =>
-                              controller.anaModel.value == null
-                                  ? CupertinoActivityIndicator()
-                                  : Text(
-                                    controller.anaModel.value!.yayinEvi,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 18,
-                                      fontFamily: "MontserratBold",
-                                    ),
+                          () => controller.anaModel.value == null
+                              ? CupertinoActivityIndicator()
+                              : Text(
+                                  controller.anaModel.value!.yayinEvi,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontFamily: "MontserratBold",
                                   ),
+                                ),
                         ),
                       ),
                       const Icon(

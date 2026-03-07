@@ -63,7 +63,8 @@ class FindingJobApply extends StatelessWidget {
                                   FirebaseFirestore.instance
                                       .collection("CV")
                                       .doc(FirebaseAuth
-                                          .instance.currentUser?.uid ?? '')
+                                              .instance.currentUser?.uid ??
+                                          '')
                                       .update({
                                     "findingJob": controller.isFinding.value
                                   });

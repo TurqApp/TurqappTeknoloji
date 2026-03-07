@@ -41,9 +41,9 @@ class CreateChatContent extends StatelessWidget {
                 child: SizedBox(
                   width: 72,
                   height: 72,
-                  child: controller.pfImage.value != ""
+                  child: controller.avatarUrl.value != ""
                       ? CachedNetworkImage(
-                          imageUrl: controller.pfImage.value,
+                          imageUrl: controller.avatarUrl.value,
                           fit: BoxFit.cover,
                         )
                       : Center(

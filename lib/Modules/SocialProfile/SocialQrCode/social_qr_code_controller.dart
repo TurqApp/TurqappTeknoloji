@@ -26,7 +26,7 @@ class SocialQrCodeController extends GetxController {
         .get()
         .then((doc) {
       nickname.value = doc.get("nickname");
-      profileImage.value = (doc.data()?['pfImage'] ?? '').toString();
+      profileImage.value = (doc.data()?['avatarUrl'] ?? '').toString();
       unawaited(_prepareProfileLink());
     });
   }

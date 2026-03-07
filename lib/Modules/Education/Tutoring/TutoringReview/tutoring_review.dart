@@ -91,8 +91,7 @@ void showTutoringReviewBottomSheet({
                       ? null
                       : () async {
                           if (selectedRating.value == 0) {
-                            AppSnackbar(
-                                "Hata", "Lütfen bir puan seçin.");
+                            AppSnackbar("Hata", "Lütfen bir puan seçin.");
                             return;
                           }
                           isSubmitting.value = true;
@@ -103,8 +102,8 @@ void showTutoringReviewBottomSheet({
                           );
                           isSubmitting.value = false;
                           Get.back();
-                          AppSnackbar("Başarılı",
-                              "Değerlendirmeniz kaydedildi.");
+                          AppSnackbar(
+                              "Başarılı", "Değerlendirmeniz kaydedildi.");
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
@@ -118,8 +117,7 @@ void showTutoringReviewBottomSheet({
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation(Colors.white),
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
                           ),
                         )
                       : const Text(

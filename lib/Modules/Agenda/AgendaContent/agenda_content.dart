@@ -587,24 +587,65 @@ class _AgendaContentState extends State<AgendaContent>
                                 Positioned(
                                   bottom: 8,
                                   right: 8,
-                                  child: GestureDetector(
-                                    onTap: agendaController.isMuted.toggle,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black54,
-                                        shape: BoxShape.circle,
+                                  child: Row(
+                                    children: [
+                                      ValueListenableBuilder<HLSVideoValue>(
+                                        valueListenable: videoValueNotifier,
+                                        builder: (context, value, _) {
+                                          final isPlaying =
+                                              value.isInitialized &&
+                                                  value.isPlaying;
+                                          return GestureDetector(
+                                            onTap: () {
+                                              final vc = videoController;
+                                              if (vc == null) return;
+                                              if (isPlaying) {
+                                                vc.pause();
+                                              } else {
+                                                vc.play();
+                                                videoStateManager.playOnlyThis(
+                                                    widget.model.docID);
+                                              }
+                                            },
+                                            child: Container(
+                                              margin:
+                                                  const EdgeInsets.only(right: 6),
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.black54,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                isPlaying
+                                                    ? CupertinoIcons.pause_fill
+                                                    : CupertinoIcons.play_fill,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                      child: Obx(() {
-                                        return Icon(
-                                          agendaController.isMuted.value
-                                              ? CupertinoIcons.volume_off
-                                              : CupertinoIcons.volume_up,
-                                          color: Colors.white,
-                                          size: 16,
-                                        );
-                                      }),
-                                    ),
+                                      GestureDetector(
+                                        onTap: agendaController.isMuted.toggle,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Obx(() {
+                                            return Icon(
+                                              agendaController.isMuted.value
+                                                  ? CupertinoIcons.volume_off
+                                                  : CupertinoIcons.volume_up,
+                                              color: Colors.white,
+                                              size: 16,
+                                            );
+                                          }),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
@@ -1246,10 +1287,10 @@ class _AgendaContentState extends State<AgendaContent>
                 });
               }
             },
-            child: Obx(() => controller.pfImage.isNotEmpty
+            child: Obx(() => controller.avatarUrl.isNotEmpty
                 ? CachedUserAvatar(
                     userId: widget.model.userID,
-                    imageUrl: controller.pfImage.value,
+                    imageUrl: controller.avatarUrl.value,
                     radius: 20,
                   )
                 : const SizedBox.shrink()),
@@ -1319,7 +1360,7 @@ class _AgendaContentState extends State<AgendaContent>
                     if (controller.isFollowing.value == false &&
                         widget.model.userID !=
                             FirebaseAuth.instance.currentUser!.uid &&
-                        controller.pfImage.value != "" &&
+                        controller.avatarUrl.value != "" &&
                         !shouldHideFollow)
                       Obx(() => TextButton(
                             onPressed: controller.followLoading.value

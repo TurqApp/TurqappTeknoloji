@@ -15,6 +15,7 @@ import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -67,8 +68,17 @@ class TutoringWidgetBuilder extends StatelessWidget {
             itemBuilder: (context, index) {
               final tutoring = tutoringList[index];
               final user = users[tutoring.userID] ?? {};
-              final String? firstName = user['firstName'] as String?;
-              final String? lastName = user['lastName'] as String?;
+              final String firstName = (user['firstName'] ?? '').toString();
+              final String lastName = (user['lastName'] ?? '').toString();
+              final String nickname = (user['nickname'] ??
+                      user['username'] ??
+                      user['displayName'] ??
+                      '')
+                  .toString()
+                  .trim();
+              final String shownName = nickname.isNotEmpty
+                  ? nickname
+                  : '$firstName $lastName'.trim();
               final String userID = tutoring.userID;
               final bool canShareFeed = AdminAccessService.isKnownAdminSync() ||
                   currentUserId == tutoring.userID;
@@ -179,14 +189,24 @@ class TutoringWidgetBuilder extends StatelessWidget {
                               ],
                             ),
                             4.ph,
-                            Row(
-                              children: [
-                                Text(
-                                  "$firstName $lastName",
-                                  style: TextStyles.bold16Black,
-                                ),
-                                RozetContent(size: 14, userID: userID),
-                              ],
+                            GestureDetector(
+                              onTap: () {
+                                if (currentUserId != null &&
+                                    currentUserId != userID) {
+                                  Get.to(() => SocialProfile(userID: userID));
+                                }
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    shownName,
+                                    style: TextStyles.bold16Black,
+                                  ),
+                                  4.pw,
+                                  RozetContent(size: 14, userID: userID),
+                                ],
+                              ),
                             ),
                             4.ph,
                             Text(
@@ -225,8 +245,17 @@ class TutoringWidgetBuilder extends StatelessWidget {
             itemBuilder: (context, index) {
               final tutoring = tutoringList[index];
               final user = users[tutoring.userID] ?? {};
-              final String? firstName = user['firstName'] as String?;
-              final String? lastName = user['lastName'] as String?;
+              final String firstName = (user['firstName'] ?? '').toString();
+              final String lastName = (user['lastName'] ?? '').toString();
+              final String nickname = (user['nickname'] ??
+                      user['username'] ??
+                      user['displayName'] ??
+                      '')
+                  .toString()
+                  .trim();
+              final String shownName = nickname.isNotEmpty
+                  ? nickname
+                  : '$firstName $lastName'.trim();
               final String userID = tutoring.userID;
               final bool canShareFeed = AdminAccessService.isKnownAdminSync() ||
                   currentUserId == tutoring.userID;
@@ -345,14 +374,25 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   ],
                                 ),
                                 4.ph,
-                                Row(
-                                  children: [
-                                    Text(
-                                      "$firstName $lastName",
-                                      style: TextStyles.medium15Black,
-                                    ),
-                                    RozetContent(size: 14, userID: userID),
-                                  ],
+                                GestureDetector(
+                                  onTap: () {
+                                    if (currentUserId != null &&
+                                        currentUserId != userID) {
+                                      Get.to(
+                                          () => SocialProfile(userID: userID));
+                                    }
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        shownName,
+                                        style: TextStyles.medium15Black,
+                                      ),
+                                      4.pw,
+                                      RozetContent(size: 14, userID: userID),
+                                    ],
+                                  ),
                                 ),
                                 4.ph,
                                 Row(

@@ -57,10 +57,10 @@ function buildUserDoc(userId, data) {
     nickname: asString(data.nickname) || asString(data.username),
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
-    pfImage:
-      asString(data.pfImage) ||
+    avatarUrl:
       asString(data.avatarUrl) ||
-      asString(data.profileImageUrl),
+      asString(data.avatarUrl) ||
+      asString(data.avatarUrl),
     gizliHesap: asBool(data.gizliHesap),
     deletedAccount: asBool(data.deletedAccount) || asBool(data.isDeleted),
     hesapOnayi: asBool(data.hesapOnayi) || asBool(data.isVerified),
@@ -82,7 +82,7 @@ async function ensureUsersCollection(baseUrl, apiKey, collectionName) {
     { name: "nickname", type: "string", optional: true },
     { name: "firstName", type: "string", optional: true },
     { name: "lastName", type: "string", optional: true },
-    { name: "pfImage", type: "string", optional: true },
+    { name: "avatarUrl", type: "string", optional: true },
     { name: "gizliHesap", type: "bool", optional: true },
     { name: "deletedAccount", type: "bool", optional: true },
     { name: "hesapOnayi", type: "bool", optional: true },

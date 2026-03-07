@@ -51,9 +51,9 @@ class RecommendedUserContent extends StatelessWidget {
                       child: SizedBox(
                         width: 100,
                         height: 100,
-                        child: model.pfImage != ""
+                        child: model.avatarUrl != ""
                             ? CachedNetworkImage(
-                                imageUrl: model.pfImage,
+                                imageUrl: model.avatarUrl,
                                 fit: BoxFit.cover,
                               )
                             : Center(

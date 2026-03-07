@@ -350,7 +350,7 @@ class _ProfileViewState extends State<ProfileView> {
                             aspectRatio: 1,
                             child: ClipOval(
                               child: CachedNetworkImage(
-                                imageUrl: user.pfImage.value,
+                                imageUrl: user.avatarUrl.value,
                                 fit: BoxFit.cover,
                                 memCacheWidth: 300,
                                 memCacheHeight: 600,

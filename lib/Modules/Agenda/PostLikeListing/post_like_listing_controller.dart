@@ -5,9 +5,7 @@ class PostLikeListingController extends GetxController {
   String postID;
   RxList<String> list = <String>[].obs;
 
-  PostLikeListingController({
-    required this.postID
-});
+  PostLikeListingController({required this.postID});
 
   @override
   void onInit() {
@@ -16,9 +14,14 @@ class PostLikeListingController extends GetxController {
   }
 
   Future<void> getLikes() async {
-    FirebaseFirestore.instance.collection("Posts").doc(postID).collection("likes").orderBy("timeStamp", descending: true).get()
-        .then((snap){
-          list.value = snap.docs.map((v) => v.id).toList();
+    FirebaseFirestore.instance
+        .collection("Posts")
+        .doc(postID)
+        .collection("likes")
+        .orderBy("timeStamp", descending: true)
+        .get()
+        .then((snap) {
+      list.value = snap.docs.map((v) => v.id).toList();
     });
   }
 }

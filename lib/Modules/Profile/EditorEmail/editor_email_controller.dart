@@ -40,7 +40,8 @@ class EditorEmailController extends GetxController {
       final data = doc.data() ?? const {};
       emailController.text = data["email"]?.toString() ?? "";
       final firestoreVerified = data["emailVerified"] == true;
-      final authVerified = FirebaseAuth.instance.currentUser?.emailVerified == true;
+      final authVerified =
+          FirebaseAuth.instance.currentUser?.emailVerified == true;
       isEmailConfirmed.value = firestoreVerified || authVerified;
     }
   }

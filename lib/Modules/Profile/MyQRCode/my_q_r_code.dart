@@ -97,8 +97,9 @@ class MyQRCode extends StatelessWidget {
                           borderRadius: BorderRadius.all(Radius.circular(18)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 
-                                  0.1), // Gölge rengi (opacity ile yumuşatılır)
+                              color: Colors.black.withValues(
+                                  alpha:
+                                      0.1), // Gölge rengi (opacity ile yumuşatılır)
                               spreadRadius: 2, // Gölgenin yayılma alanı
                               blurRadius: 2, // Gölge yumuşaklığı
                               offset: Offset(0, 0), // X ve Y ekseninde kaydırma

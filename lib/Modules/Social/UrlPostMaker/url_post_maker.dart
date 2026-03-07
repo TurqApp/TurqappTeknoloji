@@ -55,27 +55,29 @@ class UrlPostMaker extends StatelessWidget {
                         children: [
                           BackButtons(text: "Yeni Gönderi"),
                           Obx(() => GestureDetector(
-                            onTap: controller.isSharing.value ? null : () {
-                              controller.setData(
-                                imgs,
-                                video,
-                                thumbnail,
-                                aspectRatio,
-                                originalUserID: originalUserID,
-                                originalPostID: originalPostID,
-                                sharedAsPost: sharedAsPost,
-                              );
-                            },
-                            child: Text(
-                              "Paylaş",
-                              style: TextStyle(
-                                  color: controller.isSharing.value
-                                      ? Colors.grey
-                                      : Colors.blueAccent,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratMedium"),
-                            ),
-                          ))
+                                onTap: controller.isSharing.value
+                                    ? null
+                                    : () {
+                                        controller.setData(
+                                          imgs,
+                                          video,
+                                          thumbnail,
+                                          aspectRatio,
+                                          originalUserID: originalUserID,
+                                          originalPostID: originalPostID,
+                                          sharedAsPost: sharedAsPost,
+                                        );
+                                      },
+                                child: Text(
+                                  "Paylaş",
+                                  style: TextStyle(
+                                      color: controller.isSharing.value
+                                          ? Colors.grey
+                                          : Colors.blueAccent,
+                                      fontSize: 15,
+                                      fontFamily: "MontserratMedium"),
+                                ),
+                              ))
                         ],
                       ),
                     ),

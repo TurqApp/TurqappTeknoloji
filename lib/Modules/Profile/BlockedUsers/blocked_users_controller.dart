@@ -116,7 +116,10 @@ class BlockedUsersController extends GetxController {
                         final userRef = FirebaseFirestore.instance
                             .collection("users")
                             .doc(uid);
-                        await userRef.collection("blockedUsers").doc(userID).delete();
+                        await userRef
+                            .collection("blockedUsers")
+                            .doc(userID)
+                            .delete();
 
                         blockedUsers.remove(userID);
                         blockedUserDetails

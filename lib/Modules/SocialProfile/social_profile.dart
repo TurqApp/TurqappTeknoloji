@@ -383,9 +383,9 @@ class _SocialProfileState extends State<SocialProfile> {
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: ClipOval(
-                            child: controller.pfImage.value.isNotEmpty
+                            child: controller.avatarUrl.value.isNotEmpty
                                 ? CachedNetworkImage(
-                                    imageUrl: controller.pfImage.value,
+                                    imageUrl: controller.avatarUrl.value,
                                     fit: BoxFit.cover,
                                     memCacheWidth: 300,
                                     memCacheHeight: 600,
@@ -511,7 +511,7 @@ class _SocialProfileState extends State<SocialProfile> {
                           size: 20,
                         ),
                       ),
-                    if (model.img.isNotEmpty)
+                    if (!model.hasPlayableVideo && model.img.isNotEmpty)
                       Positioned(
                         bottom: 4,
                         right: 4,
@@ -815,7 +815,7 @@ class _SocialProfileState extends State<SocialProfile> {
                         slug: safeSlug,
                         title: '@${controller.nickname.value} - TurqApp',
                         desc: 'TurqApp profilini görüntüle',
-                        imageUrl: controller.pfImage.value,
+                        imageUrl: controller.avatarUrl.value,
                       );
                       final link =
                           (result['url'] ?? '').toString().trim().isNotEmpty
@@ -839,7 +839,7 @@ class _SocialProfileState extends State<SocialProfile> {
                           slug: safeSlug,
                           title: '@${controller.nickname.value} - TurqApp',
                           desc: 'TurqApp profilini görüntüle',
-                          imageUrl: controller.pfImage.value,
+                          imageUrl: controller.avatarUrl.value,
                         );
                         final link =
                             (result['url'] ?? '').toString().trim().isNotEmpty
@@ -975,7 +975,7 @@ class _SocialProfileState extends State<SocialProfile> {
             onLongPress: () {
               HapticFeedback.lightImpact();
               // Profil fotoğrafı var mı kontrol et
-              if (mounted && controller.pfImage.value.isNotEmpty) {
+              if (mounted && controller.avatarUrl.value.isNotEmpty) {
                 setState(() {
                   controller.showPfImage.value = true;
                   controller.centeredIndex.value = -1;
@@ -1991,7 +1991,7 @@ class _SocialProfileState extends State<SocialProfile> {
               width: 85,
               height: 85,
               child: CachedNetworkImage(
-                imageUrl: controller.pfImage.value,
+                imageUrl: controller.avatarUrl.value,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Center(
                   child: SizedBox(
@@ -2014,7 +2014,7 @@ class _SocialProfileState extends State<SocialProfile> {
           width: 85,
           height: 85,
           child: CachedNetworkImage(
-            imageUrl: controller.pfImage.value,
+            imageUrl: controller.avatarUrl.value,
             fit: BoxFit.cover,
             placeholder: (context, url) => Center(
               child: SizedBox(

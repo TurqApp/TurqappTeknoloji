@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 class AnswerKeyContent extends StatelessWidget {
   final BookletModel model;
@@ -72,9 +73,9 @@ class AnswerKeyContent extends StatelessWidget {
               child: SizedBox(
                 width: 23,
                 height: 23,
-                child: controller.pfImage.value.isNotEmpty
+                child: controller.avatarUrl.value.isNotEmpty
                     ? Image.network(
-                        controller.pfImage.value,
+                        controller.avatarUrl.value,
                         fit: BoxFit.cover,
                       )
                     : Center(child: CupertinoActivityIndicator()),
@@ -83,25 +84,37 @@ class AnswerKeyContent extends StatelessWidget {
           ),
           SizedBox(width: 7),
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    child: Text(
-                      controller.nickname.value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontFamily: "MontserratBold",
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: GestureDetector(
+                onTap: () {
+                  if (controller.model.userID != currentUid) {
+                    Get.to(
+                        () => SocialProfile(userID: controller.model.userID));
+                  }
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        controller.nickname.value.isEmpty
+                            ? ''
+                            : controller.nickname.value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontFamily: "MontserratBold",
+                        ),
                       ),
                     ),
-                  ),
+                    SizedBox(width: 4),
+                    RozetContent(size: 13, userID: controller.model.userID),
+                  ],
                 ),
-                SizedBox(width: 4),
-                RozetContent(size: 13, userID: controller.model.userID),
-              ],
+              ),
             ),
           ),
           if (canShareFeed)

@@ -80,7 +80,8 @@ class SocialMediaLinks extends StatelessWidget {
                                         AspectRatio(
                                           aspectRatio: 1,
                                           child: ClipOval(
-                                            child: model.logo.startsWith('assets/')
+                                            child: model.logo
+                                                    .startsWith('assets/')
                                                 ? Image.asset(
                                                     model.logo,
                                                     fit: BoxFit.cover,
@@ -91,7 +92,8 @@ class SocialMediaLinks extends StatelessWidget {
                                                         fit: BoxFit.cover,
                                                       )
                                                     : Container(
-                                                        color: Colors.grey.withValues(
+                                                        color: Colors.grey
+                                                            .withValues(
                                                           alpha: 0.15,
                                                         ),
                                                         child: const Icon(

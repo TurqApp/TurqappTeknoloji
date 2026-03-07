@@ -98,7 +98,8 @@ class PostCreator extends StatelessWidget {
                     if (ok) {
                       final popped = await Navigator.of(context).maybePop();
                       if (!popped) {
-                        if (Navigator.of(context, rootNavigator: true).canPop()) {
+                        if (Navigator.of(context, rootNavigator: true)
+                            .canPop()) {
                           Navigator.of(context, rootNavigator: true).pop();
                         } else {
                           Get.back();
@@ -121,7 +122,9 @@ class PostCreator extends StatelessWidget {
                   ),
                   child: Text(
                     controller.isEditMode.value
-                        ? (controller.isSavingEdit.value ? "Kaydediliyor..." : "Kaydet")
+                        ? (controller.isSavingEdit.value
+                            ? "Kaydediliyor..."
+                            : "Kaydet")
                         : "Yayınla",
                     style: TextStyle(
                       color: Colors.white,
@@ -176,7 +179,8 @@ class PostCreator extends StatelessWidget {
                     ),
                     if (!isSelected)
                       Positioned.fill(
-                        child: Container(color: Colors.white.withValues(alpha: 0.70)),
+                        child: Container(
+                            color: Colors.white.withValues(alpha: 0.70)),
                       ),
                   ],
                 ),
@@ -206,15 +210,12 @@ class PostCreator extends StatelessWidget {
       final hasImages = selectedController.croppedImages.isNotEmpty ||
           selectedController.selectedImages.isNotEmpty;
       final hasVideo = selectedController.selectedVideo.value != null;
-      final hasLocation =
-          selectedController.adres.value.trim().isNotEmpty;
+      final hasLocation = selectedController.adres.value.trim().isNotEmpty;
       final commentActive = controller.commentVisibility.value != 0;
       final reshareActive = controller.paylasimSelection.value != 0;
-      final pollActive =
-          selectedController.pollData.value != null &&
-              (selectedController.pollData.value?['options'] is List) &&
-              (selectedController.pollData.value!['options'] as List)
-                  .isNotEmpty;
+      final pollActive = selectedController.pollData.value != null &&
+          (selectedController.pollData.value?['options'] is List) &&
+          (selectedController.pollData.value!['options'] as List).isNotEmpty;
       final disableFirstThree = controller.isEditMode.value;
       final disableFlood = controller.isEditMode.value;
 
@@ -238,14 +239,17 @@ class PostCreator extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             IconButton(
-                              onPressed:
-                                  disableFirstThree ? null : selectedController.pickImage,
+                              onPressed: disableFirstThree
+                                  ? null
+                                  : selectedController.pickImage,
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.photo_on_rectangle,
                                 color: disableFirstThree
                                     ? Colors.black38
-                                    : (hasImages ? Colors.blueAccent : Colors.black),
+                                    : (hasImages
+                                        ? Colors.blueAccent
+                                        : Colors.black),
                               ),
                             ),
                             IconButton(
@@ -260,7 +264,9 @@ class PostCreator extends StatelessWidget {
                                 CupertinoIcons.play_circle,
                                 color: disableFirstThree
                                     ? Colors.black38
-                                    : (hasVideo ? Colors.blueAccent : Colors.black),
+                                    : (hasVideo
+                                        ? Colors.blueAccent
+                                        : Colors.black),
                               ),
                             ),
                             IconButton(
@@ -270,7 +276,9 @@ class PostCreator extends StatelessWidget {
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.camera,
-                                color: disableFirstThree ? Colors.black38 : Colors.black,
+                                color: disableFirstThree
+                                    ? Colors.black38
+                                    : Colors.black,
                               ),
                             ),
                             IconButton(
@@ -278,8 +286,9 @@ class PostCreator extends StatelessWidget {
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.chart_bar,
-                                color:
-                                    pollActive ? Colors.blueAccent : Colors.black,
+                                color: pollActive
+                                    ? Colors.blueAccent
+                                    : Colors.black,
                               ),
                             ),
                             IconButton(
@@ -287,7 +296,9 @@ class PostCreator extends StatelessWidget {
                               iconSize: toolbarIconSize,
                               icon: Icon(
                                 CupertinoIcons.map_pin_ellipse,
-                                color: hasLocation ? Colors.blueAccent : Colors.black,
+                                color: hasLocation
+                                    ? Colors.blueAccent
+                                    : Colors.black,
                               ),
                             ),
                             PullDownButton(
@@ -339,8 +350,9 @@ class PostCreator extends StatelessWidget {
                                 padding: EdgeInsets.zero,
                                 child: Icon(
                                   CupertinoIcons.bubble_right,
-                                  color:
-                                      commentActive ? Colors.blueAccent : Colors.black,
+                                  color: commentActive
+                                      ? Colors.blueAccent
+                                      : Colors.black,
                                   size: toolbarIconSize,
                                 ),
                               ),

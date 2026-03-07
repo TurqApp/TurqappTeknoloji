@@ -92,7 +92,7 @@ class ShareGrid extends StatelessWidget {
                                   width: 55,
                                   height: 55,
                                   child: CachedNetworkImage(
-                                    imageUrl: model.pfImage,
+                                    imageUrl: model.avatarUrl,
                                     fit: BoxFit.cover,
                                     errorWidget: (_, __, ___) => Container(
                                       color: Colors.grey.shade200,

@@ -140,7 +140,7 @@ class FeedIndexStore {
         postData: post.toMap(),
         userID: post.userID,
         nickname: (user['nickname'] ?? '').toString(),
-        avatarUrl: (user['pfImage'] ?? '').toString(),
+        avatarUrl: (user['avatarUrl'] ?? '').toString(),
         caption: post.metin,
         isPrivate: (user['isPrivate'] ?? false) == true,
         updatedAt: now,

@@ -76,9 +76,9 @@ class ApplicationReview extends StatelessWidget {
             ? '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
                 .trim()
             : '';
-        final fetchedNickname = ((profile?['displayName'] ??
+        final fetchedNickname = ((profile?['nickname'] ??
                 profile?['username'] ??
-                profile?['nickname'] ??
+                profile?['displayName'] ??
                 '') as String)
             .trim();
         final name = fetchedName.isNotEmpty
@@ -90,15 +90,15 @@ class ApplicationReview extends StatelessWidget {
                     : fetchedNickname.isNotEmpty
                         ? fetchedNickname
                         : 'Bilinmeyen Kullanıcı';
-        final pfImage = ((profile?['avatarUrl'] ??
-                    profile?['pfImage'] ??
-                    profile?['photoURL'] ??
+        final avatarUrl = ((profile?['avatarUrl'] ??
+                    profile?['avatarUrl'] ??
+                    profile?['avatarUrl'] ??
                     '') as String)
                 .trim()
                 .isNotEmpty
             ? ((profile?['avatarUrl'] ??
-                    profile?['pfImage'] ??
-                    profile?['photoURL'] ??
+                    profile?['avatarUrl'] ??
+                    profile?['avatarUrl'] ??
                     '') as String)
                 .trim()
             : app.applicantPfImage;
@@ -122,9 +122,9 @@ class ApplicationReview extends StatelessWidget {
                       child: SizedBox(
                         width: 40,
                         height: 40,
-                        child: pfImage.isNotEmpty
+                        child: avatarUrl.isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: pfImage, fit: BoxFit.cover)
+                                imageUrl: avatarUrl, fit: BoxFit.cover)
                             : Container(
                                 color: Colors.grey.withAlpha(30),
                                 child: const Icon(CupertinoIcons.person_fill,

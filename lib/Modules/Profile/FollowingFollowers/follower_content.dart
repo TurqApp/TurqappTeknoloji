@@ -46,9 +46,9 @@ class FollowerContent extends StatelessWidget {
                 child: SizedBox(
                   width: 50,
                   height: 50,
-                  child: controller.pfImage.value != ""
+                  child: controller.avatarUrl.value != ""
                       ? CachedNetworkImage(
-                          imageUrl: controller.pfImage.value,
+                          imageUrl: controller.avatarUrl.value,
                           fit: BoxFit.cover,
                           memCacheHeight: 400,
                         )

@@ -21,7 +21,8 @@ class Hashtaglister extends StatelessWidget {
           final model = controller.hashtags[index];
           return TextButton(
             onPressed: () {
-              controller.hashtags.removeAt(index); // Doğrudan RxList üzerinde işlem
+              controller.hashtags
+                  .removeAt(index); // Doğrudan RxList üzerinde işlem
               onTapSelected(model.hashtag); // Seçim bilgisi gönder
             },
             style: TextButton.styleFrom(
@@ -31,7 +32,8 @@ class Hashtaglister extends StatelessWidget {
             child: Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 15),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 7, horizontal: 15),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

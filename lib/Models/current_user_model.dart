@@ -3,6 +3,7 @@
 // 💾 Supports both Firebase sync and local cache serialization
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -12,7 +13,7 @@ class CurrentUserModel {
   final String nickname;
   final String firstName;
   final String lastName;
-  final String pfImage;
+  final String avatarUrl;
   final String email;
   final String phoneNumber;
   final String tc;
@@ -179,7 +180,7 @@ class CurrentUserModel {
     required this.nickname,
     required this.firstName,
     required this.lastName,
-    required this.pfImage,
+    required this.avatarUrl,
     required this.email,
     required this.phoneNumber,
     required this.tc,
@@ -292,15 +293,16 @@ class CurrentUserModel {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     final education = _asMap(data['education']);
     final family = _asMap(data['family']);
+    final profile = _asMap(data['profile']);
 
     return CurrentUserModel(
       userID: doc.id,
       nickname:
-          (data['username'] ?? data['nickname'] ?? data['displayName'] ?? '')
+          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
               .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: (data['avatarUrl'] ?? '').toString(),
+      avatarUrl: resolveAvatarUrl(data, profile: profile),
       email: data['email'] ?? '',
       phoneNumber: data['phoneNumber'] ?? '',
       tc: data['tc'] ?? '',
@@ -448,7 +450,7 @@ class CurrentUserModel {
       'displayName': nickname,
       'firstName': firstName,
       'lastName': lastName,
-      'avatarUrl': pfImage,
+      'avatarUrl': avatarUrl,
       'email': email,
       'phoneNumber': phoneNumber,
       'tc': tc,
@@ -563,15 +565,16 @@ class CurrentUserModel {
   factory CurrentUserModel.fromJson(Map<String, dynamic> json) {
     final education = _asMap(json['education']);
     final family = _asMap(json['family']);
+    final profile = _asMap(json['profile']);
 
     return CurrentUserModel(
       userID: json['userID'] ?? '',
       nickname:
-          (json['username'] ?? json['nickname'] ?? json['displayName'] ?? '')
+          (json['nickname'] ?? json['username'] ?? json['displayName'] ?? '')
               .toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
-      pfImage: (json['avatarUrl'] ?? '').toString(),
+      avatarUrl: resolveAvatarUrl(json, profile: profile),
       email: json['email'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       tc: json['tc'] ?? '',
@@ -791,7 +794,7 @@ class CurrentUserModel {
     String? nickname,
     String? firstName,
     String? lastName,
-    String? pfImage,
+    String? avatarUrl,
     String? email,
     String? phoneNumber,
     String? bio,
@@ -812,7 +815,7 @@ class CurrentUserModel {
       nickname: nickname ?? this.nickname,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
-      pfImage: pfImage ?? this.pfImage,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       email: email ?? this.email,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       tc: tc,
@@ -927,7 +930,7 @@ class CurrentUserModel {
   String get fullName => '$firstName $lastName'.trim();
 
   /// Has profile image
-  bool get hasProfileImage => pfImage.isNotEmpty;
+  bool get hasProfileImage => avatarUrl.isNotEmpty;
 
   /// Is verified account
   bool get isVerified => hesapOnayi;

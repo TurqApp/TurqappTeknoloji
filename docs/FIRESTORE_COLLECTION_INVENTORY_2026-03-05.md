@@ -27,7 +27,7 @@ Note: counts are reference counts in source files, not runtime query counts.
 
 ## 2) `users/{uid}` Current Real Structure (Observed)
 Hot fields actively used in code:
-- identity/profile: `nickname`, `firstName`, `lastName`, `displayName`, `username`, `pfImage`, `photoURL`, `avatarUrl`, `profileImageUrl`
+- identity/profile: `nickname`, `firstName`, `lastName`, `displayName`, `username`, `avatarUrl`, `avatarUrl`, `avatarUrl`, `avatarUrl`
 - privacy/status: `gizliHesap`, `deletedAccount`, `accountStatus`
 - counters: `takipciSayisi`, `takipEdilenSayisi`, `gonderSayisi`, `followerCount`, `followingCount`, `postCount`
 - metadata: `createdDate`, `role`, `admin`

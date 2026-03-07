@@ -244,7 +244,8 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                   ),
                 ],
               )
-            : const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+            : const Center(
+                child: CupertinoActivityIndicator(color: Colors.white)),
       ),
     );
   }
@@ -259,7 +260,9 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? Colors.white.withValues(alpha: 0.3) : Colors.transparent,
+          color: selected
+              ? Colors.white.withValues(alpha: 0.3)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
         ),
@@ -275,4 +278,3 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
     );
   }
 }
-

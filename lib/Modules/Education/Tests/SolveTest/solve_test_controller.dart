@@ -85,9 +85,16 @@ class SolveTestController extends GetxController {
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .get();
-      final firstName = doc.get("firstName") as String;
-      final lastName = doc.get("lastName") as String;
-      fullname.value = "$firstName $lastName";
+      final data = doc.data() ?? const <String, dynamic>{};
+      final nick =
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
+              .toString()
+              .trim();
+      final firstName = (data["firstName"] ?? "").toString().trim();
+      final lastName = (data["lastName"] ?? "").toString().trim();
+      final fallbackName =
+          [firstName, lastName].where((e) => e.isNotEmpty).join(" ").trim();
+      fullname.value = nick.isNotEmpty ? nick : fallbackName;
     } catch (e) {
       print("Error fetching user data: $e");
       fullname.value = "";

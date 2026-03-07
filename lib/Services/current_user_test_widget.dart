@@ -112,8 +112,9 @@ class CurrentUserTestWidget extends StatelessWidget {
                 _InfoRow(
                   icon: Icons.image,
                   label: 'Profile Image',
-                  value: user.pfImage.isNotEmpty ? 'Yes' : 'No',
-                  valueColor: user.pfImage.isNotEmpty ? Colors.green : Colors.grey,
+                  value: user.avatarUrl.isNotEmpty ? 'Yes' : 'No',
+                  valueColor:
+                      user.avatarUrl.isNotEmpty ? Colors.green : Colors.grey,
                 ),
                 const SizedBox(height: 8),
                 _InfoRow(

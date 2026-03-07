@@ -5,17 +5,17 @@ class RecommendedUserModel {
   final String userID;
   final String firstName;
   final String lastName;
-  final String pfImage;
+  final String avatarUrl;
   final String nickname;
-  final String bio;        // ✱ Yeni alan
+  final String bio; // ✱ Yeni alan
 
   RecommendedUserModel({
     required this.userID,
     required this.firstName,
     required this.lastName,
-    required this.pfImage,
+    required this.avatarUrl,
     required this.nickname,
-    required this.bio,      // ✱ Yapıcıda zorunlu kılındı
+    required this.bio, // ✱ Yapıcıda zorunlu kılındı
   });
 
   /// Eski fromMap fabrika korunuyor, bio da ekleniyor
@@ -24,9 +24,9 @@ class RecommendedUserModel {
       userID: id,
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
-      pfImage: data['pfImage'] ?? '',
+      avatarUrl: data['avatarUrl'] ?? '',
       nickname: data['nickname'] ?? '',
-      bio: data['bio'] ?? '',   // ✱ Buradan al
+      bio: data['bio'] ?? '', // ✱ Buradan al
     );
   }
 

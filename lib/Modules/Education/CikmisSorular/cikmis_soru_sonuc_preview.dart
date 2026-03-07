@@ -11,7 +11,8 @@ class CikmisSoruSonucPreview extends StatefulWidget {
   final CikmisSoruSonucModel model;
   final String title;
 
-  const CikmisSoruSonucPreview({super.key, required this.model, required this.title});
+  const CikmisSoruSonucPreview(
+      {super.key, required this.model, required this.title});
   @override
   State<CikmisSoruSonucPreview> createState() => _CikmisSoruSonucPreviewState();
 }
@@ -56,7 +57,8 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadQuestions(
     String docID,
   ) async {
-    final baseDoc = FirebaseFirestore.instance.collection("questions").doc(docID);
+    final baseDoc =
+        FirebaseFirestore.instance.collection("questions").doc(docID);
 
     final questionsSnap = await baseDoc.collection("questions").get();
     if (questionsSnap.docs.isNotEmpty) {

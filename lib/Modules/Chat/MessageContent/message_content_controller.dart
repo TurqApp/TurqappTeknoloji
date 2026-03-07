@@ -18,7 +18,7 @@ class MessageContentController extends GetxController {
   final String mainID;
 
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
 
   var currentIndex = 0.obs;
   var showAllImages = false.obs;
@@ -50,10 +50,10 @@ class MessageContentController extends GetxController {
       nickname.value =
           (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
               .toString();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
     });
@@ -491,9 +491,9 @@ class MessageContentController extends GetxController {
                   "")
               .toString();
           postPfImage.value = (data["avatarUrl"] ??
-                  data["pfImage"] ??
-                  data["photoURL"] ??
-                  data["profileImageUrl"] ??
+                  data["avatarUrl"] ??
+                  data["avatarUrl"] ??
+                  data["avatarUrl"] ??
                   "")
               .toString();
         });

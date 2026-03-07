@@ -22,11 +22,10 @@ class MyTestResultsController extends GetxController {
           await FirebaseFirestore.instance.collection("Testler").get();
 
       for (var doc in testlerQuerySnapshot.docs) {
-        final yanitlarQuerySnapshot =
-            await doc.reference
-                .collection("Yanitlar")
-                .where("userID", isEqualTo: currentUserID)
-                .get();
+        final yanitlarQuerySnapshot = await doc.reference
+            .collection("Yanitlar")
+            .where("userID", isEqualTo: currentUserID)
+            .get();
 
         if (yanitlarQuerySnapshot.docs.isNotEmpty) {
           final aciklama = doc.get("aciklama") as String;

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
+import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviYap/deneme_sinavi_yap.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
@@ -171,7 +172,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                               width: 50,
                               height: 50,
                               child: Image.network(
-                                controller.pfImage.value,
+                                controller.avatarUrl.value,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Icon(
@@ -198,15 +199,29 @@ class DenemeSinaviPreview extends StatelessWidget {
                                               userID: controller.model.userID),
                                         );
                                       },
-                                child: Text(
-                                  controller.nickname.value.isEmpty
-                                      ? "Kullanıcı Yükleniyor"
-                                      : "@${controller.nickname.value}",
-                                  style: TextStyle(
-                                    color: Colors.pink,
-                                    fontSize: 16,
-                                    fontFamily: "MontserratBold",
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        controller.nickname.value.isEmpty
+                                            ? "Kullanıcı Yükleniyor"
+                                            : controller.nickname.value,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.pink,
+                                          fontSize: 16,
+                                          fontFamily: "MontserratBold",
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    RozetContent(
+                                      size: 16,
+                                      userID: controller.model.userID,
+                                    ),
+                                  ],
                                 ),
                               ),
                               4.ph,

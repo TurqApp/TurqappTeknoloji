@@ -11,6 +11,7 @@ import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/Services/deep_link_service.dart';
 import '../Agenda/agenda_view.dart';
@@ -115,8 +116,8 @@ class NavBarView extends StatelessWidget {
   Widget build(BuildContext context) {
     _ensureControllersReady(); // Ensure all controllers are ready before building
     return Obx(() {
-      final waitingInitialLink =
-          deepLinkService != null && !deepLinkService!.initialLinkResolved.value;
+      final waitingInitialLink = deepLinkService != null &&
+          !deepLinkService!.initialLinkResolved.value;
 
       // Define pages and icons
       final icons = [
@@ -318,7 +319,12 @@ class NavBarView extends StatelessWidget {
                                   child: Builder(builder: (_) {
                                     if (icons[i] == 'profile_dynamic') {
                                       return Obx(() {
-                                        final img = userStore.pfImage.value;
+                                        final raw =
+                                            userStore.avatarUrl.value.trim();
+                                        final img = raw.isEmpty
+                                            ? CurrentUserService
+                                                .instance.avatarUrl
+                                            : raw;
                                         final uploading =
                                             controller.uploadingPosts.value;
                                         const double size = 28;

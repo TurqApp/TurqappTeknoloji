@@ -47,10 +47,8 @@ class EditorNicknameController extends GetxController {
   }
 
   Future<void> fetchAndSetUserData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance.collection("users").doc(uid).get();
 
     if (doc.exists) {
       final data = doc.data();
@@ -173,7 +171,8 @@ class EditorNicknameController extends GetxController {
         return;
       }
       if (elapsed < _changeCooldown.inMilliseconds) {
-        final left = Duration(milliseconds: _changeCooldown.inMilliseconds - elapsed);
+        final left =
+            Duration(milliseconds: _changeCooldown.inMilliseconds - elapsed);
         final days = left.inDays;
         final hours = left.inHours % 24;
         isCooldownActive.value = true;
@@ -275,7 +274,8 @@ class EditorNicknameController extends GetxController {
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-      Future<Map<String, dynamic>> buildPatch(DocumentSnapshot<Map<String, dynamic>> snap) async {
+      Future<Map<String, dynamic>> buildPatch(
+          DocumentSnapshot<Map<String, dynamic>> snap) async {
         final userData = snap.data() ?? <String, dynamic>{};
         final lastChangeMs = _extractLastChangeAt(userData);
         final graceStartMs = _extractGraceWindowStartAt(userData);
@@ -315,15 +315,16 @@ class EditorNicknameController extends GetxController {
           }
 
           if (existingHistory is List) {
-            userPatch['nicknameHistory'] = FieldValue.arrayUnion([historyEntry]);
+            userPatch['nicknameHistory'] =
+                FieldValue.arrayUnion([historyEntry]);
           } else {
             userPatch['nicknameHistory'] = [historyEntry];
           }
         }
 
         // İlk 1 saat içinde en fazla 3 değişiklik limiti
-        final inGrace =
-            lastChangeMs != null && (nowMs - lastChangeMs) <= _graceWindow.inMilliseconds;
+        final inGrace = lastChangeMs != null &&
+            (nowMs - lastChangeMs) <= _graceWindow.inMilliseconds;
         if (inGrace) {
           final windowStart = graceStartMs ?? lastChangeMs;
           final currentCount = graceCount <= 0 ? 1 : graceCount;
@@ -373,7 +374,8 @@ class EditorNicknameController extends GetxController {
       } else if (e.toString().contains('grace_limit')) {
         AppSnackbar('Hata', 'İlk 1 saatte en fazla 3 kez değiştirebilirsin.');
       } else if (e.toString().contains('cooldown')) {
-        AppSnackbar('Hata', 'Kullanıcı adı 15 gün dolmadan tekrar değiştirilemez.');
+        AppSnackbar(
+            'Hata', 'Kullanıcı adı 15 gün dolmadan tekrar değiştirilemez.');
       } else {
         AppSnackbar('Hata', 'Kullanıcı adı güncellenemedi.');
       }

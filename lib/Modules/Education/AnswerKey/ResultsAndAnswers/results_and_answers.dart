@@ -181,11 +181,9 @@ class ResultsAndAnswers extends StatelessWidget {
                       if (controller.cevaplar.isNotEmpty)
                         Column(
                           children: [
-                            for (
-                              int index = 0;
-                              index < model.cevaplar.length;
-                              index++
-                            )
+                            for (int index = 0;
+                                index < model.cevaplar.length;
+                                index++)
                               Container(
                                 height: 50,
                                 decoration: BoxDecoration(
@@ -209,10 +207,9 @@ class ResultsAndAnswers extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    for (var item
-                                        in model.max == 5
-                                            ? ["A", "B", "C", "D", "E"]
-                                            : ["A", "B", "C", "D"])
+                                    for (var item in model.max == 5
+                                        ? ["A", "B", "C", "D", "E"]
+                                        : ["A", "B", "C", "D"])
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 4.0,
@@ -222,37 +219,32 @@ class ResultsAndAnswers extends StatelessWidget {
                                           height: 40,
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
-                                            color:
-                                                controller.cevaplar[index] ==
-                                                        item
-                                                    ? (controller
-                                                                .cevaplar[index] ==
-                                                            model
-                                                                .cevaplar[index]
-                                                        ? Colors.green
-                                                        : Colors.red)
-                                                    : (model.cevaplar[index] ==
-                                                            item
-                                                        ? Colors.white
-                                                            .withValues(alpha: 0.5)
-                                                        : Colors.white),
+                                            color: controller.cevaplar[index] ==
+                                                    item
+                                                ? (controller.cevaplar[index] ==
+                                                        model.cevaplar[index]
+                                                    ? Colors.green
+                                                    : Colors.red)
+                                                : (model.cevaplar[index] == item
+                                                    ? Colors.white
+                                                        .withValues(alpha: 0.5)
+                                                    : Colors.white),
                                             borderRadius: BorderRadius.circular(
                                               50,
                                             ),
                                             border: Border.all(
-                                              color:
-                                                  controller.cevaplar[index] ==
+                                              color: controller
+                                                          .cevaplar[index] ==
+                                                      item
+                                                  ? (controller.cevaplar[
+                                                              index] ==
+                                                          model.cevaplar[index]
+                                                      ? Colors.green
+                                                      : Colors.red)
+                                                  : (model.cevaplar[index] ==
                                                           item
-                                                      ? (controller
-                                                                  .cevaplar[index] ==
-                                                              model
-                                                                  .cevaplar[index]
-                                                          ? Colors.green
-                                                          : Colors.red)
-                                                      : (model.cevaplar[index] ==
-                                                              item
-                                                          ? Colors.green
-                                                          : Colors.black),
+                                                      ? Colors.green
+                                                      : Colors.black),
                                               width: 1.5,
                                             ),
                                           ),
@@ -347,20 +339,18 @@ class SpeedometerPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 3;
 
-    final paintArc =
-        Paint()
-          ..color = Colors.grey.withValues(alpha: 0.5)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 6;
+    final paintArc = Paint()
+      ..color = Colors.grey.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6;
 
     final rect = Rect.fromCircle(center: center, radius: radius);
     canvas.drawArc(rect, math.pi, math.pi, false, paintArc);
 
-    final paintNeedle =
-        Paint()
-          ..color = Colors.red
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round;
+    final paintNeedle = Paint()
+      ..color = Colors.red
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
 
     double angle = (value - 0) / 100 * 180;
     double radian = (angle + 180) * (math.pi / 180);

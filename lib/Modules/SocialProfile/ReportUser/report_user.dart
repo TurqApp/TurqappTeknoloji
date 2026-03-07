@@ -112,9 +112,9 @@ class ReportUser extends StatelessWidget {
                     child: SizedBox(
                       width: 55,
                       height: 55,
-                      child: controller.pfImage.value != ""
+                      child: controller.avatarUrl.value != ""
                           ? CachedNetworkImage(
-                              imageUrl: controller.pfImage.value,
+                              imageUrl: controller.avatarUrl.value,
                               fit: BoxFit.cover,
                             )
                           : Center(
@@ -183,7 +183,8 @@ class ReportUser extends StatelessWidget {
                         ? Colors.white.withValues(alpha: 0.1)
                         : Colors.white,
                     borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    border:
+                        Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -364,8 +365,8 @@ class ReportUser extends StatelessWidget {
                         color: Colors.white,
                         borderRadius:
                             const BorderRadius.all(Radius.circular(12)),
-                        border:
-                            Border.all(color: Colors.grey.withValues(alpha: 0.5))),
+                        border: Border.all(
+                            color: Colors.grey.withValues(alpha: 0.5))),
                     child: Text(
                       "@${controller.nickname.value} kullanıcısını engelle",
                       style: const TextStyle(

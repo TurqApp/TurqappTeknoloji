@@ -38,7 +38,8 @@ class _AdmobKareState extends State<AdmobKare> {
         : (Platform.isAndroid ? androidLiveAdUnit : iosLiveAdUnit);
   }
 
-  static Future<void> warmupPool({int targetCount = _defaultWarmupCount}) async {
+  static Future<void> warmupPool(
+      {int targetCount = _defaultWarmupCount}) async {
     if (targetCount <= 0) return;
 
     final missing = targetCount - (_readyPool.length + _loadingCount);

@@ -120,10 +120,12 @@ class SinavHazirlaController extends GetxController {
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
         storage: FirebaseStorage.instance,
         file: imageFile,
-        storagePathWithoutExt:
-            'practiceExams/$docID/cover',
+        storagePathWithoutExt: 'practiceExams/$docID/cover',
       );
-      await FirebaseFirestore.instance.collection("practiceExams").doc(docID).update(
+      await FirebaseFirestore.instance
+          .collection("practiceExams")
+          .doc(docID)
+          .update(
         {"cover": downloadUrl},
       );
     } catch (e) {

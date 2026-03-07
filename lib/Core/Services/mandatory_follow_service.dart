@@ -51,7 +51,8 @@ class MandatoryFollowService {
   Future<List<String>> _loadRequiredUids() async {
     final db = FirebaseFirestore.instance;
     final primary = await db.collection('adminConfig').doc(_primaryDocId).get();
-    final data = primary.exists ? (primary.data() ?? const <String, dynamic>{}) : null;
+    final data =
+        primary.exists ? (primary.data() ?? const <String, dynamic>{}) : null;
     final parsed = _parseRequiredFrom(data);
     return parsed;
   }

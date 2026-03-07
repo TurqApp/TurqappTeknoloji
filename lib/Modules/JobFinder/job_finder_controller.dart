@@ -21,7 +21,12 @@ class JobFinderController extends GetxController {
   // Tab management
   final innerTabIndex = 0.obs;
   final innerPageController = PageController();
-  final innerTabTitles = ["Keşfet", "İlan Ver", "Başvurularım", "Kariyer Profili"];
+  final innerTabTitles = [
+    "Keşfet",
+    "İlan Ver",
+    "Başvurularım",
+    "Kariyer Profili"
+  ];
 
   RxList<JobModel> allJobs = <JobModel>[].obs;
   RxList<JobModel> list = <JobModel>[].obs;
@@ -288,7 +293,13 @@ class JobFinderController extends GetxController {
     RxString selectedType = "".obs;
     RxString selectedDeneyim = "".obs;
 
-    final types = ["Tam Zamanlı", "Yarı Zamanlı", "Part-Time", "Uzaktan", "Hibrit"];
+    final types = [
+      "Tam Zamanlı",
+      "Yarı Zamanlı",
+      "Part-Time",
+      "Uzaktan",
+      "Hibrit"
+    ];
     final deneyimSeviyeleri = ["Deneyimsiz", "Junior", "Mid-Level", "Senior"];
 
     final context = Get.context;
@@ -368,8 +379,9 @@ class JobFinderController extends GetxController {
                       filtre.value = true;
 
                       final filtered = allJobs.where((job) {
-                        final matchCity =
-                            sehir.value.isEmpty || sehir.value == "Tüm Türkiye" || job.city == sehir.value;
+                        final matchCity = sehir.value.isEmpty ||
+                            sehir.value == "Tüm Türkiye" ||
+                            job.city == sehir.value;
                         final matchType = selectedType.value.isEmpty ||
                             job.calismaTuru
                                 .map((e) => e.toLowerCase().trim())

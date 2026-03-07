@@ -55,10 +55,8 @@ class TutoringApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantCV(String userID) async {
     if (cvCache.containsKey(userID)) return cvCache[userID];
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('CV')
-          .doc(userID)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance.collection('CV').doc(userID).get();
       if (doc.exists && doc.data() != null) {
         if (cvCache.length >= _maxCacheSize) {
           final oldestKey = cvCache.keys.first;

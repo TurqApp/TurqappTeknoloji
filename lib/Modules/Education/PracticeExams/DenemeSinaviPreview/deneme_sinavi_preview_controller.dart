@@ -7,7 +7,7 @@ import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var dahaOnceBasvurdu = false.obs;
   var basvuranSayisi = 0.obs;
   var currentTime = DateTime.now().millisecondsSinceEpoch.obs;
@@ -39,12 +39,12 @@ class DenemeSinaviPreviewController extends GetxController {
           .get();
       final data = doc.data() as Map<String, dynamic>? ?? {};
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
     } catch (error) {

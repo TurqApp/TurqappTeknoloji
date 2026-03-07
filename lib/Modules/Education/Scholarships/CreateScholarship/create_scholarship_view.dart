@@ -1497,14 +1497,15 @@ class CreateScholarshipView extends StatelessWidget {
                           return;
                         }
 
-                        final r = await OptimizedNSFWService.checkImage(newFile);
+                        final r =
+                            await OptimizedNSFWService.checkImage(newFile);
                         if (r.isNSFW) {
                           controller.logoPath.value = '';
                           controller.logo.value = '';
-                          AppSnackbar(
-                              "Yükleme Başarısız!",
+                          AppSnackbar("Yükleme Başarısız!",
                               "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                              backgroundColor: Colors.red.withValues(alpha: 0.7));
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.7));
                         } else {
                           controller.logoPath.value = newFile.path;
                           controller.logo.value = newFile.path;
@@ -1564,8 +1565,8 @@ class CreateScholarshipView extends StatelessWidget {
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.black.withValues(alpha: 0.6),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.6),
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -1612,13 +1613,14 @@ class CreateScholarshipView extends StatelessWidget {
                           return;
                         }
 
-                        final r = await OptimizedNSFWService.checkImage(newFile);
+                        final r =
+                            await OptimizedNSFWService.checkImage(newFile);
                         if (r.isNSFW) {
                           controller.customImagePath.value = '';
-                          AppSnackbar(
-                              "Yükleme Başarısız!",
+                          AppSnackbar("Yükleme Başarısız!",
                               "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                              backgroundColor: Colors.red.withValues(alpha: 0.7));
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.7));
                         } else {
                           controller.customImagePath.value = newFile.path;
                         }
@@ -1678,8 +1680,8 @@ class CreateScholarshipView extends StatelessWidget {
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.black.withValues(alpha: 0.6),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.6),
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),

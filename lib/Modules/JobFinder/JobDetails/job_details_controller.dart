@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../JobCreator/job_creator.dart';
@@ -20,7 +21,7 @@ class JobDetailsController extends GetxController {
   final basvuruldu = false.obs;
   final cvVar = false.obs;
   final nickname = ''.obs;
-  final pfImage = ''.obs;
+  final avatarUrl = kDefaultAvatarUrl.obs;
   final fullname = ''.obs;
   final RxList<JobModel> list = <JobModel>[].obs;
 
@@ -60,22 +61,24 @@ class JobDetailsController extends GetxController {
           .doc(userID)
           .get();
 
-      if (!snap.exists || snap.data() == null) return;
+      if (!snap.exists || snap.data() == null) {
+        avatarUrl.value = kDefaultAvatarUrl;
+        return;
+      }
       final data = snap.data()!;
 
       fullname.value = '${data['firstName'] ?? ''} '
           '${data['lastName'] ?? ''}';
       nickname.value =
-          (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
+          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
               .toString();
-      pfImage.value = (data['avatarUrl'] ??
-              data['pfImage'] ??
-              data['photoURL'] ??
-              data['profileImageUrl'] ??
-              '')
-          .toString();
+      final profile = (data['profile'] is Map<String, dynamic>)
+          ? data['profile'] as Map<String, dynamic>
+          : const <String, dynamic>{};
+      avatarUrl.value = resolveAvatarUrl(data, profile: profile);
     } catch (e) {
       print('getUserData hatası: $e');
+      avatarUrl.value = kDefaultAvatarUrl;
     }
   }
 
@@ -375,17 +378,14 @@ class JobDetailsController extends GetxController {
         ].where((e) => e.isNotEmpty).join(' ').trim();
         final applicantLabel = applicantName.isNotEmpty
             ? applicantName
-            : (currentUserData['displayName'] ??
+            : (currentUserData['nickname'] ??
                     currentUserData['username'] ??
-                    currentUserData['nickname'] ??
+                    currentUserData['displayName'] ??
                     'Bir kullanıcı')
                 .toString();
-        final applicantImage = (currentUserData['avatarUrl'] ??
-                currentUserData['pfImage'] ??
-                currentUserData['photoURL'] ??
-                currentUserData['profileImageUrl'] ??
-                '')
-            .toString();
+        final applicantImage =
+            (currentUserData['avatarUrl'] ?? currentUserData['avatarUrl'] ?? '')
+                .toString();
 
         batch.set(jobRef, {
           'timeStamp': now,
@@ -396,9 +396,9 @@ class JobDetailsController extends GetxController {
           'companyName': job.brand,
           'companyLogo': job.logo,
           'applicantName': applicantName,
-          'applicantNickname': (currentUserData['displayName'] ??
+          'applicantNickname': (currentUserData['nickname'] ??
                   currentUserData['username'] ??
-                  currentUserData['nickname'] ??
+                  currentUserData['displayName'] ??
                   '')
               .toString()
               .trim(),
@@ -414,9 +414,9 @@ class JobDetailsController extends GetxController {
           'status': 'pending',
           'userID': uid,
           'applicantName': applicantName,
-          'applicantNickname': (currentUserData['displayName'] ??
+          'applicantNickname': (currentUserData['nickname'] ??
                   currentUserData['username'] ??
-                  currentUserData['nickname'] ??
+                  currentUserData['displayName'] ??
                   '')
               .toString()
               .trim(),

@@ -633,7 +633,7 @@ class _SplashViewState extends State<SplashView> {
             .get();
 
         for (final doc in snap.docs) {
-          final pf = (doc.data()['pfImage'] ?? '').toString();
+          final pf = (doc.data()['avatarUrl'] ?? '').toString();
           if (pf.isNotEmpty) avatarUrls.add(pf);
         }
       }

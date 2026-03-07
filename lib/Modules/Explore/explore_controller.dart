@@ -1018,7 +1018,7 @@ class ExploreController extends GetxController {
           nickname: (row['nickname'] ?? '').toString(),
           firstName: (row['firstName'] ?? '').toString(),
           lastName: (row['lastName'] ?? '').toString(),
-          pfImage: (row['pfImage'] ?? '').toString(),
+          avatarUrl: (row['avatarUrl'] ?? '').toString(),
         ));
       }
       searchedList.value = await _filterPendingOrDeletedUsers(users);

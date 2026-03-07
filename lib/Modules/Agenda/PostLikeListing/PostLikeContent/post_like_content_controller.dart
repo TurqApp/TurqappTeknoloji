@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 class PostLikeContentController extends GetxController {
   var fullName = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var nickname = "".obs;
 
   Future<void> getUserData(String userID) async {
@@ -16,10 +16,10 @@ class PostLikeContentController extends GetxController {
       fullName.value =
           "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
               .trim();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
       nickname.value =

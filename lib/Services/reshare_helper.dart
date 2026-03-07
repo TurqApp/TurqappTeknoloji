@@ -48,8 +48,10 @@ class ReshareHelper {
         return _displayNameCache[userID]!;
       }
 
-      final userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(userID).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userID)
+          .get();
 
       String displayName = 'Bilinmeyen Kullanıcı';
       if (userDoc.exists) {

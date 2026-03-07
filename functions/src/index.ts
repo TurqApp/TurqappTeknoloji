@@ -4,6 +4,9 @@ import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 
 admin.initializeApp();
+
+const DEFAULT_PROFILE_IMAGE_URL =
+  "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2";
 const db = admin.firestore();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -206,21 +209,8 @@ export const syncUserSchemaAndFlags = functions.firestore
     if (afterData?.isBanned === undefined) patch.isBanned = false;
     if (afterData?.isBot === undefined) patch.isBot = false;
     if (!afterData?.avatarUrl) {
-      const fallbackAvatar = String(
-        afterData?.pfImage || afterData?.photoURL || afterData?.profileImageUrl || ""
-      );
-      if (fallbackAvatar) patch.avatarUrl = fallbackAvatar;
+      patch.avatarUrl = DEFAULT_PROFILE_IMAGE_URL;
     }
-    if (afterData?.pfImage !== undefined) {
-      patch.pfImage = admin.firestore.FieldValue.delete();
-    }
-    if (afterData?.photoURL !== undefined) {
-      patch.photoURL = admin.firestore.FieldValue.delete();
-    }
-    if (afterData?.profileImageUrl !== undefined) {
-      patch.profileImageUrl = admin.firestore.FieldValue.delete();
-    }
-
     if (!afterData?.version) patch.version = 3;
     if (!afterData?.locale) patch.locale = "tr_TR";
     if (!afterData?.timezone) patch.timezone = "Europe/Istanbul";

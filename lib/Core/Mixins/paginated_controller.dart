@@ -49,8 +49,7 @@ mixin PaginatedController<T> on GetxController {
     _lastDocument = null;
     try {
       final snap = await buildQuery().limit(pageSize).get();
-      final items =
-          snap.docs.map(fromSnapshot).where(filterItem).toList();
+      final items = snap.docs.map(fromSnapshot).where(filterItem).toList();
       paginatedItems.assignAll(items);
       if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
       if (snap.docs.length < pageSize) hasMore.value = false;
@@ -72,8 +71,7 @@ mixin PaginatedController<T> on GetxController {
           .limit(pageSize)
           .get();
 
-      final items =
-          snap.docs.map(fromSnapshot).where(filterItem).toList();
+      final items = snap.docs.map(fromSnapshot).where(filterItem).toList();
       paginatedItems.addAll(items);
       if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
       if (snap.docs.length < pageSize) hasMore.value = false;

@@ -290,9 +290,19 @@ class TutoringDetail extends StatelessWidget {
                               Row(
                                 children: [
                                   Text(
-                                    "${controller.users[controller.tutoring.value.userID]?['firstName'] ?? ''} ${controller.users[controller.tutoring.value.userID]?['lastName'] ?? ''}",
+                                    (controller.users[controller.tutoring.value
+                                                .userID]?['nickname'] ??
+                                            controller.users[controller.tutoring
+                                                .value.userID]?['username'] ??
+                                            controller.users[controller
+                                                .tutoring
+                                                .value
+                                                .userID]?['displayName'] ??
+                                            '')
+                                        .toString(),
                                     style: TextStyles.bold16Black,
                                   ),
+                                  4.pw,
                                   RozetContent(
                                     size: 14,
                                     userID: controller.tutoring.value.userID
@@ -483,9 +493,10 @@ class TutoringDetail extends StatelessWidget {
                                                                 .value.userID]
                                                         ?["avatarUrl"] ??
                                                     controller.users[controller
-                                                        .tutoring
-                                                        .value
-                                                        .userID]?["pfImage"] ??
+                                                            .tutoring
+                                                            .value
+                                                            .userID]
+                                                        ?["avatarUrl"] ??
                                                     '')
                                                 .toString(),
                                             fit: BoxFit.cover,
@@ -510,15 +521,35 @@ class TutoringDetail extends StatelessWidget {
                                       ),
                                       8.pw,
                                       Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
                                               Text(
-                                                "${controller.users[controller.tutoring.value.userID]?['firstName'] ?? ''} ${controller.users[controller.tutoring.value.userID]?['lastName'] ?? ''}",
+                                                (controller.users[controller
+                                                                .tutoring
+                                                                .value
+                                                                .userID]
+                                                            ?['nickname'] ??
+                                                        controller.users[controller
+                                                                .tutoring
+                                                                .value
+                                                                .userID]
+                                                            ?['username'] ??
+                                                        controller.users[
+                                                                controller
+                                                                    .tutoring
+                                                                    .value
+                                                                    .userID]
+                                                            ?['displayName'] ??
+                                                        '')
+                                                    .toString(),
                                                 style: TextStyles.bold16Black,
                                               ),
+                                              4.pw,
                                               RozetContent(
                                                 size: 14,
                                                 userID: controller
@@ -526,10 +557,6 @@ class TutoringDetail extends StatelessWidget {
                                                     .toString(),
                                               ),
                                             ],
-                                          ),
-                                          Text(
-                                            "@${(controller.users[controller.tutoring.value.userID]?['displayName'] ?? controller.users[controller.tutoring.value.userID]?['username'] ?? controller.users[controller.tutoring.value.userID]?['nickname'] ?? '').toString()} ",
-                                            style: TextStyles.tutoringBranch,
                                           ),
                                         ],
                                       ),
@@ -906,8 +933,12 @@ class TutoringDetail extends StatelessWidget {
           else
             ...controller.reviews.map((review) {
               final user = controller.reviewUsers[review.userID] ?? {};
-              final name =
-                  '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'.trim();
+              final name = (user['nickname'] ??
+                      user['username'] ??
+                      user['displayName'] ??
+                      '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}')
+                  .toString()
+                  .trim();
               final isOwn = currentUserId == review.userID;
               return Container(
                 margin: EdgeInsets.only(bottom: 8),
@@ -926,7 +957,7 @@ class TutoringDetail extends StatelessWidget {
                             width: 28,
                             height: 28,
                             child: CachedNetworkImage(
-                              imageUrl: user['pfImage'] ?? '',
+                              imageUrl: user['avatarUrl'] ?? '',
                               fit: BoxFit.cover,
                               errorWidget: (_, __, ___) =>
                                   Icon(Icons.person, size: 16),
@@ -935,7 +966,16 @@ class TutoringDetail extends StatelessWidget {
                         ),
                         8.pw,
                         Expanded(
-                          child: Text(name, style: TextStyles.bold15Black),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child:
+                                    Text(name, style: TextStyles.bold15Black),
+                              ),
+                              4.pw,
+                              RozetContent(size: 12, userID: review.userID),
+                            ],
+                          ),
                         ),
                         Row(
                           children: List.generate(
@@ -993,9 +1033,12 @@ class TutoringDetail extends StatelessWidget {
               itemBuilder: (context, index) {
                 final item = controller.similarList[index];
                 final user = controller.similarUsers[item.userID] ?? {};
-                final name =
-                    '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}'
-                        .trim();
+                final name = (user['nickname'] ??
+                        user['username'] ??
+                        user['displayName'] ??
+                        '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}')
+                    .toString()
+                    .trim();
                 return GestureDetector(
                   onTap: () {
                     Get.off(() => TutoringDetail(), arguments: item);
@@ -1041,11 +1084,19 @@ class TutoringDetail extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               2.ph,
-                              Text(
-                                name,
-                                style: TextStyles.tutoringBranch,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: TextStyles.tutoringBranch,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  4.pw,
+                                  RozetContent(size: 12, userID: item.userID),
+                                ],
                               ),
                               2.ph,
                               Text(

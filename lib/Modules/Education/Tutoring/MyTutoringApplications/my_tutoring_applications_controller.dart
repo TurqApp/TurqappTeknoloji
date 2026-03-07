@@ -27,8 +27,7 @@ class MyTutoringApplicationsController extends GetxController {
           .get();
 
       applications.value = snapshot.docs
-          .map((doc) =>
-              TutoringApplicationModel.fromMap(doc.data(), doc.id))
+          .map((doc) => TutoringApplicationModel.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
       print("Özel ders başvuruları yüklenirken hata: $e");
@@ -57,9 +56,7 @@ class MyTutoringApplicationsController extends GetxController {
           .doc(uid));
 
       batch.update(
-          FirebaseFirestore.instance
-              .collection('educators')
-              .doc(tutoringDocID),
+          FirebaseFirestore.instance.collection('educators').doc(tutoringDocID),
           {'applicationCount': FieldValue.increment(-1)});
 
       await batch.commit();
@@ -70,8 +67,7 @@ class MyTutoringApplicationsController extends GetxController {
           .doc(tutoringDocID)
           .get();
       if (docSnap.exists) {
-        final count =
-            (docSnap.data()?['applicationCount'] ?? 0) as num;
+        final count = (docSnap.data()?['applicationCount'] ?? 0) as num;
         if (count < 0) {
           await FirebaseFirestore.instance
               .collection('educators')

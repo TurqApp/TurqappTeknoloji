@@ -178,7 +178,8 @@ class EditPost extends StatelessWidget {
                                       Obx(() {
                                         final vpc =
                                             controller.rxVideoController.value;
-                                        if (vpc == null) return const SizedBox();
+                                        if (vpc == null)
+                                          return const SizedBox();
 
                                         final bool isInit;
                                         final Size videoSize;
@@ -188,7 +189,8 @@ class EditPost extends StatelessWidget {
                                           isInit = vpc.value.isInitialized;
                                           videoSize = vpc.value.size;
                                           playerWidget = vpc.buildPlayer();
-                                        } else if (vpc is VideoPlayerController) {
+                                        } else if (vpc
+                                            is VideoPlayerController) {
                                           isInit = vpc.value.isInitialized;
                                           videoSize = vpc.value.size;
                                           playerWidget = VideoPlayer(vpc);
@@ -199,70 +201,67 @@ class EditPost extends StatelessWidget {
                                         if (!isInit) return const SizedBox();
 
                                         return AspectRatio(
-                                            aspectRatio: 1,
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              child: Stack(
-                                                children: [
-                                                  SizedBox.expand(
-                                                    child: FittedBox(
-                                                      fit: BoxFit.cover,
-                                                      clipBehavior:
-                                                          Clip.hardEdge,
-                                                      child: SizedBox(
-                                                        width: videoSize.width,
-                                                        height:
-                                                            videoSize.height,
-                                                        child: playerWidget,
-                                                      ),
+                                          aspectRatio: 1,
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            child: Stack(
+                                              children: [
+                                                SizedBox.expand(
+                                                  child: FittedBox(
+                                                    fit: BoxFit.cover,
+                                                    clipBehavior: Clip.hardEdge,
+                                                    child: SizedBox(
+                                                      width: videoSize.width,
+                                                      height: videoSize.height,
+                                                      child: playerWidget,
                                                     ),
                                                   ),
-                                                  Positioned(
-                                                    bottom: 4,
-                                                    right: 4,
-                                                    child: Obx(() {
-                                                      final playing = controller
-                                                          .isPlaying.value;
-                                                      return IconButton(
-                                                        iconSize: 40,
-                                                        color: Colors.white,
-                                                        icon: Icon(
-                                                          playing
-                                                              ? CupertinoIcons
-                                                                  .pause_circle_fill
-                                                              : CupertinoIcons
-                                                                  .play_circle_fill,
-                                                        ),
-                                                        onPressed: () {
-                                                          if (playing) {
-                                                            vpc.pause();
-                                                          } else {
-                                                            vpc.play();
-                                                          }
-                                                        },
-                                                      );
-                                                    }),
-                                                  ),
-                                                  Positioned(
-                                                    top: 4,
-                                                    right: 4,
-                                                    child: IconButton(
-                                                      iconSize: 28,
+                                                ),
+                                                Positioned(
+                                                  bottom: 4,
+                                                  right: 4,
+                                                  child: Obx(() {
+                                                    final playing = controller
+                                                        .isPlaying.value;
+                                                    return IconButton(
+                                                      iconSize: 40,
                                                       color: Colors.white,
-                                                      icon: const Icon(
-                                                          CupertinoIcons
-                                                              .xmark_circle_fill),
+                                                      icon: Icon(
+                                                        playing
+                                                            ? CupertinoIcons
+                                                                .pause_circle_fill
+                                                            : CupertinoIcons
+                                                                .play_circle_fill,
+                                                      ),
                                                       onPressed: () {
-                                                        controller
-                                                            .removeVideo();
+                                                        if (playing) {
+                                                          vpc.pause();
+                                                        } else {
+                                                          vpc.play();
+                                                        }
                                                       },
-                                                    ),
+                                                    );
+                                                  }),
+                                                ),
+                                                Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: IconButton(
+                                                    iconSize: 28,
+                                                    color: Colors.white,
+                                                    icon: const Icon(
+                                                        CupertinoIcons
+                                                            .xmark_circle_fill),
+                                                    onPressed: () {
+                                                      controller.removeVideo();
+                                                    },
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                              ],
                                             ),
-                                          );
+                                          ),
+                                        );
                                       }),
                                     ],
                                   );

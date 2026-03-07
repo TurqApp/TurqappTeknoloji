@@ -595,11 +595,11 @@ class _UserStoryContentState extends State<UserStoryContent>
               child: SizedBox(
                 width: 33,
                 height: 33,
-                child: currentUser.pfImage.isNotEmpty
+                child: currentUser.avatarUrl.isNotEmpty
                     ? CachedNetworkImage(
                         fadeInDuration: Duration.zero,
                         fadeOutDuration: Duration.zero,
-                        imageUrl: currentUser.pfImage,
+                        imageUrl: currentUser.avatarUrl,
                         fit: BoxFit.cover,
                       )
                     : const Center(

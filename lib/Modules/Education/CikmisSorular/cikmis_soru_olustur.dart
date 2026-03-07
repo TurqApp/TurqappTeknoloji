@@ -177,26 +177,23 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                     width: 60,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color:
-                          sinavTuru == sinavTurleriList[index]
-                              ? renkler[index % renkler.length]
-                              : Colors.grey.withValues(alpha: 
-                                0.1,
-                              ), // Statik renk seçimi
+                      color: sinavTuru == sinavTurleriList[index]
+                          ? renkler[index % renkler.length]
+                          : Colors.grey.withValues(
+                              alpha: 0.1,
+                            ), // Statik renk seçimi
                       borderRadius: BorderRadius.all(Radius.circular(50)),
                     ),
                     child: Text(
                       sinavTurleriList[index],
                       style: TextStyle(
-                        color:
-                            sinavTuru == sinavTurleriList[index]
-                                ? Colors.white
-                                : Colors.black, // Her zaman beyaz
+                        color: sinavTuru == sinavTurleriList[index]
+                            ? Colors.white
+                            : Colors.black, // Her zaman beyaz
                         fontSize: 15,
-                        fontFamily:
-                            sinavTuru == sinavTurleriList[index]
-                                ? "MontserratBold"
-                                : "MontserratMedium",
+                        fontFamily: sinavTuru == sinavTurleriList[index]
+                            ? "MontserratBold"
+                            : "MontserratMedium",
                       ),
                     ),
                   ),
@@ -266,11 +263,10 @@ class _CikmisSoruOlusturState extends State<CikmisSoruOlustur> {
                               child: Text(
                                 kpssOgretimTipleri[index],
                                 style: TextStyle(
-                                  color:
-                                      kpssSecilenLisans ==
-                                              kpssOgretimTipleri[index]
-                                          ? Colors.white
-                                          : Colors.black,
+                                  color: kpssSecilenLisans ==
+                                          kpssOgretimTipleri[index]
+                                      ? Colors.white
+                                      : Colors.black,
                                   fontSize: 15,
                                   fontFamily: "MontserratMedium",
                                 ),

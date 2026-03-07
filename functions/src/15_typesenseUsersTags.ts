@@ -178,7 +178,7 @@ async function ensureUsersCollection() {
         { name: "nickname", type: "string", optional: true },
         { name: "firstName", type: "string", optional: true },
         { name: "lastName", type: "string", optional: true },
-        { name: "pfImage", type: "string", optional: true },
+        { name: "avatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
         { name: "isPrivate", type: "bool", optional: true },
         { name: "isDeleted", type: "bool", optional: true },
@@ -207,7 +207,7 @@ async function ensureUsersCollection() {
           { name: "nickname", type: "string", optional: true },
           { name: "firstName", type: "string", optional: true },
           { name: "lastName", type: "string", optional: true },
-          { name: "pfImage", type: "string", optional: true },
+          { name: "avatarUrl", type: "string", optional: true },
           { name: "rozet", type: "string", optional: true },
           { name: "isPrivate", type: "bool", optional: true },
           { name: "isDeleted", type: "bool", optional: true },
@@ -404,7 +404,7 @@ type UserSearchDoc = {
   nickname: string;
   firstName: string;
   lastName: string;
-  pfImage: string;
+  avatarUrl: string;
   rozet: string;
   isPrivate: boolean;
   isDeleted: boolean;
@@ -424,7 +424,7 @@ function buildUserSearchDoc(userId: string, data: Record<string, unknown>): User
     nickname: asString(data.nickname) || asString((data as any).username),
     firstName: asString(data.firstName),
     lastName: asString(data.lastName),
-    pfImage: asString((data as any).avatarUrl),
+    avatarUrl: asString((data as any).avatarUrl),
     rozet: asString((data as any).rozet),
     isPrivate: asBool((data as any).isPrivate),
     isDeleted:
@@ -622,7 +622,7 @@ async function searchUsersFromTypesense(q: string, limit: number, page: number) 
         nickname: h?.document?.nickname || "",
         firstName: h?.document?.firstName || "",
         lastName: h?.document?.lastName || "",
-        pfImage: h?.document?.pfImage || "",
+        avatarUrl: h?.document?.avatarUrl || "",
         rozet: h?.document?.rozet || "",
         isPrivate: h?.document?.isPrivate === true,
         isDeleted: h?.document?.isDeleted === true,

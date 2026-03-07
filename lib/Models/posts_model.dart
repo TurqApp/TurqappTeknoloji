@@ -226,8 +226,8 @@ class PostsModel {
     }
 
     final parsedImgUrls = parseImageUrls(data['img']);
-    final firstImgAspect =
-        parseFirstImageAspect(data['imgMap']) ?? parseFirstImageAspect(data['img']);
+    final firstImgAspect = parseFirstImageAspect(data['imgMap']) ??
+        parseFirstImageAspect(data['img']);
 
     return PostsModel(
       ad: data['ad'] ?? false,

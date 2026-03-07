@@ -114,8 +114,8 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                                 Radius.circular(12),
                                               ),
                                               border: Border.all(
-                                                color: Colors.grey.withValues(alpha: 
-                                                  0.2,
+                                                color: Colors.grey.withValues(
+                                                  alpha: 0.2,
                                                 ),
                                               ),
                                             ),

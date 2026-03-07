@@ -122,7 +122,8 @@ class VideoStateManager extends GetxController {
     if (_allVideoControllers.length > _maxTrackedControllers) {
       // Şu an oynamayan en eski kaydı bul ve sil
       final toRemove = _allVideoControllers.entries
-          .where((e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID)
+          .where(
+              (e) => e.key != _currentPlayingDocID && e.key != _exclusiveDocID)
           .map((e) => e.key)
           .firstOrNull;
       if (toRemove != null) {

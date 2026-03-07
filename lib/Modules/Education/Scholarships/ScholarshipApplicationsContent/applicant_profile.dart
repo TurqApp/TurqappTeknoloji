@@ -165,9 +165,9 @@ class ApplicantProfile extends StatelessWidget {
                   child: SizedBox(
                     width: 60,
                     height: 60,
-                    child: controller.pfImage.value.isNotEmpty
+                    child: controller.avatarUrl.value.isNotEmpty
                         ? Image.network(
-                            controller.pfImage.value,
+                            controller.avatarUrl.value,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;

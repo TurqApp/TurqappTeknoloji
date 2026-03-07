@@ -297,7 +297,8 @@ class AppHealthDashboard extends StatelessWidget {
           color: (hasAlert ? Colors.red : Colors.green).withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: (hasAlert ? Colors.red : Colors.green).withValues(alpha: 0.25),
+            color:
+                (hasAlert ? Colors.red : Colors.green).withValues(alpha: 0.25),
           ),
         ),
         child: Column(

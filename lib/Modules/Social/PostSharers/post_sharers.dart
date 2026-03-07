@@ -79,10 +79,10 @@ class PostSharers extends StatelessWidget {
                           child: SizedBox(
                             width: 48,
                             height: 48,
-                            child: userData?['pfImageUrl'] != null &&
-                                    userData!['pfImageUrl'].isNotEmpty
+                            child: userData?['avatarUrl'] != null &&
+                                    userData!['avatarUrl'].isNotEmpty
                                 ? CachedNetworkImage(
-                                    imageUrl: userData['pfImageUrl'],
+                                    imageUrl: userData['avatarUrl'],
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Container(
                                       color: Colors.grey[200],

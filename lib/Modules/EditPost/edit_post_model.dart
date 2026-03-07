@@ -101,7 +101,10 @@ class EditPostModel {
       paylasGizliligi: (data['paylasGizliligi'] ?? 0) as num,
       scheduledAt: (data['scheduledAt'] ?? 0) as num,
       sikayetEdildi: data['sikayetEdildi'] ?? false,
-      reportedCount: ((data['stats'] as Map<String, dynamic>?)?['reportedCount'] ?? data['reportedCount'] ?? 0) as num,
+      reportedCount:
+          ((data['stats'] as Map<String, dynamic>?)?['reportedCount'] ??
+              data['reportedCount'] ??
+              0) as num,
       stabilized: data['stabilized'] ?? false,
       tags: parseList(data['tags']),
       thumbnail: data['thumbnail'] ?? '',

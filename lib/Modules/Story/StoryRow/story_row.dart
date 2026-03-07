@@ -124,7 +124,8 @@ class _ShimmerCircle extends StatelessWidget {
       height: width,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.28), width: 2),
+        border:
+            Border.all(color: Colors.grey.withValues(alpha: 0.28), width: 2),
       ),
       child: ShaderMask(
         shaderCallback: (rect) {

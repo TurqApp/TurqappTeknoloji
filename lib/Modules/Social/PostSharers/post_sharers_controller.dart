@@ -86,14 +86,7 @@ class PostSharersController extends GetxController {
                   data['username'] ??
                   data['nickname'] ??
                   '',
-              'pfImage': data['avatarUrl'] ??
-                  data['pfImage'] ??
-                  data['photoURL'] ??
-                  '',
-              'pfImageUrl': data['avatarUrl'] ??
-                  data['pfImage'] ??
-                  data['photoURL'] ??
-                  '',
+              'avatarUrl':   '',
               'fullName':
                   fullName.isNotEmpty ? fullName : 'Bilinmeyen Kullanıcı',
               'firstName': firstName,
@@ -104,8 +97,7 @@ class PostSharersController extends GetxController {
           for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
             userData[missingId] = {
               'nickname': 'Bilinmeyen Kullanıcı',
-              'pfImage': '',
-              'pfImageUrl': '',
+              'avatarUrl': '',
               'fullName': 'Bilinmeyen Kullanıcı',
               'firstName': '',
               'lastName': '',
@@ -116,8 +108,7 @@ class PostSharersController extends GetxController {
           for (final userID in chunk) {
             userData[userID] = {
               'nickname': 'Bilinmeyen Kullanıcı',
-              'pfImage': '',
-              'pfImageUrl': '',
+              'avatarUrl': '',
               'fullName': 'Bilinmeyen Kullanıcı',
               'firstName': '',
               'lastName': '',

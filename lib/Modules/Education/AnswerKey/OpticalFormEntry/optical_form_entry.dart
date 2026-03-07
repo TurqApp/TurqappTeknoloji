@@ -125,8 +125,8 @@ class OpticalFormEntry extends StatelessWidget {
                                         child: Container(
                                           alignment: Alignment.centerLeft,
                                           decoration: BoxDecoration(
-                                            color: Colors.grey.withValues(alpha: 
-                                              0.1,
+                                            color: Colors.grey.withValues(
+                                              alpha: 0.1,
                                             ),
                                             borderRadius:
                                                 const BorderRadius.all(
@@ -235,7 +235,8 @@ class OpticalFormEntry extends StatelessWidget {
                                       const SizedBox(height: 20),
                                       Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withValues(alpha: 0.1),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.1),
                                           borderRadius: const BorderRadius.all(
                                             Radius.circular(12),
                                           ),
@@ -245,7 +246,7 @@ class OpticalFormEntry extends StatelessWidget {
                                           child: Row(
                                             children: [
                                               if (controller
-                                                  .pfImage.value.isNotEmpty)
+                                                  .avatarUrl.value.isNotEmpty)
                                                 ClipRRect(
                                                   borderRadius:
                                                       const BorderRadius.all(
@@ -255,7 +256,8 @@ class OpticalFormEntry extends StatelessWidget {
                                                     width: 50,
                                                     height: 50,
                                                     child: Image.network(
-                                                      controller.pfImage.value,
+                                                      controller
+                                                          .avatarUrl.value,
                                                       fit: BoxFit.cover,
                                                     ),
                                                   ),

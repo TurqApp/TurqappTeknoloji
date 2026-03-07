@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 class CreateChatContentController extends GetxController {
   var nickname = "".obs;
   var fullName = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   String userID;
   CreateChatContentController({required this.userID});
   @override
@@ -20,10 +20,10 @@ class CreateChatContentController extends GetxController {
       nickname.value =
           (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
               .toString();
-      pfImage.value = (data["avatarUrl"] ??
-              data["pfImage"] ??
-              data["photoURL"] ??
-              data["profileImageUrl"] ??
+      avatarUrl.value = (data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
+              data["avatarUrl"] ??
               "")
           .toString();
       fullName.value =

@@ -120,7 +120,8 @@ class SolveTest extends StatelessWidget {
                                       color: Colors.white,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withValues(alpha: 0.3),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 10,
                                           spreadRadius: 2,
                                           offset: Offset(4, 4),
@@ -165,7 +166,8 @@ class SolveTest extends StatelessWidget {
                                         ),
                                         Container(
                                           height: 50,
-                                          color: Colors.pink.withValues(alpha: 0.2),
+                                          color: Colors.pink
+                                              .withValues(alpha: 0.2),
                                           alignment: Alignment.center,
                                           child: Padding(
                                             padding: EdgeInsets.symmetric(

@@ -100,8 +100,7 @@ class M3U8Parser {
   /// En yüksek bandwidth'li variant'ı seç.
   static M3U8Variant? bestVariant(List<M3U8Variant> variants) {
     if (variants.isEmpty) return null;
-    return variants.reduce(
-        (a, b) => a.bandwidth >= b.bandwidth ? a : b);
+    return variants.reduce((a, b) => a.bandwidth >= b.bandwidth ? a : b);
   }
 
   /// Verilen resolution'a en yakın variant'ı seç (ör. "1280x720").

@@ -113,7 +113,8 @@ class _CikmisSorularBransSectirmeState
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withValues(alpha: 0.3),
+                                          color: Colors.grey
+                                              .withValues(alpha: 0.3),
                                           blurRadius: 6,
                                           offset: Offset(0, 0),
                                         ),

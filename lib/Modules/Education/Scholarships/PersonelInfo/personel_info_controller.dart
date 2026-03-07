@@ -339,24 +339,21 @@ class PersonelInfoController extends GetxController
           await FirebaseFirestore.instance.collection("users").doc(uid).get();
       if (doc.exists) {
         final data = doc.data()!;
-        tc.value = originalTC.value =
-            userString(data, key: "tc", scope: "profile");
-        medeniHal.value =
-            originalMedeniHal.value = userString(
+        tc.value =
+            originalTC.value = userString(data, key: "tc", scope: "profile");
+        medeniHal.value = originalMedeniHal.value = userString(
           data,
           key: "medeniHal",
           scope: "profile",
           fallback: "Bekar",
         );
-        county.value =
-            originalCounty.value = userString(
+        county.value = originalCounty.value = userString(
           data,
           key: "ulke",
           scope: "profile",
           fallback: "Türkiye",
         ).trim();
-        cinsiyet.value =
-            originalCinsiyet.value = userString(
+        cinsiyet.value = originalCinsiyet.value = userString(
           data,
           key: "cinsiyet",
           scope: "profile",
@@ -368,21 +365,18 @@ class PersonelInfoController extends GetxController
           scope: "family",
           fallback: "Yok",
         );
-        calismaDurumu.value =
-            originalCalismaDurumu.value = userString(
+        calismaDurumu.value = originalCalismaDurumu.value = userString(
           data,
           key: "calismaDurumu",
           scope: "profile",
           fallback: "Çalışmıyor",
         );
-        city.value = originalCity.value =
-            (county.value == "Türkiye"
-                ? userString(data, key: "nufusSehir", scope: "profile")
-                : "");
-        town.value = originalTown.value =
-            (county.value == "Türkiye"
-                ? userString(data, key: "nufusIlce", scope: "profile")
-                : "");
+        city.value = originalCity.value = (county.value == "Türkiye"
+            ? userString(data, key: "nufusSehir", scope: "profile")
+            : "");
+        town.value = originalTown.value = (county.value == "Türkiye"
+            ? userString(data, key: "nufusIlce", scope: "profile")
+            : "");
 
         final dateStr = userString(data, key: "dogumTarihi", scope: "profile");
         if (dateStr.isNotEmpty) {

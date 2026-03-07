@@ -66,18 +66,16 @@ class TutoringDetailController extends GetxController {
       if (userDoc.exists) {
         final raw = userDoc.data() as Map<String, dynamic>? ?? {};
         final profileImage = (raw['avatarUrl'] ??
-                raw['pfImage'] ??
-                raw['photoURL'] ??
-                raw['profileImageUrl'] ??
+                raw['avatarUrl'] ??
+                raw['avatarUrl'] ??
                 '')
             .toString();
         final profileName =
-            (raw['displayName'] ?? raw['username'] ?? raw['nickname'] ?? '')
+            (raw['nickname'] ?? raw['username'] ?? raw['displayName'] ?? '')
                 .toString();
         users[userID] = {
           ...raw,
           'avatarUrl': profileImage,
-          'pfImage': profileImage,
           'displayName': profileName,
           'nickname': profileName,
         };
@@ -182,8 +180,8 @@ class TutoringDetailController extends GetxController {
             '${ownerData?['firstName'] ?? ''} ${ownerData?['lastName'] ?? ''}'
                 .trim();
         final tutorImage = (ownerData?['avatarUrl'] ??
-                ownerData?['pfImage'] ??
-                ownerData?['photoURL'] ??
+                ownerData?['avatarUrl'] ??
+                ownerData?['avatarUrl'] ??
                 '')
             .toString();
         final currentUserDoc =
@@ -195,15 +193,13 @@ class TutoringDetailController extends GetxController {
         ].where((e) => e.isNotEmpty).join(' ').trim();
         final applicantLabel = applicantName.isNotEmpty
             ? applicantName
-            : (currentUserData['displayName'] ??
+            : (currentUserData['nickname'] ??
                     currentUserData['username'] ??
-                    currentUserData['nickname'] ??
+                    currentUserData['displayName'] ??
                     'Bir kullanıcı')
                 .toString();
         final applicantImage = (currentUserData['avatarUrl'] ??
-                currentUserData['pfImage'] ??
-                currentUserData['photoURL'] ??
-                currentUserData['profileImageUrl'] ??
+                currentUserData['avatarUrl'] ??
                 '')
             .toString();
 

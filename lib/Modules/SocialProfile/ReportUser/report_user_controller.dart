@@ -15,7 +15,7 @@ class ReportUserController extends GetxController {
 
   var step = 0.50.obs;
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var fullName = "".obs;
   var selectedTitle = "".obs;
   var selectedDesc = "".obs;
@@ -30,7 +30,7 @@ class ReportUserController extends GetxController {
         .get()
         .then((doc) {
       nickname.value = doc.get("nickname");
-      pfImage.value = doc.get("pfImage");
+      avatarUrl.value = doc.get("avatarUrl");
       fullName.value = "${doc.get("firstName")} ${doc.get("lastName")}";
     });
   }

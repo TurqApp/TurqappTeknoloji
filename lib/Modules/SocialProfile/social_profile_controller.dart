@@ -43,7 +43,7 @@ class SocialProfileController extends GetxController {
   String userID;
   SocialProfileController({required this.userID});
   var nickname = "".obs;
-  var pfImage = "".obs;
+  var avatarUrl = "".obs;
   var firstName = "".obs;
   var lastName = "".obs;
   var token = "".obs;
@@ -560,18 +560,20 @@ class SocialProfileController extends GetxController {
               profile["username"] ??
               "")
           .toString();
-      pfImage.value = (raw["avatarUrl"] ??
-              raw["pfImage"] ??
-              raw["photoURL"] ??
-              raw["profileImageUrl"] ??
+      avatarUrl.value = (raw["avatarUrl"] ??
+              raw["avatarUrl"] ??
+              raw["avatarUrl"] ??
+              raw["avatarUrl"] ??
               profile["avatarUrl"] ??
-              profile["pfImage"] ??
-              profile["photoURL"] ??
-              profile["profileImageUrl"] ??
+              profile["avatarUrl"] ??
+              profile["avatarUrl"] ??
+              profile["avatarUrl"] ??
               "")
           .toString();
-      firstName.value = (raw["firstName"] ?? profile["firstName"] ?? "").toString();
-      lastName.value = (raw["lastName"] ?? profile["lastName"] ?? "").toString();
+      firstName.value =
+          (raw["firstName"] ?? profile["firstName"] ?? "").toString();
+      lastName.value =
+          (raw["lastName"] ?? profile["lastName"] ?? "").toString();
       email.value = (raw["email"] ?? profile["email"] ?? "").toString();
       rozet.value = (raw["rozet"] ?? profile["rozet"] ?? "").toString();
       bio.value = (raw["bio"] ?? profile["bio"] ?? "").toString();
@@ -581,13 +583,16 @@ class SocialProfileController extends GetxController {
           (raw["phoneNumber"] ?? profile["phoneNumber"] ?? "").toString();
 
       // İletişim izinleri (root yoksa preferences fallback)
-      mailIzin.value = (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
+      mailIzin.value =
+          (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
       aramaIzin.value =
           (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
 
       ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
-      gizliHesap.value = (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
-      hesapOnayi.value = (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
+      gizliHesap.value =
+          (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
+      hesapOnayi.value =
+          (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
       meslek.value =
           (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
 
@@ -746,7 +751,7 @@ class SocialProfileController extends GetxController {
     final userModel = StoryUserModel(
       nickname:
           data['displayName'] ?? data['username'] ?? data['nickname'] ?? "",
-      pfImage: data['avatarUrl'] ?? data['pfImage'] ?? data['photoURL'] ?? "",
+      avatarUrl: data['avatarUrl'] ?? "",
       fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
       userID: userId,
       stories: stories,
