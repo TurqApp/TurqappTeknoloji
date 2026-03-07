@@ -321,8 +321,6 @@ exports.syncUserSchemaAndFlags = functions.firestore
         if (Object.keys(patch).length > 0) {
             tx.set(userRef, patch, { merge: true });
         }
-        // Root canonical fields must not be mirrored into users/{uid}/profile/info.
-        tx.delete(userRef.collection("profile").doc("info"));
         // Keep signup lightweight: only touch canonical subdocs when they already exist,
         // or when ad data must be materialized for advertiser accounts.
         if (afterData?.ad !== undefined || afterData?.isAdvertiser === true) {
