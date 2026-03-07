@@ -42,6 +42,18 @@ class MessageContent extends StatelessWidget {
   final ValueNotifier<Offset?> _lastLongPressGlobal =
       ValueNotifier<Offset?>(null);
 
+  double _mediaBubbleSize() {
+    return (Get.width * 0.58).clamp(180.0, 220.0).toDouble();
+  }
+
+  double _sharedPostCardWidth() {
+    return (Get.width * 0.40).clamp(132.0, 148.0).toDouble();
+  }
+
+  double _sharedPostCardMediaHeight() {
+    return (_sharedPostCardWidth() * 1.405).clamp(184.0, 208.0).toDouble();
+  }
+
   void _captureTapDown(TapDownDetails details) {
     _lastLongPressGlobal.value = details.globalPosition;
   }
@@ -283,6 +295,7 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget imageList() {
+    final mediaSize = _mediaBubbleSize();
     return Row(
       mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
           ? MainAxisAlignment.end
@@ -323,8 +336,8 @@ class MessageContent extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: SizedBox(
-                                    width: 220,
-                                    height: 220,
+                                    width: mediaSize,
+                                    height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[1],
                                       fit: BoxFit.cover,
@@ -358,8 +371,8 @@ class MessageContent extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: SizedBox(
-                                    width: 220,
-                                    height: 220,
+                                    width: mediaSize,
+                                    height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[2],
                                       fit: BoxFit.cover,
@@ -396,8 +409,8 @@ class MessageContent extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: SizedBox(
-                                    width: 220,
-                                    height: 220,
+                                    width: mediaSize,
+                                    height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[0],
                                       fit: BoxFit.cover,
@@ -479,8 +492,8 @@ class MessageContent extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: SizedBox(
-                                    width: 220,
-                                    height: 220,
+                                    width: mediaSize,
+                                    height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: img,
                                       fit: BoxFit.cover,
@@ -526,6 +539,7 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget locationBar() {
+    final mediaSize = _mediaBubbleSize();
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -548,8 +562,8 @@ class MessageContent extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.all(Radius.circular(12)),
                   child: SizedBox(
-                    width: 220,
-                    height: 220,
+                    width: mediaSize,
+                    height: mediaSize,
                     child: AbsorbPointer(
                       // Etkileşimi tamamen engeller
                       child: GoogleMap(
@@ -665,6 +679,7 @@ class MessageContent extends StatelessWidget {
   }
 
   Widget videoBubble() {
+    final mediaSize = _mediaBubbleSize();
     return Row(
       mainAxisAlignment: model.userID == FirebaseAuth.instance.currentUser!.uid
           ? MainAxisAlignment.end
@@ -676,8 +691,8 @@ class MessageContent extends StatelessWidget {
           onTapDown: _captureTapDown,
           onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
-            width: 220,
-            height: 220,
+            width: mediaSize,
+            height: mediaSize,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               color: Colors.black,
@@ -699,8 +714,8 @@ class MessageContent extends StatelessWidget {
                     CachedNetworkImage(
                       imageUrl: model.videoThumbnail,
                       fit: BoxFit.cover,
-                      width: 220,
-                      height: 220,
+                      width: mediaSize,
+                      height: mediaSize,
                     )
                   else
                     Container(color: Colors.grey[800]),
@@ -1261,6 +1276,8 @@ class MessageContent extends StatelessWidget {
         : (post.thumbnail.isNotEmpty ? post.thumbnail : "");
     final hasMedia = previewUrl.isNotEmpty || hasVideo;
     final senderNick = controller.nickname.value;
+    final cardWidth = _sharedPostCardWidth();
+    final mediaHeight = _sharedPostCardMediaHeight();
 
     return Row(
       mainAxisAlignment:
@@ -1272,7 +1289,7 @@ class MessageContent extends StatelessWidget {
           onTapDown: _captureTapDown,
           onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
-            width: 148,
+            width: cardWidth,
             decoration: BoxDecoration(
               color: const Color(0xFFF7F7F7),
               borderRadius: BorderRadius.circular(14),
@@ -1295,8 +1312,8 @@ class MessageContent extends StatelessWidget {
                       topRight: Radius.circular(14),
                     ),
                     child: SizedBox(
-                      height: 208,
-                      width: 148,
+                      height: mediaHeight,
+                      width: cardWidth,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -1327,7 +1344,7 @@ class MessageContent extends StatelessWidget {
                 else
                   Container(
                     height: 90,
-                    width: 148,
+                    width: cardWidth,
                     decoration: const BoxDecoration(
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(14),
@@ -1960,8 +1977,10 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final bubbleWidth =
+        (MediaQuery.of(context).size.width * 0.58).clamp(180.0, 220.0);
     return Container(
-      width: 220,
+      width: bubbleWidth,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: widget.isMine ? Colors.blueAccent : const Color(0xFFF2F2F4),
