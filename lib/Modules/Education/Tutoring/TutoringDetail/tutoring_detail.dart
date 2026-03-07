@@ -1026,7 +1026,7 @@ class TutoringDetail extends StatelessWidget {
           Text("Benzer İlanlar", style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
-            height: 180,
+            height: (Get.height * 0.23).clamp(150.0, 180.0),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: controller.similarList.length,
@@ -1044,7 +1044,7 @@ class TutoringDetail extends StatelessWidget {
                     Get.off(() => TutoringDetail(), arguments: item);
                   },
                   child: Container(
-                    width: 160,
+                    width: (Get.width * 0.42).clamp(136.0, 160.0),
                     margin: EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
@@ -1057,7 +1057,7 @@ class TutoringDetail extends StatelessWidget {
                           borderRadius:
                               BorderRadius.vertical(top: Radius.circular(12)),
                           child: SizedBox(
-                            height: 100,
+                            height: (Get.height * 0.125).clamp(84.0, 100.0),
                             width: double.infinity,
                             child: CachedNetworkImage(
                               imageUrl:

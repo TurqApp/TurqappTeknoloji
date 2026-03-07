@@ -157,7 +157,8 @@ class _SoruContentState extends State<SoruContent> {
                       children: [
                         Image.asset(
                           "assets/education/createsoru.webp",
-                          height: 150,
+                          height: (MediaQuery.of(context).size.height * 0.2)
+                              .clamp(120.0, 150.0),
                         ),
                         SizedBox(height: 20),
                         Row(

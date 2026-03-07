@@ -95,7 +95,11 @@ class CreateTestQuestionContent extends StatelessWidget {
                                             const SizedBox(height: 20),
                                             Image.asset(
                                               "assets/createsoru.webp",
-                                              height: 180,
+                                              height: (MediaQuery.of(context)
+                                                          .size
+                                                          .height *
+                                                      0.24)
+                                                  .clamp(140.0, 180.0),
                                             ),
                                             const SizedBox(height: 15),
                                             const Text(
