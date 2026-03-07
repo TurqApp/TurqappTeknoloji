@@ -7,7 +7,6 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import '../Agenda/agenda_controller.dart';
 import '../Profile/MyProfile/profile_controller.dart';
 import '../ShareGrid/share_grid.dart';
@@ -56,7 +55,6 @@ class ShortContentController extends GetxController {
   var ilkPaylasanNickname = "".obs;
   var ilkPaylasanUserID = "".obs;
   var fullscreen = true.obs;
-  final user = Get.find<FirebaseMyStore>();
   // Kaldırılan deprecated değişkenler:
   // yenidenPaylasildiMi -> isReshared
   // countManager -> PostInteractionService

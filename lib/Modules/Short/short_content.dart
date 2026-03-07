@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Core/formatters.dart';
@@ -855,8 +856,9 @@ class ShortsContent extends StatelessWidget {
   Widget butonlar(BuildContext context) {
     final int commentVisibility = model.yorumVisibility;
     final int reshareVisibility = model.paylasimVisibility;
-    final bool isOwner = controller.user.userID.value == model.userID;
-    final bool isVerified = controller.user.hesapOnayi.value;
+    final currentUser = CurrentUserService.instance.currentUser;
+    final bool isOwner = CurrentUserService.instance.userId == model.userID;
+    final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
     final bool canComment = isOwner ||
         commentVisibility == 0 ||

@@ -5,7 +5,7 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import '../../Services/firebase_my_store.dart';
+import '../../Services/current_user_service.dart';
 import 'Comments/post_comments.dart';
 
 class PostController extends GetxController {
@@ -79,8 +79,8 @@ class PostController extends GetxController {
   }
 
   Future<void> begen(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
+    final userID = CurrentUserService.instance.userId;
+    if (userID.isEmpty) return;
 
     final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
     final docSnapshot = await docRef.get();
@@ -115,8 +115,8 @@ class PostController extends GetxController {
   }
 
   Future<void> begenme(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
+    final userID = CurrentUserService.instance.userId;
+    if (userID.isEmpty) return;
 
     final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
     final docSnapshot = await docRef.get();
@@ -150,8 +150,8 @@ class PostController extends GetxController {
   }
 
   Future<void> kayitEt(String postID) async {
-    final user = Get.find<FirebaseMyStore>();
-    final userID = user.userID.value;
+    final userID = CurrentUserService.instance.userId;
+    if (userID.isEmpty) return;
 
     final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
     final docSnapshot = await docRef.get();
