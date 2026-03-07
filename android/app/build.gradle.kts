@@ -102,7 +102,9 @@ android {
             if (hasKeyProps) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
-                println("⚠️ Release build imzasız kalabilir (key.properties yok). Debug kullan.")
+                // Local release runs need a signed APK even without production keystore.
+                signingConfig = signingConfigs.getByName("debug")
+                println("⚠️ key.properties yok: release debug keystore ile imzalanıyor (sadece lokal test).")
             }
         }
 
@@ -115,8 +117,14 @@ android {
     }
 }
 
+configurations.all {
+    exclude(group = "com.google.android.play", module = "core-common")
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Required by Flutter deferred component manager references during R8 minify.
+    implementation("com.google.android.play:core:1.10.3")
 
     // ExoPlayer (Media3) - Native HLS video playback
     implementation("androidx.media3:media3-exoplayer:1.3.1")

@@ -718,6 +718,7 @@ class _SplashViewState extends State<SplashView> {
   }
 
   /// 🔥 Early lockApp check - Debug/TestFlight bypass + cache
+  /// Returns `true` when app should be locked (show maintenance).
   Future<bool> _checkLockApp({required SharedPreferences prefs}) async {
     try {
       if (kDebugMode) return false;
@@ -731,7 +732,7 @@ class _SplashViewState extends State<SplashView> {
       if (cachedLock != null && cacheValid) {
         // Arka planda Firestore'dan güncelle
         unawaited(_refreshLockAppCache(prefs));
-        return !cachedLock;
+        return cachedLock;
       }
 
       // Cache yoksa TestFlight kontrolü yap (PackageInfo platform channel çağrısı)
@@ -754,14 +755,16 @@ class _SplashViewState extends State<SplashView> {
       await prefs.setBool('lockApp_cached', lockApp);
       await prefs.setInt(
           'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
-      return !lockApp;
+      return lockApp;
     } on TimeoutException {
       // Timeout — cache varsa kullan, yoksa aç (prefs zaten parametre olarak geldi)
       final cachedLock = prefs.getBool('lockApp_cached');
-      return cachedLock != null ? !cachedLock : false;
+      return cachedLock ?? false;
     } catch (e) {
       print("❌ lockApp kontrolü hatası: $e");
-      return !kDebugMode;
+      // Permission/network errors should not lock real users out.
+      final cachedLock = prefs.getBool('lockApp_cached');
+      return cachedLock ?? false;
     }
   }
 

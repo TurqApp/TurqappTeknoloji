@@ -42,8 +42,6 @@ class NavBarView extends StatelessWidget {
 
   // Ensure controllers are available
   void _ensureControllersReady() {
-    if (_controllersPrepared) return;
-
     if (!Get.isRegistered<ExploreController>()) {
       Get.put(ExploreController());
     }
@@ -59,6 +57,10 @@ class NavBarView extends StatelessWidget {
     if (!Get.isRegistered<StoryRowController>()) {
       Get.put(StoryRowController());
     }
+
+    // Controller registration should always be enforced (Android lifecycle can dispose lazies).
+    // Keep one-time side effects below behind static guard.
+    if (_controllersPrepared) return;
 
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
     // Note: startListeners() has internal guard against multiple calls
@@ -313,8 +315,10 @@ class NavBarView extends StatelessWidget {
                                       }
                                     } else {
                                       // Short ikonuna tıklandığında background preload başlat
-                                      final shortController =
-                                          Get.find<ShortController>();
+                                      final shortController = Get
+                                              .isRegistered<ShortController>()
+                                          ? Get.find<ShortController>()
+                                          : Get.put(ShortController());
 
                                       // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
                                       shortController

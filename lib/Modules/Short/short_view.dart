@@ -538,14 +538,15 @@ class _ShortViewState extends State<ShortView> {
             child: PageView.builder(
               controller: pageController,
               scrollDirection: Axis.vertical,
-              physics: defaultTargetPlatform == TargetPlatform.android
-                  ? const PageScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    )
-                  : MomentumPageScrollPhysics(
-                      baseMinFlingVelocity: 600.0,
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
+              physics: MomentumPageScrollPhysics(
+                maxPagesPerFling:
+                    defaultTargetPlatform == TargetPlatform.android ? 2 : 4,
+                baseMinFlingVelocity:
+                    defaultTargetPlatform == TargetPlatform.android
+                        ? 500.0
+                        : 600.0,
+                parent: const AlwaysScrollableScrollPhysics(),
+              ),
               itemCount: list.length,
               onPageChanged: _onPageChanged,
               itemBuilder: (_, idx) {
