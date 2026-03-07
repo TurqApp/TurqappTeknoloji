@@ -1182,7 +1182,6 @@ class PostContentController extends GetxController {
       barrierColor: Colors.black54, // Gri karartma rengi
     ).then((v) {
       if (onClosed != null) onClosed();
-      getComments();
     });
   }
 
