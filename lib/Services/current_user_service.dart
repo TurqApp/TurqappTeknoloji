@@ -268,6 +268,7 @@ class CurrentUserService extends GetxController {
     if (firebaseUser == null) return;
 
     try {
+      _purgeUserScopedCaches(firebaseUser.uid);
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(firebaseUser.uid)
@@ -597,13 +598,26 @@ class CurrentUserService extends GetxController {
     }
     if (merged['lastSearchList'] is! List) {
       final searches = await readListCache('lastSearches', () async {
-        final snap = await userRef
-            .collection('lastSearches')
-            .orderBy('timeStamp', descending: true)
-            .limit(100)
-            .get();
+        final snap = await userRef.collection('lastSearches').limit(200).get();
+        final docs = snap.docs.toList()
+          ..sort((a, b) {
+            final aData = a.data();
+            final bData = b.data();
+            final aTs = (aData['updatedDate'] is num)
+                ? (aData['updatedDate'] as num).toInt()
+                : ((aData['timeStamp'] is num)
+                    ? (aData['timeStamp'] as num).toInt()
+                    : 0);
+            final bTs = (bData['updatedDate'] is num)
+                ? (bData['updatedDate'] as num).toInt()
+                : ((bData['timeStamp'] is num)
+                    ? (bData['timeStamp'] as num).toInt()
+                    : 0);
+            return bTs.compareTo(aTs);
+          });
         return <String, dynamic>{
-          'lastSearchList': snap.docs.map((d) => d.id).toList(growable: false),
+          'lastSearchList':
+              docs.take(100).map((d) => d.id).toList(growable: false),
         };
       });
       final list = searches['lastSearchList'];

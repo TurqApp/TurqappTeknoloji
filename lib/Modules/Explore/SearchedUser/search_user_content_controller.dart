@@ -28,6 +28,7 @@ class SearchUserContentController extends GetxController {
         {
           "userID": userID,
           "updatedDate": DateTime.now().millisecondsSinceEpoch,
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
         },
         SetOptions(merge: true),
       );
@@ -40,12 +41,13 @@ class SearchUserContentController extends GetxController {
     }
   }
 
-  void removeFromLastSearch() {
+  Future<void> removeFromLastSearch() async {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
     final userRef =
         FirebaseFirestore.instance.collection("users").doc(currentUserID);
     final batch = FirebaseFirestore.instance.batch();
     batch.delete(userRef.collection("lastSearches").doc(userID));
-    batch.commit().then((_) => CurrentUserService.instance.forceRefresh());
+    await batch.commit();
+    await CurrentUserService.instance.forceRefresh();
   }
 }
