@@ -203,8 +203,8 @@ class JobCreator extends StatelessWidget {
                     return ClipRRect(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                       child: SizedBox(
-                        width: 120,
-                        height: 120,
+                        width: (Get.width * 0.31).clamp(96.0, 120.0),
+                        height: (Get.width * 0.31).clamp(96.0, 120.0),
                         child: Image.memory(
                           preview,
                           fit: BoxFit.cover,
@@ -217,8 +217,8 @@ class JobCreator extends StatelessWidget {
                     return ClipRRect(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                       child: SizedBox(
-                        width: 120,
-                        height: 120,
+                        width: (Get.width * 0.31).clamp(96.0, 120.0),
+                        height: (Get.width * 0.31).clamp(96.0, 120.0),
                         child: Image.network(
                           controller.existingJob!.logo,
                           fit: BoxFit.cover,
@@ -230,8 +230,8 @@ class JobCreator extends StatelessWidget {
                     return ClipRRect(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                       child: SizedBox(
-                        width: 120,
-                        height: 120,
+                        width: (Get.width * 0.31).clamp(96.0, 120.0),
+                        height: (Get.width * 0.31).clamp(96.0, 120.0),
                         child: Container(
                           alignment: Alignment.center,
                           decoration: BoxDecoration(

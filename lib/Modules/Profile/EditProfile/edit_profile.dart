@@ -76,8 +76,10 @@ class _EditProfileState extends State<EditProfile> {
 
                                       return ClipOval(
                                         child: SizedBox(
-                                          width: 120,
-                                          height: 120,
+                                          width: (Get.width * 0.31)
+                                              .clamp(96.0, 120.0),
+                                          height: (Get.width * 0.31)
+                                              .clamp(96.0, 120.0),
                                           child: preview != null
                                               ? Image.memory(
                                                   preview,

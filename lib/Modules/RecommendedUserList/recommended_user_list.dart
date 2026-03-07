@@ -81,7 +81,8 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
             ),
           ),
           SizedBox(
-            height: 205,
+            height: (MediaQuery.of(context).size.height * 0.245)
+                .clamp(170.0, 205.0),
             child: PageView.builder(
               padEnds: false,
               controller: _pageController,
@@ -143,7 +144,8 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
           ),
         ),
         SizedBox(
-          height: 205,
+          height:
+              (MediaQuery.of(context).size.height * 0.245).clamp(170.0, 205.0),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 15),
