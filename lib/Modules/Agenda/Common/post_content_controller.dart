@@ -27,6 +27,8 @@ import '../../../Core/Utils/avatar_url.dart';
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
   static const Duration _userProfileCacheTtl = Duration(minutes: 20);
+  static final Map<String, _ReshareUsersCacheEntry> _reshareUsersCache = {};
+  static const Duration _reshareUsersCacheTtl = Duration(minutes: 2);
   static const int _pushTargetCutoffMs = 1772409600000;
 
   static void invalidateUserProfileCache(String userId) {
@@ -36,6 +38,10 @@ class PostContentController extends GetxController {
 
   static void clearUserProfileCache() {
     _userProfileCache.clear();
+  }
+
+  static void clearReshareUsersCache() {
+    _reshareUsersCache.clear();
   }
 
   PostContentController({
@@ -1004,6 +1010,15 @@ class PostContentController extends GetxController {
   }
 
   Future<void> getReSharedUsers(String docID) async {
+    final cached = _reshareUsersCache[docID];
+    if (cached != null &&
+        DateTime.now().difference(cached.updatedAt) < _reshareUsersCacheTtl) {
+      reSharedUsers.value = cached.userIds;
+      reShareUserUserID.value = cached.displayUserId;
+      reShareUserNickname.value = cached.displayNickname;
+      return;
+    }
+
     final ref = FirebaseFirestore.instance
         .collection("Posts")
         .doc(docID)
@@ -1021,6 +1036,12 @@ class PostContentController extends GetxController {
       if (me != null && list.contains(me)) {
         reShareUserUserID.value = me;
         reShareUserNickname.value = 'Sen';
+        _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+          updatedAt: DateTime.now(),
+          userIds: List<String>.from(list),
+          displayUserId: me,
+          displayNickname: 'Sen',
+        );
         return;
       }
 
@@ -1042,6 +1063,12 @@ class PostContentController extends GetxController {
             final nick = await ReshareHelper.getUserNickname(match);
             reShareUserNickname.value = nick;
           }
+          _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+            updatedAt: DateTime.now(),
+            userIds: List<String>.from(list),
+            displayUserId: match,
+            displayNickname: reShareUserNickname.value,
+          );
           return;
         }
       } catch (_) {}
@@ -1049,6 +1076,12 @@ class PostContentController extends GetxController {
       // Kimse yoksa temizle
       reShareUserUserID.value = '';
       reShareUserNickname.value = '';
+      _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+        updatedAt: DateTime.now(),
+        userIds: List<String>.from(list),
+        displayUserId: '',
+        displayNickname: '',
+      );
     });
   }
 
@@ -1397,5 +1430,19 @@ class _UserProfileCacheEntry {
     required this.token,
     required this.fullName,
     required this.updatedAt,
+  });
+}
+
+class _ReshareUsersCacheEntry {
+  final DateTime updatedAt;
+  final List<String> userIds;
+  final String displayUserId;
+  final String displayNickname;
+
+  const _ReshareUsersCacheEntry({
+    required this.updatedAt,
+    required this.userIds,
+    required this.displayUserId,
+    required this.displayNickname,
   });
 }
