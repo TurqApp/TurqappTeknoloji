@@ -26,6 +26,7 @@ class _ActionButtonState extends State<ActionButton> {
   late final Future<Map<String, bool>> _permissionsFuture;
   bool _rozetErrorShown = false;
   static const Duration _rozetCacheTtl = Duration(minutes: 5);
+  static const Duration _rozetStaleRetention = Duration(minutes: 20);
   static final Map<String, _RozetCacheEntry> _rozetCacheByUid =
       <String, _RozetCacheEntry>{};
 
@@ -40,6 +41,7 @@ class _ActionButtonState extends State<ActionButton> {
     if (user == null) {
       return '';
     }
+    _pruneStaleRozetCache();
     final cached = _rozetCacheByUid[user.uid];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _rozetCacheTtl) {
@@ -70,6 +72,13 @@ class _ActionButtonState extends State<ActionButton> {
       debugPrint("Rozet kontrol hatası: $e");
       return '';
     }
+  }
+
+  void _pruneStaleRozetCache() {
+    final now = DateTime.now();
+    _rozetCacheByUid.removeWhere(
+      (_, entry) => now.difference(entry.cachedAt) > _rozetStaleRetention,
+    );
   }
 
   Future<bool> _canManageSliders() async {
