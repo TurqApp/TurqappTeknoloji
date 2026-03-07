@@ -119,15 +119,6 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   @override
-  void didPopNext() {
-    super.didPopNext();
-    try {
-      controller.getLikes();
-      controller.getSaved();
-    } catch (_) {}
-  }
-
-  @override
   Widget build(BuildContext context) {
     // Gizli, arşivli veya silindi ise videoyu durdur
     if (controller.gizlendi.value ||
@@ -1085,13 +1076,11 @@ class _ClassicContentState extends State<ClassicContent>
                 });
               }
             },
-            child: Obx(() => controller.avatarUrl.isNotEmpty
-                ? CachedUserAvatar(
-                    userId: widget.model.userID,
-                    imageUrl: controller.avatarUrl.value,
-                    radius: 20, // 40px diameter / 2
-                  )
-                : const SizedBox.shrink()),
+            child: Obx(() => CachedUserAvatar(
+                  userId: widget.model.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 20, // 40px diameter / 2
+                )),
           ),
           7.pw,
           Expanded(
@@ -1139,6 +1128,8 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
+                          const SizedBox(width: 2),
+                          RozetContent(size: 13, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 6, right: 12),
                             child: Text(
@@ -1150,7 +1141,6 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
-                          RozetContent(size: 13, userID: widget.model.userID),
                         ],
                       ),
                     ),
@@ -1262,13 +1252,11 @@ class _ClassicContentState extends State<ClassicContent>
                 });
               }
             },
-            child: Obx(() => controller.avatarUrl.isNotEmpty
-                ? CachedUserAvatar(
-                    userId: widget.model.userID,
-                    imageUrl: controller.avatarUrl.value,
-                    radius: 20, // 40px diameter / 2
-                  )
-                : const SizedBox.shrink()),
+            child: Obx(() => CachedUserAvatar(
+                  userId: widget.model.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 20, // 40px diameter / 2
+                )),
           ),
           7.pw,
           Expanded(
@@ -1303,7 +1291,6 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
-                          RozetContent(size: 12, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 4),
                             child: Text(
@@ -1317,6 +1304,8 @@ class _ClassicContentState extends State<ClassicContent>
                               ),
                             ),
                           ),
+                          const SizedBox(width: 2),
+                          RozetContent(size: 12, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 6, right: 12),
                             child: Text(

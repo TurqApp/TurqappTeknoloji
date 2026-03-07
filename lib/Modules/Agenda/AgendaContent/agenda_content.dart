@@ -160,15 +160,6 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   @override
-  void didPopNext() {
-    super.didPopNext();
-    try {
-      controller.getLikes();
-      controller.getSaved();
-    } catch (_) {}
-  }
-
-  @override
   Widget build(BuildContext context) {
     // Build sırasında doğrudan pause() çağırmak Obx'i yeniden kirletebilir.
     // Bu yüzden pause işlemini frame sonuna erteliyoruz.
@@ -608,8 +599,8 @@ class _AgendaContentState extends State<AgendaContent>
                                               }
                                             },
                                             child: Container(
-                                              margin:
-                                                  const EdgeInsets.only(right: 6),
+                                              margin: const EdgeInsets.only(
+                                                  right: 6),
                                               padding: const EdgeInsets.all(8),
                                               decoration: const BoxDecoration(
                                                 color: Colors.black54,
@@ -1287,13 +1278,11 @@ class _AgendaContentState extends State<AgendaContent>
                 });
               }
             },
-            child: Obx(() => controller.avatarUrl.isNotEmpty
-                ? CachedUserAvatar(
-                    userId: widget.model.userID,
-                    imageUrl: controller.avatarUrl.value,
-                    radius: 20,
-                  )
-                : const SizedBox.shrink()),
+            child: Obx(() => CachedUserAvatar(
+                  userId: widget.model.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 20,
+                )),
           ),
           6.pw,
           Expanded(
@@ -1342,6 +1331,8 @@ class _AgendaContentState extends State<AgendaContent>
                               ),
                             ),
                           ),
+                          const SizedBox(width: 2),
+                          RozetContent(size: 13, userID: widget.model.userID),
                           Padding(
                             padding: const EdgeInsets.only(left: 6, right: 12),
                             child: Text(
@@ -1353,7 +1344,6 @@ class _AgendaContentState extends State<AgendaContent>
                               ),
                             ),
                           ),
-                          RozetContent(size: 13, userID: widget.model.userID),
                         ],
                       ),
                     ),
