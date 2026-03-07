@@ -208,6 +208,9 @@ class CreateAnswerKey extends StatelessWidget {
   }
 
   Widget _home(BuildContext context, CreateAnswerKeyController controller) {
+    final questionLabelWidth =
+        (MediaQuery.of(context).size.width * 0.26).clamp(84.0, 100.0);
+
     return Expanded(
       child: Stack(
         children: [
@@ -282,7 +285,7 @@ class CreateAnswerKey extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
-                                  width: 100,
+                                  width: questionLabelWidth,
                                   height: 50,
                                   alignment: Alignment.center,
                                   color: actualIndex % 2 == 0
