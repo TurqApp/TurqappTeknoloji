@@ -88,7 +88,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _refreshUserState() {
     userService.forceRefresh();
-    user.hasStoryOwner();
+    StoryRowController.refreshStoriesGlobally();
   }
 
   void _onScroll() {
