@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:flutter/material.dart';
 
 class DeletedStoriesController extends GetxController {
@@ -113,8 +112,6 @@ class DeletedStoriesController extends GetxController {
     // Dinamik: Hikaye satırını anlık tazele ve sahiplik bayrağını güncelle
     try {
       await StoryRowController.refreshStoriesGlobally();
-      final store = Get.find<FirebaseMyStore>();
-      await store.hasStoryOwner();
     } catch (_) {}
   }
 

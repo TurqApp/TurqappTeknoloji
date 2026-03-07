@@ -10,7 +10,6 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
@@ -929,8 +928,6 @@ class StoryMakerController extends GetxController {
       // 8) UI'ı güncelle - global refresh çağır
       try {
         await Get.find<StoryRowController>().loadStories();
-        final usr = Get.find<FirebaseMyStore>();
-        usr.hasStoryOwner();
       } catch (e) {
         print("UI update error: $e");
         // UI güncelleme hatası önemli değil, story zaten kaydedildi

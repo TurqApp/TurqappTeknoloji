@@ -8,7 +8,7 @@ import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories_controlle
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart'
     show StoryModel;
@@ -232,7 +232,7 @@ class _GridContent extends StatefulWidget {
 }
 
 class _GridContentState extends State<_GridContent> {
-  final user = Get.find<FirebaseMyStore>();
+  final user = CurrentUserService.instance;
 
   void _maybeFetchMore(int index, int total) {
     final c = widget.controller;
@@ -249,10 +249,10 @@ class _GridContentState extends State<_GridContent> {
       ...source.sublist(0, tappedIndex),
     ];
     final startedUser = StoryUserModel(
-      nickname: user.nickname.value,
-      avatarUrl: user.avatarUrl.value,
-      fullName: '${user.firstName.value} ${user.lastName.value}',
-      userID: user.userID.value,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      fullName: user.fullName,
+      userID: user.userId,
       stories: reordered,
     );
     Get.to(() => StoryViewer(
@@ -321,7 +321,7 @@ class _VerticalStrip extends StatefulWidget {
 }
 
 class _VerticalStripState extends State<_VerticalStrip> {
-  final user = Get.find<FirebaseMyStore>();
+  final user = CurrentUserService.instance;
 
   void _maybeFetchMore(int index) {
     final c = widget.controller;
@@ -339,10 +339,10 @@ class _VerticalStripState extends State<_VerticalStrip> {
       ...all.sublist(0, tappedIndex),
     ];
     final startedUser = StoryUserModel(
-      nickname: user.nickname.value,
-      avatarUrl: user.avatarUrl.value,
-      fullName: '${user.firstName.value} ${user.lastName.value}',
-      userID: user.userID.value,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      fullName: user.fullName,
+      userID: user.userId,
       stories: reordered,
     );
     Get.to(() => StoryViewer(

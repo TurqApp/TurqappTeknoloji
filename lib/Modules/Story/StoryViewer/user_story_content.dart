@@ -14,7 +14,6 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/user_story_content_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryMaker/story_maker_controller.dart';
 import '../StoryRow/story_user_model.dart';
@@ -1172,8 +1171,6 @@ class _UserStoryContentState extends State<UserStoryContent>
     // Story refresh
     try {
       await Get.find<StoryRowController>().loadStories();
-      final cont = Get.find<FirebaseMyStore>();
-      cont.hasStoryOwner();
       print("🗑️ Story deleted and refreshed");
     } catch (e) {
       print("🗑️ Story delete refresh error: $e");
