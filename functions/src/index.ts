@@ -827,7 +827,7 @@ export const backfillPhoneAccounts = functions.https.onCall(async (data, context
   }
   const isAdmin = (context.auth.token as any)?.admin === true;
   const providedSecret = typeof data?.secret === 'string' ? (data.secret as string) : '';
-  const configuredSecret = (process.env.PHONE_BACKFILL_SECRET || (functions.config()?.limits?.backfill_secret as string | undefined) || '').toString();
+  const configuredSecret = (process.env.PHONE_BACKFILL_SECRET || '').toString();
   if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
     throw new functions.https.HttpsError('permission-denied', 'Admin or valid secret required');
   }
@@ -898,7 +898,7 @@ export const backfillPostsOriginalFields = functions.https.onCall(async (data, c
   }
   const isAdmin = (context.auth.token as any)?.admin === true;
   const providedSecret = typeof data?.secret === 'string' ? (data.secret as string) : '';
-  const configuredSecret = (process.env.POSTS_BACKFILL_SECRET || (functions.config()?.limits?.posts_backfill_secret as string | undefined) || '').toString();
+  const configuredSecret = (process.env.POSTS_BACKFILL_SECRET || '').toString();
   if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
     throw new functions.https.HttpsError('permission-denied', 'Admin or valid secret required');
   }
