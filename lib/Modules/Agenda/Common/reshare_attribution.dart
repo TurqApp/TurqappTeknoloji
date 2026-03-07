@@ -7,7 +7,7 @@ import '../../../Models/posts_model.dart';
 import 'post_content_controller.dart';
 
 /// Displays who reshared the post, reusing logic for both agenda view styles.
-class ReshareAttribution extends StatelessWidget {
+class ReshareAttribution extends StatefulWidget {
   const ReshareAttribution({
     super.key,
     required this.controller,
@@ -23,8 +23,15 @@ class ReshareAttribution extends StatelessWidget {
   final TextStyle? style;
   final Widget placeholder;
 
+  @override
+  State<ReshareAttribution> createState() => _ReshareAttributionState();
+}
+
+class _ReshareAttributionState extends State<ReshareAttribution> {
+  Future<String>? _nicknameFuture;
+
   TextStyle get _labelStyle =>
-      style ??
+      widget.style ??
       const TextStyle(
         color: Colors.grey,
         fontSize: 12,
@@ -32,11 +39,36 @@ class ReshareAttribution extends StatelessWidget {
       );
 
   @override
+  void initState() {
+    super.initState();
+    _prepareNicknameFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant ReshareAttribution oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.explicitReshareUserId != widget.explicitReshareUserId) {
+      _prepareNicknameFuture();
+    }
+  }
+
+  void _prepareNicknameFuture() {
+    _nicknameFuture = null;
+    final targetId = widget.explicitReshareUserId;
+    if (targetId == null) return;
+    final me = FirebaseAuth.instance.currentUser?.uid;
+    if (me != null && targetId == me) return;
+    final cached = ReshareHelper.getCachedNickname(targetId);
+    if (cached != null) return;
+    _nicknameFuture = ReshareHelper.getUserNickname(targetId);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final me = FirebaseAuth.instance.currentUser?.uid;
 
-    if (explicitReshareUserId != null) {
-      final targetId = explicitReshareUserId!;
+    if (widget.explicitReshareUserId != null) {
+      final targetId = widget.explicitReshareUserId!;
       if (me != null && targetId == me) {
         return Text('yeniden paylaştın', style: _labelStyle);
       }
@@ -45,7 +77,7 @@ class ReshareAttribution extends StatelessWidget {
         return Text('$cached yeniden paylaştı', style: _labelStyle);
       }
       return FutureBuilder<String>(
-        future: ReshareHelper.getUserNickname(targetId),
+        future: _nicknameFuture,
         builder: (context, snapshot) {
           final name = snapshot.data?.trim().isNotEmpty == true
               ? snapshot.data!
@@ -56,13 +88,13 @@ class ReshareAttribution extends StatelessWidget {
     }
 
     return Obx(() {
-      final uid = controller.reShareUserUserID.value;
-      if (uid.isEmpty) return placeholder;
+      final uid = widget.controller.reShareUserUserID.value;
+      if (uid.isEmpty) return widget.placeholder;
       if (me != null && uid == me) {
         return Text('yeniden paylaştın', style: _labelStyle);
       }
-      final name = controller.reShareUserNickname.value.isNotEmpty
-          ? controller.reShareUserNickname.value
+      final name = widget.controller.reShareUserNickname.value.isNotEmpty
+          ? widget.controller.reShareUserNickname.value
           : 'Bir kullanıcı';
       return Text('$name yeniden paylaştı', style: _labelStyle);
     });
