@@ -181,7 +181,6 @@ class PostContentController extends GetxController {
     getUserData(model.userID);
     getReSharedUsers(model.docID);
     // Real-time listeners handle likes/saved/comments membership and counts.
-    getYenidenPaylasBilgisi();
     saveSeeing();
     followCheck();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -645,30 +644,6 @@ class PostContentController extends GetxController {
     });
   }
 
-  Future<void> getYenidenPaylasBilgisi() async {
-    try {
-      final base =
-          FirebaseFirestore.instance.collection('Posts').doc(model.docID);
-      int cnt = 0;
-      try {
-        final agg = await base.collection('reshares').count().get();
-        cnt = agg.count ?? 0;
-      } catch (_) {
-        final snap = await base.collection('reshares').get();
-        cnt = snap.docs.length;
-      }
-      retryCount.value = cnt;
-
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      if (me != null) {
-        final doc = await base.collection('reshares').doc(me).get();
-        yenidenPaylasildiMi.value = doc.exists;
-      }
-    } catch (e) {
-      print('getYenidenPaylasBilgisi error: $e');
-    }
-  }
-
   Future<void> getEditTime() async {
     final doc = await FirebaseFirestore.instance
         .collection("Posts")
@@ -728,7 +703,6 @@ class PostContentController extends GetxController {
         await onReshareRemoved(uid);
       }
 
-      await getYenidenPaylasBilgisi();
     } catch (e) {
       applyState(wasReshared);
       AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
