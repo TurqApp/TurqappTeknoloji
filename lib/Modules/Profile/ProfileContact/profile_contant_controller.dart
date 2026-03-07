@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ProfileContactController extends GetxController {
   var isEmailVisible = true.obs;
   var isCallVisible = true.obs;
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
 
   @override
   void onInit() {
@@ -23,17 +23,11 @@ class ProfileContactController extends GetxController {
 
   void toggleEmailVisibility() {
     isEmailVisible.value = !isEmailVisible.value;
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.userID.value)
-        .update({"mailIzin": isEmailVisible.value});
+    userService.updateFields({"mailIzin": isEmailVisible.value});
   }
 
   void toggleCallVisibility() {
     isCallVisible.value = !isCallVisible.value;
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.userID.value)
-        .update({"aramaIzin": isCallVisible.value});
+    userService.updateFields({"aramaIzin": isCallVisible.value});
   }
 }

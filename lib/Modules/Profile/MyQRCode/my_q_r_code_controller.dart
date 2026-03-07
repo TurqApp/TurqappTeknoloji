@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:ui' as ui;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -12,12 +13,12 @@ import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/Helpers/QRCode/qr_scanner_view.dart';
-import '../../../Services/firebase_my_store.dart';
 
 class MyQRCodeController extends GetxController {
-  final user = Get.find<FirebaseMyStore>();
+  final CurrentUserService userService = CurrentUserService.instance;
   final ShortLinkService _shortLinkService = ShortLinkService();
   final RxString profileLink = ''.obs;
 
@@ -28,14 +29,19 @@ class MyQRCodeController extends GetxController {
   }
 
   Future<String> _buildProfileLink() async {
-    final slug = user.nickname.value.trim().toLowerCase();
-    final safeSlug = slug.isEmpty ? user.userID.value : slug;
+    final uid = userService.userId.isNotEmpty
+        ? userService.userId
+        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+    if (uid.isEmpty) return 'https://turqapp.com/u/guest';
+    final nickname = userService.nickname.trim();
+    final slug = nickname.toLowerCase();
+    final safeSlug = slug.isEmpty ? uid : slug;
     final result = await _shortLinkService.upsertUser(
-      userId: user.userID.value,
+      userId: uid,
       slug: safeSlug,
-      title: '@${user.nickname.value} - TurqApp',
+      title: '@$nickname - TurqApp',
       desc: 'TurqApp profilini görüntüle',
-      imageUrl: user.avatarUrl.value,
+      imageUrl: userService.avatarUrl,
     );
     final url = (result['url'] ?? '').toString().trim();
     return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
@@ -45,9 +51,11 @@ class MyQRCodeController extends GetxController {
     try {
       profileLink.value = await _buildProfileLink();
     } catch (_) {
-      final slug = user.nickname.value.trim().toLowerCase();
-      profileLink.value =
-          'https://turqapp.com/u/${slug.isEmpty ? user.userID.value : slug}';
+      final uid = userService.userId.isNotEmpty
+          ? userService.userId
+          : (FirebaseAuth.instance.currentUser?.uid ?? '');
+      final slug = userService.nickname.trim().toLowerCase();
+      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? uid : slug}';
     }
   }
 
@@ -69,7 +77,7 @@ class MyQRCodeController extends GetxController {
       profileLink.value = link;
       await ShareLinkService.shareUrl(
         url: link,
-        title: '@${user.nickname.value} - TurqApp',
+        title: '@${userService.nickname} - TurqApp',
         subject: 'TurqApp Profili',
       );
     });

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:turqappv2/Core/sizes.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -12,7 +12,7 @@ import 'my_q_r_code_controller.dart';
 class MyQRCode extends StatelessWidget {
   MyQRCode({super.key});
   late final MyQRCodeController controller;
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   @override
   Widget build(BuildContext context) {
     Get.put(MyQRCodeController());
@@ -76,7 +76,7 @@ class MyQRCode extends StatelessWidget {
                                 child: QrImageView(
                                   data: controller.profileLink.value.isNotEmpty
                                       ? controller.profileLink.value
-                                      : user.userID.value,
+                                      : userService.userId,
                                   version: QrVersions.auto,
                                   size: 250.0,
                                   backgroundColor: Colors.white,

@@ -7,13 +7,13 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/MyStatistic/my_statistic_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class MyStatisticView extends StatelessWidget {
   MyStatisticView({super.key});
 
   final MyStatisticController controller = Get.put(MyStatisticController());
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   static const List<Color> _statColors = [
     // Mevcutlar…
     Color(0xFF1E88E5),
@@ -44,6 +44,11 @@ class MyStatisticView extends StatelessWidget {
       body: SafeArea(
         bottom: false,
         child: Obx(() {
+          final currentUser = userService.currentUserRx.value;
+          final avatarUrl = currentUser?.avatarUrl ?? '';
+          final firstName = currentUser?.firstName ?? '';
+          final lastName = currentUser?.lastName ?? '';
+          final nickname = currentUser?.nickname ?? '';
           return SingleChildScrollView(
             child: Column(
               children: [
@@ -67,9 +72,9 @@ class MyStatisticView extends StatelessWidget {
                                 child: SizedBox(
                                   width: 50,
                                   height: 50,
-                                  child: user.avatarUrl.value != ""
+                                  child: avatarUrl.isNotEmpty
                                       ? CachedNetworkImage(
-                                          imageUrl: user.avatarUrl.value,
+                                          imageUrl: avatarUrl,
                                           fit: BoxFit.cover,
                                         )
                                       : const Center(
@@ -87,7 +92,7 @@ class MyStatisticView extends StatelessWidget {
                                     Row(
                                       children: [
                                         Text(
-                                          "${user.firstName.value} ${user.lastName.value}",
+                                          "$firstName $lastName",
                                           style: const TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -103,7 +108,7 @@ class MyStatisticView extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      user.nickname.value,
+                                      nickname,
                                       style: const TextStyle(
                                         color: Colors.black,
                                         fontSize: 13,

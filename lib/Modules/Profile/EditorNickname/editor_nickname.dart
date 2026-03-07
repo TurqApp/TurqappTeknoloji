@@ -6,12 +6,12 @@ import 'package:turqappv2/Core/Helpers/custom_nickname_formatter.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorNickname extends StatelessWidget {
   EditorNickname({super.key});
   final controller = Get.put(EditorNicknameController());
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,9 +25,12 @@ class EditorNickname extends StatelessWidget {
                 child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Obx(() {
+                      final current = userService.currentUserRx.value;
+                      final rozet = current?.rozet ?? '';
+                      final nickname = current?.nickname ?? '';
                       return Column(
                         children: [
-                          if (user.rozet.value == "")
+                          if (rozet == "")
                             Container(
                               height: 50,
                               alignment: Alignment.centerLeft,
@@ -67,7 +70,7 @@ class EditorNickname extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (user.rozet.value == "")
+                          if (rozet == "")
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Obx(() {
@@ -121,14 +124,14 @@ class EditorNickname extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 15),
                                   child: Text(
-                                    user.nickname.value,
+                                    nickname,
                                     style: TextStyle(
                                         color: Colors.grey,
                                         fontSize: 15,
                                         fontFamily: "MontserratMedium"),
                                   )),
                             ),
-                          if (user.rozet.value != "")
+                          if (rozet != "")
                             Padding(
                               padding: EdgeInsets.only(top: 12),
                               child: Row(
