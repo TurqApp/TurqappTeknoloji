@@ -31,6 +31,8 @@ class DeepLinkService extends GetxService {
       <String, _JobLookupCache>{};
   static final Map<String, _UserLookupCache> _userLookupCache =
       <String, _UserLookupCache>{};
+  static final Map<String, _StoryListLookupCache> _storyListLookupCache =
+      <String, _StoryListLookupCache>{};
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
@@ -361,6 +363,12 @@ class DeepLinkService extends GetxService {
   }
 
   Future<List<StoryModel>> _fetchStoriesByUserIndexSafe(String userId) async {
+    final cached = _storyListLookupCache[userId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return List<StoryModel>.from(cached.stories);
+    }
+
     QuerySnapshot<Map<String, dynamic>> storiesSnap;
     try {
       storiesSnap = await FirebaseFirestore.instance
@@ -381,6 +389,10 @@ class DeepLinkService extends GetxService {
         .map(StoryModel.fromDoc)
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    _storyListLookupCache[userId] = _StoryListLookupCache(
+      stories: List<StoryModel>.from(stories),
+      cachedAt: DateTime.now(),
+    );
     return stories;
   }
 
@@ -485,6 +497,16 @@ class _UserLookupCache {
 
   const _UserLookupCache({
     required this.data,
+    required this.cachedAt,
+  });
+}
+
+class _StoryListLookupCache {
+  final List<StoryModel> stories;
+  final DateTime cachedAt;
+
+  const _StoryListLookupCache({
+    required this.stories,
     required this.cachedAt,
   });
 }
