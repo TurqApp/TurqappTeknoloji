@@ -17,12 +17,11 @@ class JobContentController extends GetxController {
   Future<void> checkSaved(String docId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+    final savedDocId = '${uid}_$docId';
     try {
       final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
           .collection("SavedIsBul")
-          .doc(docId)
+          .doc(savedDocId)
           .get();
       saved.value = doc.exists;
     } catch (e) {
@@ -34,11 +33,10 @@ class JobContentController extends GetxController {
   Future<void> toggleSave(String docId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+    final savedDocId = '${uid}_$docId';
     final ref = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
         .collection("SavedIsBul")
-        .doc(docId);
+        .doc(savedDocId);
 
     try {
       final doc = await ref.get();
@@ -47,7 +45,11 @@ class JobContentController extends GetxController {
         await ref.delete();
         saved.value = false;
       } else {
-        final ts = {"timeStamp": DateTime.now().millisecondsSinceEpoch};
+        final ts = {
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+          "userID": uid,
+          "jobID": docId,
+        };
         await ref.set(ts);
         saved.value = true;
       }

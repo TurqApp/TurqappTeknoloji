@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/ShareGrid/share_grid.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
+import '../../../Models/current_user_model.dart';
 import '../../../Models/posts_model.dart';
 import '../../Short/short_controller.dart';
 import '../../Social/Comments/post_comments.dart';
@@ -25,8 +26,17 @@ import '../../../Core/Utils/avatar_url.dart';
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 class PostContentController extends GetxController {
   static final Map<String, _UserProfileCacheEntry> _userProfileCache = {};
-  static const Duration _userProfileCacheTtl = Duration(hours: 6);
+  static const Duration _userProfileCacheTtl = Duration(minutes: 20);
   static const int _pushTargetCutoffMs = 1772409600000;
+
+  static void invalidateUserProfileCache(String userId) {
+    if (userId.trim().isEmpty) return;
+    _userProfileCache.remove(userId);
+  }
+
+  static void clearUserProfileCache() {
+    _userProfileCache.clear();
+  }
 
   PostContentController({
     required this.model,
@@ -130,12 +140,24 @@ class PostContentController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _reshareDocSub;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   StreamSubscription<QuerySnapshot>? _commentsSub;
+  StreamSubscription<CurrentUserModel?>? _currentUserStreamSub;
 
   @override
   void onInit() {
     super.onInit();
     _interactionService = Get.put(PostInteractionService());
     currentModel.value = model;
+    final denormAvatar = model.authorAvatarUrl.trim();
+    avatarUrl.value = denormAvatar.isNotEmpty
+        ? resolveAvatarUrl({'avatarUrl': denormAvatar})
+        : kDefaultAvatarUrl;
+    final denormNick = model.authorNickname.trim();
+    if (denormNick.isNotEmpty) {
+      nickname.value = denormNick;
+      if (username.value.trim().isEmpty) {
+        username.value = denormNick;
+      }
+    }
     // Initialize counts after current build to avoid Obx update during build
     Future.microtask(() {
       countManager.initializeCounts(
@@ -147,7 +169,6 @@ class PostContentController extends GetxController {
         statsCount: model.stats.statsCount.toInt(),
       );
       _initializeStats();
-      _loadUserInteractionStatus();
     });
 
     getGizleArsivSikayetEdildi();
@@ -162,7 +183,6 @@ class PostContentController extends GetxController {
     followCheck();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _bindMembershipListeners();
-      _bindReshareListener();
       _bindPostDocCounts();
       _bindCommentsListener();
       onPostFrameBound();
@@ -179,6 +199,7 @@ class PostContentController extends GetxController {
     _reshareDocSub?.cancel();
     _postDocSub?.cancel();
     _commentsSub?.cancel();
+    _currentUserStreamSub?.cancel();
     super.onClose();
   }
 
@@ -187,35 +208,24 @@ class PostContentController extends GetxController {
     if (uid == null) return;
     _likeDocSub?.cancel();
     _savedDocSub?.cancel();
+    _reshareDocSub?.cancel();
     final postRef =
         FirebaseFirestore.instance.collection('Posts').doc(model.docID);
     Future.wait([
       postRef.collection('likes').doc(uid).get(),
       postRef.collection('saveds').doc(uid).get(),
+      postRef.collection('reshares').doc(uid).get(),
     ]).then((docs) {
       final likeDoc = docs[0];
       final savedDoc = docs[1];
+      final reshareDoc = docs[2];
       if (likeDoc.exists) {
         if (!likes.contains(uid)) likes.add(uid);
       } else {
         likes.remove(uid);
       }
       saved.value = savedDoc.exists;
-    }).catchError((_) {});
-  }
-
-  void _bindReshareListener() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    _reshareDocSub?.cancel();
-    FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('reshares')
-        .doc(uid)
-        .get()
-        .then((doc) {
-      yenidenPaylasildiMi.value = doc.exists;
+      yenidenPaylasildiMi.value = reshareDoc.exists;
     }).catchError((_) {});
   }
 
@@ -239,6 +249,37 @@ class PostContentController extends GetxController {
           (stats['retryCount'] ?? data['retryCount'] ?? 0) as int;
       countManager.getStatsCount(model.docID).value =
           (stats['statsCount'] ?? data['statsCount'] ?? 0) as int;
+
+      final latestAuthorNickname = (data['authorNickname'] ??
+              (data['author'] is Map
+                  ? (data['author'] as Map)['nickname']
+                  : null) ??
+              '')
+          .toString()
+          .trim();
+      final nicknameNeedsFallback = nickname.value.trim().isEmpty;
+      if (latestAuthorNickname.isNotEmpty &&
+          nicknameNeedsFallback &&
+          latestAuthorNickname != nickname.value) {
+        nickname.value = latestAuthorNickname;
+        if (username.value.trim().isEmpty) {
+          username.value = latestAuthorNickname;
+        }
+      }
+      final latestAuthorAvatar = (data['authorAvatarUrl'] ??
+              (data['author'] is Map
+                  ? (data['author'] as Map)['avatarUrl']
+                  : null) ??
+              '')
+          .toString()
+          .trim();
+      if (latestAuthorAvatar.isNotEmpty) {
+        final resolved = resolveAvatarUrl({'avatarUrl': latestAuthorAvatar});
+        if (resolved != avatarUrl.value) {
+          avatarUrl.value = resolved;
+        }
+      }
+
       if (data['poll'] != null) {
         try {
           model.poll = Map<String, dynamic>.from(data['poll']);
@@ -401,25 +442,6 @@ class PostContentController extends GetxController {
     savedCount.value = model.stats.savedCount.toInt();
     retryCount.value = model.stats.retryCount.toInt();
     statsCount.value = model.stats.statsCount.toInt();
-  }
-
-  Future<void> _loadUserInteractionStatus() async {
-    try {
-      final status =
-          await _interactionService.getUserInteractionStatus(model.docID);
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        if (status['liked'] ?? false) {
-          if (!likes.contains(uid)) likes.add(uid);
-        } else {
-          likes.remove(uid);
-        }
-      }
-      saved.value = status['saved'] ?? false;
-      yenidenPaylasildiMi.value = status['reshared'] ?? false;
-    } catch (e) {
-      print('[AgendaContent] interaction status error: $e');
-    }
   }
 
   Future<void> getGizleArsivSikayetEdildi() async {
@@ -723,6 +745,8 @@ class PostContentController extends GetxController {
   }
 
   Future<void> getUserData(String userID) async {
+    final postLevelAvatarFallback = model.authorAvatarUrl.trim();
+
     void applyProfile({
       required String nick,
       required String uname,
@@ -730,8 +754,13 @@ class PostContentController extends GetxController {
       required String pushToken,
       required String name,
     }) {
-      final normalizedImage =
-          image.toString().trim().isEmpty ? kDefaultAvatarUrl : image.trim();
+      final rawImage = image.toString().trim();
+      final shouldUsePostFallback =
+          postLevelAvatarFallback.isNotEmpty &&
+          (rawImage.isEmpty || rawImage == kDefaultAvatarUrl);
+      final normalizedImage = shouldUsePostFallback
+          ? postLevelAvatarFallback
+          : (rawImage.isEmpty ? kDefaultAvatarUrl : rawImage);
       nickname.value = nick;
       username.value = uname;
       avatarUrl.value = normalizedImage;
@@ -755,6 +784,31 @@ class PostContentController extends GetxController {
         fullName: name,
         updatedAt: DateTime.now(),
       );
+    }
+
+    void bindCurrentUserStream() {
+      _currentUserStreamSub?.cancel();
+      _currentUserStreamSub = userService.userStream.listen((user) {
+        if (user == null || user.userID != userID) return;
+        final currentUserDisplayName =
+            user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
+        final image = userService.avatarUrl;
+        applyProfile(
+          nick: user.nickname,
+          uname: user.nickname,
+          image: image,
+          pushToken: user.token,
+          name: currentUserDisplayName,
+        );
+        cacheProfile(
+          uid: userID,
+          nick: user.nickname,
+          uname: user.nickname,
+          image: image,
+          pushToken: user.token,
+          name: currentUserDisplayName,
+        );
+      });
     }
 
     bool applyFromMap(Map<String, dynamic>? data, {required String uid}) {
@@ -781,6 +835,17 @@ class PostContentController extends GetxController {
         pushToken: pushToken,
         name: name,
       );
+
+      // Self-heal: bazı eski kullanıcı dökümanlarında avatarUrl boş kalmış olabilir.
+      // Post denormalize avatar'ı varsa kök users/{uid}.avatarUrl alanını doldur.
+      final currentAvatarRaw = (data["avatarUrl"] ?? "").toString().trim();
+      if (postLevelAvatarFallback.isNotEmpty &&
+          (currentAvatarRaw.isEmpty || currentAvatarRaw == kDefaultAvatarUrl)) {
+        FirebaseFirestore.instance.collection("users").doc(uid).set({
+          "avatarUrl": postLevelAvatarFallback,
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
+        }, SetOptions(merge: true)).catchError((_) => null);
+      }
       cacheProfile(
         uid: uid,
         nick: nick,
@@ -790,6 +855,40 @@ class PostContentController extends GetxController {
         name: name,
       );
       return true;
+    }
+
+    // Current user posts should stay bound to current-user stream so avatar/
+    // nickname changes are reflected immediately in feed cards.
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == userID) {
+      if (userService.currentUser != null) {
+        final user = userService.currentUser!;
+        final currentUserDisplayName =
+            user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
+        final image = userService.avatarUrl;
+        applyProfile(
+          nick: user.nickname,
+          uname: user.nickname,
+          image: image,
+          pushToken: user.token,
+          name: currentUserDisplayName,
+        );
+        cacheProfile(
+          uid: userID,
+          nick: user.nickname,
+          uname: user.nickname,
+          image: image,
+          pushToken: user.token,
+          name: currentUserDisplayName,
+        );
+        bindCurrentUserStream();
+        return;
+      }
+      bindCurrentUserStream();
+    }
+    if (currentUserId != userID) {
+      _currentUserStreamSub?.cancel();
+      _currentUserStreamSub = null;
     }
 
     // 0) Aynı kullanıcı için hafızadaki cache tazeyse, ağa gitmeden çık.
@@ -803,30 +902,6 @@ class PostContentController extends GetxController {
         image: cachedProfile.avatarUrl,
         pushToken: cachedProfile.token,
         name: cachedProfile.fullName,
-      );
-      return;
-    }
-
-    // Check if it's the current user - load from cache instantly
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId == userID && userService.currentUser != null) {
-      final user = userService.currentUser!;
-      final currentUserDisplayName =
-          user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
-      applyProfile(
-        nick: user.nickname,
-        uname: user.nickname,
-        image: userService.avatarUrl,
-        pushToken: user.token,
-        name: currentUserDisplayName,
-      );
-      cacheProfile(
-        uid: userID,
-        nick: user.nickname,
-        uname: user.nickname,
-        image: userService.avatarUrl,
-        pushToken: user.token,
-        name: currentUserDisplayName,
       );
       return;
     }

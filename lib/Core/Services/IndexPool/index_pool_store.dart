@@ -131,6 +131,7 @@ class IndexPoolStore {
     if (!_ready) await init();
     final file = File(_filePath);
     final tmp = File('$_filePath.tmp');
+    await file.parent.create(recursive: true);
     await tmp.writeAsString(
       jsonEncode({
         'schemaVersion': _schemaVersion,
@@ -139,7 +140,18 @@ class IndexPoolStore {
       }),
       flush: true,
     );
-    await tmp.rename(file.path);
+    try {
+      await tmp.rename(file.path);
+    } on FileSystemException {
+      // Some Android devices occasionally fail rename() if parent path is
+      // transiently unavailable. Fallback keeps pool write durable.
+      await file.parent.create(recursive: true);
+      final bytes = await tmp.readAsBytes();
+      await file.writeAsBytes(bytes, flush: true);
+      if (await tmp.exists()) {
+        await tmp.delete();
+      }
+    }
   }
 
   Future<void> _deletePoolFile() async {

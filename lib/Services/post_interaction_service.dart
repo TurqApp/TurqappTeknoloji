@@ -25,6 +25,7 @@ class PostInteractionService extends GetxController {
 
   static const Duration _cacheTTL = Duration(seconds: 30);
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
+  final Set<String> _reportedByMe = <String>{};
   bool _permissionDeniedLogged = false;
 
   String? get currentUserID => _auth.currentUser?.uid;
@@ -549,6 +550,7 @@ class PostInteractionService extends GetxController {
     });
 
     if (reported) {
+      _reportedByMe.add(postId);
       _updateInteractionCache(postId, reported: true);
     }
 
@@ -647,18 +649,9 @@ class PostInteractionService extends GetxController {
         _postRef(postId).collection('reshares').doc(userId).get(),
       ]);
 
-      bool reported = false;
-      // reporters okunması rules tarafından kapalı olabilir; bu durumda sessiz fallback.
-      try {
-        final reporterDoc =
-            await _postRef(postId).collection('reporters').doc(userId).get();
-        reported = reporterDoc.exists;
-      } on FirebaseException catch (e) {
-        if (e.code != 'permission-denied' && !_permissionDeniedLogged) {
-          _permissionDeniedLogged = true;
-          print('Reporter status read error: $e');
-        }
-      }
+      // reporters read'i Firestore rules gereği kapalı; gereksiz permission-denied
+      // spamını önlemek için sadece local report cache'i kullan.
+      final reported = _reportedByMe.contains(postId);
 
       final status = <String, bool>{
         'liked': futures[0].exists,

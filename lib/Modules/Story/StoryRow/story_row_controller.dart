@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
@@ -26,9 +27,11 @@ class StoryRowController extends GetxController {
   final RxBool isLoading = false.obs;
   static const Duration _miniCacheTtl = Duration(minutes: 15);
   static const Duration _followingCacheTtl = Duration(minutes: 2);
+  static const Duration _expireCleanupInterval = Duration(minutes: 15);
   String? _miniCachePath;
   Set<String> _followingCache = <String>{};
   DateTime? _followingCacheAt;
+  DateTime? _lastExpireCleanupAt;
 
   String _resolveStoryNickname(Map<String, dynamic> data) {
     final nickname = (data['nickname'] ?? '').toString().trim();
@@ -217,16 +220,8 @@ class StoryRowController extends GetxController {
             continue;
           }
           final story = StoryModel.fromDoc(doc);
-          if (myUid != null && story.userId == myUid) {
-            print(
-                "📚 My story candidate: id=${story.id} createdAt=${story.createdAt.toIso8601String()} deleted=${data['deleted'] ?? false}");
-          }
           // 24 saatten eski hikayeleri listeye dahil etme
           if (story.createdAt.isBefore(expiry)) {
-            if (myUid != null && story.userId == myUid) {
-              print(
-                  "📚 My story filtered as expired: id=${story.id} createdAt=${story.createdAt.toIso8601String()} expiry=${expiry.toIso8601String()}");
-            }
             // Expire olan karşı taraf hikayelerini göstermiyoruz.
             // Kendi hikayelerimiz için arşivleme/temizlik aşağıda yapılacak.
             continue;
@@ -291,10 +286,6 @@ class StoryRowController extends GetxController {
           stories: stories,
         );
         tempList.add(userModel);
-        if (isMine) {
-          print(
-              "📚 My story user added to row with ${stories.length} active stories");
-        }
       }
 
       // Önce kendi kullanıcını oluştur/çek
@@ -319,7 +310,6 @@ class StoryRowController extends GetxController {
               userID: myUid,
               stories: [], // Burada boş!
             );
-            print("📚 My story user fallback added with 0 stories");
           }
         }
 
@@ -362,16 +352,22 @@ class StoryRowController extends GetxController {
         ...unseen,
         ...seen,
       ];
-      if (myUid != null) {
+      if (kDebugMode && myUid != null) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
-        print(
-            "📚 Story row final self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
+        debugPrint(
+            "Story row self state: exists=${me != null} stories=${me?.stories.length ?? 0}");
       }
       unawaited(_saveStoriesToMiniCache(users));
 
       // Kendi süresi dolmuş hikayelerini arşivle ve kaldır
       if (myUid != null) {
-        await _archiveAndRemoveExpiredMyStories(myUid);
+        final now = DateTime.now();
+        final shouldCleanup = _lastExpireCleanupAt == null ||
+            now.difference(_lastExpireCleanupAt!) >= _expireCleanupInterval;
+        if (shouldCleanup) {
+          _lastExpireCleanupAt = now;
+          await _archiveAndRemoveExpiredMyStories(myUid);
+        }
       }
     } catch (e) {
       print("📚 LoadStories error: $e");

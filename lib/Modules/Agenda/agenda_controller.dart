@@ -80,8 +80,6 @@ class AgendaController extends GetxController {
   // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
-  static const int _followedReshareUserLimit = 8;
-  static const int _perFollowedUserReshareLimit = 5;
 
   int _agendaCutoffMs(int nowMs) {
     if (_agendaWindow == null) return 0;
@@ -1405,50 +1403,8 @@ class AgendaController extends GetxController {
         }
       }
 
-      // Takip edilen kullanıcıların reshare eventleri
-      if (followingIDs.isNotEmpty) {
-        for (final followedUserId
-            in followingIDs.take(_followedReshareUserLimit)) {
-          try {
-            final userReshareSnap = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(followedUserId)
-                .collection('reshared_posts')
-                .orderBy('timeStamp', descending: true)
-                .limit(_perFollowedUserReshareLimit)
-                .get();
-
-            for (final doc in userReshareSnap.docs) {
-              final data = doc.data();
-              final postId = data['post_docID'] as String?;
-              final timestamp = (data['timeStamp'] ?? 0) as int;
-              final originalUserID = data['originalUserID'] as String?;
-              final originalPostID = data['originalPostID'] as String?;
-
-              if (postId != null && postId.isNotEmpty) {
-                allReshareEvents.add({
-                  'postID': postId,
-                  'userID': followedUserId,
-                  'timeStamp': timestamp,
-                  'originalUserID': originalUserID ?? '',
-                  'originalPostID': originalPostID ?? '',
-                  'type': 'reshare'
-                });
-              }
-            }
-          } on FirebaseException catch (e) {
-            // Rules izin vermiyorsa log spam yapmadan o kullanıcıyı atla.
-            if (e.code != 'permission-denied') {
-              debugPrint(
-                'Reshare fetch error user=$followedUserId code=${e.code}',
-              );
-            }
-          } catch (e) {
-            debugPrint(
-                'Reshare fetch unexpected error user=$followedUserId: $e');
-          }
-        }
-      }
+      // users/{otherUid}/reshared_posts owner-only olduğundan (rules),
+      // sadece current user reshare verisi kullanılır.
 
       // Reshare eventlerdeki postları getir ve feed reshare entries'e ekle
       final Set<String> resharedPostIds =

@@ -28,12 +28,14 @@ class SavedJobsController extends GetxController {
       if (uid == null) return;
 
       final savedSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
           .collection("SavedIsBul")
+          .where("userID", isEqualTo: uid)
           .get();
 
-      final savedIds = savedSnap.docs.map((e) => e.id).toList();
+      final savedIds = savedSnap.docs
+          .map((e) => (e.data()["jobID"] ?? "").toString())
+          .where((id) => id.isNotEmpty)
+          .toList();
 
       if (savedIds.isEmpty) {
         list.clear();
@@ -76,10 +78,8 @@ class SavedJobsController extends GetxController {
           final batch = FirebaseFirestore.instance.batch();
           for (final docId in chunk) {
             final ref = FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
                 .collection("SavedIsBul")
-                .doc(docId);
+                .doc('${uid}_$docId');
             batch.delete(ref);
           }
           await batch.commit();

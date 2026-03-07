@@ -101,11 +101,10 @@ class JobDetailsController extends GetxController {
         saved.value = false;
         return;
       }
+      final savedDocId = '${uid}_$docId';
       final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
           .collection('SavedIsBul')
-          .doc(docId)
+          .doc(savedDocId)
           .get();
       saved.value = snap.exists;
     } catch (e) {
@@ -120,11 +119,10 @@ class JobDetailsController extends GetxController {
       AppSnackbar('Hata', 'Lütfen tekrar giriş yapın.');
       return;
     }
+    final savedDocId = '${uid}_$docId';
     final userSavedRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
         .collection('SavedIsBul')
-        .doc(docId);
+        .doc(savedDocId);
 
     try {
       final snap = await userSavedRef.get();
@@ -133,7 +131,11 @@ class JobDetailsController extends GetxController {
         await userSavedRef.delete();
         saved.value = false;
       } else {
-        final ts = {'timeStamp': DateTime.now().millisecondsSinceEpoch};
+        final ts = {
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
+          'userID': uid,
+          'jobID': docId,
+        };
         await userSavedRef.set(ts);
         saved.value = true;
       }
