@@ -1056,8 +1056,9 @@ class ChatController extends GetxController {
 
         // Anında UI güncellemesi: sunucu sync beklemeden mesaj listesine düşür.
         try {
-          final optimistic = MessageModel.fromConversationSnapshot(
-            await addedRef.get(),
+          final optimistic = MessageModel.fromConversationData(
+            conversationMessageData,
+            addedRef.id,
           );
           _conversationMessages[optimistic.docID] = optimistic;
           _refreshMergedMessages();
