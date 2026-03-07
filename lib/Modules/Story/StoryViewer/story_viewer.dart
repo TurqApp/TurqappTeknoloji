@@ -9,8 +9,8 @@ import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Core/connectivity_helper.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 
 class StoryViewer extends StatefulWidget {
   final StoryUserModel startedUser;
@@ -482,7 +482,7 @@ class _StoryViewerState extends State<StoryViewer>
       // En son izlenen zaman (local cache öncelikli)
       final lastSeen =
           StoryInteractionOptimizer.to.localTimeCache[user.userID] ??
-              Get.find<FirebaseMyStore>().readStoriesTimes[user.userID];
+              CurrentUserService.instance.getStoryReadTime(user.userID);
       if (lastSeen == null) return 0; // Hiç izlenmemişse en yeni
 
       // Hikayeler en yeni -> en eski sıralı

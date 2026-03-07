@@ -2,12 +2,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class StoryInteractionOptimizer extends GetxService {
   static StoryInteractionOptimizer get to => Get.find();
-
-  final FirebaseMyStore _userStore = Get.find<FirebaseMyStore>();
+  final CurrentUserService _userService = CurrentUserService.instance;
 
   // Debouncing ve batching için
   Timer? _writeTimer;
@@ -23,8 +22,7 @@ class StoryInteractionOptimizer extends GetxService {
   final RxMap<String, int> localTimeCache = <String, int>{}.obs;
 
   // Stream subscriptions for cleanup
-  StreamSubscription<List<String>>? _readStoriesSubscription;
-  StreamSubscription<Map<String, int>>? _readTimesSubscription;
+  StreamSubscription? _userSubscription;
 
   @override
   void onInit() {
@@ -34,15 +32,15 @@ class StoryInteractionOptimizer extends GetxService {
 
   /// Local cache'i Firestore data ile sync et
   void _initializeLocalCache() {
-    // Stream subscriptions'ları kaydet (cleanup için)
-    _readStoriesSubscription = _userStore.readStories.listen((stories) {
-      for (String userId in stories) {
+    _userSubscription = _userService.userStream.listen((user) {
+      localStoryCache.clear();
+      localTimeCache.clear();
+      if (user == null) return;
+
+      for (final userId in user.readStories) {
         localStoryCache[userId] = true;
       }
-    });
-
-    _readTimesSubscription = _userStore.readStoriesTimes.listen((times) {
-      localTimeCache.assignAll(times);
+      localTimeCache.assignAll(user.readStoriesTimes);
     });
   }
 
@@ -183,8 +181,7 @@ class StoryInteractionOptimizer extends GetxService {
     _writeTimer?.cancel();
 
     // Stream subscriptions'ları temizle
-    await _readStoriesSubscription?.cancel();
-    await _readTimesSubscription?.cancel();
+    await _userSubscription?.cancel();
 
     // Pending operations'ları bekle ve temizle
     if (_pendingOperations.isNotEmpty) {
@@ -211,8 +208,7 @@ class StoryInteractionOptimizer extends GetxService {
     _writeTimer?.cancel();
 
     // Stream subscriptions'ları temizle
-    _readStoriesSubscription?.cancel();
-    _readTimesSubscription?.cancel();
+    _userSubscription?.cancel();
 
     // Pending operations'ları temizle
     _pendingOperations.clear();

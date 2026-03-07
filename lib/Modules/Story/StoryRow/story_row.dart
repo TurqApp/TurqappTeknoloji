@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_circle.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 
 class StoryRow extends StatelessWidget {
@@ -10,7 +9,6 @@ class StoryRow extends StatelessWidget {
   final controller = Get.isRegistered<StoryRowController>()
       ? Get.find<StoryRowController>()
       : Get.put(StoryRowController());
-  final userStore = Get.find<FirebaseMyStore>();
 
   @override
   Widget build(BuildContext context) {

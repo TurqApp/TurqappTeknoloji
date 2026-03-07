@@ -10,14 +10,14 @@ import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import '../../../Core/Services/performance_service.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
-import '../../../Services/firebase_my_store.dart';
+import '../../../Services/current_user_service.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
 import 'story_user_model.dart';
 
 class StoryRowController extends GetxController {
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
-  final userStore = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
   StreamSubscription? _followingSub;
   final int initialLimit = 30;
@@ -240,7 +240,7 @@ class StoryRowController extends GetxController {
         }
 
         // Engellediklerimi gösterme
-        if (userStore.blockedUsers.contains(userId)) {
+        if (userService.isUserBlocked(userId)) {
           if (isMine) {
             print("📚 My story user unexpectedly filtered as blocked");
           }
@@ -294,13 +294,11 @@ class StoryRowController extends GetxController {
       bool allSeen(StoryUserModel u) {
         if (u.stories.isEmpty) return true; // boşsa seen kabul
 
-        // REACTIVE: userStore.readStories'ı dinle
-        if (!userStore.readStories.contains(u.userID)) {
+        if (!userService.hasReadStory(u.userID)) {
           return false; // Hiç okunmamışsa
         }
 
-        // REACTIVE: userStore.readStoriesTimes'ı dinle
-        final lastSeen = userStore.readStoriesTimes[u.userID];
+        final lastSeen = userService.getStoryReadTime(u.userID);
         if (lastSeen == null) return false;
 
         // Tüm hikayelerin zamanını kontrol et

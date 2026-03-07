@@ -10,7 +10,6 @@ import 'package:turqappv2/Modules/Story/StoryMaker/story_maker.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
@@ -28,7 +27,6 @@ class StoryCircle extends StatefulWidget {
 }
 
 class _StoryCircleState extends State<StoryCircle> {
-  final userStore = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
   final storeController = Get.find<StoryRowController>();
 
@@ -126,8 +124,10 @@ class _StoryCircleState extends State<StoryCircle> {
                   // Görülmemiş story sayısını hesapla
                   int unseenCount = 0;
                   if (hasStory && !isMe) {
-                    final lastSeenTime =
-                        userStore.readStoriesTimes[widget.model.userID] ?? 0;
+                    final lastSeenTime = StoryInteractionOptimizer
+                            .to.localTimeCache[widget.model.userID] ??
+                        userService.getStoryReadTime(widget.model.userID) ??
+                        0;
                     for (final s in widget.model.stories) {
                       if (s.createdAt.millisecondsSinceEpoch > lastSeenTime) {
                         unseenCount++;
@@ -137,9 +137,8 @@ class _StoryCircleState extends State<StoryCircle> {
 
                   Widget avatarImage() {
                     // Use CachedUserAvatar for all users (instant for current user)
-                    final imageUrl = isMe
-                        ? userService.avatarUrl
-                        : widget.model.avatarUrl;
+                    final imageUrl =
+                        isMe ? userService.avatarUrl : widget.model.avatarUrl;
 
                     if (imageUrl.isEmpty) {
                       return Container(color: Colors.grey.withAlpha(60));
