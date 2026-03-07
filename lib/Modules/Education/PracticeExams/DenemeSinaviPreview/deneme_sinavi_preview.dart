@@ -463,7 +463,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          height: 220,
+                          height: (Get.height * 0.28).clamp(190.0, 220.0),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
