@@ -145,6 +145,23 @@ class _ProfileViewState extends State<ProfileView> {
     }
   }
 
+  double _socialLinksHeight() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (screenHeight < 740) return 92;
+    return 102;
+  }
+
+  double _socialLinkItemWidth() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return (screenWidth * 0.175).clamp(60.0, 70.0);
+  }
+
+  double _socialLinkItemSpacing() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return 12;
+    return 18;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1275,17 +1292,21 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget socialMediaLinks() {
+    final linksHeight = _socialLinksHeight();
+    final linkItemWidth = _socialLinkItemWidth();
+    final linkItemSpacing = _socialLinkItemSpacing();
+
     return SizedBox(
-      height: 102,
+      height: linksHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 15),
         itemCount: socialMediaController.list.length,
         itemBuilder: (context, index) {
           return Padding(
-            padding: const EdgeInsets.only(right: 18),
+            padding: EdgeInsets.only(right: linkItemSpacing),
             child: SizedBox(
-              width: 70,
+              width: linkItemWidth,
               child: GestureDetector(
                 onTap: () {
                   launchUrl(Uri.parse(socialMediaController.list[index].url));
