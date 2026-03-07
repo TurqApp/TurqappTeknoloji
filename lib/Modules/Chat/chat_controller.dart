@@ -84,6 +84,7 @@ class ChatController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _typingStream;
   bool _typingActive = false;
   int _lastTypingHeartbeatMs = 0;
+  bool _recipientMuted = false;
   static const int _typingHeartbeatIntervalMs = 1500;
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _recordingPath;
@@ -105,65 +106,6 @@ class ChatController extends GetxController {
   }
 
   ChatController({required this.chatID, required this.userID});
-
-  Future<void> _upsertLegacyMessageHead({
-    required String lastMessage,
-    required int timestampMs,
-  }) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null || currentUid.isEmpty) return;
-    await FirebaseFirestore.instance.collection("message").doc(chatID).set({
-      "deleted": <String>[],
-      "timeStamp": timestampMs,
-      "userID1": currentUid,
-      "userID2": userID,
-      "participants": [currentUid, userID],
-      "lastMessage": lastMessage,
-      "lastSenderId": currentUid,
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> _appendLegacyChatMessage({
-    required String text,
-    required List<String> imageUrls,
-    required String videoUrl,
-    required String videoThumbnail,
-    required String audioUrl,
-    required int audioDurationMs,
-    required LatLng? latLng,
-    required String? kisiAdSoyad,
-    required String? kisiTelefon,
-    required String? postID,
-    required String? postType,
-    required String? gif,
-    required int timeStampMs,
-  }) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUid == null || currentUid.isEmpty) return;
-    await FirebaseFirestore.instance
-        .collection("message")
-        .doc(chatID)
-        .collection("Chat")
-        .add({
-      "timeStamp": timeStampMs,
-      "userID": currentUid,
-      "metin": text,
-      "imgs": gif != null && gif.isNotEmpty ? [gif] : imageUrls,
-      "video": videoUrl,
-      "videoThumbnail": videoThumbnail,
-      "sesliMesaj": audioUrl,
-      "audioDurationMs": audioDurationMs,
-      "lat": latLng?.latitude ?? 0,
-      "long": latLng?.longitude ?? 0,
-      "kisiAdSoyad": kisiAdSoyad ?? "",
-      "kisiTelefon": kisiTelefon ?? "",
-      "postID": postID ?? "",
-      "postType": postType ?? "",
-      "isRead": false,
-      "begeniler": <String>[],
-      "kullanicilar": <String>[],
-    });
-  }
 
   @override
   void onInit() {
@@ -252,7 +194,7 @@ class ChatController extends GetxController {
           <String, dynamic>{};
 
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
       avatarUrl.value = (data["avatarUrl"] ?? "").toString();
       token.value = (data["token"] ?? "").toString();
@@ -346,6 +288,8 @@ class ChatController extends GetxController {
       if (!doc.exists) return;
       final data = doc.data() ?? {};
       final typing = data["typing"] as Map<String, dynamic>? ?? {};
+      final muted = data["muted"] as Map<String, dynamic>? ?? {};
+      _recipientMuted = muted[userID] == true;
       final otherTs = typing[userID] as num? ?? 0;
       final now = DateTime.now().millisecondsSinceEpoch;
       isOtherTyping.value = otherTs > 0 && (now - otherTs) < 3000;
@@ -391,6 +335,8 @@ class ChatController extends GetxController {
           .get();
       final data = doc.data() ?? <String, dynamic>{};
       final raw = (data["chatBg.$uid"] ?? data["chatBgIndex"]) as dynamic;
+      final muted = data["muted"] as Map<String, dynamic>? ?? {};
+      _recipientMuted = muted[userID] == true;
       int idx = 0;
       if (raw is int) {
         idx = raw;
@@ -1106,37 +1052,6 @@ class ChatController extends GetxController {
         final addedRef =
             await convRef.collection("messages").add(conversationMessageData);
 
-        bool recipientMuted = false;
-        try {
-          final convSnap = await convRef.get();
-          final convData = convSnap.data() ?? <String, dynamic>{};
-          final mutedMap = Map<String, dynamic>.from(convData["muted"] ?? {});
-          recipientMuted = mutedMap[userID] == true;
-        } catch (_) {}
-
-        // Legacy mirror: keep "message" collection in sync as well.
-        try {
-          await _upsertLegacyMessageHead(
-            lastMessage: previewText,
-            timestampMs: now.millisecondsSinceEpoch,
-          );
-          await _appendLegacyChatMessage(
-            text: text,
-            imageUrls: imageUrls ?? const <String>[],
-            videoUrl: videoUrl ?? "",
-            videoThumbnail: videoThumbnail ?? "",
-            audioUrl: audioUrl ?? "",
-            audioDurationMs: audioDurationMs ?? 0,
-            latLng: latLng,
-            kisiAdSoyad: kisiAdSoyad,
-            kisiTelefon: kisiTelefon,
-            postID: postID,
-            postType: postType,
-            gif: gif,
-            timeStampMs: now.millisecondsSinceEpoch,
-          );
-        } catch (_) {}
-
         print("✅ Firestore yazımı başarılı");
 
         // Anında UI güncellemesi: sunucu sync beklemeden mesaj listesine düşür.
@@ -1152,7 +1067,7 @@ class ChatController extends GetxController {
         }
 
         // Notifikasyon gönder (hata olursa mesaj zaten gönderildi)
-        if (!recipientMuted) {
+        if (!_recipientMuted) {
           try {
             NotificationService.instance.sendNotification(
               token: token.value,

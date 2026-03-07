@@ -262,15 +262,16 @@ class DenemeGrid extends StatelessWidget {
                       SizedBox(width: 7),
                       Expanded(
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
+                            Flexible(
                               child: Obx(
                                 () => Text(
                                   controller.isLoadingProfile.value
                                       ? 'Yükleniyor...'
                                       : controller.nickname.value.isEmpty
                                           ? 'Kullanıcı Bulunamadı'
-                                          : '@${controller.nickname.value}',
+                                          : controller.nickname.value,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -281,7 +282,7 @@ class DenemeGrid extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 1),
                             RozetContent(size: 13, userID: model.userID),
                           ],
                         ),

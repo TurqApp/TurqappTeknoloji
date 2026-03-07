@@ -48,14 +48,9 @@ class MessageContentController extends GetxController {
         .then((doc) {
       final data = doc.data() ?? const <String, dynamic>{};
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
+      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
     });
 
     if (model.postID != "") {
@@ -345,26 +340,14 @@ class MessageContentController extends GetxController {
           'isDestructive': true,
           'color': Colors.red,
           'onPressed': () {
-            if (model.source == "conversation") {
-              FirebaseFirestore.instance
-                  .collection("conversations")
-                  .doc(mainID)
-                  .collection("messages")
-                  .doc(model.rawDocID)
-                  .update({
-                "isDeleted": true,
-              });
-            } else {
-              FirebaseFirestore.instance
-                  .collection("message")
-                  .doc(mainID)
-                  .collection("Chat")
-                  .doc(model.rawDocID)
-                  .update({
-                "kullanicilar": FieldValue.arrayRemove(
-                    [FirebaseAuth.instance.currentUser!.uid])
-              });
-            }
+            FirebaseFirestore.instance
+                .collection("conversations")
+                .doc(mainID)
+                .collection("messages")
+                .doc(model.rawDocID)
+                .update({
+              "isDeleted": true,
+            });
           },
         },
         {
@@ -372,36 +355,17 @@ class MessageContentController extends GetxController {
           'isDestructive': false,
           'color': Colors.red,
           'onPressed': () {
-            if (model.source == "conversation") {
-              FirebaseFirestore.instance
-                  .collection("conversations")
-                  .doc(mainID)
-                  .collection("messages")
-                  .doc(model.rawDocID)
-                  .update({
-                "unsent": true,
-                "text": "",
-                "mediaUrls": <String>[],
-                "isDeleted": false,
-              });
-            } else {
-              FirebaseFirestore.instance
-                  .collection("message")
-                  .doc(mainID)
-                  .collection("Chat")
-                  .doc(model.rawDocID)
-                  .update({
-                "unsent": true,
-                "metin": "",
-                "imgs": <String>[],
-                "lat": 0,
-                "long": 0,
-                "postID": "",
-                "postType": "",
-                "kisiAdSoyad": "",
-                "kisiTelefon": "",
-              });
-            }
+            FirebaseFirestore.instance
+                .collection("conversations")
+                .doc(mainID)
+                .collection("messages")
+                .doc(model.rawDocID)
+                .update({
+              "unsent": true,
+              "text": "",
+              "mediaUrls": <String>[],
+              "isDeleted": false,
+            });
           },
         },
       ],
@@ -409,22 +373,16 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final docRef = model.source == "conversation"
-        ? FirebaseFirestore.instance
-            .collection("conversations")
-            .doc(mainID)
-            .collection("messages")
-            .doc(model.rawDocID)
-        : FirebaseFirestore.instance
-            .collection("message")
-            .doc(mainID)
-            .collection("Chat")
-            .doc(model.rawDocID);
+    final docRef = FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(mainID)
+        .collection("messages")
+        .doc(model.rawDocID);
 
     final docSnapshot = await docRef.get();
 
     if (docSnapshot.exists) {
-      final fieldName = model.source == "conversation" ? "likes" : "begeniler";
+      const fieldName = "likes";
       final currentLikes = List<String>.from(docSnapshot.get(fieldName) ?? []);
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
 
@@ -450,18 +408,13 @@ class MessageContentController extends GetxController {
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await FirebaseFirestore.instance
-            .collection(
-                model.source == "conversation" ? "conversations" : "message")
+            .collection("conversations")
             .doc(mainID)
-            .collection(model.source == "conversation" ? "messages" : "Chat")
+            .collection("messages")
             .doc(model.rawDocID)
-            .update(model.source == "conversation"
-                ? {
-                    "mediaUrls": FieldValue.arrayRemove([imgUrl])
-                  }
-                : {
-                    "imgs": FieldValue.arrayRemove([imgUrl])
-                  });
+            .update({
+          "mediaUrls": FieldValue.arrayRemove([imgUrl])
+        });
       },
     );
   }
@@ -490,12 +443,7 @@ class MessageContentController extends GetxController {
                   data["nickname"] ??
                   "")
               .toString();
-          postPfImage.value = (data["avatarUrl"] ??
-                  data["avatarUrl"] ??
-                  data["avatarUrl"] ??
-                  data["avatarUrl"] ??
-                  "")
-              .toString();
+          postPfImage.value = (data["avatarUrl"] ?? "").toString();
         });
       }
     });

@@ -109,7 +109,6 @@ class ChatListingContent extends StatelessWidget {
 
   Future<void> _archiveChat() async {
     final db = FirebaseFirestore.instance;
-    var wrote = false;
     await db
         .collection("users")
         .doc(_uid)
@@ -121,38 +120,10 @@ class ChatListingContent extends StatelessWidget {
       "archived": true,
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
-    wrote = true;
+    await db.collection("conversations").doc(model.chatID).set({
+      "archived.$_uid": true,
+    }, SetOptions(merge: true));
 
-    try {
-      final convById =
-          await db.collection("conversations").doc(model.chatID).get();
-      if (convById.exists) {
-        await convById.reference
-            .set({"archived.$_uid": true}, SetOptions(merge: true));
-        wrote = true;
-      }
-    } catch (_) {}
-
-    try {
-      final convCandidates = await db
-          .collection("conversations")
-          .where("participants", arrayContains: _uid)
-          .get();
-      for (final doc in convCandidates.docs) {
-        final participants =
-            List<String>.from(doc.data()["participants"] ?? []);
-        if (participants.contains(model.userID)) {
-          await doc.reference
-              .set({"archived.$_uid": true}, SetOptions(merge: true));
-          wrote = true;
-        }
-      }
-    } catch (_) {}
-
-    if (!wrote) {
-      AppSnackbar("Hata", "Arşivleme yetkisi yok veya sohbet kaydı bulunamadı");
-      return;
-    }
     await _refreshList();
     AppSnackbar("Tamamlandı", "Sohbet arşive taşındı");
   }
@@ -178,21 +149,6 @@ class ChatListingContent extends StatelessWidget {
       await db.collection("conversations").doc(model.chatID).set({
         "archived.$_uid": false,
       }, SetOptions(merge: true));
-    } catch (_) {}
-
-    try {
-      final convCandidates = await db
-          .collection("conversations")
-          .where("participants", arrayContains: _uid)
-          .get();
-      for (final doc in convCandidates.docs) {
-        final participants =
-            List<String>.from(doc.data()["participants"] ?? []);
-        if (participants.contains(model.userID)) {
-          await doc.reference
-              .set({"archived.$_uid": false}, SetOptions(merge: true));
-        }
-      }
     } catch (_) {}
 
     await _refreshList();

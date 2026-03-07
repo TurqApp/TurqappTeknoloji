@@ -154,7 +154,6 @@ class RecommendedUserListController extends GetxController {
       final snap = await FirebaseFirestore.instance
           .collection('users')
           .where('isPrivate', isEqualTo: false)
-          .orderBy('createdDate', descending: true)
           .limit(lim)
           .get(const GetOptions(source: Source.serverAndCache))
           .timeout(

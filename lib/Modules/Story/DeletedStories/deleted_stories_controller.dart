@@ -37,14 +37,13 @@ class DeletedStoriesController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Güvenli sorgu: userId'e göre sırala ve client-side deleted filtresi uygula
-      Query q = FirebaseFirestore.instance
+      // Index'siz güvenli sorgu: sadece userId ile çek, sıralamayı client-side yap.
+      Query<Map<String, dynamic>> q = FirebaseFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: uid)
-          .orderBy('createdDate', descending: true)
           .limit(pageSize);
       if (lastDoc != null) {
-        q = (q as Query<Map<String, dynamic>>).startAfterDocument(lastDoc!);
+        q = q.startAfterDocument(lastDoc!);
       }
       final snap = await q.get();
       if (snap.docs.isEmpty) {
@@ -55,7 +54,7 @@ class DeletedStoriesController extends GetxController {
 
       final items = <StoryModel>[];
       for (final d in snap.docs) {
-        final data = d.data() as Map<String, dynamic>;
+        final data = d.data();
         final isDeleted = (data['deleted'] ?? false) == true;
         if (isDeleted) {
           final m =
@@ -67,17 +66,17 @@ class DeletedStoriesController extends GetxController {
           if (reason.isNotEmpty) deleteReasonById[m.id] = reason;
         }
       }
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       list.addAll(items);
       if (snap.docs.length < pageSize) hasMore.value = false;
     } catch (e) {
-      // Index problemlerinde fallback: sadece userId filtresiyle çekip client-side filtrele
+      // Fallback: sadece userId filtresiyle çekip client-side filtrele/sırala
       try {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid == null) return;
         final q = await FirebaseFirestore.instance
             .collection('stories')
             .where('userId', isEqualTo: uid)
-            .orderBy('createdDate', descending: true)
             .limit(pageSize)
             .get();
         final items2 = <StoryModel>[];
@@ -94,6 +93,7 @@ class DeletedStoriesController extends GetxController {
             if (reason.isNotEmpty) deleteReasonById[m.id] = reason;
           }
         }
+        items2.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         list.addAll(items2);
         if (q.docs.length < pageSize) hasMore.value = false;
       } catch (_) {}

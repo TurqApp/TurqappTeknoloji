@@ -216,7 +216,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
+                                    const Text(' '),
                                     RozetContent(
                                       size: 16,
                                       userID: controller.model.userID,

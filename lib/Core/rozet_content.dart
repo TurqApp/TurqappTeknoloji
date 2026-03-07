@@ -8,49 +8,81 @@ class RozetController extends GetxController {
   RozetController(this.userID);
 
   Rx<Color> color = Colors.transparent.obs;
+  static final Map<String, Color> _badgeCache = <String, Color>{};
+  static final Map<String, int> _badgeCacheMs = <String, int>{};
+  static const int _cacheTtlMs = 10 * 60 * 1000;
 
   @override
   void onInit() {
     super.onInit();
-    fetchRozet();
+    _loadRozet();
   }
 
-  void fetchRozet() async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
+  Color _mapRozetColor(String rozet) {
+    switch (rozet) {
+      case "Kirmizi":
+        return Colors.red;
+      case "Mavi":
+        return Colors.blue;
+      case "Sari":
+        return Colors.orange;
+      case "Siyah":
+        return Colors.black;
+      case "Gri":
+        return Colors.grey;
+      case "Turkuaz":
+        return const Color(0xFF40E0D0);
+      default:
+        return Colors.transparent;
+    }
+  }
 
-    if (doc.exists) {
-      final rozet = doc.get("rozet") ?? "";
+  Future<void> _loadRozet() async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cachedColor = _badgeCache[userID];
+    final cachedAt = _badgeCacheMs[userID] ?? 0;
+    final isFresh = cachedColor != null && (nowMs - cachedAt) < _cacheTtlMs;
+    if (isFresh) {
+      color.value = cachedColor;
+      return;
+    }
+    if (cachedColor != null) {
+      color.value = cachedColor;
+    }
+    await _fetchRozetOnce();
+  }
 
-      switch (rozet) {
-        case "Kirmizi":
-          color.value = Colors.red;
-          break;
-        case "Mavi":
-          color.value = Colors.blue;
-          break;
-        case "Sari":
-          color.value = Colors.orange;
-          break;
-        case "Siyah":
-          color.value = Colors.black;
-          break;
-        case "Gri":
-          color.value = Colors.grey;
-          break;
-        case "Turkuaz":
-          color.value = const Color(0xFF40E0D0);
-          break;
-        default:
-          color.value = Colors.transparent;
+  Future<void> _fetchRozetOnce() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>>? doc;
+      try {
+        doc = await FirebaseFirestore.instance
+            .collection("users")
+            .doc(userID)
+            .get(const GetOptions(source: Source.cache));
+      } catch (_) {}
+      doc ??= await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get(const GetOptions(source: Source.serverAndCache));
+      if (!doc.exists) {
+        color.value = Colors.transparent;
+        return;
       }
+      final data = doc.data() ?? const <String, dynamic>{};
+      final rozet = (data["rozet"] ?? "").toString();
+      final mapped = _mapRozetColor(rozet);
+      color.value = mapped;
+      _badgeCache[userID] = mapped;
+      _badgeCacheMs[userID] = DateTime.now().millisecondsSinceEpoch;
+    } catch (_) {
+      color.value = Colors.transparent;
     }
   }
 
   void updateUserID(String newUserID) {
-    if (newUserID != userID) {
-      fetchRozet();
-    }
+    if (newUserID != userID) return;
+    _loadRozet();
   }
 }
 

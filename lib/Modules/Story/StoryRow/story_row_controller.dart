@@ -134,6 +134,25 @@ class StoryRowController extends GetxController {
     super.onClose();
   }
 
+  Future<void> clearSessionCache() async {
+    users.clear();
+    _followingCache = <String>{};
+    _followingCacheAt = null;
+    _backgroundScheduled = false;
+    try {
+      if (_miniCachePath == null) await _initMiniCache();
+      final path = _miniCachePath;
+      if (path != null) {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    } catch (e) {
+      print('Story mini cache clear error: $e');
+    }
+  }
+
   Future<void> loadStories(
       {int? limit, bool cacheFirst = false, bool silentLoad = false}) async {
     final loadWatch = Stopwatch()..start();
@@ -393,8 +412,10 @@ class StoryRowController extends GetxController {
     if (path == null) return;
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
+      final ownerUid = FirebaseAuth.instance.currentUser?.uid ?? '';
       final payload = {
         'savedAt': now,
+        'ownerUid': ownerUid,
         'users': list.map((u) => u.toCacheMap()).toList(),
       };
       final file = File(path);
@@ -417,6 +438,16 @@ class StoryRowController extends GetxController {
       if (raw.trim().isEmpty) return;
       final data = jsonDecode(raw);
       if (data is! Map) return;
+      final expectedUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      final ownerUid = (data['ownerUid'] ?? '').toString();
+      if (expectedUid.isNotEmpty &&
+          (ownerUid.isEmpty || ownerUid != expectedUid)) {
+        // Prevent cross-account story bleed from disk cache.
+        try {
+          await file.delete();
+        } catch (_) {}
+        return;
+      }
       final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
       if (!allowExpired && savedAt > 0) {
         final age = DateTime.now()
@@ -460,7 +491,6 @@ class StoryRowController extends GetxController {
       final expiredSnap = await FirebaseFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: myUid)
-          .orderBy('createdDate', descending: true)
           .get();
 
       for (final doc in expiredSnap.docs) {

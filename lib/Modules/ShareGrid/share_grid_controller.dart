@@ -3,7 +3,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 
@@ -106,77 +105,14 @@ class ShareGridController extends GetxController {
         }
       });
 
-      if (sohbet != null) {
-        sendMessageForStoryNotUse(
-            sohbetID: sohbet.chatID, postID: postID, postType: postType);
-      } else {
-        await FirebaseFirestore.instance.collection("message").doc(chatId).set({
-          "deleted": [],
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-          "userID1": FirebaseAuth.instance.currentUser!.uid,
-          "userID2": userID
-        }, SetOptions(merge: true));
-        sendMessageForStoryNotUse(
-            sohbetID: chatId, postID: postID, postType: postType);
-      }
-      chatListingController.getList();
-    } catch (e) {
-      AppSnackbar("Hata", "Gönderilemedi: $e");
-    }
-  }
-
-  void sendMessageForStoryNotUse({
-    List<String>? imageUrls,
-    LatLng? latLng,
-    String? kisiAdSoyad,
-    String? kisiTelefon,
-    String? gif,
-    String? postID,
-    String? postType,
-    required String sohbetID,
-  }) {
-    if (imageUrls != [] ||
-        latLng != null ||
-        kisiAdSoyad != "" ||
-        postID != "") {
-      Map<String, dynamic> mesajData = {
-        "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
-        "lat": latLng != null ? latLng.latitude.toDouble() : 0.0,
-        "long": latLng != null ? latLng.longitude.toDouble() : 0.0,
-        "postType": (postType != "" && postType != null) ? postType : "",
-        "postID": (postID != "" && postID != null) ? postID : "",
-        "imgs": gif != null ? [gif] : imageUrls ?? [],
-        "video": "",
-        "isRead": false,
-        "kullanicilar": [
-          selectedUser.value!.userID,
-          FirebaseAuth.instance.currentUser!.uid
-        ],
-        "metin": "",
-        "sesliMesaj": "",
-        "kisiAdSoyad": kisiAdSoyad ?? "",
-        "kisiTelefon": kisiTelefon ?? "",
-        "begeniler": []
-      };
-
-      FirebaseFirestore.instance
-          .collection("message")
-          .doc(sohbetID)
-          .collection("Chat")
-          .add(mesajData)
-          .then((_) {
-        FirebaseFirestore.instance
-            .collection("message")
-            .doc(sohbetID)
-            .update({"timeStamp": DateTime.now().millisecondsSinceEpoch});
-      });
-
       search.text = "";
       searchFocus.value.unfocus();
       selectedUser.value = null;
       Get.back();
       AppSnackbar("Gönderildi", "Gönderi iletildi");
+      chatListingController.getList();
+    } catch (e) {
+      AppSnackbar("Hata", "Gönderilemedi: $e");
     }
   }
 

@@ -81,17 +81,8 @@ class NotifyReaderController extends GetxController {
     }
 
     if (otherUser.isEmpty) {
-      final legacyDoc = await FirebaseFirestore.instance
-          .collection("message")
-          .doc(chatID)
-          .get();
-      if (!legacyDoc.exists) {
-        AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
-        return toNavbar();
-      }
-      final userID1 = legacyDoc.get("userID1") as String;
-      final userID2 = legacyDoc.get("userID2") as String;
-      otherUser = (userID1 == currentUser) ? userID2 : userID1;
+      AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
+      return toNavbar();
     }
 
     Get.to<ChatView>(() => ChatView(chatID: chatID, userID: otherUser))

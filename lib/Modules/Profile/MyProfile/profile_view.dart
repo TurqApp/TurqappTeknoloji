@@ -1003,10 +1003,10 @@ class _ProfileViewState extends State<ProfileView> {
           textInfoBody(),
           if (socialMediaController.list.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: 0, top: 7),
+              padding: const EdgeInsets.only(bottom: 0, top: 1),
               child: socialMediaLinks(),
             ),
-          Padding(padding: const EdgeInsets.only(top: 10), child: counters()),
+          Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: postButtons(context),
@@ -1276,7 +1276,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget socialMediaLinks() {
     return SizedBox(
-      height: 100,
+      height: 102,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 15),
