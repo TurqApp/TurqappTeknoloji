@@ -180,8 +180,7 @@ class PostContentController extends GetxController {
     getEditTime();
     getUserData(model.userID);
     getReSharedUsers(model.docID);
-    // Deprecated method calls removed - real-time listeners handle data updates
-    // getComments(), getLikes(), getSaved() are replaced by reactive listeners
+    // Real-time listeners handle likes/saved/comments membership and counts.
     getYenidenPaylasBilgisi();
     saveSeeing();
     followCheck();
@@ -935,78 +934,10 @@ class PostContentController extends GetxController {
     //flood listing
   }
 
-  Future<void> getLikes() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("likes")
-        .get()
-        .then((snap) {
-      likes.value = snap.docs.map((val) => val.id).toList();
-    });
-  }
-
   Future<void> saveSeeing() async {
     try {
       await _interactionService.recordView(model.docID);
     } catch (_) {}
-  }
-
-  Future<void> getSaved() async {
-    final ref = FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("saveds")
-        .doc(FirebaseAuth.instance.currentUser!.uid);
-    ref.get().then((doc) {
-      saved.value = doc.exists;
-      FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("saveds")
-          .get()
-          .then((snap) {
-        savedCount.value = snap.docs.length;
-      });
-    });
-  }
-
-  Future<void> getComments() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    // Yeni comments koleksiyonunu kontrol et
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("comments")
-        .where('deleted', isEqualTo: false)
-        .where('userID', isEqualTo: uid)
-        .get()
-        .then((snap) {
-      if (snap.docs.isNotEmpty) {
-        if (!comments.contains(uid)) {
-          comments.add(uid);
-        }
-      } else {
-        // Eski Yorumlar koleksiyonunu da kontrol et (backward compatibility)
-        FirebaseFirestore.instance
-            .collection("Posts")
-            .doc(model.docID)
-            .collection("Yorumlar")
-            .where('userID', isEqualTo: uid)
-            .get()
-            .then((oldSnap) {
-          if (oldSnap.docs.isNotEmpty) {
-            if (!comments.contains(uid)) {
-              comments.add(uid);
-            }
-          } else {
-            comments.remove(uid);
-          }
-        });
-      }
-    });
   }
 
   Future<void> getReSharedUsers(String docID) async {
