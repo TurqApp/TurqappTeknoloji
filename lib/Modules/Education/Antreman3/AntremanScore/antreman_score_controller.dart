@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 
 class AntremanScoreController extends GetxController {
   static const String _scoreCollection = 'questionBankSkor';
@@ -16,7 +15,6 @@ class AntremanScoreController extends GetxController {
   final RxBool isLoading = true.obs;
   final userPoint = 0.obs;
   final userRank = 0.obs;
-  final user = Get.find<FirebaseMyStore>();
   final now = DateTime.now();
   final monthName = RxString(monthNames[DateTime.now().month]);
   static const _excludedRozet = {'Turkuaz'};
@@ -140,10 +138,7 @@ class AntremanScoreController extends GetxController {
         final userData = userDoc.data();
         if (userData == null) return;
 
-        final profileImage =
-            (  '')
-                .toString()
-                .trim();
+        final profileImage = ('').toString().trim();
         if ((entry['avatarUrl'] ?? '').toString().trim().isEmpty &&
             profileImage.isNotEmpty) {
           entry['avatarUrl'] = profileImage;

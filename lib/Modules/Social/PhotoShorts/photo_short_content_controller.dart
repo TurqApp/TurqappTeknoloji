@@ -9,7 +9,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:uuid/uuid.dart';
 import '../../../Models/posts_model.dart';
-import '../../../Services/firebase_my_store.dart';
 import '../../../Services/reshare_helper.dart';
 import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -92,7 +91,6 @@ class PhotoShortsContentController extends GetxController {
   RxBool isReshared = false.obs;
   RxBool isReported = false.obs;
   final agendaController = Get.find<AgendaController>();
-  final user = Get.find<FirebaseMyStore>();
   final countManager = PostCountManager.instance;
   late final PostInteractionService _interactionService;
   StreamSubscription<DocumentSnapshot>? _likeDocSub;

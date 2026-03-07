@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
@@ -398,8 +399,10 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
   Widget butonlar(BuildContext context) {
     final int commentVisibility = widget.model.yorumVisibility;
     final int reshareVisibility = widget.model.paylasimVisibility;
-    final bool isOwner = controller.user.userID.value == widget.model.userID;
-    final bool isVerified = controller.user.hesapOnayi.value;
+    final currentUser = CurrentUserService.instance.currentUser;
+    final bool isOwner =
+        CurrentUserService.instance.userId == widget.model.userID;
+    final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
     final bool canComment = isOwner ||
         commentVisibility == 0 ||

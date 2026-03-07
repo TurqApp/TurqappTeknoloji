@@ -17,7 +17,6 @@ import 'package:turqappv2/Modules/Profile/JobSelector/job_selector.dart';
 import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contact.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 import '../BiographyMaker/biography_maker.dart';
@@ -31,7 +30,6 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileState extends State<EditProfile> {
   late final EditProfileController controller;
-  late final FirebaseMyStore user;
   final CurrentUserService currentUserService = CurrentUserService.instance;
   bool _updating = false;
 
@@ -39,8 +37,15 @@ class _EditProfileState extends State<EditProfile> {
   void initState() {
     super.initState();
     controller = Get.put(EditProfileController());
-    user = Get.find<FirebaseMyStore>();
   }
+
+  String get _avatarUrl =>
+      (currentUserService.currentUserRx.value?.avatarUrl ?? '').trim();
+  String get _nickname =>
+      currentUserService.currentUserRx.value?.nickname ?? '';
+  String get _email => currentUserService.currentUserRx.value?.email ?? '';
+  String get _phoneNumber =>
+      currentUserService.currentUserRx.value?.phoneNumber ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +83,10 @@ class _EditProfileState extends State<EditProfile> {
                                                   preview,
                                                   fit: BoxFit.cover,
                                                 )
-                                              : (user.avatarUrl.value != ""
+                                              : (_avatarUrl.isNotEmpty
                                                   ? CachedNetworkImage(
                                                       memCacheHeight: 400,
-                                                      imageUrl:
-                                                          user.avatarUrl.value,
+                                                      imageUrl: _avatarUrl,
                                                       fit: BoxFit.cover,
                                                     )
                                                   : Center(
@@ -95,7 +99,7 @@ class _EditProfileState extends State<EditProfile> {
                                       );
                                     }),
                                     PullDownButton(
-                                      key: ValueKey(user.avatarUrl.value),
+                                      key: ValueKey(_avatarUrl),
                                       itemBuilder: (context) => [
                                         PullDownMenuItem(
                                           onTap: () => controller.pickImage(
@@ -280,7 +284,7 @@ class _EditProfileState extends State<EditProfile> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "@${user.nickname.value}",
+                                          "@$_nickname",
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -328,7 +332,7 @@ class _EditProfileState extends State<EditProfile> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          user.email.value,
+                                          _email,
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
@@ -397,7 +401,7 @@ class _EditProfileState extends State<EditProfile> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          "+90${user.phoneNumber.value}",
+                                          "+90$_phoneNumber",
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,

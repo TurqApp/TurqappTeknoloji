@@ -12,7 +12,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 
@@ -29,8 +28,6 @@ class EditProfileController extends GetxController {
 
   // 🎯 Using CurrentUserService for optimized user data access
   final userService = CurrentUserService.instance;
-  @Deprecated('Use userService instead')
-  final user = Get.find<FirebaseMyStore>(); // Backward compatibility
 
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
@@ -211,9 +208,6 @@ class EditProfileController extends GetxController {
         if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
 
-      // Backward compatibility: FirebaseMyStore otomatik güncellenir (wrapper)
-      // user değişkeni artık gerekmiyor, CurrentUserService hallediyor!
-
       Get.back();
       AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
     } catch (e) {
@@ -239,7 +233,6 @@ class EditProfileController extends GetxController {
           croppedImage.value = null;
           selectedImage.value = null;
 
-          // FirebaseMyStore otomatik güncellenir (wrapper)
           AppSnackbar('Güncellendi', 'Profil fotoğrafın kaldırıldı.');
         } catch (e) {
           AppSnackbar(

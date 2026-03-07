@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 import '../post_creator_controller.dart';
@@ -35,7 +35,6 @@ class CreatorContent extends StatelessWidget {
   final bool isSelected;
 
   CreatorContent({super.key, required this.model, required this.isSelected});
-  final user = Get.find<FirebaseMyStore>();
   late final CreatorContentController controller;
   final mainController = Get.find<PostCreatorController>();
 
@@ -69,9 +68,14 @@ class CreatorContent extends StatelessWidget {
                       child: SizedBox(
                         width: 38,
                         height: 38,
-                        child: user.avatarUrl.value != ""
+                        child: (CurrentUserService.instance.currentUserRx.value
+                                        ?.avatarUrl ??
+                                    '')
+                                .isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: user.avatarUrl.value,
+                                imageUrl: CurrentUserService.instance
+                                        .currentUserRx.value?.avatarUrl ??
+                                    '',
                                 fit: BoxFit.cover,
                               )
                             : Center(
