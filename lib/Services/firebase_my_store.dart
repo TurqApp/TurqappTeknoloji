@@ -3,6 +3,8 @@
 // 🔄 This is a backward-compatible wrapper around CurrentUserService
 // 📌 Kept for compatibility with existing code - will be removed in future versions
 
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -57,6 +59,8 @@ class FirebaseMyStore extends GetxController {
   var totalFollowing = 0.obs;
   final scrollController = ScrollController();
   static const int _whereInChunkSize = 10;
+  StreamSubscription? _userSub;
+  String _lastSearchSignature = '';
 
   List<List<T>> _chunkList<T>(List<T> input, int size) {
     if (input.isEmpty) return <List<T>>[];
@@ -81,8 +85,10 @@ class FirebaseMyStore extends GetxController {
 
   /// Sync reactive variables from CurrentUserService
   void _syncFromUserService() {
+    _userSub?.cancel();
+
     // Listen to user changes from CurrentUserService
-    _userService.userStream.listen((user) {
+    _userSub = _userService.userStream.listen((user) {
       if (user == null) {
         rvesertUserData();
         return;
@@ -117,7 +123,11 @@ class FirebaseMyStore extends GetxController {
       totalLikes.value = user.counterOfLikes;
 
       // Load last searched users
-      _loadLastSearchedUsers(user.lastSearchList);
+      final searchSignature = user.lastSearchList.join('|');
+      if (_lastSearchSignature != searchSignature) {
+        _lastSearchSignature = searchSignature;
+        _loadLastSearchedUsers(user.lastSearchList);
+      }
     });
   }
 
@@ -189,6 +199,7 @@ class FirebaseMyStore extends GetxController {
     readStoriesTimes.clear();
     viewSelection.value = 1;
     lastSearchedUserList.clear();
+    _lastSearchSignature = '';
   }
 
   /// Check if user has active stories
@@ -215,5 +226,13 @@ class FirebaseMyStore extends GetxController {
       print("Hikaye kontrolü sırasında hata: $e");
       storyAvilable.value = false;
     }
+  }
+
+  @override
+  void onClose() {
+    _userSub?.cancel();
+    _userSub = null;
+    scrollController.dispose();
+    super.onClose();
   }
 }

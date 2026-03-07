@@ -15,6 +15,16 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 
 import '../Models/current_user_model.dart';
 
+class _TimedValue<T> {
+  final T value;
+  final DateTime fetchedAt;
+
+  const _TimedValue({
+    required this.value,
+    required this.fetchedAt,
+  });
+}
+
 /// 🎯 Singleton service for managing current user data
 ///
 /// **Usage:**
@@ -100,6 +110,11 @@ class CurrentUserService extends GetxController {
 
   bool _isInitialized = false;
   bool _isSyncing = false;
+  static const Duration _subdocCacheTtl = Duration(minutes: 10);
+  static const Duration _listCacheTtl = Duration(minutes: 2);
+  final Map<String, _TimedValue<Map<String, dynamic>>> _subdocCache = {};
+  final Map<String, _TimedValue<Map<String, dynamic>>> _listCache = {};
+  final Map<String, DateTime> _silentLogAt = {};
 
   // ⚠️ OPTIMIZATION: Debounce cache writes to prevent duplicate saves
   Timer? _cacheSaveTimer;
@@ -119,6 +134,7 @@ class CurrentUserService extends GetxController {
 
       final firebaseUser = FirebaseAuth.instance.currentUser;
       if (firebaseUser == null) {
+        _purgeUserScopedCaches(_currentUser?.userID);
         _isInitialized = true;
         emailVerifiedRx.value = true;
         return false;
@@ -142,6 +158,9 @@ class CurrentUserService extends GetxController {
       }
 
       // Different user or first init - reload everything
+      if (_currentUser != null && _currentUser!.userID != firebaseUser.uid) {
+        _purgeUserScopedCaches(_currentUser!.userID);
+      }
       print('🔄 Initializing CurrentUserService for user: ${firebaseUser.uid}');
 
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
@@ -206,7 +225,9 @@ class CurrentUserService extends GetxController {
             'cancelledAt': DateTime.now().millisecondsSinceEpoch,
           }, SetOptions(merge: true));
         }
-      } catch (_) {}
+      } catch (e, st) {
+        _logSilently('restore.account_actions', e, st);
+      }
 
       Query<Map<String, dynamic>> query = FirebaseFirestore.instance
           .collection('Posts')
@@ -345,6 +366,37 @@ class CurrentUserService extends GetxController {
     }
   }
 
+  String _subdocCacheKey(String uid, String col, String doc) =>
+      '$uid::$col::$doc';
+
+  String _listCacheKey(String uid, String key) => '$uid::$key';
+
+  bool _isFresh(DateTime fetchedAt, Duration ttl) =>
+      DateTime.now().difference(fetchedAt) <= ttl;
+
+  void _purgeUserScopedCaches(String? uid) {
+    if (uid == null || uid.isEmpty) {
+      _subdocCache.clear();
+      _listCache.clear();
+      return;
+    }
+    _subdocCache.removeWhere((key, _) => key.startsWith('$uid::'));
+    _listCache.removeWhere((key, _) => key.startsWith('$uid::'));
+  }
+
+  void _logSilently(String key, Object error, [StackTrace? stackTrace]) {
+    final now = DateTime.now();
+    final last = _silentLogAt[key];
+    if (last != null && now.difference(last) < const Duration(minutes: 1)) {
+      return;
+    }
+    _silentLogAt[key] = now;
+    debugPrint('⚠️ [CurrentUserService:$key] $error');
+    if (stackTrace != null) {
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔥 Firebase Sync
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -400,21 +452,70 @@ class CurrentUserService extends GetxController {
     final merged = <String, dynamic>{...rootData};
     final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
 
-    Future<Map<String, dynamic>> readSubdoc(String col, String doc) async {
+    Future<Map<String, dynamic>> readSubdocCached(
+        String col, String doc) async {
+      final key = _subdocCacheKey(uid, col, doc);
+      final cached = _subdocCache[key];
+      if (cached != null && _isFresh(cached.fetchedAt, _subdocCacheTtl)) {
+        return Map<String, dynamic>.from(cached.value);
+      }
       try {
         final s = await userRef.collection(col).doc(doc).get();
-        if (!s.exists) return <String, dynamic>{};
-        return Map<String, dynamic>.from(s.data() ?? const <String, dynamic>{});
-      } catch (_) {
+        final data = s.exists
+            ? Map<String, dynamic>.from(s.data() ?? const <String, dynamic>{})
+            : <String, dynamic>{};
+        _subdocCache[key] = _TimedValue<Map<String, dynamic>>(
+          value: data,
+          fetchedAt: DateTime.now(),
+        );
+        return data;
+      } catch (e, st) {
+        _logSilently('subdoc.$col.$doc', e, st);
+        if (cached != null) {
+          return Map<String, dynamic>.from(cached.value);
+        }
         return <String, dynamic>{};
       }
     }
 
-    final privateAccount = await readSubdoc('private', 'account');
-    final education = await readSubdoc('education', 'info');
-    final family = await readSubdoc('family', 'info');
-    final settings = await readSubdoc('settings', 'preferences');
-    final stats = await readSubdoc('stats', 'summary');
+    Future<Map<String, dynamic>> readListCache(
+      String key,
+      Future<Map<String, dynamic>> Function() loader,
+    ) async {
+      final cacheKey = _listCacheKey(uid, key);
+      final cached = _listCache[cacheKey];
+      if (cached != null && _isFresh(cached.fetchedAt, _listCacheTtl)) {
+        return Map<String, dynamic>.from(cached.value);
+      }
+      try {
+        final loaded = await loader();
+        _listCache[cacheKey] = _TimedValue<Map<String, dynamic>>(
+          value: loaded,
+          fetchedAt: DateTime.now(),
+        );
+        return loaded;
+      } catch (e, st) {
+        _logSilently('subcol.$key', e, st);
+        if (cached != null) {
+          return Map<String, dynamic>.from(cached.value);
+        }
+        return <String, dynamic>{};
+      }
+    }
+
+    final subdocResults = await Future.wait([
+      readSubdocCached('private', 'account'),
+      readSubdocCached('education', 'info'),
+      readSubdocCached('family', 'info'),
+      readSubdocCached('settings', 'preferences'),
+      readSubdocCached('stats', 'summary'),
+    ]);
+
+    final privateAccount = subdocResults[0];
+    final education = subdocResults[1];
+    final family = subdocResults[2];
+    final settings = subdocResults[3];
+    final stats = subdocResults[4];
 
     void mergeOverride(Map<String, dynamic> source) {
       source.forEach((k, v) {
@@ -455,32 +556,60 @@ class CurrentUserService extends GetxController {
 
     // blockedUsers/readStories/lastSearches canonical subcollections.
     if (merged['blockedUsers'] is! List) {
-      try {
+      final blocked = await readListCache('blockedUsers', () async {
         final snap = await userRef.collection('blockedUsers').get();
-        merged['blockedUsers'] = snap.docs.map((d) => d.id).toList();
-      } catch (_) {}
+        return <String, dynamic>{
+          'blockedUsers': snap.docs.map((d) => d.id).toList(growable: false),
+        };
+      });
+      final list = blocked['blockedUsers'];
+      if (list is List) {
+        merged['blockedUsers'] = list.map((e) => e.toString()).toList();
+      }
     }
     if (merged['readStories'] is! List) {
-      try {
+      final readStories = await readListCache('readStories', () async {
         final snap = await userRef.collection('readStories').get();
-        merged['readStories'] = snap.docs.map((d) => d.id).toList();
         final times = <String, int>{};
         for (final d in snap.docs) {
           final t = d.data()['readDate'];
           if (t is num) times[d.id] = t.toInt();
         }
-        if (times.isNotEmpty) merged['readStoriesTimes'] = times;
-      } catch (_) {}
+        return <String, dynamic>{
+          'readStories': snap.docs.map((d) => d.id).toList(growable: false),
+          'readStoriesTimes': times,
+        };
+      });
+      final list = readStories['readStories'];
+      if (list is List) {
+        merged['readStories'] = list.map((e) => e.toString()).toList();
+      }
+      final times = readStories['readStoriesTimes'];
+      if (times is Map) {
+        final normalized = <String, int>{};
+        times.forEach((k, v) {
+          if (v is num) normalized[k.toString()] = v.toInt();
+        });
+        if (normalized.isNotEmpty) {
+          merged['readStoriesTimes'] = normalized;
+        }
+      }
     }
     if (merged['lastSearchList'] is! List) {
-      try {
+      final searches = await readListCache('lastSearches', () async {
         final snap = await userRef
             .collection('lastSearches')
             .orderBy('timeStamp', descending: true)
             .limit(100)
             .get();
-        merged['lastSearchList'] = snap.docs.map((d) => d.id).toList();
-      } catch (_) {}
+        return <String, dynamic>{
+          'lastSearchList': snap.docs.map((d) => d.id).toList(growable: false),
+        };
+      });
+      final list = searches['lastSearchList'];
+      if (list is List) {
+        merged['lastSearchList'] = list.map((e) => e.toString()).toList();
+      }
     }
 
     return merged;
@@ -731,7 +860,8 @@ class CurrentUserService extends GetxController {
       final verifyDay = (snap.data() ?? const {})['verifyDay'];
       final days = verifyDay is num ? verifyDay.toInt() : 7;
       _emailPromptCooldown = Duration(days: days.clamp(1, 30));
-    } catch (_) {
+    } catch (e, st) {
+      _logSilently('email.verify.config', e, st);
       _emailPromptCooldown = const Duration(days: 7);
     }
   }
@@ -759,10 +889,13 @@ class CurrentUserService extends GetxController {
                 .get();
             isVerified = (snap.data() ?? const {})['emailVerified'] == true;
           }
-        } catch (_) {}
+        } catch (e, st) {
+          _logSilently('email.verify.root-check', e, st);
+        }
       }
       emailVerifiedRx.value = isVerified;
-    } catch (_) {
+    } catch (e, st) {
+      _logSilently('email.verify.refresh', e, st);
       final authVerified =
           FirebaseAuth.instance.currentUser?.emailVerified ?? false;
       if (authVerified) {
@@ -780,7 +913,9 @@ class CurrentUserService extends GetxController {
               (snap.data() ?? const {})['emailVerified'] == true;
           return;
         }
-      } catch (_) {}
+      } catch (inner, innerSt) {
+        _logSilently('email.verify.fallback-root', inner, innerSt);
+      }
       emailVerifiedRx.value = false;
     }
   }
@@ -795,7 +930,8 @@ class CurrentUserService extends GetxController {
       await user.sendEmailVerification();
       AppSnackbar(
           "Doğrulama E-postası", "E-posta doğrulama bağlantısı gönderildi.");
-    } catch (_) {
+    } catch (e, st) {
+      _logSilently('email.verify.send', e, st);
       AppSnackbar(
           "Uyarı", "Doğrulama e-postası gönderilemedi. Lütfen tekrar deneyin.");
     }
@@ -870,8 +1006,11 @@ class CurrentUserService extends GetxController {
   /// Logout and clear all data
   Future<void> logout() async {
     try {
+      final oldUid = _currentUser?.userID;
       await _stopFirebaseSync();
       await _clearCache();
+      _purgeUserScopedCaches(oldUid);
+      _silentLogAt.clear();
 
       // Cancel pending cache writes
       _cacheSaveTimer?.cancel();
@@ -901,6 +1040,9 @@ class CurrentUserService extends GetxController {
   @override
   void onClose() {
     _stopFirebaseSync();
+    _subdocCache.clear();
+    _listCache.clear();
+    _silentLogAt.clear();
     _userStreamController.close();
     super.onClose();
   }
