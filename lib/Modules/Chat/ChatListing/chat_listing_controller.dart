@@ -42,7 +42,8 @@ class ChatListingController extends GetxController {
   void onInit() {
     super.onInit();
     search.addListener(_onSearchChanged);
-    getList(forceServer: true);
+    // Initial load is cache-first; realtime listener will hydrate fresh data.
+    getList(forceServer: false);
     startConversationListener();
   }
 
@@ -287,9 +288,9 @@ class ChatListingController extends GetxController {
         userID: otherUserId,
         timeStamp: ts.toString(),
         deleted: isArchived ? const ["__archived__"] : const [],
-        nickname: (userData["displayName"] ??
+        nickname: (userData["nickname"] ??
                 userData["username"] ??
-                userData["nickname"] ??
+                userData["displayName"] ??
                 "")
             .toString(),
         fullName: "${userData["firstName"] ?? ""} ${userData["lastName"] ?? ""}"
