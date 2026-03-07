@@ -95,7 +95,8 @@ class BookletAnswer extends StatelessWidget {
                   child: Container(color: Colors.black.withValues(alpha: 0.5)),
                 ),
                 Container(
-                  height: 320,
+                  height: (MediaQuery.of(context).size.height * 0.42)
+                      .clamp(260.0, 320.0),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
