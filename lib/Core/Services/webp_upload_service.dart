@@ -69,6 +69,9 @@ class WebpUploadService {
       throw Exception('WebP conversion failed');
     }
     final ref = storage.ref().child('$storagePathWithoutExt.webp');
+    if (kDebugMode) {
+      debugPrint('[UploadPreflight][WebP] path=${ref.fullPath} bytes=${data.length}');
+    }
     await ref.putData(
       data,
       SettableMetadata(

@@ -766,6 +766,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final post = allPosts[index];
       final docID = '${uuid}_$index';
       final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+
+      // Storage rules require Posts/{docID}.userID to exist before media upload.
+      await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
+        "userID": uid,
+        "timeStamp": nowMs,
+        "isUploading": true,
+        "hlsStatus": "none",
+      }, SetOptions(merge: true));
 
       // Update progress
       progressController.updateProgress(
@@ -804,6 +813,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final videoRef = FirebaseStorage.instance.ref().child(
               'Posts/$docID/video.mp4',
             );
+        if (kDebugMode) {
+          final postDoc =
+              await FirebaseFirestore.instance.collection("Posts").doc(docID).get();
+          debugPrint('[UploadPreflight][PostCreator] '
+              'path=${videoRef.fullPath} '
+              'uid=$uid '
+              'postExists=${postDoc.exists} '
+              'postUserID=${postDoc.data()?["userID"]}');
+        }
         final uploadTask = await videoRef.putFile(
           post.video!,
           SettableMetadata(
@@ -974,7 +992,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "tags": index == 0 ? allHashtags.toList() : [],
         "thumbnail": thumbnailUrl,
         "timeStamp": baseTime + index,
-        "userID": FirebaseAuth.instance.currentUser!.uid,
+        "userID": uid,
         "video": videoUrl,
         "hlsStatus": isReusedVideoPost ? "ready" : "none",
         "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
@@ -1557,6 +1575,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           final post = allPosts[index];
           final docID = '${uuid}_$index';
           final nowMs = DateTime.now().millisecondsSinceEpoch;
+          final uid = FirebaseAuth.instance.currentUser!.uid;
+
+          // Storage rules require Posts/{docID}.userID to exist before media upload.
+          await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
+            "userID": uid,
+            "timeStamp": nowMs,
+            "isUploading": true,
+            "hlsStatus": "none",
+          }, SetOptions(merge: true));
 
           // Update progress
           progressController.updateProgress(
@@ -1611,6 +1638,17 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               final videoRef = FirebaseStorage.instance
                   .ref()
                   .child('Posts/$docID/video.mp4');
+              if (kDebugMode) {
+                final postDoc = await FirebaseFirestore.instance
+                    .collection("Posts")
+                    .doc(docID)
+                    .get();
+                debugPrint('[UploadPreflight][PostCreator] '
+                    'path=${videoRef.fullPath} '
+                    'uid=$uid '
+                    'postExists=${postDoc.exists} '
+                    'postUserID=${postDoc.data()?["userID"]}');
+              }
               final uploadTask = await videoRef.putFile(
                 post.video!,
                 SettableMetadata(

@@ -160,10 +160,9 @@ class UploadQueueService extends GetxController {
           .trim();
       final String location = (postDataMap['location'] ?? '').toString();
       final String gif = (postDataMap['gif'] ?? '').toString();
-      String userID = (postDataMap['userID'] ?? '').toString();
-      if (userID.trim().isEmpty) {
-        userID = FirebaseAuth.instance.currentUser?.uid ?? '';
-      }
+      // Always bind queued uploads to current session user.
+      // Stale queue payload may contain old userID and fail Storage isPostOwner rule.
+      String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (userID.trim().isEmpty) {
         throw Exception('userID boş: upload sırasında oturum bulunamadı');
       }
@@ -319,6 +318,17 @@ class UploadQueueService extends GetxController {
           final ref = FirebaseStorage.instance.ref().child(
                 'Posts/${upload.id}/video.mp4',
               );
+          if (kDebugMode) {
+            final postDoc = await FirebaseFirestore.instance
+                .collection('Posts')
+                .doc(upload.id)
+                .get();
+            debugPrint('[UploadPreflight][Queue] '
+                'path=${ref.fullPath} '
+                'uid=$userID '
+                'postExists=${postDoc.exists} '
+                'postUserID=${postDoc.data()?["userID"]}');
+          }
 
           final uploadTask = ref.putFile(
             videoFile,

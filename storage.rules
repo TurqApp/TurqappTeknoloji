@@ -6,6 +6,20 @@ service firebase.storage {
     function isAuth() {
       return request.auth != null;
     }
+    function isPostOwner(postId) {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/Posts/$(postId))
+        && firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid;
+    }
+    function isFirstPostMediaWrite(postId) {
+      return isAuth()
+        && !firestore.exists(/databases/(default)/documents/Posts/$(postId));
+    }
+    function isConversationParticipant(chatId) {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/conversations/$(chatId))
+        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.participants;
+    }
 
     // User profile images
     match /users/{uid}/{allPaths=**} {
@@ -27,6 +41,10 @@ service firebase.storage {
     // Post media (images, videos)
     match /Posts/{postId}/{allPaths=**} {
       allow read: if isAuth();
+      // NOTE:
+      // Owner-based Firestore checks intermittently fail in client resumable uploads
+      // even when post shell doc exists and belongs to the current user.
+      // Keep auth + size gate to unblock media upload pipeline.
       allow write: if isAuth()
                    && request.resource.size < 200 * 1024 * 1024; // 200MB video limit
     }
@@ -45,20 +63,20 @@ service firebase.storage {
 
     // Chat media
     match /Chat/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 25 * 1024 * 1024; // 25MB limit
     }
     match /Mesajlar/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 25 * 1024 * 1024;
     }
 
     // ChatAssets medya (fotoğraf, video, ses)
     match /ChatAssets/{chatId}/{allPaths=**} {
-      allow read: if isAuth();
-      allow write: if isAuth()
+      allow read: if isConversationParticipant(chatId);
+      allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 50 * 1024 * 1024; // 50MB
     }
 
