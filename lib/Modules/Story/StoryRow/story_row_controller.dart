@@ -25,7 +25,10 @@ class StoryRowController extends GetxController {
   bool _backgroundScheduled = false;
   final RxBool isLoading = false.obs;
   static const Duration _miniCacheTtl = Duration(minutes: 15);
+  static const Duration _followingCacheTtl = Duration(minutes: 2);
   String? _miniCachePath;
+  Set<String> _followingCache = <String>{};
+  DateTime? _followingCacheAt;
 
   String _resolveStoryNickname(Map<String, dynamic> data) {
     final nickname = (data['nickname'] ?? '').toString().trim();
@@ -103,6 +106,26 @@ class StoryRowController extends GetxController {
     // ✅ OPTIMIZED: No real-time listener needed
     // Following list doesn't change frequently
     // Manual refresh on user action (pull-to-refresh) is sufficient
+  }
+
+  Future<Set<String>> _getFollowingIds(String myUid) async {
+    final now = DateTime.now();
+    final last = _followingCacheAt;
+    if (last != null && now.difference(last) <= _followingCacheTtl) {
+      return _followingCache;
+    }
+    try {
+      final followingSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(myUid)
+          .collection('followings')
+          .get();
+      _followingCache = followingSnap.docs.map((d) => d.id).toSet();
+      _followingCacheAt = now;
+    } catch (e) {
+      print('Story following cache load error: $e');
+    }
+    return _followingCache;
   }
 
   @override
@@ -211,12 +234,7 @@ class StoryRowController extends GetxController {
       // Takip edilen kullanıcılar (gizli hesap filtresi için)
       final Set<String> followingIDs = {};
       if (myUid != null) {
-        final followingSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(myUid)
-            .collection('followings')
-            .get();
-        followingIDs.addAll(followingSnap.docs.map((d) => d.id));
+        followingIDs.addAll(await _getFollowingIds(myUid));
       }
 
       for (var entry in userStories.entries) {
