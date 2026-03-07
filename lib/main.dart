@@ -97,14 +97,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     final error = details.exception;
     final stack = details.stack;
     if (_isFirestoreConfigError(error)) {
-      FirebaseCrashlytics.instance.recordError(
-        error,
-        stack ?? StackTrace.current,
-        fatal: false,
-        reason: 'Firestore permission/index/query issue',
-      );
       debugPrint('Firestore non-fatal captured: $error');
-      return;
     }
     FirebaseCrashlytics.instance.recordFlutterError(details);
     if (stack != null) {
@@ -113,14 +106,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     if (_isFirestoreConfigError(error)) {
-      FirebaseCrashlytics.instance.recordError(
-        error,
-        stack,
-        fatal: false,
-        reason: 'Platform Firestore permission/index/query issue',
-      );
       debugPrint('Platform firestore non-fatal captured: $error');
-      return true;
     }
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
     return true;
