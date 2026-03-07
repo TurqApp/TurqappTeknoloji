@@ -352,6 +352,9 @@ class CreateTest extends StatelessWidget {
   }
 
   Widget testHazirla(BuildContext context, CreateTestController controller) {
+    final coverSelectButtonWidth =
+        (MediaQuery.of(context).size.width * 0.52).clamp(160.0, 200.0);
+
     return ListView(
       children: [
         Column(
@@ -437,12 +440,13 @@ class CreateTest extends StatelessWidget {
                                           }
                                         }
                                       },
-                                      child: const Padding(
-                                        padding: EdgeInsets.only(bottom: 20),
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 20),
                                         child: SizedBox(
                                           height: 35,
-                                          width: 200,
-                                          child: Material(
+                                          width: coverSelectButtonWidth,
+                                          child: const Material(
                                             color: Colors.pink,
                                             borderRadius: BorderRadius.all(
                                               Radius.circular(20),
