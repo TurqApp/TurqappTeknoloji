@@ -9,7 +9,6 @@ import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/ShareGrid/share_grid.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -90,7 +89,6 @@ class PostContentController extends GetxController {
   final comments = <String>[].obs;
   final seens = <String>[].obs;
   final reSharedUsers = <String>[].obs;
-  final user = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
   final countManager = PostCountManager.instance;
   late final PostInteractionService _interactionService;

@@ -7,8 +7,7 @@ import 'package:turqappv2/Modules/Social/Comments/post_comment_content.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
-
-import '../../../Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class PostComments extends StatefulWidget {
   final String postID;
@@ -30,7 +29,7 @@ class PostComments extends StatefulWidget {
 
 class _PostCommentsState extends State<PostComments> {
   late final PostCommentController controller;
-  final user = Get.find<FirebaseMyStore>();
+  final user = CurrentUserService.instance;
   final emojis = ["😂", "😍", "🔥", "👏", "👍", "🙏", "😅", "❤️"];
   final textEditingController = TextEditingController();
   final focusNode = FocusNode();
@@ -235,9 +234,9 @@ class _PostCommentsState extends State<PostComments> {
               child: SizedBox(
                 width: 28,
                 height: 28,
-                child: user.avatarUrl.value.isNotEmpty
+                child: user.avatarUrl.isNotEmpty
                     ? CachedNetworkImage(
-                        imageUrl: user.avatarUrl.value,
+                        imageUrl: user.avatarUrl,
                         fit: BoxFit.cover,
                       )
                     : const Icon(

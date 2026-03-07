@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import '../../../Core/blocked_texts.dart';
 import '../../../Core/functions.dart';
 import '../../../Models/post_interactions_models_new.dart';
-import '../../../Services/firebase_my_store.dart';
+import '../../../Services/current_user_service.dart';
 import '../../../Services/post_interaction_service.dart';
 
 class PostCommentController extends GetxController {
@@ -23,7 +23,7 @@ class PostCommentController extends GetxController {
   final String userID;
   final Function(bool increment)? onCommentCountChange;
 
-  final FirebaseMyStore userStore = Get.find<FirebaseMyStore>();
+  final CurrentUserService userService = CurrentUserService.instance;
   final PostInteractionService _interactionService =
       Get.put(PostInteractionService());
 
@@ -114,7 +114,7 @@ class PostCommentController extends GetxController {
     } else {
       commentId = await _interactionService.addComment(postID, trimmed);
       if (commentId != null && commentId.startsWith('offline_')) {
-        final currentUid = userStore.userID.value;
+        final currentUid = userService.userId;
         if (currentUid.isNotEmpty) {
           final local = PostCommentModel(
             likes: [],
