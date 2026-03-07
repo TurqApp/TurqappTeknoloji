@@ -1,18 +1,23 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 import 'view_changer_controller.dart';
 
 class ViewChanger extends StatelessWidget {
   ViewChanger({super.key});
-  final user = Get.find<FirebaseMyStore>();
+  final userService = CurrentUserService.instance;
   late final ViewChangerController controller;
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(ViewChangerController(selection: user.viewSelection));
+    if (!Get.isRegistered<ViewChangerController>()) {
+      final initialSelection =
+          (userService.currentUser?.viewSelection ?? 1).obs;
+      Get.put(ViewChangerController(selection: initialSelection));
+    }
+    controller = Get.find<ViewChangerController>();
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -30,7 +35,6 @@ class ViewChanger extends StatelessWidget {
                         children: [
                           GestureDetector(
                               onTap: () {
-                                controller.selection.value = 0;
                                 controller.updateViewMode(0);
                                 Get.back();
                               },
@@ -43,7 +47,6 @@ class ViewChanger extends StatelessWidget {
                           ),
                           GestureDetector(
                               onTap: () {
-                                controller.selection.value = 1;
                                 controller.updateViewMode(1);
                                 Get.back();
                               },
