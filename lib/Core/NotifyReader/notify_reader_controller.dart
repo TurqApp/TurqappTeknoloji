@@ -17,10 +17,16 @@ import '../../Modules/SocialProfile/social_profile.dart';
 class NotifyReaderController extends GetxController {
   static const Duration _postLookupTtl = Duration(seconds: 30);
   static const Duration _chatLookupTtl = Duration(seconds: 30);
+  static const Duration _jobLookupTtl = Duration(seconds: 30);
+  static const Duration _tutoringLookupTtl = Duration(seconds: 30);
   static final Map<String, _CachedPostLookup> _postLookupCache =
       <String, _CachedPostLookup>{};
   static final Map<String, _CachedChatLookup> _chatLookupCache =
       <String, _CachedChatLookup>{};
+  static final Map<String, _CachedJobLookup> _jobLookupCache =
+      <String, _CachedJobLookup>{};
+  static final Map<String, _CachedTutoringLookup> _tutoringLookupCache =
+      <String, _CachedTutoringLookup>{};
 
   Future<_CachedPostLookup> _getPostLookup(String postID) async {
     final cached = _postLookupCache[postID];
@@ -71,6 +77,42 @@ class NotifyReaderController extends GetxController {
       cachedAt: DateTime.now(),
     );
     _chatLookupCache[cacheKey] = lookup;
+    return lookup;
+  }
+
+  Future<_CachedJobLookup> _getJobLookup(String jobID) async {
+    final cached = _jobLookupCache[jobID];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _jobLookupTtl) {
+      return cached;
+    }
+    final doc =
+        await FirebaseFirestore.instance.collection('isBul').doc(jobID).get();
+    final lookup = _CachedJobLookup(
+      exists: doc.exists,
+      model: doc.exists ? JobModel.fromMap(doc.data()!, doc.id) : null,
+      cachedAt: DateTime.now(),
+    );
+    _jobLookupCache[jobID] = lookup;
+    return lookup;
+  }
+
+  Future<_CachedTutoringLookup> _getTutoringLookup(String tutoringID) async {
+    final cached = _tutoringLookupCache[tutoringID];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _tutoringLookupTtl) {
+      return cached;
+    }
+    final doc = await FirebaseFirestore.instance
+        .collection('educators')
+        .doc(tutoringID)
+        .get();
+    final lookup = _CachedTutoringLookup(
+      exists: doc.exists,
+      model: doc.exists ? TutoringModel.fromJson(doc.data()!, doc.id) : null,
+      cachedAt: DateTime.now(),
+    );
+    _tutoringLookupCache[tutoringID] = lookup;
     return lookup;
   }
 
@@ -133,26 +175,22 @@ class NotifyReaderController extends GetxController {
   }
 
   Future<void> goToJob(String jobID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('isBul').doc(jobID).get();
-    if (!doc.exists) {
+    final lookup = await _getJobLookup(jobID);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
       return toNavbar();
     }
-    final model = JobModel.fromMap(doc.data()!, doc.id);
+    final model = lookup.model!;
     Get.to<JobDetails>(() => JobDetails(model: model))?.then((_) => toNavbar());
   }
 
   Future<void> goToTutoring(String tutoringID) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('educators')
-        .doc(tutoringID)
-        .get();
-    if (!doc.exists) {
+    final lookup = await _getTutoringLookup(tutoringID);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Bilgi', 'Özel ders ilanı bulunamadı veya kaldırılmış.');
       return toNavbar();
     }
-    final model = TutoringModel.fromJson(doc.data()!, doc.id);
+    final model = lookup.model!;
     Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model)
         ?.then((_) => toNavbar());
   }
@@ -181,6 +219,30 @@ class _CachedChatLookup {
 
   const _CachedChatLookup({
     required this.otherUser,
+    required this.cachedAt,
+  });
+}
+
+class _CachedJobLookup {
+  final bool exists;
+  final JobModel? model;
+  final DateTime cachedAt;
+
+  const _CachedJobLookup({
+    required this.exists,
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _CachedTutoringLookup {
+  final bool exists;
+  final TutoringModel? model;
+  final DateTime cachedAt;
+
+  const _CachedTutoringLookup({
+    required this.exists,
+    required this.model,
     required this.cachedAt,
   });
 }
