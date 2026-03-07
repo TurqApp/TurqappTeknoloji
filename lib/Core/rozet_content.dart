@@ -11,6 +11,7 @@ class RozetController extends GetxController {
   static final Map<String, Color> _badgeCache = <String, Color>{};
   static final Map<String, int> _badgeCacheMs = <String, int>{};
   static const int _cacheTtlMs = 10 * 60 * 1000;
+  static const int _staleRetentionMs = 30 * 60 * 1000;
 
   @override
   void onInit() {
@@ -38,6 +39,7 @@ class RozetController extends GetxController {
   }
 
   Future<void> _loadRozet() async {
+    _pruneStaleCache();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cachedColor = _badgeCache[userID];
     final cachedAt = _badgeCacheMs[userID] ?? 0;
@@ -50,6 +52,20 @@ class RozetController extends GetxController {
       color.value = cachedColor;
     }
     await _fetchRozetOnce();
+  }
+
+  void _pruneStaleCache() {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final staleKeys = <String>[];
+    for (final entry in _badgeCacheMs.entries) {
+      if ((nowMs - entry.value) > _staleRetentionMs) {
+        staleKeys.add(entry.key);
+      }
+    }
+    for (final key in staleKeys) {
+      _badgeCacheMs.remove(key);
+      _badgeCache.remove(key);
+    }
   }
 
   Future<void> _fetchRozetOnce() async {
