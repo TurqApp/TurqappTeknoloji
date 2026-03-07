@@ -28,6 +28,7 @@ class NotifyReaderController extends GetxController {
   static final Map<String, _CachedTutoringLookup> _tutoringLookupCache =
       <String, _CachedTutoringLookup>{};
   static const Duration _staleRetention = Duration(minutes: 3);
+  static const int _maxLookupEntries = 300;
 
   Future<_CachedPostLookup> _getPostLookup(String postID) async {
     _pruneStaleLookups();
@@ -212,6 +213,27 @@ class NotifyReaderController extends GetxController {
     _chatLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _jobLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _tutoringLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _trimOldestIfNeeded();
+  }
+
+  void _trimOldestIfNeeded() {
+    void trimMap<T>(
+      Map<String, T> map,
+      DateTime Function(T value) cachedAt,
+    ) {
+      if (map.length <= _maxLookupEntries) return;
+      final entries = map.entries.toList()
+        ..sort((a, b) => cachedAt(a.value).compareTo(cachedAt(b.value)));
+      final removeCount = map.length - _maxLookupEntries;
+      for (var i = 0; i < removeCount; i++) {
+        map.remove(entries[i].key);
+      }
+    }
+
+    trimMap<_CachedPostLookup>(_postLookupCache, (v) => v.cachedAt);
+    trimMap<_CachedChatLookup>(_chatLookupCache, (v) => v.cachedAt);
+    trimMap<_CachedJobLookup>(_jobLookupCache, (v) => v.cachedAt);
+    trimMap<_CachedTutoringLookup>(_tutoringLookupCache, (v) => v.cachedAt);
   }
 }
 
