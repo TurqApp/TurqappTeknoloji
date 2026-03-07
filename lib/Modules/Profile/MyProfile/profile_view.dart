@@ -78,6 +78,9 @@ class _ProfileViewState extends State<ProfileView> {
     super.initState();
     controller.scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      socialMediaController.getData();
+    });
   }
 
   void _onScroll() {
@@ -121,10 +124,6 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      user.getUserData();
-      socialMediaController.getData();
-    });
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -137,7 +136,6 @@ class _ProfileViewState extends State<ProfileView> {
                     child: RefreshIndicator(
                       onRefresh: () async {
                         await controller.refreshAll();
-                        user.getUserData();
                         socialMediaController.getData();
                       },
                       child: controller.postSelection.value == 0

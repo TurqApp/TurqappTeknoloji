@@ -43,8 +43,8 @@ class FollowService {
     final counterRef = firestore
         .collection('users')
         .doc(currentUserID)
-        .collection('Stats')
-        .doc('FollowDaily');
+        .collection('private')
+        .doc('followDaily');
 
     final result = await firestore
         .runTransaction<FollowToggleOutcome>((transaction) async {
@@ -130,8 +130,8 @@ class FollowService {
     final counterRef = firestore
         .collection('users')
         .doc(currentUserID)
-        .collection('Stats')
-        .doc('FollowDaily');
+        .collection('private')
+        .doc('followDaily');
 
     final created = await firestore.runTransaction<bool>((transaction) async {
       final existing = await transaction.get(myFollowingRef);

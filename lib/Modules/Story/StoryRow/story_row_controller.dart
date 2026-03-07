@@ -45,54 +45,6 @@ class StoryRowController extends GetxController {
     return resolveAvatarUrl(data, profile: profile);
   }
 
-  bool _needsProfileInfoHydration(Map<String, dynamic> data) {
-    final avatar = _resolveAvatar(data).trim();
-    final nick = _resolveStoryNickname(data).trim();
-    final firstName = (data['firstName'] ?? '').toString().trim();
-    final lastName = (data['lastName'] ?? '').toString().trim();
-    return avatar.isEmpty ||
-        nick.isEmpty ||
-        (firstName.isEmpty && lastName.isEmpty);
-  }
-
-  Future<Map<String, dynamic>> _hydrateFromProfileInfoIfNeeded(
-    String uid,
-    Map<String, dynamic> base,
-  ) async {
-    if (!_needsProfileInfoHydration(base)) return base;
-    try {
-      final infoDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('profile')
-          .doc('info')
-          .get();
-      if (!infoDoc.exists) return base;
-      final info = infoDoc.data() ?? const <String, dynamic>{};
-      final merged = Map<String, dynamic>.from(base);
-      for (final key in const <String>[
-        'avatarUrl',
-        'avatarUrl',
-        'avatarUrl',
-        'avatarUrl',
-        'nickname',
-        'username',
-        'usernameLower',
-        'firstName',
-        'lastName',
-      ]) {
-        final current = (merged[key] ?? '').toString().trim();
-        final incoming = (info[key] ?? '').toString().trim();
-        if (current.isEmpty && incoming.isNotEmpty) {
-          merged[key] = incoming;
-        }
-      }
-      return merged;
-    } catch (_) {
-      return base;
-    }
-  }
-
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
@@ -274,8 +226,7 @@ class StoryRowController extends GetxController {
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         final rawData = userDataMap[userId];
         if (rawData == null) continue;
-        final data = await _hydrateFromProfileInfoIfNeeded(
-            userId, Map<String, dynamic>.from(rawData));
+        final data = Map<String, dynamic>.from(rawData);
 
         // Gizlilik filtresi: gizli hesapsa sadece ben veya takip ettiğim kullanıcılar
         final isPrivate = (data['isPrivate'] ?? false) == true;

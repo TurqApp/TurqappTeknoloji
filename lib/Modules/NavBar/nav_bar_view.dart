@@ -26,8 +26,11 @@ import '../../Core/Widgets/offline_indicator.dart';
 
 class NavBarView extends StatelessWidget {
   final selection = 0;
+  static bool _controllersPrepared = false;
 
-  NavBarView({super.key});
+  NavBarView({super.key}) {
+    _ensureControllersReady();
+  }
   final NavBarController controller = Get.isRegistered<NavBarController>()
       ? Get.find<NavBarController>()
       : Get.put(NavBarController());
@@ -38,6 +41,8 @@ class NavBarView extends StatelessWidget {
 
   // Ensure controllers are available
   void _ensureControllersReady() {
+    if (_controllersPrepared) return;
+
     if (!Get.isRegistered<ExploreController>()) {
       Get.put(ExploreController());
     }
@@ -69,6 +74,8 @@ class NavBarView extends StatelessWidget {
     if (Get.isRegistered<DeepLinkService>()) {
       Get.find<DeepLinkService>().start();
     }
+
+    _controllersPrepared = true;
   }
 
   late final AnimationController animationController;
@@ -114,7 +121,6 @@ class NavBarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    _ensureControllersReady(); // Ensure all controllers are ready before building
     return Obx(() {
       final waitingInitialLink = deepLinkService != null &&
           !deepLinkService!.initialLinkResolved.value;
