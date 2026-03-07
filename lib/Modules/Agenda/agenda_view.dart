@@ -10,7 +10,7 @@ import 'package:turqappv2/Modules/Agenda/TopTags/top_tags.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import '../../Themes/app_fonts.dart';
@@ -36,7 +36,6 @@ class AgendaView extends StatelessWidget {
     }
   }
 
-  final user = Get.find<FirebaseMyStore>();
   final loader = Get.find<GlobalLoaderController>();
 
   // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
@@ -210,7 +209,10 @@ class AgendaView extends StatelessWidget {
                             return Obx(() {
                               final isCentered =
                                   controller.centeredIndex.value == agendaIndex;
-                              if (user.viewSelection.value == 1) {
+                              final viewSelection = CurrentUserService.instance
+                                      .currentUserRx.value?.viewSelection ??
+                                  1;
+                              if (viewSelection == 1) {
                                 return AgendaContent(
                                   key: ValueKey(stableKeyString),
                                   model: model,
