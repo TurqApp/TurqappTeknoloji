@@ -5,29 +5,70 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../formatters.dart';
 
+class _SeenCountCacheEntry {
+  final int value;
+  final int fetchedAtMs;
+
+  const _SeenCountCacheEntry({
+    required this.value,
+    required this.fetchedAtMs,
+  });
+}
+
 class PostServiceExternal {
+  static const Duration _cacheTtl = Duration(minutes: 2);
+  static final Map<String, _SeenCountCacheEntry> _cache = {};
+
   /// Gönderinin görüntülenme sayısını döner
   static Future<int> calculateSeenCount(String postID) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final cached = _cache[postID];
+    if (cached != null && nowMs - cached.fetchedAtMs <= _cacheTtl.inMilliseconds) {
+      return cached.value;
+    }
+
     final doc =
         await FirebaseFirestore.instance.collection("Posts").doc(postID).get();
     final data = doc.data();
     if (data == null) return 0;
     final stats = data['stats'] as Map<String, dynamic>? ?? {};
     final dynamic raw = stats['statsCount'] ?? data['statsCount'];
-    if (raw is int) return raw < 0 ? 0 : raw;
-    if (raw is num) return raw.toInt() < 0 ? 0 : raw.toInt();
-    return 0;
+    int count;
+    if (raw is int) {
+      count = raw < 0 ? 0 : raw;
+    } else if (raw is num) {
+      final v = raw.toInt();
+      count = v < 0 ? 0 : v;
+    } else {
+      count = 0;
+    }
+
+    _cache[postID] = _SeenCountCacheEntry(value: count, fetchedAtMs: nowMs);
+    return count;
   }
 }
 
-class SeenCountLabel extends StatelessWidget {
+class SeenCountLabel extends StatefulWidget {
   final String postID;
   const SeenCountLabel(this.postID, {super.key});
 
   @override
+  State<SeenCountLabel> createState() => _SeenCountLabelState();
+}
+
+class _SeenCountLabelState extends State<SeenCountLabel> {
+  late final Future<int> _seenCountFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _seenCountFuture = PostServiceExternal.calculateSeenCount(widget.postID);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<int>(
-      future: PostServiceExternal.calculateSeenCount(postID),
+      future: _seenCountFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Text('0');
