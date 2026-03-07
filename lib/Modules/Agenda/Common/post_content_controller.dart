@@ -177,7 +177,7 @@ class PostContentController extends GetxController {
     });
 
     getGizleArsivSikayetEdildi();
-    getEditTime();
+    editTime.value = model.editTime?.toInt() ?? 0;
     getUserData(model.userID);
     getReSharedUsers(model.docID);
     // Real-time listeners handle likes/saved/comments membership and counts.
@@ -251,6 +251,12 @@ class PostContentController extends GetxController {
           (stats['retryCount'] ?? data['retryCount'] ?? 0) as int;
       countManager.getStatsCount(model.docID).value =
           (stats['statsCount'] ?? data['statsCount'] ?? 0) as int;
+      final rawEditTime = data['editTime'];
+      if (rawEditTime is num) {
+        editTime.value = rawEditTime.toInt();
+      } else if (rawEditTime is String) {
+        editTime.value = int.tryParse(rawEditTime) ?? editTime.value;
+      }
 
       final latestAuthorNickname = (data['authorNickname'] ??
               (data['author'] is Map
@@ -642,14 +648,6 @@ class PostContentController extends GetxController {
         }
       }
     });
-  }
-
-  Future<void> getEditTime() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .get();
-    editTime.value = doc.data()?["editTime"] ?? 0;
   }
 
   Future<void> reshare() async {
