@@ -36,6 +36,7 @@ class DeepLinkService extends GetxService {
   static final Map<String, _StoryDocLookupCache> _storyDocLookupCache =
       <String, _StoryDocLookupCache>{};
   static const Duration _staleRetention = Duration(minutes: 3);
+  static const int _maxLookupEntries = 400;
   StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
@@ -426,6 +427,28 @@ class DeepLinkService extends GetxService {
     _userLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _storyListLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _storyDocLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _trimOldestIfNeeded();
+  }
+
+  void _trimOldestIfNeeded() {
+    void trimMap<T>(
+      Map<String, T> map,
+      DateTime Function(T value) cachedAt,
+    ) {
+      if (map.length <= _maxLookupEntries) return;
+      final keysByAge = map.entries.toList()
+        ..sort((a, b) => cachedAt(a.value).compareTo(cachedAt(b.value)));
+      final removeCount = map.length - _maxLookupEntries;
+      for (var i = 0; i < removeCount; i++) {
+        map.remove(keysByAge[i].key);
+      }
+    }
+
+    trimMap<_PostLookupCache>(_postLookupCache, (v) => v.cachedAt);
+    trimMap<_JobLookupCache>(_jobLookupCache, (v) => v.cachedAt);
+    trimMap<_UserLookupCache>(_userLookupCache, (v) => v.cachedAt);
+    trimMap<_StoryListLookupCache>(_storyListLookupCache, (v) => v.cachedAt);
+    trimMap<_StoryDocLookupCache>(_storyDocLookupCache, (v) => v.cachedAt);
   }
 
   Future<void> _openEducationLink(String entityId) async {
