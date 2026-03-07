@@ -1,6 +1,40 @@
 part of 'message_content.dart';
 
+class _ReplyPostDocFutureCacheEntry {
+  final Future<DocumentSnapshot<Map<String, dynamic>>> future;
+  final DateTime createdAt;
+
+  const _ReplyPostDocFutureCacheEntry({
+    required this.future,
+    required this.createdAt,
+  });
+}
+
+final Map<String, _ReplyPostDocFutureCacheEntry> _replyPostDocFutureCache = {};
+const Duration _replyPostDocFutureTtl = Duration(seconds: 30);
+
 extension MessageContentReplyParts on MessageContent {
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getReplyPostFuture(
+      String target) {
+    final key = target.trim();
+    final now = DateTime.now();
+    final cached = _replyPostDocFutureCache[key];
+    if (cached != null &&
+        now.difference(cached.createdAt) < _replyPostDocFutureTtl) {
+      return cached.future;
+    }
+
+    final future =
+        FirebaseFirestore.instance.collection("Posts").doc(key).get();
+    _replyPostDocFutureCache[key] =
+        _ReplyPostDocFutureCacheEntry(future: future, createdAt: now);
+
+    if (_replyPostDocFutureCache.length > 400) {
+      _replyPostDocFutureCache.clear();
+    }
+    return future;
+  }
+
   Widget _buildMessageMetaRow(bool isMine) {
     final metaColor = isMine ? const Color(0xFF6D9E6B) : Colors.black38;
     return Padding(
@@ -280,8 +314,7 @@ extension MessageContentReplyParts on MessageContent {
       }
 
       return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future:
-            FirebaseFirestore.instance.collection("Posts").doc(target).get(),
+        future: _getReplyPostFuture(target),
         builder: (context, snapshot) {
           final data = snapshot.data?.data();
           final imgList = List<String>.from(
