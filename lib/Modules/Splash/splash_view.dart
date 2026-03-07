@@ -822,8 +822,10 @@ class _SplashViewState extends State<SplashView> {
             top: -80,
             right: -60,
             child: Container(
-              width: 220,
-              height: 220,
+              width: (MediaQuery.of(context).size.width * 0.56)
+                  .clamp(180.0, 220.0),
+              height: (MediaQuery.of(context).size.width * 0.56)
+                  .clamp(180.0, 220.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF7BC6FF).withValues(alpha: 0.12),
                 shape: BoxShape.circle,
@@ -834,8 +836,10 @@ class _SplashViewState extends State<SplashView> {
             bottom: -90,
             left: -70,
             child: Container(
-              width: 240,
-              height: 240,
+              width: (MediaQuery.of(context).size.width * 0.62)
+                  .clamp(190.0, 240.0),
+              height: (MediaQuery.of(context).size.width * 0.62)
+                  .clamp(190.0, 240.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF7FD8A6).withValues(alpha: 0.10),
                 shape: BoxShape.circle,
