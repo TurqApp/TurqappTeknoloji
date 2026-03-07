@@ -5,7 +5,7 @@ import '../Controllers/post_controller.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 /// Post etkileşim butonları widget'ı
-class PostInteractionWidget extends StatelessWidget {
+class PostInteractionWidget extends StatefulWidget {
   final PostsModel post;
   final bool showCommentButton;
   final bool showSaveButton;
@@ -22,11 +22,38 @@ class PostInteractionWidget extends StatelessWidget {
   });
 
   @override
+  State<PostInteractionWidget> createState() => _PostInteractionWidgetState();
+}
+
+class _PostInteractionWidgetState extends State<PostInteractionWidget> {
+  Future<bool>? _likeFuture;
+  Future<bool>? _reshareFuture;
+  Future<bool>? _saveFuture;
+
+  void _refreshStatusFutures(PostController controller) {
+    _likeFuture = controller.checkLikeStatus(widget.post.docID);
+    _reshareFuture = controller.checkReshareStatus(widget.post.docID);
+    _saveFuture = controller.checkSaveStatus(widget.post.docID);
+  }
+
+  @override
+  void didUpdateWidget(covariant PostInteractionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.docID != widget.post.docID) {
+      final controller = Get.find<PostController>();
+      _refreshStatusFutures(controller);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GetBuilder<PostController>(
-      id: 'post_${post.docID}',
+      id: 'post_${widget.post.docID}',
       init: PostController(),
       builder: (controller) {
+        _likeFuture ??= controller.checkLikeStatus(widget.post.docID);
+        _reshareFuture ??= controller.checkReshareStatus(widget.post.docID);
+        _saveFuture ??= controller.checkSaveStatus(widget.post.docID);
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
@@ -36,13 +63,13 @@ class PostInteractionWidget extends StatelessWidget {
               const SizedBox(width: 16),
 
               // Yorum butonu
-              if (showCommentButton) ...[
+              if (widget.showCommentButton) ...[
                 _buildCommentButton(controller),
                 const SizedBox(width: 16),
               ],
 
               // Yeniden paylaşma butonu
-              if (showReshareButton) ...[
+              if (widget.showReshareButton) ...[
                 _buildReshareButton(controller),
                 const SizedBox(width: 16),
               ],
@@ -50,7 +77,7 @@ class PostInteractionWidget extends StatelessWidget {
               const Spacer(),
 
               // Kaydetme butonu
-              if (showSaveButton) _buildSaveButton(controller),
+              if (widget.showSaveButton) _buildSaveButton(controller),
             ],
           ),
         );
@@ -60,9 +87,13 @@ class PostInteractionWidget extends StatelessWidget {
 
   Widget _buildLikeButton(PostController controller) {
     return GestureDetector(
-      onTap: () => controller.handleLike(post.docID, post),
+      onTap: () async {
+        await controller.handleLike(widget.post.docID, widget.post);
+        _likeFuture = controller.checkLikeStatus(widget.post.docID);
+        if (mounted) setState(() {});
+      },
       child: FutureBuilder<bool>(
-        future: controller.checkLikeStatus(post.docID),
+        future: _likeFuture,
         builder: (context, snapshot) {
           final isLiked = snapshot.data ?? false;
 
@@ -76,7 +107,7 @@ class PostInteractionWidget extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                _formatCount(post.stats.likeCount),
+                _formatCount(widget.post.stats.likeCount),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -92,7 +123,7 @@ class PostInteractionWidget extends StatelessWidget {
 
   Widget _buildCommentButton(PostController controller) {
     return GestureDetector(
-      onTap: () => onCommentTap?.call(post.docID),
+      onTap: () => widget.onCommentTap?.call(widget.post.docID),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -103,7 +134,7 @@ class PostInteractionWidget extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            _formatCount(post.stats.commentCount),
+            _formatCount(widget.post.stats.commentCount),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -117,9 +148,13 @@ class PostInteractionWidget extends StatelessWidget {
 
   Widget _buildReshareButton(PostController controller) {
     return GestureDetector(
-      onTap: () => controller.handleReshare(post.docID, post),
+      onTap: () async {
+        await controller.handleReshare(widget.post.docID, widget.post);
+        _reshareFuture = controller.checkReshareStatus(widget.post.docID);
+        if (mounted) setState(() {});
+      },
       child: FutureBuilder<bool>(
-        future: controller.checkReshareStatus(post.docID),
+        future: _reshareFuture,
         builder: (context, snapshot) {
           final isReshared = snapshot.data ?? false;
 
@@ -133,7 +168,7 @@ class PostInteractionWidget extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                _formatCount(post.stats.retryCount),
+                _formatCount(widget.post.stats.retryCount),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -149,9 +184,13 @@ class PostInteractionWidget extends StatelessWidget {
 
   Widget _buildSaveButton(PostController controller) {
     return GestureDetector(
-      onTap: () => controller.handleSave(post.docID, post),
+      onTap: () async {
+        await controller.handleSave(widget.post.docID, widget.post);
+        _saveFuture = controller.checkSaveStatus(widget.post.docID);
+        if (mounted) setState(() {});
+      },
       child: FutureBuilder<bool>(
-        future: controller.checkSaveStatus(post.docID),
+        future: _saveFuture,
         builder: (context, snapshot) {
           final isSaved = snapshot.data ?? false;
 
