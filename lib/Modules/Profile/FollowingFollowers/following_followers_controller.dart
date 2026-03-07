@@ -7,8 +7,16 @@ class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
   static const Duration _nicknameCacheStaleRetention = Duration(minutes: 20);
   static const int _maxNicknameCacheEntries = 300;
+  static const Duration _searchResultCacheTtl = Duration(seconds: 30);
+  static const Duration _searchResultStaleRetention = Duration(minutes: 3);
+  static const int _maxSearchResultEntries = 400;
+  static const Duration _counterCacheTtl = Duration(seconds: 30);
+  static const Duration _counterCacheStaleRetention = Duration(minutes: 3);
+  static const int _maxCounterCacheEntries = 300;
   static final Map<String, _NicknameCacheEntry> _nicknameCacheByUserId =
       <String, _NicknameCacheEntry>{};
+  static final Map<String, _CounterCacheEntry> _counterCacheByUserId =
+      <String, _CounterCacheEntry>{};
 
   @override
   void onClose() {
@@ -42,6 +50,8 @@ class FollowingFollowersController extends GetxController {
   static const Duration _relationSearchCacheTtl = Duration(seconds: 30);
   final Map<String, _RelationIdSetCacheEntry> _relationIdSetCache =
       <String, _RelationIdSetCacheEntry>{};
+  final Map<String, _SearchResultCacheEntry> _searchResultCache =
+      <String, _SearchResultCacheEntry>{};
 
   var nickname = "".obs;
 
@@ -69,27 +79,31 @@ class FollowingFollowersController extends GetxController {
   }
 
   Future<void> getCounters() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followers")
-        .count()
-        .get()
-        .then((aggregateQuerySnapshot) {
-      takipciCounter.value = aggregateQuerySnapshot.count ?? 0;
-      print("CEKILDI SETEDILDI");
-    });
+    _pruneCounterCache();
+    final cached = _counterCacheByUserId[userId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _counterCacheTtl) {
+      takipciCounter.value = cached.followers;
+      takipedilenCounter.value = cached.followings;
+      return;
+    }
 
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followings")
-        .count()
-        .get()
-        .then((aggregateQuerySnapshot) {
-      takipedilenCounter.value = aggregateQuerySnapshot.count ?? 0;
-      print("CEKILDI SETEDILDI");
-    });
+    try {
+      final refs = FirebaseFirestore.instance.collection("users").doc(userId);
+      final results = await Future.wait([
+        refs.collection("followers").count().get(),
+        refs.collection("followings").count().get(),
+      ]);
+      final followers = results[0].count ?? 0;
+      final followings = results[1].count ?? 0;
+      takipciCounter.value = followers;
+      takipedilenCounter.value = followings;
+      _counterCacheByUserId[userId] = _CounterCacheEntry(
+        followers: followers,
+        followings: followings,
+        cachedAt: DateTime.now(),
+      );
+    } catch (_) {}
   }
 
   Future<void> _loadNicknameCached() async {
@@ -211,6 +225,14 @@ class FollowingFollowersController extends GetxController {
   Future<void> searchTakipci() async {
     final q = searchTakipciController.text.toLowerCase();
     if (q.length < 3) return;
+    _pruneSearchResultCache();
+
+    final cached = _searchResultCache['followers:$q'];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _searchResultCacheTtl) {
+      takipciler.value = cached.ids;
+      return;
+    }
 
     final next = q.substring(0, q.length - 1) +
         String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
@@ -230,12 +252,24 @@ class FollowingFollowersController extends GetxController {
         results.add(doc.id);
       }
     }
+    _searchResultCache['followers:$q'] = _SearchResultCacheEntry(
+      ids: List<String>.from(results),
+      cachedAt: DateTime.now(),
+    );
     takipciler.value = results;
   }
 
   Future<void> searchTakipEdilenler() async {
     final q = searchTakipEdilenController.text.toLowerCase();
     if (q.length < 3) return;
+    _pruneSearchResultCache();
+
+    final cached = _searchResultCache['followings:$q'];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _searchResultCacheTtl) {
+      takipEdilenler.value = cached.ids;
+      return;
+    }
 
     final next = q.substring(0, q.length - 1) +
         String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
@@ -255,6 +289,10 @@ class FollowingFollowersController extends GetxController {
         results.add(doc.id);
       }
     }
+    _searchResultCache['followings:$q'] = _SearchResultCacheEntry(
+      ids: List<String>.from(results),
+      cachedAt: DateTime.now(),
+    );
     takipEdilenler.value = results;
   }
 
@@ -277,6 +315,36 @@ class FollowingFollowersController extends GetxController {
       cachedAt: now,
     );
     return ids;
+  }
+
+  void _pruneSearchResultCache() {
+    final now = DateTime.now();
+    _searchResultCache.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) > _searchResultStaleRetention,
+    );
+    if (_searchResultCache.length <= _maxSearchResultEntries) return;
+    final entries = _searchResultCache.entries.toList()
+      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
+    final removeCount = _searchResultCache.length - _maxSearchResultEntries;
+    for (var i = 0; i < removeCount; i++) {
+      _searchResultCache.remove(entries[i].key);
+    }
+  }
+
+  void _pruneCounterCache() {
+    final now = DateTime.now();
+    _counterCacheByUserId.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) > _counterCacheStaleRetention,
+    );
+    if (_counterCacheByUserId.length <= _maxCounterCacheEntries) return;
+    final entries = _counterCacheByUserId.entries.toList()
+      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
+    final removeCount = _counterCacheByUserId.length - _maxCounterCacheEntries;
+    for (var i = 0; i < removeCount; i++) {
+      _counterCacheByUserId.remove(entries[i].key);
+    }
   }
 
   /// Sayfa değiştirme
@@ -305,6 +373,28 @@ class _RelationIdSetCacheEntry {
 
   const _RelationIdSetCacheEntry({
     required this.ids,
+    required this.cachedAt,
+  });
+}
+
+class _SearchResultCacheEntry {
+  final List<String> ids;
+  final DateTime cachedAt;
+
+  const _SearchResultCacheEntry({
+    required this.ids,
+    required this.cachedAt,
+  });
+}
+
+class _CounterCacheEntry {
+  final int followers;
+  final int followings;
+  final DateTime cachedAt;
+
+  const _CounterCacheEntry({
+    required this.followers,
+    required this.followings,
     required this.cachedAt,
   });
 }
