@@ -687,7 +687,7 @@ class BecomeVerifiedAccount extends StatelessWidget {
         Column(
           children: [
             Container(
-              height: 200,
+              height: (Get.height * 0.26).clamp(150.0, 200.0),
               padding: const EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
                 color: Colors.grey.withValues(alpha: 0.1),

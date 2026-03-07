@@ -59,7 +59,8 @@ class JobDetails extends StatelessWidget {
                 : null,
             child: SizedBox(
               width: double.infinity,
-              height: 220,
+              height: (MediaQuery.of(context).size.height * 0.28)
+                  .clamp(180.0, 220.0),
               child: canUseNativeMap
                   ? AbsorbPointer(
                       child: GoogleMap(
