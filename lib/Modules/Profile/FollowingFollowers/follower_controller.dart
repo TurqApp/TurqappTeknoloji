@@ -12,11 +12,16 @@ class FollowerController extends GetxController {
   var isLoaded = false.obs;
   var isFollowed = false.obs;
   var followLoading = false.obs;
+  static const Duration _followStateCacheTtl = Duration(seconds: 20);
+  static const Duration _followStateStaleRetention = Duration(minutes: 3);
+  static const int _maxFollowStateCacheEntries = 800;
   static const Duration _userCacheTtl = Duration(minutes: 5);
   static const Duration _userCacheStaleRetention = Duration(minutes: 20);
   static const int _maxUserCacheEntries = 400;
   static final Map<String, _FollowerUserCacheEntry> _userCacheById =
       <String, _FollowerUserCacheEntry>{};
+  static final Map<String, _FollowStateCacheEntry> _followStateCacheByUser =
+      <String, _FollowStateCacheEntry>{};
 
   String _resolveAvatar(Map<String, dynamic> data) {
     final profile = (data['profile'] is Map)
@@ -101,15 +106,30 @@ class FollowerController extends GetxController {
   }
 
   Future<void> followControl(String userID) async {
-    FirebaseFirestore.instance
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid == null) return;
+    _pruneFollowStateCache();
+
+    final cacheKey = '$myUid:$userID';
+    final cached = _followStateCacheByUser[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _followStateCacheTtl) {
+      isFollowed.value = cached.isFollowed;
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
         .collection("users")
-        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .doc(myUid)
         .collection("followings")
         .doc(userID)
-        .get()
-        .then((doc) {
-      isFollowed.value = doc.exists;
-    });
+        .get();
+    final exists = doc.exists;
+    isFollowed.value = exists;
+    _followStateCacheByUser[cacheKey] = _FollowStateCacheEntry(
+      isFollowed: exists,
+      cachedAt: DateTime.now(),
+    );
   }
 
   Future<void> follow(String otherUserID) async {
@@ -119,10 +139,33 @@ class FollowerController extends GetxController {
     followLoading.value = true;
     final outcome = await FollowService.toggleFollow(otherUserID);
     isFollowed.value = outcome.nowFollowing; // reconcile
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid != null) {
+      _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(
+        isFollowed: outcome.nowFollowing,
+        cachedAt: DateTime.now(),
+      );
+    }
     if (outcome.limitReached) {
       AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
     }
     followLoading.value = false;
+  }
+
+  void _pruneFollowStateCache() {
+    final now = DateTime.now();
+    _followStateCacheByUser.removeWhere(
+      (_, entry) =>
+          now.difference(entry.cachedAt) > _followStateStaleRetention,
+    );
+    if (_followStateCacheByUser.length <= _maxFollowStateCacheEntries) return;
+    final entries = _followStateCacheByUser.entries.toList()
+      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
+    final removeCount =
+        _followStateCacheByUser.length - _maxFollowStateCacheEntries;
+    for (var i = 0; i < removeCount; i++) {
+      _followStateCacheByUser.remove(entries[i].key);
+    }
   }
 }
 
@@ -136,6 +179,16 @@ class _FollowerUserCacheEntry {
     required this.avatarUrl,
     required this.nickname,
     required this.fullname,
+    required this.cachedAt,
+  });
+}
+
+class _FollowStateCacheEntry {
+  final bool isFollowed;
+  final DateTime cachedAt;
+
+  const _FollowStateCacheEntry({
+    required this.isFollowed,
     required this.cachedAt,
   });
 }
