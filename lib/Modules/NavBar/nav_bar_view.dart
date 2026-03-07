@@ -34,7 +34,10 @@ class NavBarView extends StatelessWidget {
   final NavBarController controller = Get.isRegistered<NavBarController>()
       ? Get.find<NavBarController>()
       : Get.put(NavBarController());
-  final SettingsController settingController = Get.put(SettingsController());
+  final SettingsController settingController =
+      Get.isRegistered<SettingsController>()
+          ? Get.find<SettingsController>()
+          : Get.put(SettingsController());
   final FirebaseMyStore userStore = Get.find<FirebaseMyStore>();
   final DeepLinkService? deepLinkService =
       Get.isRegistered<DeepLinkService>() ? Get.find<DeepLinkService>() : null;
@@ -100,9 +103,10 @@ class NavBarView extends StatelessWidget {
     final educationIndex = hasEducation ? 3 : 0;
 
     if (hasEducation && controller.selectedIndex.value == educationIndex) {
-      final educationController = Get.isRegistered<EducationController>()
-          ? Get.find<EducationController>()
-          : Get.put(EducationController());
+      if (!Get.isRegistered<EducationController>()) {
+        return false;
+      }
+      final educationController = Get.find<EducationController>();
       if (educationController.canExitToFeed) {
         controller.changeIndex(0);
       } else {

@@ -60,10 +60,13 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
-  final ProfileController controller = Get.put(ProfileController());
-  final SocialMediaController socialMediaController = Get.put(
-    SocialMediaController(),
-  );
+  final ProfileController controller = Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : Get.put(ProfileController());
+  final SocialMediaController socialMediaController =
+      Get.isRegistered<SocialMediaController>()
+          ? Get.find<SocialMediaController>()
+          : Get.put(SocialMediaController());
   final FirebaseMyStore user = Get.find<FirebaseMyStore>();
   final userService = CurrentUserService.instance;
   List<StoryUserModel> get storyOwnerUsers {
