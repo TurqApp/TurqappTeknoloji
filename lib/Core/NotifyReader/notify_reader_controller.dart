@@ -15,15 +15,36 @@ import '../../Modules/Chat/chat.dart';
 import '../../Modules/SocialProfile/social_profile.dart';
 
 class NotifyReaderController extends GetxController {
-  /// Post detay sayfasına git, geri dönülürse NavBarView'e atla
-  Future<void> goToPost(String postID) async {
+  static const Duration _postLookupTtl = Duration(seconds: 30);
+  static final Map<String, _CachedPostLookup> _postLookupCache =
+      <String, _CachedPostLookup>{};
+
+  Future<_CachedPostLookup> _getPostLookup(String postID) async {
+    final cached = _postLookupCache[postID];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _postLookupTtl) {
+      return cached;
+    }
+
     final doc =
         await FirebaseFirestore.instance.collection('Posts').doc(postID).get();
-    if (!doc.exists) {
+    final lookup = _CachedPostLookup(
+      exists: doc.exists,
+      model: doc.exists ? PostsModel.fromFirestore(doc) : null,
+      cachedAt: DateTime.now(),
+    );
+    _postLookupCache[postID] = lookup;
+    return lookup;
+  }
+
+  /// Post detay sayfasına git, geri dönülürse NavBarView'e atla
+  Future<void> goToPost(String postID) async {
+    final lookup = await _getPostLookup(postID);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
       return toNavbar();
     }
-    final model = PostsModel.fromFirestore(doc);
+    final model = lookup.model!;
     if (model.deletedPost == true) {
       AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
       return toNavbar();
@@ -39,13 +60,12 @@ class NotifyReaderController extends GetxController {
 
   /// Post yorum sayfasına git, geri dönülürse NavBarView'e atla
   Future<void> goToPostComments(String postID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(postID).get();
-    if (!doc.exists) {
+    final lookup = await _getPostLookup(postID);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Bilgi', 'Gönderi bulunamadı veya silinmiş.');
       return toNavbar();
     }
-    final model = PostsModel.fromFirestore(doc);
+    final model = lookup.model!;
     if (model.deletedPost == true) {
       AppSnackbar('Bilgi', 'Gönderi kaldırılmış.');
       return toNavbar();
@@ -118,4 +138,16 @@ class NotifyReaderController extends GetxController {
   void toNavbar() {
     Get.offAll<NavBarView>(() => NavBarView());
   }
+}
+
+class _CachedPostLookup {
+  final bool exists;
+  final PostsModel? model;
+  final DateTime cachedAt;
+
+  const _CachedPostLookup({
+    required this.exists,
+    required this.model,
+    required this.cachedAt,
+  });
 }
