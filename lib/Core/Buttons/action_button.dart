@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
-class ActionButton extends StatelessWidget {
+class ActionButton extends StatefulWidget {
   final BuildContext context;
   final List<PullDownMenuItem> menuItems;
 
@@ -18,35 +18,24 @@ class ActionButton extends StatelessWidget {
     required this.menuItems,
   });
 
-  Future<bool> _canCreateScholarship() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return false;
-    }
+  @override
+  State<ActionButton> createState() => _ActionButtonState();
+}
 
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
+class _ActionButtonState extends State<ActionButton> {
+  late final Future<Map<String, bool>> _permissionsFuture;
+  bool _rozetErrorShown = false;
 
-      if (!doc.exists) {
-        return false;
-      }
-
-      final rozet = doc.get("rozet") as String? ?? "";
-      return ["Kirmizi", "Sari", "Turkuaz"].contains(rozet);
-    } catch (e) {
-      AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
-      print("Rozet kontrol hatası: $e");
-      return false;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _permissionsFuture = _loadPermissions();
   }
 
-  Future<bool> _canCreateExam() async {
+  Future<String> _loadRozet() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return false;
+      return '';
     }
 
     try {
@@ -56,20 +45,32 @@ class ActionButton extends StatelessWidget {
           .get();
 
       if (!doc.exists) {
-        return false;
+        return '';
       }
 
-      final rozet = doc.get("rozet") as String? ?? "";
-      return ["Turkuaz", "Sari"].contains(rozet);
+      return (doc.data()?["rozet"] as String? ?? "").trim();
     } catch (e) {
-      AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
-      print("Rozet kontrol hatası: $e");
-      return false;
+      if (!_rozetErrorShown) {
+        _rozetErrorShown = true;
+        AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
+      }
+      debugPrint("Rozet kontrol hatası: $e");
+      return '';
     }
   }
 
   Future<bool> _canManageSliders() async {
     return AdminAccessService.canManageSliders();
+  }
+
+  Future<Map<String, bool>> _loadPermissions() async {
+    final rozet = await _loadRozet();
+    final canManageSliders = await _canManageSliders();
+    return {
+      'canCreateScholarship': ["Kirmizi", "Sari", "Turkuaz"].contains(rozet),
+      'canCreateExam': ["Turkuaz", "Sari"].contains(rozet),
+      'canManageSliders': canManageSliders,
+    };
   }
 
   @override
@@ -88,17 +89,7 @@ class ActionButton extends StatelessWidget {
               width: 60,
               height: 60,
               child: FutureBuilder<Map<String, bool>>(
-                future: Future.wait([
-                  _canCreateScholarship(),
-                  _canCreateExam(),
-                  _canManageSliders(),
-                ]).then(
-                  (results) => {
-                    'canCreateScholarship': results[0],
-                    'canCreateExam': results[1],
-                    'canManageSliders': results[2],
-                  },
-                ),
+                future: _permissionsFuture,
                 builder: (context, snapshot) {
                   final canCreateScholarship =
                       snapshot.data?['canCreateScholarship'] ?? false;
@@ -107,7 +98,7 @@ class ActionButton extends StatelessWidget {
                   final canManageSliders =
                       snapshot.data?['canManageSliders'] ?? false;
                   return PullDownButton(
-                    itemBuilder: (context) => menuItems
+                    itemBuilder: (context) => widget.menuItems
                         .map((item) {
                           if ((item.title == 'Burs Oluştur' ||
                                   item.title == 'İlanlarım') &&
