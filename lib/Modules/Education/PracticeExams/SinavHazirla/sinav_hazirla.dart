@@ -21,6 +21,10 @@ class SinavHazirla extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(SinavHazirlaController(sinavModel: sinavModel));
+    final soruSayisiFieldWidth =
+        (MediaQuery.of(context).size.width * 0.26).clamp(82.0, 100.0);
+    final coverSelectButtonWidth =
+        (MediaQuery.of(context).size.width * 0.52).clamp(160.0, 200.0);
 
     Widget buildSoruSayisiFields(List<String> dersler) {
       return Column(
@@ -48,7 +52,7 @@ class SinavHazirla extends StatelessWidget {
                       ),
                     ),
                     SizedBox(
-                      width: 100,
+                      width: soruSayisiFieldWidth,
                       child: Obx(
                         () => TextField(
                           controller: controller.soruSayisiTextFields[i],
@@ -215,7 +219,7 @@ class SinavHazirla extends StatelessWidget {
                                                 ),
                                                 child: Container(
                                                   height: 35,
-                                                  width: 200,
+                                                  width: coverSelectButtonWidth,
                                                   alignment: Alignment.center,
                                                   decoration: BoxDecoration(
                                                     color: Colors.pink,
