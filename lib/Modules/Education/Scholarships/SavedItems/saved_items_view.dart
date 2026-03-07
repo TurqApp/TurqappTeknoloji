@@ -177,6 +177,11 @@ class SavedItemsView extends StatelessWidget {
                   final userData =
                       scholarshipData['userData'] as Map<String, dynamic>?;
                   final docId = scholarshipData['docId'] as String;
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final thumbnailWidth =
+                      (screenWidth * 0.31).clamp(96.0, 120.0);
+                  final thumbnailHeight =
+                      (thumbnailWidth * 0.75).clamp(72.0, 90.0);
 
                   return GestureDetector(
                     onTap: () {
@@ -192,8 +197,8 @@ class SavedItemsView extends StatelessWidget {
                         children: [
                           if (burs.img.isNotEmpty)
                             SizedBox(
-                              width: 120,
-                              height: 90,
+                              width: thumbnailWidth,
+                              height: thumbnailHeight,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(4),
                                 child: CachedNetworkImage(
@@ -213,8 +218,8 @@ class SavedItemsView extends StatelessWidget {
                             )
                           else
                             Container(
-                              width: 120,
-                              height: 90,
+                              width: thumbnailWidth,
+                              height: thumbnailHeight,
                               decoration: BoxDecoration(
                                 color: Colors.grey.withAlpha(20),
                                 borderRadius: BorderRadius.circular(12),
