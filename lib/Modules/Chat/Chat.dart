@@ -1444,10 +1444,10 @@ class _PendingVideoPreviewState extends State<_PendingVideoPreview> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const SizedBox(
-        height: 200,
+      return SizedBox(
+        height: (MediaQuery.of(context).size.height * 0.26).clamp(160.0, 200.0),
         child: Center(
-          child: CupertinoActivityIndicator(color: Colors.black),
+          child: const CupertinoActivityIndicator(color: Colors.black),
         ),
       );
     }
