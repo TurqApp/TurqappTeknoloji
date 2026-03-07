@@ -14,7 +14,9 @@ import '../../Core/Helpers/custom_nickname_formatter.dart';
 class SignIn extends StatelessWidget {
   SignIn({super.key});
   final controller = Get.put(SignInController());
-  final user = Get.put(FirebaseMyStore());
+  final FirebaseMyStore user = Get.isRegistered<FirebaseMyStore>()
+      ? Get.find<FirebaseMyStore>()
+      : Get.put(FirebaseMyStore());
   @override
   Widget build(BuildContext context) {
     return Scaffold(

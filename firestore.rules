@@ -26,6 +26,20 @@ service cloud.firestore {
           && request.auth.uid != uid
           && request.resource.data.fromUserID == request.auth.uid);
     }
+    function isValidNotificationPayload(uid) {
+      return request.resource.data.keys().hasOnly([
+          'type', 'fromUserID', 'postID', 'timeStamp', 'read', 'title', 'body'
+        ])
+        && request.resource.data.type is string
+        && request.resource.data.fromUserID is string
+        && request.resource.data.postID is string
+        && request.resource.data.timeStamp is int
+        && request.resource.data.read is bool
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && request.resource.data.fromUserID != uid
+        && request.resource.data.timeStamp > 0;
+    }
     function isValidUsernameLower(v) {
       return v is string
         && v.size() >= 3
@@ -64,7 +78,7 @@ service cloud.firestore {
       // Notifications
       match /notifications/{notifId} {
         allow read: if isOwner(uid);
-        allow create: if canCreateNotification(uid);
+        allow create: if canCreateNotification(uid) && isValidNotificationPayload(uid);
         allow update, delete: if isOwner(uid);
       }
 
@@ -153,7 +167,7 @@ service cloud.firestore {
 
       // Stats (follow rate limiting)
       match /Stats/{statId} {
-        allow read, write: if isOwner(uid);
+        allow read, write: if false; // Legacy path disabled
       }
 
       // Unknown subcollections are denied by default.

@@ -173,8 +173,7 @@ class FirebaseMyStore extends GetxController {
   /// ⚠️ DEPRECATED - Data is now automatically synced from CurrentUserService
   @Deprecated('Data is automatically synced. This method does nothing.')
   Future<void> getUserData() async {
-    // No-op - CurrentUserService handles this automatically
-    print('⚠️ getUserData() is deprecated. Use CurrentUserService instead.');
+    // No-op: CurrentUserService handles synchronization automatically.
   }
 
   /// Reset user data

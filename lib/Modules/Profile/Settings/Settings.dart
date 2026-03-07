@@ -51,7 +51,9 @@ class SettingsView extends StatelessWidget {
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
   @Deprecated('Use userService instead')
-  final user = Get.put(FirebaseMyStore()); // Backward compatibility
+  final user = Get.isRegistered<FirebaseMyStore>()
+      ? Get.find<FirebaseMyStore>()
+      : Get.put(FirebaseMyStore()); // Backward compatibility
 
   bool get _isDiagnosticsAdmin {
     return AdminAccessService.isKnownAdminSync();
