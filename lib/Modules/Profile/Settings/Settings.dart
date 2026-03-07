@@ -24,7 +24,6 @@ import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_health_dashboard.dart';
@@ -170,9 +169,6 @@ class SettingsView extends StatelessWidget {
 
                             try {
                               await CurrentUserService.instance.logout();
-                              if (Get.isRegistered<FirebaseMyStore>()) {
-                                Get.find<FirebaseMyStore>().rvesertUserData();
-                              }
                               await FirebaseAuth.instance.signOut();
                               await Get.offAll(() => SignIn());
                             } catch (e) {
