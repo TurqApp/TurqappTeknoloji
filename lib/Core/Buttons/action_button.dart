@@ -25,6 +25,9 @@ class ActionButton extends StatefulWidget {
 class _ActionButtonState extends State<ActionButton> {
   late final Future<Map<String, bool>> _permissionsFuture;
   bool _rozetErrorShown = false;
+  static const Duration _rozetCacheTtl = Duration(minutes: 5);
+  static final Map<String, _RozetCacheEntry> _rozetCacheByUid =
+      <String, _RozetCacheEntry>{};
 
   @override
   void initState() {
@@ -37,6 +40,11 @@ class _ActionButtonState extends State<ActionButton> {
     if (user == null) {
       return '';
     }
+    final cached = _rozetCacheByUid[user.uid];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _rozetCacheTtl) {
+      return cached.rozet;
+    }
 
     try {
       final doc = await FirebaseFirestore.instance
@@ -45,10 +53,15 @@ class _ActionButtonState extends State<ActionButton> {
           .get();
 
       if (!doc.exists) {
+        _rozetCacheByUid[user.uid] =
+            _RozetCacheEntry(rozet: '', cachedAt: DateTime.now());
         return '';
       }
 
-      return (doc.data()?["rozet"] as String? ?? "").trim();
+      final rozet = (doc.data()?["rozet"] as String? ?? "").trim();
+      _rozetCacheByUid[user.uid] =
+          _RozetCacheEntry(rozet: rozet, cachedAt: DateTime.now());
+      return rozet;
     } catch (e) {
       if (!_rozetErrorShown) {
         _rozetErrorShown = true;
@@ -158,4 +171,14 @@ class _ActionButtonState extends State<ActionButton> {
       ),
     );
   }
+}
+
+class _RozetCacheEntry {
+  final String rozet;
+  final DateTime cachedAt;
+
+  const _RozetCacheEntry({
+    required this.rozet,
+    required this.cachedAt,
+  });
 }
