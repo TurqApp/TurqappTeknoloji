@@ -131,23 +131,21 @@ class IndexPoolStore {
     if (!_ready) await init();
     final file = File(_filePath);
     final tmp = File('$_filePath.tmp');
+    final payload = jsonEncode({
+      'schemaVersion': _schemaVersion,
+      'updatedDate': DateTime.now().millisecondsSinceEpoch,
+      'entries': all.map((e) => e.toJson()).toList(),
+    });
     await file.parent.create(recursive: true);
-    await tmp.writeAsString(
-      jsonEncode({
-        'schemaVersion': _schemaVersion,
-        'updatedDate': DateTime.now().millisecondsSinceEpoch,
-        'entries': all.map((e) => e.toJson()).toList(),
-      }),
-      flush: true,
-    );
+    await tmp.writeAsString(payload, flush: true);
     try {
       await tmp.rename(file.path);
     } on FileSystemException {
       // Some Android devices occasionally fail rename() if parent path is
-      // transiently unavailable. Fallback keeps pool write durable.
+      // transiently unavailable. Fallback keeps pool write durable even if
+      // tmp file is no longer present.
       await file.parent.create(recursive: true);
-      final bytes = await tmp.readAsBytes();
-      await file.writeAsBytes(bytes, flush: true);
+      await file.writeAsString(payload, flush: true);
       if (await tmp.exists()) {
         await tmp.delete();
       }
