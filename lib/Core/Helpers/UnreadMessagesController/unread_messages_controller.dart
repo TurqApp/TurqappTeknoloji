@@ -50,7 +50,10 @@ class UnreadMessagesController extends GetxController {
         .listen((snapshot) {
       _applyConversationDocs(snapshot.docs, uid);
     }, onError: (_) {});
-    unawaited(_syncUnread(forceServer: true));
+    // snapshots() already delivers initial state; avoid duplicate startup read.
+    if (_isOffline) {
+      unawaited(_syncUnread(forceServer: false));
+    }
     if (_isOffline) {
       _syncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
         unawaited(_syncUnread(forceServer: false));
