@@ -17,6 +17,11 @@ class FloodListing extends StatefulWidget {
 class _FloodListingState extends State<FloodListing> {
   final FloodListingController controller = Get.put(FloodListingController());
 
+  double _tailSpaceHeight() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    return (screenHeight * 0.24).clamp(120.0, 200.0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -38,22 +43,23 @@ class _FloodListingState extends State<FloodListing> {
             controller: controller.scrollController,
             itemCount: controller.floods.length + 1, // +1 ekledik
             itemBuilder: (context, index) {
+              final tailSpace = _tailSpaceHeight();
               if (index == controller.floods.length) {
                 // listenin sonu
                 if (controller.floods.length < 4) {
                   // 4'ten az öğe varsa, en sonda reklam göster
                   return Column(
-                    children: const [
+                    children: [
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.0),
                         child: AdmobKare(),
                       ),
-                      SizedBox(height: 200),
+                      SizedBox(height: tailSpace),
                     ],
                   );
                 }
                 // aksi halde sadece boşluk
-                return const SizedBox(height: 200);
+                return SizedBox(height: tailSpace);
               }
 
               final model = controller.floods[index];
