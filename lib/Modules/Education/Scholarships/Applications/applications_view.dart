@@ -46,6 +46,14 @@ class ApplicationsView extends StatelessWidget {
                                         itemBuilder: (context, index) {
                                           final application =
                                               controller.applications[index];
+                                          final screenWidth =
+                                              MediaQuery.of(context).size.width;
+                                          final thumbnailWidth =
+                                              (screenWidth * 0.31)
+                                                  .clamp(96.0, 120.0);
+                                          final thumbnailHeight =
+                                              (thumbnailWidth * 0.75)
+                                                  .clamp(72.0, 90.0);
                                           return GestureDetector(
                                             onTap: () {
                                               Get.to(
@@ -164,8 +172,8 @@ class ApplicationsView extends StatelessWidget {
                                               child: Row(
                                                 children: [
                                                   SizedBox(
-                                                    width: 120,
-                                                    height: 90,
+                                                    width: thumbnailWidth,
+                                                    height: thumbnailHeight,
                                                     child: Stack(
                                                       alignment:
                                                           Alignment.center,
@@ -175,8 +183,10 @@ class ApplicationsView extends StatelessWidget {
                                                             ? Image.network(
                                                                 application[
                                                                     'img'],
-                                                                width: 120,
-                                                                height: 90,
+                                                                width:
+                                                                    thumbnailWidth,
+                                                                height:
+                                                                    thumbnailHeight,
                                                                 fit: BoxFit
                                                                     .cover,
                                                                 loadingBuilder:
@@ -199,8 +209,10 @@ class ApplicationsView extends StatelessWidget {
                                                                   return Image
                                                                       .asset(
                                                                     'assets/images/placeholder.webp',
-                                                                    width: 120,
-                                                                    height: 90,
+                                                                    width:
+                                                                        thumbnailWidth,
+                                                                    height:
+                                                                        thumbnailHeight,
                                                                     fit: BoxFit
                                                                         .cover,
                                                                   );
@@ -208,8 +220,10 @@ class ApplicationsView extends StatelessWidget {
                                                               )
                                                             : Image.asset(
                                                                 'assets/images/placeholder.webp',
-                                                                width: 120,
-                                                                height: 90,
+                                                                width:
+                                                                    thumbnailWidth,
+                                                                height:
+                                                                    thumbnailHeight,
                                                                 fit: BoxFit
                                                                     .cover,
                                                               ),
@@ -253,6 +267,11 @@ class ApplicationsView extends StatelessWidget {
                                                                   icon: CupertinoIcons
                                                                       .restart,
                                                                   onTap: () {
+                                                                    final actionButtonWidth = (MediaQuery.of(context).size.width *
+                                                                            0.38)
+                                                                        .clamp(
+                                                                            124.0,
+                                                                            150.0);
                                                                     Get.bottomSheet(
                                                                       ClipRRect(
                                                                         borderRadius:
@@ -306,7 +325,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                     GestureDetector(
                                                                                       onTap: () => Get.back(),
                                                                                       child: Container(
-                                                                                        width: 150,
+                                                                                        width: actionButtonWidth,
                                                                                         alignment: Alignment.center,
                                                                                         height: 40,
                                                                                         decoration: BoxDecoration(
@@ -336,7 +355,7 @@ class ApplicationsView extends StatelessWidget {
                                                                                         );
                                                                                       },
                                                                                       child: Container(
-                                                                                        width: 150,
+                                                                                        width: actionButtonWidth,
                                                                                         alignment: Alignment.center,
                                                                                         height: 40,
                                                                                         decoration: BoxDecoration(
