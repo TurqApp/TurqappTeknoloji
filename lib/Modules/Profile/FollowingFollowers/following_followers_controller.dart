@@ -4,6 +4,12 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FollowingFollowersController extends GetxController {
+  static const Duration _nicknameCacheTtl = Duration(minutes: 5);
+  static const Duration _nicknameCacheStaleRetention = Duration(minutes: 20);
+  static const int _maxNicknameCacheEntries = 300;
+  static final Map<String, _NicknameCacheEntry> _nicknameCacheByUserId =
+      <String, _NicknameCacheEntry>{};
+
   @override
   void onClose() {
     pageController.dispose();
@@ -47,13 +53,7 @@ class FollowingFollowersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .get()
-        .then((doc) {
-      nickname.value = doc.get("nickname");
-    });
+    _loadNicknameCached();
     getCounters();
     getFollowers(initial: true);
     getFollowing(initial: true);
@@ -90,6 +90,40 @@ class FollowingFollowersController extends GetxController {
       takipedilenCounter.value = aggregateQuerySnapshot.count ?? 0;
       print("CEKILDI SETEDILDI");
     });
+  }
+
+  Future<void> _loadNicknameCached() async {
+    _pruneNicknameCache();
+    final cached = _nicknameCacheByUserId[userId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _nicknameCacheTtl) {
+      nickname.value = cached.nickname;
+      return;
+    }
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection("users").doc(userId).get();
+      final name = (doc.data()?['nickname'] ?? '').toString().trim();
+      nickname.value = name;
+      _nicknameCacheByUserId[userId] = _NicknameCacheEntry(
+        nickname: name,
+        cachedAt: DateTime.now(),
+      );
+    } catch (_) {}
+  }
+
+  void _pruneNicknameCache() {
+    final now = DateTime.now();
+    _nicknameCacheByUserId.removeWhere(
+      (_, entry) => now.difference(entry.cachedAt) > _nicknameCacheStaleRetention,
+    );
+    if (_nicknameCacheByUserId.length <= _maxNicknameCacheEntries) return;
+    final entries = _nicknameCacheByUserId.entries.toList()
+      ..sort((a, b) => a.value.cachedAt.compareTo(b.value.cachedAt));
+    final removeCount = _nicknameCacheByUserId.length - _maxNicknameCacheEntries;
+    for (var i = 0; i < removeCount; i++) {
+      _nicknameCacheByUserId.remove(entries[i].key);
+    }
   }
 
   Future<void> getFollowers({bool initial = false}) async {
@@ -253,6 +287,16 @@ class FollowingFollowersController extends GetxController {
       curve: Curves.easeInOut,
     );
   }
+}
+
+class _NicknameCacheEntry {
+  final String nickname;
+  final DateTime cachedAt;
+
+  const _NicknameCacheEntry({
+    required this.nickname,
+    required this.cachedAt,
+  });
 }
 
 class _RelationIdSetCacheEntry {
