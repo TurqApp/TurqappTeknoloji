@@ -274,16 +274,7 @@ class DeepLinkService extends GetxService {
       return;
     }
 
-    final storiesSnap = await FirebaseFirestore.instance
-        .collection('stories')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdDate', descending: true)
-        .get();
-
-    final stories = storiesSnap.docs
-        .where((d) => (d.data()['deleted'] ?? false) != true)
-        .map(StoryModel.fromDoc)
-        .toList();
+    final stories = await _fetchStoriesByUserIndexSafe(userId);
 
     if (stories.isEmpty) {
       AppSnackbar('Bilgi', 'Hikaye bulunamadı.');
@@ -311,6 +302,30 @@ class DeepLinkService extends GetxService {
           startedUser: user,
           storyOwnerUsers: [user],
         ));
+  }
+
+  Future<List<StoryModel>> _fetchStoriesByUserIndexSafe(String userId) async {
+    QuerySnapshot<Map<String, dynamic>> storiesSnap;
+    try {
+      storiesSnap = await FirebaseFirestore.instance
+          .collection('stories')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdDate', descending: true)
+          .get();
+    } catch (_) {
+      // Composite index yoksa fallback: sadece userId ile çek, client-side sırala.
+      storiesSnap = await FirebaseFirestore.instance
+          .collection('stories')
+          .where('userId', isEqualTo: userId)
+          .get();
+    }
+
+    final stories = storiesSnap.docs
+        .where((d) => (d.data()['deleted'] ?? false) != true)
+        .map(StoryModel.fromDoc)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return stories;
   }
 
   Future<void> _openEducationLink(String entityId) async {
