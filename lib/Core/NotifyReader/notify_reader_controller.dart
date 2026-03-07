@@ -27,8 +27,10 @@ class NotifyReaderController extends GetxController {
       <String, _CachedJobLookup>{};
   static final Map<String, _CachedTutoringLookup> _tutoringLookupCache =
       <String, _CachedTutoringLookup>{};
+  static const Duration _staleRetention = Duration(minutes: 3);
 
   Future<_CachedPostLookup> _getPostLookup(String postID) async {
+    _pruneStaleLookups();
     final cached = _postLookupCache[postID];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _postLookupTtl) {
@@ -47,6 +49,7 @@ class NotifyReaderController extends GetxController {
   }
 
   Future<_CachedChatLookup> _getChatLookup(String chatID) async {
+    _pruneStaleLookups();
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final cacheKey = '${currentUid}_$chatID';
     final cached = _chatLookupCache[cacheKey];
@@ -81,6 +84,7 @@ class NotifyReaderController extends GetxController {
   }
 
   Future<_CachedJobLookup> _getJobLookup(String jobID) async {
+    _pruneStaleLookups();
     final cached = _jobLookupCache[jobID];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _jobLookupTtl) {
@@ -98,6 +102,7 @@ class NotifyReaderController extends GetxController {
   }
 
   Future<_CachedTutoringLookup> _getTutoringLookup(String tutoringID) async {
+    _pruneStaleLookups();
     final cached = _tutoringLookupCache[tutoringID];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _tutoringLookupTtl) {
@@ -198,6 +203,15 @@ class NotifyReaderController extends GetxController {
   /// NavBarView'e geç ve önceki sayfaları stack'ten at
   void toNavbar() {
     Get.offAll<NavBarView>(() => NavBarView());
+  }
+
+  void _pruneStaleLookups() {
+    final now = DateTime.now();
+    bool isStale(DateTime t) => now.difference(t) > _staleRetention;
+    _postLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _chatLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _jobLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _tutoringLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
   }
 }
 
