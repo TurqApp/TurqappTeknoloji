@@ -16,8 +16,11 @@ import '../../Modules/SocialProfile/social_profile.dart';
 
 class NotifyReaderController extends GetxController {
   static const Duration _postLookupTtl = Duration(seconds: 30);
+  static const Duration _chatLookupTtl = Duration(seconds: 30);
   static final Map<String, _CachedPostLookup> _postLookupCache =
       <String, _CachedPostLookup>{};
+  static final Map<String, _CachedChatLookup> _chatLookupCache =
+      <String, _CachedChatLookup>{};
 
   Future<_CachedPostLookup> _getPostLookup(String postID) async {
     final cached = _postLookupCache[postID];
@@ -34,6 +37,40 @@ class NotifyReaderController extends GetxController {
       cachedAt: DateTime.now(),
     );
     _postLookupCache[postID] = lookup;
+    return lookup;
+  }
+
+  Future<_CachedChatLookup> _getChatLookup(String chatID) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final cacheKey = '${currentUid}_$chatID';
+    final cached = _chatLookupCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _chatLookupTtl) {
+      return cached;
+    }
+    if (currentUid.isEmpty) {
+      return _CachedChatLookup(otherUser: '', cachedAt: DateTime.now());
+    }
+
+    final convDoc = await FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(chatID)
+        .get();
+
+    String otherUser = '';
+    if (convDoc.exists) {
+      final participants = List<String>.from(convDoc.data()?["participants"] ?? []);
+      otherUser = participants.firstWhere(
+        (id) => id != currentUid,
+        orElse: () => '',
+      );
+    }
+
+    final lookup = _CachedChatLookup(
+      otherUser: otherUser,
+      cachedAt: DateTime.now(),
+    );
+    _chatLookupCache[cacheKey] = lookup;
     return lookup;
   }
 
@@ -83,22 +120,8 @@ class NotifyReaderController extends GetxController {
 
   /// Sohbet sayfasına git, geri dönülürse NavBarView'e atla
   Future<void> goToChat(String chatID) async {
-    final currentUser = FirebaseAuth.instance.currentUser?.uid;
-    String otherUser = "";
-
-    final convDoc = await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatID)
-        .get();
-
-    if (convDoc.exists) {
-      final participants =
-          List<String>.from(convDoc.data()?["participants"] ?? []);
-      otherUser = participants.firstWhere(
-        (id) => id != currentUser,
-        orElse: () => "",
-      );
-    }
+    final lookup = await _getChatLookup(chatID);
+    final otherUser = lookup.otherUser;
 
     if (otherUser.isEmpty) {
       AppSnackbar('Bilgi', 'Sohbet bulunamadı.');
@@ -148,6 +171,16 @@ class _CachedPostLookup {
   const _CachedPostLookup({
     required this.exists,
     required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _CachedChatLookup {
+  final String otherUser;
+  final DateTime cachedAt;
+
+  const _CachedChatLookup({
+    required this.otherUser,
     required this.cachedAt,
   });
 }
