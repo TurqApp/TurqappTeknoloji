@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContentController extends GetxController {
   final String userID;
@@ -33,7 +33,7 @@ class SearchUserContentController extends GetxController {
       );
       await batch.commit();
 
-      Get.find<FirebaseMyStore>().getUserData();
+      await CurrentUserService.instance.forceRefresh();
     } catch (_) {
     } finally {
       isNavigated.value = false;
@@ -46,7 +46,6 @@ class SearchUserContentController extends GetxController {
         FirebaseFirestore.instance.collection("users").doc(currentUserID);
     final batch = FirebaseFirestore.instance.batch();
     batch.delete(userRef.collection("lastSearches").doc(userID));
-    batch.commit();
-    Get.find<FirebaseMyStore>().lastSearchList.remove(userID);
+    batch.commit().then((_) => CurrentUserService.instance.forceRefresh());
   }
 }

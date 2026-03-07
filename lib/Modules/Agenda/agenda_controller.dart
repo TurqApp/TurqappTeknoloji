@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/posts_model.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -69,7 +68,6 @@ class AgendaController extends GetxController {
       <Map<String, dynamic>>[].obs; // Feed'de görünecek reshare entry'leri
   final Map<String, bool> _userPrivacyCache = {};
   final Map<String, bool> _userDeactivatedCache = {};
-  late final FirebaseMyStore myStore;
 
   List<String> hiddenPosts = [];
   double lastOffset = 0.0;
@@ -109,7 +107,6 @@ class AgendaController extends GetxController {
     navBarController = Get.isRegistered<NavBarController>()
         ? Get.find<NavBarController>()
         : Get.put(NavBarController());
-    myStore = Get.find<FirebaseMyStore>();
     _bindFollowingListener();
     _bindCenteredIndexListener();
   }

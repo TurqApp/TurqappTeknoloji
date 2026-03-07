@@ -86,6 +86,11 @@ class _ProfileViewState extends State<ProfileView> {
     });
   }
 
+  void _refreshUserState() {
+    userService.forceRefresh();
+    user.hasStoryOwner();
+  }
+
   void _onScroll() {
     // ScrollController bağlı değilse çık
     if (!controller.scrollController.hasClients) return;
@@ -964,7 +969,7 @@ class _ProfileViewState extends State<ProfileView> {
                     controller.pausetheall.value = true;
                     Get.to(() => SettingsView())?.then((_) {
                       controller.pausetheall.value = false;
-                      user.getUserData();
+                      _refreshUserState();
                     }); //burada videolari durdur
                   },
                   style: TextButton.styleFrom(
@@ -1037,7 +1042,7 @@ class _ProfileViewState extends State<ProfileView> {
                             controller.pausetheall.value = true;
                             Get.to(() => StoryMaker())?.then((_) {
                               controller.pausetheall.value = false;
-                              user.getUserData();
+                              _refreshUserState();
                             });
                           }
                         } catch (e) {
@@ -1046,7 +1051,7 @@ class _ProfileViewState extends State<ProfileView> {
                           controller.pausetheall.value = true;
                           Get.to(() => StoryMaker())?.then((_) {
                             controller.pausetheall.value = false;
-                            user.getUserData();
+                            _refreshUserState();
                           });
                         }
                       } else {
@@ -1054,7 +1059,7 @@ class _ProfileViewState extends State<ProfileView> {
                         controller.pausetheall.value = true;
                         Get.to(() => StoryMaker())?.then((_) {
                           controller.pausetheall.value = false;
-                          user.getUserData();
+                          _refreshUserState();
                         });
                       }
                     },
@@ -1071,7 +1076,7 @@ class _ProfileViewState extends State<ProfileView> {
                           controller.pausetheall.value = true;
                           Get.to(() => StoryMaker())?.then((_) {
                             controller.pausetheall.value = false;
-                            user.getUserData();
+                            _refreshUserState();
                           });
                         },
                         child: Container(
@@ -1099,7 +1104,7 @@ class _ProfileViewState extends State<ProfileView> {
                           controller.pausetheall.value = true;
                           Get.to(() => EditProfile())?.then((_) {
                             controller.pausetheall.value = false;
-                            user.getUserData();
+                            _refreshUserState();
                           });
                         },
                         child: Container(
@@ -1220,7 +1225,7 @@ class _ProfileViewState extends State<ProfileView> {
                 controller.pausetheall.value = true;
                 Get.to(() => BiographyMaker())?.then((_) {
                   controller.pausetheall.value = false;
-                  user.getUserData();
+                  _refreshUserState();
                 });
               },
               child: Padding(

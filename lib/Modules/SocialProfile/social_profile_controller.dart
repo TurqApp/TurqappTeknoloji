@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/firebase_my_store.dart';
 import '../../Models/posts_model.dart';
 import '../../Models/user_post_reference.dart';
@@ -691,7 +692,7 @@ class SocialProfileController extends GetxController {
         await batch.commit();
 
         // 3) Veri yenileme
-        user.getUserData();
+        CurrentUserService.instance.forceRefresh();
         getUserData();
         isFollowingCheck();
       },
@@ -711,7 +712,7 @@ class SocialProfileController extends GetxController {
             .doc(FirebaseAuth.instance.currentUser!.uid);
         await meDoc.collection("blockedUsers").doc(userID).delete();
         // 2) Verileri yenile
-        user.getUserData();
+        CurrentUserService.instance.forceRefresh();
         getUserData();
         isFollowingCheck();
       },

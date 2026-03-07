@@ -259,7 +259,7 @@ class _EditProfileState extends State<EditProfile> {
                               child: GestureDetector(
                                 onTap: () {
                                   Get.to(() => EditorNickname())?.then((_) {
-                                    user.getUserData();
+                                    currentUserService.forceRefresh();
                                   });
                                 },
                                 child: Container(
@@ -563,7 +563,7 @@ class _EditProfileState extends State<EditProfile> {
                         child: GestureDetector(
                           onTap: () {
                             Get.to(() => JobSelector())?.then((_) {
-                              user.getUserData();
+                              currentUserService.forceRefresh();
                             });
                           },
                           child: Container(

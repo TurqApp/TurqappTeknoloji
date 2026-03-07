@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
-import 'package:turqappv2/Services/firebase_my_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../Core/Helpers/custom_nickname_formatter.dart';
@@ -14,9 +13,6 @@ import '../../Core/Helpers/custom_nickname_formatter.dart';
 class SignIn extends StatelessWidget {
   SignIn({super.key});
   final controller = Get.put(SignInController());
-  final FirebaseMyStore user = Get.isRegistered<FirebaseMyStore>()
-      ? Get.find<FirebaseMyStore>()
-      : Get.put(FirebaseMyStore());
   @override
   Widget build(BuildContext context) {
     return Scaffold(
