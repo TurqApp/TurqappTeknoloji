@@ -97,7 +97,6 @@ class PostContentController extends GetxController {
   final unLikes = <String>[].obs;
   final saved = false.obs;
   final comments = <String>[].obs;
-  final seens = <String>[].obs;
   final reSharedUsers = <String>[].obs;
   final userService = CurrentUserService.instance;
   final countManager = PostCountManager.instance;
@@ -177,7 +176,6 @@ class PostContentController extends GetxController {
     getReSharedUsers(model.docID);
     // Deprecated method calls removed - real-time listeners handle data updates
     // getComments(), getLikes(), getSaved() are replaced by reactive listeners
-    getSeens();
     getYenidenPaylasBilgisi();
     saveSeeing();
     followCheck();
@@ -939,17 +937,6 @@ class PostContentController extends GetxController {
         .get()
         .then((snap) {
       likes.value = snap.docs.map((val) => val.id).toList();
-    });
-  }
-
-  Future<void> getSeens() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("viewers")
-        .get()
-        .then((snap) {
-      seens.value = snap.docs.map((val) => val.id).toList();
     });
   }
 
