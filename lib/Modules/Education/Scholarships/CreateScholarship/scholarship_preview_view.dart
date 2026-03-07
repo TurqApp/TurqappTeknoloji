@@ -19,6 +19,8 @@ class ScholarshipPreviewView extends StatelessWidget {
     final CarouselSliderController carouselController =
         CarouselSliderController();
     final currentIndex = 0.obs;
+    final logoSize =
+        (MediaQuery.of(context).size.width * 0.35).clamp(108.0, 133.0);
 
     return Scaffold(
       body: SafeArea(
@@ -115,8 +117,8 @@ class ScholarshipPreviewView extends StatelessWidget {
                                                       .startsWith('http')
                                                   ? Image.network(
                                                       controller.logo.value,
-                                                      width: 133,
-                                                      height: 133,
+                                                      width: logoSize,
+                                                      height: logoSize,
                                                       fit: BoxFit.cover,
                                                       errorBuilder: (context,
                                                               error,
@@ -127,8 +129,8 @@ class ScholarshipPreviewView extends StatelessWidget {
                                                   : Image.file(
                                                       File(controller
                                                           .logo.value),
-                                                      width: 133,
-                                                      height: 133,
+                                                      width: logoSize,
+                                                      height: logoSize,
                                                       fit: BoxFit.cover,
                                                     ),
                                             ),
