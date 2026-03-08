@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
@@ -33,8 +35,7 @@ void main() {
     DeviceOrientation.portraitUp,
   ]);
 
-  // Native launch ekranını uzatmamak için Firebase bootstrap'ı
-  // ilk frame sonrasına ertelenir.
+  // Firebase/AppCheck bootstrap arka planda tamamlansın; ilk frame bloklanmasın.
   final bootstrapCompleter = Completer<void>();
   firebaseBootstrapFuture = bootstrapCompleter.future;
 
@@ -49,7 +50,7 @@ void main() {
     onDetach: _handleAppBackgroundTransition,
   );
 
-  // İlk frame'i geciktirmemek için sistem UI ayarlarını sonrasına bırak.
+  // İlk frame sonrası sistem UI ayarları ve bootstrap.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _bootstrapFirebaseAndCrashlytics().then((_) {
       if (!bootstrapCompleter.isCompleted) bootstrapCompleter.complete();
@@ -92,6 +93,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await _activateAppCheck();
 
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
@@ -111,6 +113,27 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
     return true;
   };
+}
+
+Future<void> _activateAppCheck() async {
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleDeviceCheckProvider(),
+    );
+
+    if (kDebugMode) {
+      final token = await FirebaseAppCheck.instance.getToken(true);
+      debugPrint('[AppCheck] Debug token: $token');
+    }
+  } catch (e, st) {
+    debugPrint('[AppCheck] activation failed: $e');
+    FirebaseCrashlytics.instance.recordError(e, st, fatal: false);
+  }
 }
 
 bool _isFirestoreConfigError(Object error) {

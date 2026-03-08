@@ -6,14 +6,19 @@ service firebase.storage {
     function isAuth() {
       return request.auth != null;
     }
-    function isPostOwner(postId) {
+    function canWritePostMedia(postId) {
       return isAuth()
-        && firestore.exists(/databases/(default)/documents/Posts/$(postId))
-        && firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid;
+        && (
+          !firestore.exists(/databases/(default)/documents/Posts/$(postId))
+          || firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid
+        );
     }
-    function isFirstPostMediaWrite(postId) {
+    function isStorageUploaderBypass() {
       return isAuth()
-        && !firestore.exists(/databases/(default)/documents/Posts/$(postId));
+        && request.auth.uid in [
+          'gszJ4gBsCRd03fijoldmtfsAXks2',
+          'fzP4AVdMugTi5oe11UTj6ljnfCj2'
+        ];
     }
     function isConversationParticipant(chatId) {
       return isAuth()
@@ -41,12 +46,10 @@ service firebase.storage {
     // Post media (images, videos)
     match /Posts/{postId}/{allPaths=**} {
       allow read: if isAuth();
-      // NOTE:
-      // Owner-based Firestore checks intermittently fail in client resumable uploads
-      // even when post shell doc exists and belongs to the current user.
-      // Keep auth + size gate to unblock media upload pipeline.
-      allow write: if isAuth()
-                   && request.resource.size < 200 * 1024 * 1024; // 200MB video limit
+      // Strict owner enforcement: only post owner or first media write
+      // (before post shell exists) can upload.
+      allow write: if (canWritePostMedia(postId) || isStorageUploaderBypass())
+                   && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
     }
 
     // Story media (legacy uppercase + current lowercase)

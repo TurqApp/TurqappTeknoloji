@@ -10,6 +10,12 @@ import AVFoundation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+#if DEBUG
+    // flutter run -> devicectl launch akışında scheme env aktarılmadığı için
+    // App Check debug token'ı process env'e elle set ediyoruz.
+    setenv("FIRAAppCheckDebugToken", "5E0932DD-33D6-44AB-B373-7E5EEEA9B36E", 1)
+#endif
+
     GeneratedPluginRegistrant.register(with: self)
 
     // Register native HLS player plugin
