@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ import 'AgendaContent/agenda_content.dart';
 
 class AgendaView extends StatelessWidget {
   AgendaView({super.key});
+  static bool _androidVisibilityTuned = false;
 
   AgendaController get controller {
     if (Get.isRegistered<AgendaController>()) {
@@ -65,6 +67,13 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
+      // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.
+      VisibilityDetectorController.instance.updateInterval =
+          const Duration(milliseconds: 120);
+      _androidVisibilityTuned = true;
+    }
+
     // Feed açıldığında unread listener kesin aktif olsun (idempotent guard var)
     unreadController.startListeners();
     final topInset = MediaQuery.of(context).padding.top;
@@ -112,6 +121,8 @@ class AgendaView extends StatelessWidget {
                       final _ = controller.agendaList.length;
                       final __ = controller.feedReshareEntries.length;
                       final ___ = controller.highlightDocIDs.length;
+                      controller.feedViewMode.value;
+                      controller.followingIDs.length;
 
                       final Map<String, int> agendaIndexByDoc = {
                         for (int i = 0; i < controller.agendaList.length; i++)
@@ -166,20 +177,85 @@ class AgendaView extends StatelessWidget {
                         ..sort((a, b) => (b['timestamp'] as int)
                             .compareTo(a['timestamp'] as int));
 
+                      List<Map<String, dynamic>> filteredDisplay = display;
+                      if (controller.isFollowingMode &&
+                          controller.followingIDs.isNotEmpty) {
+                        final followingSet = controller.followingIDs;
+                        filteredDisplay = display.where((item) {
+                          final model = item['model'] as PostsModel;
+                          return followingSet.contains(model.userID);
+                        }).toList(growable: false);
+                      }
+
+                      if (display.isEmpty) {
+                        unawaited(controller.ensureInitialFeedLoaded());
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            children: [
+                              header(),
+                              const SizedBox(height: 48),
+                              const CupertinoActivityIndicator(radius: 14),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "Gönderiler yükleniyor...",
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                  fontFamily: AppFontFamilies.mmedium,
+                                ),
+                              ),
+                              const SizedBox(height: 260),
+                            ],
+                          ),
+                        );
+                      }
+
+                      if (filteredDisplay.isEmpty) {
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            children: [
+                              header(),
+                              const SizedBox(height: 32),
+                              const Icon(
+                                CupertinoIcons.person_2_fill,
+                                color: Colors.black26,
+                                size: 34,
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                "Takip ettiklerinden henüz gönderi yok",
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 14,
+                                  fontFamily: AppFontFamilies.mmedium,
+                                ),
+                              ),
+                              const SizedBox(height: 220),
+                            ],
+                          ),
+                        );
+                      }
+
                       return ListView.builder(
                         controller: controller.scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        cacheExtent: GetPlatform.isIOS ? 180.0 : 420.0,
+                        physics: GetPlatform.isAndroid
+                            ? const ClampingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              )
+                            : const AlwaysScrollableScrollPhysics(),
+                        cacheExtent: GetPlatform.isIOS ? 180.0 : 220.0,
                         padding: EdgeInsets.only(
                           bottom: kBottomNavigationBarHeight + 16,
                         ),
-                        itemCount: display.length + 1,
+                        itemCount: filteredDisplay.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) return header();
 
                           final actualIndex = index - 1;
 
-                          if (actualIndex >= display.length) {
+                          if (actualIndex >= filteredDisplay.length) {
                             if (controller.hasMore.value) {
                               if (!controller.isLoading.value) {
                                 controller.fetchAgendaBigData();
@@ -188,7 +264,7 @@ class AgendaView extends StatelessWidget {
                             return const SizedBox.shrink();
                           }
 
-                          final item = display[actualIndex];
+                          final item = filteredDisplay[actualIndex];
                           final model = item['model'] as PostsModel;
                           final isReshare = (item['reshare'] == true);
                           final reshareUserID =
@@ -204,8 +280,34 @@ class AgendaView extends StatelessWidget {
                               : "${model.docID}_original";
 
                           // centeredIndex'i her post için ayrı Obx ile dinle
-                          // Bu sayede sadece centered durumu değişen post rebuild olur
+                          // Video olmayan postlar centeredIndex'i dinlemesin:
+                          // Android'de gereksiz global rebuild/jank'ı azaltır.
                           Widget buildPostContent() {
+                            if (!model.hasPlayableVideo) {
+                              final viewSelection = CurrentUserService.instance
+                                      .currentUserRx.value?.viewSelection ??
+                                  1;
+                              if (viewSelection == 1) {
+                                return AgendaContent(
+                                  key: ValueKey(stableKeyString),
+                                  model: model,
+                                  isPreview: false,
+                                  shouldPlay: false,
+                                  isYenidenPaylasilanPost: isReshare,
+                                  reshareUserID: reshareUserID,
+                                );
+                              } else {
+                                return ClassicContent(
+                                  key: ValueKey(stableKeyString),
+                                  model: model,
+                                  isPreview: false,
+                                  shouldPlay: false,
+                                  isYenidenPaylasilanPost: isReshare,
+                                  reshareUserID: reshareUserID,
+                                );
+                              }
+                            }
+
                             return Obx(() {
                               final isCentered =
                                   controller.centeredIndex.value == agendaIndex;
@@ -414,23 +516,109 @@ class AgendaView extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Renkli TurqApp yazısı
-              ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  colors: [AppColors.primaryColor, AppColors.secondColor],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(
-                    Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
-                child: Text(
-                  'TurqApp',
-                  style: TextStyle(
-                    fontSize: GetPlatform.isAndroid ? 31 : 27,
-                    fontFamily: AppFontFamilies.mbold,
-                    color: Colors.white,
+              Obx(() {
+                final title = controller.feedTitle;
+                final isDefaultTitle = !controller.isFollowingMode;
+                final fontSize = isDefaultTitle
+                    ? (GetPlatform.isAndroid ? 31.0 : 27.0)
+                    : (GetPlatform.isAndroid ? 24.0 : 21.0);
+
+                return PopupMenuButton<FeedViewMode>(
+                  tooltip: '',
+                  padding: EdgeInsets.zero,
+                  position: PopupMenuPosition.under,
+                  color: Colors.white,
+                  elevation: 10,
+                  offset: const Offset(0, 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                ),
-              ),
+                  onSelected: controller.setFeedViewMode,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<FeedViewMode>(
+                      value: FeedViewMode.forYou,
+                      child: Row(
+                        children: [
+                          Icon(CupertinoIcons.sparkles, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Sana Özel',
+                            style: TextStyle(
+                              fontFamily: AppFontFamilies.mmedium,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<FeedViewMode>(
+                      value: FeedViewMode.following,
+                      child: Row(
+                        children: [
+                          Icon(CupertinoIcons.person_2, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Takip Ettiklerin',
+                            style: TextStyle(
+                              fontFamily: AppFontFamilies.mmedium,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [
+                            AppColors.primaryColor,
+                            AppColors.secondColor,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(
+                          Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                        ),
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontFamily: AppFontFamilies.mbold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: ShaderMask(
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: [
+                              AppColors.primaryColor,
+                              AppColors.secondColor,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(
+                            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+                          ),
+                          child: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
               const Spacer(),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,

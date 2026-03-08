@@ -14,6 +14,8 @@ import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
 
+enum FeedViewMode { forYou, following }
+
 class AgendaController extends GetxController {
   final scrollController = ScrollController();
 
@@ -60,6 +62,7 @@ class AgendaController extends GetxController {
   }
 
   final RxSet<String> followingIDs = <String>{}.obs;
+  final Rx<FeedViewMode> feedViewMode = FeedViewMode.forYou.obs;
   final RxMap<String, int> myReshares =
       <String, int>{}.obs; // postID -> reshare timestamp
   final RxList<Map<String, dynamic>> publicReshareEvents =
@@ -77,9 +80,20 @@ class AgendaController extends GetxController {
   final int _cacheValidMinutes = 5; // Cache geçerlilik süresi (dakika)
   final int _initialShuffleSize = 60; // İlk karışık yükleme miktarı
   final int _backgroundShuffleFetchSize = 300; // Arka plan tarama üst sınırı
+  bool _ensureInitialLoadInFlight = false;
+  DateTime? _lastEnsureInitialLoadAt;
   // null => no time window limit
   static const Duration? _agendaWindow = null;
   static const int _reshareScanPostLimit = 12;
+
+  bool get isFollowingMode => feedViewMode.value == FeedViewMode.following;
+
+  String get feedTitle => isFollowingMode ? 'Takip Ettiklerin' : 'TurqApp';
+
+  void setFeedViewMode(FeedViewMode mode) {
+    if (feedViewMode.value == mode) return;
+    feedViewMode.value = mode;
+  }
 
   int _agendaCutoffMs(int nowMs) {
     if (_agendaWindow == null) return 0;
@@ -118,7 +132,7 @@ class AgendaController extends GetxController {
     // Manual olarak ilk videoyu oynatmalıyız
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (agendaList.isNotEmpty && centeredIndex.value == 0) {
-        final videoManager = Get.find<VideoStateManager>();
+        final videoManager = VideoStateManager.instance;
         final firstPost = agendaList[0];
         if (firstPost.video.isNotEmpty) {
           print('🎬 İlk video manuel trigger: ${firstPost.docID}');
@@ -132,7 +146,7 @@ class AgendaController extends GetxController {
   /// 🎯 INSTAGRAM STYLE: centeredIndex değiştiğinde INSTANT video kontrolü
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
-      final videoManager = Get.find<VideoStateManager>();
+      final videoManager = VideoStateManager.instance;
 
       // Eğer -1 ise (hiçbir post centered değil), tüm videoları durdur
       if (newIndex == -1) {
@@ -296,6 +310,16 @@ class AgendaController extends GetxController {
 
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
+    final prev = _visibleFractions[modelIndex];
+
+    // Android'de hızlı scroll sırasında çok sık visibility callback gelir;
+    // küçük dalgalanmaları ignore ederek rebuild/focus thrash'i azalt.
+    if (GetPlatform.isAndroid &&
+        prev != null &&
+        (prev - visibleFraction).abs() < 0.08) {
+      return;
+    }
+
     if (visibleFraction <= 0.01) {
       _visibleFractions.remove(modelIndex);
       _visibleUpdatedAt.remove(modelIndex);
@@ -308,7 +332,9 @@ class AgendaController extends GetxController {
     // %80+ görünürlükte oynat, %40 altına düşünce durdur.
     // Böylece üstte çok az görünen video oynatılmaz; merkezdeki video öncelik alır.
     const double playThreshold = 0.80;
-    const double stopThreshold = 0.40;
+    // Stop threshold'u Android'de biraz daha düşük tut:
+    // merkez postu gereksiz yere -1 yapıp oynatma/pausa döngüsü oluşturmasın.
+    final double stopThreshold = GetPlatform.isAndroid ? 0.25 : 0.40;
 
     if (visibleFraction >= playThreshold) {
       if (centeredIndex.value != modelIndex) {
@@ -555,17 +581,24 @@ class AgendaController extends GetxController {
 
   void _onScroll() {
     final currentOffset = scrollController.offset;
+    bool shouldShowNavBar;
 
     // Negatif veya 300'den küçük offset'te daima göster
     if (currentOffset < 300) {
-      navBarController.showBar.value = true;
+      shouldShowNavBar = true;
     } else {
       // 300 ve üstü ise yön kontrolü
       if (currentOffset > lastOffset) {
-        navBarController.showBar.value = false;
+        shouldShowNavBar = false;
       } else if (currentOffset < lastOffset) {
-        navBarController.showBar.value = true;
+        shouldShowNavBar = true;
+      } else {
+        shouldShowNavBar = navBarController.showBar.value;
       }
+    }
+    // Scroll boyunca gereksiz Rx publish'i engelle
+    if (navBarController.showBar.value != shouldShowNavBar) {
+      navBarController.showBar.value = shouldShowNavBar;
     }
     lastOffset = currentOffset;
 
@@ -776,6 +809,28 @@ class AgendaController extends GetxController {
           }
         });
       }
+    }
+  }
+
+  Future<void> ensureInitialFeedLoaded() async {
+    if (agendaList.isNotEmpty ||
+        isLoading.value ||
+        _ensureInitialLoadInFlight) {
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastEnsureInitialLoadAt != null &&
+        now.difference(_lastEnsureInitialLoadAt!) <
+            const Duration(seconds: 2)) {
+      return;
+    }
+    _lastEnsureInitialLoadAt = now;
+    _ensureInitialLoadInFlight = true;
+    try {
+      await fetchAgendaBigData(initial: true);
+    } finally {
+      _ensureInitialLoadInFlight = false;
     }
   }
 
