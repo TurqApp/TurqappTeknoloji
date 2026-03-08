@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -315,10 +316,13 @@ class ChatListingContent extends StatelessWidget {
                       );
                       controller.notReadCounter.value = 0;
                       model.unreadCount = 0;
-                      await FirebaseFirestore.instance
-                          .collection("conversations")
-                          .doc(model.chatID)
-                          .set({"unread.$_uid": 0}, SetOptions(merge: true));
+                      unawaited(
+                        FirebaseFirestore.instance
+                            .collection("conversations")
+                            .doc(model.chatID)
+                            .set({"unread.$_uid": 0},
+                                SetOptions(merge: true)).catchError((_) {}),
+                      );
                       await Get.to(() =>
                           ChatView(chatID: model.chatID, userID: model.userID));
                       if (Get.isRegistered<ChatListingController>()) {

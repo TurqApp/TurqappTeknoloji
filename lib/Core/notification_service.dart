@@ -133,6 +133,14 @@ class NotificationService {
 
   Future<void> showNotification(RemoteMessage msg) async {
     if (!_shouldUseLocalNotifications()) return;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final fromUserID = (msg.data['fromUserID'] ?? '').toString().trim();
+    if (currentUid.isNotEmpty &&
+        fromUserID.isNotEmpty &&
+        fromUserID == currentUid) {
+      return;
+    }
+
     final notif = msg.notification;
     final type = (msg.data['type'] ?? '').toString();
     final title = (notif?.title ?? msg.data['title'] ?? 'TurqApp').toString();
@@ -271,16 +279,25 @@ class NotificationService {
     required String body,
     required String docID,
     required String type,
+    String? targetUserID,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final myToken = prefs.getString('fcm_token');
-      if (token.isEmpty || token == myToken || myToken == null) return;
-
-      final targetUid = await _resolveUserIdByToken(token);
-      if (targetUid == null || targetUid.isEmpty) return;
-
       final fromUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (fromUid.isEmpty) return;
+
+      final targetUid = (targetUserID != null && targetUserID.trim().isNotEmpty)
+          ? targetUserID.trim()
+          : (token.trim().isEmpty ? null : await _resolveUserIdByToken(token));
+      if (targetUid == null || targetUid.isEmpty) return;
+      if (targetUid == fromUid) return;
+      if (token.trim().isNotEmpty &&
+          myToken != null &&
+          token.trim() == myToken) {
+        return;
+      }
+
       await FirebaseFirestore.instance
           .collection("users")
           .doc(targetUid)

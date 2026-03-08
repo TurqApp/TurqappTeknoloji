@@ -62,18 +62,30 @@ class NotifyReaderController extends GetxController {
       return _CachedChatLookup(otherUser: '', cachedAt: DateTime.now());
     }
 
-    final convDoc = await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(chatID)
-        .get();
-
     String otherUser = '';
-    if (convDoc.exists) {
-      final participants = List<String>.from(convDoc.data()?["participants"] ?? []);
-      otherUser = participants.firstWhere(
-        (id) => id != currentUid,
-        orElse: () => '',
-      );
+    try {
+      final convDoc = await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatID)
+          .get();
+      if (convDoc.exists) {
+        final participants =
+            List<String>.from(convDoc.data()?["participants"] ?? []);
+        otherUser = participants.firstWhere(
+          (id) => id != currentUid,
+          orElse: () => '',
+        );
+      }
+    } catch (_) {}
+
+    if (otherUser.isEmpty) {
+      for (final part in chatID.split('_')) {
+        final candidate = part.trim();
+        if (candidate.isNotEmpty && candidate != currentUid) {
+          otherUser = candidate;
+          break;
+        }
+      }
     }
 
     final lookup = _CachedChatLookup(

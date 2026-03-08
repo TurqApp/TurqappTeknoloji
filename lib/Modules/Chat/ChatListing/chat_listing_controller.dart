@@ -235,27 +235,101 @@ class ChatListingController extends GetxController {
     final tempList = <ChatListingModel>[];
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final prefs = await SharedPreferences.getInstance();
+    final docsById = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
 
-    final query = FirebaseFirestore.instance
-        .collection("conversations")
-        .where("participants", arrayContains: uid);
-    final snap = await _getWithCachePreference(
-      query,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
+    Future<void> mergeQuery(Query<Map<String, dynamic>> query) async {
+      try {
+        final snap = await _getWithCachePreference(
+          query,
+          preferCache: preferCache,
+          cacheOnly: cacheOnly,
+        );
+        for (final doc in snap.docs) {
+          docsById[doc.id] = doc;
+        }
+      } catch (_) {}
+    }
+
+    if (docsById.isEmpty) {
+      final legacyQuery1 = FirebaseFirestore.instance
+          .collection("conversations")
+          .where("userID1", isEqualTo: uid);
+      final legacyQuery2 = FirebaseFirestore.instance
+          .collection("conversations")
+          .where("userID2", isEqualTo: uid);
+      await mergeQuery(legacyQuery1);
+      await mergeQuery(legacyQuery2);
+    } else {
+      // Legacy documentleri de çekip tek listede birleştir.
+      await mergeQuery(
+        FirebaseFirestore.instance
+            .collection("conversations")
+            .where("userID1", isEqualTo: uid),
+      );
+      await mergeQuery(
+        FirebaseFirestore.instance
+            .collection("conversations")
+            .where("userID2", isEqualTo: uid),
+      );
+    }
+
+    if (docsById.isEmpty) {
+      return tempList;
+    }
 
     final userCache = Get.find<UserProfileCacheService>();
-    for (final doc in snap.docs) {
+    for (final doc in docsById.values) {
       final data = doc.data();
-      final archivedMap = Map<String, dynamic>.from(data["archived"] ?? {});
-      final pinnedMap = Map<String, dynamic>.from(data["pinned"] ?? {});
-      final mutedMap = Map<String, dynamic>.from(data["muted"] ?? {});
+      final archivedMap = data["archived"] is Map
+          ? Map<String, dynamic>.from(data["archived"] as Map)
+          : <String, dynamic>{};
+      final pinnedMap = data["pinned"] is Map
+          ? Map<String, dynamic>.from(data["pinned"] as Map)
+          : <String, dynamic>{};
+      final mutedMap = data["muted"] is Map
+          ? Map<String, dynamic>.from(data["muted"] as Map)
+          : <String, dynamic>{};
       final isArchived = archivedMap[uid] == true;
       final isPinned = pinnedMap[uid] == true;
       final isMuted = mutedMap[uid] == true;
-      final participants = List<String>.from(data["participants"] ?? []);
-      final otherUserId = participants.firstWhereOrNull((v) => v != uid);
+      final userID1 = (data["userID1"] ?? "").toString().trim();
+      final userID2 = (data["userID2"] ?? "").toString().trim();
+      var participants = data["participants"] is List
+          ? List<String>.from(
+              (data["participants"] as List).map((e) => e.toString().trim()),
+            ).where((e) => e.isNotEmpty).toList()
+          : <String>[];
+
+      if (participants.length != 2 || !participants.contains(uid)) {
+        final inferred = <String>{};
+        if (userID1.isNotEmpty) inferred.add(userID1);
+        if (userID2.isNotEmpty) inferred.add(userID2);
+        for (final part in doc.id.split('_')) {
+          final cleaned = part.trim();
+          if (cleaned.isNotEmpty) inferred.add(cleaned);
+        }
+        if (inferred.length == 2 && inferred.contains(uid)) {
+          participants = inferred.toList()..sort();
+          unawaited(
+            FirebaseFirestore.instance
+                .collection("conversations")
+                .doc(doc.id)
+                .set({
+              "participants": participants,
+              "userID1": participants.first,
+              "userID2": participants.last,
+            }, SetOptions(merge: true)),
+          );
+        }
+      }
+
+      String? otherUserId = participants.firstWhereOrNull((v) => v != uid);
+      if ((otherUserId == null || otherUserId.isEmpty) &&
+          userID1.isNotEmpty &&
+          userID2.isNotEmpty) {
+        if (userID1 == uid) otherUserId = userID2;
+        if (userID2 == uid) otherUserId = userID1;
+      }
       if (otherUserId == null || otherUserId.isEmpty) continue;
       final userData = await userCache.getProfile(
         otherUserId,
@@ -263,7 +337,9 @@ class ChatListingController extends GetxController {
         cacheOnly: cacheOnly,
       );
       if (userData == null) continue;
-      final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
+      final unreadMap = data["unread"] is Map
+          ? Map<String, dynamic>.from(data["unread"] as Map)
+          : <String, dynamic>{};
       final rawUnread = unreadMap[uid];
       final serverUnread = rawUnread is num
           ? rawUnread.toInt()

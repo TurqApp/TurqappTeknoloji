@@ -834,6 +834,224 @@ class ChatController extends GetxController {
     }
   }
 
+  Future<String?> _resolveCounterpartUserId() async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    if (currentUid.isEmpty) return null;
+
+    final candidates = <String>{};
+    final fromParam = userID.trim();
+    if (fromParam.isNotEmpty) candidates.add(fromParam);
+
+    final parts = chatID.split("_");
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.isNotEmpty) candidates.add(trimmed);
+    }
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection("conversations")
+          .doc(chatID)
+          .get();
+      if (snap.exists) {
+        final data = snap.data() ?? const <String, dynamic>{};
+        final participants = data["participants"];
+        if (participants is List) {
+          for (final p in participants) {
+            final uid = p.toString().trim();
+            if (uid.isNotEmpty) candidates.add(uid);
+          }
+        }
+        final uid1 = (data["userID1"] ?? "").toString().trim();
+        final uid2 = (data["userID2"] ?? "").toString().trim();
+        if (uid1.isNotEmpty) candidates.add(uid1);
+        if (uid2.isNotEmpty) candidates.add(uid2);
+      }
+    } catch (_) {}
+
+    for (final uid in candidates) {
+      if (uid != currentUid) return uid;
+    }
+    return null;
+  }
+
+  Map<String, int> _sanitizeUnreadMap(
+    dynamic raw,
+    List<String> participants,
+  ) {
+    final source = raw is Map ? raw : const <String, dynamic>{};
+    final result = <String, int>{};
+    for (final uid in participants) {
+      final value = source[uid];
+      if (value is int) {
+        result[uid] = value < 0 ? 0 : value;
+      } else if (value is num) {
+        final parsed = value.toInt();
+        result[uid] = parsed < 0 ? 0 : parsed;
+      } else if (value is String) {
+        final parsed = int.tryParse(value) ?? 0;
+        result[uid] = parsed < 0 ? 0 : parsed;
+      } else {
+        result[uid] = 0;
+      }
+    }
+    return result;
+  }
+
+  Map<String, bool> _sanitizeBoolParticipantMap(
+    dynamic raw,
+    List<String> participants, {
+    bool defaultValue = false,
+  }) {
+    final source = raw is Map ? raw : const <String, dynamic>{};
+    final result = <String, bool>{};
+    for (final uid in participants) {
+      final value = source[uid];
+      if (value is bool) {
+        result[uid] = value;
+      } else if (value is num) {
+        result[uid] = value != 0;
+      } else {
+        result[uid] = defaultValue;
+      }
+    }
+    return result;
+  }
+
+  Map<String, int> _sanitizeIntParticipantMap(
+    dynamic raw,
+    List<String> participants, {
+    int defaultValue = 0,
+    bool nonNegative = true,
+  }) {
+    final source = raw is Map ? raw : const <String, dynamic>{};
+    final result = <String, int>{};
+    for (final uid in participants) {
+      final value = source[uid];
+      int parsed;
+      if (value is int) {
+        parsed = value;
+      } else if (value is num) {
+        parsed = value.toInt();
+      } else if (value is String) {
+        parsed = int.tryParse(value) ?? defaultValue;
+      } else {
+        parsed = defaultValue;
+      }
+      if (nonNegative && parsed < 0) parsed = 0;
+      result[uid] = parsed;
+    }
+    return result;
+  }
+
+  Future<void> _ensureConversationReady({
+    required String targetUserId,
+    required String previewText,
+    required int nowMs,
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final participants = [currentUid, targetUserId]..sort();
+    final convRef =
+        FirebaseFirestore.instance.collection("conversations").doc(chatID);
+    final convSnap = await convRef.get();
+
+    if (!convSnap.exists) {
+      await convRef.set({
+        "participants": participants,
+        "userID1": participants.first,
+        "userID2": participants.last,
+        "lastMessage": previewText,
+        "lastMessageAt": nowMs,
+        "lastMessageAtMs": nowMs,
+        "lastSenderId": currentUid,
+        "archived": {
+          currentUid: false,
+          targetUserId: false,
+        },
+        "unread": {
+          currentUid: 0,
+          targetUserId: 1,
+        },
+        "typing": {
+          currentUid: 0,
+          targetUserId: 0,
+        },
+        "muted": {
+          currentUid: false,
+          targetUserId: false,
+        },
+        "pinned": {
+          currentUid: false,
+          targetUserId: false,
+        },
+        "chatBg": {
+          currentUid: 0,
+          targetUserId: 0,
+        },
+      });
+      return;
+    }
+
+    final data = convSnap.data() ?? const <String, dynamic>{};
+    final existingParticipants = data["participants"] is List
+        ? List<String>.from(
+            (data["participants"] as List).map((e) => e.toString()),
+          )
+        : <String>[];
+    final hasCanonicalParticipants = existingParticipants.length == 2 &&
+        existingParticipants.contains(currentUid) &&
+        existingParticipants.contains(targetUserId);
+
+    final unread = _sanitizeUnreadMap(data["unread"], participants);
+    unread[currentUid] = 0;
+    unread[targetUserId] = (unread[targetUserId] ?? 0) + 1;
+    final archived = _sanitizeBoolParticipantMap(
+      data["archived"],
+      participants,
+      defaultValue: false,
+    );
+    archived[currentUid] = false;
+    archived[targetUserId] = false;
+    final typing = _sanitizeIntParticipantMap(
+      data["typing"],
+      participants,
+      defaultValue: 0,
+      nonNegative: true,
+    );
+    final muted = _sanitizeBoolParticipantMap(
+      data["muted"],
+      participants,
+      defaultValue: false,
+    );
+    final pinned = _sanitizeBoolParticipantMap(
+      data["pinned"],
+      participants,
+      defaultValue: false,
+    );
+    final chatBg = _sanitizeIntParticipantMap(
+      data["chatBg"],
+      participants,
+      defaultValue: 0,
+      nonNegative: true,
+    );
+
+    await convRef.set({
+      if (!hasCanonicalParticipants) "participants": participants,
+      if (!hasCanonicalParticipants) "userID1": participants.first,
+      if (!hasCanonicalParticipants) "userID2": participants.last,
+      "lastMessage": previewText,
+      "lastMessageAt": nowMs,
+      "lastMessageAtMs": nowMs,
+      "lastSenderId": currentUid,
+      "archived": archived,
+      "unread": unread,
+      "typing": typing,
+      "muted": muted,
+      "pinned": pinned,
+      "chatBg": chatBg,
+    }, SetOptions(merge: true));
+  }
+
   Future<void> sendMessage({
     List<String>? imageUrls,
     LatLng? latLng,
@@ -1034,21 +1252,16 @@ class ChatController extends GetxController {
       );
 
       try {
+        final currentUid = FirebaseAuth.instance.currentUser!.uid;
+        final resolvedTargetUid = await _resolveCounterpartUserId();
+        final targetUidForConversation = resolvedTargetUid ?? userID;
         final convRef =
             FirebaseFirestore.instance.collection("conversations").doc(chatID);
-        // IMPORTANT: Parent conversation must exist (with participants)
-        // before writing into subcollection messages (Firestore rules).
-        await convRef.set({
-          "participants": [FirebaseAuth.instance.currentUser!.uid, userID],
-          "lastMessage": previewText,
-          "lastMessageAt": DateTime.now().millisecondsSinceEpoch,
-          "lastMessageAtMs": now.millisecondsSinceEpoch,
-          "lastSenderId": FirebaseAuth.instance.currentUser!.uid,
-          "archived.${FirebaseAuth.instance.currentUser!.uid}": false,
-          "archived.$userID": false,
-          "unread.${FirebaseAuth.instance.currentUser!.uid}": 0,
-          "unread.$userID": FieldValue.increment(1),
-        }, SetOptions(merge: true));
+        await _ensureConversationReady(
+          targetUserId: targetUidForConversation,
+          previewText: previewText,
+          nowMs: now.millisecondsSinceEpoch,
+        );
         final addedRef =
             await convRef.collection("messages").add(conversationMessageData);
 
@@ -1068,14 +1281,18 @@ class ChatController extends GetxController {
         }
 
         // Notifikasyon gönder (hata olursa mesaj zaten gönderildi)
-        if (!_recipientMuted) {
+        if (!_recipientMuted &&
+            resolvedTargetUid != null &&
+            resolvedTargetUid.isNotEmpty &&
+            resolvedTargetUid != currentUid) {
           try {
             NotificationService.instance.sendNotification(
-              token: token.value,
+              token: "",
               title: nickname.value,
               body: notifBody,
               docID: chatID,
               type: "Chat",
+              targetUserID: resolvedTargetUid,
             );
             print("🔔 Notification gönderildi");
           } catch (_) {}
@@ -1307,26 +1524,109 @@ class ChatController extends GetxController {
       }
     };
 
-    await FirebaseFirestore.instance
+    final previewText = model.metin.isNotEmpty ? model.metin : "İletilen mesaj";
+    final convRef = FirebaseFirestore.instance
         .collection("conversations")
-        .doc(targetChatId)
-        .collection("messages")
-        .add(convMessage);
+        .doc(targetChatId);
+    final participants = [currentUID, targetUserId]..sort();
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final convSnap = await convRef.get();
 
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(targetChatId)
-        .set({
-      "participants": [currentUID, targetUserId],
-      "lastMessage": model.metin.isNotEmpty ? model.metin : "İletilen mesaj",
-      "lastMessageAt": DateTime.now().millisecondsSinceEpoch,
-      "lastMessageAtMs": DateTime.now().millisecondsSinceEpoch,
-      "lastSenderId": currentUID,
-      "archived.$currentUID": false,
-      "archived.$targetUserId": false,
-      "unread.$currentUID": 0,
-      "unread.$targetUserId": FieldValue.increment(1),
-    }, SetOptions(merge: true));
+    if (!convSnap.exists) {
+      await convRef.set({
+        "participants": participants,
+        "userID1": participants.first,
+        "userID2": participants.last,
+        "lastMessage": previewText,
+        "lastMessageAt": nowMs,
+        "lastMessageAtMs": nowMs,
+        "lastSenderId": currentUID,
+        "archived": {
+          currentUID: false,
+          targetUserId: false,
+        },
+        "unread": {
+          currentUID: 0,
+          targetUserId: 1,
+        },
+        "typing": {
+          currentUID: 0,
+          targetUserId: 0,
+        },
+        "muted": {
+          currentUID: false,
+          targetUserId: false,
+        },
+        "pinned": {
+          currentUID: false,
+          targetUserId: false,
+        },
+        "chatBg": {
+          currentUID: 0,
+          targetUserId: 0,
+        },
+      });
+    } else {
+      final data = convSnap.data() ?? const <String, dynamic>{};
+      final existingParticipants = data["participants"] is List
+          ? List<String>.from(
+              (data["participants"] as List).map((e) => e.toString()),
+            )
+          : <String>[];
+      final hasCanonicalParticipants = existingParticipants.length == 2 &&
+          existingParticipants.contains(currentUID) &&
+          existingParticipants.contains(targetUserId);
+      final unread = _sanitizeUnreadMap(data["unread"], participants);
+      unread[currentUID] = 0;
+      unread[targetUserId] = (unread[targetUserId] ?? 0) + 1;
+      final archived = _sanitizeBoolParticipantMap(
+        data["archived"],
+        participants,
+        defaultValue: false,
+      );
+      archived[currentUID] = false;
+      archived[targetUserId] = false;
+      final typing = _sanitizeIntParticipantMap(
+        data["typing"],
+        participants,
+        defaultValue: 0,
+        nonNegative: true,
+      );
+      final muted = _sanitizeBoolParticipantMap(
+        data["muted"],
+        participants,
+        defaultValue: false,
+      );
+      final pinned = _sanitizeBoolParticipantMap(
+        data["pinned"],
+        participants,
+        defaultValue: false,
+      );
+      final chatBg = _sanitizeIntParticipantMap(
+        data["chatBg"],
+        participants,
+        defaultValue: 0,
+        nonNegative: true,
+      );
+
+      await convRef.set({
+        if (!hasCanonicalParticipants) "participants": participants,
+        if (!hasCanonicalParticipants) "userID1": participants.first,
+        if (!hasCanonicalParticipants) "userID2": participants.last,
+        "lastMessage": previewText,
+        "lastMessageAt": nowMs,
+        "lastMessageAtMs": nowMs,
+        "lastSenderId": currentUID,
+        "archived": archived,
+        "unread": unread,
+        "typing": typing,
+        "muted": muted,
+        "pinned": pinned,
+        "chatBg": chatBg,
+      }, SetOptions(merge: true));
+    }
+
+    await convRef.collection("messages").add(convMessage);
 
     AppSnackbar("İletildi", "Mesaj seçilen sohbete iletildi");
     if (Get.isRegistered<ChatListingController>()) {

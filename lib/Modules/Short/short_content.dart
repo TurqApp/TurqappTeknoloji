@@ -318,15 +318,17 @@ class ShortsContent extends StatelessWidget {
                     ],
                   ),
                   ClickableTextContent(
-                    fontSize: 14,
+                    fontSize: 13,
                     text: model.metin,
+                    toggleExpandOnTextTap: true,
                     // SHORT SAYFASINA ÖZEL: Normal metin beyaz
                     fontColor: Colors.white,
                     // SHORT SAYFASINA ÖZEL: # ve @ beyaz olacak
                     hashtagColor: Colors.white,
                     mentionColor: Colors.white,
-                    // SHORT SAYFASINA ÖZEL: "Daha fazla/az göster" de beyaz olacak
+                    // SHORT SAYFASINA ÖZEL: #/@/link beyaz; buton mavi
                     interactiveColor: Colors.white,
+                    expandButtonColor: Colors.blue,
                     onHashtagTap: (tag) {
                       videoPlayerController.pause();
                       Get.to(() => TagPosts(tag: tag))?.then((_) {

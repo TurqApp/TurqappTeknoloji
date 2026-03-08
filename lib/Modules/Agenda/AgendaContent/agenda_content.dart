@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
@@ -17,9 +18,11 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
+import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
+import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
@@ -73,7 +76,6 @@ class _AgendaContentState extends State<AgendaContent>
   final arsivController = Get.put(ArchiveController());
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
-  bool _isCaptionExpanded = false;
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -782,91 +784,68 @@ class _AgendaContentState extends State<AgendaContent>
     required String text,
     required Color color,
   }) {
-    const baseStyle = TextStyle(
-      color: Colors.black,
-      fontSize: 15,
-      fontFamily: "Montserrat",
-      height: 1.25,
-    );
-    final textStyle = baseStyle.copyWith(color: color);
-    const suffix = " devamı";
+    return ClickableTextContent(
+      text: text,
+      startWith7line: true,
+      toggleExpandOnTextTap: true,
+      fontSize: 13,
+      fontColor: color,
+      mentionColor: Colors.blue,
+      hashtagColor: Colors.blue,
+      urlColor: Colors.blue,
+      interactiveColor: Colors.blue,
+      onUrlTap: (url) async {
+        final uniqueKey = DateTime.now().millisecondsSinceEpoch.toString();
+        await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
+      },
+      onHashtagTap: (tag) {
+        if (tag.trim().isEmpty) return;
+        Get.to(() => TagPosts(tag: tag.trim()));
+      },
+      onMentionTap: (mention) async {
+        final normalizedMention = mention.trim().replaceFirst('@', '');
+        final handle = normalizedMention.toLowerCase();
+        if (handle.isEmpty) return;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final painter = TextPainter(
-          text: TextSpan(text: text, style: textStyle),
-          textDirection: TextDirection.ltr,
-          maxLines: 7,
-        )..layout(maxWidth: constraints.maxWidth);
+        String targetUid = '';
+        try {
+          final usernameDoc = await FirebaseFirestore.instance
+              .collection('usernames')
+              .doc(handle)
+              .get();
+          targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
+        } catch (_) {}
 
-        if (_isCaptionExpanded || !painter.didExceedMaxLines) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              if (!_isCaptionExpanded) {
-                setState(() => _isCaptionExpanded = true);
-              }
-            },
-            child: Text(text, style: textStyle),
-          );
+        if (targetUid.isEmpty) {
+          try {
+            final byUsername = await FirebaseFirestore.instance
+                .collection('users')
+                .where('usernameLower', isEqualTo: handle)
+                .limit(1)
+                .get();
+            if (byUsername.docs.isNotEmpty) {
+              targetUid = byUsername.docs.first.id;
+            }
+          } catch (_) {}
         }
 
-        int low = 0;
-        int high = text.length;
-        int best = 0;
-        while (low <= high) {
-          final mid = (low + high) ~/ 2;
-          final candidate = text.substring(0, mid).trimRight();
-          final candidatePainter = TextPainter(
-            text: TextSpan(
-              children: [
-                TextSpan(text: candidate, style: textStyle),
-                const TextSpan(
-                  text: suffix,
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium",
-                    height: 1.25,
-                  ),
-                ),
-              ],
-            ),
-            textDirection: TextDirection.ltr,
-            maxLines: 7,
-          )..layout(maxWidth: constraints.maxWidth);
-
-          if (candidatePainter.didExceedMaxLines) {
-            high = mid - 1;
-          } else {
-            best = mid;
-            low = mid + 1;
-          }
+        if (targetUid.isEmpty) {
+          try {
+            final byNickname = await FirebaseFirestore.instance
+                .collection('users')
+                .where('nickname', isEqualTo: normalizedMention)
+                .limit(1)
+                .get();
+            if (byNickname.docs.isNotEmpty) {
+              targetUid = byNickname.docs.first.id;
+            }
+          } catch (_) {}
         }
 
-        final collapsed = text.substring(0, best).trimRight();
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => _isCaptionExpanded = true),
-          child: RichText(
-            maxLines: 7,
-            overflow: TextOverflow.clip,
-            text: TextSpan(
-              children: [
-                TextSpan(text: collapsed, style: textStyle),
-                const TextSpan(
-                  text: suffix,
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium",
-                    height: 1.25,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        if (targetUid.isNotEmpty && targetUid != currentUid) {
+          await Get.to(() => SocialProfile(userID: targetUid));
+        }
       },
     );
   }
