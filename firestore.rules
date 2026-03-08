@@ -198,6 +198,9 @@ service cloud.firestore {
       match /lastSearches/{searchId} {
         allow read, write: if isOwner(uid);
       }
+      match /chatArchives/{chatId} {
+        allow read, write: if isOwner(uid);
+      }
 
       // User interaction subcollections
       match /liked_posts/{postId} {

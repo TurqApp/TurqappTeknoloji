@@ -32,9 +32,11 @@ class ChatListing extends StatelessWidget {
       "archived": true,
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
-    await db.collection("conversations").doc(item.chatID).set({
-      "archived.$_uid": true,
-    }, SetOptions(merge: true));
+    try {
+      await db.collection("conversations").doc(item.chatID).set({
+        "archived.$_uid": true,
+      }, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   Future<void> _unarchiveChat(ChatListingModel item) async {
@@ -51,9 +53,11 @@ class ChatListing extends StatelessWidget {
       "archived": false,
       "updatedDate": DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
-    await db.collection("conversations").doc(item.chatID).set({
-      "archived.$_uid": false,
-    }, SetOptions(merge: true));
+    try {
+      await db.collection("conversations").doc(item.chatID).set({
+        "archived.$_uid": false,
+      }, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   Future<void> _deleteChat(ChatListingModel item) async {
@@ -225,14 +229,17 @@ class ChatListing extends StatelessWidget {
                                           snackPosition: SnackPosition.BOTTOM,
                                         );
                                       }
-                                      await controller.getList();
                                     } catch (_) {
                                       AppSnackbar(
                                         "Hata",
                                         "İşlem tamamlanamadı, yetki veya kayıt sorunu var",
                                         snackPosition: SnackPosition.BOTTOM,
                                       );
+                                      return;
                                     }
+                                    try {
+                                      await controller.getList();
+                                    } catch (_) {}
                                   },
                                   onDelete: () async {
                                     bool confirmed = false;
