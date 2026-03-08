@@ -169,156 +169,176 @@ class SignIn extends StatelessWidget {
             ],
           ),
           SizedBox(height: 12),
-          Container(
-            height: 50,
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: Colors.grey.withAlpha(20),
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              border: Border.all(
-                color: controller.emailFocus.value.hasFocus
-                    ? Colors.blueAccent
-                    : Colors.transparent,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    child: Icon(CupertinoIcons.person, color: Colors.black),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Transform.translate(
-                      offset: Offset(0, 1),
-                      child: TextField(
-                        controller: controller.emailcontroller,
-                        focusNode: controller.emailFocus.value,
-                        onTap: () {
-                          controller.emailFocus.value.requestFocus();
-                        },
-                        decoration: InputDecoration(
-                          hintText: "Kullanıcı adı veya e-posta adresiniz",
-                          hintStyle: TextStyle(
-                            color: Colors.grey,
-                            fontFamily: "MontserratMedium",
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                        onChanged: (v) {
-                          String trimmedValue = v.trim();
-                          if (trimmedValue != v) {
-                            controller.emailcontroller.text = trimmedValue;
-                            controller.emailcontroller.selection =
-                                TextSelection.fromPosition(
-                              TextPosition(offset: trimmedValue.length),
-                            );
-                          }
-                          if (trimmedValue.isEmpty) {
-                            controller.signInEmail.value = "";
-                          } else if (trimmedValue.length >= 5) {
-                            controller.nicknameFinder();
-                          }
-                        },
-                      ),
+          AutofillGroup(
+            child: Column(
+              children: [
+                Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(20),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(
+                      color: controller.emailFocus.value.hasFocus
+                          ? Colors.blueAccent
+                          : Colors.transparent,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 7),
-          Container(
-            height: 50,
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: Colors.grey.withAlpha(20),
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              border: Border.all(
-                color: controller.passwordFocus.value.hasFocus
-                    ? Colors.blueAccent
-                    : Colors.transparent,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    child: Icon(CupertinoIcons.lock, color: Colors.black),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Transform.translate(
-                      offset: Offset(0, 1),
-                      child: TextField(
-                        controller: controller.passwordcontroller,
-                        focusNode: controller.passwordFocus.value,
-                        onTap: () {
-                          controller.passwordFocus.value.requestFocus();
-                        },
-                        onChanged: (v) {
-                          if (v.length >= 6) {
-                            controller.verifyPassword();
-                          } else {
-                            controller.passwordAvilable.value = false;
-                          }
-                        },
-                        decoration: InputDecoration(
-                          hintText: "Şifreniz",
-                          hintStyle: TextStyle(
-                            color: Colors.grey,
-                            fontFamily: "MontserratMedium",
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child:
+                              Icon(CupertinoIcons.person, color: Colors.black),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: Offset(0, 1),
+                            child: TextField(
+                              controller: controller.emailcontroller,
+                              focusNode: controller.emailFocus.value,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [
+                                AutofillHints.username,
+                                AutofillHints.email,
+                              ],
+                              onTap: () {
+                                controller.emailFocus.value.requestFocus();
+                              },
+                              decoration: InputDecoration(
+                                hintText:
+                                    "Kullanıcı adı veya e-posta adresiniz",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                              onChanged: (v) {
+                                String trimmedValue = v.trim();
+                                if (trimmedValue != v) {
+                                  controller.emailcontroller.text =
+                                      trimmedValue;
+                                  controller.emailcontroller.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(offset: trimmedValue.length),
+                                  );
+                                }
+                                if (trimmedValue.isEmpty) {
+                                  controller.signInEmail.value = "";
+                                } else if (trimmedValue.length >= 5) {
+                                  controller.nicknameFinder();
+                                }
+                              },
+                            ),
                           ),
-                          border: InputBorder.none,
                         ),
-                        obscureText: !controller.showPassword.value,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                  SizedBox(
-                    width: 12,
+                ),
+                SizedBox(height: 7),
+                Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(20),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(
+                      color: controller.passwordFocus.value.hasFocus
+                          ? Colors.blueAccent
+                          : Colors.transparent,
+                    ),
                   ),
-                  if (controller.password.value != "")
-                    GestureDetector(
-                        onTap: () {
-                          controller.showPassword.value =
-                              !controller.showPassword.value;
-                        },
-                        child: Icon(
-                          controller.showPassword.value
-                              ? CupertinoIcons.eye
-                              : CupertinoIcons.eye_slash,
-                          color: Colors.blueAccent,
-                        ))
-                  else
-                    GestureDetector(
-                      onTap: () {
-                        controller.selection.value = 5;
-                      },
-                      child: Text(
-                        "Sıfırla",
-                        style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium"),
-                      ),
-                    )
-                ],
-              ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Icon(CupertinoIcons.lock, color: Colors.black),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: Offset(0, 1),
+                            child: TextField(
+                              controller: controller.passwordcontroller,
+                              focusNode: controller.passwordFocus.value,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.password],
+                              onTap: () {
+                                controller.passwordFocus.value.requestFocus();
+                              },
+                              onChanged: (v) {
+                                if (v.length >= 6) {
+                                  controller.verifyPassword();
+                                } else {
+                                  controller.passwordAvilable.value = false;
+                                }
+                              },
+                              decoration: InputDecoration(
+                                hintText: "Şifreniz",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              obscureText: !controller.showPassword.value,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 12,
+                        ),
+                        if (controller.password.value.trim().isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              controller.showPassword.value =
+                                  !controller.showPassword.value;
+                            },
+                            child: Icon(
+                              controller.showPassword.value
+                                  ? CupertinoIcons.eye
+                                  : CupertinoIcons.eye_slash,
+                              color: Colors.blueAccent,
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () {
+                              controller.resetMailController.clear();
+                              controller.resetOtpController.clear();
+                              controller.selection.value = 5;
+                            },
+                            child: Text(
+                              "Sıfırla",
+                              style: TextStyle(
+                                  color: Colors.blueAccent,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium"),
+                            ),
+                          )
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: 20),
@@ -370,8 +390,6 @@ class SignIn extends StatelessWidget {
                               'Hatalı Şifre', 'Şifre en az 6 karakter olmalı.');
                           return;
                         }
-                        controller.passwordFocus.value.unfocus();
-                        controller.emailFocus.value.unfocus();
                         controller.wait.value = true;
                         await controller.signIn();
                       },
@@ -1234,19 +1252,17 @@ class SignIn extends StatelessWidget {
                         width: 12,
                       ),
                       Obx(() => GestureDetector(
-                            onTap: (controller.otpTimer.value == 120 ||
-                                    controller.otpTimer.value == 0)
+                            onTap: controller.otpTimer.value == 0
                                 ? () => controller.sendOtpCode()
                                 : null,
                             child: Text(
-                              controller.otpTimer.value == 120
+                              !controller.signupCodeRequested.value
                                   ? "Kodu Al"
                                   : controller.otpTimer.value == 0
                                       ? "Tekrar Gönder"
                                       : "Tekrar Gönder (${controller.otpTimer.value} sn)",
                               style: TextStyle(
-                                color: (controller.otpTimer.value == 120 ||
-                                        controller.otpTimer.value == 0)
+                                color: controller.otpTimer.value == 0
                                     ? Colors.blueAccent
                                     : Colors.grey,
                                 fontSize: 15,
@@ -1425,7 +1441,7 @@ class SignIn extends StatelessWidget {
           Row(
             children: [
               Text(
-                "£-posta Adresi",
+                "E-posta Adresi",
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 13,
@@ -1466,10 +1482,13 @@ class SignIn extends StatelessWidget {
                           controller.resetMailFocus.value.requestFocus();
                         },
                         onChanged: (txt) {
-                          if (txt.length >= 3) {
-                            controller.getResetUserData(txt, txt);
-                          } else {
-                            controller.resetPhoneNumber.value = "";
+                          final trimmedValue = txt.trim();
+                          if (trimmedValue != txt) {
+                            controller.resetMailController.text = trimmedValue;
+                            controller.resetMailController.selection =
+                                TextSelection.fromPosition(
+                              TextPosition(offset: trimmedValue.length),
+                            );
                           }
                         },
                         decoration: InputDecoration(
@@ -1488,23 +1507,19 @@ class SignIn extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Obx(() => controller.resetMail.value != "" &&
-                          controller.resetMail.value.contains("@") &&
-                          controller.resetMail.value.contains(".com")
+                  Obx(() => controller.isValidEmail(controller.resetMail.value)
                       ? GestureDetector(
-                          onTap: (controller.otpTimerReset.value == 120 ||
-                                  controller.otpTimerReset.value == 0)
+                          onTap: controller.otpTimerReset.value == 0
                               ? () => controller.sendOtpCodeForReset()
                               : null,
                           child: Text(
-                            controller.otpTimerReset.value == 120
+                            !controller.resetCodeRequested.value
                                 ? "Kodu Al"
                                 : controller.otpTimerReset.value == 0
                                     ? "Tekrar Gönder"
                                     : "Tekrar Gönder (${controller.otpTimerReset.value} sn)",
                             style: TextStyle(
-                              color: (controller.otpTimerReset.value == 120 ||
-                                      controller.otpTimerReset.value == 0)
+                              color: controller.otpTimerReset.value == 0
                                   ? Colors.blueAccent
                                   : Colors.grey,
                               fontSize: 15,
@@ -1608,18 +1623,8 @@ class SignIn extends StatelessWidget {
               Obx(() {
                 return controller.resetOtp.value != ""
                     ? GestureDetector(
-                        onTap: () {
-                          print(controller.wasSentCode.value);
-                          print(controller.resetOtp.value);
-                          if (controller.wasSentCode.value.toString() ==
-                              controller.resetOtp.value) {
-                            controller.selection.value = 6;
-                            controller.resetOtpFocus.value.unfocus();
-                            controller.resetMailFocus.value.unfocus();
-                          } else {
-                            AppSnackbar("Geçersiz Doğrulama",
-                                "Size gönderdiğimiz doğrulama kodu ile girdiğiniz doğrulama kodu eşleşmiyor");
-                          }
+                        onTap: () async {
+                          await controller.verifyResetSmsCode();
                         },
                         child: Container(
                           width: 80,
@@ -1653,231 +1658,278 @@ class SignIn extends StatelessWidget {
   Widget createNewPassword() {
     return Expanded(
       child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    "Şifreni Sıfırla",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 25,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(
-              height: 12,
-            ),
-            Text(
-              "En az bir karakteri büyük olmalı ve en az 6 karakterden oluşmalıdır.",
-              style: TextStyle(
-                  color: Colors.black, fontSize: 15, fontFamily: "Montserrat"),
-            ),
-            SizedBox(
-              height: 12,
-            ),
-            Row(
-              children: [
-                Text(
-                  "Yeni Şifre",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 13,
-                    fontFamily: "MontserratMedium",
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 7),
-            Container(
-              height: 50,
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(20),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                border: Border.all(
-                  color: controller.resetMailFocus.value.hasFocus
-                      ? Colors.blueAccent
-                      : Colors.transparent,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      child: Icon(CupertinoIcons.lock, color: Colors.grey),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Transform.translate(
-                        offset: Offset(0, 1),
-                        child: TextField(
-                          controller: controller.newPasswordController,
-                          focusNode: controller.newPasswordFocus.value,
-                          onTap: () {
-                            controller.newPasswordFocus.value.requestFocus();
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Yeni şifre oluşturun",
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontFamily: "MontserratMedium",
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 15),
-            Row(
-              children: [
-                Text(
-                  "Yeni Şifre (Tekrar)",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 13,
-                    fontFamily: "MontserratMedium",
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 7),
-            Container(
-              height: 50,
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                color: Colors.grey.withAlpha(20),
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                border: Border.all(
-                  color: controller.resetOtpFocus.value.hasFocus
-                      ? Colors.blueAccent
-                      : Colors.transparent,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      child: Icon(CupertinoIcons.lock, color: Colors.grey),
-                    ),
-                    SizedBox(
-                      width: 12,
-                    ),
-                    Expanded(
-                      child: Transform.translate(
-                        offset: Offset(0, 1),
-                        child: TextField(
-                          controller: controller.newPasswordRepeatController,
-                          focusNode: controller.newPasswordRepeatFocus.value,
-                          onTap: () {
-                            controller.newPasswordRepeatFocus.value
-                                .requestFocus();
-                          },
-                          decoration: InputDecoration(
-                            hintText: "Yeni şifrenizi tekrar edin",
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontFamily: "MontserratMedium",
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // geri
-                GestureDetector(
-                  onTap: () {
-                    controller.newPasswordController.text = "";
-                    controller.newPasswordRepeatController.text = "";
-                    controller.newPasswordFocus.value.unfocus();
-                    controller.newPasswordRepeatFocus.value.unfocus();
-                    controller.selection.value = 1;
-                    controller.wait.value = false;
-                  },
-                  child: Container(
-                    width: 80,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(20),
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                    ),
-                    child: const Text(
-                      "Geri",
+        child: AutofillGroup(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Şifreni Sıfırla",
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium",
+                        fontSize: 25,
+                        fontFamily: "MontserratBold",
                       ),
                     ),
                   ),
-                ),
-
-                Obx(() {
-                  return controller.newPassword.value ==
-                              controller.newPasswordRepeat.value &&
-                          controller.wait.value == false
-                      ? GestureDetector(
-                          onTap: () {
-                            controller
-                                .setNewPassword(controller.newPassword.value);
-                          },
-                          child: Container(
-                            width: 80,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(8),
+                ],
+              ),
+              SizedBox(
+                height: 12,
+              ),
+              Text(
+                "En az bir karakteri büyük olmalı ve en az 6 karakterden oluşmalıdır.",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 15,
+                    fontFamily: "Montserrat"),
+              ),
+              SizedBox(
+                height: 12,
+              ),
+              Row(
+                children: [
+                  Text(
+                    "Yeni Şifre",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 7),
+              Obx(
+                () => Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(20),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(
+                      color: controller.resetMailFocus.value.hasFocus
+                          ? Colors.blueAccent
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Icon(CupertinoIcons.lock, color: Colors.grey),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: Offset(0, 1),
+                            child: TextField(
+                              controller: controller.newPasswordController,
+                              focusNode: controller.newPasswordFocus.value,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.newPassword],
+                              obscureText: !controller.showNewPassword.value,
+                              onTap: () {
+                                controller.newPasswordFocus.value
+                                    .requestFocus();
+                              },
+                              decoration: InputDecoration(
+                                hintText: "Yeni şifre oluşturun",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
                               ),
-                            ),
-                            child: const Text(
-                              "Devam",
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontSize: 15,
                                 fontFamily: "MontserratMedium",
                               ),
                             ),
                           ),
-                        )
-                      : SizedBox();
-                })
-              ],
-            ),
-          ],
+                        ),
+                        SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            controller.showNewPassword.value =
+                                !controller.showNewPassword.value;
+                          },
+                          child: Icon(
+                            controller.showNewPassword.value
+                                ? CupertinoIcons.eye
+                                : CupertinoIcons.eye_slash,
+                            color: Colors.blueAccent,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 15),
+              Row(
+                children: [
+                  Text(
+                    "Yeni Şifre (Tekrar)",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: "MontserratMedium",
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 7),
+              Obx(
+                () => Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(20),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(
+                      color: controller.resetOtpFocus.value.hasFocus
+                          ? Colors.blueAccent
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          child: Icon(CupertinoIcons.lock, color: Colors.grey),
+                        ),
+                        SizedBox(
+                          width: 12,
+                        ),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: Offset(0, 1),
+                            child: TextField(
+                              controller:
+                                  controller.newPasswordRepeatController,
+                              focusNode:
+                                  controller.newPasswordRepeatFocus.value,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.newPassword],
+                              obscureText:
+                                  !controller.showNewPasswordRepeat.value,
+                              onTap: () {
+                                controller.newPasswordRepeatFocus.value
+                                    .requestFocus();
+                              },
+                              decoration: InputDecoration(
+                                hintText: "Yeni şifrenizi tekrar edin",
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                                border: InputBorder.none,
+                              ),
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            controller.showNewPasswordRepeat.value =
+                                !controller.showNewPasswordRepeat.value;
+                          },
+                          child: Icon(
+                            controller.showNewPasswordRepeat.value
+                                ? CupertinoIcons.eye
+                                : CupertinoIcons.eye_slash,
+                            color: Colors.blueAccent,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 15),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // geri
+                  GestureDetector(
+                    onTap: () {
+                      controller.newPasswordController.text = "";
+                      controller.newPasswordRepeatController.text = "";
+                      controller.newPasswordFocus.value.unfocus();
+                      controller.newPasswordRepeatFocus.value.unfocus();
+                      controller.selection.value = 1;
+                      controller.wait.value = false;
+                    },
+                    child: Container(
+                      width: 80,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withAlpha(20),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(8)),
+                      ),
+                      child: const Text(
+                        "Geri",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Obx(() {
+                    return controller.newPassword.value ==
+                                controller.newPasswordRepeat.value &&
+                            controller.wait.value == false
+                        ? GestureDetector(
+                            onTap: () {
+                              controller
+                                  .setNewPassword(controller.newPassword.value);
+                            },
+                            child: Container(
+                              width: 80,
+                              height: 40,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                "Devam",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox();
+                  })
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

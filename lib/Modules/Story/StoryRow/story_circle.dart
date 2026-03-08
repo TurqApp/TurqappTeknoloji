@@ -3,11 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker.dart';
-import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -28,7 +26,6 @@ class StoryCircle extends StatefulWidget {
 
 class _StoryCircleState extends State<StoryCircle> {
   final userService = CurrentUserService.instance;
-  final storeController = Get.find<StoryRowController>();
 
   @override
   Widget build(BuildContext context) {
@@ -153,35 +150,33 @@ class _StoryCircleState extends State<StoryCircle> {
                     );
                   }
 
+                  final baseRingDecoration = BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.withAlpha(20),
+                    border:
+                        Border.all(color: Colors.grey.withAlpha(50), width: 2),
+                  );
+
+                  final highlightRingDecoration = ShapeDecoration(
+                    shape: const CircleBorder(),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.textBlue,
+                        AppColors.textPink,
+                        AppColors.textPink,
+                      ],
+                    ),
+                  );
+
                   return Stack(
                     fit: StackFit.expand,
                     children: [
                       Container(
-                        decoration: isUploading
-                            ? const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.transparent,
-                              )
-                            : (highlight
-                                ? ShapeDecoration(
-                                    shape: CircleBorder(),
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        AppColors.textBlue,
-                                        AppColors.textPink,
-                                        AppColors.textPink,
-                                      ],
-                                    ),
-                                  )
-                                : BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.grey.withAlpha(20),
-                                    border: Border.all(
-                                        color: Colors.grey.withAlpha(50),
-                                        width: 2),
-                                  )),
+                        decoration: highlight
+                            ? highlightRingDecoration
+                            : baseRingDecoration,
                         child: Padding(
                           padding: const EdgeInsets.all(2),
                           child: Container(
@@ -270,7 +265,7 @@ class _StoryCircleState extends State<StoryCircle> {
                             ),
                           ),
                         )
-                      : RozetContent(size: 20, userID: widget.model.userID))
+                      : const SizedBox.shrink())
             ],
           ),
         ),

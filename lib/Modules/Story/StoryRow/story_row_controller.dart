@@ -33,6 +33,26 @@ class StoryRowController extends GetxController {
   DateTime? _followingCacheAt;
   DateTime? _lastExpireCleanupAt;
 
+  void _ensureMyUserPlaceholder() {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid == null || myUid.isEmpty) return;
+    if (users.any((u) => u.userID == myUid)) return;
+
+    final nickname = userService.nickname.trim();
+    final fullName = userService.fullName.trim();
+
+    users.insert(
+      0,
+      StoryUserModel(
+        nickname: nickname.isNotEmpty ? nickname : '@kullanici',
+        avatarUrl: userService.avatarUrl,
+        fullName: fullName,
+        userID: myUid,
+        stories: const [],
+      ),
+    );
+  }
+
   String _resolveStoryNickname(Map<String, dynamic> data) {
     final nickname = (data['nickname'] ?? '').toString().trim();
     final username = (data['username'] ?? '').toString().trim();
@@ -65,6 +85,7 @@ class StoryRowController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _ensureMyUserPlaceholder();
     unawaited(_initMiniCache());
     unawaited(_loadStoriesFromMiniCache());
     // Ensure profile changes (nickname/avatar) are reflected quickly.
@@ -375,6 +396,7 @@ class StoryRowController extends GetxController {
         await _loadStoriesFromMiniCache(allowExpired: true);
       }
     } finally {
+      _ensureMyUserPlaceholder();
       loadWatch.stop();
       if (cacheFirst) {
         unawaited(UserAnalyticsService.instance.trackCachePerformance(
@@ -459,6 +481,7 @@ class StoryRowController extends GetxController {
       if (loaded.isNotEmpty) {
         users.assignAll(loaded);
       }
+      _ensureMyUserPlaceholder();
     } catch (e) {
       print('Story mini cache load error: $e');
     }

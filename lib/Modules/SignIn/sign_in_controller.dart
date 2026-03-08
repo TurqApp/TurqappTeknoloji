@@ -1,15 +1,21 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
+import 'package:turqappv2/Modules/Splash/splash_view.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/phone_account_limiter.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -65,19 +71,59 @@ class SignInController extends GetxController
   var passwordAvilable = false.obs;
   var wait = false.obs;
   var showPassword = false.obs;
+  var showNewPassword = false.obs;
+  var showNewPasswordRepeat = false.obs;
 
   var isFormValid = false.obs;
 
-  var otpTimer = 120.obs;
+  var otpTimer = 0.obs;
   Timer? _timer;
+  var signupCodeRequested = false.obs;
+  var otpRequestInFlight = false.obs;
 
   var resetPhoneNumber = "".obs;
   var resetOldPassword = "".obs;
   var resetUserID = "".obs;
-  var otpTimerReset = 120.obs;
+  var otpTimerReset = 0.obs;
   Timer? _timerReset;
+  var resetCodeRequested = false.obs;
 
   var signInEmail = "".obs;
+
+  void _ensureFeedTabSelected() {
+    if (Get.isRegistered<NavBarController>()) {
+      Get.find<NavBarController>().selectedIndex.value = 0;
+      return;
+    }
+    final nav = Get.put(NavBarController());
+    nav.selectedIndex.value = 0;
+  }
+
+  String _formatSeconds(int seconds) {
+    final safe = seconds < 0 ? 0 : seconds;
+    final m = (safe ~/ 60).toString().padLeft(2, '0');
+    final s = (safe % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Future<void> _clearSessionCachesAfterAccountSwitch() async {
+    try {
+      if (Get.isRegistered<UserProfileCacheService>()) {
+        await Get.find<UserProfileCacheService>().clearAll();
+      }
+      PostContentController.clearUserProfileCache();
+      if (Get.isRegistered<StoryRowController>()) {
+        await Get.find<StoryRowController>().clearSessionCache();
+      }
+      if (Get.isRegistered<AgendaController>()) {
+        final agenda = Get.find<AgendaController>();
+        agenda.agendaList.clear();
+        await agenda.refreshAgenda();
+      }
+    } catch (e) {
+      print('⚠️ Session cache clear error: $e');
+    }
+  }
 
   Future<void> _restoreAccountIfPendingDeletion() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -334,6 +380,7 @@ class SignInController extends GetxController
         print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
         await CurrentUserService.instance.initialize();
         await NotificationService.instance.initialize();
+        await _clearSessionCachesAfterAccountSwitch();
 
         // Force refresh to load newly created user document
         await CurrentUserService.instance.forceRefresh();
@@ -366,6 +413,8 @@ class SignInController extends GetxController
         } else {
           agendaController = Get.put(AgendaController());
         }
+
+        await agendaController.refreshAgenda();
 
         print("📝 Postlar yükleniyor...");
 
@@ -406,6 +455,7 @@ class SignInController extends GetxController
 
       // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
 
+      _ensureFeedTabSelected();
       Get.off(() => NavBarView());
     } on PhoneAccountLimitReached catch (e) {
       // Rollback newly created auth user to avoid orphaned accounts
@@ -434,6 +484,7 @@ class SignInController extends GetxController
       wait.value = false;
       if (accountProvisioned) {
         // Hesap oluştuysa OTP ekranında kalmasın; uygulamaya devam etsin.
+        _ensureFeedTabSelected();
         Get.off(() => NavBarView());
         return;
       }
@@ -510,15 +561,36 @@ class SignInController extends GetxController
   }
 
   Future<void> sendOtpCode() async {
+    if (otpRequestInFlight.value) return;
+    if (signupCodeRequested.value && otpTimer.value > 0) {
+      AppSnackbar(
+        "Bekleyin",
+        "Yeni kod için ${otpTimer.value} saniye bekleyin.",
+      );
+      return;
+    }
+
+    final phone = phoneNumber.value.trim();
+    if (phone.length != 10 || !phone.startsWith('5')) {
+      AppSnackbar(
+        "Geçersiz Telefon",
+        "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.",
+      );
+      return;
+    }
+
     selection.value = 4;
+    otpRequestInFlight.value = true;
     wasSentCode.value = generateRandomNumber(100000, 999999);
-    sendRequest(wasSentCode.value.toString(), phoneNumber.value);
+    sendRequest(wasSentCode.value.toString(), phone);
     startOtpTimer(); // TIMER BAŞLAT
+    signupCodeRequested.value = true;
+    otpRequestInFlight.value = false;
   }
 
   void startOtpTimer() {
     _timer?.cancel(); // Var olan timer varsa iptal et
-    otpTimer.value = 120;
+    otpTimer.value = 300;
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (otpTimer.value > 0) {
@@ -530,14 +602,67 @@ class SignInController extends GetxController
   }
 
   Future<void> sendOtpCodeForReset() async {
-    wasSentCode.value = generateRandomNumber(100000, 999999);
-    sendRequest(wasSentCode.value.toString(), phoneNumber.value);
-    startOtpTimerForTimer(); // TIMER BAŞLAT
+    final targetEmail = resetMailController.text.trim().toLowerCase();
+    if (!isValidEmail(targetEmail)) {
+      AppSnackbar("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
+      return;
+    }
+    if (resetCodeRequested.value && otpTimerReset.value > 0) {
+      AppSnackbar(
+        "Bekleyin",
+        "Yeni kod için ${otpTimerReset.value} saniye bekleyin.",
+      );
+      return;
+    }
+
+    wait.value = true;
+    try {
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('sendPasswordResetSmsCode')
+          .call({
+        "email": targetEmail,
+      });
+      startOtpTimerForTimer(); // TIMER BAŞLAT
+      resetCodeRequested.value = true;
+      AppSnackbar(
+        "Kod Gönderildi",
+        "SMS gönderildi. Kod 60 saniye geçerli.",
+      );
+    } on FirebaseFunctionsException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'invalid-argument':
+          message = "Geçerli bir e-posta ve 6 haneli kod gerekli.";
+          break;
+        case 'not-found':
+          message = "Bu e-posta ile kayıtlı hesap bulunamadı.";
+          break;
+        case 'failed-precondition':
+          final raw = (e.message ?? "").toLowerCase();
+          if (raw.contains("yeni sms için")) {
+            message =
+                "Kod zaten gönderildi. Tekrar göndermek için ${_formatSeconds(otpTimerReset.value)} bekleyin.";
+          } else {
+            message = e.message ?? "Bu hesap için kayıtlı telefon bulunamadı.";
+          }
+          break;
+        case 'unavailable':
+          message = "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.";
+          break;
+        default:
+          message = "Kod gönderilemedi. Lütfen tekrar deneyin.";
+      }
+      AppSnackbar("Kod Gönderilemedi", message);
+    } catch (_) {
+      AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
+    } finally {
+      wait.value = false;
+    }
   }
 
   void startOtpTimerForTimer() {
     _timerReset?.cancel(); // Var olan timer varsa iptal et
-    otpTimerReset.value = 120;
+    otpTimerReset.value = 300;
 
     _timerReset = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (otpTimerReset.value > 0) {
@@ -550,30 +675,95 @@ class SignInController extends GetxController
 
   Future<void> getResetUserData(String email, String nickname) async {
     resetPhoneNumber.value = "";
+    resetUserID.value = "";
     // 1. Önce email ile ara
-    final emailSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where("email", isEqualTo: email)
-        .get();
+    try {
+      final emailSnap = await FirebaseFirestore.instance
+          .collection("users")
+          .where("email", isEqualTo: email)
+          .limit(1)
+          .get();
 
-    if (emailSnap.docs.isNotEmpty) {
-      // Email ile eşleşen kayıt bulundu
-      final doc = emailSnap.docs.first;
-      resetPhoneNumber.value = doc.get("phoneNumber");
-      resetUserID.value = doc.id;
+      if (emailSnap.docs.isNotEmpty) {
+        // Email ile eşleşen kayıt bulundu
+        final doc = emailSnap.docs.first;
+        resetPhoneNumber.value = (doc.data()["phoneNumber"] ?? "").toString();
+        resetUserID.value = doc.id;
+        return;
+      }
+
+      // 2. Email bulunamadıysa nickname ile ara
+      final nickSnap = await FirebaseFirestore.instance
+          .collection("users")
+          .where("nickname", isEqualTo: nickname)
+          .limit(1)
+          .get();
+
+      if (nickSnap.docs.isNotEmpty) {
+        final doc = nickSnap.docs.first;
+        resetPhoneNumber.value = (doc.data()["phoneNumber"] ?? "").toString();
+        resetUserID.value = doc.id;
+      }
+    } catch (_) {
+      // Sign-in ekranında users read kuralı kapalıysa sessiz fallback.
+    }
+  }
+
+  Future<void> sendPasswordResetLink() async {
+    // Backward compatibility: eski çağrılar da SMS reset akışını kullansın.
+    await sendOtpCodeForReset();
+  }
+
+  Future<void> verifyResetSmsCode() async {
+    final targetEmail = resetMailController.text.trim().toLowerCase();
+    final code = resetOtpController.text.trim();
+
+    if (!isValidEmail(targetEmail)) {
+      AppSnackbar("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
+      return;
+    }
+    if (code.length != 6 || int.tryParse(code) == null) {
+      AppSnackbar("Geçersiz Kod", "Lütfen 6 haneli doğrulama kodunu girin.");
       return;
     }
 
-    // 2. Email bulunamadıysa nickname ile ara
-    final nickSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where("nickname", isEqualTo: nickname)
-        .get();
-
-    if (nickSnap.docs.isNotEmpty) {
-      final doc = nickSnap.docs.first;
-      resetPhoneNumber.value = doc.get("phoneNumber");
-      resetUserID.value = doc.id;
+    wait.value = true;
+    try {
+      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+          .httpsCallable('verifyPasswordResetSmsCode')
+          .call({
+        "email": targetEmail,
+        "verificationCode": code,
+      });
+      selection.value = 6;
+      resetOtpFocus.value.unfocus();
+      resetMailFocus.value.unfocus();
+    } on FirebaseFunctionsException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'deadline-exceeded':
+          message = "Kodun süresi doldu (60 sn). Lütfen yeni kod isteyin.";
+          break;
+        case 'not-found':
+          message = "Doğrulama kodu bulunamadı. Yeniden kod alın.";
+          break;
+        case 'invalid-argument':
+          message = "Doğrulama kodu hatalı.";
+          break;
+        case 'failed-precondition':
+          message = e.message ?? "Kod artık geçerli değil. Yeni kod alın.";
+          break;
+        default:
+          message = "Kod doğrulanamadı. Lütfen tekrar deneyin.";
+      }
+      AppSnackbar("Doğrulama Başarısız", message);
+    } catch (_) {
+      AppSnackbar(
+        "Doğrulama Başarısız",
+        "Kod doğrulanırken bir hata oluştu.",
+      );
+    } finally {
+      wait.value = false;
     }
   }
 
@@ -586,11 +776,17 @@ class SignInController extends GetxController
         email: resetMail.value,
         password: newPassword,
       );
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
       await _restoreAccountIfPendingDeletion();
       await MandatoryFollowService.instance.enforceForCurrentUser();
 
       // 2. Giriş başarılıysa, şifreyi güncelle
       await userCredential.user!.updatePassword(newPassword);
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
 
       print("Şifre Firebase Auth üzerinde güncellendi.");
 
@@ -598,6 +794,7 @@ class SignInController extends GetxController
       print("🔄 CurrentUserService yeniden başlatılıyor...");
       await CurrentUserService.instance.initialize();
       await NotificationService.instance.initialize();
+      await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
       print("✅ CurrentUserService başarıyla yüklendi");
 
@@ -624,6 +821,8 @@ class SignInController extends GetxController
         } else {
           agendaController = Get.put(AgendaController());
         }
+
+        await agendaController.refreshAgenda();
 
         print("📝 Postlar yükleniyor...");
 
@@ -662,7 +861,12 @@ class SignInController extends GetxController
       // ⚠️ CRITICAL: Give a small delay to ensure all controllers are ready
       await Future.delayed(const Duration(milliseconds: 300));
 
-      Get.offAll(() => NavBarView());
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
+
+      _ensureFeedTabSelected();
+      Get.offAll(() => const SplashView());
       AppSnackbar(
         "Şifreniz Değiştirildi",
         "Şifreniz başarılı bir şekilde değiştirildi ve giriş yapıldı",
@@ -678,7 +882,7 @@ class SignInController extends GetxController
     }
   }
 
-  Future<void> signIn() async {
+  Future<bool> signIn() async {
     print("Giriş işlemi başlatılıyor...");
     bool authSucceeded = false;
     try {
@@ -692,6 +896,9 @@ class SignInController extends GetxController
         password: password.value,
       );
       authSucceeded = true;
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
       print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}");
       await _restoreAccountIfPendingDeletion();
       await CurrentUserService.instance.refreshEmailVerificationStatus(
@@ -703,6 +910,7 @@ class SignInController extends GetxController
       print("🔄 CurrentUserService yeniden başlatılıyor...");
       await CurrentUserService.instance.initialize();
       await NotificationService.instance.initialize();
+      await _clearSessionCachesAfterAccountSwitch();
 
       // Force refresh to ensure latest data
       await CurrentUserService.instance.forceRefresh();
@@ -731,6 +939,8 @@ class SignInController extends GetxController
         } else {
           agendaController = Get.put(AgendaController());
         }
+
+        await agendaController.refreshAgenda();
 
         print("📝 Postlar yükleniyor...");
 
@@ -770,8 +980,12 @@ class SignInController extends GetxController
       await Future.delayed(const Duration(milliseconds: 300));
 
       // Giris akisinda e-posta dogrulama popup/mesajlarini gosterme.
-
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
+      _ensureFeedTabSelected();
       Get.offAll(() => NavBarView());
+      return true;
     } on FirebaseAuthException catch (e) {
       print("Giriş hatası oluştu: ${e.code} - ${e.message}");
       wait.value = false;
@@ -800,16 +1014,22 @@ class SignInController extends GetxController
               "${e.message ?? 'Giriş sırasında hata oluştu.'} (${e.code})";
       }
       AppSnackbar("Giriş yapılamadı", message);
+      return false;
     } catch (e) {
       print("Beklenmeyen bir hata oluştu: $e");
       wait.value = false;
       if (authSucceeded || FirebaseAuth.instance.currentUser != null) {
         // Giriş tamamlandıysa, sonraki hazırlık hataları kullanıcıyı login ekranında tutmasın.
+        try {
+          TextInput.finishAutofillContext(shouldSave: true);
+        } catch (_) {}
+        _ensureFeedTabSelected();
         Get.offAll(() => NavBarView());
-        return;
+        return true;
       }
       AppSnackbar("Giriş Başarısız",
           "Sistemlerimizde planlı bir bakım çalışması gerçekleştirilmektedir. Lütfen daha sonra tekrar deneyiniz. Anlayışınız için teşekkür ederiz. (-2)");
+      return false;
     }
   }
 
