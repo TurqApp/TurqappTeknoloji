@@ -32,6 +32,71 @@ service cloud.firestore {
     function isAdmin() {
       return isAuth() && request.auth.token.admin == true;
     }
+    function isBlackBadge() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'siyah'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'Siyah'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'black'
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rozet == 'Black'
+        );
+    }
+    function moderationClientKeys() {
+      return [
+        'flagCount', 'flaggedBy', 'reasonsSummary', 'status',
+        'thresholdReachedAt', 'shadowHiddenAt', 'lastFlagAt', 'ownerNotified'
+      ];
+    }
+    function moderationReasonKeys() {
+      return ['drugs', 'gambling', 'nudity', 'scam', 'violence', 'spam', 'other'];
+    }
+    function isAllowedModerationStatus(v) {
+      return v in ['active', 'shadow_hidden'];
+    }
+    function canFlagPostModerationUpdate() {
+      return isBlackBadge()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderation'])
+        && request.resource.data.moderation is map
+        && (
+          (
+            resource.data.moderation is map
+            && request.resource.data.moderation.diff(resource.data.moderation)
+                 .affectedKeys().hasOnly(moderationClientKeys())
+          )
+          || (
+            !resource.data.keys().hasAny(['moderation'])
+            && request.resource.data.moderation.keys().hasOnly(moderationClientKeys())
+          )
+        )
+        && request.resource.data.moderation.flagCount is int
+        && request.resource.data.moderation.flagCount >= 1
+        && request.resource.data.moderation.flaggedBy is list
+        && request.auth.uid in request.resource.data.moderation.flaggedBy
+        && request.resource.data.moderation.lastFlagAt is int
+        && (!request.resource.data.moderation.keys().hasAny(['thresholdReachedAt'])
+          || request.resource.data.moderation.thresholdReachedAt is int)
+        && (!request.resource.data.moderation.keys().hasAny(['shadowHiddenAt'])
+          || request.resource.data.moderation.shadowHiddenAt is int)
+        && (!request.resource.data.moderation.keys().hasAny(['ownerNotified'])
+          || request.resource.data.moderation.ownerNotified is bool)
+        && (!request.resource.data.moderation.keys().hasAny(['status'])
+          || isAllowedModerationStatus(request.resource.data.moderation.status))
+        && (!request.resource.data.moderation.keys().hasAny(['reasonsSummary'])
+          || (
+            request.resource.data.moderation.reasonsSummary is map
+            && request.resource.data.moderation.reasonsSummary.keys().hasOnly(moderationReasonKeys())
+          ))
+        && (
+          !resource.data.keys().hasAny(['moderation'])
+          || !(
+            resource.data.moderation is map
+            && resource.data.moderation.keys().hasAny(['flaggedBy'])
+            && resource.data.moderation.flaggedBy is list
+            && request.auth.uid in resource.data.moderation.flaggedBy
+          )
+        );
+    }
     function isAllowlistedPushSender() {
       return isAuth()
         && exists(/databases/$(database)/documents/adminConfig/admin)
@@ -378,6 +443,7 @@ service cloud.firestore {
       // Diğer kullanıcılar: yalnızca izin verilen istatistik sayaçlarını yazabilir
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
+        || canFlagPostModerationUpdate()
         || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'goruntulenmeSayisi', 'viewCount', 'seenCount',
              'begeniSayisi', 'likeCount',

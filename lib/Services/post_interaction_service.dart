@@ -9,6 +9,32 @@ import '../Models/posts_model.dart';
 import '../Models/user_interactions_models.dart';
 import 'offline_mode_service.dart';
 
+enum ModerationFlagStatus {
+  accepted,
+  alreadyFlagged,
+  disabled,
+  unauthorized,
+  postNotFound,
+}
+
+class ModerationFlagResult {
+  const ModerationFlagResult({
+    required this.status,
+    this.flagCount = 0,
+    this.threshold = 0,
+    this.shadowHidden = false,
+  });
+
+  final ModerationFlagStatus status;
+  final int flagCount;
+  final int threshold;
+  final bool shadowHidden;
+
+  bool get accepted => status == ModerationFlagStatus.accepted;
+  bool get alreadyFlagged => status == ModerationFlagStatus.alreadyFlagged;
+  bool get isOk => accepted || alreadyFlagged;
+}
+
 /// Post etkileşimlerini yöneten servis.
 ///
 /// Uygulamanın yeni Firestore mimarisine göre tüm etkileşimleri (beğeni,
@@ -27,6 +53,23 @@ class PostInteractionService extends GetxController {
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
   final Set<String> _reportedByMe = <String>{};
   bool _permissionDeniedLogged = false;
+  static const String _moderationConfigPath = 'adminConfig/moderation';
+  static const Map<String, String> _moderationReasonMap = {
+    'Uyuşturucu': 'drugs',
+    'Kumar': 'gambling',
+    'Çıplaklık': 'nudity',
+    'Dolandırıcılık': 'scam',
+    'Şiddet': 'violence',
+    'Spam': 'spam',
+    'Diğer': 'other',
+    'drugs': 'drugs',
+    'gambling': 'gambling',
+    'nudity': 'nudity',
+    'scam': 'scam',
+    'violence': 'violence',
+    'spam': 'spam',
+    'other': 'other',
+  };
 
   String? get currentUserID => _auth.currentUser?.uid;
   bool get _isOffline =>
@@ -557,6 +600,112 @@ class PostInteractionService extends GetxController {
     return reported;
   }
 
+  Future<ModerationFlagResult> flagPostWithReason(
+    String postId, {
+    required String reason,
+  }) async {
+    final userId = currentUserID;
+    if (userId == null) {
+      return const ModerationFlagResult(
+        status: ModerationFlagStatus.unauthorized,
+      );
+    }
+
+    final config = await _loadModerationConfig();
+    if (!config.enabled) {
+      return ModerationFlagResult(
+        status: ModerationFlagStatus.disabled,
+        threshold: config.threshold,
+      );
+    }
+
+    final postRef = _postRef(postId);
+    final normalizedReason = _normalizeModerationReason(reason);
+
+    bool alreadyFlagged = false;
+    bool accepted = false;
+    bool shadowHidden = false;
+    int nextFlagCount = 0;
+    final nowMs = _nowMs();
+
+    await _firestore.runTransaction((tx) async {
+      final postSnap = await tx.get(postRef);
+      if (!postSnap.exists) return;
+
+      final postData = postSnap.data() ?? const <String, dynamic>{};
+      final moderationRaw = postData['moderation'];
+      final moderation = moderationRaw is Map<String, dynamic>
+          ? Map<String, dynamic>.from(moderationRaw)
+          : (moderationRaw is Map
+              ? Map<String, dynamic>.from(moderationRaw)
+              : <String, dynamic>{});
+
+      final flaggedByRaw = moderation['flaggedBy'];
+      final flaggedBy = flaggedByRaw is List
+          ? flaggedByRaw.map((e) => e.toString()).toList()
+          : <String>[];
+
+      nextFlagCount = _asInt(moderation['flagCount']);
+      final currentStatus = (moderation['status'] ?? 'active').toString();
+
+      if (config.allowSingleFlagPerUser && flaggedBy.contains(userId)) {
+        alreadyFlagged = true;
+        return;
+      }
+
+      nextFlagCount += 1;
+      shadowHidden = config.enableShadowHide &&
+          nextFlagCount >= config.threshold &&
+          currentStatus != 'removed';
+
+      final updates = <String, dynamic>{
+        'moderation.flagCount': nextFlagCount,
+        'moderation.flaggedBy': FieldValue.arrayUnion([userId]),
+        'moderation.reasonsSummary.$normalizedReason': FieldValue.increment(1),
+        'moderation.lastFlagAt': nowMs,
+        'moderation.ownerNotified': moderation['ownerNotified'] ?? false,
+      };
+
+      if ((moderation['status'] ?? '').toString().trim().isEmpty) {
+        updates['moderation.status'] = 'active';
+      }
+
+      if (shadowHidden) {
+        updates['moderation.status'] = 'shadow_hidden';
+        updates['moderation.thresholdReachedAt'] = nowMs;
+        updates['moderation.shadowHiddenAt'] = nowMs;
+      }
+
+      tx.update(postRef, updates);
+      accepted = true;
+    });
+
+    if (alreadyFlagged) {
+      return ModerationFlagResult(
+        status: ModerationFlagStatus.alreadyFlagged,
+        flagCount: nextFlagCount,
+        threshold: config.threshold,
+        shadowHidden: shadowHidden,
+      );
+    }
+
+    if (!accepted) {
+      return ModerationFlagResult(
+        status: ModerationFlagStatus.postNotFound,
+        threshold: config.threshold,
+      );
+    }
+
+    _reportedByMe.add(postId);
+    _updateInteractionCache(postId, reported: true);
+    return ModerationFlagResult(
+      status: ModerationFlagStatus.accepted,
+      flagCount: nextFlagCount,
+      threshold: config.threshold,
+      shadowHidden: shadowHidden,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // BİLDİRİMLER & SAYIMLAR
   // ---------------------------------------------------------------------------
@@ -744,6 +893,54 @@ class PostInteractionService extends GetxController {
 
   String _cacheKey(String userId, String postId) => '$userId::$postId';
 
+  Future<_ModerationConfigSnapshot> _loadModerationConfig() async {
+    try {
+      final snap = await _firestore.doc(_moderationConfigPath).get();
+      final raw = snap.data() ?? const <String, dynamic>{};
+      return _ModerationConfigSnapshot(
+        enabled: _asBool(raw['enabled'], fallback: true),
+        threshold: _asInt(raw['blackBadgeFlagThreshold'], fallback: 5),
+        allowSingleFlagPerUser:
+            _asBool(raw['allowSingleFlagPerUser'], fallback: true),
+        enableShadowHide: _asBool(raw['enableShadowHide'], fallback: true),
+      );
+    } catch (_) {
+      return const _ModerationConfigSnapshot(
+        enabled: true,
+        threshold: 5,
+        allowSingleFlagPerUser: true,
+        enableShadowHide: true,
+      );
+    }
+  }
+
+  String _normalizeModerationReason(String reason) {
+    final trimmed = reason.trim();
+    if (trimmed.isEmpty) return 'other';
+    return _moderationReasonMap[trimmed] ??
+        _moderationReasonMap[trimmed.toLowerCase()] ??
+        'other';
+  }
+
+  int _asInt(dynamic value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  bool _asBool(dynamic value, {required bool fallback}) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
+    }
+    return fallback;
+  }
+
+
   void _updateInteractionCache(
     String postId, {
     bool? like,
@@ -792,6 +989,20 @@ class PostInteractionService extends GetxController {
       return _interactionStatusCache[key]?.status['saved'] ?? false;
     }
   }
+}
+
+class _ModerationConfigSnapshot {
+  const _ModerationConfigSnapshot({
+    required this.enabled,
+    required this.threshold,
+    required this.allowSingleFlagPerUser,
+    required this.enableShadowHide,
+  });
+
+  final bool enabled;
+  final int threshold;
+  final bool allowSingleFlagPerUser;
+  final bool enableShadowHide;
 }
 
 class _InteractionCacheEntry {

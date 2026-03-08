@@ -23,6 +23,7 @@ import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -146,6 +147,11 @@ class SettingsView extends StatelessWidget {
                           "Yönetim / Reklam Merkezi",
                           CupertinoIcons.speaker_2,
                           () => Get.to(() => const AdsCenterHomeView()),
+                        ),
+                        buildRow(
+                          "Yönetim / Moderasyon",
+                          CupertinoIcons.flag_fill,
+                          () => Get.to(() => const ModerationSettingsView()),
                         ),
                         buildRow(
                           "Sistem ve Tanı Menüsü",

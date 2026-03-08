@@ -17,6 +17,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Core/formatters.dart';
@@ -33,6 +34,16 @@ import 'short_content_controller.dart';
 import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 class ShortsContent extends StatelessWidget {
+  static const List<String> _flagReasons = <String>[
+    'Uyuşturucu',
+    'Kumar',
+    'Çıplaklık',
+    'Dolandırıcılık',
+    'Şiddet',
+    'Spam',
+    'Diğer',
+  ];
+  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   final PostsModel model;
   final HLSVideoAdapter videoPlayerController;
   final Function(bool) volumeOff;
@@ -47,6 +58,15 @@ class ShortsContent extends StatelessWidget {
   });
 
   late final ShortContentController controller;
+
+  bool get _isBlackBadgeUser {
+    final rozet = (CurrentUserService.instance.currentUser?.rozet ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('ı', 'i');
+    return rozet == 'siyah' || rozet == 'black';
+  }
+
   @override
   Widget build(BuildContext context) {
     controller = Get.put(
@@ -1073,19 +1093,72 @@ class ShortsContent extends StatelessWidget {
             ),
           ),
 
-          /// gönder Butonu
+          /// gönder / işaretle Butonu
           Flexible(
             flex: 1,
-            child: IconButton(
-              onPressed: () {
-                controller.sendPost();
-              },
-              icon: Icon(
-                CupertinoIcons.paperplane,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
+            child: _isBlackBadgeUser
+                ? Obx(() {
+                    final alreadyFlagged =
+                        _flaggedPostIds.contains(model.docID);
+                    return PullDownButton(
+                      itemBuilder: (context) {
+                        if (alreadyFlagged) {
+                          return const <PullDownMenuEntry>[];
+                        }
+                        return _flagReasons
+                            .map(
+                              (reason) => PullDownMenuItem(
+                                onTap: () async {
+                                  try {
+                                    final result =
+                                        await Get.put(PostInteractionService())
+                                            .flagPostWithReason(
+                                      model.docID,
+                                      reason: reason,
+                                    );
+                                    if (result.isOk) {
+                                      _flaggedPostIds.add(model.docID);
+                                    }
+                                    if (result.accepted) {
+                                      AppSnackbar(
+                                          'İşaretle', 'İşaretleme kaydedildi.');
+                                    } else if (result.alreadyFlagged) {
+                                      AppSnackbar('Bilgi',
+                                          'Bu gönderiyi zaten işaretlediniz.');
+                                    } else {
+                                      AppSnackbar(
+                                          'Hata', 'İşaretleme başarısız oldu.');
+                                    }
+                                  } catch (_) {
+                                    AppSnackbar(
+                                        'Hata', 'İşaretleme başarısız oldu.');
+                                  }
+                                },
+                                title: reason,
+                              ),
+                            )
+                            .toList();
+                      },
+                      buttonBuilder: (context, showMenu) {
+                        return IconButton(
+                          onPressed: alreadyFlagged ? null : showMenu,
+                          icon: Icon(
+                            CupertinoIcons.nosign,
+                            color: alreadyFlagged ? Colors.grey : Colors.red,
+                            size: 20,
+                          ),
+                        );
+                      },
+                    );
+                  })
+                : IconButton(
+                    onPressed: controller.sendPost,
+                    icon: const Icon(
+                      CupertinoIcons.paperplane,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
           ),
         ],
       ),

@@ -18,6 +18,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
@@ -40,6 +41,16 @@ class PhotoShortContent extends StatefulWidget {
 }
 
 class _PhotoShortContentState extends State<PhotoShortContent> {
+  static const List<String> _flagReasons = <String>[
+    'Uyuşturucu',
+    'Kumar',
+    'Çıplaklık',
+    'Dolandırıcılık',
+    'Şiddet',
+    'Spam',
+    'Diğer',
+  ];
+  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   late final PhotoShortsContentController controller;
   late final PageController _pageController;
   int _currentPage = 0;
@@ -404,6 +415,9 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         CurrentUserService.instance.userId == widget.model.userID;
     final bool isVerified = currentUser?.hesapOnayi ?? false;
     final bool isFollowing = controller.takipEdiyorum.value;
+    final String rozet =
+        (currentUser?.rozet ?? '').trim().toLowerCase().replaceAll('ı', 'i');
+    final bool isBlackBadge = rozet == 'siyah' || rozet == 'black';
     final bool canComment = isOwner ||
         commentVisibility == 0 ||
         (commentVisibility == 1 && isVerified) ||
@@ -589,18 +603,75 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
         ),
 
         Expanded(
-          child: TextButton(
-            onPressed: () {
-              controller.sendPost();
-            },
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.paperplane, color: Colors.white, size: 23),
-              ],
-            ),
-          ),
+          child: isBlackBadge
+              ? PullDownButton(
+                  itemBuilder: (context) {
+                    final alreadyFlagged =
+                        _flaggedPostIds.contains(widget.model.docID);
+                    if (alreadyFlagged) return [];
+                    return _flagReasons
+                        .map(
+                          (reason) => PullDownMenuItem(
+                            onTap: () async {
+                              try {
+                                final result =
+                                    await Get.put(PostInteractionService())
+                                        .flagPostWithReason(
+                                  widget.model.docID,
+                                  reason: reason,
+                                );
+                                if (result.isOk) {
+                                  _flaggedPostIds.add(widget.model.docID);
+                                  if (mounted) setState(() {});
+                                }
+                                if (result.accepted) {
+                                  AppSnackbar(
+                                      'İşaretle', 'İşaretleme kaydedildi.');
+                                } else if (result.alreadyFlagged) {
+                                  AppSnackbar('Bilgi',
+                                      'Bu gönderiyi zaten işaretlediniz.');
+                                } else {
+                                  AppSnackbar(
+                                      'Hata', 'İşaretleme başarısız oldu.');
+                                }
+                              } catch (_) {
+                                AppSnackbar(
+                                    'Hata', 'İşaretleme başarısız oldu.');
+                              }
+                            },
+                            title: reason,
+                          ),
+                        )
+                        .toList();
+                  },
+                  buttonBuilder: (context, showMenu) => TextButton(
+                    onPressed: _flaggedPostIds.contains(widget.model.docID)
+                        ? null
+                        : showMenu,
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: Icon(
+                      CupertinoIcons.nosign,
+                      color: _flaggedPostIds.contains(widget.model.docID)
+                          ? Colors.grey
+                          : Colors.red,
+                      size: 23,
+                    ),
+                  ),
+                )
+              : TextButton(
+                  onPressed: controller.sendPost,
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.paperplane,
+                        color: Colors.white,
+                        size: 23,
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ],
     );

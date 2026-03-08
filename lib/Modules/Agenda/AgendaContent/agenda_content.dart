@@ -29,6 +29,7 @@ import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
+import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -73,9 +74,27 @@ class _AgendaContentState extends State<AgendaContent>
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
+  static const List<String> _flagReasons = <String>[
+    'Uyuşturucu',
+    'Kumar',
+    'Çıplaklık',
+    'Dolandırıcılık',
+    'Şiddet',
+    'Spam',
+    'Diğer',
+  ];
+  static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   final arsivController = Get.put(ArchiveController());
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
+
+  bool get _isBlackBadgeUser {
+    final raw = (controller.userService.currentUser?.rozet ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('ı', 'i');
+    return raw == 'siyah' || raw == 'black';
+  }
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -788,7 +807,7 @@ class _AgendaContentState extends State<AgendaContent>
       text: text,
       startWith7line: true,
       toggleExpandOnTextTap: true,
-      fontSize: 13,
+      fontSize: 14,
       fontColor: color,
       mentionColor: Colors.blue,
       hashtagColor: Colors.blue,
@@ -2004,6 +2023,80 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget sendButton() {
+    if (_isBlackBadgeUser) {
+      final alreadyFlagged = _flaggedPostIds.contains(widget.model.docID);
+      if (alreadyFlagged) {
+        return AnimatedActionButton(
+          enabled: false,
+          semanticsLabel: 'İşaretlendi',
+          onTap: null,
+          padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
+          showTapArea: _showActionTapAreas,
+          child: SizedBox(
+            width: 20,
+            height: AnimatedActionButton.actionHeight,
+            child: Center(
+              child: Icon(
+                CupertinoIcons.nosign,
+                color: Colors.grey,
+                size: _actionStyle.sendIconSize,
+              ),
+            ),
+          ),
+        );
+      }
+
+      return PullDownButton(
+        itemBuilder: (context) => _flagReasons
+            .map(
+              (reason) => PullDownMenuItem(
+                onTap: () async {
+                  try {
+                    final result = await Get.put(PostInteractionService())
+                        .flagPostWithReason(
+                      widget.model.docID,
+                      reason: reason,
+                    );
+                    if (result.isOk) {
+                      _flaggedPostIds.add(widget.model.docID);
+                      if (mounted) setState(() {});
+                    }
+                    if (result.accepted) {
+                      AppSnackbar('İşaretle', 'İşaretleme kaydedildi.');
+                    } else if (result.alreadyFlagged) {
+                      AppSnackbar('Bilgi', 'Bu gönderiyi zaten işaretlediniz.');
+                    } else {
+                      AppSnackbar('Hata', 'İşaretleme başarısız oldu.');
+                    }
+                  } catch (_) {
+                    AppSnackbar('Hata', 'İşaretleme başarısız oldu.');
+                  }
+                },
+                title: reason,
+              ),
+            )
+            .toList(),
+        buttonBuilder: (context, showMenu) => AnimatedActionButton(
+          enabled: true,
+          semanticsLabel: 'İşaretle',
+          onTap: showMenu,
+          padding: const EdgeInsets.symmetric(vertical: 3.0, horizontal: 0.0),
+          showTapArea: _showActionTapAreas,
+          child: SizedBox(
+            width: 20,
+            height: AnimatedActionButton.actionHeight,
+            child: Center(
+              child: Icon(
+                CupertinoIcons.nosign,
+                color: Colors.red,
+                size: _actionStyle.sendIconSize,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return AnimatedActionButton(
       enabled: true,
       semanticsLabel: 'Paylaş',

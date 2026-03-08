@@ -1,0 +1,258 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/moderation_config_service.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Models/moderation_config_model.dart';
+
+class ModerationSettingsView extends StatefulWidget {
+  const ModerationSettingsView({super.key});
+
+  @override
+  State<ModerationSettingsView> createState() => _ModerationSettingsViewState();
+}
+
+class _ModerationSettingsViewState extends State<ModerationSettingsView> {
+  final ModerationConfigService _configService =
+      const ModerationConfigService();
+  late final Future<bool> _canAccessFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _canAccessFuture = AdminAccessService.canManageSliders();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            BackButtons(text: "Moderasyon"),
+            Expanded(
+              child: FutureBuilder<bool>(
+                future: _canAccessFuture,
+                builder: (context, accessSnap) {
+                  if (accessSnap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (accessSnap.data != true) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Bu alan sadece admin erişimine açıktır.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'MontserratMedium',
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return StreamBuilder<ModerationConfigModel>(
+                    stream: _configService.watch(),
+                    builder: (context, configSnap) {
+                      final config =
+                          configSnap.data ?? ModerationConfigModel.defaults;
+                      return _ModerationThresholdList(config: config);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModerationThresholdList extends StatelessWidget {
+  const _ModerationThresholdList({required this.config});
+
+  final ModerationConfigModel config;
+
+  @override
+  Widget build(BuildContext context) {
+    final threshold = config.blackBadgeFlagThreshold.clamp(1, 1000);
+    final query = FirebaseFirestore.instance
+        .collection('Posts')
+        .where('moderation.flagCount', isGreaterThanOrEqualTo: threshold)
+        .orderBy('moderation.flagCount', descending: true)
+        .limit(200);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: Column(
+        children: [
+          _buildConfigCard(config),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(CupertinoIcons.flag_fill, color: Colors.red, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'Eşik Değeri Aşan Postlar (≥ $threshold)',
+                style: const TextStyle(
+                  fontFamily: 'MontserratBold',
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: query.snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Moderasyon listesi alınamadı.',
+                      style: TextStyle(fontFamily: 'MontserratMedium'),
+                    ),
+                  );
+                }
+                final docs = snap.data?.docs ?? const [];
+                if (docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Eşiği aşan post bulunmuyor.',
+                      style: TextStyle(fontFamily: 'MontserratMedium'),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data();
+                    final moderation = _asMap(data['moderation']);
+                    final flagCount = _asInt(moderation['flagCount']);
+                    final status =
+                        (moderation['status'] ?? 'active').toString();
+                    final userId =
+                        (data['userID'] ?? data['userId'] ?? '').toString();
+                    final text = (data['metin'] ?? '').toString();
+                    final lastFlagAt = _toDateTime(moderation['lastFlagAt']);
+                    return ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      title: Text(
+                        text.isEmpty ? 'Metin yok' : text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'MontserratMedium',
+                          fontSize: 13,
+                          color: Colors.black,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'post: ${docs[index].id}\nuser: $userId\nstatus: $status • flag: $flagCount'
+                          '${lastFlagAt == null ? '' : ' • son: ${_formatDate(lastFlagAt)}'}',
+                          style: const TextStyle(
+                            fontFamily: 'MontserratMedium',
+                            fontSize: 11,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                      trailing: status == 'shadow_hidden'
+                          ? const Icon(CupertinoIcons.eye_slash_fill,
+                              color: Colors.orange, size: 18)
+                          : const Icon(
+                              CupertinoIcons.exclamationmark_triangle_fill,
+                              color: Colors.red,
+                              size: 18),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigCard(ModerationConfigModel config) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'adminConfig/moderation',
+            style: TextStyle(
+              fontFamily: 'MontserratBold',
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'enabled: ${config.enabled}\n'
+            'blackBadgeFlagThreshold: ${config.blackBadgeFlagThreshold}\n'
+            'allowSingleFlagPerUser: ${config.allowSingleFlagPerUser}\n'
+            'enableShadowHide: ${config.enableShadowHide}',
+            style: const TextStyle(
+              fontFamily: 'MontserratMedium',
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Map<String, dynamic> _asMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) return raw;
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+    return const <String, dynamic>{};
+  }
+
+  static int _asInt(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
+
+  static DateTime? _toDateTime(dynamic raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is int) return DateTime.fromMillisecondsSinceEpoch(raw);
+    if (raw is num) return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+    if (raw is String) {
+      final parsed = int.tryParse(raw);
+      if (parsed != null) return DateTime.fromMillisecondsSinceEpoch(parsed);
+      return DateTime.tryParse(raw);
+    }
+    return null;
+  }
+
+  static String _formatDate(DateTime dt) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(dt.day)}.${two(dt.month)}.${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+  }
+}
