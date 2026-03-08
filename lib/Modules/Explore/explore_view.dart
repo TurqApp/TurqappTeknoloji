@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
+import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/texts.dart';
@@ -683,7 +684,14 @@ class ExploreView extends StatelessWidget {
                           child: RoadToTop()),
                     )
                   : SizedBox();
-            })
+            }),
+            IgnorePointer(
+              ignoring: true,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ExploreAdPlacementHook(index: 0),
+              ),
+            ),
           ],
         ),
       ),

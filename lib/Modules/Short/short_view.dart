@@ -7,6 +7,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
+import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'short_controller.dart';
@@ -666,6 +667,10 @@ class _ShortViewState extends State<ShortView> {
           return Stack(
             children: [
               content,
+              IgnorePointer(
+                ignoring: true,
+                child: ShortsAdPlacementHook(index: currentPage),
+              ),
               if (isRefreshingNow)
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 24,

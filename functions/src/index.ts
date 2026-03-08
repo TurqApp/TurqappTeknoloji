@@ -44,6 +44,7 @@ export * from "./15_typesenseUsersTags";
 export * from "./16_tagMaintenance";
 export * from "./17_shortLinksIndex";
 export * from "./18_tutoringNotifications";
+export * from "./19_adsCenter";
 
 // SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
 export const cleanupExpiredStories = functions.pubsub
@@ -208,7 +209,8 @@ export const syncUserSchemaAndFlags = functions.firestore
     if (afterData?.isDeleted === undefined) patch.isDeleted = false;
     if (afterData?.isBanned === undefined) patch.isBanned = false;
     if (afterData?.isBot === undefined) patch.isBot = false;
-    if (!afterData?.avatarUrl) {
+    const canonicalAvatarUrl = String(afterData?.avatarUrl ?? "").trim();
+    if (!canonicalAvatarUrl) {
       patch.avatarUrl = DEFAULT_PROFILE_IMAGE_URL;
     }
     if (!afterData?.version) patch.version = 3;

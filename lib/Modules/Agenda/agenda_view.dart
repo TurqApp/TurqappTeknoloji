@@ -18,6 +18,7 @@ import '../../Themes/app_fonts.dart';
 import '../../Themes/app_colors.dart';
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import '../../Core/Widgets/Ads/ad_placement_hooks.dart';
 import '../Chat/ChatListing/chat_listing.dart';
 import '../InAppNotifications/in_app_notifications.dart';
 import '../InAppNotifications/in_app_notifications_controller.dart';
@@ -249,11 +250,14 @@ class AgendaView extends StatelessWidget {
                         padding: EdgeInsets.only(
                           bottom: kBottomNavigationBarHeight + 16,
                         ),
-                        itemCount: filteredDisplay.length + 1,
+                        itemCount: filteredDisplay.length + 2,
                         itemBuilder: (context, index) {
                           if (index == 0) return header();
+                          if (index == 1) {
+                            return FeedAdPlacementHook(index: 1);
+                          }
 
-                          final actualIndex = index - 1;
+                          final actualIndex = index - 2;
 
                           if (actualIndex >= filteredDisplay.length) {
                             if (controller.hasMore.value) {
