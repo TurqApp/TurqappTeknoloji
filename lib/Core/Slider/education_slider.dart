@@ -57,7 +57,17 @@ class EducationSlider extends StatelessWidget {
               if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
                 continue;
               }
-              sourceImages.add(remoteByOrder[i] ?? defaults[i]);
+              final remote = remoteByOrder[i];
+              if (remote != null && remote.isNotEmpty) {
+                sourceImages.add(remote);
+                continue;
+              }
+              final fallback = defaults[i];
+              // Storage-first: local asset fallback patlamalarını önlemek için
+              // sliderId bazlı akışta sadece remote URL'leri kullan.
+              if (fallback.startsWith('http')) {
+                sourceImages.add(fallback);
+              }
             }
             sourceImages.addAll(extras);
 
@@ -79,16 +89,22 @@ class EducationSlider extends StatelessWidget {
           builder: (BuildContext context) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: isRemote
-                        ? CachedNetworkImageProvider(imgPath)
-                        : AssetImage(imgPath) as ImageProvider,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: isRemote
+                    ? CachedNetworkImage(
+                        imageUrl: imgPath,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        placeholder: (context, _) => _buildFallbackCard(),
+                        errorWidget: (context, _, __) => _buildFallbackCard(),
+                      )
+                    : Image.asset(
+                        imgPath,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, _, __) => _buildFallbackCard(),
+                      ),
               ),
             );
           },
@@ -101,6 +117,14 @@ class EducationSlider extends StatelessWidget {
         autoPlayInterval: const Duration(seconds: 10),
         viewportFraction: 0.9,
       ),
+    );
+  }
+
+  Widget _buildFallbackCard() {
+    return Container(
+      color: Colors.grey.shade200,
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
     );
   }
 }

@@ -621,7 +621,10 @@ class AntremanView2 extends StatelessWidget {
                             !userSnapshot.data!.exists) {
                           return const Text("0");
                         }
-                        final antPoint = userSnapshot.data!['antPoint'] ?? 100;
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>?;
+                        final antPoint =
+                            (userData?['antPoint'] as num?)?.toInt() ?? 100;
                         return Text(
                           antPoint.toString(),
                           style: TextStyles.bold20Black,
@@ -629,7 +632,10 @@ class AntremanView2 extends StatelessWidget {
                       },
                     );
                   } else {
-                    int antPoint = snapshot.data!['antPoint'] ?? 100;
+                    final scoreData =
+                        snapshot.data!.data() as Map<String, dynamic>?;
+                    final antPoint =
+                        (scoreData?['antPoint'] as num?)?.toInt() ?? 100;
                     return Text(
                       antPoint.toString(),
                       style: TextStyles.bold20Black,

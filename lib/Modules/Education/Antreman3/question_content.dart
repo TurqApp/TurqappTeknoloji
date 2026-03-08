@@ -94,8 +94,12 @@ class QuestionContent extends StatelessWidget {
                                         !userSnapshot.data!.exists) {
                                       return const Text("0");
                                     }
+                                    final userData = userSnapshot.data!.data()
+                                        as Map<String, dynamic>?;
                                     final antPoint =
-                                        userSnapshot.data!['antPoint'] ?? 100;
+                                        (userData?['antPoint'] as num?)
+                                                ?.toInt() ??
+                                            100;
                                     return Text(
                                       antPoint.toString(),
                                       style: const TextStyle(
@@ -107,7 +111,11 @@ class QuestionContent extends StatelessWidget {
                                   },
                                 );
                               } else {
-                                int antPoint = snapshot.data!['antPoint'] ?? 0;
+                                final scoreData = snapshot.data!.data()
+                                    as Map<String, dynamic>?;
+                                final antPoint =
+                                    (scoreData?['antPoint'] as num?)?.toInt() ??
+                                        0;
                                 return AnimatedContainer(
                                   duration: Duration(milliseconds: 500),
                                   curve: Curves.easeInOut,
