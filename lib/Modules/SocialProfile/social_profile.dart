@@ -41,7 +41,10 @@ import '../Social/PhotoShorts/photo_shorts.dart';
 import '../Story/StoryViewer/story_viewer.dart';
 import '../Story/StoryHighlights/story_highlights_controller.dart';
 import '../Story/StoryHighlights/story_highlight_circle.dart';
+import '../Story/StoryHighlights/story_highlight_model.dart';
+import '../Story/StoryHighlights/highlight_story_viewer_service.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
+import '../../Models/social_media_model.dart';
 
 class SocialProfile extends StatefulWidget {
   final String userID;
@@ -934,14 +937,7 @@ class _SocialProfileState extends State<SocialProfile> {
           imageAndFollowButtons(),
           const SizedBox(height: 12),
           textInfoBody(),
-          if (controller.socialMediaList.isNotEmpty &&
-              !_isBlockedByMe(widget.userID))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2, top: 7),
-              child: socialMediaLinks(),
-            ),
-          // Story Highlights row
-          _buildHighlightsRow(),
+          if (!_isBlockedByMe(widget.userID)) _buildLinksAndHighlightsRow(),
           Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1421,61 +1417,78 @@ class _SocialProfileState extends State<SocialProfile> {
     );
   }
 
-  Widget _buildHighlightsRow() {
+  Widget _buildLinksAndHighlightsRow() {
     final tag = 'highlights_${widget.userID}';
     if (!Get.isRegistered<StoryHighlightsController>(tag: tag)) {
       return const SizedBox.shrink();
     }
     final hlController = Get.find<StoryHighlightsController>(tag: tag);
     return Obx(() {
-      if (hlController.highlights.isEmpty) return const SizedBox.shrink();
+      final mixedItems = <Map<String, dynamic>>[];
+      for (final social in controller.socialMediaList) {
+        mixedItems.add({
+          'type': 'link',
+          'createdAt': int.tryParse(social.docID) ?? 0,
+          'data': social,
+        });
+      }
+      for (final hl in hlController.highlights) {
+        mixedItems.add({
+          'type': 'highlight',
+          'createdAt': hl.createdAt.millisecondsSinceEpoch,
+          'data': hl,
+        });
+      }
+      if (mixedItems.isEmpty) return const SizedBox.shrink();
+      mixedItems.sort(
+          (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int));
+
       return Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 4),
+        padding: const EdgeInsets.only(top: 7, bottom: 4),
         child: SizedBox(
           height: 90,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 15),
-            itemCount: hlController.highlights.length,
+            itemCount: mixedItems.length,
             itemBuilder: (context, index) {
-              final hl = hlController.highlights[index];
+              final item = mixedItems[index];
+              if (item['type'] == 'link') {
+                final social = item['data'] as SocialMediaModel;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 18),
+                  child: SizedBox(
+                    width: 70,
+                    child: GestureDetector(
+                      onTap: () {
+                        launchUrl(Uri.parse(social.url));
+                      },
+                      child: SocialMediaContent(model: social),
+                    ),
+                  ),
+                );
+              }
+              final hl = item['data'] as StoryHighlightModel;
               return Padding(
-                padding: const EdgeInsets.only(right: 14),
+                padding: const EdgeInsets.only(right: 18),
                 child: StoryHighlightCircle(
                   highlight: hl,
-                  onTap: () {
-                    // TODO: Open highlight stories in StoryViewer
-                  },
+                  onTap: () => HighlightStoryViewerService.openHighlight(
+                    userId: widget.userID,
+                    highlight: hl,
+                  ),
                   onLongPress: () {
-                    // Sadece kendi profilimde silme secenegi
                     final myUid = FirebaseAuth.instance.currentUser?.uid;
                     if (widget.userID == myUid) {
-                      Get.bottomSheet(
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(20)),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ListTile(
-                                leading: const Icon(CupertinoIcons.trash,
-                                    color: Colors.red),
-                                title: const Text('Sil',
-                                    style: TextStyle(
-                                        color: Colors.red,
-                                        fontFamily: 'MontserratMedium')),
-                                onTap: () {
-                                  Get.back();
-                                  hlController.deleteHighlight(hl.id);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                      noYesAlert(
+                        title: "Öne Çıkarılanı Kaldır",
+                        message:
+                            "Bu öne çıkarılanı kaldırmak istediğinizden emin misiniz?",
+                        cancelText: "Vazgeç",
+                        yesText: "Kaldır",
+                        onYesPressed: () {
+                          hlController.deleteHighlight(hl.id);
+                        },
                       );
                     }
                   },

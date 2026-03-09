@@ -1143,8 +1143,8 @@ class ShortsContent extends StatelessWidget {
                         return IconButton(
                           onPressed: alreadyFlagged ? null : showMenu,
                           icon: Icon(
-                            CupertinoIcons.nosign,
-                            color: alreadyFlagged ? Colors.grey : Colors.red,
+                            CupertinoIcons.exclamationmark_triangle_fill,
+                            color: alreadyFlagged ? Colors.grey : Colors.amber,
                             size: 20,
                           ),
                         );

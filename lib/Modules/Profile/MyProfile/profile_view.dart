@@ -32,6 +32,10 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_content.
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
+import 'package:turqappv2/Modules/Story/StoryHighlights/story_highlight_circle.dart';
+import 'package:turqappv2/Modules/Story/StoryHighlights/story_highlight_model.dart';
+import 'package:turqappv2/Modules/Story/StoryHighlights/story_highlights_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryHighlights/highlight_story_viewer_service.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
@@ -50,8 +54,10 @@ import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
 import '../../Story/StoryRow/story_user_model.dart';
 import '../../../Core/Services/audio_focus_coordinator.dart';
+import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
+import '../../../Models/social_media_model.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -107,6 +113,16 @@ class _ProfileViewState extends State<ProfileView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       socialMediaController.getData();
     });
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      final tag = 'highlights_$uid';
+      if (Get.isRegistered<StoryHighlightsController>(tag: tag)) {
+        Get.find<StoryHighlightsController>(tag: tag).loadHighlights();
+      } else {
+        Get.put(StoryHighlightsController(userId: uid), tag: tag);
+      }
+    }
   }
 
   void _refreshUserState() {
@@ -402,6 +418,7 @@ class _ProfileViewState extends State<ProfileView> {
                             child: ClipOval(
                               child: CachedNetworkImage(
                                 imageUrl: _myAvatarUrl,
+                                cacheManager: TurqImageCacheManager.instance,
                                 fit: BoxFit.cover,
                                 memCacheWidth: 300,
                                 memCacheHeight: 600,
@@ -539,6 +556,7 @@ class _ProfileViewState extends State<ProfileView> {
                     SizedBox.expand(
                       child: CachedNetworkImage(
                         imageUrl: model.img.first,
+                        cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: 200,
                         memCacheHeight: 200,
@@ -707,6 +725,7 @@ class _ProfileViewState extends State<ProfileView> {
                     SizedBox.expand(
                       child: CachedNetworkImage(
                         imageUrl: model.thumbnail,
+                        cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: 200,
                         memCacheHeight: 200,
@@ -873,6 +892,7 @@ class _ProfileViewState extends State<ProfileView> {
                         imageUrl: model.thumbnail != ""
                             ? model.thumbnail
                             : model.img.first,
+                        cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: 200,
                         memCacheHeight: 200,
@@ -1039,11 +1059,7 @@ class _ProfileViewState extends State<ProfileView> {
           imageAndFollowButtons(),
           12.ph,
           textInfoBody(),
-          if (socialMediaController.list.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 0, top: 1),
-              child: socialMediaLinks(),
-            ),
+          _buildLinksAndHighlightsRow(),
           Padding(padding: const EdgeInsets.only(top: 0), child: counters()),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1346,6 +1362,96 @@ class _ProfileViewState extends State<ProfileView> {
         },
       ),
     );
+  }
+
+  Widget _buildLinksAndHighlightsRow() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return const SizedBox.shrink();
+
+    final tag = 'highlights_$uid';
+    final hlController = Get.isRegistered<StoryHighlightsController>(tag: tag)
+        ? Get.find<StoryHighlightsController>(tag: tag)
+        : Get.put(StoryHighlightsController(userId: uid), tag: tag);
+
+    return Obx(() {
+      const linksHeight = 90.0;
+      const linkItemWidth = 70.0;
+      const linkItemSpacing = 18.0;
+      final mixedItems = <Map<String, dynamic>>[];
+      for (final model in socialMediaController.list) {
+        mixedItems.add({
+          'type': 'link',
+          'createdAt': int.tryParse(model.docID) ?? 0,
+          'data': model,
+        });
+      }
+      for (final hl in hlController.highlights) {
+        mixedItems.add({
+          'type': 'highlight',
+          'createdAt': hl.createdAt.millisecondsSinceEpoch,
+          'data': hl,
+        });
+      }
+      if (mixedItems.isEmpty) return const SizedBox.shrink();
+      mixedItems.sort(
+          (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int));
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 2, bottom: 4),
+        child: SizedBox(
+          height: linksHeight,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            itemCount: mixedItems.length,
+            itemBuilder: (context, index) {
+              final item = mixedItems[index];
+              if (item['type'] == 'link') {
+                final model = item['data'] as SocialMediaModel;
+                return Padding(
+                  padding: EdgeInsets.only(right: linkItemSpacing),
+                  child: SizedBox(
+                    width: linkItemWidth,
+                    child: GestureDetector(
+                      onTap: () {
+                        launchUrl(Uri.parse(model.url));
+                      },
+                      onLongPress: () {
+                        controller.showSocialMediaLinkDelete(model.docID);
+                      },
+                      child: SocialMediaContent(model: model),
+                    ),
+                  ),
+                );
+              }
+              final hl = item['data'] as StoryHighlightModel;
+              return Padding(
+                padding: EdgeInsets.only(right: linkItemSpacing),
+                child: StoryHighlightCircle(
+                  highlight: hl,
+                  onTap: () => HighlightStoryViewerService.openHighlight(
+                    userId: uid,
+                    highlight: hl,
+                  ),
+                  onLongPress: () {
+                    noYesAlert(
+                      title: "Öne Çıkarılanı Kaldır",
+                      message:
+                          "Bu öne çıkarılanı kaldırmak istediğinizden emin misiniz?",
+                      cancelText: "Vazgeç",
+                      yesText: "Kaldır",
+                      onYesPressed: () {
+                        hlController.deleteHighlight(hl.id);
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    });
   }
 
   Widget counters() {
@@ -1908,6 +2014,7 @@ class _ProfileViewState extends State<ProfileView> {
                         imageUrl: model.thumbnail.isNotEmpty
                             ? model.thumbnail
                             : (model.img.isNotEmpty ? model.img.first : ''),
+                        cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
                             child:

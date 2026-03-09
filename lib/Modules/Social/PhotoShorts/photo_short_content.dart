@@ -650,10 +650,10 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
                         : showMenu,
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Icon(
-                      CupertinoIcons.nosign,
+                      CupertinoIcons.exclamationmark_triangle_fill,
                       color: _flaggedPostIds.contains(widget.model.docID)
                           ? Colors.grey
-                          : Colors.red,
+                          : Colors.amber,
                       size: 23,
                     ),
                   ),

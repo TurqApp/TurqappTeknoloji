@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
 
 class FollowerController extends GetxController {
   var avatarUrl = "".obs;
@@ -70,8 +71,24 @@ class FollowerController extends GetxController {
       return;
     }
 
-    final userDoc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
+    DocumentSnapshot<Map<String, dynamic>> userDoc;
+    try {
+      userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get(const GetOptions(source: Source.server));
+    }
+    if (!userDoc.exists) {
+      userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(userID)
+          .get(const GetOptions(source: Source.server));
+    }
     final data = Map<String, dynamic>.from(userDoc.data() ?? const {});
     if (data.isNotEmpty) {
       final resolvedAvatar = _resolveAvatar(data);
@@ -118,12 +135,30 @@ class FollowerController extends GetxController {
       return;
     }
 
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(myUid)
-        .collection("followings")
-        .doc(userID)
-        .get();
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    try {
+      doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(myUid)
+          .collection("followings")
+          .doc(userID)
+          .get(const GetOptions(source: Source.cache));
+    } catch (_) {
+      doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(myUid)
+          .collection("followings")
+          .doc(userID)
+          .get(const GetOptions(source: Source.server));
+    }
+    if (!doc.exists) {
+      doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(myUid)
+          .collection("followings")
+          .doc(userID)
+          .get(const GetOptions(source: Source.server));
+    }
     final exists = doc.exists;
     isFollowed.value = exists;
     _followStateCacheByUser[cacheKey] = _FollowStateCacheEntry(
@@ -145,6 +180,11 @@ class FollowerController extends GetxController {
         isFollowed: outcome.nowFollowing,
         cachedAt: DateTime.now(),
       );
+      FollowingFollowersController.applyFollowMutationToCaches(
+        currentUid: myUid,
+        otherUserID: otherUserID,
+        nowFollowing: outcome.nowFollowing,
+      );
     }
     if (outcome.limitReached) {
       AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
@@ -155,8 +195,7 @@ class FollowerController extends GetxController {
   void _pruneFollowStateCache() {
     final now = DateTime.now();
     _followStateCacheByUser.removeWhere(
-      (_, entry) =>
-          now.difference(entry.cachedAt) > _followStateStaleRetention,
+      (_, entry) => now.difference(entry.cachedAt) > _followStateStaleRetention,
     );
     if (_followStateCacheByUser.length <= _maxFollowStateCacheEntries) return;
     final entries = _followStateCacheByUser.entries.toList()

@@ -146,9 +146,6 @@ class ChatListingController extends GetxController {
           if (item.lastMessage.isEmpty && existing.lastMessage.isNotEmpty) {
             item.lastMessage = existing.lastMessage;
           }
-          if (item.unreadCount == 0 && existing.unreadCount > 0) {
-            item.unreadCount = existing.unreadCount;
-          }
           if ((archivedEither || archivedForced) &&
               !unarchivedForced &&
               !item.deleted.contains("__archived__")) {
@@ -357,7 +354,10 @@ class ChatListingController extends GetxController {
       final seenTs = prefs.getInt(seenKey) ?? 0;
       final localUnread =
           lastSenderId.isNotEmpty && lastSenderId != uid && ts > seenTs;
-      final unreadCount = math.max(serverUnread, localUnread ? 1 : 0);
+      final seenCoversLatestMessage = ts > 0 && seenTs >= ts;
+      final unreadCount = seenCoversLatestMessage
+          ? 0
+          : math.max(serverUnread, localUnread ? 1 : 0);
 
       tempList.add(ChatListingModel(
         chatID: doc.id,

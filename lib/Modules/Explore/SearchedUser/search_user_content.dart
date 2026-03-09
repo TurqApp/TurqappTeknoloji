@@ -41,6 +41,10 @@ class SearchUserContent extends StatelessWidget {
   }
 
   Future<void> _saveRecentIfNeeded(String targetUid) async {
+    if (Get.isRegistered<ExploreController>()) {
+      await Get.find<ExploreController>().saveRecentSearch(targetUid);
+      return;
+    }
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID == null || currentUserID.isEmpty) return;
@@ -68,7 +72,7 @@ class SearchUserContent extends StatelessWidget {
       final snap = await FirebaseFirestore.instance
           .collection("users")
           .doc(targetUid)
-          .get();
+          .get(const GetOptions(source: Source.serverAndCache));
       final data = snap.data();
       if (data == null) return false;
       final deletedAccount = (data['isDeleted'] ?? false) == true;
@@ -87,6 +91,12 @@ class SearchUserContent extends StatelessWidget {
   Future<void> _removeRecent() async {
     final targetUid = await _resolveTargetUid();
     if (targetUid.isEmpty) return;
+    if (Get.isRegistered<ExploreController>()) {
+      final c = Get.find<ExploreController>();
+      await c.removeRecentSearch(targetUid);
+      c.isSearchMode.value = true;
+      return;
+    }
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID != null && currentUserID.isNotEmpty) {
@@ -97,10 +107,6 @@ class SearchUserContent extends StatelessWidget {
         await batch.commit();
       }
     } catch (_) {}
-    if (Get.isRegistered<ExploreController>()) {
-      await Get.find<ExploreController>().refreshRecentSearchUsers();
-      Get.find<ExploreController>().isSearchMode.value = true;
-    }
   }
 
   @override

@@ -676,13 +676,9 @@ class AgendaView extends StatelessWidget {
                   color: Colors.white,
                   alignment: Alignment.center,
                   child: Obx(() {
-                    final inboxUnreadCount = notificationsController.list
-                        .where((n) => n.postType == "Chat" && !n.isRead)
-                        .length;
                     final conversationUnreadCount =
                         unreadController.totalUnreadCount.value;
-                    final hasUnread =
-                        inboxUnreadCount > 0 || conversationUnreadCount > 0;
+                    final hasUnread = conversationUnreadCount > 0;
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [

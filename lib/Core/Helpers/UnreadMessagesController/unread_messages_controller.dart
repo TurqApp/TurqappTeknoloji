@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
@@ -11,6 +12,9 @@ class UnreadMessagesController extends GetxController {
   bool _listenersStarted = false;
   String? _activeUid;
   final Map<String, int> _conversationUnreadByUser = {};
+  final Map<String, int> _localReadCutoffByChatId = {};
+  final Map<String, int> _persistedReadCutoffByChatId = {};
+  bool _readStateReady = false;
   DateTime? _lastServerSyncAt;
   bool _isSyncing = false;
 
@@ -43,27 +47,45 @@ class UnreadMessagesController extends GetxController {
     _cancelAllSubscriptions();
     _listenersStarted = true;
     _activeUid = uid;
-    _conversationsSub = FirebaseFirestore.instance
-        .collection("conversations")
-        .where("participants", arrayContains: uid)
-        .snapshots()
-        .listen((snapshot) {
-      _applyConversationDocs(snapshot.docs, uid);
-    }, onError: (_) {});
-    // snapshots() already delivers initial state; avoid duplicate startup read.
-    if (_isOffline) {
-      unawaited(_syncUnread(forceServer: false));
-    }
-    if (_isOffline) {
-      _syncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-        unawaited(_syncUnread(forceServer: false));
-      });
-    }
+    _readStateReady = false;
+    totalUnreadCount.value = 0;
+    unawaited(_startAfterReadStateHydrated(uid));
   }
 
   void _recomputeTotalUnread() {
+    if (!_readStateReady) {
+      totalUnreadCount.value = 0;
+      return;
+    }
     totalUnreadCount.value =
         _conversationUnreadByUser.values.where((v) => v > 0).length;
+  }
+
+  // Firestore read tetiklemeden, tek konuşmanın unread durumunu localde günceller.
+  void updateConversationUnreadLocal({
+    required String otherUid,
+    required int unreadCount,
+    String? chatId,
+    int? seenAtMs,
+  }) {
+    final key = otherUid.trim();
+    if (key.isEmpty) return;
+    final normalizedChatId = (chatId ?? "").trim();
+    if (unreadCount <= 0) {
+      _conversationUnreadByUser.remove(key);
+      if (normalizedChatId.isNotEmpty) {
+        final cutoff = seenAtMs ?? DateTime.now().millisecondsSinceEpoch;
+        _localReadCutoffByChatId[normalizedChatId] = cutoff;
+        _persistedReadCutoffByChatId[normalizedChatId] = cutoff;
+        unawaited(_persistReadCutoff(normalizedChatId, cutoff));
+      }
+    } else {
+      _conversationUnreadByUser[key] = unreadCount;
+      if (normalizedChatId.isNotEmpty) {
+        _localReadCutoffByChatId.remove(normalizedChatId);
+      }
+    }
+    _recomputeTotalUnread();
   }
 
   Future<void> refreshUnreadCount() async {
@@ -109,7 +131,34 @@ class UnreadMessagesController extends GetxController {
       final data = doc.data();
       final unreadMap = Map<String, dynamic>.from(data["unread"] ?? {});
       final value = unreadMap[uid];
-      final unread = value is num ? value.toInt() : int.tryParse("$value") ?? 0;
+      final serverUnreadRaw =
+          value is num ? value.toInt() : int.tryParse("$value") ?? 0;
+      var unread = serverUnreadRaw;
+      final lastSenderId = (data["lastSenderId"] ?? "").toString();
+
+      int lastMessageAtMs = 0;
+      final lastMessageAt = data["lastMessageAt"];
+      if (lastMessageAt is Timestamp) {
+        lastMessageAtMs = lastMessageAt.millisecondsSinceEpoch;
+      } else {
+        final fallback = data["lastMessageAtMs"];
+        lastMessageAtMs =
+            fallback is int ? fallback : int.tryParse("$fallback") ?? 0;
+      }
+      final localReadCutoff = _localReadCutoffByChatId[doc.id] ?? 0;
+      final persistedReadCutoff = _persistedReadCutoffByChatId[doc.id] ?? 0;
+      final effectiveReadCutoff = localReadCutoff > persistedReadCutoff
+          ? localReadCutoff
+          : persistedReadCutoff;
+      final shouldForceRead =
+          lastMessageAtMs > 0 && effectiveReadCutoff >= lastMessageAtMs;
+      final sentBySelf = lastSenderId.isNotEmpty && lastSenderId == uid;
+      if (sentBySelf) {
+        unread = 0;
+      }
+      if (shouldForceRead) {
+        unread = 0;
+      }
       if (unread <= 0) continue;
       final participants = List<String>.from(data["participants"] ?? []);
       final otherUid = participants.firstWhere(
@@ -119,6 +168,59 @@ class UnreadMessagesController extends GetxController {
       _conversationUnreadByUser[otherUid] = unread;
     }
     _recomputeTotalUnread();
+  }
+
+  Future<void> _startAfterReadStateHydrated(String uid) async {
+    await _hydratePersistedReadState(uid);
+    if (!_listenersStarted || _activeUid != uid) return;
+    _readStateReady = true;
+    _conversationsSub = FirebaseFirestore.instance
+        .collection("conversations")
+        .where("participants", arrayContains: uid)
+        .snapshots()
+        .listen((snapshot) {
+      _applyConversationDocs(snapshot.docs, uid);
+    }, onError: (_) {});
+    // snapshots() already delivers initial state; avoid duplicate startup read.
+    if (_isOffline) {
+      unawaited(_syncUnread(forceServer: false));
+    }
+    if (_isOffline) {
+      _syncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+        unawaited(_syncUnread(forceServer: false));
+      });
+    }
+  }
+
+  Future<void> _hydratePersistedReadState(String uid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final prefix = "chat_last_opened_${uid}_";
+      final next = <String, int>{};
+      for (final key in prefs.getKeys()) {
+        if (!key.startsWith(prefix)) continue;
+        final chatId = key.substring(prefix.length).trim();
+        if (chatId.isEmpty) continue;
+        final ms = prefs.getInt(key) ?? 0;
+        if (ms <= 0) continue;
+        next[chatId] = ms;
+      }
+      _persistedReadCutoffByChatId
+        ..clear()
+        ..addAll(next);
+      if (_activeUid == uid && _listenersStarted) {
+        unawaited(_syncUnread(forceServer: false));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistReadCutoff(String chatId, int cutoffMs) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || chatId.trim().isEmpty || cutoffMs <= 0) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt("chat_last_opened_${uid}_$chatId", cutoffMs);
+    } catch (_) {}
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
@@ -143,6 +245,9 @@ class UnreadMessagesController extends GetxController {
     _conversationsSub?.cancel();
     _conversationsSub = null;
     _conversationUnreadByUser.clear();
+    _localReadCutoffByChatId.clear();
+    _persistedReadCutoffByChatId.clear();
+    _readStateReady = false;
     totalUnreadCount.value = 0;
     _listenersStarted = false;
     _activeUid = null;

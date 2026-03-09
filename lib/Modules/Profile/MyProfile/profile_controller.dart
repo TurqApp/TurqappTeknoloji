@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/posts_model.dart';
@@ -19,6 +20,13 @@ class ProfileController extends GetxController {
   String? _activeUid;
   StreamSubscription<User?>? _authSub;
   StreamSubscription<DocumentSnapshot>? _counterSub;
+  final ProfilePostsCacheService _postsCache = ProfilePostsCacheService();
+  Timer? _persistCacheTimer;
+  Worker? _allPostsWorker;
+  Worker? _photosWorker;
+  Worker? _videosWorker;
+  Worker? _resharesWorker;
+  Worker? _scheduledWorker;
   var postSelection = 0.obs;
 
   final currentVisibleIndex = RxInt(-1);
@@ -63,16 +71,22 @@ class ProfileController extends GetxController {
   final RxBool showScrollToTop = false.obs;
   final ScrollController scrollController = ScrollController();
   var showPfImage = false.obs;
+  static const String _bucketAll = 'all';
+  static const String _bucketPhotos = 'photos';
+  static const String _bucketVideos = 'videos';
+  static const String _bucketReshares = 'reshares';
+  static const String _bucketScheduled = 'scheduled';
 
   @override
   void onInit() {
+    super.onInit();
     // Aktif kullanıcıyı kaydet ve auth değişimini dinle
     _activeUid = FirebaseAuth.instance.currentUser?.uid;
     _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
 
-    getCounters();
-    _listenToCounterChanges();
-    super.onInit();
+    _bindCacheWorkers();
+    unawaited(_bootstrapProfileData());
+
     scrollController.addListener(() {
       if (scrollController.offset > 500) {
         showScrollToTop.value = true;
@@ -80,12 +94,6 @@ class ProfileController extends GetxController {
         showScrollToTop.value = false;
       }
     });
-    fetchPosts(isInitial: true);
-    fetchPhotos(isInitial: true);
-    fetchVideos(isInitial: true);
-    getReshares();
-    _bindResharesRealtime();
-    fetchScheduledPosts(isInitial: true);
   }
 
   @override
@@ -94,7 +102,87 @@ class ProfileController extends GetxController {
     _authSub?.cancel();
     _resharesSub?.cancel();
     _counterSub?.cancel();
+    _persistCacheTimer?.cancel();
+    _allPostsWorker?.dispose();
+    _photosWorker?.dispose();
+    _videosWorker?.dispose();
+    _resharesWorker?.dispose();
+    _scheduledWorker?.dispose();
     super.onClose();
+  }
+
+  Future<void> _bootstrapProfileData() async {
+    await _restoreCachedListsForActiveUser();
+    getCounters();
+    _listenToCounterChanges();
+    _bindResharesRealtime();
+    fetchPosts(isInitial: true);
+    fetchPhotos(isInitial: true);
+    fetchVideos(isInitial: true);
+    getReshares();
+    fetchScheduledPosts(isInitial: true);
+  }
+
+  void _bindCacheWorkers() {
+    _allPostsWorker = ever(allPosts, (_) => _schedulePersistPostCaches());
+    _photosWorker = ever(photos, (_) => _schedulePersistPostCaches());
+    _videosWorker = ever(videos, (_) => _schedulePersistPostCaches());
+    _resharesWorker = ever(reshares, (_) => _schedulePersistPostCaches());
+    _scheduledWorker =
+        ever(scheduledPosts, (_) => _schedulePersistPostCaches());
+  }
+
+  void _schedulePersistPostCaches() {
+    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    _persistCacheTimer?.cancel();
+    _persistCacheTimer = Timer(const Duration(milliseconds: 400), () {
+      unawaited(_persistPostCaches(uid));
+    });
+  }
+
+  Future<void> _persistPostCaches(String uid) async {
+    await Future.wait([
+      _postsCache.writeBucket(uid: uid, bucket: _bucketAll, posts: allPosts),
+      _postsCache.writeBucket(uid: uid, bucket: _bucketPhotos, posts: photos),
+      _postsCache.writeBucket(uid: uid, bucket: _bucketVideos, posts: videos),
+      _postsCache.writeBucket(
+          uid: uid, bucket: _bucketReshares, posts: reshares),
+      _postsCache.writeBucket(
+          uid: uid, bucket: _bucketScheduled, posts: scheduledPosts),
+    ]);
+  }
+
+  Future<void> _restoreCachedListsForActiveUser() async {
+    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    final loaded = await Future.wait([
+      _postsCache.readBucket(uid: uid, bucket: _bucketAll),
+      _postsCache.readBucket(uid: uid, bucket: _bucketPhotos),
+      _postsCache.readBucket(uid: uid, bucket: _bucketVideos),
+      _postsCache.readBucket(uid: uid, bucket: _bucketReshares),
+      _postsCache.readBucket(uid: uid, bucket: _bucketScheduled),
+    ]);
+
+    final loadedAll = loaded[0];
+    final loadedPhotos = loaded[1];
+    final loadedVideos = loaded[2];
+    final loadedReshares = loaded[3];
+    final loadedScheduled = loaded[4];
+
+    if (loadedAll.isNotEmpty) allPosts.assignAll(loadedAll);
+    if (loadedPhotos.isNotEmpty) photos.assignAll(loadedPhotos);
+    if (loadedVideos.isNotEmpty) videos.assignAll(loadedVideos);
+    if (loadedReshares.isNotEmpty) reshares.assignAll(loadedReshares);
+    if (loadedScheduled.isNotEmpty) scheduledPosts.assignAll(loadedScheduled);
+  }
+
+  void _clearInMemoryPostLists() {
+    allPosts.clear();
+    photos.clear();
+    videos.clear();
+    reshares.clear();
+    scheduledPosts.clear();
   }
 
   void _listenToCounterChanges() {
@@ -157,6 +245,8 @@ class ProfileController extends GetxController {
     // Oturum kapandıysa tüm verileri sıfırla
     if (newUid == null) {
       _activeUid = null;
+      _counterSub?.cancel();
+      _counterSub = null;
       // ⚠️ CRITICAL FIX: Safely clear RxLists
       try {
         allPosts.clear();
@@ -201,6 +291,9 @@ class ProfileController extends GetxController {
     // Kullanıcı değiştiyse (logout/login) verileri taze çek
     if (newUid != _activeUid) {
       _activeUid = newUid;
+      _clearInMemoryPostLists();
+      _listenToCounterChanges();
+      unawaited(_restoreCachedListsForActiveUser());
       refreshAll();
     }
   }
@@ -210,8 +303,10 @@ class ProfileController extends GetxController {
     if (uid == null) return;
 
     try {
-      final userDoc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .get(const GetOptions(source: Source.serverAndCache));
 
       if (userDoc.exists) {
         final data = userDoc.data();
@@ -246,11 +341,6 @@ class ProfileController extends GetxController {
         final followings = followingAgg.count ?? 0;
         followerCount.value = followers;
         followingCount.value = followings;
-
-        await FirebaseFirestore.instance.collection("users").doc(uid).set({
-          "counterOfFollowers": followers,
-          "counterOfFollowings": followings,
-        }, SetOptions(merge: true));
       }
     } catch (e) {
       print("⚠️ getCounters error: $e");
@@ -298,7 +388,8 @@ class ProfileController extends GetxController {
         query = query.startAfterDocument(lastPostDoc!);
       }
 
-      final snapshot = await query.get();
+      final snapshot =
+          await query.get(const GetOptions(source: Source.serverAndCache));
       final newPosts = snapshot.docs.map((doc) {
         final data = doc.data();
         final model = PostsModel.fromMap(data, doc.id);
@@ -357,7 +448,8 @@ class ProfileController extends GetxController {
         query = query.startAfterDocument(lastPostDocPhotos!);
       }
 
-      final snapshot = await query.get();
+      final snapshot =
+          await query.get(const GetOptions(source: Source.serverAndCache));
       final newPosts = snapshot.docs.map((doc) {
         final data = doc.data();
         final model = PostsModel.fromMap(data, doc.id);
@@ -416,7 +508,8 @@ class ProfileController extends GetxController {
 
       QuerySnapshot<Map<String, dynamic>> snapshot;
       try {
-        snapshot = await query.get();
+        snapshot =
+            await query.get(const GetOptions(source: Source.serverAndCache));
       } catch (e) {
         final isIndexError = e is FirebaseException
             ? e.code == 'failed-precondition'
@@ -435,7 +528,9 @@ class ProfileController extends GetxController {
         if (!isInitial && lastPostDocVideos != null) {
           fallback = fallback.startAfterDocument(lastPostDocVideos!);
         }
-        snapshot = await fallback.get();
+        snapshot = await fallback.get(
+          const GetOptions(source: Source.serverAndCache),
+        );
       }
 
       final newPosts = snapshot.docs.map((doc) {
@@ -491,7 +586,8 @@ class ProfileController extends GetxController {
         query = query.startAfterDocument(lastScheduledDoc!);
       }
 
-      final snapshot = await query.get();
+      final snapshot =
+          await query.get(const GetOptions(source: Source.serverAndCache));
       final newPosts =
           snapshot.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
 
@@ -521,7 +617,7 @@ class ProfileController extends GetxController {
             .where('timeStamp', isGreaterThan: nowMs)
             .orderBy('timeStamp')
             .limit(scheduledLimit)
-            .get();
+            .get(const GetOptions(source: Source.serverAndCache));
 
         final newPosts = snapshot.docs
             .map((d) => PostsModel.fromMap(d.data(), d.id))
@@ -576,7 +672,7 @@ class ProfileController extends GetxController {
         .where("flood", isEqualTo: false)
         .orderBy("timeStamp", descending: true)
         .limit(1) // Sadece son post
-        .get();
+        .get(const GetOptions(source: Source.serverAndCache));
 
     if (snap.docs.isNotEmpty) {
       final lastPost =
@@ -621,7 +717,7 @@ class ProfileController extends GetxController {
         .collection('reshared_posts')
         .orderBy('timeStamp', descending: true)
         .limit(1)
-        .get();
+        .get(const GetOptions(source: Source.serverAndCache));
 
     if (snap.docs.isEmpty) {
       reshares.clear();

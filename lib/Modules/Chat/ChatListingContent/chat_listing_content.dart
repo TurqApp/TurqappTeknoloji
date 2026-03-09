@@ -8,10 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
+import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -309,13 +311,30 @@ class ChatListingContent extends StatelessWidget {
                             await _showAnchoredMenu(context);
                           },
                     onTap: () async {
+                      final nowMs = DateTime.now().millisecondsSinceEpoch;
+                      final rowTs = int.tryParse(model.timeStamp) ?? 0;
+                      final seenAtMs = rowTs > nowMs ? rowTs : nowMs;
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.setInt(
                         "chat_last_opened_${_uid}_${model.chatID}",
-                        DateTime.now().millisecondsSinceEpoch,
+                        seenAtMs,
                       );
                       controller.notReadCounter.value = 0;
                       model.unreadCount = 0;
+                      if (Get.isRegistered<UnreadMessagesController>()) {
+                        Get.find<UnreadMessagesController>()
+                            .updateConversationUnreadLocal(
+                          otherUid: model.userID,
+                          unreadCount: 0,
+                          chatId: model.chatID,
+                          seenAtMs: seenAtMs,
+                        );
+                      }
+                      if (Get.isRegistered<InAppNotificationsController>()) {
+                        Get.find<InAppNotificationsController>()
+                            .markChatNotificationsReadLocal(
+                                chatId: model.chatID);
+                      }
                       unawaited(
                         FirebaseFirestore.instance
                             .collection("conversations")

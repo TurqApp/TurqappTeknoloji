@@ -14,6 +14,8 @@ class InAppNotificationsController extends GetxController {
   var complatedDataFetch = false.obs;
   var busyMarkAllRead = false.obs;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _notificationSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _newNotificationHeadSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   final List<NotificationModel> _allNotifications = <NotificationModel>[];
   Map<String, dynamic> _preferences = NotificationPreferencesService.defaults();
@@ -60,60 +62,154 @@ class InAppNotificationsController extends GetxController {
     }
 
     _notificationSub?.cancel();
+    _newNotificationHeadSub?.cancel();
+
+    await _loadInitialNotificationsFromCache(uid);
+    _bindNotificationsCacheStream(uid);
+    _bindNewNotificationHeadStream(uid);
+  }
+
+  Future<void> _loadInitialNotificationsFromCache(String uid) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .collection("notifications")
+          .orderBy("timeStamp", descending: true)
+          .limit(300)
+          .get(const GetOptions(source: Source.cache));
+      _applyNotificationDocs(snapshot.docs, replace: true);
+    } catch (_) {
+      complatedDataFetch.value = true;
+    }
+  }
+
+  void _bindNotificationsCacheStream(String uid) {
     _notificationSub = FirebaseFirestore.instance
         .collection("users")
         .doc(uid)
         .collection("notifications")
         .orderBy("timeStamp", descending: true)
         .limit(300)
+        .snapshots(source: ListenSource.cache)
+        .listen((snapshot) {
+      _applyNotificationDocs(snapshot.docs, replace: true);
+    }, onError: (error) {
+      complatedDataFetch.value = true;
+      debugPrint("🔔 InApp notifications listener error: $error");
+    });
+  }
+
+  void _bindNewNotificationHeadStream(String uid) {
+    _newNotificationHeadSub = FirebaseFirestore.instance
+        .collection("users")
+        .doc(uid)
+        .collection("notifications")
+        .orderBy("timeStamp", descending: true)
+        .limit(1)
         .snapshots()
         .listen((snapshot) {
-      final allNotifications = snapshot.docs.where((doc) {
-        final data = doc.data();
-        final hideByFlag = data["hideInAppInbox"] == true;
-        final hideByLegacyPostId =
-            (data["postID"] ?? "").toString() == "admin-manual-push";
-        return !hideByFlag && !hideByLegacyPostId;
-      }).map((doc) {
-        final data = doc.data();
+      if (snapshot.docs.isEmpty) return;
+      final headData = snapshot.docs.first.data();
+      final headTs = _asInt(headData["timeStamp"]);
+      if (headTs > _latestLoadedNotificationTs()) {
+        unawaited(_fetchOnlyNewNotifications(uid));
+      }
+    }, onError: (_) {});
+  }
 
-        // Yeni şema: type/fromUserID/postID/read/timeStamp
-        if (data.containsKey("type") || data.containsKey("fromUserID")) {
-          final type = (data["type"] ?? "").toString();
-          final postType = _postTypeFromType(type);
-          final title = (data["title"] ?? "").toString();
-          final body = (data["body"] ?? "").toString();
+  Future<void> _fetchOnlyNewNotifications(String uid) async {
+    try {
+      final latestTs = _latestLoadedNotificationTs();
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
+          .collection("notifications")
+          .orderBy("timeStamp", descending: false)
+          .limit(120);
+      if (latestTs > 0) {
+        query = query.where("timeStamp", isGreaterThan: latestTs);
+      }
+      final snapshot = await query.get(const GetOptions(source: Source.server));
+      _applyNotificationDocs(snapshot.docs, replace: false);
+    } catch (_) {}
+  }
 
-          return NotificationModel(
-            docID: doc.id,
-            isRead: (data["read"] ?? false) == true,
-            type: type,
-            postID: (data["postID"] ?? "").toString(),
-            postType: postType,
-            thumbnail: (data["thumbnail"] ?? "").toString(),
-            timeStamp: data["timeStamp"] ?? 0,
-            title: title,
-            userID: (data["fromUserID"] ?? "").toString(),
-            desc: body.isNotEmpty ? body : _descFromType(type, title: title),
-          );
-        }
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse("$value") ?? 0;
+  }
 
-        // Eski şema desteği (geriye dönük)
-        return NotificationModel.fromJson(data, doc.id);
-      }).toList();
+  int _latestLoadedNotificationTs() {
+    var latest = 0;
+    for (final n in _allNotifications) {
+      final ts = _asInt(n.timeStamp);
+      if (ts > latest) latest = ts;
+    }
+    return latest;
+  }
 
-      complatedDataFetch.value = true;
+  List<NotificationModel> _mapNotificationDocs(
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    return docs.where((doc) {
+      final data = doc.data();
+      final hideByFlag = data["hideInAppInbox"] == true;
+      final hideByLegacyPostId =
+          (data["postID"] ?? "").toString() == "admin-manual-push";
+      return !hideByFlag && !hideByLegacyPostId;
+    }).map((doc) {
+      final data = doc.data();
+
+      if (data.containsKey("type") || data.containsKey("fromUserID")) {
+        final type = (data["type"] ?? "").toString();
+        final postType = _postTypeFromType(type);
+        final title = (data["title"] ?? "").toString();
+        final body = (data["body"] ?? "").toString();
+
+        return NotificationModel(
+          docID: doc.id,
+          isRead: (data["read"] ?? false) == true,
+          type: type,
+          postID: (data["postID"] ?? "").toString(),
+          postType: postType,
+          thumbnail: (data["thumbnail"] ?? "").toString(),
+          timeStamp: _asInt(data["timeStamp"]),
+          title: title,
+          userID: (data["fromUserID"] ?? "").toString(),
+          desc: body.isNotEmpty ? body : _descFromType(type, title: title),
+        );
+      }
+
+      return NotificationModel.fromJson(data, doc.id);
+    }).toList();
+  }
+
+  void _applyNotificationDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
+    required bool replace,
+  }) {
+    final mapped = _mapNotificationDocs(docs);
+    if (replace) {
       _allNotifications
         ..clear()
-        ..addAll(allNotifications);
-      debugPrint(
-          "🔔 InApp notifications snapshot: total=${_allNotifications.length}");
-      _applyFilters();
-      _refreshUnreadTotal();
-    }, onError: (_) {
-      complatedDataFetch.value = true;
-      debugPrint("🔔 InApp notifications listener error: $_");
-    });
+        ..addAll(mapped);
+    } else {
+      final merged = <String, NotificationModel>{
+        for (final item in _allNotifications) item.docID: item,
+      };
+      for (final item in mapped) {
+        merged[item.docID] = item;
+      }
+      final next = merged.values.toList(growable: false)
+        ..sort((a, b) => _asInt(b.timeStamp).compareTo(_asInt(a.timeStamp)));
+      _allNotifications
+        ..clear()
+        ..addAll(next);
+    }
+    complatedDataFetch.value = true;
+    _applyFilters();
+    _refreshUnreadTotal();
   }
 
   void _applyFilters() {
@@ -235,6 +331,30 @@ class InAppNotificationsController extends GetxController {
         _refreshUnreadTotal();
       }
     }
+  }
+
+  // Firestore read yapmadan, belirli bir sohbetin bildirimlerini localde okunduya çeker.
+  void markChatNotificationsReadLocal({required String chatId}) {
+    final targetChatId = chatId.trim();
+    if (targetChatId.isEmpty) return;
+
+    final toMarkIds = <String>[];
+    for (final item in _allNotifications) {
+      if (item.isRead) continue;
+      final normalizedType =
+          (item.type.isNotEmpty ? item.type : item.postType).toLowerCase();
+      final isChatType =
+          normalizedType == "chat" || normalizedType == "message";
+      if (!isChatType) continue;
+      if (item.postID != targetChatId) continue;
+      item.isRead = true;
+      toMarkIds.add(item.docID);
+    }
+
+    if (toMarkIds.isEmpty) return;
+    list.refresh();
+    _refreshUnreadTotal();
+    unawaited(markManyAsRead(toMarkIds));
   }
 
   Future<void> markAllAsRead() async {
@@ -369,6 +489,7 @@ class InAppNotificationsController extends GetxController {
   @override
   void onClose() {
     _notificationSub?.cancel();
+    _newNotificationHeadSub?.cancel();
     _settingsSub?.cancel();
     pageController.dispose();
     super.onClose();

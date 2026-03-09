@@ -12,12 +12,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
+import 'package:turqappv2/Modules/InAppNotifications/in_app_notifications_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:record/record.dart';
 import 'package:video_compress/video_compress.dart';
@@ -111,10 +113,10 @@ class ChatController extends GetxController {
   void onInit() {
     super.onInit();
     getUserData();
-    _loadLocalConversationWindow();
     loadChatBackgroundPreference();
-    getData();
+    unawaited(getData());
     _clearConversationUnread();
+    _syncUnreadIndicatorsLocal();
     unawaited(_markConversationOpenedNow());
     textEditingController.addListener(() {
       textMesage.value = textEditingController.text;
@@ -148,6 +150,21 @@ class ChatController extends GetxController {
           .doc(chatID)
           .set({"unread.$uid": 0}, SetOptions(merge: true));
     } catch (_) {}
+  }
+
+  void _syncUnreadIndicatorsLocal() {
+    if (Get.isRegistered<UnreadMessagesController>()) {
+      Get.find<UnreadMessagesController>().updateConversationUnreadLocal(
+        otherUid: userID,
+        unreadCount: 0,
+        chatId: chatID,
+        seenAtMs: DateTime.now().millisecondsSinceEpoch,
+      );
+    }
+    if (Get.isRegistered<InAppNotificationsController>()) {
+      Get.find<InAppNotificationsController>()
+          .markChatNotificationsReadLocal(chatId: chatID);
+    }
   }
 
   @override
@@ -311,13 +328,14 @@ class ChatController extends GetxController {
     });
   }
 
-  void getData() {
+  Future<void> getData() async {
     _messageSyncTimer?.cancel();
     _messagesSubscription?.cancel();
 
-    // İlk açılışta cache-first: ekrandaki mesajlar anında local cache'ten gelsin.
-    _loadInitialMessages(forceServer: false);
-    _listenRealtimeMessages();
+    // Önce app local cache (SharedPreferences), sonra Firestore cache.
+    final hasLocalWindow = await _loadLocalConversationWindow();
+    await _loadInitialMessages(forceServer: !hasLocalWindow);
+    _listenRealtimeMessages(cacheOnly: hasLocalWindow);
     if (_isOffline) {
       _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
         _syncMessages(forceServer: false);
@@ -329,10 +347,14 @@ class ChatController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .get();
+      final ref =
+          FirebaseFirestore.instance.collection("conversations").doc(chatID);
+      DocumentSnapshot<Map<String, dynamic>> doc;
+      try {
+        doc = await ref.get(const GetOptions(source: Source.cache));
+      } catch (_) {
+        doc = await ref.get(const GetOptions(source: Source.server));
+      }
       final data = doc.data() ?? <String, dynamic>{};
       final raw = (data["chatBg.$uid"] ?? data["chatBgIndex"]) as dynamic;
       final muted = data["muted"] as Map<String, dynamic>? ?? {};
@@ -366,21 +388,35 @@ class ChatController extends GetxController {
     } catch (_) {}
   }
 
-  void _listenRealtimeMessages() {
+  void _listenRealtimeMessages({bool cacheOnly = false}) {
+    final source = cacheOnly ? ListenSource.cache : ListenSource.defaultSource;
     _messagesSubscription = FirebaseFirestore.instance
         .collection("conversations")
         .doc(chatID)
         .collection("messages")
         .orderBy("createdDate", descending: true)
-        .limit(_syncHeadSize)
-        .snapshots()
+        .limit(cacheOnly ? _syncHeadSize : 1)
+        .snapshots(source: source)
         .listen((snapshot) {
-      if (!_isOffline) {
+      if (!_isOffline && !cacheOnly) {
         _messageSyncTimer?.cancel();
         _messageSyncTimer = null;
+      } else if (!_isOffline && cacheOnly && _messageSyncTimer == null) {
+        _messageSyncTimer = Timer.periodic(_serverSyncGap, (_) {
+          _syncMessages(forceServer: true);
+        });
       }
-      _applyConversationSnapshot(snapshot.docs, replace: false);
-      _refreshMergedMessages();
+      if (cacheOnly) {
+        _applyConversationSnapshot(snapshot.docs, replace: false);
+        _refreshMergedMessages();
+        return;
+      }
+      // Online: sadece son mesajı dinle; yeni başlık geldiyse sadece yeni mesajları çek.
+      if (snapshot.docs.isEmpty) return;
+      final latestRemoteTs = _extractCreatedDateMs(snapshot.docs.first.data());
+      if (latestRemoteTs > _latestLoadedTimestampMs()) {
+        unawaited(_syncMessages(forceServer: true));
+      }
     }, onError: (_) {
       if (_messageSyncTimer != null) return;
       _messageSyncTimer = Timer.periodic(const Duration(seconds: 20), (_) {
@@ -428,12 +464,19 @@ class ChatController extends GetxController {
             DateTime.now().difference(_lastServerSyncAt!) > _serverSyncGap);
     _isMessageSyncing = true;
     try {
-      final convQuery = FirebaseFirestore.instance
+      final latestLoadedTs = _latestLoadedTimestampMs();
+      final convRef = FirebaseFirestore.instance
           .collection("conversations")
           .doc(chatID)
-          .collection("messages")
-          .orderBy("createdDate", descending: true)
-          .limit(_syncHeadSize);
+          .collection("messages");
+      final Query<Map<String, dynamic>> convQuery = latestLoadedTs > 0
+          ? convRef
+              .where("createdDate", isGreaterThan: latestLoadedTs)
+              .orderBy("createdDate", descending: false)
+              .limit(_syncHeadSize)
+          : convRef
+              .orderBy("createdDate", descending: true)
+              .limit(_syncHeadSize);
 
       final conversationSnapshot = await _getWithCachePreference(
         convQuery,
@@ -520,6 +563,22 @@ class ChatController extends GetxController {
 
   void _updateHasMoreOlder() {
     hasMoreOlder.value = _conversationHasMore;
+  }
+
+  int _latestLoadedTimestampMs() {
+    var latest = 0;
+    for (final m in _conversationMessages.values) {
+      final ts = m.timeStamp.toInt();
+      if (ts > latest) latest = ts;
+    }
+    return latest;
+  }
+
+  int _extractCreatedDateMs(Map<String, dynamic> data) {
+    final raw = data["createdDate"];
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is num) return raw.toInt();
+    return int.tryParse("$raw") ?? 0;
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
@@ -724,13 +783,13 @@ class ChatController extends GetxController {
 
   String get _localChatWindowKey => "chat_window_cache_$chatID";
 
-  Future<void> _loadLocalConversationWindow() async {
+  Future<bool> _loadLocalConversationWindow() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_localChatWindowKey);
-      if (raw == null || raw.isEmpty) return;
+      if (raw == null || raw.isEmpty) return false;
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return;
+      if (decoded is! List) return false;
 
       final restored = <MessageModel>[];
       for (final item in decoded) {
@@ -738,10 +797,12 @@ class ChatController extends GetxController {
         final m = _deserializeLocalMessage(Map<String, dynamic>.from(item));
         if (m != null) restored.add(m);
       }
-      if (restored.isEmpty) return;
+      if (restored.isEmpty) return false;
       restored.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
       messages.value = restored;
+      return true;
     } catch (_) {}
+    return false;
   }
 
   Future<void> _saveLocalConversationWindow(List<MessageModel> input) async {

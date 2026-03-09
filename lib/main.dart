@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
@@ -143,13 +142,13 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
-  if (Platform.isIOS) {
-    final mode = kReleaseMode ? 'release' : (kDebugMode ? 'debug' : 'profile');
+  if (!kReleaseMode) {
+    final mode = kDebugMode ? 'debug' : 'profile';
     try {
       await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
     } catch (_) {}
     debugPrint(
-      '[AppCheck] iOS $mode bypass enabled (temporary) - awaiting console registration fix.',
+      '[AppCheck] $mode bypass enabled for local development.',
     );
     return;
   }

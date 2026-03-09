@@ -833,6 +833,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                   Get.bottomSheet(
                     HighlightPickerSheet(storyId: currentStory.id),
                     isScrollControlled: true,
+                    ignoreSafeArea: false,
                     isDismissible: true,
                     enableDrag: true,
                     shape: const RoundedRectangleBorder(

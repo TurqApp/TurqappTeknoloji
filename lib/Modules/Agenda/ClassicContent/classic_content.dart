@@ -1781,7 +1781,7 @@ class _ClassicContentState extends State<ClassicContent>
             height: AnimatedActionButton.actionHeight,
             child: Center(
               child: Icon(
-                CupertinoIcons.nosign,
+                CupertinoIcons.exclamationmark_triangle_fill,
                 color: Colors.grey,
                 size: _actionStyle.sendIconSize,
               ),
@@ -1830,8 +1830,8 @@ class _ClassicContentState extends State<ClassicContent>
             height: AnimatedActionButton.actionHeight,
             child: Center(
               child: Icon(
-                CupertinoIcons.nosign,
-                color: Colors.red,
+                CupertinoIcons.exclamationmark_triangle_fill,
+                color: Colors.amber,
                 size: _actionStyle.sendIconSize,
               ),
             ),
