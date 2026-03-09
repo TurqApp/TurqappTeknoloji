@@ -17,6 +17,12 @@ class RecommendedUserList extends StatefulWidget {
 class _RecommendedUserListState extends State<RecommendedUserList> {
   late final PageController _pageController;
   bool _prefetchRequested = false;
+  RecommendedUserListController get controller {
+    if (Get.isRegistered<RecommendedUserListController>()) {
+      return Get.find<RecommendedUserListController>();
+    }
+    return Get.put(RecommendedUserListController());
+  }
 
   @override
   void initState() {
@@ -34,8 +40,6 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<RecommendedUserListController>();
-
     // Her build sonrası konumu tekrar kontrol et (scroll ile tetiklenir)
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryPrefetch());
 
@@ -115,7 +119,6 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     if (pos.dy < screenH + lookahead) {
       _prefetchRequested = true;
       try {
-        final controller = Get.find<RecommendedUserListController>();
         controller.ensureLoaded(limit: controller.usersLimitInitial);
       } catch (_) {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene

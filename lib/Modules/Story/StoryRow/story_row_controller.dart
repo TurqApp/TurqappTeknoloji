@@ -71,6 +71,54 @@ class StoryRowController extends GetxController {
     return resolveAvatarUrl(data, profile: profile);
   }
 
+  Map<String, dynamic> _fallbackUserData(String userId) {
+    final myUid = FirebaseAuth.instance.currentUser?.uid;
+    if (myUid != null && myUid == userId) {
+      final full = userService.fullName.trim();
+      final parts = full.split(RegExp(r'\s+')).where((e) => e.isNotEmpty);
+      final first = parts.isNotEmpty ? parts.first : '';
+      final last = parts.length > 1 ? parts.skip(1).join(' ') : '';
+      return <String, dynamic>{
+        'nickname': userService.nickname,
+        'firstName': first,
+        'lastName': last,
+        'avatarUrl': userService.avatarUrl,
+        'isPrivate': false,
+      };
+    }
+    return <String, dynamic>{
+      'nickname': 'kullanici',
+      'firstName': '',
+      'lastName': '',
+      'avatarUrl': '',
+      'isPrivate': false,
+    };
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadMissingProfilesFromUsers(
+    List<String> userIds,
+  ) async {
+    final out = <String, Map<String, dynamic>>{};
+    if (userIds.isEmpty) return out;
+    try {
+      const int chunkSize = 10;
+      for (int i = 0; i < userIds.length; i += chunkSize) {
+        final end = (i + chunkSize > userIds.length) ? userIds.length : i + chunkSize;
+        final chunk = userIds.sublist(i, end);
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        for (final doc in snap.docs) {
+          out[doc.id] = Map<String, dynamic>.from(doc.data());
+        }
+      }
+    } catch (e) {
+      debugPrint('Story fallback users fetch error: $e');
+    }
+    return out;
+  }
+
   // Auto refresh için static method
   static Future<void> refreshStoriesGlobally() async {
     try {
@@ -228,6 +276,7 @@ class StoryRowController extends GetxController {
       }
 
       Map<String, List<StoryModel>> userStories = {};
+      final Map<String, Map<String, dynamic>> storyEmbeddedUserMeta = {};
       final myUid = FirebaseAuth.instance.currentUser?.uid;
 
       final now = DateTime.now();
@@ -249,6 +298,20 @@ class StoryRowController extends GetxController {
           }
           userStories.putIfAbsent(story.userId, () => []);
           userStories[story.userId]!.add(story);
+          final embeddedNickname = (data['nickname'] ?? '').toString().trim();
+          final embeddedAvatar = (data['avatarUrl'] ?? '').toString().trim();
+          final embeddedUsername = (data['username'] ?? '').toString().trim();
+          if (embeddedNickname.isNotEmpty ||
+              embeddedAvatar.isNotEmpty ||
+              embeddedUsername.isNotEmpty) {
+            storyEmbeddedUserMeta[story.userId] = <String, dynamic>{
+              'nickname': embeddedNickname,
+              'avatarUrl': embeddedAvatar,
+              'username': embeddedUsername,
+              'firstName': (data['firstName'] ?? '').toString(),
+              'lastName': (data['lastName'] ?? '').toString(),
+            };
+          }
         } catch (e) {
           print("📚 Error parsing story ${doc.id}: $e");
           continue;
@@ -265,6 +328,13 @@ class StoryRowController extends GetxController {
         preferCache: false,
         cacheOnly: !ContentPolicy.isConnected,
       );
+      final missingUserIds = userIds.where((id) => userDataMap[id] == null).toList();
+      if (missingUserIds.isNotEmpty) {
+        final fetchedMissing = await _loadMissingProfilesFromUsers(missingUserIds);
+        if (fetchedMissing.isNotEmpty) {
+          userDataMap.addAll(fetchedMissing);
+        }
+      }
 
       // Takip edilen kullanıcılar (gizli hesap filtresi için)
       final Set<String> followingIDs = {};
@@ -277,9 +347,10 @@ class StoryRowController extends GetxController {
         // Newest-to-oldest within a user's stories
         final stories = [...entry.value]
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        final rawData = userDataMap[userId];
-        if (rawData == null) continue;
-        final data = Map<String, dynamic>.from(rawData);
+        final rawData = userDataMap[userId] ?? storyEmbeddedUserMeta[userId];
+        final data = Map<String, dynamic>.from(
+          rawData ?? _fallbackUserData(userId),
+        );
 
         // Gizlilik filtresi: gizli hesapsa sadece ben veya takip ettiğim kullanıcılar
         final isPrivate = (data['isPrivate'] ?? false) == true;
@@ -299,8 +370,13 @@ class StoryRowController extends GetxController {
           }
           continue;
         }
+        final resolvedNickname = _resolveStoryNickname(data).trim();
         final userModel = StoryUserModel(
-          nickname: _resolveStoryNickname(data),
+          nickname: resolvedNickname.isNotEmpty
+              ? resolvedNickname
+              : (data['nickname']?.toString().trim().isNotEmpty == true
+                  ? data['nickname'].toString().trim()
+                  : (isMine ? (userService.nickname.isNotEmpty ? userService.nickname : 'sen') : 'kullanici')),
           avatarUrl: _resolveAvatar(data),
           fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
           userID: userId,

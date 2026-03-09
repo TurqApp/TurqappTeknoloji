@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/moderation_config_service.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -17,6 +18,7 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
   final ModerationConfigService _configService =
       const ModerationConfigService();
   late final Future<bool> _canAccessFuture;
+  bool _provisioning = false;
 
   @override
   void initState() {
@@ -59,7 +61,11 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
                     builder: (context, configSnap) {
                       final config =
                           configSnap.data ?? ModerationConfigModel.defaults;
-                      return _ModerationThresholdList(config: config);
+                      return _ModerationThresholdList(
+                        config: config,
+                        provisioning: _provisioning,
+                        onEnsureConfig: _ensureConfig,
+                      );
                     },
                   );
                 },
@@ -70,12 +76,36 @@ class _ModerationSettingsViewState extends State<ModerationSettingsView> {
       ),
     );
   }
+
+  Future<void> _ensureConfig() async {
+    if (_provisioning) return;
+    setState(() => _provisioning = true);
+    try {
+      final config = await _configService.ensureWithCallable();
+      AppSnackbar(
+        'Moderasyon',
+        'Config güncellendi. Eşik: ${config.blackBadgeFlagThreshold}',
+      );
+    } catch (e) {
+      AppSnackbar('Hata', 'Config güncellenemedi: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _provisioning = false);
+      }
+    }
+  }
 }
 
 class _ModerationThresholdList extends StatelessWidget {
-  const _ModerationThresholdList({required this.config});
+  const _ModerationThresholdList({
+    required this.config,
+    required this.provisioning,
+    required this.onEnsureConfig,
+  });
 
   final ModerationConfigModel config;
+  final bool provisioning;
+  final Future<void> Function() onEnsureConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -213,10 +243,39 @@ class _ModerationThresholdList extends StatelessWidget {
             'enabled: ${config.enabled}\n'
             'blackBadgeFlagThreshold: ${config.blackBadgeFlagThreshold}\n'
             'allowSingleFlagPerUser: ${config.allowSingleFlagPerUser}\n'
-            'enableShadowHide: ${config.enableShadowHide}',
+            'enableShadowHide: ${config.enableShadowHide}\n'
+            'notifyOwnerOnAdminRemove: ${config.notifyOwnerOnAdminRemove}\n'
+            'notifyFlaggersOnAdminRemove: ${config.notifyFlaggersOnAdminRemove}',
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: provisioning ? null : onEnsureConfig,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.25)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
+              icon: provisioning
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(CupertinoIcons.gear, size: 15),
+              label: Text(
+                provisioning ? 'Kuruluyor...' : 'Config Kur/Yenile',
+                style: const TextStyle(
+                  fontFamily: 'MontserratMedium',
+                  fontSize: 12,
+                  color: Colors.black,
+                ),
+              ),
             ),
           ),
         ],

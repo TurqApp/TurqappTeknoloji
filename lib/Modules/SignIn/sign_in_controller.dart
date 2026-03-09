@@ -904,64 +904,9 @@ class SignInController extends GetxController
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
-      await MandatoryFollowService.instance.enforceForCurrentUser();
-
-      // 🔥 CRITICAL: Re-initialize CurrentUserService after login
-      print("🔄 CurrentUserService yeniden başlatılıyor...");
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
-      await _clearSessionCachesAfterAccountSwitch();
-
-      // Force refresh to ensure latest data
-      await CurrentUserService.instance.forceRefresh();
-      print("✅ CurrentUserService başarıyla yüklendi");
-
-      // 🔥 CRITICAL: Load stories and posts after fresh login
-      try {
-        final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
-        await storyController.loadStories(limit: 100, cacheFirst: false);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
-
-      // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized BEFORE navigation
-      late AgendaController agendaController;
-      try {
-        // Create or get AgendaController
-        if (Get.isRegistered<AgendaController>()) {
-          agendaController = Get.find<AgendaController>();
-        } else {
-          agendaController = Get.put(AgendaController());
-        }
-
-        await agendaController.refreshAgenda();
-
-        print("📝 Postlar yükleniyor...");
-
-        // Try loading with retry logic
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
-        // If error, still create controller with empty list
-        agendaController = Get.put(AgendaController());
-      }
+      // Login akışını kilitlememek için ağır işlemleri arka plana al.
+      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+      unawaited(_postLoginWarmup());
 
       // ⚠️ CRITICAL FIX: Start UnreadMessagesController after login
       try {
@@ -1030,6 +975,49 @@ class SignInController extends GetxController
       AppSnackbar("Giriş Başarısız",
           "Sistemlerimizde planlı bir bakım çalışması gerçekleştirilmektedir. Lütfen daha sonra tekrar deneyiniz. Anlayışınız için teşekkür ederiz. (-2)");
       return false;
+    }
+  }
+
+  Future<void> _postLoginWarmup() async {
+    try {
+      print("🔄 Post-login warmup başladı...");
+      await Future.any([
+        CurrentUserService.instance.initialize(),
+        Future.delayed(const Duration(seconds: 3)),
+      ]);
+      unawaited(NotificationService.instance.initialize());
+      unawaited(_clearSessionCachesAfterAccountSwitch());
+      unawaited(CurrentUserService.instance.forceRefresh());
+
+      try {
+        final storyController = Get.find<StoryRowController>();
+        await Future.any([
+          storyController.loadStories(limit: 100, cacheFirst: false),
+          Future.delayed(const Duration(seconds: 3)),
+        ]);
+        if (storyController.users.isEmpty) {
+          await storyController.addMyUserImmediately();
+        }
+      } catch (e) {
+        print("⚠️ Post-login story warmup hatası: $e");
+      }
+
+      try {
+        final agendaController = Get.isRegistered<AgendaController>()
+            ? Get.find<AgendaController>()
+            : Get.put(AgendaController());
+        await Future.any([
+          agendaController.refreshAgenda(),
+          Future.delayed(const Duration(seconds: 3)),
+        ]);
+        if (agendaController.agendaList.isEmpty) {
+          unawaited(agendaController.fetchAgendaBigData(initial: true));
+        }
+      } catch (e) {
+        print("⚠️ Post-login agenda warmup hatası: $e");
+      }
+    } catch (e) {
+      print("⚠️ Post-login warmup genel hata: $e");
     }
   }
 

@@ -1,13 +1,13 @@
 # UI Audit Report
 
-Generated at: 2026-03-07 22:48:25 +03
+Generated at: 2026-03-07 23:11:06 +03
 Scope: `lib/**`
 
 ## Summary Counts
 - TextOverflow.ellipsis: **95**
 - maxLines:1: **90**
-- fixed height literals: **805**
-- fixed width literals: **459**
+- fixed height literals: **769**
+- fixed width literals: **432**
 - Positioned widgets: **143**
 - shrinkWrap:true: **55**
 - NeverScrollableScrollPhysics: **49**
@@ -39,25 +39,15 @@ Scope: `lib/**`
 ## Top Files (Small Screen Risk)
 ```text
    9 lib/Modules/Education/CikmisSorular/cikmis_soru_olustur.dart
-   8 lib/Modules/JobFinder/JobCreator/job_creator.dart
-   6 lib/Modules/Social/ShareOfPost/share_of_post.dart
-   6 lib/Modules/Education/Scholarships/Applications/applications_view.dart
    6 lib/Core/Widgets/skeleton_loader.dart
-   4 lib/Modules/Splash/splash_view.dart
-   4 lib/Modules/Education/Scholarships/CreateScholarship/scholarship_preview_view.dart
-   4 lib/Modules/Education/AnswerKey/CreateBook/create_book.dart
-   3 lib/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart
    2 lib/Services/current_user_test_widget.dart
-   2 lib/Modules/RecommendedUserList/recommended_user_list.dart
    2 lib/Modules/RecommendedUserList/RecommendedUserContent/recommended_user_content.dart
-   2 lib/Modules/Profile/EditProfile/edit_profile.dart
-   2 lib/Modules/Education/Scholarships/SavedItems/saved_items_view.dart
-   2 lib/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart
    2 lib/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart
    2 lib/Core/Widgets/error_report_widget.dart
    2 lib/Core/Helpers/QRCode/qr_scanner_view.dart
    1 lib/Modules/Story/StoryRow/story_row.dart
-   1 lib/Modules/Profile/MyProfile/profile_view.dart
+   1 lib/Modules/Education/Tests/SolveTest/solve_test.dart
+   1 lib/Ads/admob_kare.dart
 ```
 
 ## Notes

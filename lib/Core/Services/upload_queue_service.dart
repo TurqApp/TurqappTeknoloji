@@ -77,6 +77,7 @@ class QueuedUpload {
 }
 
 class UploadQueueService extends GetxController {
+  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
   final RxBool _isProcessing = false.obs;
   final RxBool _isPaused = false.obs;
@@ -93,6 +94,33 @@ class UploadQueueService extends GetxController {
 
   static const String _queueKey = 'upload_queue';
   static const int _maxRetries = 3;
+
+  bool _isAuthRetryableStorageError(FirebaseException e) {
+    final code = e.code.toLowerCase();
+    return code == 'unauthenticated' || code == 'unauthorized';
+  }
+
+  Future<void> _refreshAuthTokenIfNeeded() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+    } catch (_) {
+      // Best effort only.
+    }
+  }
+
+  Future<TaskSnapshot> _putFileWithAuthRetry({
+    required Reference ref,
+    required File file,
+    required SettableMetadata metadata,
+  }) async {
+    try {
+      return await ref.putFile(file, metadata);
+    } on FirebaseException catch (e) {
+      if (!_isAuthRetryableStorageError(e)) rethrow;
+      await _refreshAuthTokenIfNeeded();
+      return await ref.putFile(file, metadata);
+    }
+  }
 
   void _notifyQueueUpdated() {
     _queue.refresh();
@@ -301,6 +329,13 @@ class UploadQueueService extends GetxController {
               targetMbps: 5.0,
             );
           } catch (_) {}
+          final videoSize = await videoFile.length();
+          if (videoSize > _maxVideoBytesForStorageRule) {
+            upload.status = UploadStatus.failed;
+            upload.errorMessage = 'Video boyutu çok büyük (maks. 35MB)';
+            await _saveQueueToStorage();
+            return;
+          }
 
           final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
           if (nsfwVideo.errorMessage != null) {
@@ -330,22 +365,17 @@ class UploadQueueService extends GetxController {
                 'postUserID=${postDoc.data()?["userID"]}');
           }
 
-          final uploadTask = ref.putFile(
-            videoFile,
-            SettableMetadata(
+          final uploadTaskFuture = _putFileWithAuthRetry(
+            ref: ref,
+            file: videoFile,
+            metadata: SettableMetadata(
               contentType: 'video/mp4',
               cacheControl: 'public, max-age=31536000, immutable',
             ),
           );
-          uploadTask.snapshotEvents.listen((snapshot) {
-            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-            upload.progress = 0.8 + (progress * 0.15); // 15% for video
-            _notifyQueueUpdated();
-          });
-
-          final taskSnapshot = await uploadTask;
+          final uploadTask = await uploadTaskFuture;
           videoUrl = CdnUrlBuilder.toCdnUrl(
-            await taskSnapshot.ref.getDownloadURL(),
+            await uploadTask.ref.getDownloadURL(),
           );
           if (kDebugMode) {
             final len = await videoFile.length();

@@ -27,6 +27,7 @@ class AdsCenterController extends GetxController {
 
   final RxBool canAccess = false.obs;
   final RxBool loading = false.obs;
+  final RxnString errorText = RxnString();
 
   final RxMap<String, dynamic> dashboard = <String, dynamic>{}.obs;
   final RxList<AdCampaign> campaigns = <AdCampaign>[].obs;
@@ -57,23 +58,39 @@ class AdsCenterController extends GetxController {
 
   Future<void> _init() async {
     loading.value = true;
-    canAccess.value = await AdsAdminGuard.canAccessAdsCenter();
-    if (!canAccess.value) {
+    errorText.value = null;
+    try {
+      canAccess.value = await AdsAdminGuard.canAccessAdsCenter();
+      if (!canAccess.value) {
+        return;
+      }
+
+      await AdsFeatureFlagsService.to.init();
+
+      _bindCampaigns();
+      _creativeSub = repository.watchCreatives().listen(
+            creatives.assignAll,
+            onError: _onStreamError,
+          );
+      _advertiserSub = repository.watchAdvertisers().listen(
+            advertisers.assignAll,
+            onError: _onStreamError,
+          );
+      _statsSub = repository.watchDailyStats().listen(
+            dailyStats.assignAll,
+            onError: _onStreamError,
+          );
+      _logSub = repository.watchDeliveryLogs().listen(
+            deliveryLogs.assignAll,
+            onError: _onStreamError,
+          );
+
+      await refreshDashboard();
+    } catch (e) {
+      errorText.value = _normalizeError(e);
+    } finally {
       loading.value = false;
-      return;
     }
-
-    await AdsFeatureFlagsService.to.init();
-
-    _bindCampaigns();
-    _creativeSub = repository.watchCreatives().listen(creatives.assignAll);
-    _advertiserSub =
-        repository.watchAdvertisers().listen(advertisers.assignAll);
-    _statsSub = repository.watchDailyStats().listen(dailyStats.assignAll);
-    _logSub = repository.watchDeliveryLogs().listen(deliveryLogs.assignAll);
-
-    await refreshDashboard();
-    loading.value = false;
   }
 
   void _bindCampaigns() {
@@ -84,18 +101,40 @@ class AdsCenterController extends GetxController {
           placement: filterPlacement.value,
           includeTest: filterIncludeTest.value,
         )
-        .listen(campaigns.assignAll);
+        .listen(
+          campaigns.assignAll,
+          onError: _onStreamError,
+        );
   }
 
   Future<void> refreshDashboard() async {
     if (!canAccess.value) return;
-    final metrics = await repository.getDashboardMetrics();
-    dashboard.assignAll(metrics);
+    try {
+      final metrics = await repository.getDashboardMetrics();
+      dashboard.assignAll(metrics);
+      errorText.value = null;
+    } catch (e) {
+      errorText.value = _normalizeError(e);
+    }
   }
 
   Future<void> refreshAll() async {
+    loading.value = true;
     await refreshDashboard();
     _bindCampaigns();
+    loading.value = false;
+  }
+
+  void _onStreamError(Object error) {
+    errorText.value = _normalizeError(error);
+  }
+
+  String _normalizeError(Object error) {
+    final text = error.toString();
+    if (text.contains('permission-denied')) {
+      return 'Ads Center verilerine erişim reddedildi (permission-denied).';
+    }
+    return text;
   }
 
   void applyFilters({

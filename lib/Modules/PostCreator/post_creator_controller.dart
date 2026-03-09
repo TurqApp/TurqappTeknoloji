@@ -70,6 +70,7 @@ class PreparedPostModel {
 }
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
+  static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
   final RxBool isKeyboardOpen = false.obs;
@@ -99,6 +100,33 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   Timer? _autoSaveTimer;
   Timer? _queueRingTimer;
+
+  bool _isAuthRetryableStorageError(FirebaseException e) {
+    final code = e.code.toLowerCase();
+    return code == 'unauthenticated' || code == 'unauthorized';
+  }
+
+  Future<void> _refreshAuthTokenIfNeeded() async {
+    try {
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+    } catch (_) {
+      // Best effort refresh only.
+    }
+  }
+
+  Future<TaskSnapshot> _putFileWithAuthRetry({
+    required Reference ref,
+    required File file,
+    required SettableMetadata metadata,
+  }) async {
+    try {
+      return await ref.putFile(file, metadata);
+    } on FirebaseException catch (e) {
+      if (!_isAuthRetryableStorageError(e)) rethrow;
+      await _refreshAuthTokenIfNeeded();
+      return await ref.putFile(file, metadata);
+    }
+  }
 
   NavBarController? _maybeNavBarController() {
     if (!Get.isRegistered<NavBarController>()) return null;
@@ -810,21 +838,28 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         if (nsfwVideo.isNSFW) {
           throw Exception('Uygunsuz video tespit edildi');
         }
+        final videoSize = await post.video!.length();
+        if (videoSize > _maxVideoBytesForStorageRule) {
+          throw Exception('VIDEO_TOO_LARGE');
+        }
         final videoRef = FirebaseStorage.instance.ref().child(
               'Posts/$docID/video.mp4',
             );
         if (kDebugMode) {
-          final postDoc =
-              await FirebaseFirestore.instance.collection("Posts").doc(docID).get();
+          final postDoc = await FirebaseFirestore.instance
+              .collection("Posts")
+              .doc(docID)
+              .get();
           debugPrint('[UploadPreflight][PostCreator] '
               'path=${videoRef.fullPath} '
               'uid=$uid '
               'postExists=${postDoc.exists} '
               'postUserID=${postDoc.data()?["userID"]}');
         }
-        final uploadTask = await videoRef.putFile(
-          post.video!,
-          SettableMetadata(
+        final uploadTask = await _putFileWithAuthRetry(
+          ref: videoRef,
+          file: post.video!,
+          metadata: SettableMetadata(
             contentType: 'video/mp4',
             cacheControl: 'public, max-age=31536000, immutable',
           ),
@@ -1635,6 +1670,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               if (nsfwVideo.isNSFW) {
                 throw Exception('Uygunsuz video tespit edildi');
               }
+              final videoSize = await post.video!.length();
+              if (videoSize > _maxVideoBytesForStorageRule) {
+                throw Exception('VIDEO_TOO_LARGE');
+              }
               final videoRef = FirebaseStorage.instance
                   .ref()
                   .child('Posts/$docID/video.mp4');
@@ -1649,9 +1688,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                     'postExists=${postDoc.exists} '
                     'postUserID=${postDoc.data()?["userID"]}');
               }
-              final uploadTask = await videoRef.putFile(
-                post.video!,
-                SettableMetadata(
+              final uploadTask = await _putFileWithAuthRetry(
+                ref: videoRef,
+                file: post.video!,
+                metadata: SettableMetadata(
                   contentType: 'video/mp4',
                   cacheControl: 'public, max-age=31536000, immutable',
                 ),
@@ -1699,13 +1739,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 }
               }
             } catch (e) {
+              final tooLarge = e.toString().contains('VIDEO_TOO_LARGE');
               await _errorService.handleError(
                 e,
                 category: ErrorCategory.upload,
                 severity: ErrorSeverity.high,
-                userMessage: 'Video yüklenemedi',
+                userMessage: tooLarge
+                    ? 'Video boyutu çok büyük (maks. 35MB)'
+                    : 'Video yüklenemedi',
                 metadata: {'postIndex': index},
-                isRetryable: true,
+                isRetryable: !tooLarge,
               );
               rethrow; // Re-throw to stop this post's upload
             }

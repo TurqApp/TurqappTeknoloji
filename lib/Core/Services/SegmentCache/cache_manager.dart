@@ -151,7 +151,16 @@ class SegmentCacheManager extends GetxController {
     // OS kendi buffer'ından yazacak; crash durumunda recovery zaten var.
     final tmpFile = File('${file.path}.tmp');
     await tmpFile.writeAsBytes(bytes, flush: false);
-    await tmpFile.rename(file.path);
+    try {
+      await tmpFile.rename(file.path);
+    } on FileSystemException {
+      // Bazı Android cihazlarda rename sırasında parent path anlık kaybolabiliyor.
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: false);
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+    }
 
     // Eski segment varsa boyutunu düş
     final oldSeg = entry.segments[segmentKey];
@@ -193,7 +202,15 @@ class SegmentCacheManager extends GetxController {
     await file.parent.create(recursive: true);
     final tmpFile = File('${file.path}.tmp');
     await tmpFile.writeAsString(content, flush: false);
-    await tmpFile.rename(file.path);
+    try {
+      await tmpFile.rename(file.path);
+    } on FileSystemException {
+      await file.parent.create(recursive: true);
+      await file.writeAsString(content, flush: false);
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+    }
     return file;
   }
 
@@ -421,7 +438,15 @@ class SegmentCacheManager extends GetxController {
       final json = jsonEncode(_index.toJson());
       final tmpFile = File('${file.path}.tmp');
       await tmpFile.writeAsString(json, flush: true);
-      await tmpFile.rename(file.path);
+      try {
+        await tmpFile.rename(file.path);
+      } on FileSystemException {
+        await file.parent.create(recursive: true);
+        await file.writeAsString(json, flush: true);
+        if (await tmpFile.exists()) {
+          await tmpFile.delete();
+        }
+      }
     } catch (e) {
       debugPrint('[CacheManager] Index persist error: $e');
     }

@@ -49,6 +49,8 @@ import '../../Short/short_controller.dart';
 import '../../Story/StoryMaker/story_maker.dart';
 import '../../Story/StoryRow/story_row_controller.dart';
 import '../../Story/StoryRow/story_user_model.dart';
+import '../../../Core/Services/audio_focus_coordinator.dart';
+import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
 
 class ProfileView extends StatefulWidget {
@@ -94,6 +96,12 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
     controller.scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,6 +115,7 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _onScroll() {
+    if (!mounted) return;
     // ScrollController bağlı değilse çık
     if (!controller.scrollController.hasClients) return;
 
@@ -136,6 +145,7 @@ class _ProfileViewState extends State<ProfileView> {
 
       if (top <= centerY && bottom >= centerY) {
         if (controller.centeredIndex.value != i) {
+          if (!mounted) return;
           setState(() {
             controller.centeredIndex.value = i;
           });
@@ -143,6 +153,12 @@ class _ProfileViewState extends State<ProfileView> {
         break;
       }
     }
+  }
+
+  @override
+  void dispose() {
+    controller.scrollController.removeListener(_onScroll);
+    super.dispose();
   }
 
   double _socialLinksHeight() {
@@ -949,9 +965,14 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                       ),
-                      4.pw,
-                      if (_myUserId.isNotEmpty)
-                        RozetContent(size: 15, userID: _myUserId),
+                      if (_myNickname.trim().isNotEmpty) ...[
+                        RozetContent(
+                          size: 15,
+                          userID: _myUserId,
+                          leftSpacing: 6,
+                          rozetValue: _myRozet,
+                        ),
+                      ],
                     ],
                   ),
                 ),

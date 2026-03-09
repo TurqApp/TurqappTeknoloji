@@ -12,7 +12,7 @@ import 'turq_image_cache_manager.dart';
 class UserProfileCacheService extends GetxService {
   static const String _prefsKey = 'user_profile_cache_v2';
   static const int _maxEntries = 400;
-  static const Duration _ttl = Duration(days: 7);
+  static const Duration _ttl = Duration(minutes: 30);
 
   final LinkedHashMap<String, _CachedUserProfile> _memory =
       LinkedHashMap<String, _CachedUserProfile>();
@@ -77,6 +77,21 @@ class UserProfileCacheService extends GetxService {
     final map = _sanitizeProfile(server.data() ?? const <String, dynamic>{});
     _put(uid, map);
     return map;
+  }
+
+  Future<void> invalidateUser(String uid) async {
+    if (uid.isEmpty) return;
+    if (_memory.remove(uid) != null) {
+      _dirty = true;
+      _schedulePersist();
+    }
+  }
+
+  Future<void> clearAll() async {
+    if (_memory.isEmpty) return;
+    _memory.clear();
+    _dirty = true;
+    await _persistToPrefs();
   }
 
   Future<Map<String, Map<String, dynamic>>> getProfiles(

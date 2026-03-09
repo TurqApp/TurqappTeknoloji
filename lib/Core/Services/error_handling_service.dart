@@ -181,27 +181,35 @@ class ErrorHandlingService extends GetxController {
     String code = 'UNKNOWN_ERROR';
     String message = error.toString();
     String userFriendlyMessage = userMessage ?? 'Beklenmeyen bir hata oluştu';
+    final hasExplicitCategory = category != null;
     ErrorCategory errorCategory = category ?? ErrorCategory.unknown;
 
     // Analyze error type and categorize
-    if (error is SocketException || error is TimeoutException) {
-      errorCategory = ErrorCategory.network;
-      userFriendlyMessage =
-          userMessage ?? 'İnternet bağlantısı kontrol edilemiyor';
-      code = 'NETWORK_ERROR';
-      isRetryable = true;
-    } else if (error is FileSystemException) {
-      errorCategory = ErrorCategory.storage;
-      userFriendlyMessage = userMessage ?? 'Dosya işlemi başarısız oldu';
-      code = 'STORAGE_ERROR';
-    } else if (error.toString().contains('permission')) {
-      errorCategory = ErrorCategory.permission;
-      userFriendlyMessage = userMessage ?? 'Gerekli izinler verilmedi';
-      code = 'PERMISSION_ERROR';
-    } else if (error.toString().contains('auth')) {
-      errorCategory = ErrorCategory.authentication;
-      userFriendlyMessage = userMessage ?? 'Kimlik doğrulama hatası';
-      code = 'AUTH_ERROR';
+    if (!hasExplicitCategory) {
+      final lower = error.toString().toLowerCase();
+      if (error is SocketException || error is TimeoutException) {
+        errorCategory = ErrorCategory.network;
+        userFriendlyMessage =
+            userMessage ?? 'İnternet bağlantısı kontrol edilemiyor';
+        code = 'NETWORK_ERROR';
+        isRetryable = true;
+      } else if (error is FileSystemException) {
+        errorCategory = ErrorCategory.storage;
+        userFriendlyMessage = userMessage ?? 'Dosya işlemi başarısız oldu';
+        code = 'STORAGE_ERROR';
+      } else if (lower.contains('permission') ||
+          lower.contains('permission-denied') ||
+          lower.contains('unauthorized')) {
+        errorCategory = ErrorCategory.permission;
+        userFriendlyMessage = userMessage ?? 'Gerekli izinler verilmedi';
+        code = 'PERMISSION_ERROR';
+      } else if (lower.contains('unauthenticated') ||
+          lower.contains('auth/') ||
+          lower.contains('requires-recent-login')) {
+        errorCategory = ErrorCategory.authentication;
+        userFriendlyMessage = userMessage ?? 'Kimlik doğrulama hatası';
+        code = 'AUTH_ERROR';
+      }
     }
 
     return AppError(

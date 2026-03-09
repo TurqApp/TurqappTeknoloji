@@ -39,7 +39,7 @@ abstract class PostContentBase extends StatefulWidget {
 
 mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
-  final agendaController = Get.find<AgendaController>();
+  late final AgendaController agendaController = _resolveAgendaController();
   final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;
@@ -55,6 +55,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
   final ValueNotifier<HLSVideoValue> videoValueNotifier =
       ValueNotifier(const HLSVideoValue());
+
+  AgendaController _resolveAgendaController() {
+    if (Get.isRegistered<AgendaController>()) {
+      return Get.find<AgendaController>();
+    }
+    return Get.put(AgendaController());
+  }
 
   /// videoController benzeri erişim — mevcut widget'lar uyumlu çalışır
   HLSVideoAdapter? get videoController => _videoAdapter;

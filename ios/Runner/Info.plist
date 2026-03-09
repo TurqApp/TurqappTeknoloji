@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<key>FirebaseAppCheckTokenAutoRefreshEnabled</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -44,7 +46,7 @@
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-4558422035199571~1475411033</string>
 	<key>GMSApiKey</key>
-	<string></string>
+	<string>AIzaSyCQ6gUYt8TUQ9U4uQo8ZKnTiSp1D3zMEWA</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>

@@ -77,6 +77,16 @@ class AudioFocusCoordinator extends GetxService {
   }
 
   Future<void> pauseAllAudioPlayers() async {
+    _focusEpoch++;
+    _activePlayer = null;
+
+    for (final player in _players.toList()) {
+      try {
+        await player.pause();
+        await player.setVolume(0.0);
+      } catch (_) {}
+    }
+
     for (final player in _audioPlayers.toList()) {
       try {
         await player.pause();

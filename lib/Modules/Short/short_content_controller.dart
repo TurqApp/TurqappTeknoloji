@@ -485,7 +485,7 @@ class ShortContentController extends GetxController {
             "")
         .toString();
     nickname.value =
-        (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+        (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
             .toString();
     token.value = (data["token"] ?? "").toString();
     fullName.value =

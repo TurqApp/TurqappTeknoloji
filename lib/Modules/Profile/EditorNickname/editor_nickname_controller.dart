@@ -3,7 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorNicknameController extends GetxController {
   final TextEditingController nicknameController = TextEditingController();
@@ -365,6 +369,7 @@ class EditorNicknameController extends GetxController {
       }
 
       _originalNickname = normalized;
+      await _refreshNicknameSurfaces();
       await fetchAndSetUserData();
       Get.back();
     } catch (e) {
@@ -380,5 +385,14 @@ class EditorNicknameController extends GetxController {
         AppSnackbar('Hata', 'Kullanıcı adı güncellenemedi.');
       }
     }
+  }
+
+  Future<void> _refreshNicknameSurfaces() async {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      await Get.find<UserProfileCacheService>().invalidateUser(uid);
+    }
+    PostContentController.invalidateUserProfileCache(uid);
+    await CurrentUserService.instance.forceRefresh();
+    await StoryRowController.refreshStoriesGlobally();
   }
 }

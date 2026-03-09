@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,12 +11,15 @@ import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/functions.dart';
+import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details_controller.dart';
+import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -26,6 +30,52 @@ class JobDetails extends StatelessWidget {
   final JobModel model;
   JobDetails({super.key, required this.model});
   late final JobDetailsController controller;
+
+  Future<void> _openMentionProfile(String mention) async {
+    final normalizedMention = mention.trim().replaceFirst('@', '');
+    final handle = normalizedMention.toLowerCase();
+    if (handle.isEmpty) return;
+
+    String targetUid = '';
+    try {
+      final usernameDoc = await FirebaseFirestore.instance
+          .collection('usernames')
+          .doc(handle)
+          .get();
+      targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
+    } catch (_) {}
+
+    if (targetUid.isEmpty) {
+      try {
+        final byUsername = await FirebaseFirestore.instance
+            .collection('users')
+            .where('usernameLower', isEqualTo: handle)
+            .limit(1)
+            .get();
+        if (byUsername.docs.isNotEmpty) {
+          targetUid = byUsername.docs.first.id;
+        }
+      } catch (_) {}
+    }
+
+    if (targetUid.isEmpty) {
+      try {
+        final byNickname = await FirebaseFirestore.instance
+            .collection('users')
+            .where('nickname', isEqualTo: normalizedMention)
+            .limit(1)
+            .get();
+        if (byNickname.docs.isNotEmpty) {
+          targetUid = byNickname.docs.first.id;
+        }
+      } catch (_) {}
+    }
+
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (targetUid.isNotEmpty && targetUid != currentUid) {
+      await Get.to(() => SocialProfile(userID: targetUid));
+    }
+  }
 
   bool _hasValidCoordinates(JobModel job) {
     if (!job.lat.isFinite || !job.long.isFinite) return false;
@@ -341,12 +391,28 @@ class JobDetails extends StatelessWidget {
                               )
                             ],
                           ),
-                          Text(
-                            controller.model.value.isTanimi,
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "Montserrat"),
+                          ClickableTextContent(
+                            text: controller.model.value.isTanimi,
+                            startWith7line: true,
+                            fontSize: 15,
+                            fontColor: Colors.black,
+                            mentionColor: Colors.blue,
+                            hashtagColor: Colors.blue,
+                            urlColor: Colors.blue,
+                            interactiveColor: Colors.blue,
+                            onHashtagTap: (tag) {
+                              if (tag.trim().isEmpty) return;
+                              Get.to(() => TagPosts(tag: tag.trim()));
+                            },
+                            onUrlTap: (url) async {
+                              final uniqueKey = DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .toString();
+                              await RedirectionLink()
+                                  .goToLink(url, uniqueKey: uniqueKey);
+                            },
+                            onMentionTap: (mention) =>
+                                _openMentionProfile(mention),
                           ),
                           SizedBox(
                             height: 12,
@@ -459,13 +525,28 @@ class JobDetails extends StatelessWidget {
                               )
                             ],
                           ),
-                          Text(
-                            controller.model.value.about,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "Montserrat",
-                            ),
+                          ClickableTextContent(
+                            text: controller.model.value.about,
+                            startWith7line: true,
+                            fontSize: 15,
+                            fontColor: Colors.black,
+                            mentionColor: Colors.blue,
+                            hashtagColor: Colors.blue,
+                            urlColor: Colors.blue,
+                            interactiveColor: Colors.blue,
+                            onHashtagTap: (tag) {
+                              if (tag.trim().isEmpty) return;
+                              Get.to(() => TagPosts(tag: tag.trim()));
+                            },
+                            onUrlTap: (url) async {
+                              final uniqueKey = DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .toString();
+                              await RedirectionLink()
+                                  .goToLink(url, uniqueKey: uniqueKey);
+                            },
+                            onMentionTap: (mention) =>
+                                _openMentionProfile(mention),
                           ),
                           SizedBox(
                             height: 12,

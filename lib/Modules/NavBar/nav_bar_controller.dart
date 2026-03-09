@@ -238,7 +238,9 @@ class NavBarController extends GetxController
     final previous = selectedIndex.value;
     selectedIndex.value = index;
 
-    if (previous == 0 && index != 0) {
+    // Feed dışında bir sekmeye geçildiğinde medya seslerini her durumda sustur.
+    // (Sadece previous==0 kontrolü bazı hızlı geçişlerde kaçırabiliyordu.)
+    if (index != 0) {
       try {
         VideoStateManager.instance.pauseAllVideos(force: true);
       } catch (_) {}

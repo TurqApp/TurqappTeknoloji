@@ -87,14 +87,9 @@ class ScholarshipApplicationsContentController extends GetxController {
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>? ?? {};
         nickname.value =
-            (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+            (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
                 .toString();
-        avatarUrl.value = (data["avatarUrl"] ??
-                data["avatarUrl"] ??
-                data["avatarUrl"] ??
-                data["avatarUrl"] ??
-                "")
-            .toString();
+        avatarUrl.value = (data["avatarUrl"] ?? "").toString();
         fullName.value =
             "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
                 .trim();

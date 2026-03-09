@@ -8,13 +8,23 @@ import 'share_grid_controller.dart';
 class ShareGrid extends StatelessWidget {
   final String postID;
   final String postType;
+  final String _tag;
 
-  ShareGrid({super.key, required this.postID, required this.postType});
-  late final ShareGridController controller;
+  ShareGrid({super.key, required this.postID, required this.postType})
+      : _tag = 'ShareGrid_${postType}_$postID';
+
+  ShareGridController get controller {
+    if (Get.isRegistered<ShareGridController>(tag: _tag)) {
+      return Get.find<ShareGridController>(tag: _tag);
+    }
+    return Get.put(
+      ShareGridController(postType: postType, postID: postID),
+      tag: _tag,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    controller =
-        Get.put(ShareGridController(postType: postType, postID: postID));
     return Column(
       children: [
         Padding(

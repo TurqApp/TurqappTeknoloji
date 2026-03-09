@@ -39,87 +39,88 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'One Cikarilanlar',
-            style: TextStyle(
-              fontSize: 18,
-              fontFamily: 'MontserratMedium',
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'One Cikarilanlar',
+              style: TextStyle(
+                fontSize: 18,
+                fontFamily: 'MontserratMedium',
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          // Existing highlights
-          Obx(() {
-            if (controller.highlights.isEmpty && !_isCreatingNew) {
-              return _buildNewHighlightForm(controller);
-            }
-            return Column(
-              children: [
-                ...controller.highlights.map((h) {
-                  return ListTile(
-                    leading: ClipOval(
-                      child: SizedBox(
+            const SizedBox(height: 16),
+            // Existing highlights
+            Obx(() {
+              if (controller.highlights.isEmpty && !_isCreatingNew) {
+                return _buildNewHighlightForm(controller);
+              }
+              return Column(
+                children: [
+                  ...controller.highlights.map((h) {
+                    return ListTile(
+                      leading: ClipOval(
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: h.coverUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: h.coverUrl,
+                                  fit: BoxFit.cover,
+                                )
+                              : Container(
+                                  color: Colors.grey.withAlpha(30),
+                                  child: const Icon(CupertinoIcons.collections,
+                                      size: 18),
+                                ),
+                        ),
+                      ),
+                      title: Text(h.title,
+                          style: const TextStyle(
+                              fontFamily: 'MontserratMedium', fontSize: 14)),
+                      subtitle: Text('${h.storyIds.length} hikaye',
+                          style: const TextStyle(fontSize: 12)),
+                      trailing: h.storyIds.contains(widget.storyId)
+                          ? const Icon(CupertinoIcons.checkmark_circle_fill,
+                              color: Colors.green)
+                          : const Icon(CupertinoIcons.plus_circle,
+                              color: Colors.grey),
+                      onTap: () async {
+                        if (!h.storyIds.contains(widget.storyId)) {
+                          await controller.addStoryToHighlight(
+                              h.id, widget.storyId);
+                        }
+                        Get.back();
+                      },
+                    );
+                  }),
+                  const Divider(),
+                  if (_isCreatingNew)
+                    _buildNewHighlightForm(controller)
+                  else
+                    ListTile(
+                      leading: Container(
                         width: 40,
                         height: 40,
-                        child: h.coverUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: h.coverUrl,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: Colors.grey.withAlpha(30),
-                                child: const Icon(CupertinoIcons.collections,
-                                    size: 18),
-                              ),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.withAlpha(80)),
+                        ),
+                        child: const Icon(CupertinoIcons.add, size: 20),
                       ),
+                      title: const Text('Yeni One Cikarilan',
+                          style: TextStyle(
+                              fontFamily: 'MontserratMedium', fontSize: 14)),
+                      onTap: () => setState(() => _isCreatingNew = true),
                     ),
-                    title: Text(h.title,
-                        style: const TextStyle(
-                            fontFamily: 'MontserratMedium', fontSize: 14)),
-                    subtitle: Text('${h.storyIds.length} hikaye',
-                        style: const TextStyle(fontSize: 12)),
-                    trailing: h.storyIds.contains(widget.storyId)
-                        ? const Icon(CupertinoIcons.checkmark_circle_fill,
-                            color: Colors.green)
-                        : const Icon(CupertinoIcons.plus_circle,
-                            color: Colors.grey),
-                    onTap: () async {
-                      if (!h.storyIds.contains(widget.storyId)) {
-                        await controller.addStoryToHighlight(
-                            h.id, widget.storyId);
-                      }
-                      Get.back();
-                    },
-                  );
-                }),
-                const Divider(),
-                if (_isCreatingNew)
-                  _buildNewHighlightForm(controller)
-                else
-                  ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.withAlpha(80)),
-                      ),
-                      child: const Icon(CupertinoIcons.add, size: 20),
-                    ),
-                    title: const Text('Yeni One Cikarilan',
-                        style: TextStyle(
-                            fontFamily: 'MontserratMedium', fontSize: 14)),
-                    onTap: () => setState(() => _isCreatingNew = true),
-                  ),
-              ],
-            );
-          }),
-          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-        ],
+                ],
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

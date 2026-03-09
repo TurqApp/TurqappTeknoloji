@@ -93,6 +93,36 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
           );
         }
 
+        final error = _controller.errorText.value;
+        if (error != null && error.isNotEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline,
+                      color: Colors.orange, size: 32),
+                  const SizedBox(height: 10),
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'MontserratMedium',
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _controller.refreshAll,
+                    child: const Text('Tekrar Dene'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
         return TabBarView(
           controller: _tabController,
           children: const [

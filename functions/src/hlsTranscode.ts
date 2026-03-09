@@ -83,7 +83,7 @@ const buildForceKeyFrames = (
  * Video tipi bilgisi: path pattern'e göre belirlenir.
  */
 interface VideoTarget {
-  type: "post" | "chat" | "story";
+  type: "post" | "story";
   /** Temp dizin ve log için kullanılan benzersiz ID */
   id: string;
   /** HLS dosyalarının Storage'daki hedef dizini */
@@ -140,34 +140,7 @@ function resolveTarget(filePath: string): VideoTarget | null {
     };
   }
 
-  // Pattern 2: Chat mesaj videosu
-  const chatMatch = filePath.match(
-    /^ChatAssets\/([^/]+)\/messages\/([^/]+)\/video\.mp4$/i
-  );
-  if (chatMatch) {
-    const chatID = chatMatch[1];
-    const msgID = chatMatch[2];
-    return {
-      type: "chat",
-      id: `chat_${chatID}_${msgID}`,
-      hlsOutputPrefix: `ChatAssets/${chatID}/messages/${msgID}/hls`,
-      firestoreDoc: `conversations/${chatID}/messages/${msgID}`,
-      generateThumbnail: false,
-      buildProcessingData: () => ({
-        hlsStatus: "processing",
-      }),
-      buildSuccessData: (hlsUrl) => ({
-        videoUrl: hlsUrl,
-        hlsMasterUrl: hlsUrl,
-        hlsStatus: "ready",
-      }),
-      buildFailData: () => ({
-        hlsStatus: "failed",
-      }),
-    };
-  }
-
-  // Pattern 3: Story videosu
+  // Pattern 2: Story videosu
   const storyMatch = filePath.match(
     /^stories\/([^/]+)\/([^/]+)\/[^/]+\.(mp4|mov|m4v|webm)$/i
   );

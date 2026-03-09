@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 
 import '../Models/current_user_model.dart';
 
@@ -160,11 +161,15 @@ class CurrentUserService extends GetxController {
       // Different user or first init - reload everything
       if (_currentUser != null && _currentUser!.userID != firebaseUser.uid) {
         _purgeUserScopedCaches(_currentUser!.userID);
+        await _clearCache();
+        if (Get.isRegistered<UserProfileCacheService>()) {
+          await Get.find<UserProfileCacheService>().clearAll();
+        }
       }
       print('🔄 Initializing CurrentUserService for user: ${firebaseUser.uid}');
 
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
-      final cacheLoaded = await _loadFromCache();
+      final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
 
       // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
       unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
@@ -292,7 +297,7 @@ class CurrentUserService extends GetxController {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   /// Load user from cache
-  Future<bool> _loadFromCache() async {
+  Future<bool> _loadFromCache({String? expectedUid}) async {
     try {
       final cachedJson = _prefs?.getString(_cacheKey);
       final cachedTimestamp = _prefs?.getInt(_cacheTimestampKey);
@@ -311,6 +316,13 @@ class CurrentUserService extends GetxController {
 
       final json = jsonDecode(cachedJson) as Map<String, dynamic>;
       final user = CurrentUserModel.fromJson(json);
+      if (expectedUid != null &&
+          expectedUid.isNotEmpty &&
+          user.userID != expectedUid) {
+        // Different account on this device: ignore old cache.
+        await _clearCache();
+        return false;
+      }
 
       _currentUser = user;
       currentUserRx.value = user;
@@ -574,6 +586,57 @@ class CurrentUserService extends GetxController {
     mergeOverride(settings);
     mergeOverride(stats);
 
+    bool hasNonEmptyString(dynamic value) =>
+        value is String && value.trim().isNotEmpty;
+
+    void preferRootString(String key) {
+      if (!rootData.containsKey(key)) return;
+      final value = rootData[key];
+      if (hasNonEmptyString(value)) {
+        merged[key] = value;
+      }
+    }
+
+    void preferRootScalar(String key) {
+      if (!rootData.containsKey(key)) return;
+      final value = rootData[key];
+      if (value != null) {
+        merged[key] = value;
+      }
+    }
+
+    // Root canonical identity fields must win over legacy nested maps.
+    for (final key in const [
+      'avatarUrl',
+      'nickname',
+      'username',
+      'usernameLower',
+      'displayName',
+      'firstName',
+      'lastName',
+      'email',
+      'phoneNumber',
+      'bio',
+      'rozet',
+      'meslekKategori',
+      'token',
+    ]) {
+      preferRootString(key);
+    }
+    for (final key in const [
+      'counterOfFollowers',
+      'counterOfFollowings',
+      'counterOfPosts',
+      'counterOfLikes',
+      'antPoint',
+      'dailyDurations',
+      'createdDate',
+      'updatedDate',
+      'viewSelection',
+    ]) {
+      preferRootScalar(key);
+    }
+
     // blockedUsers/readStories/lastSearches canonical subcollections.
     if (merged['blockedUsers'] is! List) {
       final blocked = await readListCache('blockedUsers', () async {
@@ -689,11 +752,83 @@ class CurrentUserService extends GetxController {
           .doc(firebaseUser.uid)
           .update(normalizedFields);
 
+      await _applyOptimisticLocalPatch(normalizedFields);
+      _purgeUserScopedCaches(firebaseUser.uid);
+      if (Get.isRegistered<UserProfileCacheService>()) {
+        await Get.find<UserProfileCacheService>().invalidateUser(
+          firebaseUser.uid,
+        );
+      }
+
       print('✅ Fields updated: ${normalizedFields.keys.join(', ')}');
     } catch (e) {
       print('❌ Update fields error: $e');
       rethrow;
     }
+  }
+
+  Future<void> _applyOptimisticLocalPatch(
+    Map<String, dynamic> normalizedFields,
+  ) async {
+    final current = _currentUser;
+    if (current == null) return;
+
+    bool isDeleteMarker(dynamic value) => value is FieldValue;
+
+    String stringValue(String key, String fallback) {
+      if (!normalizedFields.containsKey(key)) return fallback;
+      final raw = normalizedFields[key];
+      if (raw == null || isDeleteMarker(raw)) return fallback;
+      return raw.toString();
+    }
+
+    int intValue(String key, int fallback) {
+      if (!normalizedFields.containsKey(key)) return fallback;
+      final raw = normalizedFields[key];
+      if (raw is int) return raw;
+      if (raw is num) return raw.toInt();
+      if (raw == null || isDeleteMarker(raw)) return fallback;
+      return int.tryParse(raw.toString()) ?? fallback;
+    }
+
+    bool boolValue(String key, bool fallback) {
+      if (!normalizedFields.containsKey(key)) return fallback;
+      final raw = normalizedFields[key];
+      if (raw is bool) return raw;
+      if (raw == null || isDeleteMarker(raw)) return fallback;
+      if (raw is num) return raw != 0;
+      return raw.toString().toLowerCase() == 'true';
+    }
+
+    String avatarValue() {
+      if (!normalizedFields.containsKey('avatarUrl')) return current.avatarUrl;
+      final raw = normalizedFields['avatarUrl'];
+      if (raw == null || isDeleteMarker(raw)) return current.avatarUrl;
+      final trimmed = raw.toString().trim();
+      return trimmed.isEmpty ? _defaultProfileImageUrl : trimmed;
+    }
+
+    final patched = current.copyWith(
+      firstName: stringValue('firstName', current.firstName),
+      lastName: stringValue('lastName', current.lastName),
+      nickname: stringValue('nickname', current.nickname),
+      avatarUrl: avatarValue(),
+      email: stringValue('email', current.email),
+      phoneNumber: stringValue('phoneNumber', current.phoneNumber),
+      bio: stringValue('bio', current.bio),
+      rozet: stringValue('rozet', current.rozet),
+      viewSelection: intValue('viewSelection', current.viewSelection),
+      counterOfFollowers:
+          intValue('counterOfFollowers', current.counterOfFollowers),
+      counterOfFollowings:
+          intValue('counterOfFollowings', current.counterOfFollowings),
+      counterOfPosts: intValue('counterOfPosts', current.counterOfPosts),
+      counterOfLikes: intValue('counterOfLikes', current.counterOfLikes),
+      gizliHesap: boolValue('isPrivate', current.gizliHesap),
+      hesapOnayi: boolValue('isApproved', current.hesapOnayi),
+    );
+
+    await _updateUser(patched);
   }
 
   Map<String, dynamic> _normalizeUserWriteFields(Map<String, dynamic> input) {
@@ -731,7 +866,7 @@ class CurrentUserService extends GetxController {
       }
     }
 
-    // Canonical public profile aliases (single source of truth: displayName/avatarUrl)
+    // Canonical public profile field (single source of truth: avatarUrl)
     if (!out.containsKey('displayName')) {
       final firstName = (out['firstName'] ?? '').toString().trim();
       final lastName = (out['lastName'] ?? '').toString().trim();
@@ -743,12 +878,10 @@ class CurrentUserService extends GetxController {
         out['displayName'] = out['nickname'];
       }
     }
-    if (!out.containsKey('avatarUrl')) {
-      out['avatarUrl'] = _defaultProfileImageUrl;
-    }
-    final normalizedAvatar = (out['avatarUrl'] ?? '').toString().trim();
-    if (normalizedAvatar.isEmpty) {
-      out['avatarUrl'] = _defaultProfileImageUrl;
+    if (out.containsKey('avatarUrl')) {
+      final normalizedAvatar = (out['avatarUrl'] ?? '').toString().trim();
+      out['avatarUrl'] =
+          normalizedAvatar.isEmpty ? _defaultProfileImageUrl : normalizedAvatar;
     }
     if (out.containsKey('account.fcmToken')) {
       if (!out.containsKey('fcmToken')) {
@@ -1043,6 +1176,9 @@ class CurrentUserService extends GetxController {
       await _stopFirebaseSync();
       await _clearCache();
       _purgeUserScopedCaches(oldUid);
+      if (Get.isRegistered<UserProfileCacheService>()) {
+        await Get.find<UserProfileCacheService>().clearAll();
+      }
       _silentLogAt.clear();
 
       // Cancel pending cache writes

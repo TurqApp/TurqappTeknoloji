@@ -16,14 +16,9 @@ class PostLikeContentController extends GetxController {
       fullName.value =
           "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
               .trim();
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
+      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
       nickname.value =
-          (data["displayName"] ?? data["username"] ?? data["nickname"] ?? "")
+          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
     });
   }

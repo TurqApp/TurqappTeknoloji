@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import axios from "axios";
 import { Resend } from "resend";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
@@ -16,6 +17,12 @@ const EMAIL_MIN_INTERVAL_MS = 60 * 1000;
 const EMAIL_DAILY_LIMIT = 8;
 const VERIFY_TTL_MS = 60 * 60 * 1000;
 const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
+const NETGSM_ENDPOINT = "https://api.netgsm.com.tr/sms/send/otp";
+const NETGSM_USERCODE = process.env.NETGSM_USERCODE || "3326062598";
+const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD || "BursCity42@";
+const NETGSM_MSG_HEADER = process.env.NETGSM_MSG_HEADER || "TurqApp";
+const PASSWORD_RESET_SMS_RESEND_MS = 5 * 60 * 1000;
+const PASSWORD_RESET_SMS_TTL_MS = 60 * 1000;
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -58,6 +65,19 @@ function verificationRef(
   purpose: VerificationPurpose,
 ): FirebaseFirestore.DocumentReference {
   return accountRef(emailLower).collection("verifications").doc(purpose);
+}
+
+function passwordResetSmsRef(emailLower: string): FirebaseFirestore.DocumentReference {
+  return accountRef(emailLower).collection("smsVerifications").doc("password_reset");
+}
+
+function isNetgsmSuccessResponse(rawBody: string): boolean {
+  const body = String(rawBody || "").trim();
+  if (body.startsWith("00")) return true;
+  const match = body.match(/<code>\s*([0-9]+)\s*<\/code>/i);
+  if (!match) return false;
+  const code = Number(match[1]);
+  return Number.isFinite(code) && code === 0;
 }
 
 async function resolveCaller(request: CallableRequest): Promise<{ uid: string; email: string }> {
@@ -565,5 +585,174 @@ export const updateUserPhoneNumberAfterEmailVerification = onCall(
     );
 
     return { success: true, message: "Telefon numarası güncellendi" };
+  },
+);
+
+export const sendPasswordResetSmsCode = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    try {
+      const emailRaw = request.data?.email;
+
+      if (!emailRaw || typeof emailRaw !== "string") {
+        throw new HttpsError("invalid-argument", "Email zorunludur");
+      }
+
+      const emailLower = emailRaw.toLowerCase().trim();
+      if (!validEmail(emailLower)) {
+        throw new HttpsError("invalid-argument", "Geçersiz e-posta formatı");
+      }
+
+      const userQuery = await db
+        .collection("users")
+        .where("email", "==", emailLower)
+        .limit(1)
+        .get();
+      if (userQuery.empty) {
+        throw new HttpsError("not-found", "Bu e-posta adresi kayıtlı değil");
+      }
+      const userSnap = userQuery.docs[0];
+      const uid = userSnap.id;
+      const phone = normalizePhone(String((userSnap.data() || {}).phoneNumber || ""));
+      if (phone.length !== 10 || !phone.startsWith("5")) {
+        throw new HttpsError("failed-precondition", "Bu hesap için kayıtlı telefon numarası bulunamadı");
+      }
+
+      const smsRef = passwordResetSmsRef(emailLower);
+      const existing = await smsRef.get();
+      const now = Date.now();
+      if (existing.exists) {
+        const data = existing.data() || {};
+        const lastSentAt = Number(data.lastSentAt || 0);
+        const leftMs = PASSWORD_RESET_SMS_RESEND_MS - (now - lastSentAt);
+        if (lastSentAt > 0 && leftMs > 0) {
+          const leftSec = Math.ceil(leftMs / 1000);
+          throw new HttpsError(
+            "failed-precondition",
+            `Yeni SMS için ${leftSec} saniye bekleyin.`,
+          );
+        }
+      }
+
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const xml = `<?xml version="1.0"?><mainbody><header><usercode>${NETGSM_USERCODE}</usercode><password>${NETGSM_PASSWORD}</password><msgheader>${NETGSM_MSG_HEADER}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
+
+      const response = await axios.post<string>(NETGSM_ENDPOINT, xml, {
+        headers: {
+          "Content-Type": "application/xml",
+        },
+        timeout: 15000,
+      });
+      const netgsmBody = String(response.data || "").trim();
+      if (!isNetgsmSuccessResponse(netgsmBody)) {
+        console.error("sendPasswordResetSmsCode netgsm-error", {
+          emailLower,
+          uid,
+          netgsmBody,
+        });
+        throw new HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
+      }
+
+      await smsRef.set(
+        {
+          email: emailLower,
+          uid,
+          verificationCode,
+          createdAt: now,
+          lastSentAt: now,
+          expiresAt: now + PASSWORD_RESET_SMS_TTL_MS,
+          attempts: 0,
+          verified: false,
+          consumed: false,
+        },
+        { merge: true },
+      );
+
+      return {
+        success: true,
+        message: "Doğrulama kodu kayıtlı telefon numaranıza gönderildi",
+        resendInSec: 300,
+        expiresInSec: 60,
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      const message = (error as { message?: string })?.message || "unknown";
+      console.error("sendPasswordResetSmsCode fatal-error", {
+        message,
+      });
+      throw new HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
+    }
+  },
+);
+
+export const verifyPasswordResetSmsCode = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    const emailRaw = request.data?.email;
+    const verificationCode = String(request.data?.verificationCode || "").trim();
+
+    if (!emailRaw || typeof emailRaw !== "string" || !verificationCode) {
+      throw new HttpsError("invalid-argument", "Email ve doğrulama kodu gereklidir");
+    }
+    const emailLower = emailRaw.toLowerCase().trim();
+    if (!validEmail(emailLower)) {
+      throw new HttpsError("invalid-argument", "Geçersiz e-posta formatı");
+    }
+    if (!/^\d{6}$/.test(verificationCode)) {
+      throw new HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
+    }
+
+    const smsRef = passwordResetSmsRef(emailLower);
+    const snap = await smsRef.get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.");
+    }
+
+    const data = snap.data() || {};
+    if (data.consumed === true) {
+      throw new HttpsError("failed-precondition", "Kod zaten kullanıldı. Yeni kod isteyin.");
+    }
+
+    const expiresAt = Number(data.expiresAt || 0);
+    const now = Date.now();
+    if (!expiresAt || now > expiresAt) {
+      throw new HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
+    }
+
+    const attempts = Number(data.attempts || 0);
+    if (attempts >= 5) {
+      throw new HttpsError("resource-exhausted", "Çok fazla hatalı deneme. Yeni kod isteyin.");
+    }
+
+    if (String(data.verificationCode || "") != verificationCode) {
+      await smsRef.set(
+        { attempts: admin.firestore.FieldValue.increment(1) },
+        { merge: true },
+      );
+      throw new HttpsError("invalid-argument", "Geçersiz doğrulama kodu");
+    }
+
+    await smsRef.set(
+      {
+        verified: true,
+        verifiedAt: now,
+        consumed: true,
+        consumedAt: now,
+      },
+      { merge: true },
+    );
+
+    return { success: true, message: "SMS doğrulaması başarılı" };
   },
 );

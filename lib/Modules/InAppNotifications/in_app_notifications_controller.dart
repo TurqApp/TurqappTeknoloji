@@ -17,6 +17,7 @@ class InAppNotificationsController extends GetxController {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _settingsSub;
   final List<NotificationModel> _allNotifications = <NotificationModel>[];
   Map<String, dynamic> _preferences = NotificationPreferencesService.defaults();
+  final RxInt unreadTotal = 0.obs;
 
   @override
   void onInit() {
@@ -105,9 +106,13 @@ class InAppNotificationsController extends GetxController {
       _allNotifications
         ..clear()
         ..addAll(allNotifications);
+      debugPrint(
+          "🔔 InApp notifications snapshot: total=${_allNotifications.length}");
       _applyFilters();
+      _refreshUnreadTotal();
     }, onError: (_) {
       complatedDataFetch.value = true;
+      debugPrint("🔔 InApp notifications listener error: $_");
     });
   }
 
@@ -120,6 +125,11 @@ class InAppNotificationsController extends GetxController {
               _preferences,
             ))
         .toList(growable: false);
+    _refreshUnreadTotal();
+  }
+
+  void _refreshUnreadTotal() {
+    unreadTotal.value = _allNotifications.where((n) => !n.isRead).length;
   }
 
   Future<void> delete(String docID) async {
@@ -174,9 +184,11 @@ class InAppNotificationsController extends GetxController {
           .collection("notifications")
           .doc(docID)
           .set({"read": true}, SetOptions(merge: true));
+      _refreshUnreadTotal();
     } catch (_) {
       list[idx].isRead = false;
       list.refresh();
+      _refreshUnreadTotal();
     }
   }
 
@@ -194,6 +206,7 @@ class InAppNotificationsController extends GetxController {
     }
     if (changed.isNotEmpty) {
       list.refresh();
+      _refreshUnreadTotal();
     }
 
     try {
@@ -219,6 +232,7 @@ class InAppNotificationsController extends GetxController {
       }
       if (changed.isNotEmpty) {
         list.refresh();
+        _refreshUnreadTotal();
       }
     }
   }
@@ -258,12 +272,13 @@ class InAppNotificationsController extends GetxController {
         item.isRead = true;
       }
       list.refresh();
+      _refreshUnreadTotal();
     } finally {
       busyMarkAllRead.value = false;
     }
   }
 
-  int get unreadCount => list.where((n) => !n.isRead).length;
+  int get unreadCount => unreadTotal.value;
 
   Future<void> bildirimleriTopluSil() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;

@@ -59,12 +59,16 @@ class ClickableTextController extends GetxController {
     for (final m in pattern.allMatches(text)) {
       if (m.start > lastEnd) {
         final plain = text.substring(lastEnd, m.start);
-        result.add(TextSpan(
-          text: plain,
-          style: _plainStyle(),
-          recognizer: TapGestureRecognizer()
-            ..onTap = () => onPlainTextTap?.call(plain.trim()),
-        ));
+        result.add(
+          TextSpan(
+            text: plain,
+            style: _plainStyle(),
+            recognizer: onPlainTextTap == null
+                ? null
+                : (TapGestureRecognizer()
+                  ..onTap = () => onPlainTextTap?.call(plain.trim())),
+          ),
+        );
       }
 
       final match = m.group(0)!;
@@ -105,8 +109,10 @@ class ClickableTextController extends GetxController {
           result.add(TextSpan(
             text: match,
             style: _plainStyle(),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => onPlainTextTap?.call(match.trim()),
+            recognizer: onPlainTextTap == null
+                ? null
+                : (TapGestureRecognizer()
+                  ..onTap = () => onPlainTextTap?.call(match.trim())),
           ));
         }
       }
@@ -119,8 +125,10 @@ class ClickableTextController extends GetxController {
       result.add(TextSpan(
         text: plain,
         style: _plainStyle(),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () => onPlainTextTap?.call(plain.trim()),
+        recognizer: onPlainTextTap == null
+            ? null
+            : (TapGestureRecognizer()
+              ..onTap = () => onPlainTextTap?.call(plain.trim())),
       ));
     }
 
@@ -200,6 +208,8 @@ class ClickableTextContent extends StatelessWidget {
   final bool startWith7line;
   final Color? interactiveColor; // YENİ
   final bool showEllipsisOverlay; // YENİ: 7 satır kısaltmada sağ-altta '…'
+  final bool toggleExpandOnTextTap;
+  final Color? expandButtonColor;
 
   const ClickableTextContent({
     super.key,
@@ -216,6 +226,8 @@ class ClickableTextContent extends StatelessWidget {
     this.startWith7line = false,
     this.interactiveColor, // YENİ
     this.showEllipsisOverlay = false,
+    this.toggleExpandOnTextTap = false,
+    this.expandButtonColor,
   });
 
   @override
@@ -229,7 +241,8 @@ class ClickableTextContent extends StatelessWidget {
         '${colorKey(mentionColor)}_'
         '${colorKey(hashtagColor)}_'
         '${colorKey(interactiveColor)}_'
-        '${startWith7line ? '7' : '2'}';
+        '${startWith7line ? '7' : '2'}_'
+        '${toggleExpandOnTextTap ? 'tap' : 'btn'}';
 
     final controller = Get.put(
       ClickableTextController(
@@ -271,13 +284,10 @@ class ClickableTextContent extends StatelessWidget {
           final showOverlay = showEllipsisOverlay &&
               collapsed &&
               controller.showExpandButton.value;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (showOverlay)
-                // Yerleşim problemi olmadan, 7. satırın sonunda yerinde
-                // gözükecek şekilde RichText'in kendi ellipsis'ini kullan
-                RichText(
+          Widget textBody = showOverlay
+              // Yerleşim problemi olmadan, 7. satırın sonunda yerinde
+              // gözükecek şekilde RichText'in kendi ellipsis'ini kullan
+              ? RichText(
                   key: ValueKey(controller.expanded.value),
                   text: TextSpan(
                     style: baseStyle,
@@ -286,14 +296,26 @@ class ClickableTextContent extends StatelessWidget {
                   maxLines: maxLines,
                   overflow: TextOverflow.ellipsis,
                 )
-              else
-                RichText(
+              : RichText(
                   key: ValueKey(controller.expanded.value),
                   text: TextSpan(style: baseStyle, children: controller.spans),
                   maxLines: maxLines,
                   overflow:
                       collapsed ? TextOverflow.ellipsis : TextOverflow.visible,
-                ),
+                );
+
+          if (toggleExpandOnTextTap && controller.showExpandButton.value) {
+            textBody = GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: controller.toggleExpand,
+              child: textBody,
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              textBody,
               if (controller.showExpandButton.value)
                 TextButton(
                   style: TextButton.styleFrom(
@@ -308,7 +330,10 @@ class ClickableTextContent extends StatelessWidget {
                         : 'Daha fazla göster',
                     style: TextStyle(
                       fontSize: (fontSize ?? 15) - 1,
-                      color: interactiveColor ?? urlColor ?? Colors.white,
+                      color: expandButtonColor ??
+                          interactiveColor ??
+                          urlColor ??
+                          Colors.white,
                       fontFamily: "Montserrat",
                     ),
                   ),

@@ -11,7 +11,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 
@@ -187,18 +190,19 @@ class EditProfileController extends GetxController {
     try {
       // Eğer yeni bir kırpılmış resim varsa, önce storage'a yükle
       if (croppedImage.value != null) {
-        await _cleanupOldAvatarFiles(uid);
         final ts = DateTime.now().millisecondsSinceEpoch;
+        final fileBase = '${uid}_${ts}_avatarUrl_thumb_150';
         newImageUrl = await WebpUploadService.uploadBytesAsWebp(
           storage: FirebaseStorage.instance,
           bytes: croppedImage.value!,
-          storagePathWithoutExt: 'users/$uid/${uid}_${ts}_avatarUrl_thumb_150',
+          storagePathWithoutExt: 'users/$uid/$fileBase',
         );
         // Hard guarantee: persist avatar URL directly to users root doc.
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'avatarUrl': newImageUrl,
           'updatedDate': DateTime.now().millisecondsSinceEpoch,
         }, SetOptions(merge: true));
+        await _cleanupOldAvatarFiles(uid, keepFileName: '$fileBase.webp');
       }
 
       // 🎯 Using CurrentUserService.updateFields (cache + Firebase sync)
@@ -207,6 +211,7 @@ class EditProfileController extends GetxController {
         "lastName": lastNameController.text,
         if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
+      await _refreshAvatarNicknameSurfaces(uid);
 
       Get.back();
       AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
@@ -228,6 +233,7 @@ class EditProfileController extends GetxController {
         try {
           // 🎯 Using CurrentUserService.updateFields
           await userService.updateFields({'avatarUrl': defaultAvatarUrl});
+          await _refreshAvatarNicknameSurfaces(uid);
 
           // Yerel önizlemeleri temizle
           croppedImage.value = null;
@@ -242,12 +248,25 @@ class EditProfileController extends GetxController {
     );
   }
 
-  Future<void> _cleanupOldAvatarFiles(String uid) async {
+  Future<void> _refreshAvatarNicknameSurfaces(String uid) async {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      await Get.find<UserProfileCacheService>().invalidateUser(uid);
+    }
+    PostContentController.invalidateUserProfileCache(uid);
+    await userService.forceRefresh();
+    await StoryRowController.refreshStoriesGlobally();
+  }
+
+  Future<void> _cleanupOldAvatarFiles(
+    String uid, {
+    String? keepFileName,
+  }) async {
     try {
       final folderRef = FirebaseStorage.instance.ref().child('users/$uid');
       final list = await folderRef.listAll();
       for (final item in list.items) {
         final name = item.name;
+        if (keepFileName != null && name == keepFileName) continue;
         if (name.contains('_avatarUrl') && name.endsWith('.webp')) {
           await item.delete();
         }

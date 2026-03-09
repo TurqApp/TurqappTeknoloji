@@ -228,6 +228,29 @@ class PostsModel {
     final parsedImgUrls = parseImageUrls(data['img']);
     final firstImgAspect = parseFirstImageAspect(data['imgMap']) ??
         parseFirstImageAspect(data['img']);
+    final authorMap = data['author'] is Map<String, dynamic>
+        ? data['author'] as Map<String, dynamic>
+        : (data['author'] is Map
+            ? Map<String, dynamic>.from(data['author'] as Map)
+            : const <String, dynamic>{});
+    final resolvedAuthorNickname = (data['authorNickname'] ??
+            authorMap['nickname'] ??
+            authorMap['username'] ??
+            data['nickname'] ??
+            '')
+        .toString();
+    final resolvedAuthorAvatarUrl = (data['authorAvatarUrl'] ??
+            authorMap['avatarUrl'] ??
+            data['avatarUrl'] ??
+            '')
+        .toString();
+    final resolvedUserId = (data['userID'] ??
+            data['userId'] ??
+            authorMap['userID'] ??
+            authorMap['userId'] ??
+            '')
+        .toString()
+        .trim();
 
     return PostsModel(
       ad: data['ad'] ?? false,
@@ -257,9 +280,9 @@ class PostsModel {
       tags: parseList(data['tags']),
       thumbnail: data['thumbnail'] ?? '',
       timeStamp: parseNum(data['timeStamp']),
-      userID: data['userID'] ?? '',
-      authorNickname: data['authorNickname'] ?? '',
-      authorAvatarUrl: data['authorAvatarUrl'] ?? '',
+      userID: resolvedUserId,
+      authorNickname: resolvedAuthorNickname,
+      authorAvatarUrl: resolvedAuthorAvatarUrl,
       video: data['video'] ?? '',
       hlsMasterUrl: data['hlsMasterUrl'] ?? '',
       hlsStatus: data['hlsStatus'] ?? 'none',

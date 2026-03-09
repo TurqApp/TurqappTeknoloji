@@ -58,6 +58,12 @@ class NavBarView extends StatelessWidget {
       Get.put(StoryRowController());
     }
 
+    // Deep link çözümleme her NavBar açılışında tetiklensin.
+    // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
+    if (Get.isRegistered<DeepLinkService>()) {
+      Get.find<DeepLinkService>().start();
+    }
+
     // Controller registration should always be enforced (Android lifecycle can dispose lazies).
     // Keep one-time side effects below behind static guard.
     if (_controllersPrepared) return;
@@ -72,10 +78,6 @@ class NavBarView extends StatelessWidget {
     // Short preload sadece bir kez tetiklensin (rebuild spam'i engelle)
     if (Get.isRegistered<ShortController>()) {
       controller.ensureProactiveShortPreloadStarted();
-    }
-
-    if (Get.isRegistered<DeepLinkService>()) {
-      Get.find<DeepLinkService>().start();
     }
 
     _controllersPrepared = true;
@@ -126,9 +128,6 @@ class NavBarView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final waitingInitialLink = deepLinkService != null &&
-          !deepLinkService!.initialLinkResolved.value;
-
       // Define pages and icons
       final icons = [
         'assets/icons/house',
@@ -153,20 +152,17 @@ class NavBarView extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             children: [
               // Current page
-              if (waitingInitialLink)
-                const ColoredBox(color: Colors.white)
-              else
-                Column(
-                  children: [
-                    const OfflineIndicator(),
-                    Expanded(
-                      child: _buildSelectedPage(),
-                    ),
-                  ],
-                ),
+              Column(
+                children: [
+                  const OfflineIndicator(),
+                  Expanded(
+                    child: _buildSelectedPage(),
+                  ),
+                ],
+              ),
 
               // Feed sekmesinde status bar altına beyaz zemin (üst katman)
-              if (!waitingInitialLink && controller.selectedIndex.value == 0)
+              if (controller.selectedIndex.value == 0)
                 Positioned(
                   top: 0,
                   left: 0,

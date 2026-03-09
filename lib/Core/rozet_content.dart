@@ -3,6 +3,38 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+Color mapRozetToColor(String rozetRaw) {
+  final key = rozetRaw.trim().toLowerCase();
+  switch (key) {
+    case "kirmizi":
+    case "kırmızı":
+    case "red":
+      return Colors.red;
+    case "mavi":
+    case "açık mavi":
+    case "acik mavi":
+    case "blue":
+      return Colors.blue;
+    case "sari":
+    case "sarı":
+    case "yellow":
+      return Colors.orange;
+    case "siyah":
+    case "black":
+      return Colors.black;
+    case "gri":
+    case "gray":
+    case "grey":
+      return Colors.grey;
+    case "turkuaz":
+    case "turquoise":
+    case "cyan":
+      return const Color(0xFF40E0D0);
+    default:
+      return Colors.transparent;
+  }
+}
+
 class RozetController extends GetxController {
   final String userID;
   RozetController(this.userID);
@@ -19,31 +51,14 @@ class RozetController extends GetxController {
     _loadRozet();
   }
 
-  Color _mapRozetColor(String rozet) {
-    switch (rozet) {
-      case "Kirmizi":
-        return Colors.red;
-      case "Mavi":
-        return Colors.blue;
-      case "Sari":
-        return Colors.orange;
-      case "Siyah":
-        return Colors.black;
-      case "Gri":
-        return Colors.grey;
-      case "Turkuaz":
-        return const Color(0xFF40E0D0);
-      default:
-        return Colors.transparent;
-    }
-  }
-
   Future<void> _loadRozet() async {
     _pruneStaleCache();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cachedColor = _badgeCache[userID];
     final cachedAt = _badgeCacheMs[userID] ?? 0;
-    final isFresh = cachedColor != null && (nowMs - cachedAt) < _cacheTtlMs;
+    final isFresh = cachedColor != null &&
+        cachedColor != Colors.transparent &&
+        (nowMs - cachedAt) < _cacheTtlMs;
     if (isFresh) {
       color.value = cachedColor;
       return;
@@ -86,11 +101,19 @@ class RozetController extends GetxController {
         return;
       }
       final data = doc.data() ?? const <String, dynamic>{};
-      final rozet = (data["rozet"] ?? "").toString();
-      final mapped = _mapRozetColor(rozet);
+      final profile = (data["profile"] is Map)
+          ? Map<String, dynamic>.from(data["profile"] as Map)
+          : const <String, dynamic>{};
+      final rozet = (data["rozet"] ?? profile["rozet"] ?? "").toString();
+      final mapped = mapRozetToColor(rozet);
       color.value = mapped;
-      _badgeCache[userID] = mapped;
-      _badgeCacheMs[userID] = DateTime.now().millisecondsSinceEpoch;
+      if (mapped == Colors.transparent) {
+        _badgeCache.remove(userID);
+        _badgeCacheMs.remove(userID);
+      } else {
+        _badgeCache[userID] = mapped;
+        _badgeCacheMs[userID] = DateTime.now().millisecondsSinceEpoch;
+      }
     } catch (_) {
       color.value = Colors.transparent;
     }
@@ -105,53 +128,66 @@ class RozetController extends GetxController {
 class RozetContent extends StatelessWidget {
   final double size;
   final String userID;
+  final double leftSpacing;
+  final String? rozetValue;
 
   const RozetContent({
     super.key,
     required this.size,
     required this.userID,
+    this.leftSpacing = 3,
+    this.rozetValue,
   });
+
+  Widget _badge(Color color) {
+    return Transform.translate(
+      offset: const Offset(0, -1),
+      child: Padding(
+        padding: EdgeInsets.only(left: leftSpacing),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: size - 7,
+              height: size - 7,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+            Icon(
+              CupertinoIcons.checkmark_seal_fill,
+              color: color,
+              size: size,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final knownRozet = (rozetValue ?? '').trim();
+    if (knownRozet.isNotEmpty) {
+      final mapped = mapRozetToColor(knownRozet);
+      return mapped == Colors.transparent
+          ? const SizedBox.shrink()
+          : _badge(mapped);
+    }
+
+    if (userID.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final tag = "rozet_$userID";
     final controller = Get.put(RozetController(userID), tag: tag);
 
     return Obx(() {
       final color = controller.color.value;
-      return controller.color.value != Colors.transparent
-          ? Transform.translate(
-              offset: const Offset(0, -1),
-              child: Stack(
-                children: [
-                  if (color != Colors.transparent)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 3),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: size - 7,
-                            height: size - 7,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          Icon(
-                            CupertinoIcons.checkmark_seal_fill,
-                            color: color,
-                            size: size,
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    const SizedBox(width: 2),
-                ],
-              ),
-            )
-          : SizedBox();
+      return color == Colors.transparent
+          ? const SizedBox.shrink()
+          : _badge(color);
     });
   }
 }

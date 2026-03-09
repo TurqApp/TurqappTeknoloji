@@ -66,6 +66,8 @@ class _SplashViewState extends State<SplashView> {
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
   Timer? _uiTickTimer;
+  Timer? _startupWatchdogTimer;
+  bool _didNavigate = false;
 
   @override
   void initState() {
@@ -84,6 +86,25 @@ class _SplashViewState extends State<SplashView> {
 
     // Firebase hazır olmadan FirebasePerformance çağrısı yapılmasın.
     unawaited(_initApp());
+    final watchdogDuration = Platform.isIOS
+        ? const Duration(seconds: 4)
+        : const Duration(seconds: 8);
+    _startupWatchdogTimer = Timer(watchdogDuration, () {
+      if (!mounted || _didNavigate) return;
+      debugPrint('[StartupTrace] watchdog fired -> fallback navigation');
+      _navigateToPrimaryRoute();
+
+      // Bazı iOS anlarında ilk yönlendirme UI thread yoğunluğunda kaçabiliyor.
+      // Kısa aralıklarla birkaç kez daha deneyip beyaz ekranda kalmayı engelle.
+      for (final retryMs in <int>[900, 1800, 2800]) {
+        Future.delayed(Duration(milliseconds: retryMs), () {
+          if (!mounted || _didNavigate) return;
+          debugPrint(
+              '[StartupTrace] watchdog retry +${retryMs}ms -> fallback navigation');
+          _navigateToPrimaryRoute();
+        });
+      }
+    });
 
     _uiTickTimer = Timer.periodic(const Duration(milliseconds: 240), (_) {
       if (mounted) setState(() {});
@@ -114,6 +135,7 @@ class _SplashViewState extends State<SplashView> {
         unawaited(_checkLockApp(prefs: prefs).then((v) async {
           if (!mounted) return;
           if (v) {
+            _didNavigate = true;
             Get.offAll(() => const MaintenanceView());
           }
         }));
@@ -132,6 +154,7 @@ class _SplashViewState extends State<SplashView> {
       // 🔥 Bakım modu kontrolü
       if (shouldLockApp) {
         if (!mounted) return;
+        _didNavigate = true;
         Get.offAll(() => const MaintenanceView());
         return;
       }
@@ -169,17 +192,31 @@ class _SplashViewState extends State<SplashView> {
     }
 
     if (!mounted) return;
-    final bool loggedIn = FirebaseAuth.instance.currentUser != null;
+    startupStopwatch.stop();
+    debugPrint('⚡ App startup: ${startupStopwatch.elapsedMilliseconds}ms');
+    _navigateToPrimaryRoute();
+  }
+
+  void _navigateToPrimaryRoute() {
+    if (!mounted || _didNavigate) return;
+    bool loggedIn = false;
+    try {
+      loggedIn = FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      loggedIn = false;
+    }
     final navDelta = DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
     debugPrint(
         '[StartupTrace] launch->NavDecision(${loggedIn ? 'NavBar' : 'SignIn'}) = ${navDelta}ms');
-    startupStopwatch.stop();
-    debugPrint('⚡ App startup: ${startupStopwatch.elapsedMilliseconds}ms');
+    _didNavigate = true;
     if (loggedIn) {
+      if (Get.isRegistered<NavBarController>()) {
+        Get.find<NavBarController>().selectedIndex.value = 0;
+      }
       Get.offAll(() => NavBarView());
-    } else {
-      Get.offAll(() => SignIn());
+      return;
     }
+    Get.offAll(() => SignIn());
   }
 
   /// Navigasyonu bloklamayan arka plan işleri
@@ -323,19 +360,21 @@ class _SplashViewState extends State<SplashView> {
     Get.lazyPut(() => NetworkAwarenessService());
     Get.lazyPut(() => OfflineModeService.instance);
 
-    Get.put(GlobalLoaderController());
+    if (!Get.isRegistered<GlobalLoaderController>()) {
+      Get.put(GlobalLoaderController(), permanent: true);
+    }
     Get.put(StoryInteractionOptimizer());
     Get.lazyPut(() => UnreadMessagesController());
     Get.lazyPut(() => NavBarController());
     Get.lazyPut(() => ProfileController());
     Get.lazyPut(() => AgendaController());
-    Get.lazyPut(() => RecommendedUserListController());
+    Get.lazyPut(() => RecommendedUserListController(), fenix: true);
     Get.lazyPut(() => ExploreController());
     Get.lazyPut(() => ShortController());
     Get.lazyPut(() => EducationController());
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
-    Get.lazyPut(() => StoryRowController());
+    Get.lazyPut(() => StoryRowController(), fenix: true);
     if (!Get.isRegistered<UploadQueueService>()) {
       Get.put(UploadQueueService(), permanent: true);
     }
@@ -732,7 +771,20 @@ class _SplashViewState extends State<SplashView> {
       if (cachedLock != null && cacheValid) {
         // Arka planda Firestore'dan güncelle
         unawaited(_refreshLockAppCache(prefs));
-        return cachedLock;
+        // Kalıcı güvenlik: cache'teki true tek başına lock tetiklemesin.
+        // Yalnızca sunucu doğrularsa bakım ekranı aç.
+        if (!cachedLock) return false;
+        try {
+          final doc = await _getLockConfigDoc().timeout(const Duration(
+            seconds: 2,
+          ));
+          final bool confirmedLock = _readLockApp(doc);
+          await _saveLockAppCache(prefs, confirmedLock);
+          return confirmedLock;
+        } catch (_) {
+          await _saveLockAppCache(prefs, false);
+          return false;
+        }
       }
 
       // Cache yoksa TestFlight kontrolü yap (PackageInfo platform channel çağrısı)
@@ -745,37 +797,49 @@ class _SplashViewState extends State<SplashView> {
       // Cache yok veya eski — Firestore'dan çek (timeout ile)
       final doc = await _getLockConfigDoc().timeout(const Duration(seconds: 3),
           onTimeout: () {
-        // Timeout durumunda son cache'e güven veya aç
-        return cachedLock == null
-            ? throw TimeoutException('lockApp timeout')
-            : throw TimeoutException('use cache');
+        throw TimeoutException('lockApp timeout');
       });
 
-      final bool lockApp = doc.get("lockApp") ?? true;
-      await prefs.setBool('lockApp_cached', lockApp);
-      await prefs.setInt(
-          'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
+      final bool lockApp = _readLockApp(doc);
+      await _saveLockAppCache(prefs, lockApp);
       return lockApp;
     } on TimeoutException {
-      // Timeout — cache varsa kullan, yoksa aç (prefs zaten parametre olarak geldi)
-      final cachedLock = prefs.getBool('lockApp_cached');
-      return cachedLock ?? false;
+      // Kalıcı fail-open: timeout durumunda kullanıcıyı yanlışlıkla kilitleme.
+      await _saveLockAppCache(prefs, false);
+      return false;
     } catch (e) {
       print("❌ lockApp kontrolü hatası: $e");
       // Permission/network errors should not lock real users out.
-      final cachedLock = prefs.getBool('lockApp_cached');
-      return cachedLock ?? false;
+      await _saveLockAppCache(prefs, false);
+      return false;
     }
   }
 
   Future<void> _refreshLockAppCache(SharedPreferences prefs) async {
     try {
       final doc = await _getLockConfigDoc();
-      final bool lockApp = doc.get("lockApp") ?? true;
-      await prefs.setBool('lockApp_cached', lockApp);
-      await prefs.setInt(
-          'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
+      final bool lockApp = _readLockApp(doc);
+      await _saveLockAppCache(prefs, lockApp);
     } catch (_) {}
+  }
+
+  bool _readLockApp(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final raw = data?['lockApp'];
+    if (raw is bool) return raw;
+    if (raw is num) return raw != 0;
+    if (raw is String) {
+      final v = raw.trim().toLowerCase();
+      return v == 'true' || v == '1' || v == 'yes' || v == 'on';
+    }
+    // Alan eksik/bozuk ise güvenli varsayılan: uygulamayı kilitleme.
+    return false;
+  }
+
+  Future<void> _saveLockAppCache(SharedPreferences prefs, bool lockApp) async {
+    await prefs.setBool('lockApp_cached', lockApp);
+    await prefs.setInt(
+        'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _getLockConfigDoc() async {
@@ -788,6 +852,7 @@ class _SplashViewState extends State<SplashView> {
   @override
   void dispose() {
     _uiTickTimer?.cancel();
+    _startupWatchdogTimer?.cancel();
     super.dispose();
   }
 

@@ -271,22 +271,26 @@ class _AdminPushViewState extends State<AdminPushView> {
         minAge: minAge,
         maxAge: maxAge,
       );
-      if (targetUids.isEmpty) {
+      final senderUid = FirebaseAuth.instance.currentUser?.uid ?? "admin";
+      final filteredTargetUids = targetUids
+          .where((targetUid) => targetUid != senderUid)
+          .toList(growable: false);
+
+      if (filteredTargetUids.isEmpty) {
         Get.snackbar(
           "Sonuç Yok",
-          "Bu filtreye uyan kullanıcı bulunamadı.",
+          "Bu filtreye uyan (kendi hesabın hariç) kullanıcı bulunamadı.",
           snackPosition: SnackPosition.BOTTOM,
         );
         return;
       }
 
-      final senderUid = FirebaseAuth.instance.currentUser?.uid ?? "admin";
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       const batchSize = 400;
 
-      for (var i = 0; i < targetUids.length; i += batchSize) {
+      for (var i = 0; i < filteredTargetUids.length; i += batchSize) {
         final batch = FirebaseFirestore.instance.batch();
-        final chunk = targetUids.skip(i).take(batchSize);
+        final chunk = filteredTargetUids.skip(i).take(batchSize);
         for (final targetUid in chunk) {
           final docRef = FirebaseFirestore.instance
               .collection("users")
@@ -313,7 +317,7 @@ class _AdminPushViewState extends State<AdminPushView> {
         final now = DateTime.now();
         _lastReport =
             "Saat ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n"
-            "Hedef: ${targetUids.length} kullanıcı\n"
+            "Hedef: ${filteredTargetUids.length} kullanıcı\n"
             "Tür: $type\n"
             "UID: ${uid.isEmpty ? '-' : uid}\n"
             "Meslek: ${meslek.isEmpty ? '-' : meslek}\n"
@@ -327,7 +331,7 @@ class _AdminPushViewState extends State<AdminPushView> {
           "title": title,
           "body": body,
           "type": type,
-          "targetCount": targetUids.length,
+          "targetCount": filteredTargetUids.length,
           "filters": {
             "uid": uid,
             "meslek": meslek,
@@ -343,7 +347,7 @@ class _AdminPushViewState extends State<AdminPushView> {
       }
       Get.snackbar(
         "Gönderildi",
-        "${targetUids.length} kullanıcı için bildirim kuyruğa alındı.",
+        "${filteredTargetUids.length} kullanıcı için bildirim kuyruğa alındı.",
         snackPosition: SnackPosition.BOTTOM,
       );
       _bodyController.clear();

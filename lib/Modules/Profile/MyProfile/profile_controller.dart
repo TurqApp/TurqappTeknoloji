@@ -143,7 +143,9 @@ class ProfileController extends GetxController {
     try {
       final posts = await _linkService.fetchResharedPosts(uid, refs);
       if (posts.isNotEmpty || reshares.isEmpty) {
-        reshares.value = posts;
+        // fetchResharedPosts bazı akışlarda unmodifiable liste döndürebiliyor.
+        // RxList'e modifiable kopya atarak insert/remove hatalarını engelle.
+        reshares.assignAll(List<PostsModel>.from(posts));
       }
     } catch (e) {
       print('ProfileController hydrate reshares error: $e');

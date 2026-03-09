@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 
 /// Instagram tarzı akıcı video deneyimi için video durumu yöneticisi
 /// Her videonun oynatma pozisyonunu ve durumunu bellekte tutar
@@ -156,12 +157,23 @@ class VideoStateManager extends GetxController {
 
       try {
         final handle = entry.value;
-        if (handle.isInitialized && handle.isPlaying) {
+        if (handle.isInitialized) {
           handle.pause();
+          // iOS'ta bazı durumlarda pause gecikmeli gelebiliyor; sesi hemen kes.
+          handle.setVolume(0.0);
         }
       } catch (e) {
         // Hata varsa sessizce devam et
       }
+    }
+
+    if (allowedDocID != null) {
+      try {
+        final allowed = _allVideoControllers[allowedDocID];
+        if (allowed != null && allowed.isInitialized) {
+          allowed.setVolume(1.0);
+        }
+      } catch (_) {}
     }
 
     if (allowedDocID != null) {
@@ -185,6 +197,9 @@ class VideoStateManager extends GetxController {
         current != null &&
         current.isInitialized &&
         current.isPlaying) {
+      try {
+        current.setVolume(1.0);
+      } catch (_) {}
       return;
     }
 
@@ -233,6 +248,9 @@ class VideoStateManager extends GetxController {
     _pendingPlayTimer = null;
     _playRequestSeq++;
     pauseAllExcept(null);
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
   }
 
   void enterExclusiveMode(String docID) {

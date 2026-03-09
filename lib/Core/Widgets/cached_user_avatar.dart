@@ -74,22 +74,51 @@ class CachedUserAvatar extends StatelessWidget {
 
   Widget _buildAvatar(String url) {
     final normalizedUrl = _normalizeUrl(url);
+    if (normalizedUrl.isEmpty) {
+      return _fallbackAvatar();
+    }
+    return _buildNetworkAvatar(normalizedUrl);
+  }
+
+  Widget _buildNetworkAvatar(
+    String imageUrl, {
+    bool attemptedDefault = false,
+  }) {
+    final size = radius * 2;
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          cacheManager: TurqImageCacheManager.instance,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(
+            color: backgroundColor ?? Colors.grey[300],
+          ),
+          errorWidget: (_, __, ___) {
+            if (!attemptedDefault && imageUrl != _defaultProfileImageUrl) {
+              return _buildNetworkAvatar(
+                _defaultProfileImageUrl,
+                attemptedDefault: true,
+              );
+            }
+            return _fallbackAvatar();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _fallbackAvatar() {
     return CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor ?? Colors.grey[300],
-      backgroundImage: normalizedUrl.isNotEmpty
-          ? CachedNetworkImageProvider(
-              normalizedUrl,
-              cacheManager: TurqImageCacheManager.instance,
-            ) as ImageProvider
-          : null,
-      child: normalizedUrl.isEmpty
-          ? Icon(
-              Icons.person,
-              size: radius,
-              color: Colors.grey[600],
-            )
-          : null,
+      child: Icon(
+        Icons.person,
+        size: radius,
+        color: Colors.grey[600],
+      ),
     );
   }
 

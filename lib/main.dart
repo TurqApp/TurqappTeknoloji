@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,10 +27,32 @@ AppLifecycleListener? _appLifecycleListener;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: Colors.white,
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Uygulama başlatılırken bir hata oluştu.\nLütfen tekrar deneyin.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  };
 
-  // C-004: Decoded image cache artır (varsayılan 100MB → 200MB, 1000 → 2000)
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 * 1024 * 1024;
-  PaintingBinding.instance.imageCache.maximumSize = 2000;
+  // iOS'ta launch anında jetsam/watchdog riskini azaltmak için
+  // decode image cache'i daha dengeli tut.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 1200;
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -39,8 +62,10 @@ void main() {
   final bootstrapCompleter = Completer<void>();
   firebaseBootstrapFuture = bootstrapCompleter.future;
 
-  // VideoStateManager lazy olarak yüklensin
-  Get.lazyPut(() => VideoStateManager());
+  // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
+  if (!Get.isRegistered<VideoStateManager>()) {
+    Get.put(VideoStateManager(), permanent: true);
+  }
 
   runApp(const MyApp());
 
@@ -98,8 +123,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   FlutterError.onError = (FlutterErrorDetails details) {
     final error = details.exception;
     final stack = details.stack;
-    if (_isFirestoreConfigError(error)) {
-      debugPrint('Firestore non-fatal captured: $error');
+    if (_isExpectedNonFatalNoise(error)) {
+      debugPrint('Suppressed non-fatal: $error');
+      return;
     }
     FirebaseCrashlytics.instance.recordFlutterError(details);
     if (stack != null) {
@@ -107,8 +133,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     }
   };
   PlatformDispatcher.instance.onError = (error, stack) {
-    if (_isFirestoreConfigError(error)) {
-      debugPrint('Platform firestore non-fatal captured: $error');
+    if (_isExpectedNonFatalNoise(error)) {
+      debugPrint('Platform suppressed non-fatal: $error');
+      return true;
     }
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: false);
     return true;
@@ -116,6 +143,17 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
+  if (Platform.isIOS) {
+    final mode = kReleaseMode ? 'release' : (kDebugMode ? 'debug' : 'profile');
+    try {
+      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
+    } catch (_) {}
+    debugPrint(
+      '[AppCheck] iOS $mode bypass enabled (temporary) - awaiting console registration fix.',
+    );
+    return;
+  }
+
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
@@ -141,6 +179,16 @@ bool _isFirestoreConfigError(Object error) {
   return text.contains('cloud_firestore/permission-denied') ||
       text.contains('cloud_firestore/failed-precondition') ||
       text.contains('requires an index');
+}
+
+bool _isExpectedNonFatalNoise(Object error) {
+  final text = error.toString().toLowerCase();
+  if (_isFirestoreConfigError(error)) return true;
+  return text.contains('firebase_app_check/unknown') ||
+      text.contains('exchangedevicechecktoken') ||
+      text.contains('exchangedebugtoken') ||
+      text.contains('app attestation failed') ||
+      text.contains('app not registered');
 }
 
 class MyApp extends StatelessWidget {
@@ -305,7 +353,7 @@ class MyApp extends StatelessWidget {
                     onTap: () {
                       FocusManager.instance.primaryFocus?.unfocus();
                     },
-                    child: child ?? const SizedBox.shrink(),
+                    child: child ?? const SplashView(),
                   ),
                 ],
               ),

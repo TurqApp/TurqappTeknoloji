@@ -22,10 +22,9 @@ import 'story_elements.dart';
 import 'story_video_widget.dart';
 import '../StoryHighlights/highlight_picker_sheet.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
-import '../../Chat/chat.dart';
 
 class UserStoryContent extends StatefulWidget {
   final StoryUserModel user;
@@ -1012,23 +1011,22 @@ class _UserStoryContentState extends State<UserStoryContent>
             children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     _audioPlayer.pause();
                     _timer?.cancel();
-                    final myUid = FirebaseAuth.instance.currentUser!.uid;
-                    final chatId =
-                        buildConversationId(myUid, widget.user.userID);
-                    Get.to(() => ChatView(
-                          chatID: chatId,
-                          userID: widget.user.userID,
-                          isNewChat: true,
-                          openKeyboard: true,
-                        ))?.then((_) {
-                      if (mounted) {
+                    await controller.showPostCommentsBottomSheet(
+                      currentStory.id,
+                      widget.user.nickname,
+                      false,
+                      onClosed: (v) {
+                        if (!mounted) return;
                         _startProgress();
                         _audioPlayer.resume();
-                      }
-                    });
+                      },
+                    );
+                    if (!mounted) return;
+                    _startProgress();
+                    _audioPlayer.resume();
                   },
                   child: Container(
                     height: 50,
@@ -1040,7 +1038,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 15),
                       child: Text(
-                        "${widget.user.nickname}'a mesaj gonder..",
+                        "Hikayeye yorum yaz..",
                         style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -1106,29 +1104,33 @@ class _UserStoryContentState extends State<UserStoryContent>
                 onTap: () async {
                   _audioPlayer.pause();
                   _timer?.cancel();
-                  try {
-                    final currentStory = widget.user.stories[storyIndex];
-                    String previewImage = '';
-                    if (currentStory.elements.isNotEmpty) {
-                      previewImage = currentStory.elements
-                          .firstWhere(
-                            (e) => e.type == StoryElementType.image,
-                            orElse: () => currentStory.elements.first,
-                          )
-                          .content;
-                    }
-                    final shortUrl = await ShortLinkService().getStoryPublicUrl(
-                      storyId: currentStory.id,
-                      title: '${widget.user.nickname} hikayesi',
-                      desc: 'TurqApp üzerinde hikayeyi görüntüle',
-                      imageUrl: previewImage.isEmpty ? null : previewImage,
-                    );
-                    await ShareLinkService.shareUrl(
-                      url: shortUrl,
-                      title: '${widget.user.nickname} hikayesi',
-                      subject: '${widget.user.nickname} hikayesi',
-                    );
-                  } catch (_) {}
+                  await ShareActionGuard.run(() async {
+                    try {
+                      final currentStory = widget.user.stories[storyIndex];
+                      String previewImage = '';
+                      if (currentStory.elements.isNotEmpty) {
+                        previewImage = currentStory.elements
+                            .firstWhere(
+                              (e) => e.type == StoryElementType.image,
+                              orElse: () => currentStory.elements.first,
+                            )
+                            .content;
+                      }
+                      final shortUrl =
+                          await ShortLinkService().getStoryPublicUrl(
+                        storyId: currentStory.id,
+                        title: '${widget.user.nickname} hikayesi',
+                        desc: 'TurqApp üzerinde hikayeyi görüntüle',
+                        imageUrl: previewImage.isEmpty ? null : previewImage,
+                      );
+                      await ShareLinkService.shareUrl(
+                        url: shortUrl,
+                        title: '${widget.user.nickname} hikayesi',
+                        subject: '${widget.user.nickname} hikayesi',
+                      );
+                    } catch (_) {}
+                  });
+                  if (!mounted) return;
                   _startProgress();
                   _audioPlayer.resume();
                 },

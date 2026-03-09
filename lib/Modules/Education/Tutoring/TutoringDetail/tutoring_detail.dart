@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
+import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -26,6 +28,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart'
     show getCurrentUserId;
 
@@ -48,6 +51,51 @@ class TutoringDetail extends StatelessWidget {
             ? Get.find<TutoringController>()
             : Get.put(TutoringController());
     final String? currentUserId = getCurrentUserId();
+
+    Future<void> openMentionProfile(String mention) async {
+      final normalizedMention = mention.trim().replaceFirst('@', '');
+      final handle = normalizedMention.toLowerCase();
+      if (handle.isEmpty) return;
+
+      String targetUid = '';
+      try {
+        final usernameDoc = await FirebaseFirestore.instance
+            .collection('usernames')
+            .doc(handle)
+            .get();
+        targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
+      } catch (_) {}
+
+      if (targetUid.isEmpty) {
+        try {
+          final byUsername = await FirebaseFirestore.instance
+              .collection('users')
+              .where('usernameLower', isEqualTo: handle)
+              .limit(1)
+              .get();
+          if (byUsername.docs.isNotEmpty) {
+            targetUid = byUsername.docs.first.id;
+          }
+        } catch (_) {}
+      }
+
+      if (targetUid.isEmpty) {
+        try {
+          final byNickname = await FirebaseFirestore.instance
+              .collection('users')
+              .where('nickname', isEqualTo: normalizedMention)
+              .limit(1)
+              .get();
+          if (byNickname.docs.isNotEmpty) {
+            targetUid = byNickname.docs.first.id;
+          }
+        } catch (_) {}
+      }
+
+      if (targetUid.isNotEmpty && targetUid != currentUserId) {
+        await Get.to(() => SocialProfile(userID: targetUid));
+      }
+    }
 
     Future<void> deleteTutoring(String docId) async {
       try {
@@ -459,9 +507,27 @@ class TutoringDetail extends StatelessWidget {
                                         )),
                                 appDivider(),
                               ],
-                              Text(
-                                controller.tutoring.value.aciklama,
-                                style: TextStyles.medium15Black,
+                              ClickableTextContent(
+                                text: controller.tutoring.value.aciklama,
+                                startWith7line: true,
+                                fontSize: 15,
+                                fontColor: Colors.black,
+                                mentionColor: Colors.blue,
+                                hashtagColor: Colors.blue,
+                                urlColor: Colors.blue,
+                                interactiveColor: Colors.blue,
+                                onHashtagTap: (tag) {
+                                  if (tag.trim().isEmpty) return;
+                                  Get.to(() => TagPosts(tag: tag.trim()));
+                                },
+                                onUrlTap: (url) async {
+                                  final uniqueKey = DateTime.now()
+                                      .millisecondsSinceEpoch
+                                      .toString();
+                                  await RedirectionLink()
+                                      .goToLink(url, uniqueKey: uniqueKey);
+                                },
+                                onMentionTap: openMentionProfile,
                               ),
                               16.ph,
                               // Teacher card
@@ -1026,7 +1092,7 @@ class TutoringDetail extends StatelessWidget {
           Text("Benzer İlanlar", style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
-            height: (Get.height * 0.23).clamp(150.0, 180.0),
+            height: (Get.height * 0.24).clamp(164.0, 196.0),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: controller.similarList.length,
@@ -1072,38 +1138,42 @@ class TutoringDetail extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Padding(
-                          padding: EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.baslik,
-                                style: TextStyles.bold15Black,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              2.ph,
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: TextStyles.tutoringBranch,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(8, 8, 8, 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.baslik,
+                                  style: TextStyles.bold15Black,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                2.ph,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        name,
+                                        style: TextStyles.tutoringBranch,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                  4.pw,
-                                  RozetContent(size: 12, userID: item.userID),
-                                ],
-                              ),
-                              2.ph,
-                              Text(
-                                "${item.fiyat} ₺",
-                                style: TextStyles.bold15Black,
-                              ),
-                            ],
+                                    4.pw,
+                                    RozetContent(size: 12, userID: item.userID),
+                                  ],
+                                ),
+                                2.ph,
+                                Text(
+                                  "${item.fiyat} ₺",
+                                  style: TextStyles.bold15Black,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

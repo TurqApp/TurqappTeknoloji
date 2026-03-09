@@ -17,9 +17,11 @@ import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
@@ -66,6 +68,12 @@ class _SocialProfileState extends State<SocialProfile> {
   @override
   void initState() {
     super.initState();
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
     controller = Get.put(
       SocialProfileController(userID: widget.userID),
       tag: widget.userID,
@@ -803,9 +811,14 @@ class _SocialProfileState extends State<SocialProfile> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 4),
-                    if (widget.userID != "")
-                      RozetContent(size: 15, userID: widget.userID),
+                    if (widget.userID.isNotEmpty) ...[
+                      RozetContent(
+                        size: 15,
+                        userID: widget.userID,
+                        leftSpacing: 6,
+                        rozetValue: controller.rozet.value,
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -502,7 +502,7 @@ class ShareOfPostController extends GetxController {
     if (video == null || thumb == null) return;
 
     // 1. Video Yükle
-    final videoRef = storage.ref().child("Sosyal/$docID/video.mp4");
+    final videoRef = storage.ref().child("Posts/$docID/video.mp4");
     final videoUploadTask = videoRef.putFile(
       video,
       SettableMetadata(

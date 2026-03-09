@@ -11,15 +11,18 @@ class ReshareHelper {
   /// Kullanıcının nickname'ini userID'den alır (cache ile)
   static Future<String> getUserNickname(String userID) async {
     try {
+      final safeUserID = userID.trim();
+      if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+
       // Cache'te var mı kontrol et
-      if (_nicknameCache.containsKey(userID)) {
-        return _nicknameCache[userID]!;
+      if (_nicknameCache.containsKey(safeUserID)) {
+        return _nicknameCache[safeUserID]!;
       }
 
       // Cache'te yok, Firebase'den çek
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userID)
+          .doc(safeUserID)
           .get();
 
       String nickname = 'Bilinmeyen Kullanıcı';
@@ -29,7 +32,7 @@ class ReshareHelper {
       }
 
       // Cache'e ekle
-      _nicknameCache[userID] = nickname;
+      _nicknameCache[safeUserID] = nickname;
 
       // Periodik cache temizleme (her 30 dakikada bir)
       _cleanupCacheIfNeeded();
@@ -44,13 +47,16 @@ class ReshareHelper {
   /// Kullanıcının görüntülenecek adını alır (displayName/fullName fallback nickname)
   static Future<String> getUserDisplayName(String userID) async {
     try {
-      if (_displayNameCache.containsKey(userID)) {
-        return _displayNameCache[userID]!;
+      final safeUserID = userID.trim();
+      if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+
+      if (_displayNameCache.containsKey(safeUserID)) {
+        return _displayNameCache[safeUserID]!;
       }
 
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userID)
+          .doc(safeUserID)
           .get();
 
       String displayName = 'Bilinmeyen Kullanıcı';
@@ -68,7 +74,7 @@ class ReshareHelper {
         }
       }
 
-      _displayNameCache[userID] = displayName;
+      _displayNameCache[safeUserID] = displayName;
       _cleanupCacheIfNeeded();
       return displayName;
     } catch (e) {

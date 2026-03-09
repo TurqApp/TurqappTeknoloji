@@ -47,7 +47,16 @@ class StoryRow extends StatelessWidget {
                   },
                 ),
               )
-            : const SizedBox.shrink(),
+            : SizedBox(
+                height: 107,
+                width: double.infinity,
+                child: Builder(
+                  builder: (context) {
+                    controller.addMyUserImmediately();
+                    return const StoryRowPlaceholder();
+                  },
+                ),
+              ),
       );
     });
   }

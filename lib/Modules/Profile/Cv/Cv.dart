@@ -300,7 +300,7 @@ class Cv extends StatelessWidget {
         ),
         SizedBox(height: 15),
         Container(
-          height: 150,
+          height: (Get.height * 0.2).clamp(120.0, 150.0),
           alignment: Alignment.topLeft,
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(

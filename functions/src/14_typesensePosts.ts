@@ -14,6 +14,23 @@ function ensureAdmin() {
   if (getApps().length === 0) initializeApp();
 }
 
+function requireAuth(request: CallableRequest<unknown>): string {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "auth_required");
+  }
+  return uid;
+}
+
+function requireAdminAuth(request: CallableRequest<unknown>): string {
+  const uid = requireAuth(request);
+  const token = request.auth?.token as { admin?: unknown } | undefined;
+  if (token?.admin !== true) {
+    throw new HttpsError("permission-denied", "admin_required");
+  }
+  return uid;
+}
+
 function getEnv(name: string): string {
   return String(process.env[name] || "").trim();
 }
@@ -875,6 +892,8 @@ export const f14_searchPostsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    requireAuth(request);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -904,6 +923,8 @@ const f14_searchUsersCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    requireAuth(request);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -933,6 +954,8 @@ const f14_searchTagsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    requireAuth(request);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -978,6 +1001,7 @@ export const f14_reindexPostsToTypesenseCallable = onCall(
   },
   async (request: CallableRequest<ReindexPostsInput>): Promise<ReindexPostsOutput> => {
     ensureAdmin();
+    requireAdminAuth(request);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
@@ -1043,6 +1067,8 @@ export const f15_getLatestPostIdsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
+    requireAuth(request);
+
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
