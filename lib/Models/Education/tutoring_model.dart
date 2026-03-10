@@ -111,7 +111,7 @@ class TutoringModel {
       'cinsiyet': cinsiyet,
       'dersYeri': dersYeri,
       'end': end,
-      'favorites': favorites,
+      if (favorites.isNotEmpty) 'favorites': favorites,
       'fiyat': fiyat,
       'imgs': imgs,
       'ilce': ilce,

@@ -16,8 +16,9 @@ class SavedTutoringsController extends GetxController {
     if (uid == null) return;
     try {
       final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
           .collection('educators')
-          .where('favorites', arrayContains: uid)
           .get();
       savedTutoringIds.value = snap.docs.map((doc) => doc.id).toList();
     } catch (e) {

@@ -213,16 +213,17 @@ class TutoringController extends GetxController {
     }
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('educators').doc(docId);
+      final savedRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('educators')
+          .doc(docId);
 
       if (isFavorite) {
-        await docRef.update({
-          'favorites': FieldValue.arrayRemove([userId])
-        });
+        await savedRef.delete();
       } else {
-        await docRef.update({
-          'favorites': FieldValue.arrayUnion([userId])
+        await savedRef.set({
+          'createdAt': FieldValue.serverTimestamp(),
         });
       }
       return true;
