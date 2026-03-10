@@ -1033,7 +1033,9 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-            child: _buildMainActionButton(type, userData, scholarshipData)),
+          child: _buildMainActionButton(type, userData, scholarshipData),
+        ),
+        const SizedBox(width: 8),
         _buildInteractionButtons(scholarshipData, docId, type),
       ],
     );
@@ -1052,17 +1054,17 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       onTap: () =>
           Get.to(() => ScholarshipDetailView(), arguments: scholarshipData),
       child: Container(
-        padding: EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isOwnScholarship ? Colors.red.shade800 : Colors.black,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           _getMainActionButtonText(type, isOwnScholarship),
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1079,7 +1081,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   Widget _buildInteractionButtons(
       Map<String, dynamic> scholarshipData, String docId, String type) {
     return Wrap(
-      spacing: 0,
+      spacing: 8,
       children: [
         _buildLikeButton(scholarshipData, docId, type),
         _buildBookmarkButton(scholarshipData, docId, type),
