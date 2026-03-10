@@ -337,7 +337,16 @@ service cloud.firestore {
 
       // Job applications
       match /myApplications/{docId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) || (
+          isAuth()
+          && exists(/databases/$(database)/documents/isBul/$(docId))
+          && (
+            isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+            || canManageAdminPanels()
+          )
+        );
+        allow delete: if isOwner(uid);
       }
 
       // Education results (dual-write targets)
