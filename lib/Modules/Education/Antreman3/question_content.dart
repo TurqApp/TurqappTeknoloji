@@ -58,7 +58,7 @@ class QuestionContent extends StatelessWidget {
                           controller.onScreenReEnter();
                           Get.back();
                         },
-                        child: BackButtons(text: "Çöz Geç"),
+                        child: BackButtons(text: "Soru Bankası"),
                       ),
                     ),
                     GestureDetector(

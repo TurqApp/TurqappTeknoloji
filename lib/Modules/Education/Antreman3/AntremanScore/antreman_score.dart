@@ -51,7 +51,7 @@ class AntremanScore extends StatelessWidget {
                           const SizedBox(height: 8),
                           const Center(
                             child: Text(
-                                "Listeye girmek için Çöz Geç'te soru çöz."),
+                                "Listeye girmek için Soru Bankası'nda soru çöz."),
                           ),
                         ],
                       ),

@@ -585,7 +585,7 @@ class AntremanView2 extends StatelessWidget {
                 ),
               ),
               TypewriterText(
-                text: "Çöz Geç",
+                text: "Soru Bankası",
               ),
             ],
           ),

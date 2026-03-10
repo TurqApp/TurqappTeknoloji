@@ -280,7 +280,7 @@ class AntremanController extends GetxController {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Çöz Geç bu kategori ile açılır. İstediğin zaman menüden değiştirebilirsin.',
+                      'Soru Bankası bu kategori ile açılır. İstediğin zaman menüden değiştirebilirsin.',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.black54,
@@ -630,7 +630,7 @@ class AntremanController extends GetxController {
                 '${question.sinavTuru} - ${question.ders} Soru ${question.soruNo}',
             desc: question.anaBaslik.isNotEmpty
                 ? question.anaBaslik
-                : 'TurqApp Çöz Geç sorusu',
+                : 'TurqApp Soru Bankası sorusu',
             imageUrl: question.soru.isNotEmpty ? question.soru : null,
           );
         } catch (_) {

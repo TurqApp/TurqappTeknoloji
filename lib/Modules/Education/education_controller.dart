@@ -21,7 +21,7 @@ class EducationController extends GetxController {
 
   final titles = [
     "Burslar",
-    "Çöz Geç",
+    "Soru Bankası",
     "Denemeler",
     "Online Sınav",
     "Cevap Anahtarı",
