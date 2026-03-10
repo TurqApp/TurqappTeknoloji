@@ -1040,7 +1040,7 @@ class TutoringDetail extends StatelessWidget {
           Text("Benzer İlanlar", style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
-            height: (Get.height * 0.24).clamp(164.0, 196.0),
+            height: (Get.height * 0.28).clamp(188.0, 218.0),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: controller.similarList.length,
@@ -1099,19 +1099,24 @@ class TutoringDetail extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 2.ph,
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        name,
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: "$name ",
                                         style: TextStyles.tutoringBranch,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    4.pw,
-                                    RozetContent(size: 12, userID: item.userID),
-                                  ],
+                                      WidgetSpan(
+                                        alignment: PlaceholderAlignment.middle,
+                                        child: RozetContent(
+                                          size: 12,
+                                          userID: item.userID,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 2.ph,
                                 Text(
@@ -1119,6 +1124,26 @@ class TutoringDetail extends StatelessWidget {
                                   style: TextStyles.bold15Black,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                ),
+                                const Spacer(),
+                                Container(
+                                  width: double.infinity,
+                                  alignment: Alignment.center,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 7,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "İlana Git",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontFamily: "MontserratBold",
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
