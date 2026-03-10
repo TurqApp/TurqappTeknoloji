@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -91,9 +92,25 @@ class JobDetails extends StatelessWidget {
     return true;
   }
 
+  String _buildAndroidStaticMapUrl(JobModel job) {
+    return Uri.https(
+      'static-maps.yandex.ru',
+      '/1.x/',
+      {
+        'll': '${job.long},${job.lat}',
+        'zoom': '15',
+        'size': '650,360',
+        'l': 'map',
+        'pt': '${job.long},${job.lat},pm2rdm',
+      },
+    ).toString();
+  }
+
   Widget _buildLocationPreview(BuildContext context) {
     final hasLocation = _hasValidCoordinates(controller.model.value);
-    final canUseNativeMap = hasLocation;
+    final useAndroidStaticPreview =
+        defaultTargetPlatform == TargetPlatform.android;
+    final canUseNativeMap = hasLocation && !useAndroidStaticPreview;
     final location = LatLng(
       controller.model.value.lat,
       controller.model.value.long,
@@ -117,13 +134,31 @@ class JobDetails extends StatelessWidget {
               width: double.infinity,
               height: (MediaQuery.of(context).size.height * 0.28)
                   .clamp(180.0, 220.0),
-              child: canUseNativeMap
+              child: useAndroidStaticPreview && hasLocation
+                  ? CachedNetworkImage(
+                      imageUrl: _buildAndroidStaticMapUrl(controller.model.value),
+                      fit: BoxFit.cover,
+                      errorWidget: (context, url, error) => Container(
+                        color: const Color(0xFFF3F5F7),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'Harita yüklenemedi',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 14,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
+                      ),
+                    )
+                  : canUseNativeMap
                   ? AbsorbPointer(
                       child: GoogleMap(
                         initialCameraPosition: CameraPosition(
                           target: location,
                           zoom: 14,
                         ),
+                        liteModeEnabled: defaultTargetPlatform == TargetPlatform.android,
                         markers: {
                           Marker(
                             markerId: const MarkerId('job_location'),

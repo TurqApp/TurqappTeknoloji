@@ -28,9 +28,10 @@ val localProps = Properties()
 if (localPropsFile.exists()) {
     localPropsFile.inputStream().use { localProps.load(it) }
 }
+val bundledGoogleMapsApiKey = "AIzaSyCQ6gUYt8TUQ9U4uQo8ZKnTiSp1D3zMEWA"
 val googleMapsApiKey: String =
     (project.findProperty("GOOGLE_MAPS_API_KEY") as String?)
-        ?: localProps.getProperty("GOOGLE_MAPS_API_KEY", "")
+        ?: localProps.getProperty("GOOGLE_MAPS_API_KEY", bundledGoogleMapsApiKey)
 
 android {
     namespace = "com.turqapp.app"
