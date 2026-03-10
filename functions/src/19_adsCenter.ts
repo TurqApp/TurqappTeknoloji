@@ -121,6 +121,90 @@ function matchesTargeting(targeting: any, ctx: {
   return true;
 }
 
+function normalizedKeyParts(values: unknown[] | undefined): string[] {
+  if (!Array.isArray(values)) return [];
+  const set = new Set<string>();
+  for (const item of values) {
+    const normalized = normalizeString(item).toUpperCase();
+    if (normalized.length > 0) set.add(normalized);
+  }
+  return Array.from(set);
+}
+
+function buildTargetingKeys(data: admin.firestore.DocumentData | null): string[] {
+  if (!data) return [];
+  const targeting = (data.targeting ?? {}) as admin.firestore.DocumentData;
+  const placements = Array.isArray(data.placementTypes)
+    ? data.placementTypes
+        .map((v: unknown) => normalizeString(v).toLowerCase())
+        .filter((v) => v.length > 0)
+    : [];
+  const placementList = placements.length === 0 ? ["feed"] : Array.from(new Set(placements));
+
+  const countries = normalizedKeyParts(
+    Array.isArray(targeting.countries) ? targeting.countries : undefined
+  );
+  const cities = normalizedKeyParts(
+    Array.isArray(targeting.cities) ? targeting.cities : undefined
+  );
+  const countryList = countries.length == 0 ? ["ANY"] : countries;
+  const cityList = cities.length == 0 ? ["ANY"] : cities;
+
+  const minAge = normalizeInt(targeting.minAge);
+  const maxAge = normalizeInt(targeting.maxAge);
+  const ageRange = `${minAge ?? 0}-${maxAge ?? 120}`;
+
+  const keys: string[] = [];
+  for (const country of countryList) {
+    for (const city of cityList) {
+      for (const place of placementList) {
+        keys.push(`${country}:${city}:${ageRange}:${place}`);
+      }
+    }
+  }
+  return keys;
+}
+
+async function updateTargetingIndexKey(key: string, campaignId: string, include: boolean) {
+  if (!key || !key.trim()) return;
+  const ref = db.collection("ads_targeting_index").doc(key);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() ?? {} : {};
+    const current = Array.isArray(data.campaignIds)
+      ? new Set<string>(data.campaignIds.map((v: unknown) => normalizeString(v)))
+      : new Set<string>();
+
+    let changed = false;
+    if (include) {
+      if (!current.has(campaignId)) {
+        current.add(campaignId);
+        changed = true;
+      }
+    } else {
+      if (current.delete(campaignId)) {
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    if (current.size === 0) {
+      tx.delete(ref);
+      return;
+    }
+
+    tx.set(
+      ref,
+      {
+        key,
+        campaignIds: Array.from(current),
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+  });
+}
+
 async function getCampaignDailySpend(campaignId: string, nowMs: number): Promise<number> {
   const start = new Date(nowMs);
   start.setHours(0, 0, 0, 0);
@@ -174,7 +258,7 @@ export const adsSimulateDelivery = functions.region("europe-west3").https.onCall
 
   type Candidate = {
     id: string;
-    data: FirebaseFirestore.DocumentData;
+    data: admin.firestore.DocumentData;
   };
 
   const candidates: Candidate[] = [];
@@ -287,7 +371,7 @@ export const adsSimulateDelivery = functions.region("europe-west3").https.onCall
     ? selected.data.creativeIds.map((v: unknown) => normalizeString(v)).filter(Boolean)
     : [];
 
-  let selectedCreative: { id: string; data: FirebaseFirestore.DocumentData } | null = null;
+  let selectedCreative: { id: string; data: admin.firestore.DocumentData } | null = null;
   if (creativeIds.length > 0) {
     const limitIds = creativeIds.slice(0, 10);
     const creativeSnap = await db
@@ -403,6 +487,24 @@ export const adsLogEvent = functions.region("europe-west3").https.onCall(async (
 
   return { ok: true };
 });
+
+export const syncAdsTargetingIndex = functions
+  .region("europe-west3")
+  .firestore.document("ads_campaigns/{campaignId}")
+  .onWrite(async (change, context) => {
+    const campaignId = context.params.campaignId;
+    const oldKeys = buildTargetingKeys(change.before.exists ? change.before.data() ?? null : null);
+    const newKeys = buildTargetingKeys(change.after.exists ? change.after.data() ?? null : null);
+
+    const toAdd = newKeys.filter((key) => !oldKeys.includes(key));
+    const toRemove = oldKeys.filter((key) => !newKeys.includes(key));
+
+    await Promise.all([
+      ...toAdd.map((key) => updateTargetingIndexKey(key, campaignId, true)),
+      ...toRemove.map((key) => updateTargetingIndexKey(key, campaignId, false)),
+    ]);
+    return null;
+  });
 
 export const adsAggregateDailyStats = functions
   .region("europe-west3")
