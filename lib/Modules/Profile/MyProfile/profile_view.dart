@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pull_down_button/pull_down_button.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
@@ -1451,38 +1450,22 @@ class _ProfileViewState extends State<ProfileView> {
           userId: uid,
           highlight: hl,
         ),
-        onLongPress: () => _showHighlightMenu(context, hlController, hl),
+        onLongPress: () => _showHighlightDeleteConfirmation(hlController, hl),
       ),
     );
   }
 
-  Future<void> _showHighlightMenu(BuildContext context,
+  Future<void> _showHighlightDeleteConfirmation(
       StoryHighlightsController hlController, StoryHighlightModel hl) async {
-    final size = MediaQuery.of(context).size;
-    final anchor = Rect.fromLTWH(
-      size.width - 90,
-      0,
-      80,
-      40,
-    );
-    showPullDownMenu(
-      context: context,
-      position: anchor,
-      items: [
-        PullDownMenuItem(
-          title: "Vazgeç",
-          icon: CupertinoIcons.xmark,
-          onTap: () {},
-        ),
-        PullDownMenuItem(
-          title: "Öne çıkarılanı kaldır",
-          icon: CupertinoIcons.trash,
-          isDestructive: true,
-          onTap: () {
-            hlController.deleteHighlight(hl.id);
-          },
-        ),
-      ],
+    await noYesAlert(
+      title: "Öne Çıkartılanı Kaldır",
+      message: "Bu öne çıkartılanı kaldırmak istediğinizden emin misiniz?",
+      cancelText: "Vazgeç",
+      yesText: "Kaldır",
+      yesButtonColor: CupertinoColors.destructiveRed,
+      onYesPressed: () async {
+        await hlController.deleteHighlight(hl.id);
+      },
     );
   }
 
