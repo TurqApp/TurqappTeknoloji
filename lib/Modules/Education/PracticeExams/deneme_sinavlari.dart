@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeTurleriListesi/deneme_turleri_listesi.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SearchDeneme/search_deneme.dart';
@@ -283,6 +284,11 @@ class DenemeSinavlari extends StatelessWidget {
                         onTap: () => Get.to(() => SinavSonuclarim()),
                       ),
                       PullDownMenuItem(
+                        icon: CupertinoIcons.doc_text,
+                        title: 'Yayınladıklarım',
+                        onTap: () => Get.to(() => const MyPracticeExams()),
+                      ),
+                      PullDownMenuItem(
                         icon: CupertinoIcons.search,
                         title: 'Ara',
                         onTap: () => Get.to(() => SearchDeneme()),
@@ -369,6 +375,11 @@ class DenemeSinavlari extends StatelessWidget {
                         icon: Icons.history,
                         title: 'Sonuçlarım',
                         onTap: () => Get.to(() => SinavSonuclarim()),
+                      ),
+                      PullDownMenuItem(
+                        icon: CupertinoIcons.doc_text,
+                        title: 'Yayınladıklarım',
+                        onTap: () => Get.to(() => const MyPracticeExams()),
                       ),
                       PullDownMenuItem(
                         icon: CupertinoIcons.search,
