@@ -9,7 +9,6 @@ import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Core/connectivity_helper.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 import '../StoryRow/story_row_controller.dart';
 
 class StoryViewer extends StatefulWidget {
@@ -60,29 +59,14 @@ class _StoryViewerState extends State<StoryViewer>
     pageController = PageController(
       initialPage: currentPageIndex,
     );
-    // İlk kullanıcı için okundu işaretini yaz
+    // İlk kullanıcı için sadece prefetch yap; read durumu gerçek izleme ile güncellenir.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid == null) return;
         final idx = currentPageIndex >= 0 ? currentPageIndex : 0;
         if (widget.storyOwnerUsers.isEmpty) return;
-        final currentUserId = widget.storyOwnerUsers[idx].userID;
-        final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
-        final batch = FirebaseFirestore.instance.batch();
-        batch.set(
-          userRef.collection("readStories").doc(currentUserId),
-          {
-            "storyId": currentUserId,
-            "readDate": DateTime.now().millisecondsSinceEpoch,
-            "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          },
-          SetOptions(merge: true),
-        );
-        await batch.commit();
         _prefetchNext(idx);
       } catch (e) {
-        print("readStories init update error: $e");
+        print("story viewer init prefetch error: $e");
       }
     });
 
@@ -278,9 +262,6 @@ class _StoryViewerState extends State<StoryViewer>
                     print(
                         "🔄 Story user changed - UserID: ${widget.storyOwnerUsers[index].userID}, Index: $index");
 
-                    // Sayfa değişiminde okundu işareti yaz
-                    _markUserAsRead(index);
-
                     // Sonraki kullanıcıyı prefetch et
                     _prefetchNext(index);
                   },
@@ -403,31 +384,6 @@ class _StoryViewerState extends State<StoryViewer>
     } catch (_) {}
   }
 
-  void _markUserAsRead(int index) {
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null && index < widget.storyOwnerUsers.length) {
-        final targetUserId = widget.storyOwnerUsers[index].userID;
-        final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
-        final batch = FirebaseFirestore.instance.batch();
-        batch.set(
-          userRef.collection("readStories").doc(targetUserId),
-          {
-            "storyId": targetUserId,
-            "readDate": DateTime.now().millisecondsSinceEpoch,
-            "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          },
-          SetOptions(merge: true),
-        );
-        batch.commit();
-        print(
-            "📝 Added user ${widget.storyOwnerUsers[index].nickname} to read list");
-      }
-    } catch (e) {
-      print("🚨 readStories page change update error: $e");
-    }
-  }
-
   /// Kullanıcının tüm hikayelerini bitirdikten sonra çağrılır
   void _markUserAsFullyViewed(int index) async {
     try {
@@ -439,6 +395,14 @@ class _StoryViewerState extends State<StoryViewer>
         if (user.stories.isNotEmpty) {
           // En son hikayenin zamanını al
           final latestStoryTime = _latestStoryMillis(user);
+          final latestStoryId = user.stories.first.id;
+
+          // Debounced local cache/pending write durumunu da senkronize et.
+          await StoryInteractionOptimizer.to.markStoryViewed(
+            targetUserId,
+            latestStoryId,
+            latestStoryTime,
+          );
 
           await FirebaseFirestore.instance
               .collection('users')
@@ -471,46 +435,7 @@ class _StoryViewerState extends State<StoryViewer>
   }
 
   int _computeStartIndex(StoryUserModel user) {
-    try {
-      final total = user.stories.length;
-      if (total == 0) return 0;
-      // Tümü izlendi ise BAŞTAN (index 0) başlat
-      final allSeen = StoryInteractionOptimizer.to
-          .areAllStoriesSeenCached(user.userID, user.stories);
-      if (allSeen) return 0;
-
-      // En son izlenen zaman (local cache öncelikli)
-      final lastSeen =
-          StoryInteractionOptimizer.to.localTimeCache[user.userID] ??
-              CurrentUserService.instance.getStoryReadTime(user.userID);
-      if (lastSeen == null) return 0; // Hiç izlenmemişse en yeni
-
-      // Hikayeler en yeni -> en eski sıralı
-      // İzlenmiş olanları (>= lastSeen) atla, ilk "daha eski" (< lastSeen) olanı aç
-      final idxEqual = user.stories
-          .indexWhere((s) => s.createdAt.millisecondsSinceEpoch == lastSeen);
-      int candidate = -1;
-      if (idxEqual >= 0) {
-        candidate = idxEqual + 1; // bir sonrakinden (daha eski) başla
-      } else {
-        candidate = user.stories
-            .indexWhere((s) => s.createdAt.millisecondsSinceEpoch < lastSeen);
-      }
-      if (candidate == -1) {
-        // Hepsi >= lastSeen (hepsi yeni ya da eşit): en yeni zaten izlenmiş sayılır, 0 yerine 1'e gitmeyi dene
-        return total > 1 ? 1 : 0;
-      }
-      // Güvenlik: candidate izlenmiş zamana denk gelirse bir sonrakini dene
-      if (candidate < total &&
-          user.stories[candidate].createdAt.millisecondsSinceEpoch >=
-              lastSeen) {
-        candidate = candidate + 1;
-      }
-      if (candidate >= total) return total - 1;
-      return candidate;
-    } catch (e) {
-      print('computeStartIndex error: $e');
-      return 0;
-    }
+    // Yeni hikaye solda/başta açılmalı.
+    return 0;
   }
 }

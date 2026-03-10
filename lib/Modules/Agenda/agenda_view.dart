@@ -186,6 +186,15 @@ class AgendaView extends StatelessWidget {
                           final model = item['model'] as PostsModel;
                           return followingSet.contains(model.userID);
                         }).toList(growable: false);
+                      } else if (controller.isCityMode) {
+                        final city = controller.currentUserLocationCity
+                            .trim()
+                            .toLowerCase();
+                        filteredDisplay = display.where((item) {
+                          final model = item['model'] as PostsModel;
+                          return model.locationCity.trim().toLowerCase() ==
+                              city;
+                        }).toList(growable: false);
                       }
 
                       if (display.isEmpty) {
@@ -213,6 +222,9 @@ class AgendaView extends StatelessWidget {
                       }
 
                       if (filteredDisplay.isEmpty) {
+                        final emptyText = controller.isCityMode
+                            ? "Şehrinde henüz gönderi yok"
+                            : "Takip ettiklerinden henüz gönderi yok";
                         return SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           child: Column(
@@ -225,8 +237,8 @@ class AgendaView extends StatelessWidget {
                                 size: 34,
                               ),
                               const SizedBox(height: 12),
-                              const Text(
-                                "Takip ettiklerinden henüz gönderi yok",
+                              Text(
+                                emptyText,
                                 style: TextStyle(
                                   color: Colors.black54,
                                   fontSize: 14,
@@ -564,6 +576,23 @@ class AgendaView extends StatelessWidget {
                           SizedBox(width: 8),
                           Text(
                             'Takip Ettiklerin',
+                            style: TextStyle(
+                              fontFamily: AppFontFamilies.mmedium,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<FeedViewMode>(
+                      value: FeedViewMode.city,
+                      child: Row(
+                        children: [
+                          Icon(CupertinoIcons.location_solid, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Şehrim',
                             style: TextStyle(
                               fontFamily: AppFontFamilies.mmedium,
                               fontSize: 15,

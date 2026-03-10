@@ -76,6 +76,7 @@ class PostsModel {
   bool isAd;
   num izBirakYayinTarihi;
   String konum;
+  String locationCity;
   String mainFlood;
   String metin;
   String originalPostID;
@@ -118,6 +119,7 @@ class PostsModel {
     required this.isAd,
     required this.izBirakYayinTarihi,
     required this.konum,
+    this.locationCity = '',
     required this.mainFlood,
     required this.metin,
     required this.originalPostID,
@@ -268,6 +270,7 @@ class PostsModel {
       isAd: data['isAd'] ?? false,
       izBirakYayinTarihi: parseNum(data['izBirakYayinTarihi']),
       konum: data['konum'] ?? '',
+      locationCity: (data['locationCity'] ?? '').toString(),
       mainFlood: data['mainFlood'] ?? '',
       metin: data['metin'] ?? '',
       originalPostID: data['originalPostID'] ?? '',
@@ -310,6 +313,7 @@ class PostsModel {
       'isAd': isAd,
       'izBirakYayinTarihi': izBirakYayinTarihi,
       'konum': konum,
+      'locationCity': locationCity,
       'mainFlood': mainFlood,
       'metin': metin,
       'originalPostID': originalPostID,
@@ -353,6 +357,7 @@ class PostsModel {
       isAd: false,
       izBirakYayinTarihi: 0,
       konum: '',
+      locationCity: '',
       mainFlood: '',
       metin: '',
       originalPostID: '',
@@ -393,6 +398,7 @@ class PostsModel {
     bool? isAd,
     num? izBirakYayinTarihi,
     String? konum,
+    String? locationCity,
     String? mainFlood,
     String? metin,
     String? originalPostID,
@@ -431,6 +437,7 @@ class PostsModel {
       isAd: isAd ?? this.isAd,
       izBirakYayinTarihi: izBirakYayinTarihi ?? this.izBirakYayinTarihi,
       konum: konum ?? this.konum,
+      locationCity: locationCity ?? this.locationCity,
       mainFlood: mainFlood ?? this.mainFlood,
       metin: metin ?? this.metin,
       originalPostID: originalPostID ?? this.originalPostID,

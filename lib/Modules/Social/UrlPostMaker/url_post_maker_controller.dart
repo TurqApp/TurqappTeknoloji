@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,22 @@ class UrlPostMakerController extends GetxController {
   // Orijinal post bilgileri
   String? originalUserID;
   String? originalPostID;
+
+  String _resolvePostLocationCity() {
+    final user = CurrentUserService.instance.currentUserRx.value;
+    final candidates = [
+      user?.locationSehir,
+      user?.city,
+      user?.ikametSehir,
+      user?.il,
+      user?.ulke,
+    ];
+    for (final raw in candidates) {
+      final value = (raw ?? '').trim();
+      if (value.isNotEmpty) return value;
+    }
+    return 'Türkiye';
+  }
 
   Future<void> getReadyVideoPlayer(String url) async {
     final ctrl = HLSVideoAdapter(url: url, autoPlay: false, loop: false);
@@ -86,6 +103,8 @@ class UrlPostMakerController extends GetxController {
         finalOriginalPostID = originalPostID ?? "";
       }
 
+      final locationCity = _resolvePostLocationCity();
+
       await FirebaseFirestore.instance.collection("Posts").doc(uuid).set({
         "arsiv": false,
         if (imageUrls.isEmpty) "aspectRatio": normalizedAR,
@@ -101,6 +120,7 @@ class UrlPostMakerController extends GetxController {
         "ad": false,
         "izBirakYayinTarihi": 0,
         "konum": "",
+        "locationCity": locationCity,
         "mainFlood": uuid,
         "metin": textEditingController.text,
         "reshareMap": {
@@ -184,6 +204,7 @@ class UrlPostMakerController extends GetxController {
         izBirakYayinTarihi: 0,
         stats: PostStats(),
         konum: "",
+        locationCity: locationCity,
         mainFlood: uuid,
         metin: textEditingController.text,
         paylasGizliligi: 0,

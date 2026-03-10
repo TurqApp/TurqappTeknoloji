@@ -103,7 +103,8 @@ class StoryRowController extends GetxController {
     try {
       const int chunkSize = 10;
       for (int i = 0; i < userIds.length; i += chunkSize) {
-        final end = (i + chunkSize > userIds.length) ? userIds.length : i + chunkSize;
+        final end =
+            (i + chunkSize > userIds.length) ? userIds.length : i + chunkSize;
         final chunk = userIds.sublist(i, end);
         final snap = await FirebaseFirestore.instance
             .collection('users')
@@ -328,9 +329,11 @@ class StoryRowController extends GetxController {
         preferCache: false,
         cacheOnly: !ContentPolicy.isConnected,
       );
-      final missingUserIds = userIds.where((id) => userDataMap[id] == null).toList();
+      final missingUserIds =
+          userIds.where((id) => userDataMap[id] == null).toList();
       if (missingUserIds.isNotEmpty) {
-        final fetchedMissing = await _loadMissingProfilesFromUsers(missingUserIds);
+        final fetchedMissing =
+            await _loadMissingProfilesFromUsers(missingUserIds);
         if (fetchedMissing.isNotEmpty) {
           userDataMap.addAll(fetchedMissing);
         }
@@ -344,7 +347,7 @@ class StoryRowController extends GetxController {
 
       for (var entry in userStories.entries) {
         final userId = entry.key;
-        // Newest-to-oldest within a user's stories
+        // Kullanıcı içindeki hikayeler yeni->eski sıralansın.
         final stories = [...entry.value]
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         final rawData = userDataMap[userId] ?? storyEmbeddedUserMeta[userId];
@@ -376,7 +379,11 @@ class StoryRowController extends GetxController {
               ? resolvedNickname
               : (data['nickname']?.toString().trim().isNotEmpty == true
                   ? data['nickname'].toString().trim()
-                  : (isMine ? (userService.nickname.isNotEmpty ? userService.nickname : 'sen') : 'kullanici')),
+                  : (isMine
+                      ? (userService.nickname.isNotEmpty
+                          ? userService.nickname
+                          : 'sen')
+                      : 'kullanici')),
           avatarUrl: _resolveAvatar(data),
           fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
           userID: userId,

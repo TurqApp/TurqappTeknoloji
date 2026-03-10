@@ -21,6 +21,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'CreatorContent/post_creator_model.dart';
@@ -100,6 +101,22 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   Timer? _autoSaveTimer;
   Timer? _queueRingTimer;
+
+  String _resolvePostLocationCity() {
+    final user = CurrentUserService.instance.currentUserRx.value;
+    final candidates = [
+      user?.locationSehir,
+      user?.city,
+      user?.ikametSehir,
+      user?.il,
+      user?.ulke,
+    ];
+    for (final raw in candidates) {
+      final value = (raw ?? '').trim();
+      if (value.isNotEmpty) return value;
+    }
+    return 'Türkiye';
+  }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
     final code = e.code.toLowerCase();
@@ -988,6 +1005,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               ? izBirakDateTime.value!.millisecondsSinceEpoch
               : 0;
       final baseTime = scheduledMs != 0 ? scheduledMs : nowMs;
+      final locationCity = _resolvePostLocationCity();
 
       final pollPayload = post.poll.isNotEmpty
           ? _normalizePollForSave(post.poll, baseTime)
@@ -1016,6 +1034,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           "statsCount": 0
         },
         "konum": post.location,
+        "locationCity": locationCity,
         "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
         "metin": post.text,
         "reshareMap": {
@@ -1077,6 +1096,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           izBirakYayinTarihi: baseTime,
           stats: PostStats(),
           konum: post.location,
+          locationCity: locationCity,
           mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
           metin: post.text,
           paylasGizliligi: paylasimSelection.value,
@@ -1611,6 +1631,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           final docID = '${uuid}_$index';
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           final uid = FirebaseAuth.instance.currentUser!.uid;
+          final locationCity = _resolvePostLocationCity();
 
           // Storage rules require Posts/{docID}.userID to exist before media upload.
           await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
@@ -1847,6 +1868,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 "statsCount": 0
               },
               "konum": post.location,
+              "locationCity": locationCity,
               "mainFlood": index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
               "metin": post.text,
               "reshareMap": {
@@ -1908,6 +1930,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 izBirakYayinTarihi: baseTime,
                 stats: PostStats(),
                 konum: post.location,
+                locationCity: locationCity,
                 mainFlood: index == 0 ? "" : "${docID.replaceAll("_0", "")}_0",
                 metin: post.text,
                 originalPostID: _isSharedAsPost ? _sharedOriginalPostID : "",

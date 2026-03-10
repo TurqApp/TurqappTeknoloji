@@ -118,20 +118,6 @@ class _StoryCircleState extends State<StoryCircle> {
 
                   final highlight = hasStory && !allSeen;
 
-                  // Görülmemiş story sayısını hesapla
-                  int unseenCount = 0;
-                  if (hasStory && !isMe) {
-                    final lastSeenTime = StoryInteractionOptimizer
-                            .to.localTimeCache[widget.model.userID] ??
-                        userService.getStoryReadTime(widget.model.userID) ??
-                        0;
-                    for (final s in widget.model.stories) {
-                      if (s.createdAt.millisecondsSinceEpoch > lastSeenTime) {
-                        unseenCount++;
-                      }
-                    }
-                  }
-
                   Widget avatarImage() {
                     // Use CachedUserAvatar for all users (instant for current user)
                     final imageUrl =
@@ -197,35 +183,6 @@ class _StoryCircleState extends State<StoryCircle> {
                       ),
                       if (isUploading)
                         Positioned.fill(child: StoryUploadingRing()),
-                      // Görülmemiş story sayısı badge
-                      if (unseenCount > 1)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: AppColors.textBlue,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    Theme.of(context).scaffoldBackgroundColor,
-                                width: 1.5,
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              unseenCount > 9 ? '9+' : unseenCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontFamily: 'MontserratMedium',
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   );
                 }),

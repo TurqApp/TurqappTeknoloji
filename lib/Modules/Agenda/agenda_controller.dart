@@ -13,8 +13,9 @@ import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
+import '../../Services/current_user_service.dart';
 
-enum FeedViewMode { forYou, following }
+enum FeedViewMode { forYou, following, city }
 
 class AgendaController extends GetxController {
   final scrollController = ScrollController();
@@ -87,8 +88,29 @@ class AgendaController extends GetxController {
   static const int _reshareScanPostLimit = 12;
 
   bool get isFollowingMode => feedViewMode.value == FeedViewMode.following;
+  bool get isCityMode => feedViewMode.value == FeedViewMode.city;
 
-  String get feedTitle => isFollowingMode ? 'Takip Ettiklerin' : 'TurqApp';
+  String get feedTitle {
+    if (isFollowingMode) return 'Takip Ettiklerin';
+    if (isCityMode) return 'Şehrim';
+    return 'TurqApp';
+  }
+
+  String get currentUserLocationCity {
+    final user = CurrentUserService.instance.currentUserRx.value;
+    final candidates = [
+      user?.locationSehir,
+      user?.city,
+      user?.ikametSehir,
+      user?.il,
+      user?.ulke,
+    ];
+    for (final raw in candidates) {
+      final value = (raw ?? '').trim();
+      if (value.isNotEmpty) return value;
+    }
+    return 'Türkiye';
+  }
 
   void setFeedViewMode(FeedViewMode mode) {
     if (feedViewMode.value == mode) return;
