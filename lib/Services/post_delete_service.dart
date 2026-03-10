@@ -144,13 +144,16 @@ class PostDeleteService {
     // Profil listeleri
     if (Get.isRegistered<ProfileController>()) {
       final prof = Get.find<ProfileController>();
-      final ip = prof.allPosts.indexWhere((e) => e.docID == docID);
-      if (ip != -1) {
-        prof.allPosts[ip] =
-            prof.allPosts[ip].copyWith(deletedPost: true, deletedPostTime: now);
-        prof.allPosts.refresh();
-      }
-      // Reshare listesi içerikten bağımsız olduğu için yerinde bırakıyoruz
+      prof.allPosts.removeWhere((e) => e.docID == docID);
+      prof.photos.removeWhere((e) => e.docID == docID);
+      prof.videos.removeWhere((e) => e.docID == docID);
+      prof.scheduledPosts.removeWhere((e) => e.docID == docID);
+      prof.reshares.removeWhere((e) => e.docID == docID);
+      prof.allPosts.refresh();
+      prof.photos.refresh();
+      prof.videos.refresh();
+      prof.scheduledPosts.refresh();
+      prof.reshares.refresh();
     }
 
     // Shorts listesi

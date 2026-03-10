@@ -403,10 +403,11 @@ class ProfileController extends GetxController {
       final filtered = newPosts
           .whereType<PostsModel>()
           .where((p) => p.deletedPost != true)
-          .where((p) => p.video.trim().isEmpty || p.hasPlayableVideo)
           .toList();
       if (isInitial) {
-        if (filtered.isNotEmpty || allPosts.isEmpty) {
+        if (force && filtered.isEmpty && allPosts.isNotEmpty) {
+          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
+        } else {
           allPosts.assignAll(filtered);
         }
       } else {
@@ -464,7 +465,9 @@ class ProfileController extends GetxController {
           .where((p) => p.deletedPost != true)
           .toList();
       if (isInitial) {
-        if (filtered.isNotEmpty || photos.isEmpty) {
+        if (force && filtered.isEmpty && photos.isNotEmpty) {
+          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
+        } else {
           photos.assignAll(filtered);
         }
       } else {
@@ -545,7 +548,9 @@ class ProfileController extends GetxController {
           .where((p) => p.hasPlayableVideo)
           .toList();
       if (isInitial) {
-        if (filtered.isNotEmpty || videos.isEmpty) {
+        if (force && filtered.isEmpty && videos.isNotEmpty) {
+          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
+        } else {
           videos.assignAll(filtered);
         }
       } else {
@@ -588,11 +593,15 @@ class ProfileController extends GetxController {
 
       final snapshot =
           await query.get(const GetOptions(source: Source.serverAndCache));
-      final newPosts =
-          snapshot.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
+      final newPosts = snapshot.docs
+          .map((d) => PostsModel.fromMap(d.data(), d.id))
+          .where((p) => p.deletedPost != true)
+          .toList();
 
       if (isInitial) {
-        if (newPosts.isNotEmpty || scheduledPosts.isEmpty) {
+        if (force && newPosts.isEmpty && scheduledPosts.isNotEmpty) {
+          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
+        } else {
           scheduledPosts.assignAll(newPosts);
         }
       } else {
@@ -625,9 +634,7 @@ class ProfileController extends GetxController {
             .toList();
 
         if (isInitial) {
-          if (newPosts.isNotEmpty || scheduledPosts.isEmpty) {
-            scheduledPosts.assignAll(newPosts);
-          }
+          scheduledPosts.assignAll(newPosts);
         } else {
           scheduledPosts.addAll(newPosts);
         }

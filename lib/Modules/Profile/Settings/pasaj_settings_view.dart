@@ -23,7 +23,7 @@ class PasajSettingsView extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(15, 8, 15, 12),
               child: Text(
-                "Sekmeleri açıp kapatabilir, sağdaki parmak ikonuyla sürükleyebilir veya oklarla sıralamayı değiştirebilirsin.",
+                "Sekmeleri acip kapatabilir, kartin govdesine basip surukleyebilir veya oklarla siralamayi degistirebilirsin.",
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 14,
@@ -56,32 +56,38 @@ class PasajSettingsView extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          SvgPicture.asset(
-                            "assets/icons/sinav.svg",
-                            height: 22,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.black,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              title,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontFamily: "MontserratMedium",
+                            child: ReorderableDragStartListener(
+                              index: index,
+                              child: Row(
+                                children: [
+                                  SvgPicture.asset(
+                                    "assets/icons/sinav.svg",
+                                    height: 22,
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.black,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.touch_app,
+                                    color: Colors.black38,
+                                    size: 20,
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(
-                              Icons.touch_app,
-                              color: Colors.black38,
-                              size: 20,
                             ),
                           ),
                           CupertinoSwitch(

@@ -216,8 +216,11 @@ class _ProfileViewState extends State<ProfileView> {
                               final List<Map<String, dynamic>> combinedPosts =
                                   [];
 
-                              // Normal postları ekle
-                              for (final post in controller.allPosts) {
+                              // Profil ana akışında silinmiş/arşivlenmiş
+                              // gönderileri göstermeyelim.
+                              for (final post in controller.allPosts.where(
+                                (post) => !post.deletedPost && !post.arsiv,
+                              )) {
                                 combinedPosts.add({
                                   'post': post,
                                   'isReshare': false,
@@ -226,7 +229,9 @@ class _ProfileViewState extends State<ProfileView> {
                               }
 
                               // Yeniden paylaşılanları ekle
-                              for (final reshare in controller.reshares) {
+                              for (final reshare in controller.reshares.where(
+                                (post) => !post.deletedPost && !post.arsiv,
+                              )) {
                                 combinedPosts.add({
                                   'post': reshare,
                                   'isReshare': true,
@@ -439,11 +444,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget buildPhotoGrid() {
     var templist = controller.photos
-        .where((val) =>
-            val.img.isNotEmpty &&
-            !val.deletedPost &&
-            !val.arsiv &&
-            !val.gizlendi)
+        .where((val) => val.img.isNotEmpty && !val.deletedPost && !val.arsiv)
         .toList();
 
     return CustomScrollView(
@@ -606,11 +607,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget buildVideoGrid() {
     var templist = controller.videos
-        .where((val) =>
-            val.hasPlayableVideo &&
-            !val.deletedPost &&
-            !val.arsiv &&
-            !val.gizlendi)
+        .where((val) => val.hasPlayableVideo && !val.deletedPost && !val.arsiv)
         .toList();
 
     return CustomScrollView(
@@ -1423,8 +1420,12 @@ class _ProfileViewState extends State<ProfileView> {
     });
   }
 
-  Widget _buildLinkHighlightTile(BuildContext context, Map<String, dynamic> item,
-      String uid, StoryHighlightsController hlController, double width) {
+  Widget _buildLinkHighlightTile(
+      BuildContext context,
+      Map<String, dynamic> item,
+      String uid,
+      StoryHighlightsController hlController,
+      double width) {
     if (item['type'] == 'link') {
       final model = item['data'] as SocialMediaModel;
       return SizedBox(
