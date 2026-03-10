@@ -101,6 +101,7 @@ class JobDetails extends StatelessWidget {
         'zoom': '15',
         'size': '650,360',
         'l': 'map',
+        'lang': 'tr_TR',
         'pt': '${job.long},${job.lat},pm2rdm',
       },
     ).toString();
