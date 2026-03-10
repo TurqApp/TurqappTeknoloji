@@ -791,13 +791,6 @@ class _AgendaContentState extends State<AgendaContent>
             );
           }),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: buildUploadIndicator(),
-          ),
-        ),
       ],
     );
   }

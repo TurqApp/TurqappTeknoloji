@@ -547,13 +547,6 @@ class _ClassicContentState extends State<ClassicContent>
         if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
           buildPollCard(),
         Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: buildUploadIndicator(),
-          ),
-        ),
-        Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
