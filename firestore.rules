@@ -266,6 +266,9 @@ service cloud.firestore {
       match /chatArchives/{chatId} {
         allow read, write: if isOwner(uid);
       }
+      match /chatDeletions/{chatId} {
+        allow read, write: if isOwner(uid);
+      }
       match /highlights/{highlightId} {
         allow read: if isAuth();
         allow write: if isOwner(uid);

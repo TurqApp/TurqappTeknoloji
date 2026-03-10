@@ -629,12 +629,6 @@ class ChatListingController extends GetxController {
       "updatedDate": now,
     }, SetOptions(merge: true));
 
-    try {
-      await db.collection("conversations").doc(item.chatID).set({
-        "archived.$_uid": false,
-      }, SetOptions(merge: true));
-    } catch (_) {}
-
     for (final entry in list) {
       if (entry.chatID != item.chatID) continue;
       entry.deleted = entry.deleted
