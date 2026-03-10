@@ -86,6 +86,16 @@ class SettingsController extends GetxController {
     await _persistPasajPrefs();
   }
 
+  Future<void> movePasajTabUp(int index) async {
+    if (index <= 0 || index >= pasajOrder.length) return;
+    await reorderPasajTabs(index, index - 1);
+  }
+
+  Future<void> movePasajTabDown(int index) async {
+    if (index < 0 || index >= pasajOrder.length - 1) return;
+    await reorderPasajTabs(index, index + 2);
+  }
+
   Future<void> _persistPasajPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final hidden = pasajTabs

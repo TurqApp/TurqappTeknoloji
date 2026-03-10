@@ -23,7 +23,7 @@ class PasajSettingsView extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(15, 8, 15, 12),
               child: Text(
-                "Sekmeleri açıp kapatabilir, sıralamayı sürükleyerek değiştirebilirsin.",
+                "Sekmeleri açıp kapatabilir, sağdaki yukarı ve aşağı oklarla sıralamayı değiştirebilirsin.",
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 14,
@@ -34,16 +34,13 @@ class PasajSettingsView extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 final tabs = controller.pasajOrder.toList(growable: false);
-                return ReorderableListView.builder(
+                return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
                   itemCount: tabs.length,
-                  onReorder: controller.reorderPasajTabs,
-                  buildDefaultDragHandles: false,
                   itemBuilder: (context, index) {
                     final title = tabs[index];
                     final isOn = controller.pasajVisibility[title] ?? true;
                     return Container(
-                      key: ValueKey(title),
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -75,18 +72,46 @@ class PasajSettingsView extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.touch_app,
+                            color: Colors.black38,
+                            size: 20,
+                          ),
                           CupertinoSwitch(
                             value: isOn,
                             onChanged: (value) =>
                                 controller.setPasajTabVisibility(title, value),
                           ),
                           const SizedBox(width: 6),
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(
-                              CupertinoIcons.line_horizontal_3,
-                              color: Colors.black45,
-                            ),
+                          Column(
+                            children: [
+                              GestureDetector(
+                                onTap: index == 0
+                                    ? null
+                                    : () => controller.movePasajTabUp(index),
+                                child: Icon(
+                                  CupertinoIcons.chevron_up,
+                                  color: index == 0
+                                      ? Colors.black26
+                                      : Colors.black54,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              GestureDetector(
+                                onTap: index == tabs.length - 1
+                                    ? null
+                                    : () => controller.movePasajTabDown(index),
+                                child: Icon(
+                                  CupertinoIcons.chevron_down,
+                                  color: index == tabs.length - 1
+                                      ? Colors.black26
+                                      : Colors.black54,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
