@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -11,7 +12,9 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviYap/deneme_sinavi_yap.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
+import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DenemeSinaviPreview extends StatelessWidget {
@@ -420,6 +423,22 @@ class DenemeSinaviPreview extends StatelessWidget {
                       size: 30,
                       iconSize: 18,
                     ),
+                    6.pw,
+                    Obx(
+                      () => EducationActionIconButton(
+                        onTap: controller.toggleSaved,
+                        icon: controller.isSaved.value
+                            ? CupertinoIcons.bookmark_fill
+                            : CupertinoIcons.bookmark,
+                        size: 30,
+                        iconSize: 18,
+                        iconColor: controller.isSaved.value
+                            ? Colors.orange
+                            : Colors.black87,
+                      ),
+                    ),
+                    6.pw,
+                    pullDownMenu(controller),
                     10.pw,
                   ],
                 ),
@@ -561,6 +580,35 @@ class DenemeSinaviPreview extends StatelessWidget {
                   : SizedBox.shrink(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget pullDownMenu(DenemeSinaviPreviewController controller) {
+    return PullDownButton(
+      itemBuilder: (context) => [
+        PullDownMenuItem(
+          onTap: () {
+            Get.to(
+              () => ReportUser(
+                userID: controller.model.userID,
+                postID: controller.model.docID,
+                commentID: "",
+              ),
+            );
+          },
+          title: 'Sınavı Bildir',
+          icon: CupertinoIcons.exclamationmark_circle,
+        ),
+      ],
+      buttonBuilder: (context, showMenu) => CupertinoButton(
+        onPressed: showMenu,
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        child: Icon(
+          AppIcons.ellipsisVertical,
+          color: Colors.black,
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
@@ -16,6 +17,7 @@ class DenemeSinaviPreviewController extends GetxController {
   var examTime = 0.obs;
   var isLoading = true.obs;
   var isInitialized = false.obs;
+  var isSaved = false.obs;
   final int fifteenMinutes = 15 * 60 * 1000;
 
   final SinavModel model;
@@ -29,6 +31,7 @@ class DenemeSinaviPreviewController extends GetxController {
     fetchUserData();
     basvuruKontrol();
     getGecersizlikDurumu();
+    syncSavedState();
   }
 
   Future<void> fetchUserData() async {
@@ -308,5 +311,20 @@ class DenemeSinaviPreviewController extends GetxController {
     currentTime.value = DateTime.now().millisecondsSinceEpoch;
     await fetchUserData();
     await basvuruKontrol();
+    await syncSavedState();
+  }
+
+  Future<void> syncSavedState() async {
+    final savedController = Get.put(SavedPracticeExamsController());
+    if (savedController.savedExamIds.isEmpty && !savedController.isLoading.value) {
+      await savedController.loadSavedExams();
+    }
+    isSaved.value = savedController.savedExamIds.contains(model.docID);
+  }
+
+  Future<void> toggleSaved() async {
+    final savedController = Get.put(SavedPracticeExamsController());
+    await savedController.toggleSavedExam(model.docID);
+    isSaved.value = savedController.savedExamIds.contains(model.docID);
   }
 }

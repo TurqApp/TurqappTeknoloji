@@ -29,6 +29,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/Applications/applicatio
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_view.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SearchDeneme/search_deneme.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavSonuclarim/sinav_sonuclarim.dart';
@@ -253,6 +254,11 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.doc_text,
             title: 'Yayınladıklarım',
             onTap: () => Get.to(() => const MyPracticeExams()),
+          ),
+          PullDownMenuItem(
+            icon: CupertinoIcons.bookmark,
+            title: 'Kaydedilenler',
+            onTap: () => Get.to(() => const SavedPracticeExams()),
           ),
         ];
       case 4:
