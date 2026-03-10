@@ -3,12 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
-import 'package:turqappv2/Core/Services/share_action_guard.dart';
-import 'package:turqappv2/Core/Services/share_link_service.dart';
-import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -22,60 +18,13 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 class DenemeGrid extends StatelessWidget {
   final SinavModel model;
   final Function getData;
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   const DenemeGrid({super.key, required this.model, required this.getData});
 
-  Future<void> _shareExam() async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final canShareFeed =
-        AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
-    if (!canShareFeed) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
-      return;
-    }
-    final shareId = 'practice-exam:${model.docID}';
-    final shortTail =
-        model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
-    final fallbackId = 'practice-exam-$shortTail';
-    final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
-
-    try {
-      await ShareActionGuard.run(() async {
-        String shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getEducationPublicUrl(
-            shareId: shareId,
-            title: model.sinavAdi,
-            desc: model.sinavAciklama.isNotEmpty
-                ? model.sinavAciklama
-                : '${model.sinavTuru} online sinav',
-            imageUrl: model.cover.isNotEmpty ? model.cover : null,
-          );
-        } catch (_) {
-          shortUrl = fallbackUrl;
-        }
-
-        if (shortUrl.trim().isEmpty ||
-            shortUrl.trim() == 'https://turqapp.com') {
-          shortUrl = fallbackUrl;
-        }
-
-        await ShareLinkService.shareUrl(
-          url: shortUrl,
-          title: model.sinavAdi,
-          subject: model.sinavAdi,
-        );
-      });
-    } catch (_) {
-      AppSnackbar("Hata", "Paylaşım başlatılamadı");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final canShareFeed =
-        AdminAccessService.isKnownAdminSync() || model.userID == currentUid;
     final DenemeGridController controller = Get.put(
       DenemeGridController(),
       tag: model.docID,
@@ -288,10 +237,9 @@ class DenemeGrid extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (canShareFeed)
-                        EducationShareIconButton(
-                          onTap: _shareExam,
-                        ),
+                      EducationShareIconButton(
+                        onTap: () => shareService.sharePracticeExam(model),
+                      ),
                     ],
                   ),
                 ),

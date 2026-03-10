@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
@@ -12,6 +13,8 @@ import '../job_finder_controller.dart';
 class JobContent extends StatelessWidget {
   final bool isGrid;
   final JobModel model;
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
   JobContent({super.key, required this.model, required this.isGrid});
   late final JobContentController controller;
   @override
@@ -152,8 +155,8 @@ class JobContent extends StatelessWidget {
                                 children: [
                                   Transform.translate(
                                     offset: Offset(6, 0),
-                                    child: EducationShareIconButton(
-                                      onTap: () => controller.shareJob(model),
+                                    child: EducationFeedShareIconButton(
+                                      onTap: () => shareService.shareJob(model),
                                     ),
                                   ),
                                   Obx(() {
@@ -284,7 +287,7 @@ class JobContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       EducationShareIconButton(
-                        onTap: () => controller.shareJob(model),
+                        onTap: () => shareService.shareJob(model),
                         size: 28,
                         iconSize: 16,
                       ),

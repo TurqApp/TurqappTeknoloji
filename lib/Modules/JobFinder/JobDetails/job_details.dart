@@ -8,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -31,6 +32,8 @@ class JobDetails extends StatelessWidget {
   final JobModel model;
   JobDetails({super.key, required this.model});
   late final JobDetailsController controller;
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   Future<void> _openMentionProfile(String mention) async {
     final normalizedMention = mention.trim().replaceFirst('@', '');
@@ -200,8 +203,8 @@ class JobDetails extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(child: BackButtons(text: "İş Detayı")),
-                EducationShareIconButton(
-                  onTap: controller.shareJob,
+                EducationFeedShareIconButton(
+                  onTap: () => shareService.shareJob(controller.model.value),
                   size: 30,
                   iconSize: 18,
                 ),

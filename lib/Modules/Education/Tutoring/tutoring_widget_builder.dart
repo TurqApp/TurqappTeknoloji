@@ -4,11 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/share_link_service.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
-import 'package:turqappv2/Core/Services/share_action_guard.dart';
-import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -30,6 +26,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
   final Map<String, Map<String, dynamic>> users;
   final bool isGridView;
   final Widget? infoMessage;
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   const TutoringWidgetBuilder({
     super.key,
@@ -81,8 +79,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
                   ? nickname
                   : '$firstName $lastName'.trim();
               final String userID = tutoring.userID;
-              final bool canShareFeed = AdminAccessService.isKnownAdminSync() ||
-                  currentUserId == tutoring.userID;
 
               return GestureDetector(
                 onTap: () =>
@@ -131,13 +127,13 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                     maxLines: 1,
                                   ),
                                 ),
-                                if (canShareFeed)
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: EducationShareIconButton(
-                                      onTap: () => _shareTutoring(tutoring),
-                                    ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: EducationShareIconButton(
+                                    onTap: () =>
+                                        shareService.shareTutoring(tutoring),
                                   ),
+                                ),
                                 Obx(() {
                                   final isSaved = savedController
                                       .savedTutoringIds
@@ -254,8 +250,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
                   ? nickname
                   : '$firstName $lastName'.trim();
               final String userID = tutoring.userID;
-              final bool canShareFeed = AdminAccessService.isKnownAdminSync() ||
-                  currentUserId == tutoring.userID;
 
               return Column(
                 children: [
@@ -307,14 +301,14 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                         maxLines: 1,
                                       ),
                                     ),
-                                    if (canShareFeed)
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 8),
-                                        child: EducationShareIconButton(
-                                          onTap: () => _shareTutoring(tutoring),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: EducationFeedShareIconButton(
+                                        onTap: () => shareService.shareTutoring(
+                                          tutoring,
                                         ),
                                       ),
+                                    ),
                                     Obx(() {
                                       final isSaved = savedController
                                           .savedTutoringIds
@@ -418,38 +412,5 @@ class TutoringWidgetBuilder extends StatelessWidget {
               );
             },
           );
-  }
-
-  Future<void> _shareTutoring(TutoringModel tutoring) async {
-    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final canShareFeed =
-        AdminAccessService.isKnownAdminSync() || tutoring.userID == currentUid;
-    if (!canShareFeed) {
-      AppSnackbar("Yetki", "Sadece admin ve ilan sahibi paylaşabilir.");
-      return;
-    }
-    await ShareActionGuard.run(() async {
-      var shortUrl = '';
-      try {
-        shortUrl = await ShortLinkService().getInternalEducationPublicUrl(
-          shareId: 'tutoring:${tutoring.docID}',
-          title: tutoring.baslik,
-          desc: tutoring.aciklama,
-          imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
-              ? tutoring.imgs!.first
-              : null,
-        );
-      } catch (_) {}
-
-      if (shortUrl.trim().isEmpty) {
-        shortUrl = 'https://turqapp.com/i/tutoring:${tutoring.docID}';
-      }
-
-      await ShareLinkService.shareUrl(
-        url: shortUrl,
-        title: tutoring.baslik,
-        subject: tutoring.baslik,
-      );
-    });
   }
 }

@@ -4,15 +4,13 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Core/Services/share_action_guard.dart';
-import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -37,6 +35,8 @@ class TutoringDetail extends StatelessWidget {
   TutoringDetail({super.key});
 
   final chatListingController = Get.put(ChatListingController());
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   @override
   Widget build(BuildContext context) {
@@ -112,33 +112,6 @@ class TutoringDetail extends StatelessWidget {
       }
     }
 
-    Future<void> shareTutoring() async {
-      final tutoring = controller.tutoring.value;
-      await ShareActionGuard.run(() async {
-        var shortUrl = '';
-        try {
-          shortUrl = await ShortLinkService().getInternalEducationPublicUrl(
-            shareId: 'tutoring:${tutoring.docID}',
-            title: tutoring.baslik,
-            desc: tutoring.aciklama,
-            imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
-                ? tutoring.imgs!.first
-                : null,
-          );
-        } catch (_) {}
-
-        if (shortUrl.trim().isEmpty) {
-          shortUrl = 'https://turqapp.com/i/tutoring:${tutoring.docID}';
-        }
-
-        await ShareLinkService.shareUrl(
-          url: shortUrl,
-          title: tutoring.baslik,
-          subject: tutoring.baslik,
-        );
-      });
-    }
-
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -152,8 +125,9 @@ class TutoringDetail extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(child: BackButtons(text: "Özel Ders")),
-                    EducationShareIconButton(
-                      onTap: shareTutoring,
+                    EducationFeedShareIconButton(
+                      onTap: () =>
+                          shareService.shareTutoring(controller.tutoring.value),
                       size: 30,
                       iconSize: 18,
                     ),

@@ -2,8 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview_controller.dart';
@@ -14,6 +16,8 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DenemeSinaviPreview extends StatelessWidget {
   final SinavModel model;
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   const DenemeSinaviPreview({super.key, required this.model});
 
@@ -406,7 +410,17 @@ class DenemeSinaviPreview extends StatelessWidget {
           children: [
             Column(
               children: [
-                BackButtons(text: "Sınav Hakkında"),
+                Row(
+                  children: [
+                    Expanded(child: BackButtons(text: "Sınav Hakkında")),
+                    EducationFeedShareIconButton(
+                      onTap: () => shareService.sharePracticeExam(model),
+                      size: 30,
+                      iconSize: 18,
+                    ),
+                    10.pw,
+                  ],
+                ),
                 Expanded(
                   child: Obx(
                     () => controller.isLoading.value

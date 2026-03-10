@@ -63,6 +63,14 @@ class UrlPostMakerController extends GetxController {
       Get.find<GlobalLoaderController>().isOn.value = true;
       final uuid = Uuid().v4();
       final normalizedAR = double.parse(aspectRatio.toStringAsFixed(4));
+      final imageUrls =
+          imgs.map((url) => url.trim()).where((url) => url.isNotEmpty).toList();
+      final imgMap = imageUrls
+          .map((url) => {
+                'url': url,
+                'aspectRatio': normalizedAR,
+              })
+          .toList();
 
       // Eğer "Gönderi olarak paylaş" ise, dinamik original bilgileri hesapla
       String finalOriginalUserID = "";
@@ -80,21 +88,24 @@ class UrlPostMakerController extends GetxController {
 
       await FirebaseFirestore.instance.collection("Posts").doc(uuid).set({
         "arsiv": false,
-        "aspectRatio": normalizedAR,
+        if (imageUrls.isEmpty) "aspectRatio": normalizedAR,
         "debugMode": false,
         "deletedPost": false,
         "deletedPostTime": 0,
         "flood": false,
         "floodCount": 1,
         "gizlendi": false,
-        "img": imgs,
+        "img": imageUrls,
+        "imgMap": imgMap,
         "isAd": false,
         "ad": false,
         "izBirakYayinTarihi": 0,
         "konum": "",
         "mainFlood": uuid,
         "metin": textEditingController.text,
-        "paylasGizliligi": 0,
+        "reshareMap": {
+          "visibility": 0,
+        },
         "scheduledAt": 0,
         "sikayetEdildi": false,
         "stabilized": false,
@@ -111,7 +122,13 @@ class UrlPostMakerController extends GetxController {
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
         "userID": FirebaseAuth.instance.currentUser!.uid,
         "video": video,
+        "hlsStatus": "none",
+        "hlsMasterUrl": "",
+        "hlsUpdatedAt": 0,
         "yorum": yorum.value,
+        "yorumMap": {
+          "visibility": yorum.value ? 0 : 3,
+        },
 
         // Dinamik original bilgileri
         "originalUserID": finalOriginalUserID,
@@ -150,7 +167,6 @@ class UrlPostMakerController extends GetxController {
       }
 
       // Yeni oluşturulan postu AgendaController'a ekle
-      final agendaController = Get.find<AgendaController>();
       final newPost = PostsModel(
         arsiv: false,
         aspectRatio: normalizedAR,
@@ -162,7 +178,7 @@ class UrlPostMakerController extends GetxController {
         flood: false,
         floodCount: 1,
         gizlendi: false,
-        img: imgs,
+        img: imageUrls,
         isAd: false,
         ad: false,
         izBirakYayinTarihi: 0,
@@ -171,6 +187,9 @@ class UrlPostMakerController extends GetxController {
         mainFlood: uuid,
         metin: textEditingController.text,
         paylasGizliligi: 0,
+        reshareMap: const {
+          "visibility": 0,
+        },
         scheduledAt: 0,
         sikayetEdildi: false,
         stabilized: false,
@@ -179,25 +198,34 @@ class UrlPostMakerController extends GetxController {
         timeStamp: DateTime.now().millisecondsSinceEpoch,
         userID: FirebaseAuth.instance.currentUser!.uid,
         video: video,
+        hlsStatus: 'none',
+        hlsMasterUrl: '',
+        hlsUpdatedAt: 0,
         yorum: yorum.value,
+        yorumMap: {
+          "visibility": yorum.value ? 0 : 3,
+        },
         originalUserID: finalOriginalUserID,
         originalPostID: finalOriginalPostID,
       );
 
-      // Yeni postu agenda listesinin başına ekle
-      agendaController.addUploadedPostsAtTop([newPost]);
+      if (Get.isRegistered<AgendaController>()) {
+        final agendaController = Get.find<AgendaController>();
+        agendaController.addUploadedPostsAtTop([newPost]);
 
-      // Agenda sayfasını en üste scroll yap
-      if (agendaController.scrollController.hasClients) {
-        agendaController.scrollController.animateTo(
-          0.0,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
+        if (agendaController.scrollController.hasClients) {
+          agendaController.scrollController.animateTo(
+            0.0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
       }
 
-      final mystore = Get.find<ProfileController>();
-      mystore.getLastPostAndAddToAllPosts();
+      if (Get.isRegistered<ProfileController>()) {
+        final mystore = Get.find<ProfileController>();
+        mystore.getLastPostAndAddToAllPosts();
+      }
       Get.find<GlobalLoaderController>().isOn.value = false;
       isSharing.value = false;
       Get.back();

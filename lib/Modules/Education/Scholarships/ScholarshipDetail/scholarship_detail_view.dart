@@ -8,7 +8,9 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -30,6 +32,8 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   final ScholarshipsController scholarshipsController = Get.put(
     ScholarshipsController(),
   );
+  final EducationFeedPostShareService shareService =
+      const EducationFeedPostShareService();
 
   @override
   Widget build(BuildContext context) {
@@ -86,11 +90,18 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    BackButtons(text: "Burs Detayı"),
+                    Expanded(child: BackButtons(text: "Burs Detayı")),
+                    EducationFeedShareIconButton(
+                      onTap: () => shareService.shareScholarship(
+                        scholarshipData,
+                      ),
+                      size: 30,
+                      iconSize: 18,
+                    ),
                     if (userData['userID']?.toString() ==
                         FirebaseAuth.instance.currentUser?.uid)
                       Padding(
-                        padding: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.only(left: 4, right: 10),
                         child: IconButton(
                           icon: Icon(
                             CupertinoIcons.trash,
@@ -113,7 +124,9 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                             );
                           },
                         ),
-                      ),
+                      )
+                    else
+                      10.pw,
                   ],
                 ),
                 Expanded(
