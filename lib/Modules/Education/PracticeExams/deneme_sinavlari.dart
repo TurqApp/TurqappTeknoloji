@@ -48,6 +48,9 @@ class DenemeSinavlari extends StatelessWidget {
         backgroundColor: Colors.black,
         onRefresh: controller.getData,
         child: Obx(() {
+          final items = controller.hasActiveSearch
+              ? controller.searchResults
+              : controller.list;
           if (controller.isLoading.value) {
             return SingleChildScrollView(
               child: Column(
@@ -58,7 +61,10 @@ class DenemeSinavlari extends StatelessWidget {
               ),
             );
           }
-          if (controller.list.isEmpty) {
+          if (controller.isSearchLoading.value) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+          if (items.isEmpty) {
             return Center(
               child: Padding(
                 padding: EdgeInsets.all(20),
@@ -72,7 +78,9 @@ class DenemeSinavlari extends StatelessWidget {
                     ),
                     20.ph,
                     Text(
-                      "Henüz Deneme Sınavı Bulunmuyor",
+                      controller.hasActiveSearch
+                          ? "Aramana uygun sınav bulunamadı"
+                          : "Henüz Deneme Sınavı Bulunmuyor",
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 20,
@@ -82,7 +90,9 @@ class DenemeSinavlari extends StatelessWidget {
                     ),
                     10.ph,
                     Text(
-                      "Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.",
+                      controller.hasActiveSearch
+                          ? "Farklı bir anahtar kelime deneyin."
+                          : "Şu anda sistemde kayıtlı deneme sınavı bulunmamaktadır. Yeni sınavlar eklendiğinde burada görünecektir.",
                       style: TextStyle(
                         color: Colors.grey,
                         fontSize: 16,
@@ -214,21 +224,22 @@ class DenemeSinavlari extends StatelessWidget {
                     mainAxisSpacing: 4,
                     childAspectRatio: 0.52,
                   ),
-                  itemCount: controller.list.length,
+                  itemCount: items.length,
                   itemBuilder: (context, index) {
                     return DenemeGrid(
-                      model: controller.list[index],
+                      model: items[index],
                       getData: controller.getData,
                     );
                   },
                 ),
               ),
-              Obx(() => controller.isLoadingMore.value
-                  ? Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CupertinoActivityIndicator()),
-                    )
-                  : SizedBox.shrink()),
+              Obx(() =>
+                  !controller.hasActiveSearch && controller.isLoadingMore.value
+                      ? Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CupertinoActivityIndicator()),
+                        )
+                      : SizedBox.shrink()),
             ],
           );
         }),

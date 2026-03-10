@@ -35,8 +35,11 @@ async function ensureAdmin(context: functions.https.CallableContext) {
 }
 
 async function getFlags() {
-  const snap = await db.collection("system_flags").doc("global").get();
-  const data = snap.data() ?? {};
+  const primarySnap = await db.collection("adminConfig").doc("adsFlags").get();
+  const legacySnap = primarySnap.exists
+    ? null
+    : await db.collection("system_flags").doc("global").get();
+  const data = primarySnap.data() ?? legacySnap?.data() ?? {};
   return {
     adsInfrastructureEnabled: data.adsInfrastructureEnabled !== false,
     adsAdminPanelEnabled: data.adsAdminPanelEnabled !== false,

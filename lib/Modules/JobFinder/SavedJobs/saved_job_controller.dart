@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
@@ -27,15 +28,8 @@ class SavedJobsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      final savedSnap = await FirebaseFirestore.instance
-          .collection("SavedIsBul")
-          .where("userID", isEqualTo: uid)
-          .get();
-
-      final savedIds = savedSnap.docs
-          .map((e) => (e.data()["jobID"] ?? "").toString())
-          .where((id) => id.isNotEmpty)
-          .toList();
+      final savedRecords = await JobSavedStore.getSavedJobs(uid);
+      final savedIds = savedRecords.map((e) => e.jobId).toList();
 
       if (savedIds.isEmpty) {
         list.clear();
@@ -46,7 +40,7 @@ class SavedJobsController extends GetxController {
       final now = DateTime.now().millisecondsSinceEpoch;
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-      final jobs = <JobModel>[];
+      final jobsById = <String, JobModel>{};
       final staleSavedIds = <String>[];
       final idsToMarkEnded = <String>[];
 
@@ -67,7 +61,7 @@ class SavedJobsController extends GetxController {
             continue;
           }
           if (!job.ended) {
-            jobs.add(job);
+            jobsById[doc.id] = job;
           }
         }
       }
@@ -75,14 +69,7 @@ class SavedJobsController extends GetxController {
       // DB yan etkilerini batch ile uygula (tek tek write yerine).
       if (staleSavedIds.isNotEmpty) {
         for (final chunk in _chunkList(staleSavedIds, 450)) {
-          final batch = FirebaseFirestore.instance.batch();
-          for (final docId in chunk) {
-            final ref = FirebaseFirestore.instance
-                .collection("SavedIsBul")
-                .doc('${uid}_$docId');
-            batch.delete(ref);
-          }
-          await batch.commit();
+          await JobSavedStore.removeSavedJobs(uid, chunk);
         }
       }
       if (idsToMarkEnded.isNotEmpty) {
@@ -97,6 +84,11 @@ class SavedJobsController extends GetxController {
           await batch.commit();
         }
       }
+
+      final jobs = savedIds
+          .where(jobsById.containsKey)
+          .map((id) => jobsById[id]!)
+          .toList();
 
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       LocationPermission permission = await Geolocator.checkPermission();

@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
+import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
+import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
@@ -48,7 +51,8 @@ class EducationController extends GetxController {
 
     // Arama metnini aktif sekmeye yönlendir
     ever(searchText, (_) => _forwardSearch());
-    ever<List<String>>(settingsController.pasajOrder, (_) => _recomputeVisibleTabs());
+    ever<List<String>>(
+        settingsController.pasajOrder, (_) => _recomputeVisibleTabs());
     ever<Map<String, bool>>(
       settingsController.pasajVisibility,
       (_) => _recomputeVisibleTabs(),
@@ -284,6 +288,21 @@ class EducationController extends GetxController {
           jc.search.text = query;
         }
         break;
+      case "Online Sınav":
+        if (Get.isRegistered<DenemeSinavlariController>()) {
+          Get.find<DenemeSinavlariController>().setSearchQuery(query);
+        }
+        break;
+      case "Cevap Anahtarı":
+        if (Get.isRegistered<AnswerKeyController>()) {
+          Get.find<AnswerKeyController>().setSearchQuery(query);
+        }
+        break;
+      case "Özel Ders":
+        if (Get.isRegistered<TutoringController>()) {
+          Get.find<TutoringController>().setSearchQuery(query);
+        }
+        break;
     }
   }
 
@@ -299,6 +318,21 @@ class EducationController extends GetxController {
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();
+        }
+        break;
+      case "Online Sınav":
+        if (Get.isRegistered<DenemeSinavlariController>()) {
+          Get.find<DenemeSinavlariController>().setSearchQuery('');
+        }
+        break;
+      case "Cevap Anahtarı":
+        if (Get.isRegistered<AnswerKeyController>()) {
+          Get.find<AnswerKeyController>().setSearchQuery('');
+        }
+        break;
+      case "Özel Ders":
+        if (Get.isRegistered<TutoringController>()) {
+          Get.find<TutoringController>().setSearchQuery('');
         }
         break;
     }

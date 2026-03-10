@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
@@ -41,6 +43,9 @@ class JobFinderController extends GetxController {
   var isLoading = false.obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   var kullaniciSehiri = "".obs;
+  int _searchRequestId = 0;
+  double? _userLat;
+  double? _userLong;
 
   @override
   void onInit() {
@@ -89,37 +94,37 @@ class JobFinderController extends GetxController {
   void _searchListener() {
     final query = search.text.trim();
     if (query.length >= 2) {
-      searchFromFirestore(query);
+      searchFromTypesense(query);
     } else {
+      _searchRequestId++;
       aramaSonucu.clear();
     }
   }
 
-  Future<void> searchFromFirestore(String query) async {
+  Future<void> searchFromTypesense(String query) async {
+    final requestId = ++_searchRequestId;
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where("ended", isEqualTo: false)
-          .get();
+      final docIds =
+          await TypesenseEducationSearchService.instance.searchDocIds(
+        entity: EducationTypesenseEntity.job,
+        query: query,
+        limit: 40,
+      );
+      if (requestId != _searchRequestId || search.text.trim() != query) return;
 
-      List<JobModel> allResults = snapshot.docs
-          .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-          .toList();
-
-      final q = query.toLowerCase();
-      List<JobModel> results = allResults.where((job) {
-        return job.isTanimi.toLowerCase().contains(q) ||
-            job.brand.toLowerCase().contains(q) ||
-            job.meslek.toLowerCase().contains(q) ||
-            job.ilanBasligi.toLowerCase().contains(q);
-      }).toList();
-
-      aramaSonucu.value = results;
+      final results = await _fetchJobsByDocIds(docIds);
+      if (requestId != _searchRequestId || search.text.trim() != query) return;
+      aramaSonucu.assignAll(results);
     } catch (e) {
       print("Arama hatası: $e");
+      if (requestId == _searchRequestId) {
+        aramaSonucu.clear();
+      }
     } finally {
-      isLoading.value = false;
+      if (requestId == _searchRequestId) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -135,17 +140,15 @@ class JobFinderController extends GetxController {
           .limit(150)
           .get();
 
-      List<JobModel> jobs = [];
+      final jobs = <JobModel>[];
+      final expiredJobIds = <String>[];
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
         final job = JobModel.fromMap(data, doc.id);
 
         if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(doc.id)
-              .update({"ended": true});
+          expiredJobIds.add(doc.id);
           continue;
         }
 
@@ -154,35 +157,36 @@ class JobFinderController extends GetxController {
         }
       }
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
+      jobs.shuffle();
+      list.assignAll(jobs);
+      allJobs.assignAll(jobs);
+      isLoading.value = false;
 
-      if (!serviceEnabled ||
-          permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        jobs.shuffle();
-        list.value = jobs;
-        allJobs.value = jobs;
+      if (expiredJobIds.isNotEmpty) {
+        unawaited(_markJobsEndedSilently(expiredJobIds));
+      }
+
+      unawaited(_hydrateLocationAndResort(jobs));
+    } catch (e) {
+      print("Hata oluştu: $e");
+    } finally {
+      if (list.isEmpty) {
         isLoading.value = false;
-        return;
       }
+    }
+  }
 
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          list.value = jobs;
-          allJobs.value = jobs;
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
+  Future<void> _hydrateLocationAndResort(List<JobModel> sourceJobs) async {
+    try {
+      var position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      double userLat = position.latitude;
-      double userLong = position.longitude;
+      final userLat = position.latitude;
+      final userLong = position.longitude;
+      _userLat = userLat;
+      _userLong = userLong;
 
       List<Placemark> placemarks =
           await placemarkFromCoordinates(userLat, userLong);
@@ -193,7 +197,7 @@ class JobFinderController extends GetxController {
         kullaniciSehiri.value = cityName;
       }
 
-      List<JobModel> updatedJobs = jobs.map((job) {
+      final updatedJobs = sourceJobs.map((job) {
         double distanceInMeters = Geolocator.distanceBetween(
           userLat,
           userLong,
@@ -208,13 +212,68 @@ class JobFinderController extends GetxController {
       }).toList();
 
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
-      list.value = updatedJobs;
-      allJobs.value = updatedJobs;
+      list.assignAll(updatedJobs);
+      allJobs.assignAll(updatedJobs);
     } catch (e) {
-      print("Hata oluştu: $e");
-    } finally {
-      isLoading.value = false;
+      print("Konum bazli is siralama hatasi: $e");
     }
+  }
+
+  Future<void> _markJobsEndedSilently(List<String> docIds) async {
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final docId in docIds) {
+        batch.update(
+          FirebaseFirestore.instance.collection(JobCollection.name).doc(docId),
+          {"ended": true},
+        );
+      }
+      await batch.commit();
+    } catch (e) {
+      print("Eski ilanlar sessiz kapatilamadi: $e");
+    }
+  }
+
+  Future<List<JobModel>> _fetchJobsByDocIds(List<String> docIds) async {
+    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
+    if (orderedIds.isEmpty) return const [];
+
+    final byId = <String, JobModel>{};
+    const chunkSize = 10;
+
+    for (var i = 0; i < orderedIds.length; i += chunkSize) {
+      final end = (i + chunkSize > orderedIds.length)
+          ? orderedIds.length
+          : i + chunkSize;
+      final chunk = orderedIds.sublist(i, end);
+      final snapshot = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final model = JobModel.fromMap(doc.data(), doc.id);
+        if (model.ended) continue;
+        byId[doc.id] = _attachDistance(model);
+      }
+    }
+
+    return orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+  }
+
+  JobModel _attachDistance(JobModel job) {
+    final userLat = _userLat;
+    final userLong = _userLong;
+    if (userLat == null || userLong == null) return job;
+
+    final distanceInKm = Geolocator.distanceBetween(
+          userLat,
+          userLong,
+          job.lat,
+          job.long,
+        ) /
+        1000;
+    return job.copyWith(kacKm: double.parse(distanceInKm.toStringAsFixed(2)));
   }
 
   Future<void> siralaTapped() async {

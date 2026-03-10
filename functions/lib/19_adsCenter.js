@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adsAggregateDailyStats = exports.adsLogEvent = exports.adsSimulateDelivery = void 0;
+exports.adsAggregateDailyStats = exports.syncAdsTargetingIndex = exports.adsLogEvent = exports.adsSimulateDelivery = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const db = admin.firestore();
@@ -32,8 +32,11 @@ async function ensureAdmin(context) {
     throw new functions.https.HttpsError("permission-denied", "admin_required");
 }
 async function getFlags() {
-    const snap = await db.collection("system_flags").doc("global").get();
-    const data = snap.data() ?? {};
+    const primarySnap = await db.collection("adminConfig").doc("adsFlags").get();
+    const legacySnap = primarySnap.exists
+        ? null
+        : await db.collection("system_flags").doc("global").get();
+    const data = primarySnap.data() ?? legacySnap?.data() ?? {};
     return {
         adsInfrastructureEnabled: data.adsInfrastructureEnabled !== false,
         adsAdminPanelEnabled: data.adsAdminPanelEnabled !== false,
@@ -115,6 +118,79 @@ function matchesTargeting(targeting, ctx) {
     if (versions.length > 0 && !versions.includes(ctx.appVersion))
         return false;
     return true;
+}
+function normalizedKeyParts(values) {
+    if (!Array.isArray(values))
+        return [];
+    const set = new Set();
+    for (const item of values) {
+        const normalized = normalizeString(item).toUpperCase();
+        if (normalized.length > 0)
+            set.add(normalized);
+    }
+    return Array.from(set);
+}
+function buildTargetingKeys(data) {
+    if (!data)
+        return [];
+    const targeting = (data.targeting ?? {});
+    const placements = Array.isArray(data.placementTypes)
+        ? data.placementTypes
+            .map((v) => normalizeString(v).toLowerCase())
+            .filter((v) => v.length > 0)
+        : [];
+    const placementList = placements.length === 0 ? ["feed"] : Array.from(new Set(placements));
+    const countries = normalizedKeyParts(Array.isArray(targeting.countries) ? targeting.countries : undefined);
+    const cities = normalizedKeyParts(Array.isArray(targeting.cities) ? targeting.cities : undefined);
+    const countryList = countries.length == 0 ? ["ANY"] : countries;
+    const cityList = cities.length == 0 ? ["ANY"] : cities;
+    const minAge = normalizeInt(targeting.minAge);
+    const maxAge = normalizeInt(targeting.maxAge);
+    const ageRange = `${minAge ?? 0}-${maxAge ?? 120}`;
+    const keys = [];
+    for (const country of countryList) {
+        for (const city of cityList) {
+            for (const place of placementList) {
+                keys.push(`${country}:${city}:${ageRange}:${place}`);
+            }
+        }
+    }
+    return keys;
+}
+async function updateTargetingIndexKey(key, campaignId, include) {
+    if (!key || !key.trim())
+        return;
+    const ref = db.collection("ads_targeting_index").doc(key);
+    await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const data = snap.exists ? snap.data() ?? {} : {};
+        const current = Array.isArray(data.campaignIds)
+            ? new Set(data.campaignIds.map((v) => normalizeString(v)))
+            : new Set();
+        let changed = false;
+        if (include) {
+            if (!current.has(campaignId)) {
+                current.add(campaignId);
+                changed = true;
+            }
+        }
+        else {
+            if (current.delete(campaignId)) {
+                changed = true;
+            }
+        }
+        if (!changed)
+            return;
+        if (current.size === 0) {
+            tx.delete(ref);
+            return;
+        }
+        tx.set(ref, {
+            key,
+            campaignIds: Array.from(current),
+            updatedAt: Date.now(),
+        }, { merge: true });
+    });
 }
 async function getCampaignDailySpend(campaignId, nowMs) {
     const start = new Date(nowMs);
@@ -360,6 +436,21 @@ exports.adsLogEvent = functions.region("europe-west3").https.onCall(async (data,
         });
     }
     return { ok: true };
+});
+exports.syncAdsTargetingIndex = functions
+    .region("europe-west3")
+    .firestore.document("ads_campaigns/{campaignId}")
+    .onWrite(async (change, context) => {
+    const campaignId = context.params.campaignId;
+    const oldKeys = buildTargetingKeys(change.before.exists ? change.before.data() ?? null : null);
+    const newKeys = buildTargetingKeys(change.after.exists ? change.after.data() ?? null : null);
+    const toAdd = newKeys.filter((key) => !oldKeys.includes(key));
+    const toRemove = oldKeys.filter((key) => !newKeys.includes(key));
+    await Promise.all([
+        ...toAdd.map((key) => updateTargetingIndexKey(key, campaignId, true)),
+        ...toRemove.map((key) => updateTargetingIndexKey(key, campaignId, false)),
+    ]);
+    return null;
 });
 exports.adsAggregateDailyStats = functions
     .region("europe-west3")

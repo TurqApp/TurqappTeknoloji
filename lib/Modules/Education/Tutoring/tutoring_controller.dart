@@ -4,22 +4,29 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
   final FocusNode focusNode = FocusNode();
   var isLoading = true.obs;
+  var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
   var tutoringList = <TutoringModel>[].obs;
+  var searchResults = <TutoringModel>[].obs;
+  final RxString searchQuery = ''.obs;
   var users = <String, Map<String, dynamic>>{}.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
   StreamSubscription<QuerySnapshot>? _tutoringSubscription;
   DocumentSnapshot? _lastDocument;
+  Timer? _searchDebounce;
+  int _searchToken = 0;
 
   static const int _pageSize = 30;
+  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
@@ -31,6 +38,7 @@ class TutoringController extends GetxController {
   @override
   void onClose() {
     _tutoringSubscription?.cancel();
+    _searchDebounce?.cancel();
     focusNode.dispose();
     scrollController.dispose();
     super.onClose();
@@ -40,6 +48,7 @@ class TutoringController extends GetxController {
     scrollOffset.value = scrollController.offset;
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
+        !hasActiveSearch &&
         !isLoadingMore.value &&
         hasMore.value) {
       loadMore();
@@ -155,6 +164,79 @@ class TutoringController extends GetxController {
     } finally {
       isLoadingMore.value = false;
     }
+  }
+
+  void setSearchQuery(String query) {
+    searchQuery.value = query.trim();
+    _searchDebounce?.cancel();
+    if (!hasActiveSearch) {
+      isSearchLoading.value = false;
+      searchResults.clear();
+      _searchToken++;
+      return;
+    }
+
+    final token = ++_searchToken;
+    isSearchLoading.value = true;
+    _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
+      await _searchFromTypesense(searchQuery.value, token);
+    });
+  }
+
+  Future<void> _searchFromTypesense(String query, int token) async {
+    final normalized = query.trim();
+    try {
+      final docIds =
+          await TypesenseEducationSearchService.instance.searchDocIds(
+        entity: EducationTypesenseEntity.tutoring,
+        query: normalized,
+        limit: 40,
+      );
+      if (token != _searchToken || searchQuery.value.trim() != normalized)
+        return;
+
+      final results = await _fetchByDocIds(docIds);
+      if (token != _searchToken || searchQuery.value.trim() != normalized)
+        return;
+      searchResults.assignAll(_applyPersonalization(results));
+    } catch (e) {
+      log("Tutoring typesense search error: $e");
+      if (token == _searchToken) {
+        searchResults.clear();
+      }
+    } finally {
+      if (token == _searchToken) {
+        isSearchLoading.value = false;
+      }
+    }
+  }
+
+  Future<List<TutoringModel>> _fetchByDocIds(List<String> docIds) async {
+    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
+    if (orderedIds.isEmpty) return const [];
+
+    final byId = <String, TutoringModel>{};
+    const chunkSize = 10;
+    for (var i = 0; i < orderedIds.length; i += chunkSize) {
+      final end = (i + chunkSize > orderedIds.length)
+          ? orderedIds.length
+          : i + chunkSize;
+      final chunk = orderedIds.sublist(i, end);
+      final snapshot = await FirebaseFirestore.instance
+          .collection('educators')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snapshot.docs) {
+        final model = TutoringModel.fromJson(doc.data(), doc.id);
+        if (model.ended == true) continue;
+        byId[doc.id] = model;
+      }
+    }
+
+    final results =
+        orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    await _batchFetchUsers(results.map((t) => t.userID).toSet());
+    return results;
   }
 
   /// Kişiselleştirilmiş sıralama puanı.

@@ -16,6 +16,16 @@ class AdsFeatureFlagsService extends GetxService {
   final Rx<AdFeatureFlags> flags = AdFeatureFlags.defaults.obs;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;
 
+  DocumentReference<Map<String, dynamic>> get _primaryRef =>
+      FirebaseFirestore.instance
+          .collection(AdsCollections.adminConfig)
+          .doc(AdsCollections.adsFlagsDoc);
+
+  DocumentReference<Map<String, dynamic>> get _legacyRef =>
+      FirebaseFirestore.instance
+          .collection(AdsCollections.legacySystemFlags)
+          .doc(AdsCollections.systemFlagsGlobalDoc);
+
   Future<AdsFeatureFlagsService> init() async {
     await refreshOnce();
     _bind();
@@ -24,16 +34,25 @@ class AdsFeatureFlagsService extends GetxService {
 
   Future<void> refreshOnce() async {
     try {
-      final ref = FirebaseFirestore.instance
-          .collection(AdsCollections.systemFlags)
-          .doc(AdsCollections.systemFlagsGlobalDoc);
-      final doc = await ref.get();
-      if (!doc.exists) {
-        await ref.set(AdFeatureFlags.defaults.toMap(), SetOptions(merge: true));
-        flags.value = AdFeatureFlags.defaults;
+      final primaryDoc = await _primaryRef.get();
+      if (primaryDoc.exists) {
+        flags.value = AdFeatureFlags.fromMap(primaryDoc.data());
         return;
       }
-      flags.value = AdFeatureFlags.fromMap(doc.data());
+
+      final legacyDoc = await _legacyRef.get();
+      if (legacyDoc.exists) {
+        final migrated = AdFeatureFlags.fromMap(legacyDoc.data());
+        await _primaryRef.set(migrated.toMap(), SetOptions(merge: true));
+        flags.value = migrated;
+        return;
+      }
+
+      await _primaryRef.set(
+        AdFeatureFlags.defaults.toMap(),
+        SetOptions(merge: true),
+      );
+      flags.value = AdFeatureFlags.defaults;
     } catch (_) {
       flags.value = AdFeatureFlags.defaults;
     }
@@ -41,11 +60,7 @@ class AdsFeatureFlagsService extends GetxService {
 
   void _bind() {
     _sub?.cancel();
-    _sub = FirebaseFirestore.instance
-        .collection(AdsCollections.systemFlags)
-        .doc(AdsCollections.systemFlagsGlobalDoc)
-        .snapshots()
-        .listen((event) {
+    _sub = _primaryRef.snapshots().listen((event) {
       flags.value = AdFeatureFlags.fromMap(event.data());
     }, onError: (_) {
       flags.value = flags.value;
@@ -53,10 +68,10 @@ class AdsFeatureFlagsService extends GetxService {
   }
 
   Future<void> setFlags(AdFeatureFlags next) async {
-    await FirebaseFirestore.instance
-        .collection(AdsCollections.systemFlags)
-        .doc(AdsCollections.systemFlagsGlobalDoc)
-        .set(next.toMap(), SetOptions(merge: true));
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(_primaryRef, next.toMap(), SetOptions(merge: true));
+    batch.delete(_legacyRef);
+    await batch.commit();
     flags.value = next;
   }
 

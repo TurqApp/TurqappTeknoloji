@@ -170,12 +170,7 @@ class JobFinder extends StatelessWidget {
           controller.sehir.value == "Tüm Türkiye";
 
       final dataList = isSearching
-          ? (tumTurkiye
-              ? controller.aramaSonucu
-              : controller.aramaSonucu
-                  .where(
-                      (e) => e.city.toString().contains(controller.sehir.value))
-                  .toList())
+          ? controller.aramaSonucu
           : (tumTurkiye
               ? controller.list
               : controller.list
@@ -194,7 +189,11 @@ class JobFinder extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _kesfetHeader(isSearching: isSearching, context: context),
-              EmptyRow(text: "Şehrinde bir ilan bulunmuyor"),
+              EmptyRow(
+                text: isSearching
+                    ? "Aramana uygun ilan bulunamadı"
+                    : "Şehrinde bir ilan bulunmuyor",
+              ),
             ],
           );
         }
@@ -214,7 +213,11 @@ class JobFinder extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _kesfetHeader(isSearching: isSearching, context: context),
-              EmptyRow(text: "Şehrinde bir ilan bulunmuyor"),
+              EmptyRow(
+                text: isSearching
+                    ? "Aramana uygun ilan bulunamadı"
+                    : "Şehrinde bir ilan bulunmuyor",
+              ),
             ],
           );
         }

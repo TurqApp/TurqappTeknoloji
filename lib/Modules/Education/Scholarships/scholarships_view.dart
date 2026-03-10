@@ -121,7 +121,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
                 icon: Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
               ),
               Obx(() {
-                final isSearching = controller.searchQuery.value.isNotEmpty;
+                final isSearching = controller.hasActiveSearch;
                 final count = isSearching
                     ? controller.visibleScholarships.length
                     : controller.totalCount.value;
@@ -240,7 +240,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   }
 
   Widget _buildScholarshipsList() {
-    final isSearching = controller.searchQuery.value.isNotEmpty;
+    final isSearching = controller.hasActiveSearch;
     final items = controller.visibleScholarships;
     if (items.isEmpty && !_shouldShowLoading()) {
       return _buildEmptyState();
@@ -300,7 +300,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   }
 
   Widget _buildEmptyState() {
-    final isSearching = controller.searchQuery.value.isNotEmpty;
+    final isSearching = controller.hasActiveSearch;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -419,7 +419,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   Widget _buildScholarshipCard(int index, List<Map<String, dynamic>> items) {
     // İlk 10 kayıt geldikten sonra kullanıcı 5. karta indiğinde
     // arka planda +5 daha çek.
-    final isSearching = controller.searchQuery.value.isNotEmpty;
+    final isSearching = controller.hasActiveSearch;
     if (!isSearching && index == 4 && controller.hasMoreData.value) {
       controller.loadMoreScholarships();
     }

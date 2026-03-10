@@ -59,7 +59,10 @@ class TutoringView extends StatelessWidget {
           physics: AlwaysScrollableScrollPhysics(),
           child: Obx(() {
             List<TutoringModel> filteredList =
-                tutoringController.tutoringList.toList();
+                (tutoringController.hasActiveSearch
+                        ? tutoringController.searchResults
+                        : tutoringController.tutoringList)
+                    .toList();
 
             if (applyFilterTrigger.value) {
               if (filterController.selectedBranch.value != null &&
@@ -248,6 +251,9 @@ class TutoringView extends StatelessWidget {
                 8.ph,
                 Obx(() {
                   if (tutoringController.isLoading.value) {
+                    return Center(child: CupertinoActivityIndicator());
+                  }
+                  if (tutoringController.isSearchLoading.value) {
                     return Center(child: CupertinoActivityIndicator());
                   }
                   return Padding(

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -17,13 +18,8 @@ class JobContentController extends GetxController {
   Future<void> checkSaved(String docId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final savedDocId = '${uid}_$docId';
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("SavedIsBul")
-          .doc(savedDocId)
-          .get();
-      saved.value = doc.exists;
+      saved.value = await JobSavedStore.isSaved(uid, docId);
     } catch (e) {
       print("checkSaved hatası: $e");
       saved.value = false;
@@ -33,24 +29,14 @@ class JobContentController extends GetxController {
   Future<void> toggleSave(String docId) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final savedDocId = '${uid}_$docId';
-    final ref = FirebaseFirestore.instance
-        .collection("SavedIsBul")
-        .doc(savedDocId);
 
     try {
-      final doc = await ref.get();
-
-      if (doc.exists) {
-        await ref.delete();
+      final isAlreadySaved = await JobSavedStore.isSaved(uid, docId);
+      if (isAlreadySaved) {
+        await JobSavedStore.unsave(uid, docId);
         saved.value = false;
       } else {
-        final ts = {
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-          "userID": uid,
-          "jobID": docId,
-        };
-        await ref.set(ts);
+        await JobSavedStore.save(uid, docId);
         saved.value = true;
       }
     } catch (e) {

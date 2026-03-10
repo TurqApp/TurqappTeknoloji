@@ -48,76 +48,89 @@ class AnswerKey extends StatelessWidget {
           controller: _scrollController, // _scrollController'ı buraya bağla
           children: [
             Obx(
-              () => Column(
-                children: [
-                  EducationSlider(
-                    sliderId: 'cevap_anahtari',
-                    imageList: [
-                      AppAssets.optical1,
-                      AppAssets.optical2,
-                      AppAssets.optical3
-                    ],
-                  ),
-                  8.ph,
-                  lessonsCategory(),
-                  if (!embedded) search(),
-                  controller.isLoading.value
-                      ? const Center(child: CupertinoActivityIndicator())
-                      : controller.bookList.isNotEmpty
-                          ? Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 15),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 4,
-                                  mainAxisSpacing: 4,
-                                  childAspectRatio: 0.49,
-                                ),
-                                itemCount: controller.bookList.length,
-                                itemBuilder: (context, index) {
-                                  final item = controller.bookList[index];
-                                  return AnswerKeyContent(
-                                    key: ValueKey(item.docID),
-                                    model: item,
-                                    onUpdate: (v) => controller.refreshData(),
-                                  );
-                                },
-                              ),
-                            )
-                          : Container(
-                              color: Colors.white,
-                              child: const Padding(
-                                padding: EdgeInsets.only(top: 15),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.lightbulb_outline,
-                                            color: Colors.black),
-                                        SizedBox(height: 7),
-                                        Text(
-                                          "Herhangi bir optik form yok.",
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "Montserrat",
-                                          ),
-                                        ),
-                                      ],
+              () {
+                final items = controller.hasActiveSearch
+                    ? controller.searchResults
+                    : controller.bookList;
+                return Column(
+                  children: [
+                    EducationSlider(
+                      sliderId: 'cevap_anahtari',
+                      imageList: [
+                        AppAssets.optical1,
+                        AppAssets.optical2,
+                        AppAssets.optical3
+                      ],
+                    ),
+                    8.ph,
+                    lessonsCategory(),
+                    if (!embedded) search(),
+                    controller.isLoading.value
+                        ? const Center(child: CupertinoActivityIndicator())
+                        : controller.isSearchLoading.value
+                            ? const Center(child: CupertinoActivityIndicator())
+                            : items.isNotEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 15),
+                                    child: GridView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 4,
+                                        mainAxisSpacing: 4,
+                                        childAspectRatio: 0.49,
+                                      ),
+                                      itemCount: items.length,
+                                      itemBuilder: (context, index) {
+                                        final item = items[index];
+                                        return AnswerKeyContent(
+                                          key: ValueKey(item.docID),
+                                          model: item,
+                                          onUpdate: (v) =>
+                                              controller.refreshData(),
+                                        );
+                                      },
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                ],
-              ),
+                                  )
+                                : Container(
+                                    color: Colors.white,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 15),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                  Icons.lightbulb_outline,
+                                                  color: Colors.black),
+                                              const SizedBox(height: 7),
+                                              Text(
+                                                controller.hasActiveSearch
+                                                    ? "Aramana uygun cevap anahtarı yok."
+                                                    : "Herhangi bir optik form yok.",
+                                                style: const TextStyle(
+                                                  color: Colors.black,
+                                                  fontSize: 15,
+                                                  fontFamily: "Montserrat",
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                  ],
+                );
+              },
             ),
           ],
         ),

@@ -7,7 +7,9 @@ class AdsCollections {
   static const advertisers = 'ads_advertisers';
   static const targetingIndex = 'ads_targeting_index';
   static const deliveryLogs = 'ads_delivery_logs';
-  static const systemFlags = 'system_flags';
+  static const adminConfig = 'adminConfig';
+  static const adsFlagsDoc = 'adsFlags';
 
+  static const legacySystemFlags = 'system_flags';
   static const systemFlagsGlobalDoc = 'global';
 }

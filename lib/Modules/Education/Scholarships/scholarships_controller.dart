@@ -12,7 +12,7 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
-import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
@@ -50,14 +50,14 @@ class ScholarshipsController extends GetxController {
   DocumentSnapshot? lastBireyselDoc;
   final RxBool hasMoreData = true.obs;
   final RxInt totalCount = 0.obs;
-  // Search helpers
   Timer? _searchDebounce;
-  final int minSearchResults = 20; // target count during active search
-  final RxBool caseSensitive = false.obs; // search case-sensitivity
   final int minSearchLength = 2; // minimum search query length
   static const String _scholarshipsCacheKey = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
   static const int _maxUserFetchBatch = 30;
+  int _searchRequestToken = 0;
+
+  bool get hasActiveSearch => searchQuery.value.length >= minSearchLength;
 
   @override
   void onInit() {
@@ -88,299 +88,26 @@ class ScholarshipsController extends GetxController {
 
   void setSearchQuery(String q) {
     searchQuery.value = q.trim();
-    isSearching.value = searchQuery.value.isNotEmpty;
-    _applySearchFilter();
-
-    // Debounced prefetch to widen search scope dynamically
     _searchDebounce?.cancel();
-    if (searchQuery.value.isEmpty) {
+    if (!hasActiveSearch) {
       isSearching.value = false;
+      _setVisibleScholarships(allScholarships);
       return;
     }
 
-    // Daha hızlı yanıt için debounce süresini azalttım
+    final requestToken = ++_searchRequestToken;
+    isSearching.value = true;
     _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
-      isSearching.value = true;
-      // Try targeted boost by matching nickname directly (e.g., @turqapp)
-      await _boostByUserNickname(searchQuery.value);
-      await _prefetchForSearch();
-      isSearching.value = searchQuery.value.isNotEmpty;
+      await _searchFromTypesense(searchQuery.value, requestToken);
     });
   }
 
-  // Reset search state and show all
   void resetSearch() {
     _searchDebounce?.cancel();
+    _searchRequestToken++;
     searchQuery.value = '';
     isSearching.value = false;
-    caseSensitive.value = false;
-    _applySearchFilter();
-  }
-
-  // If query seems like a username (or any string), try fetching that user's
-  // scholarships directly and merge into results to ensure matches appear.
-  Future<void> _boostByUserNickname(String raw) async {
-    try {
-      var q = raw.trim();
-      if (q.isEmpty) return;
-      if (q.startsWith('@')) q = q.substring(1);
-      // Nickname queries are exact-match; keep as-is but also try lowercase
-      final candidates = {q, q.toLowerCase()};
-
-      QuerySnapshot? userSnap;
-      for (final nick in candidates) {
-        if (nick.isEmpty) continue;
-        userSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where('nickname', isEqualTo: nick)
-            .limit(1)
-            .get();
-        if (userSnap.docs.isNotEmpty) break;
-      }
-      if (userSnap == null || userSnap.docs.isEmpty) return;
-
-      final userDoc = userSnap.docs.first;
-      final userId = userDoc.id;
-      final Map<String, dynamic> userMap =
-          (userDoc.data() as Map<String, dynamic>? ?? <String, dynamic>{});
-
-      final bursSnap = await ScholarshipFirestorePath.collection()
-          .where('userID', isEqualTo: userId)
-          .orderBy('timeStamp', descending: true)
-          .limit(20)
-          .get();
-
-      if (bursSnap.docs.isEmpty) return;
-
-      // Build a quick lookup of existing docIds to avoid duplicates
-      final existingIds =
-          allScholarships.map((e) => e['docId'] as String).toSet();
-
-      for (final d in bursSnap.docs) {
-        if (existingIds.contains(d.id)) continue;
-        final data = d.data();
-        final userData = {
-          'avatarUrl': userMap['avatarUrl'] as String? ?? '',
-          'nickname': userMap['nickname'] as String? ?? '',
-          'userID': userId,
-          'meslekKategori': userMap['meslekKategori'] as String? ?? '',
-          'firstName': userMap['firstName'] as String? ?? '',
-          'lastName': userMap['lastName'] as String? ?? '',
-        };
-        final begeniler = data['begeniler'] as List<dynamic>? ?? [];
-        final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-        allScholarships.add({
-          'model': IndividualScholarshipsModel.fromJson(data),
-          'type': 'bireysel',
-          'userData': userData,
-          'docId': d.id,
-          'likesCount': begeniler.length,
-          'bookmarksCount': kaydedenler.length,
-          'timeStamp': data['timeStamp'] as int? ?? 0,
-          'isSummary': false,
-        });
-      }
-
-      _applySearchFilter();
-    } catch (_) {
-      // fail silently; search still works with local cache/pagination
-    }
-  }
-
-  void toggleCaseSensitivity() {
-    caseSensitive.value = !caseSensitive.value;
-    _applySearchFilter();
-  }
-
-  void _applySearchFilter() {
-    final qRaw = searchQuery.value.replaceAll('@', '');
-    final qLower = qRaw.toLowerCase();
-    final q = caseSensitive.value ? qRaw : _normalizeTr(qLower);
-
-    // Boş veya çok kısa aramalar için tüm listeyi göster
-    if (q.isEmpty || q.length < minSearchLength) {
-      visibleScholarships.assignAll(allScholarships);
-      return;
-    }
-
-    // Arama önceliği hesaplama (düşük değer = yüksek öncelik)
-    int calculateSearchPriority(Map<String, dynamic> item, String query) {
-      try {
-        final model = item['model'] as IndividualScholarshipsModel;
-        final user = item['userData'] as Map<String, dynamic>?;
-
-        // Normalize edilmiş alanlar
-        final baslikNorm = caseSensitive.value
-            ? model.baslik
-            : _normalizeTr(model.baslik.toLowerCase());
-        final bursVerenNorm = caseSensitive.value
-            ? model.bursVeren
-            : _normalizeTr(model.bursVeren.toLowerCase());
-        final aciklamaNorm = caseSensitive.value
-            ? model.aciklama
-            : _normalizeTr(model.aciklama.toLowerCase());
-
-        // Öncelik sırası:
-        // 1 = Başlıkta tam eşleşme
-        if (baslikNorm.contains(query)) return 1;
-
-        // 2 = Burs verende eşleşme
-        if (bursVerenNorm.contains(query)) return 2;
-
-        // 3 = Kullanıcı adında eşleşme
-        if (user != null) {
-          final nickname = caseSensitive.value
-              ? (user['nickname']?.toString() ?? '')
-              : _normalizeTr(
-                  (user['nickname']?.toString() ?? '').toLowerCase());
-          if (nickname.isNotEmpty && nickname.contains(query)) return 3;
-        }
-
-        // 4 = Şehir/üniversite/ilçede eşleşme
-        final sehirlerNorm = model.sehirler
-            .map((s) => caseSensitive.value ? s : _normalizeTr(s.toLowerCase()))
-            .join(' ');
-        final universitelerNorm = model.universiteler
-            .map((s) => caseSensitive.value ? s : _normalizeTr(s.toLowerCase()))
-            .join(' ');
-        final ilcelerNorm = model.ilceler
-            .map((s) => caseSensitive.value ? s : _normalizeTr(s.toLowerCase()))
-            .join(' ');
-
-        if (sehirlerNorm.contains(query) ||
-            universitelerNorm.contains(query) ||
-            ilcelerNorm.contains(query)) {
-          return 4;
-        }
-
-        // 5 = Açıklamada eşleşme
-        if (aciklamaNorm.contains(query)) return 5;
-
-        // 6 = Diğer alanlarda eşleşme
-        return 6;
-      } catch (_) {
-        return 999; // Hata durumunda en düşük öncelik
-      }
-    }
-
-    bool matches(Map<String, dynamic> item) {
-      try {
-        final model = item['model'] as IndividualScholarshipsModel;
-        final user = item['userData'] as Map<String, dynamic>?;
-        final fieldsList = <String>[
-          model.baslik,
-          model.aciklama,
-          model.website,
-          model.tutar,
-          model.bursVeren,
-          ...model.sehirler,
-          ...model.ilceler,
-          ...model.universiteler,
-          if (user != null) (user['nickname']?.toString() ?? ''),
-          if (user != null)
-            (('${user['firstName']?.toString() ?? ''} ${user['lastName']?.toString() ?? ''}')
-                .trim()),
-        ];
-        final fieldsCombined = fieldsList.join(' ');
-        final haystack = caseSensitive.value
-            ? fieldsCombined
-            : _normalizeTr(fieldsCombined.toLowerCase());
-        return haystack.contains(q);
-      } catch (_) {
-        return false;
-      }
-    }
-
-    // Filtreleme ve önceliklendirme
-    final filtered = allScholarships.where(matches).map((item) {
-      return {
-        ...item,
-        '_searchPriority': calculateSearchPriority(item, q),
-      };
-    }).toList();
-
-    // Önce arama önceliği, sonra sadece oluşturma zamanı (timeStamp)
-    filtered.sort((a, b) {
-      // Öncelik karşılaştırması
-      final priorityA = a['_searchPriority'] as int;
-      final priorityB = b['_searchPriority'] as int;
-      if (priorityA != priorityB) {
-        return priorityA.compareTo(priorityB);
-      }
-
-      // Son olarak timeStamp'e göre
-      return (b['timeStamp'] as int).compareTo(a['timeStamp'] as int);
-    });
-
-    // _searchPriority alanını kaldır (geçici kullanıldı)
-    final cleanedFiltered = filtered.map((item) {
-      final cleaned = Map<String, dynamic>.from(item);
-      cleaned.remove('_searchPriority');
-      return cleaned;
-    }).toList();
-
-    visibleScholarships.assignAll(cleanedFiltered);
-  }
-
-  int _prefetchPageLimitForQuery(String q) {
-    final length = q.trim().replaceAll('@', '').length;
-    int base;
-    if (length <= 3) {
-      base = 2;
-    } else if (length <= 6) {
-      base = 4;
-    } else {
-      base = 6;
-    }
-
-    if (Get.isRegistered<NetworkAwarenessService>()) {
-      final net = Get.find<NetworkAwarenessService>();
-      if (net.isOnCellular) {
-        return base.clamp(0, 2);
-      }
-      if (net.isOnWiFi) {
-        return base;
-      }
-    }
-
-    return base.clamp(0, 2);
-  }
-
-  Future<void> _prefetchForSearch() async {
-    final raw = searchQuery.value.trim().replaceAll('@', '');
-    if (raw.length < minSearchLength) return;
-    // While searching, load more pages until enough results or data ends
-    int safetyPages = 0;
-    final limit = _prefetchPageLimitForQuery(searchQuery.value);
-    while (searchQuery.value.isNotEmpty &&
-        hasMoreData.value &&
-        lastBireyselDoc != null &&
-        visibleScholarships.length < minSearchResults &&
-        safetyPages < limit) {
-      // If nothing is loading, fetch the next page
-      await loadMoreScholarships();
-      // Re-apply filter after new data arrives
-      _applySearchFilter();
-      safetyPages++;
-    }
-  }
-
-  // Normalize Turkish specific characters to ASCII-like forms for search
-  String _normalizeTr(String s) {
-    return s
-        .replaceAll('ç', 'c')
-        .replaceAll('Ç', 'c')
-        .replaceAll('ğ', 'g')
-        .replaceAll('Ğ', 'g')
-        .replaceAll('ı', 'i')
-        .replaceAll('İ', 'i')
-        .replaceAll('i̇', 'i')
-        .replaceAll('ö', 'o')
-        .replaceAll('Ö', 'o')
-        .replaceAll('ş', 's')
-        .replaceAll('Ş', 's')
-        .replaceAll('ü', 'u')
-        .replaceAll('Ü', 'u');
+    _setVisibleScholarships(allScholarships);
   }
 
   void _sortByTimestamp(List<Map<String, dynamic>> list) {
@@ -441,18 +168,129 @@ class ScholarshipsController extends GetxController {
   void _applyScholarshipStateFromCombined(List<Map<String, dynamic>> combined) {
     allScholarships.clear();
     allScholarships.addAll(combined);
-    _applySearchFilter();
-    isExpandedList.clear();
-    isExpandedList.addAll(
-      List<RxBool>.generate(combined.length, (_) => false.obs),
-    );
-    pageIndices.clear();
-    pageIndices.addAll(
-      Map.fromIterables(
-        List.generate(combined.length, (i) => i),
-        List.generate(combined.length, (_) => 0.obs),
-      ),
-    );
+    _setVisibleScholarships(hasActiveSearch ? visibleScholarships : combined);
+  }
+
+  void _setVisibleScholarships(List<Map<String, dynamic>> items) {
+    visibleScholarships.assignAll(items);
+    isExpandedList
+      ..clear()
+      ..addAll(List<RxBool>.generate(items.length, (_) => false.obs));
+    pageIndices
+      ..clear()
+      ..addAll(
+        Map.fromIterables(
+          List.generate(items.length, (i) => i),
+          List.generate(items.length, (_) => 0.obs),
+        ),
+      );
+  }
+
+  Future<void> _searchFromTypesense(String query, int requestToken) async {
+    final normalized = query.trim();
+    if (normalized.length < minSearchLength) {
+      if (requestToken == _searchRequestToken) {
+        isSearching.value = false;
+        _setVisibleScholarships(allScholarships);
+      }
+      return;
+    }
+
+    try {
+      final docIds =
+          await TypesenseEducationSearchService.instance.searchDocIds(
+        entity: EducationTypesenseEntity.scholarship,
+        query: normalized,
+        limit: 40,
+      );
+      if (requestToken != _searchRequestToken ||
+          searchQuery.value.trim() != normalized) {
+        return;
+      }
+
+      final items = await _fetchScholarshipItemsByDocIds(docIds);
+      if (requestToken != _searchRequestToken ||
+          searchQuery.value.trim() != normalized) {
+        return;
+      }
+      _setVisibleScholarships(items);
+    } catch (e) {
+      print('typesense scholarship search error: $e');
+      if (requestToken == _searchRequestToken) {
+        _setVisibleScholarships(const []);
+      }
+    } finally {
+      if (requestToken == _searchRequestToken) {
+        isSearching.value = false;
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchScholarshipItemsByDocIds(
+    List<String> docIds,
+  ) async {
+    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
+    if (orderedIds.isEmpty) return const [];
+
+    const chunkSize = 10;
+    final byId = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    for (var i = 0; i < orderedIds.length; i += chunkSize) {
+      final end = (i + chunkSize > orderedIds.length)
+          ? orderedIds.length
+          : i + chunkSize;
+      final chunk = orderedIds.sublist(i, end);
+      final snap = await ScholarshipFirestorePath.collection()
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snap.docs) {
+        byId[doc.id] = doc;
+      }
+    }
+
+    final docs =
+        orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    final userIds = docs
+        .map((doc) => doc.data()['userID'] as String? ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+    final userDocsById = await _fetchUsersByIds(userIds);
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final items = <Map<String, dynamic>>[];
+
+    for (final doc in docs) {
+      final data = doc.data();
+      final userID = data['userID'] as String? ?? '';
+      final userData = _buildUserDataFromDoc(userID, userDocsById[userID]);
+      final begeniler = data['begeniler'] as List<dynamic>? ?? [];
+      final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
+      final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
+      final bookmarksCount =
+          (data['bookmarksCount'] as int?) ?? kaydedenler.length;
+
+      items.add({
+        'model': IndividualScholarshipsModel.fromJson(data),
+        'type': 'bireysel',
+        'userData': userData,
+        'docId': doc.id,
+        'likesCount': likesCount,
+        'bookmarksCount': bookmarksCount,
+        'timeStamp': data['timeStamp'] as int? ?? 0,
+        'isSummary': false,
+      });
+
+      if (currentUserId.isNotEmpty) {
+        likedScholarships[doc.id] = begeniler.contains(currentUserId) ||
+            _likedByCurrentUser.contains(doc.id);
+        bookmarkedScholarships[doc.id] = kaydedenler.contains(currentUserId) ||
+            _bookmarkedByCurrentUser.contains(doc.id);
+        if (userID.isNotEmpty && !followedUsers.containsKey(userID)) {
+          followedUsers[userID] =
+              await _checkFollowStatus(userID, currentUserId);
+        }
+      }
+    }
+
+    return items;
   }
 
   Future<Map<String, DocumentSnapshot>> _fetchUsersByIds(
@@ -491,9 +329,7 @@ class ScholarshipsController extends GetxController {
     final profileName =
         (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
             .toString();
-    final profileImage =
-        (  data['avatarUrl'] ?? '')
-            .toString();
+    final profileImage = (data['avatarUrl'] ?? '').toString();
     return {
       'avatarUrl': profileImage,
       'nickname': profileName,
@@ -605,6 +441,10 @@ class ScholarshipsController extends GetxController {
 
       // Sort combined list - only creation time
       _applyScholarshipStateFromCombined(combined);
+      if (hasActiveSearch) {
+        unawaited(
+            _searchFromTypesense(searchQuery.value, ++_searchRequestToken));
+      }
       await _saveScholarshipsCache(combined);
       _prefetchShortLinksForList(allScholarships);
       // İlk partiden sonra devam var mı? (toplam sayıya göre)
@@ -726,8 +566,12 @@ class ScholarshipsController extends GetxController {
 
       // Yeni eklenen bursları mevcut listeye ekle (orderBy zaten doğru sırada)
       allScholarships.addAll(combined);
-
-      _applySearchFilter();
+      if (hasActiveSearch) {
+        unawaited(
+            _searchFromTypesense(searchQuery.value, ++_searchRequestToken));
+      } else {
+        _setVisibleScholarships(allScholarships);
+      }
       _prefetchShortLinksForList(allScholarships);
       // Toplam sayıya göre devam kontrolü
       hasMoreData.value = allScholarships.length < totalCount.value;
@@ -770,7 +614,15 @@ class ScholarshipsController extends GetxController {
         final next = (current + (wasLiked ? -1 : 1)).clamp(0, 1 << 30);
         allScholarships[index]['likesCount'] = next;
         allScholarships.refresh();
-        _applySearchFilter();
+      }
+      final visibleIndex =
+          visibleScholarships.indexWhere((s) => s['docId'] == docId);
+      if (visibleIndex != -1) {
+        final current =
+            (visibleScholarships[visibleIndex]['likesCount'] ?? 0) as int;
+        visibleScholarships[visibleIndex]['likesCount'] =
+            (current + (wasLiked ? -1 : 1)).clamp(0, 1 << 30);
+        visibleScholarships.refresh();
       }
 
       await docRef.update({
@@ -792,7 +644,15 @@ class ScholarshipsController extends GetxController {
         final next = (current + (wasLiked ? 1 : -1)).clamp(0, 1 << 30);
         allScholarships[index]['likesCount'] = next;
         allScholarships.refresh();
-        _applySearchFilter();
+      }
+      final visibleIndex =
+          visibleScholarships.indexWhere((s) => s['docId'] == docId);
+      if (visibleIndex != -1) {
+        final current =
+            (visibleScholarships[visibleIndex]['likesCount'] ?? 0) as int;
+        visibleScholarships[visibleIndex]['likesCount'] =
+            (current + (wasLiked ? 1 : -1)).clamp(0, 1 << 30);
+        visibleScholarships.refresh();
       }
       AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
       print('toggleLike error: $e');
@@ -822,7 +682,15 @@ class ScholarshipsController extends GetxController {
         final next = (current + (wasBookmarked ? -1 : 1)).clamp(0, 1 << 30);
         allScholarships[index]['bookmarksCount'] = next;
         allScholarships.refresh();
-        _applySearchFilter();
+      }
+      final visibleIndex =
+          visibleScholarships.indexWhere((s) => s['docId'] == docId);
+      if (visibleIndex != -1) {
+        final current =
+            (visibleScholarships[visibleIndex]['bookmarksCount'] ?? 0) as int;
+        visibleScholarships[visibleIndex]['bookmarksCount'] =
+            (current + (wasBookmarked ? -1 : 1)).clamp(0, 1 << 30);
+        visibleScholarships.refresh();
       }
 
       await docRef.update({
@@ -844,7 +712,15 @@ class ScholarshipsController extends GetxController {
         final next = (current + (wasBookmarked ? 1 : -1)).clamp(0, 1 << 30);
         allScholarships[index]['bookmarksCount'] = next;
         allScholarships.refresh();
-        _applySearchFilter();
+      }
+      final visibleIndex =
+          visibleScholarships.indexWhere((s) => s['docId'] == docId);
+      if (visibleIndex != -1) {
+        final current =
+            (visibleScholarships[visibleIndex]['bookmarksCount'] ?? 0) as int;
+        visibleScholarships[visibleIndex]['bookmarksCount'] =
+            (current + (wasBookmarked ? 1 : -1)).clamp(0, 1 << 30);
+        visibleScholarships.refresh();
       }
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
       print('toggleBookmark error: $e');

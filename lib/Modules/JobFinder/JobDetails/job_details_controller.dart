@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -105,12 +106,7 @@ class JobDetailsController extends GetxController {
         saved.value = false;
         return;
       }
-      final savedDocId = '${uid}_$docId';
-      final snap = await FirebaseFirestore.instance
-          .collection('SavedIsBul')
-          .doc(savedDocId)
-          .get();
-      saved.value = snap.exists;
+      saved.value = await JobSavedStore.isSaved(uid, docId);
     } catch (e) {
       print('checkSaved hatası: $e');
       saved.value = false;
@@ -123,24 +119,14 @@ class JobDetailsController extends GetxController {
       AppSnackbar('Hata', 'Lütfen tekrar giriş yapın.');
       return;
     }
-    final savedDocId = '${uid}_$docId';
-    final userSavedRef = FirebaseFirestore.instance
-        .collection('SavedIsBul')
-        .doc(savedDocId);
 
     try {
-      final snap = await userSavedRef.get();
-
-      if (snap.exists) {
-        await userSavedRef.delete();
+      final isAlreadySaved = await JobSavedStore.isSaved(uid, docId);
+      if (isAlreadySaved) {
+        await JobSavedStore.unsave(uid, docId);
         saved.value = false;
       } else {
-        final ts = {
-          'timeStamp': DateTime.now().millisecondsSinceEpoch,
-          'userID': uid,
-          'jobID': docId,
-        };
-        await userSavedRef.set(ts);
+        await JobSavedStore.save(uid, docId);
         saved.value = true;
       }
     } catch (e) {
