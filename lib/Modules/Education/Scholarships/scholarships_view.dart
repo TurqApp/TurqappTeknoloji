@@ -792,8 +792,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           10.ph,
           _buildScholarshipTitle(index, type, burs, daysDiff),
           5.ph,
-          _buildScholarshipProvider(type, userData, firmaData, burs),
-          5.ph,
           _buildScholarshipDescription(index, type, burs),
           if (type == 'bireysel' &&
               canExpandDescription &&
@@ -900,57 +898,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     }
 
     return SizedBox.shrink();
-  }
-
-  Widget _buildScholarshipProvider(
-    String type,
-    Map<String, dynamic>? userData,
-    Map<String, dynamic>? firmaData,
-    dynamic burs,
-  ) {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: _getProviderTapHandler(type, userData),
-          child: Text(
-            _getProviderDisplayName(type, userData, firmaData, burs),
-            style: TextStyle(
-              fontSize: 14,
-              fontFamily: "MontserratBold",
-              color: Colors.blue.shade900,
-            ),
-          ),
-        ),
-        RozetContent(
-          size: 13,
-          userID: userData?['userID']?.toString() ?? '',
-        ),
-      ],
-    );
-  }
-
-  VoidCallback? _getProviderTapHandler(
-      String type, Map<String, dynamic>? userData) {
-    return () => Get.to(
-          SocialProfile(
-            userID: userData?['userID']?.toString() ?? '',
-          ),
-        );
-  }
-
-  String _getProviderDisplayName(
-    String type,
-    Map<String, dynamic>? userData,
-    Map<String, dynamic>? firmaData,
-    dynamic burs,
-  ) {
-    // Her zaman kullanıcı nickname göster
-    final nick = userData?['nickname']?.toString();
-    if (nick != null && nick.isNotEmpty) return nick;
-    final first = userData?['firstName']?.toString() ?? '';
-    final last = userData?['lastName']?.toString() ?? '';
-    final full = ('$first $last').trim();
-    return full.isNotEmpty ? full : 'Bilinmeyen Kullanıcı';
   }
 
   Widget _buildScholarshipDescription(int index, String type, dynamic burs) {
