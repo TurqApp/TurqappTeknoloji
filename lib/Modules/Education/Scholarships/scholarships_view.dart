@@ -23,7 +23,6 @@ import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personaliz
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -429,36 +428,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
         Row(
           children: [
             Expanded(child: _buildUserHeader(type, userData, firmaData)),
-            if (userData?['userID']?.toString() !=
-                FirebaseAuth.instance.currentUser?.uid)
-              PullDownButton(
-                itemBuilder: (context) => [
-                  PullDownMenuItem(
-                    onTap: () {
-                      Get.to(() => ReportUser(
-                            userID: userData?['userID']?.toString() ?? '',
-                            postID: scholarshipData['docId']?.toString() ?? '',
-                            commentID: 'scholarships',
-                          ));
-                    },
-                    title: "Şikayet Et",
-                    icon: AppIcons.info,
-                    iconColor: Colors.red,
-                  ),
-                ],
-                buttonBuilder: (context, showMenu) => TextButton(
-                  onPressed: showMenu,
-                  style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: Icon(
-                    AppIcons.ellipsisVertical,
-                    size: 20,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
             5.pw,
           ],
         ),
