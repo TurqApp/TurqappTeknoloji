@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option.dart';
@@ -113,7 +114,12 @@ class EducationView extends StatelessWidget {
           PullDownMenuItem(
             title: 'Burs Oluştur',
             icon: CupertinoIcons.add_circled,
-            onTap: () {
+            onTap: () async {
+              final allowed = await ensureCurrentUserRozetPermission(
+                minimumRozet: 'Sarı',
+                featureName: 'Burs oluşturma',
+              );
+              if (!allowed) return;
               Get.delete<CreateScholarshipController>(force: true);
               Get.to(CreateScholarshipView());
             },
@@ -121,7 +127,14 @@ class EducationView extends StatelessWidget {
           PullDownMenuItem(
             title: 'İlanlarım',
             icon: CupertinoIcons.doc_text,
-            onTap: () => Get.to(MyScholarshipView()),
+            onTap: () async {
+              final allowed = await ensureCurrentUserRozetPermission(
+                minimumRozet: 'Sarı',
+                featureName: 'Burs ilanları',
+              );
+              if (!allowed) return;
+              Get.to(MyScholarshipView());
+            },
           ),
           PullDownMenuItem(
             title: 'Kaydedilenler',
@@ -194,11 +207,13 @@ class EducationView extends StatelessWidget {
           PullDownMenuItem(
             icon: Icons.add,
             title: 'Oluştur',
-            onTap: () {
-              if (Get.isRegistered<DenemeSinavlariController>() &&
-                  Get.find<DenemeSinavlariController>().okul.value) {
-                Get.to(() => SinavHazirla());
-              }
+            onTap: () async {
+              final allowed = await ensureCurrentUserRozetPermission(
+                minimumRozet: 'Sarı',
+                featureName: 'Online sınav oluşturma',
+              );
+              if (!allowed) return;
+              Get.to(() => SinavHazirla());
             },
           ),
           PullDownMenuItem(
@@ -304,12 +319,26 @@ class EducationView extends StatelessWidget {
           PullDownMenuItem(
             title: 'İlan Ver',
             icon: CupertinoIcons.add_circled,
-            onTap: () => Get.to(() => JobCreator()),
+            onTap: () async {
+              final allowed = await ensureCurrentUserRozetPermission(
+                minimumRozet: 'Sarı',
+                featureName: 'İş ilanı verme',
+              );
+              if (!allowed) return;
+              Get.to(() => JobCreator());
+            },
           ),
           PullDownMenuItem(
             title: 'İlanlarım',
             icon: CupertinoIcons.doc_text,
-            onTap: () => Get.to(() => MyJobAds()),
+            onTap: () async {
+              final allowed = await ensureCurrentUserRozetPermission(
+                minimumRozet: 'Sarı',
+                featureName: 'İş ilanları',
+              );
+              if (!allowed) return;
+              Get.to(() => MyJobAds());
+            },
           ),
           PullDownMenuItem(
             title: 'Başvurularım',

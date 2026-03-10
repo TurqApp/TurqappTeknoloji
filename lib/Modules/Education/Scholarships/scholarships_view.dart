@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
@@ -1227,7 +1228,12 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
               PullDownMenuItem(
                 title: 'Burs Oluştur',
                 icon: CupertinoIcons.add_circled,
-                onTap: () {
+                onTap: () async {
+                  final allowed = await ensureCurrentUserRozetPermission(
+                    minimumRozet: 'Sarı',
+                    featureName: 'Burs oluşturma',
+                  );
+                  if (!allowed) return;
                   Get.delete<CreateScholarshipController>(force: true);
                   Get.to(CreateScholarshipView())?.then((_) async {
                     await controller.fetchScholarships();
@@ -1238,10 +1244,17 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
               PullDownMenuItem(
                 title: 'İlanlarım',
                 icon: CupertinoIcons.doc_text,
-                onTap: () => Get.to(MyScholarshipView())?.then((_) async {
-                  await controller.fetchScholarships();
-                  await controller.refreshTotalCount();
-                }),
+                onTap: () async {
+                  final allowed = await ensureCurrentUserRozetPermission(
+                    minimumRozet: 'Sarı',
+                    featureName: 'Burs ilanları',
+                  );
+                  if (!allowed) return;
+                  Get.to(MyScholarshipView())?.then((_) async {
+                    await controller.fetchScholarships();
+                    await controller.refreshTotalCount();
+                  });
+                },
               ),
               PullDownMenuItem(
                 title: 'Kaydedilenler',

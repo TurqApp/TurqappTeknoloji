@@ -426,7 +426,7 @@ class DenemeSinavlari extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Sadece Onaylı Kurumlara Özel",
+                  "Sarı Rozet ve Üstüne Özel",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.black,
@@ -438,7 +438,7 @@ class DenemeSinavlari extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 15),
                   child: Text(
-                    "Deneme sınavları düzenlemek için onaylı bir kurumsal hesaba sahip olmanız gerekmektedir.",
+                    "Online sınav oluşturmak için sarı rozet veya üstü doğrulanmış hesaba sahip olmanız gerekmektedir.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.black,

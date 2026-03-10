@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinavlariController extends GetxController {
@@ -58,8 +59,10 @@ class DenemeSinavlariController extends GetxController {
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .get();
-      final rozet = doc.get("rozet");
-      okul.value = rozet == "Mavi";
+      final rozet =
+          (doc.data() ?? const <String, dynamic>{})["rozet"] as String?;
+      okul.value =
+          hasRozetPermission(currentRozet: rozet, minimumRozet: "Sarı");
     } catch (e) {
       AppSnackbar("Hata", "Okul bilgisi alınamadı.");
     }
