@@ -329,6 +329,11 @@ service cloud.firestore {
         allow read, write: if isOwner(uid);
       }
 
+      // Job applications
+      match /myApplications/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
       // Education results (dual-write targets)
       match /examResults/{examId} {
         allow read, write: if isOwner(uid);
