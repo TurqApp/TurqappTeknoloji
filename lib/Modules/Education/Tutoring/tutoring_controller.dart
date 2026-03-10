@@ -187,17 +187,30 @@ class TutoringController extends GetxController {
     return sorted;
   }
 
-  Future<void> toggleFavorite(
+  Future<bool> toggleFavorite(
     String docId,
     String userId,
     bool isFavorite,
   ) async {
     final tutoringIndex = tutoringList.indexWhere((t) => t.docID == docId);
-    if (tutoringIndex == -1) return;
+    final currentTutoring =
+        tutoringIndex == -1 ? null : tutoringList[tutoringIndex];
+    final oldFavorites = currentTutoring == null
+        ? <String>[]
+        : List<String>.from(currentTutoring.favorites);
+    final nextFavorites = List<String>.from(oldFavorites);
+    if (isFavorite) {
+      nextFavorites.remove(userId);
+    } else if (!nextFavorites.contains(userId)) {
+      nextFavorites.add(userId);
+    }
 
-    // Optimistic local update
-    final currentTutoring = tutoringList[tutoringIndex];
-    final oldFavorites = List<String>.from(currentTutoring.favorites);
+    if (currentTutoring != null) {
+      tutoringList[tutoringIndex] = currentTutoring.copyWith(
+        favorites: nextFavorites,
+      );
+      tutoringList.refresh();
+    }
 
     try {
       final docRef =
@@ -212,13 +225,17 @@ class TutoringController extends GetxController {
           'favorites': FieldValue.arrayUnion([userId])
         });
       }
+      return true;
     } catch (e) {
       // Rollback on error
-      tutoringList[tutoringIndex] = currentTutoring.copyWith(
-        favorites: oldFavorites,
-      );
-      tutoringList.refresh();
+      if (currentTutoring != null) {
+        tutoringList[tutoringIndex] = currentTutoring.copyWith(
+          favorites: oldFavorites,
+        );
+        tutoringList.refresh();
+      }
       log("Error toggling favorite: $e");
+      return false;
     }
   }
 }

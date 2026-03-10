@@ -25,7 +25,7 @@ class SavedTutorings extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilen Dersler"),
+            BackButtons(text: "Kaydedilenler"),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
@@ -41,7 +41,7 @@ class SavedTutorings extends StatelessWidget {
                     users: tutoringController.users,
                     isGridView: viewModeController.isGridView.value,
                     infoMessage: Infomessage(
-                      infoMessage: "Kaydedilen ders bulunmuyor!",
+                      infoMessage: "Kaydedilenler",
                     ),
                   );
                 }),

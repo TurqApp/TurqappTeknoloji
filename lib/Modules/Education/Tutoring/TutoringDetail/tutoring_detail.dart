@@ -138,26 +138,18 @@ class TutoringDetail extends StatelessWidget {
                       return EducationActionIconButton(
                         onTap: () async {
                           if (currentUserId != null) {
+                            final success =
+                                await tutoringController.toggleFavorite(
+                              controller.tutoring.value.docID,
+                              currentUserId,
+                              isSaved,
+                            );
+                            if (!success) return;
                             if (isSaved) {
                               savedController.removeSavedTutoring(
                                 controller.tutoring.value.docID,
                               );
                             } else {
-                              savedController.addSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            }
-                            await tutoringController.toggleFavorite(
-                              controller.tutoring.value.docID,
-                              currentUserId,
-                              isSaved,
-                            );
-                            if (isSaved) {
-                              savedController.removeSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            } else if (!controller.tutoring.value.favorites
-                                .contains(currentUserId)) {
                               savedController.addSavedTutoring(
                                 controller.tutoring.value.docID,
                               );

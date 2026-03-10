@@ -172,27 +172,18 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   return EducationActionIconButton(
                                     onTap: () async {
                                       if (currentUserId != null) {
+                                        final success = await tutoringController
+                                            .toggleFavorite(
+                                          tutoring.docID,
+                                          currentUserId,
+                                          isSaved,
+                                        );
+                                        if (!success) return;
                                         if (isSaved) {
                                           savedController.removeSavedTutoring(
                                             tutoring.docID,
                                           );
                                         } else {
-                                          savedController.addSavedTutoring(
-                                            tutoring.docID,
-                                          );
-                                        }
-                                        await tutoringController.toggleFavorite(
-                                          tutoring.docID,
-                                          currentUserId,
-                                          isSaved,
-                                        );
-                                        if (isSaved) {
-                                          savedController.removeSavedTutoring(
-                                            tutoring.docID,
-                                          );
-                                        } else if (!tutoring.favorites.contains(
-                                          currentUserId,
-                                        )) {
                                           savedController.addSavedTutoring(
                                             tutoring.docID,
                                           );
@@ -345,29 +336,20 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                       return EducationActionIconButton(
                                         onTap: () async {
                                           if (currentUserId != null) {
+                                            final success =
+                                                await tutoringController
+                                                .toggleFavorite(
+                                              tutoring.docID,
+                                              currentUserId,
+                                              isSaved,
+                                            );
+                                            if (!success) return;
                                             if (isSaved) {
                                               savedController
                                                   .removeSavedTutoring(
                                                 tutoring.docID,
                                               );
                                             } else {
-                                              savedController.addSavedTutoring(
-                                                tutoring.docID,
-                                              );
-                                            }
-                                            await tutoringController
-                                                .toggleFavorite(
-                                              tutoring.docID,
-                                              currentUserId,
-                                              isSaved,
-                                            );
-                                            if (isSaved) {
-                                              savedController
-                                                  .removeSavedTutoring(
-                                                tutoring.docID,
-                                              );
-                                            } else if (!tutoring.favorites
-                                                .contains(currentUserId)) {
                                               savedController.addSavedTutoring(
                                                 tutoring.docID,
                                               );
