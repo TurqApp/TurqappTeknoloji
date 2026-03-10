@@ -884,6 +884,15 @@ service cloud.firestore {
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
+      match /Basvurular/{applicantId} {
+        allow read: if isAuth();
+        allow create: if isOwner(applicantId);
+        allow update: if isOwner(applicantId)
+          || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+        allow delete: if isOwner(applicantId)
+          || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+      }
+
       // Sınav soruları - sadece sınav sahibi yazabilir
       match /Sorular/{soruId} {
         allow read: if isAuth();

@@ -234,29 +234,44 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> addBasvuru() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
+      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final examRef = FirebaseFirestore.instance
           .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Basvurular")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
+          .doc(model.docID);
+      final applicationRef = examRef.collection("Basvurular").doc(currentUid);
+      var alreadyApplied = false;
 
-      if (doc.exists) {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final applicationDoc = await transaction.get(applicationRef);
+        if (applicationDoc.exists) {
+          alreadyApplied = true;
+          return;
+        }
+
+        final examDoc = await transaction.get(examRef);
+        final currentCount =
+            ((examDoc.data() ?? const <String, dynamic>{})['participantCount']
+                    as num?) ??
+                0;
+
+        transaction.set(applicationRef, {
+          "userID": currentUid,
+          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+        });
+        transaction.update(examRef, {
+          "participantCount": currentCount.toInt() + 1,
+        });
+      });
+
+      if (alreadyApplied) {
         AppSnackbar(
           "Başvurunuz Alınmıştır!",
           "Başvurunuz başarıyla alınmıştır. Şu anda yapılacak başka bir işlem bulunmamaktadır",
         );
       } else {
-        await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(model.docID)
-            .collection("Basvurular")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .set({"timeStamp": DateTime.now().microsecondsSinceEpoch});
-        SetOptions(merge: true);
-
         showSucces.value = true;
         dahaOnceBasvurdu.value = true;
+        basvuranSayisi.value = basvuranSayisi.value + 1;
       }
     } catch (error) {
       AppSnackbar("Hata", "Başvuru işlemi başarısız.");
@@ -265,17 +280,20 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> basvuruKontrol() async {
     try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Basvurular")
-          .get();
+      final examRef =
+          FirebaseFirestore.instance.collection("practiceExams").doc(model.docID);
+      final examDoc = await examRef.get();
+      final data = examDoc.data() ?? const <String, dynamic>{};
+      final participantCount = data['participantCount'];
 
-      basvuranSayisi.value = querySnapshot.docs.length;
+      if (participantCount is num) {
+        basvuranSayisi.value = participantCount.toInt();
+      } else {
+        final aggregate = await examRef.collection("Basvurular").count().get();
+        basvuranSayisi.value = aggregate.count ?? 0;
+      }
 
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
+      DocumentSnapshot doc = await examRef
           .collection("Basvurular")
           .doc(FirebaseAuth.instance.currentUser!.uid)
           .get();

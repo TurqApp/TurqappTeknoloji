@@ -360,7 +360,9 @@ class DenemeSinaviPreview extends StatelessWidget {
                         controller.currentTime.value <
                                 controller.examTime.value -
                                     controller.fifteenMinutes
-                            ? "Hemen Başvur"
+                            ? (controller.dahaOnceBasvurdu.value
+                                ? "Başvuru Yapıldı"
+                                : "Hemen Başvur")
                             : controller.currentTime.value >=
                                         controller.examTime.value -
                                             controller.fifteenMinutes &&

@@ -56,12 +56,23 @@ class DenemeGridController extends GetxController {
   Future<void> fetchApplicantCount(String docID) async {
     isLoadingApplicants.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
+      final examDoc = await FirebaseFirestore.instance
           .collection("practiceExams")
           .doc(docID)
-          .collection("Basvurular")
           .get();
-      toplamBasvuru.value = snapshot.docs.length;
+      final data = examDoc.data() ?? const <String, dynamic>{};
+      final participantCount = data['participantCount'];
+      if (participantCount is num) {
+        toplamBasvuru.value = participantCount.toInt();
+      } else {
+        final aggregate = await FirebaseFirestore.instance
+            .collection("practiceExams")
+            .doc(docID)
+            .collection("Basvurular")
+            .count()
+            .get();
+        toplamBasvuru.value = aggregate.count ?? 0;
+      }
     } catch (e) {
       debugPrint('[DenemeGrid] applicant count fetch failed for $docID: $e');
       toplamBasvuru.value = 0;
