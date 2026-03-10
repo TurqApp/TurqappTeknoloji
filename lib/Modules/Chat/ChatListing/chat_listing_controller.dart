@@ -33,6 +33,7 @@ class ChatListingController extends GetxController {
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
+  String get _uid => FirebaseAuth.instance.currentUser!.uid;
   Duration get _syncInterval {
     if (_isOffline) return const Duration(seconds: 25);
     return _isOnWiFi
@@ -157,6 +158,10 @@ class ChatListingController extends GetxController {
         preferCache: !shouldHitServer,
         cacheOnly: cacheOnly,
       );
+      final deletedOverrides = await _fetchDeletedOverrides(
+        preferCache: !shouldHitServer,
+        cacheOnly: cacheOnly,
+      );
       List<ChatListingModel> conversations = <ChatListingModel>[];
       try {
         conversations = await _fetchConversations(
@@ -169,6 +174,7 @@ class ChatListingController extends GetxController {
       for (final item in conversations) {
         final existing = mergedByUser[item.userID];
         final forcedArchiveValue = archiveOverrides[item.userID];
+        final deletedUntil = deletedOverrides[item.userID];
         if (forcedArchiveValue == true &&
             !item.deleted.contains("__archived__")) {
           item.deleted = [...item.deleted, "__archived__"];
@@ -176,6 +182,13 @@ class ChatListingController extends GetxController {
             item.deleted.contains("__archived__")) {
           item.deleted =
               item.deleted.where((e) => e != "__archived__").toList();
+        }
+        final itemTs = int.tryParse(item.timeStamp) ?? 0;
+        final itemIsDeleted = deletedUntil != null && itemTs <= deletedUntil;
+        if (itemIsDeleted && !item.deleted.contains("__deleted__")) {
+          item.deleted = [...item.deleted, "__deleted__"];
+        } else if (!itemIsDeleted && item.deleted.contains("__deleted__")) {
+          item.deleted = item.deleted.where((e) => e != "__deleted__").toList();
         }
         if (existing == null) {
           mergedByUser[item.userID] = item;
@@ -189,8 +202,10 @@ class ChatListingController extends GetxController {
         final pinnedEither = existing.isPinned || item.isPinned;
         final mutedEither = existing.isMuted || item.isMuted;
 
-        final currentTs = int.tryParse(item.timeStamp) ?? 0;
+        final currentTs = itemTs;
         final existingTs = int.tryParse(existing.timeStamp) ?? 0;
+        final existingIsDeleted =
+            deletedUntil != null && existingTs <= deletedUntil;
         final shouldReplace = currentTs >= existingTs;
         if (shouldReplace) {
           if (item.lastMessage.isEmpty && existing.lastMessage.isNotEmpty) {
@@ -205,6 +220,12 @@ class ChatListingController extends GetxController {
             item.deleted =
                 item.deleted.where((e) => e != "__archived__").toList();
           }
+          if (itemIsDeleted && !item.deleted.contains("__deleted__")) {
+            item.deleted = [...item.deleted, "__deleted__"];
+          } else if (!itemIsDeleted && item.deleted.contains("__deleted__")) {
+            item.deleted =
+                item.deleted.where((e) => e != "__deleted__").toList();
+          }
           item.isPinned = pinnedEither;
           item.isMuted = mutedEither;
           mergedByUser[item.userID] = item;
@@ -217,6 +238,13 @@ class ChatListingController extends GetxController {
               existing.deleted.contains("__archived__")) {
             existing.deleted =
                 existing.deleted.where((e) => e != "__archived__").toList();
+          }
+          if (existingIsDeleted && !existing.deleted.contains("__deleted__")) {
+            existing.deleted = [...existing.deleted, "__deleted__"];
+          } else if (!existingIsDeleted &&
+              existing.deleted.contains("__deleted__")) {
+            existing.deleted =
+                existing.deleted.where((e) => e != "__deleted__").toList();
           }
           existing.isPinned = pinnedEither;
           existing.isMuted = mutedEither;
@@ -273,6 +301,39 @@ class ChatListingController extends GetxController {
       return map;
     } catch (_) {
       return <String, bool>{};
+    }
+  }
+
+  Future<Map<String, int>> _fetchDeletedOverrides({
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    try {
+      final query = FirebaseFirestore.instance
+          .collection("users")
+          .doc(_uid)
+          .collection("chatDeletions");
+      final snap = await _getWithCachePreference(
+        query,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      final map = <String, int>{};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final userId = (data["userID"] ?? "").toString();
+        if (userId.isEmpty) continue;
+        final rawDeletedAt = data["deletedAt"];
+        final deletedAt = rawDeletedAt is num
+            ? rawDeletedAt.toInt()
+            : int.tryParse("$rawDeletedAt") ?? 0;
+        if (deletedAt > 0) {
+          map[userId] = deletedAt;
+        }
+      }
+      return map;
+    } catch (_) {
+      return <String, int>{};
     }
   }
 
@@ -522,11 +583,13 @@ class ChatListingController extends GetxController {
   }
 
   List<ChatListingModel> _applyTabFilterOn(List<ChatListingModel> source) {
+    final visible =
+        source.where((e) => !e.deleted.contains("__deleted__")).toList();
     if (selectedTab.value == "archive") {
-      return source.where((e) => e.deleted.contains("__archived__")).toList();
+      return visible.where((e) => e.deleted.contains("__archived__")).toList();
     }
     final base =
-        source.where((e) => !e.deleted.contains("__archived__")).toList();
+        visible.where((e) => !e.deleted.contains("__archived__")).toList();
     if (selectedTab.value == "unread") {
       return base.where((e) => e.unreadCount > 0).toList();
     }
@@ -534,6 +597,56 @@ class ChatListingController extends GetxController {
       return base;
     }
     return base;
+  }
+
+  Future<void> deleteChat(ChatListingModel item) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final db = FirebaseFirestore.instance;
+
+    await db
+        .collection("users")
+        .doc(_uid)
+        .collection("chatDeletions")
+        .doc(item.userID)
+        .set({
+      "userID": item.userID,
+      "chatID": item.chatID,
+      "deletedAt": now,
+      "updatedDate": now,
+    }, SetOptions(merge: true));
+
+    await db
+        .collection("users")
+        .doc(_uid)
+        .collection("chatArchives")
+        .doc(item.userID)
+        .set({
+      "userID": item.userID,
+      "chatID": item.chatID,
+      "archived": false,
+      "updatedDate": now,
+    }, SetOptions(merge: true));
+
+    try {
+      await db.collection("conversations").doc(item.chatID).set({
+        "archived.$_uid": false,
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    for (final entry in list) {
+      if (entry.chatID != item.chatID) continue;
+      entry.deleted = entry.deleted
+          .where((value) => value != "__archived__" && value != "__deleted__")
+          .toList()
+        ..add("__deleted__");
+    }
+    list.refresh();
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _saveCachedList(list.toList());
   }
 
   void showCreateChatBottomSheet() {

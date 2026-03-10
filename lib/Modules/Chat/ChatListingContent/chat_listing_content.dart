@@ -171,14 +171,7 @@ class ChatListingContent extends StatelessWidget {
       },
     );
     if (!confirmed) return;
-
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(model.chatID)
-        .set({
-      "archived.$_uid": true,
-    }, SetOptions(merge: true));
-    await _refreshList();
+    await Get.find<ChatListingController>().deleteChat(model);
     AppSnackbar("Sohbet Silindi", "Seçilen sohbet başarıyla silindi");
   }
 

@@ -16,7 +16,6 @@ class ChatListing extends StatelessWidget {
   ChatListing({super.key});
   final controller = Get.put(ChatListingController());
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
-
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<void> _archiveChat(ChatListingModel item) async {
@@ -58,13 +57,6 @@ class ChatListing extends StatelessWidget {
         "archived.$_uid": false,
       }, SetOptions(merge: true));
     } catch (_) {}
-  }
-
-  Future<void> _deleteChat(ChatListingModel item) async {
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(item.chatID)
-        .set({"archived.$_uid": true}, SetOptions(merge: true));
   }
 
   @override
@@ -256,13 +248,12 @@ class ChatListing extends StatelessWidget {
                                       },
                                     );
                                     if (!confirmed) return;
-                                    await _deleteChat(item);
+                                    await controller.deleteChat(item);
                                     AppSnackbar(
                                       "Sohbet Silindi",
                                       "Seçilen sohbet başarıyla silindi",
                                       snackPosition: SnackPosition.BOTTOM,
                                     );
-                                    await controller.getList();
                                   },
                                   child: ChatListingContent(
                                     model: item,
