@@ -20,7 +20,7 @@ class SavedJobs extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(15),
               child: Row(
-                children: [BackButtons(text: "Kaydedilen İlanlar")],
+                children: [BackButtons(text: "Kaydedilenler")],
               ),
             ),
             Obx(() {
