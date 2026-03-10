@@ -10,6 +10,8 @@ class SettingsController extends GetxController {
   static const _prefKey = "educationScreenIsOn";
   static const _pasajOrderKey = "pasajOrder";
   static const _pasajVisibilityKey = "pasajVisibility";
+  static const _pasajOrderVersionKey = "pasajOrderVersion";
+  static const _currentPasajOrderVersion = 2;
 
   @override
   Future<void> onInit() async {
@@ -47,12 +49,19 @@ class SettingsController extends GetxController {
 
   Future<void> loadPasajPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedOrder = prefs.getStringList(_pasajOrderKey) ?? const [];
+    final storedVersion = prefs.getInt(_pasajOrderVersionKey) ?? 0;
+    final storedOrder = storedVersion >= _currentPasajOrderVersion
+        ? (prefs.getStringList(_pasajOrderKey) ?? const [])
+        : const <String>[];
     final normalizedOrder = <String>[
       ...storedOrder.where(pasajTabs.contains),
       ...pasajTabs.where((title) => !storedOrder.contains(title)),
     ];
     pasajOrder.assignAll(normalizedOrder);
+    if (storedVersion < _currentPasajOrderVersion) {
+      await prefs.setStringList(_pasajOrderKey, normalizedOrder);
+      await prefs.setInt(_pasajOrderVersionKey, _currentPasajOrderVersion);
+    }
 
     final storedHidden = prefs.getStringList(_pasajVisibilityKey) ?? const [];
     pasajVisibility.assignAll({
@@ -84,5 +93,6 @@ class SettingsController extends GetxController {
         .toList(growable: false);
     await prefs.setStringList(_pasajOrderKey, pasajOrder);
     await prefs.setStringList(_pasajVisibilityKey, hidden);
+    await prefs.setInt(_pasajOrderVersionKey, _currentPasajOrderVersion);
   }
 }
