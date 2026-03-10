@@ -119,7 +119,7 @@ class SearchDeneme extends StatelessWidget {
                           crossAxisCount: 2,
                           crossAxisSpacing: 10.0,
                           mainAxisSpacing: 10.0,
-                          childAspectRatio: 2.0 / 4,
+                          childAspectRatio: 0.52,
                         ),
                         itemCount: controller.filteredList.length,
                         itemBuilder: (context, index) {
