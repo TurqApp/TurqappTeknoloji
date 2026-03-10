@@ -280,8 +280,8 @@ class JobDetails extends StatelessWidget {
                                 if (context.mounted) {
                                   setState(() => isSubmitting = false);
                                 }
-                                if (success) {
-                                  Get.back();
+                                if (success && context.mounted) {
+                                  Navigator.of(context).pop();
                                 }
                               },
                         style: ElevatedButton.styleFrom(
