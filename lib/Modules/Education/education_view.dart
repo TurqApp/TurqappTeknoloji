@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/MyBookletResults/my_bookle
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalFormEntry/optical_form_entry.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticsAndBooksPublished/optics_and_books_published.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SavedOpticalForms/saved_optical_forms.dart';
+import 'package:turqappv2/Modules/Education/AnswerKey/SearchAnswerKey/search_answer_key.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
@@ -39,6 +40,7 @@ import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutor
 import 'package:turqappv2/Modules/Education/Tutoring/LocationBasedTutoring/location_based_tutoring.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder.dart';
 import 'package:turqappv2/Modules/JobFinder/JobCreator/job_creator.dart';
@@ -52,6 +54,11 @@ class EducationView extends StatelessWidget {
   EducationView({super.key});
 
   final EducationController controller = Get.put(EducationController());
+
+  void _focusGlobalSearch() {
+    controller.isSearchMode.value = true;
+    controller.searchFocus.requestFocus();
+  }
 
   ScrollController? _activeScrollController() {
     switch (controller.selectedTab.value) {
@@ -112,6 +119,25 @@ class EducationView extends StatelessWidget {
       case 0:
         return [
           PullDownMenuItem(
+            title: 'Ara',
+            icon: CupertinoIcons.search,
+            onTap: _focusGlobalSearch,
+          ),
+          PullDownMenuItem(
+            title: 'Ayarlar',
+            icon: CupertinoIcons.gear,
+            onTap: () {
+              if (Get.isRegistered<ScholarshipsController>()) {
+                Get.find<ScholarshipsController>().settings(context);
+              }
+            },
+          ),
+          PullDownMenuItem(
+            title: 'Başvurular',
+            icon: CupertinoIcons.doc_plaintext,
+            onTap: () => Get.to(() => ApplicationsView()),
+          ),
+          PullDownMenuItem(
             title: 'Burs Oluştur',
             icon: CupertinoIcons.add_circled,
             onTap: () async {
@@ -142,23 +168,9 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => SavedItemsView()),
           ),
           PullDownMenuItem(
-            title: 'Başvurular',
-            icon: CupertinoIcons.doc_plaintext,
-            onTap: () => Get.to(() => ApplicationsView()),
-          ),
-          PullDownMenuItem(
             title: 'Sana Özel',
             icon: CupertinoIcons.star,
             onTap: () => Get.to(PersonalizedView()),
-          ),
-          PullDownMenuItem(
-            title: 'Ayarlar',
-            icon: CupertinoIcons.gear,
-            onTap: () {
-              if (Get.isRegistered<ScholarshipsController>()) {
-                Get.find<ScholarshipsController>().settings(context);
-              }
-            },
           ),
         ];
       case 1:
@@ -205,6 +217,11 @@ class EducationView extends StatelessWidget {
       case 3:
         return [
           PullDownMenuItem(
+            icon: CupertinoIcons.search,
+            title: 'Ara',
+            onTap: () => Get.to(() => SearchDeneme()),
+          ),
+          PullDownMenuItem(
             icon: Icons.add,
             title: 'Oluştur',
             onTap: () async {
@@ -217,16 +234,6 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            icon: Icons.history,
-            title: 'Sonuçlarım',
-            onTap: () => Get.to(() => SinavSonuclarim()),
-          ),
-          PullDownMenuItem(
-            icon: CupertinoIcons.search,
-            title: 'Ara',
-            onTap: () => Get.to(() => SearchDeneme()),
-          ),
-          PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
             title: 'Slider Yönetimi',
             onTap: () => Get.to(
@@ -236,13 +243,18 @@ class EducationView extends StatelessWidget {
               ),
             ),
           ),
+          PullDownMenuItem(
+            icon: Icons.history,
+            title: 'Sonuçlarım',
+            onTap: () => Get.to(() => SinavSonuclarim()),
+          ),
         ];
       case 4:
         return [
           PullDownMenuItem(
-            title: 'Yayınladıklarım',
-            icon: CupertinoIcons.book,
-            onTap: () => Get.to(OpticsAndBooksPublished()),
+            title: 'Ara',
+            icon: CupertinoIcons.search,
+            onTap: () => Get.to(() => const SearchAnswerKey()),
           ),
           PullDownMenuItem(
             title: 'Kaydedilenler',
@@ -250,9 +262,9 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(SavedOpticalForms()),
           ),
           PullDownMenuItem(
-            title: 'Sonuçlarım',
-            icon: CupertinoIcons.chart_bar_square,
-            onTap: () => Get.to(MyBookletResults()),
+            title: 'Katıl',
+            icon: CupertinoIcons.arrow_right,
+            onTap: () => Get.to(OpticalFormEntry()),
           ),
           PullDownMenuItem(
             title: 'Oluştur',
@@ -266,9 +278,9 @@ class EducationView extends StatelessWidget {
             )),
           ),
           PullDownMenuItem(
-            title: 'Katıl',
-            icon: CupertinoIcons.arrow_right,
-            onTap: () => Get.to(OpticalFormEntry()),
+            title: 'Sonuçlarım',
+            icon: CupertinoIcons.chart_bar_square,
+            onTap: () => Get.to(MyBookletResults()),
           ),
           PullDownMenuItem(
             title: 'Slider Yönetimi',
@@ -280,13 +292,18 @@ class EducationView extends StatelessWidget {
               ),
             ),
           ),
+          PullDownMenuItem(
+            title: 'Yayınladıklarım',
+            icon: CupertinoIcons.book,
+            onTap: () => Get.to(OpticsAndBooksPublished()),
+          ),
         ];
       case 5:
         return [
           PullDownMenuItem(
-            title: 'Kaydedilenler',
-            icon: CupertinoIcons.bookmark,
-            onTap: () => Get.to(() => SavedTutorings()),
+            title: 'Ara',
+            icon: CupertinoIcons.search,
+            onTap: () => Get.to(() => const TutoringSearch()),
           ),
           PullDownMenuItem(
             title: 'Bölgemdeki İlanlar',
@@ -294,14 +311,19 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => LocationBasedTutoring()),
           ),
           PullDownMenuItem(
-            title: 'Özel Ders İlanlarım',
-            icon: CupertinoIcons.list_bullet,
-            onTap: () => Get.to(MyTutorings()),
+            title: 'Kaydedilenler',
+            icon: CupertinoIcons.bookmark,
+            onTap: () => Get.to(() => SavedTutorings()),
           ),
           PullDownMenuItem(
             title: 'Oluştur',
             icon: CupertinoIcons.add_circled,
             onTap: () => Get.to(CreateTutoringView()),
+          ),
+          PullDownMenuItem(
+            title: 'Özel Ders İlanlarım',
+            icon: CupertinoIcons.list_bullet,
+            onTap: () => Get.to(MyTutorings()),
           ),
           PullDownMenuItem(
             title: 'Slider Yönetimi',
@@ -316,6 +338,16 @@ class EducationView extends StatelessWidget {
         ];
       case 6:
         return [
+          PullDownMenuItem(
+            title: 'Ara',
+            icon: CupertinoIcons.search,
+            onTap: _focusGlobalSearch,
+          ),
+          PullDownMenuItem(
+            title: 'Başvurularım',
+            icon: CupertinoIcons.doc_text_search,
+            onTap: () => Get.to(() => MyApplications()),
+          ),
           PullDownMenuItem(
             title: 'İlan Ver',
             icon: CupertinoIcons.add_circled,
@@ -339,11 +371,6 @@ class EducationView extends StatelessWidget {
               if (!allowed) return;
               Get.to(() => MyJobAds());
             },
-          ),
-          PullDownMenuItem(
-            title: 'Başvurularım',
-            icon: CupertinoIcons.doc_text_search,
-            onTap: () => Get.to(() => MyApplications()),
           ),
           PullDownMenuItem(
             title: 'Kariyer Profili',
