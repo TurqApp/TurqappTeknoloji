@@ -1,20 +1,17 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 
 import '../job_finder_controller.dart';
 
 class JobContent extends StatelessWidget {
   final bool isGrid;
   final JobModel model;
-  final EducationFeedPostShareService shareService =
-      const EducationFeedPostShareService();
   JobContent({super.key, required this.model, required this.isGrid});
   late final JobContentController controller;
   @override
@@ -153,27 +150,24 @@ class JobContent extends StatelessWidget {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Transform.translate(
-                                    offset: Offset(6, 0),
-                                    child: EducationFeedShareIconButton(
-                                      onTap: () => shareService.shareJob(model),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: EducationShareIconButton(
+                                      onTap: () => controller.shareJob(model),
                                     ),
                                   ),
                                   Obx(() {
-                                    return Transform.translate(
-                                      offset: Offset(10, 0),
-                                      child: EducationActionIconButton(
-                                        onTap: () {
-                                          controller.toggleSave(model.docID);
-                                        },
-                                        icon: controller.saved.value
-                                            ? CupertinoIcons.bookmark_fill
-                                            : CupertinoIcons.bookmark,
-                                        iconSize: 18,
-                                        iconColor: controller.saved.value
-                                            ? Colors.orange
-                                            : Colors.black87,
-                                      ),
+                                    return EducationActionIconButton(
+                                      onTap: () {
+                                        controller.toggleSave(model.docID);
+                                      },
+                                      icon: controller.saved.value
+                                          ? AppIcons.saved
+                                          : AppIcons.save,
+                                      iconSize: 18,
+                                      iconColor: controller.saved.value
+                                          ? Colors.orange
+                                          : Colors.black87,
                                     );
                                   }),
                                 ],
@@ -286,19 +280,19 @@ class JobContent extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      EducationShareIconButton(
-                        onTap: () => controller.shareJob(model),
-                        size: 28,
-                        iconSize: 16,
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: EducationShareIconButton(
+                          onTap: () => controller.shareJob(model),
+                        ),
                       ),
                       Obx(
                         () => EducationActionIconButton(
                           onTap: () => controller.toggleSave(model.docID),
                           icon: controller.saved.value
-                              ? CupertinoIcons.bookmark_fill
-                              : CupertinoIcons.bookmark,
-                          size: 28,
-                          iconSize: 16,
+                              ? AppIcons.saved
+                              : AppIcons.save,
+                          iconSize: 18,
                           iconColor: controller.saved.value
                               ? Colors.orange
                               : Colors.black87,
