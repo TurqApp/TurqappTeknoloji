@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -284,6 +285,15 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             );
           }
           return const SizedBox.shrink();
+        }
+
+        if (defaultTargetPlatform == TargetPlatform.iOS) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.noScaling,
+            ),
+            child: _buildScholarshipCard(index, items),
+          );
         }
 
         return _buildScholarshipCard(index, items);
