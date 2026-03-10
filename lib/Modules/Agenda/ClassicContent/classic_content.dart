@@ -439,6 +439,7 @@ class _ClassicContentState extends State<ClassicContent>
                           const SizedBox(),
                         ],
                       ),
+                      _buildFeedShareCta(),
                     ],
                   ),
                 ),
@@ -533,6 +534,7 @@ class _ClassicContentState extends State<ClassicContent>
                           }),
                         ),
                       ),
+                      _buildFeedShareCta(),
                     ],
                   ),
                 ),
@@ -1039,6 +1041,41 @@ class _ClassicContentState extends State<ClassicContent>
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildFeedShareCta() {
+    final label = (widget.model.reshareMap['ctaLabel'] ?? '').toString().trim();
+    final url = (widget.model.reshareMap['ctaUrl'] ?? '').toString().trim();
+    if (label.isEmpty || url.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      right: 10,
+      bottom: 10,
+      child: GestureDetector(
+        onTap: () => RedirectionLink().goToLink(
+          url,
+          uniqueKey: 'feed-cta-${widget.model.docID}',
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+        ),
+      ),
     );
   }
 

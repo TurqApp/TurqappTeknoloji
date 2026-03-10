@@ -1,13 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
-import 'package:turqappv2/Modules/Social/UrlPostMaker/url_post_maker.dart';
+import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
+import 'package:uuid/uuid.dart';
 
 class EducationFeedPostShareService {
   const EducationFeedPostShareService();
@@ -61,10 +67,12 @@ class EducationFeedPostShareService {
       '[Bursa Git]($shortUrl)',
     ]);
 
-    await _openComposer(
+    await _shareDirectly(
       text: text,
       imageUrl: imageUrl,
       aspectRatio: 4 / 3,
+      ctaLabel: 'Bursu İncele',
+      ctaUrl: shortUrl,
     );
   }
 
@@ -87,10 +95,12 @@ class EducationFeedPostShareService {
       '[Sınava Git]($shortUrl)',
     ]);
 
-    await _openComposer(
+    await _shareDirectly(
       text: text,
       imageUrl: model.cover,
       aspectRatio: 1,
+      ctaLabel: 'Sınavı İncele',
+      ctaUrl: shortUrl,
     );
   }
 
@@ -114,10 +124,12 @@ class EducationFeedPostShareService {
       '[İlana Git]($shortUrl)',
     ]);
 
-    await _openComposer(
+    await _shareDirectly(
       text: text,
       imageUrl: imageUrl,
       aspectRatio: 1,
+      ctaLabel: 'İlanı İncele',
+      ctaUrl: shortUrl,
     );
   }
 
@@ -144,17 +156,21 @@ class EducationFeedPostShareService {
       '[İlana Git]($shortUrl)',
     ]);
 
-    await _openComposer(
+    await _shareDirectly(
       text: text,
       imageUrl: model.logo,
       aspectRatio: 1,
+      ctaLabel: 'İlanı İncele',
+      ctaUrl: shortUrl,
     );
   }
 
-  Future<void> _openComposer({
+  Future<void> _shareDirectly({
     required String text,
     required String imageUrl,
     required double aspectRatio,
+    required String ctaLabel,
+    required String ctaUrl,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -167,15 +183,139 @@ class EducationFeedPostShareService {
     }
 
     await ShareActionGuard.run(() async {
-      await Get.to(
-        () => UrlPostMaker(
+      final loader = Get.isRegistered<GlobalLoaderController>()
+          ? Get.find<GlobalLoaderController>()
+          : Get.put(GlobalLoaderController());
+      loader.isOn.value = true;
+
+      try {
+        final postId = const Uuid().v4();
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final normalizedAspectRatio = double.parse(
+          aspectRatio.toStringAsFixed(4),
+        );
+        final imageUrls = [imageUrl.trim()];
+        final imgMap = imageUrls
+            .map(
+              (url) => {
+                'url': url,
+                'aspectRatio': normalizedAspectRatio,
+              },
+            )
+            .toList();
+
+        await FirebaseFirestore.instance.collection('Posts').doc(postId).set({
+          'arsiv': false,
+          'debugMode': false,
+          'deletedPost': false,
+          'deletedPostTime': 0,
+          'flood': false,
+          'floodCount': 1,
+          'gizlendi': false,
+          'img': imageUrls,
+          'imgMap': imgMap,
+          'isAd': false,
+          'ad': false,
+          'izBirakYayinTarihi': now,
+          'stats': {
+            'commentCount': 0,
+            'likeCount': 0,
+            'reportedCount': 0,
+            'retryCount': 0,
+            'savedCount': 0,
+            'statsCount': 0,
+          },
+          'konum': '',
+          'mainFlood': '',
+          'metin': text,
+          'reshareMap': {
+            'visibility': 0,
+            'ctaLabel': ctaLabel,
+            'ctaUrl': ctaUrl,
+          },
+          'scheduledAt': 0,
+          'sikayetEdildi': false,
+          'stabilized': false,
+          'tags': [],
+          'thumbnail': imageUrl.trim(),
+          'timeStamp': now,
+          'userID': currentUser.uid,
+          'video': '',
+          'hlsStatus': 'none',
+          'hlsMasterUrl': '',
+          'hlsUpdatedAt': 0,
+          'yorum': true,
+          'yorumMap': {
+            'visibility': 0,
+          },
+          'originalUserID': '',
+          'originalPostID': '',
+          'sharedAsPost': false,
+        });
+
+        final newPost = PostsModel(
+          ad: false,
+          arsiv: false,
+          aspectRatio: normalizedAspectRatio,
+          debugMode: false,
+          deletedPost: false,
+          deletedPostTime: 0,
+          docID: postId,
+          flood: false,
+          floodCount: 1,
+          gizlendi: false,
+          img: imageUrls,
+          isAd: false,
+          izBirakYayinTarihi: now,
+          konum: '',
+          mainFlood: '',
+          metin: text,
+          originalPostID: '',
+          originalUserID: '',
+          paylasGizliligi: 0,
+          reshareMap: {
+            'visibility': 0,
+            'ctaLabel': ctaLabel,
+            'ctaUrl': ctaUrl,
+          },
+          scheduledAt: 0,
+          sikayetEdildi: false,
+          stabilized: false,
+          stats: PostStats(),
+          tags: const [],
+          thumbnail: imageUrl.trim(),
+          timeStamp: now,
+          userID: currentUser.uid,
           video: '',
-          imgs: [imageUrl],
-          aspectRatio: aspectRatio,
-          thumbnail: imageUrl,
-          initialText: text,
-        ),
-      );
+          hlsStatus: 'none',
+          hlsMasterUrl: '',
+          hlsUpdatedAt: 0,
+          yorum: true,
+          yorumMap: const {'visibility': 0},
+        );
+
+        if (Get.isRegistered<AgendaController>()) {
+          final agendaController = Get.find<AgendaController>();
+          agendaController.addUploadedPostsAtTop([newPost]);
+          if (agendaController.scrollController.hasClients) {
+            await agendaController.scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 450),
+              curve: Curves.easeOut,
+            );
+          }
+        }
+
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().getLastPostAndAddToAllPosts();
+        }
+
+        AppSnackbar('Başarılı', 'Ana sayfada paylaşıldı.');
+      } catch (_) {
+        AppSnackbar('Hata', 'Paylaşım tamamlanamadı.');
+      } finally {
+        loader.isOn.value = false;
+      }
     });
   }
 

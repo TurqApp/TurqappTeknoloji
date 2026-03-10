@@ -258,23 +258,27 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                         )),
                                   ),
                                   8.pw,
-                                  GestureDetector(
-                                    onTap: userData['userID']?.toString() !=
-                                            FirebaseAuth
-                                                .instance.currentUser?.uid
-                                        ? () => Get.to(
-                                              SocialProfile(
-                                                userID: userData['userID']
-                                                        ?.toString() ??
-                                                    '',
-                                              ),
-                                            )
-                                        : null,
-                                    child: Text(
-                                      userNick,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontFamily: "MontserratBold",
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: userData['userID']?.toString() !=
+                                              FirebaseAuth
+                                                  .instance.currentUser?.uid
+                                          ? () => Get.to(
+                                                SocialProfile(
+                                                  userID: userData['userID']
+                                                          ?.toString() ??
+                                                      '',
+                                                ),
+                                              )
+                                          : null,
+                                      child: Text(
+                                        userNick,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontFamily: "MontserratBold",
+                                        ),
                                       ),
                                     ),
                                   ),

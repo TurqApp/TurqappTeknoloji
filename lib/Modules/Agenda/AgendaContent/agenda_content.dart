@@ -1630,16 +1630,56 @@ class _AgendaContentState extends State<AgendaContent>
 
     return ClipRRect(
       borderRadius: radius,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.grey[200], // Arka plan sabit
-        child: CachedNetworkImage(
-          imageUrl: safeUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          placeholder: (_, __) => const SizedBox.shrink(),
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.grey[200],
+            child: CachedNetworkImage(
+              imageUrl: safeUrl,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              placeholder: (_, __) => const SizedBox.shrink(),
+            ),
+          ),
+          if (widget.model.img.length == 1) _buildFeedShareCta(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedShareCta() {
+    final label = (widget.model.reshareMap['ctaLabel'] ?? '').toString().trim();
+    final url = (widget.model.reshareMap['ctaUrl'] ?? '').toString().trim();
+    if (label.isEmpty || url.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Positioned(
+      right: 10,
+      bottom: 10,
+      child: GestureDetector(
+        onTap: () => RedirectionLink().goToLink(
+          url,
+          uniqueKey: 'feed-cta-${widget.model.docID}',
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
         ),
       ),
     );
