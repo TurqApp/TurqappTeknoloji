@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
-import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -41,18 +40,9 @@ class EducationFeedPostShareService {
       burs.img2,
       burs.logo,
     ]);
-    final shortUrl = await _resolveUrl(
-      fallbackUrl: 'https://turqapp.com/e/scholarship-${_shortTail(docId)}',
-      builder: () => ShortLinkService().getEducationPublicUrl(
-        shareId: 'scholarship:$docId',
-        title: burs.baslik,
-        desc: _shorten(
-          burs.shortDescription.isNotEmpty
-              ? burs.shortDescription
-              : burs.aciklama,
-        ),
-        imageUrl: imageUrl,
-      ),
+    final internalUrl = _buildInternalUrl(
+      type: 'scholarship',
+      docId: docId,
     );
 
     final text = _lines([
@@ -64,7 +54,7 @@ class EducationFeedPostShareService {
       ),
       burs.bursVeren.isNotEmpty ? 'Burs Veren: ${burs.bursVeren}' : '',
       burs.bitisTarihi.isNotEmpty ? 'Son Başvuru: ${burs.bitisTarihi}' : '',
-      '[Bursa Git]($shortUrl)',
+      '[Bursu İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -72,27 +62,23 @@ class EducationFeedPostShareService {
       imageUrl: imageUrl,
       aspectRatio: 4 / 3,
       ctaLabel: 'Bursu İncele',
-      ctaUrl: shortUrl,
+      ctaUrl: internalUrl,
+      ctaType: 'scholarship',
+      ctaDocId: docId,
     );
   }
 
   Future<void> sharePracticeExam(SinavModel model) async {
-    final shortUrl = await _resolveUrl(
-      fallbackUrl:
-          'https://turqapp.com/e/practice-exam-${_shortTail(model.docID)}',
-      builder: () => ShortLinkService().getEducationPublicUrl(
-        shareId: 'practice-exam:${model.docID}',
-        title: model.sinavAdi,
-        desc: _shorten(model.sinavAciklama),
-        imageUrl: model.cover.isNotEmpty ? model.cover : null,
-      ),
+    final internalUrl = _buildInternalUrl(
+      type: 'practice-exam',
+      docId: model.docID,
     );
 
     final text = _lines([
       '"${model.sinavAdi}"',
       _shorten(model.sinavAciklama),
       model.sinavTuru.isNotEmpty ? '${model.sinavTuru} Online Sınavı' : '',
-      '[Sınava Git]($shortUrl)',
+      '[Sınavı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -100,20 +86,17 @@ class EducationFeedPostShareService {
       imageUrl: model.cover,
       aspectRatio: 1,
       ctaLabel: 'Sınavı İncele',
-      ctaUrl: shortUrl,
+      ctaUrl: internalUrl,
+      ctaType: 'practice-exam',
+      ctaDocId: model.docID,
     );
   }
 
   Future<void> shareTutoring(TutoringModel model) async {
     final imageUrl = _firstNonEmpty(model.imgs ?? const <String>[]);
-    final shortUrl = await _resolveUrl(
-      fallbackUrl: 'https://turqapp.com/i/tutoring:${model.docID}',
-      builder: () => ShortLinkService().getInternalEducationPublicUrl(
-        shareId: 'tutoring:${model.docID}',
-        title: model.baslik,
-        desc: _shorten(model.aciklama),
-        imageUrl: imageUrl,
-      ),
+    final internalUrl = _buildInternalUrl(
+      type: 'tutoring',
+      docId: model.docID,
     );
 
     final text = _lines([
@@ -121,7 +104,7 @@ class EducationFeedPostShareService {
       _shorten(model.aciklama),
       model.brans.isNotEmpty ? 'Branş: ${model.brans}' : '',
       '${model.sehir}/${model.ilce}',
-      '[İlana Git]($shortUrl)',
+      '[İlanı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -129,23 +112,18 @@ class EducationFeedPostShareService {
       imageUrl: imageUrl,
       aspectRatio: 1,
       ctaLabel: 'İlanı İncele',
-      ctaUrl: shortUrl,
+      ctaUrl: internalUrl,
+      ctaType: 'tutoring',
+      ctaDocId: model.docID,
     );
   }
 
   Future<void> shareJob(JobModel model) async {
     final title =
         model.ilanBasligi.isNotEmpty ? model.ilanBasligi : model.meslek;
-    final shortUrl = await _resolveUrl(
-      fallbackUrl: 'https://turqapp.com/i/job:${model.docID}',
-      builder: () => ShortLinkService().getJobPublicUrl(
-        jobId: model.docID,
-        title: title,
-        desc: _shorten(
-          model.about.isNotEmpty ? model.about : model.isTanimi,
-        ),
-        imageUrl: model.logo.isNotEmpty ? model.logo : null,
-      ),
+    final internalUrl = _buildInternalUrl(
+      type: 'job',
+      docId: model.docID,
     );
 
     final text = _lines([
@@ -153,7 +131,7 @@ class EducationFeedPostShareService {
       _shorten(model.about.isNotEmpty ? model.about : model.isTanimi),
       model.brand.isNotEmpty ? 'Şirket: ${model.brand}' : '',
       '${model.city}/${model.town}',
-      '[İlana Git]($shortUrl)',
+      '[İlanı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -161,7 +139,9 @@ class EducationFeedPostShareService {
       imageUrl: model.logo,
       aspectRatio: 1,
       ctaLabel: 'İlanı İncele',
-      ctaUrl: shortUrl,
+      ctaUrl: internalUrl,
+      ctaType: 'job',
+      ctaDocId: model.docID,
     );
   }
 
@@ -171,6 +151,8 @@ class EducationFeedPostShareService {
     required double aspectRatio,
     required String ctaLabel,
     required String ctaUrl,
+    required String ctaType,
+    required String ctaDocId,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
@@ -232,6 +214,8 @@ class EducationFeedPostShareService {
             'visibility': 0,
             'ctaLabel': ctaLabel,
             'ctaUrl': ctaUrl,
+            'ctaType': ctaType,
+            'ctaDocId': ctaDocId,
           },
           'scheduledAt': 0,
           'sikayetEdildi': false,
@@ -277,6 +261,8 @@ class EducationFeedPostShareService {
             'visibility': 0,
             'ctaLabel': ctaLabel,
             'ctaUrl': ctaUrl,
+            'ctaType': ctaType,
+            'ctaDocId': ctaDocId,
           },
           scheduledAt: 0,
           sikayetEdildi: false,
@@ -319,19 +305,6 @@ class EducationFeedPostShareService {
     });
   }
 
-  Future<String> _resolveUrl({
-    required String fallbackUrl,
-    required Future<String> Function() builder,
-  }) async {
-    try {
-      final url = (await builder()).trim();
-      if (url.isNotEmpty && url != 'https://turqapp.com') {
-        return url;
-      }
-    } catch (_) {}
-    return fallbackUrl;
-  }
-
   String _lines(List<String> lines) {
     return lines
         .map((line) => line.trim())
@@ -347,8 +320,11 @@ class EducationFeedPostShareService {
     return '${normalized.substring(0, maxLength - 1).trim()}…';
   }
 
-  String _shortTail(String value) {
-    return value.length >= 8 ? value.substring(0, 8) : value;
+  String _buildInternalUrl({
+    required String type,
+    required String docId,
+  }) {
+    return 'turqapp://education/$type/${docId.trim()}';
   }
 
   String _firstNonEmpty(List<String> values) {

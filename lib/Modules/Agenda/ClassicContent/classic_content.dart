@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
+import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -94,6 +95,9 @@ class _ClassicContentState extends State<ClassicContent>
         .replaceAll('ı', 'i');
     return raw == 'siyah' || raw == 'black';
   }
+
+  static const EducationFeedCtaNavigationService _ctaNavigationService =
+      EducationFeedCtaNavigationService();
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -305,10 +309,7 @@ class _ClassicContentState extends State<ClassicContent>
       hashtagColor: Colors.blue,
       urlColor: Colors.blue,
       interactiveColor: Colors.blue,
-      onUrlTap: (url) async {
-        final uniqueKey = DateTime.now().millisecondsSinceEpoch.toString();
-        await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
-      },
+      onUrlTap: _handleFeedUrlTap,
       onHashtagTap: (tag) {
         if (tag.trim().isEmpty) return;
         Get.to(() => TagPosts(tag: tag.trim()));
@@ -1046,8 +1047,9 @@ class _ClassicContentState extends State<ClassicContent>
 
   Widget _buildFeedShareCta() {
     final label = (widget.model.reshareMap['ctaLabel'] ?? '').toString().trim();
-    final url = (widget.model.reshareMap['ctaUrl'] ?? '').toString().trim();
-    if (label.isEmpty || url.isEmpty) {
+    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
+    final docId = (widget.model.reshareMap['ctaDocId'] ?? '').toString().trim();
+    if (label.isEmpty || type.isEmpty || docId.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -1055,10 +1057,8 @@ class _ClassicContentState extends State<ClassicContent>
       right: 10,
       bottom: 10,
       child: GestureDetector(
-        onTap: () => RedirectionLink().goToLink(
-          url,
-          uniqueKey: 'feed-cta-${widget.model.docID}',
-        ),
+        onTap: () =>
+            _ctaNavigationService.openFromPostMeta(widget.model.reshareMap),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
@@ -1077,6 +1077,16 @@ class _ClassicContentState extends State<ClassicContent>
         ),
       ),
     );
+  }
+
+  Future<void> _handleFeedUrlTap(String url) async {
+    final handled = await _ctaNavigationService.openFromInternalUrl(url);
+    if (handled) {
+      return;
+    }
+
+    final uniqueKey = DateTime.now().millisecondsSinceEpoch.toString();
+    await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
   }
 
   Widget headerUserInfoBar() {

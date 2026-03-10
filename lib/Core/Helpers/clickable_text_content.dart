@@ -50,7 +50,7 @@ class ClickableTextController extends GetxController {
 
     final List<TextSpan> result = [];
     final pattern = RegExp(
-      r'(https?:\/\/[^\s]+)|(@[^\s@#]+)|(#[^\s#@]+)',
+      r'(\[([^\]]+)\]\(([^)\s]+)\))|((?:https?:\/\/)[^\s]+)|(@[^\s@#]+)|(#[^\s#@]+)',
       caseSensitive: false,
       unicode: true,
     );
@@ -72,8 +72,17 @@ class ClickableTextController extends GetxController {
       }
 
       final match = m.group(0)!;
+      final markdownLabel = m.group(2);
+      final markdownTarget = m.group(3);
 
-      if (match.startsWith('http')) {
+      if (markdownLabel != null && markdownTarget != null) {
+        result.add(TextSpan(
+          text: markdownLabel,
+          style: _urlStyle(),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => onUrlTap?.call(markdownTarget),
+        ));
+      } else if (match.startsWith('http')) {
         result.add(TextSpan(
           text: match,
           style: _urlStyle(),
