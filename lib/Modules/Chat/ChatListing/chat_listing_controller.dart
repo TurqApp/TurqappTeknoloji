@@ -601,6 +601,8 @@ class ChatListingController extends GetxController {
 
   Future<void> deleteChat(ChatListingModel item) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    final conversationTs = int.tryParse(item.timeStamp) ?? 0;
+    final deletedCutoff = conversationTs > now ? conversationTs : now;
     final db = FirebaseFirestore.instance;
 
     await db
@@ -611,7 +613,7 @@ class ChatListingController extends GetxController {
         .set({
       "userID": item.userID,
       "chatID": item.chatID,
-      "deletedAt": now,
+      "deletedAt": deletedCutoff,
       "updatedDate": now,
     }, SetOptions(merge: true));
 
