@@ -47,6 +47,14 @@ class ScholarshipsView extends StatefulWidget {
 }
 
 class _ScholarshipsViewState extends State<ScholarshipsView> {
+  static const double _feedOuterHorizontal = 5;
+  static const double _feedHeaderTop = 3;
+  static const double _feedAvatarRadius = 20;
+  static const double _feedAvatarGap = 6;
+  static const double _feedContentLeftInset = 45;
+  static const double _feedContentRightInset = 8;
+  static const double _feedMediaTopSpacing = 4;
+  static const double _feedActionSlotWidth = 58;
   final ScholarshipsController controller = Get.put(ScholarshipsController());
   final ScholarshipDetailController detailController = Get.put(
     ScholarshipDetailController(),
@@ -424,31 +432,39 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     final docId = scholarshipData['docId'] as String;
     final daysDiff = _calculateDaysDiff(type, burs);
 
-    final children = <Widget>[];
+    final children = <Widget>[
+      _buildUserHeader(type, userData, firmaData),
+    ];
 
     if (burs.img.isNotEmpty) {
+      children.add(const SizedBox(height: _feedMediaTopSpacing));
       children.add(
-        Row(
-          children: [
-            Expanded(child: _buildUserHeader(type, userData, firmaData)),
-            5.pw,
-          ],
+        Padding(
+          padding: const EdgeInsets.only(
+            left: _feedContentLeftInset,
+            right: _feedContentRightInset,
+          ),
+          child: _buildScholarshipImage(index, type, burs, scholarshipData),
         ),
       );
-      children.add(8.ph);
-      children.add(_buildScholarshipImage(index, type, burs, scholarshipData));
     }
 
     children.add(
-      _buildScholarshipContent(
-        index,
-        type,
-        burs,
-        userData,
-        firmaData,
-        daysDiff,
-        scholarshipData,
-        docId,
+      Padding(
+        padding: const EdgeInsets.only(
+          left: _feedContentLeftInset,
+          right: _feedContentRightInset,
+        ),
+        child: _buildScholarshipContent(
+          index,
+          type,
+          burs,
+          userData,
+          firmaData,
+          daysDiff,
+          scholarshipData,
+          docId,
+        ),
       ),
     );
 
@@ -463,9 +479,12 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _feedOuterHorizontal),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 
@@ -482,12 +501,12 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   Widget _buildUserHeader(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.only(top: _feedHeaderTop),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: _buildUserInfo(type, userData, firmaData)),
+          const SizedBox(width: 7),
           if (_shouldShowFollowButton(userData)) _buildFollowButton(userData),
         ],
       ),
@@ -501,21 +520,23 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       child: Row(
         children: [
           _buildUserAvatar(type, userData, firmaData),
-          8.pw,
-          Text(
-            _getUserDisplayName(type, userData, firmaData),
-            style: TextStyle(
-              fontSize: 15,
-              fontFamily: "MontserratBold",
-              color: Colors.black,
+          const SizedBox(width: _feedAvatarGap),
+          Expanded(
+            child: Text(
+              _getUserDisplayName(type, userData, firmaData),
+              style: const TextStyle(
+                fontSize: 15,
+                fontFamily: "MontserratBold",
+                color: Colors.black,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
           ),
           if (type == 'bireysel')
             RozetContent(
-              size: 16,
+              size: 13,
               userID: userData?['userID']?.toString() ?? '',
             ),
         ],
@@ -531,19 +552,19 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             '')
         .toString();
     return CircleAvatar(
-      radius: 15,
+      radius: _feedAvatarRadius,
       child: imageUrl.isNotEmpty
           ? ClipOval(
               child: CachedNetworkImage(
                 imageUrl: imageUrl,
                 placeholder: (context, url) => CupertinoActivityIndicator(),
                 errorWidget: (context, url, error) => Icon(Icons.error),
-                width: 30,
-                height: 30,
+                width: _feedAvatarRadius * 2,
+                height: _feedAvatarRadius * 2,
                 fit: BoxFit.cover,
               ),
             )
-          : Icon(Icons.person, size: 20),
+          : const Icon(Icons.person, size: 24),
     );
   }
 
@@ -596,28 +617,36 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           enabled: !isLoading,
           onPressed: isLoading ? null : () => _handleFollowTap(userData),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            height: 20,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: _getFollowButtonColor(userData),
               border: Border.all(width: 1, color: Colors.black),
               borderRadius: BorderRadius.circular(12),
             ),
             child: isLoading
-                ? SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                          _getFollowButtonTextColor(userData)),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _getFollowButtonTextColor(userData),
+                        ),
+                      ),
                     ),
                   )
-                : Text(
-                    _getFollowButtonText(userData),
-                    style: TextStyle(
-                      color: _getFollowButtonTextColor(userData),
-                      fontSize: 12,
-                      fontFamily: "MontserratBold",
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Text(
+                      _getFollowButtonText(userData),
+                      style: TextStyle(
+                        color: _getFollowButtonTextColor(userData),
+                        fontSize: 12,
+                        fontFamily: "MontserratBold",
+                      ),
                     ),
                   ),
           ),
@@ -687,12 +716,15 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     return Column(
       children: [
         AspectRatio(
-          aspectRatio: 4 / 3,
+          aspectRatio: 0.80,
           child: PageView.builder(
             itemCount: 2,
             itemBuilder: (context, pageIndex) {
               final imageUrl = pageIndex == 0 ? burs.img : burs.img2;
-              return _buildNetworkImage(imageUrl);
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildNetworkImage(imageUrl),
+              );
             },
             onPageChanged: (pageIndex) =>
                 controller.updatePageIndex(index, pageIndex),
@@ -706,8 +738,11 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildSingleImageView(dynamic burs) {
     return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: _buildNetworkImage(burs.img),
+      aspectRatio: 0.80,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: _buildNetworkImage(burs.img),
+      ),
     );
   }
 
@@ -782,30 +817,27 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     final displayDescription = _getDisplayDescription(type, burs);
     final canExpandDescription =
         displayDescription == burs.aciklama && displayDescription.isNotEmpty;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          10.ph,
-          _buildScholarshipTitle(index, type, burs, daysDiff),
-          5.ph,
-          _buildScholarshipProvider(type, userData, firmaData, burs),
-          5.ph,
-          _buildScholarshipDescription(index, type, burs),
-          if (type == 'bireysel' &&
-              canExpandDescription &&
-              (_isTextLongerThanTwoLines(displayDescription, Get.context!) ||
-                  _isTextLongerThanTwoLines(
-                    "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
-                    Get.context!,
-                  )))
-            _buildExpandButton(index),
-          10.ph,
-          _buildActionRow(type, userData, scholarshipData, docId),
-          15.ph,
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        10.ph,
+        _buildScholarshipTitle(index, type, burs, daysDiff),
+        5.ph,
+        _buildScholarshipProvider(type, userData, firmaData, burs),
+        5.ph,
+        _buildScholarshipDescription(index, type, burs),
+        if (type == 'bireysel' &&
+            canExpandDescription &&
+            (_isTextLongerThanTwoLines(displayDescription, Get.context!) ||
+                _isTextLongerThanTwoLines(
+                  "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
+                  Get.context!,
+                )))
+          _buildExpandButton(index),
+        10.ph,
+        _buildActionRow(type, userData, scholarshipData, docId),
+        15.ph,
+      ],
     );
   }
 
@@ -920,7 +952,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           ),
         ),
         RozetContent(
-          size: 16,
+          size: 13,
           userID: userData?['userID']?.toString() ?? '',
         ),
       ],
@@ -1037,11 +1069,22 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     String docId,
   ) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-            child: _buildMainActionButton(type, userData, scholarshipData)),
-        _buildInteractionButtons(scholarshipData, docId, type),
+        Expanded(child: _buildMainActionButton(type, userData, scholarshipData)),
+        SizedBox(
+          width: _feedActionSlotWidth,
+          child: Center(child: _buildLikeButton(scholarshipData, docId, type)),
+        ),
+        SizedBox(
+          width: _feedActionSlotWidth,
+          child: Center(
+            child: _buildBookmarkButton(scholarshipData, docId, type),
+          ),
+        ),
+        SizedBox(
+          width: _feedActionSlotWidth,
+          child: Center(child: _buildShareButton(scholarshipData)),
+        ),
       ],
     );
   }
@@ -1083,18 +1126,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     return 'Ayrıntılı Bilgi';
   }
 
-  Widget _buildInteractionButtons(
-      Map<String, dynamic> scholarshipData, String docId, String type) {
-    return Wrap(
-      spacing: 0,
-      children: [
-        _buildLikeButton(scholarshipData, docId, type),
-        _buildBookmarkButton(scholarshipData, docId, type),
-        _buildShareButton(scholarshipData),
-      ],
-    );
-  }
-
   Widget _buildLikeButton(
       Map<String, dynamic> scholarshipData, String docId, String type) {
     return Obx(
@@ -1106,20 +1137,18 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             icon: (controller.likedScholarships[docId] ?? false)
                 ? CupertinoIcons.hand_thumbsup_fill
                 : CupertinoIcons.hand_thumbsup,
-            iconSize: 18,
+            iconSize: 20,
             iconColor: controller.likedScholarships[docId] ?? false
                 ? Colors.blue
                 : Colors.black87,
           ),
-          Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-            child: Text(
-              NumberFormatter.format(scholarshipData['likesCount'].toInt()),
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: "Montserrat",
-                color: Colors.black,
-              ),
+          const SizedBox(width: 2),
+          Text(
+            NumberFormatter.format(scholarshipData['likesCount'].toInt()),
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: "MontserratMedium",
+              color: Colors.black,
             ),
           ),
         ],
@@ -1138,20 +1167,18 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             icon: (controller.bookmarkedScholarships[docId] ?? false)
                 ? CupertinoIcons.bookmark_fill
                 : CupertinoIcons.bookmark,
-            iconSize: 18,
+            iconSize: 20,
             iconColor: controller.bookmarkedScholarships[docId] ?? false
                 ? Colors.orange
                 : Colors.black87,
           ),
-          Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-            child: Text(
-              NumberFormatter.format(scholarshipData['bookmarksCount'].toInt()),
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: "Montserrat",
-                color: Colors.black,
-              ),
+          const SizedBox(width: 2),
+          Text(
+            NumberFormatter.format(scholarshipData['bookmarksCount'].toInt()),
+            style: const TextStyle(
+              fontSize: 14,
+              fontFamily: "MontserratMedium",
+              color: Colors.black,
             ),
           ),
         ],
@@ -1161,6 +1188,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildShareButton(Map<String, dynamic> scholarshipData) {
     return EducationFeedShareIconButton(
+      iconSize: 20,
       onTap: () {
         shareService.shareScholarship(scholarshipData);
       },
