@@ -836,7 +836,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
                     () => Text(
                       "${burs.baslik} 2025 - 2026 BURS BAŞVURULARI",
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontFamily: "MontserratBold",
                         color: Colors.black,
                       ),
@@ -851,7 +851,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
               : Text(
                   burs.baslik,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontFamily: "MontserratBold",
                     color: Colors.black,
                   ),
