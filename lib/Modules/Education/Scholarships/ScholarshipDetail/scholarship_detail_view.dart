@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
@@ -231,8 +232,14 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                 ),
                               ),
                               8.ph,
-                              Text(
-                                model.aciklama,
+                              Text.rich(
+                                ScholarshipRichText.build(
+                                  model.aciklama,
+                                  baseStyle: TextStyle(
+                                    fontSize: 16,
+                                    fontFamily: "Montserrat",
+                                  ),
+                                ),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontFamily: "Montserrat",
@@ -437,28 +444,21 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                           )),
                               ],
                               appDivider(),
-                              Container(
-                                padding: EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: Colors.black, width: 1)),
-                                child: Row(
-                                  children: [
-                                    GestureDetector(
-                                      onTap: userData['userID']?.toString() !=
-                                              FirebaseAuth
-                                                  .instance.currentUser?.uid
-                                          ? () => Get.to(
-                                                SocialProfile(
-                                                  userID: userData['userID']
-                                                          ?.toString() ??
-                                                      '',
-                                                ),
-                                              )
-                                          : null,
-                                      child: CircleAvatar(
+                              GestureDetector(
+                                onTap: () => _handleProviderCardTap(
+                                  website: model.website,
+                                  userId: userData['userID']?.toString() ?? '',
+                                ),
+                                child: Container(
+                                  padding: EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.black, width: 1)),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
                                         radius: 35,
                                         child: userImage.isNotEmpty
                                             ? ClipOval(
@@ -477,74 +477,53 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                               )
                                             : Icon(Icons.person, size: 36),
                                       ),
-                                    ),
-                                    12.pw,
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
+                                      12.pw,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            GestureDetector(
-                                              onTap: () async {
-                                                String urlString =
-                                                    model.website;
-
-                                                if (urlString.trim().isEmpty) {
-                                                  AppSnackbar(
-                                                    "Uyarı!",
-                                                    "Bu burs için bir başvuru bağlantısı bulunmamaktadır.",
-                                                  );
-                                                  return;
-                                                }
-
-                                                if (!urlString.startsWith(
-                                                        'http://') &&
-                                                    !urlString.startsWith(
-                                                        'https://')) {
-                                                  urlString =
-                                                      'https://$urlString';
-                                                }
-
-                                                final url =
-                                                    Uri.parse(urlString);
-
-                                                if (await canLaunchUrl(url)) {
-                                                  await launchUrl(url);
-                                                } else {
-                                                  AppSnackbar(
-                                                    "Hata!",
-                                                    "Web sitesi açılamadı. Lütfen geçerli bir URL girin.",
-                                                  );
-                                                }
-                                              },
-                                              child: Text(
-                                                userNick,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontFamily: "MontserratBold",
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    _truncateLabel(
+                                                      userNick,
+                                                      maxChars: 34,
+                                                    ),
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontFamily:
+                                                          "MontserratBold",
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                                 ),
-                                              ),
+                                                RozetContent(
+                                                  size: 14,
+                                                  userID: userData['userID']
+                                                          ?.toString() ??
+                                                      '',
+                                                ),
+                                              ],
                                             ),
-                                            RozetContent(
-                                              size: 14,
-                                              userID: userData['userID']
-                                                      ?.toString() ??
-                                                  '',
+                                            Text(
+                                              'Web sitesini ziyaret et',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.black,
+                                                fontFamily: "Montserrat",
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
-                                        Text(
-                                          'Web sitesini ziyaret et',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.black,
-                                            fontFamily: "Montserrat",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                               16.ph,
@@ -1087,13 +1066,77 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   }
 
   Widget _buildDetail(String title, dynamic value) {
+    final baseStyle = TextStyles.rBlack16;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: TextStyles.bold18Black),
         4.ph,
-        value is String ? Text(value, style: TextStyles.rBlack16) : value,
+        value is String
+            ? Text.rich(
+                ScholarshipRichText.build(
+                  value,
+                  baseStyle: baseStyle,
+                ),
+                style: baseStyle,
+              )
+            : value,
       ],
     );
+  }
+
+  Future<void> _handleProviderCardTap({
+    required String website,
+    required String userId,
+  }) async {
+    if (website.trim().isNotEmpty) {
+      await _openWebsite(website);
+      return;
+    }
+    _openProfile(userId);
+  }
+
+  Future<void> _openWebsite(String website) async {
+    String urlString = website.trim();
+    if (urlString.isEmpty) {
+      AppSnackbar(
+        "Uyarı!",
+        "Bu burs için bir başvuru bağlantısı bulunmamaktadır.",
+      );
+      return;
+    }
+
+    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+      urlString = 'https://$urlString';
+    }
+
+    final url = Uri.parse(urlString);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+      return;
+    }
+
+    AppSnackbar(
+      "Hata!",
+      "Web sitesi açılamadı. Lütfen geçerli bir URL girin.",
+    );
+  }
+
+  void _openProfile(String userId) {
+    final trimmedUserId = userId.trim();
+    if (trimmedUserId.isEmpty) {
+      AppSnackbar("Uyarı!", "Bu burs için profil bilgisi bulunmamaktadır.");
+      return;
+    }
+
+    Get.to(SocialProfile(userID: trimmedUserId));
+  }
+
+  String _truncateLabel(String value, {required int maxChars}) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxChars) {
+      return trimmed;
+    }
+    return '${trimmed.substring(0, maxChars).trimRight()}...';
   }
 }

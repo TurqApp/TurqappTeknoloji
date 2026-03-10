@@ -10,6 +10,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
@@ -512,22 +513,33 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
         children: [
           _buildUserAvatar(type, userData, firmaData),
           6.pw,
-          Text(
-            _getUserDisplayName(type, userData, firmaData),
-            style: TextStyle(
-              fontSize: 15,
-              fontFamily: "MontserratBold",
-              color: Colors.black,
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _truncateLabel(
+                      _getUserDisplayName(type, userData, firmaData),
+                      maxChars: 34,
+                    ),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontFamily: "MontserratBold",
+                      color: Colors.black,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
+                if (type == 'bireysel')
+                  RozetContent(
+                    size: 13,
+                    userID: userData?['userID']?.toString() ?? '',
+                  ),
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
           ),
-          if (type == 'bireysel')
-            RozetContent(
-              size: 13,
-              userID: userData?['userID']?.toString() ?? '',
-            ),
         ],
       ),
     );
@@ -589,6 +601,14 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     final last = userData?['lastName']?.toString() ?? '';
     final full = ('$first $last').trim();
     return full.isNotEmpty ? full : 'Kullanıcı';
+  }
+
+  String _truncateLabel(String value, {required int maxChars}) {
+    final trimmed = value.trim();
+    if (trimmed.length <= maxChars) {
+      return trimmed;
+    }
+    return '${trimmed.substring(0, maxChars).trimRight()}...';
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
@@ -914,14 +934,18 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     if (type == 'bireysel') {
       final description = _getDisplayDescription(type, burs);
       final canExpand = description == burs.aciklama && description.isNotEmpty;
+      final baseStyle = TextStyle(
+        fontSize: 13,
+        fontFamily: "Montserrat",
+        color: Colors.black,
+      );
       if (!canExpand) {
-        return Text(
-          description,
-          style: TextStyle(
-            fontSize: 13,
-            fontFamily: "Montserrat",
-            color: Colors.black,
+        return Text.rich(
+          ScholarshipRichText.build(
+            description,
+            baseStyle: baseStyle,
           ),
+          style: baseStyle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         );
@@ -929,13 +953,12 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       return Obx(
         () => GestureDetector(
           onTap: () => controller.toggleExpanded(index),
-          child: Text(
-            description,
-            style: TextStyle(
-              fontSize: 13,
-              fontFamily: "Montserrat",
-              color: Colors.black,
+          child: Text.rich(
+            ScholarshipRichText.build(
+              description,
+              baseStyle: baseStyle,
             ),
+            style: baseStyle,
             maxLines: controller.isExpandedList[index].value ? null : 2,
             overflow: controller.isExpandedList[index].value
                 ? TextOverflow.visible
@@ -944,13 +967,17 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
         ),
       );
     } else {
-      return Text(
-        _getDisplayDescription(type, burs),
-        style: TextStyle(
-          fontSize: 13,
-          fontFamily: "Montserrat",
-          color: Colors.black,
+      final baseStyle = TextStyle(
+        fontSize: 13,
+        fontFamily: "Montserrat",
+        color: Colors.black,
+      );
+      return Text.rich(
+        ScholarshipRichText.build(
+          _getDisplayDescription(type, burs),
+          baseStyle: baseStyle,
         ),
+        style: baseStyle,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
