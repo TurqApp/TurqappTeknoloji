@@ -204,18 +204,6 @@ class DenemeSinavlari extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  "Online Sınav",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: "MontserratBold",
-                  ),
-                ),
-              ),
-              15.ph,
-              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 15),
                 child: GridView.builder(
                   shrinkWrap: true,
