@@ -1374,9 +1374,9 @@ class _ProfileViewState extends State<ProfileView> {
         : Get.put(StoryHighlightsController(userId: uid), tag: tag);
 
     return Obx(() {
-      const linksHeight = 90.0;
-      const linkItemWidth = 70.0;
-      const linkItemSpacing = 18.0;
+      const rowHeight = 90.0;
+      const itemWidth = 70.0;
+      const itemSpacing = 18.0;
       final mixedItems = <Map<String, dynamic>>[];
       for (final model in socialMediaController.list) {
         mixedItems.add({
@@ -1399,52 +1399,21 @@ class _ProfileViewState extends State<ProfileView> {
       return Padding(
         padding: const EdgeInsets.only(top: 2, bottom: 4),
         child: SizedBox(
-          height: linksHeight,
+          height: rowHeight,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 15),
             itemCount: mixedItems.length,
             itemBuilder: (context, index) {
               final item = mixedItems[index];
-              if (item['type'] == 'link') {
-                final model = item['data'] as SocialMediaModel;
-                return Padding(
-                  padding: EdgeInsets.only(right: linkItemSpacing),
-                  child: SizedBox(
-                    width: linkItemWidth,
-                    child: GestureDetector(
-                      onTap: () {
-                        launchUrl(Uri.parse(model.url));
-                      },
-                      onLongPress: () {
-                        controller.showSocialMediaLinkDelete(model.docID);
-                      },
-                      child: SocialMediaContent(model: model),
-                    ),
-                  ),
-                );
-              }
-              final hl = item['data'] as StoryHighlightModel;
               return Padding(
-                padding: EdgeInsets.only(right: linkItemSpacing),
-                child: StoryHighlightCircle(
-                  highlight: hl,
-                  onTap: () => HighlightStoryViewerService.openHighlight(
-                    userId: uid,
-                    highlight: hl,
-                  ),
-                  onLongPress: () {
-                    noYesAlert(
-                      title: "Öne Çıkarılanı Kaldır",
-                      message:
-                          "Bu öne çıkarılanı kaldırmak istediğinizden emin misiniz?",
-                      cancelText: "Vazgeç",
-                      yesText: "Kaldır",
-                      onYesPressed: () {
-                        hlController.deleteHighlight(hl.id);
-                      },
-                    );
-                  },
+                padding: EdgeInsets.only(right: itemSpacing),
+                child: _buildLinkHighlightTile(
+                  context,
+                  item,
+                  uid,
+                  hlController,
+                  itemWidth,
                 ),
               );
             },
@@ -1452,6 +1421,68 @@ class _ProfileViewState extends State<ProfileView> {
         ),
       );
     });
+  }
+
+  Widget _buildLinkHighlightTile(BuildContext context, Map<String, dynamic> item,
+      String uid, StoryHighlightsController hlController, double width) {
+    if (item['type'] == 'link') {
+      final model = item['data'] as SocialMediaModel;
+      return SizedBox(
+        width: width,
+        child: GestureDetector(
+          onTap: () {
+            launchUrl(Uri.parse(model.url));
+          },
+          onLongPress: () {
+            controller.showSocialMediaLinkDelete(model.docID);
+          },
+          child: SocialMediaContent(model: model),
+        ),
+      );
+    }
+
+    final hl = item['data'] as StoryHighlightModel;
+    return SizedBox(
+      width: width,
+      child: StoryHighlightCircle(
+        highlight: hl,
+        onTap: () => HighlightStoryViewerService.openHighlight(
+          userId: uid,
+          highlight: hl,
+        ),
+        onLongPress: () => _showHighlightMenu(context, hlController, hl),
+      ),
+    );
+  }
+
+  Future<void> _showHighlightMenu(BuildContext context,
+      StoryHighlightsController hlController, StoryHighlightModel hl) async {
+    final size = MediaQuery.of(context).size;
+    final anchor = RelativeRect.fromLTRB(
+      size.width - 90,
+      0,
+      10,
+      size.height - 40,
+    );
+    showPullDownMenu(
+      context: context,
+      position: anchor,
+      items: [
+        PullDownMenuItem(
+          title: "Vazgeç",
+          icon: CupertinoIcons.xmark,
+          onTap: () {},
+        ),
+        PullDownMenuItem(
+          title: "Öne çıkarılanı kaldır",
+          icon: CupertinoIcons.trash,
+          isDestructive: true,
+          onTap: () {
+            hlController.deleteHighlight(hl.id);
+          },
+        ),
+      ],
+    );
   }
 
   Widget counters() {
