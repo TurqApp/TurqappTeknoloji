@@ -1023,7 +1023,16 @@ class TutoringDetail extends StatelessWidget {
                       '${user['firstName'] ?? ''} ${user['lastName'] ?? ''}')
                   .toString()
                   .trim();
+              final avatarUrl = (user['avatarUrl'] ?? '').toString().trim();
               final isOwn = currentUserId == review.userID;
+              final shouldHideReviewCard =
+                  name.isEmpty &&
+                  avatarUrl.isEmpty &&
+                  review.comment.trim().isEmpty &&
+                  !isOwn;
+              if (shouldHideReviewCard) {
+                return const SizedBox.shrink();
+              }
               return Container(
                 margin: EdgeInsets.only(bottom: 8),
                 padding: EdgeInsets.all(12),
@@ -1041,7 +1050,7 @@ class TutoringDetail extends StatelessWidget {
                             width: 28,
                             height: 28,
                             child: CachedNetworkImage(
-                              imageUrl: user['avatarUrl'] ?? '',
+                              imageUrl: avatarUrl,
                               fit: BoxFit.cover,
                               errorWidget: (_, __, ___) =>
                                   Icon(Icons.person, size: 16),
