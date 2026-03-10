@@ -60,8 +60,7 @@ class MyPracticeExams extends StatelessWidget {
 
     final query = FirebaseFirestore.instance
         .collection("practiceExams")
-        .where("userID", isEqualTo: uid)
-        .orderBy("timeStamp", descending: true);
+        .where("userID", isEqualTo: uid);
 
     return Scaffold(
       body: SafeArea(
@@ -110,7 +109,8 @@ class MyPracticeExams extends StatelessWidget {
                     );
                   }
 
-                  final exams = docs.map(_fromDoc).toList();
+                  final exams = docs.map(_fromDoc).toList()
+                    ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                     child: GridView.builder(
