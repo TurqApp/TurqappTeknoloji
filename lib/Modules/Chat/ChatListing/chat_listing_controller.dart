@@ -1,9 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'dart:async';
-import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../Models/chat_listing_model.dart';
@@ -23,6 +24,7 @@ class ChatListingController extends GetxController {
   Timer? _realtimeRefreshDebounce;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _conversationsSub;
   bool _isRefreshing = false;
+  bool _cacheLoaded = false;
 
   NetworkAwarenessService? get _network =>
       Get.isRegistered<NetworkAwarenessService>()
@@ -42,9 +44,57 @@ class ChatListingController extends GetxController {
   void onInit() {
     super.onInit();
     search.addListener(_onSearchChanged);
+    _restoreCachedList();
     // Initial load is cache-first; realtime listener will hydrate fresh data.
     getList(forceServer: false);
     startConversationListener();
+  }
+
+  String get _cacheKey {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return uid == null ? '' : 'chat_listing_cache_$uid';
+  }
+
+  Future<void> _restoreCachedList() async {
+    if (_cacheLoaded) return;
+    final cached = await _loadCachedList();
+    if (cached == null || cached.isEmpty) return;
+    list.value = cached;
+    if (search.text.trim().isEmpty) {
+      _applyTabFilter();
+    } else {
+      _onSearchChanged();
+    }
+    _cacheLoaded = true;
+  }
+
+  Future<List<ChatListingModel>?> _loadCachedList() async {
+    final key = _cacheKey;
+    if (key.isEmpty) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return null;
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(ChatListingModel.fromJson)
+          .toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveCachedList(List<ChatListingModel> items) async {
+    if (items.isEmpty) return;
+    final key = _cacheKey;
+    if (key.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final payload = jsonEncode(items.map((e) => e.toJson()).toList());
+      await prefs.setString(key, payload);
+    } catch (_) {}
   }
 
   void _onSearchChanged() {
@@ -194,6 +244,7 @@ class ChatListingController extends GetxController {
       _isRefreshing = false;
       if (!silent) waiting.value = false;
     }
+    _saveCachedList(list.toList());
   }
 
   Future<Map<String, bool>> _fetchArchiveOverrides({
@@ -434,6 +485,7 @@ class ChatListingController extends GetxController {
     } else {
       _onSearchChanged();
     }
+    _saveCachedList(list.toList());
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
