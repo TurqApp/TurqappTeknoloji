@@ -501,7 +501,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       child: Row(
         children: [
           _buildUserAvatar(type, userData, firmaData),
-          8.pw,
+          6.pw,
           Text(
             _getUserDisplayName(type, userData, firmaData),
             style: TextStyle(
@@ -515,7 +515,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           ),
           if (type == 'bireysel')
             RozetContent(
-              size: 16,
+              size: 13,
               userID: userData?['userID']?.toString() ?? '',
             ),
         ],
@@ -531,19 +531,19 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             '')
         .toString();
     return CircleAvatar(
-      radius: 15,
+      radius: 20,
       child: imageUrl.isNotEmpty
           ? ClipOval(
               child: CachedNetworkImage(
                 imageUrl: imageUrl,
                 placeholder: (context, url) => CupertinoActivityIndicator(),
                 errorWidget: (context, url, error) => Icon(Icons.error),
-                width: 30,
-                height: 30,
+                width: 40,
+                height: 40,
                 fit: BoxFit.cover,
               ),
             )
-          : Icon(Icons.person, size: 20),
+          : Icon(Icons.person, size: 24),
     );
   }
 
@@ -920,7 +920,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           ),
         ),
         RozetContent(
-          size: 16,
+          size: 13,
           userID: userData?['userID']?.toString() ?? '',
         ),
       ],
