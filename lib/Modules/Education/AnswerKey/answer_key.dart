@@ -75,7 +75,7 @@ class AnswerKey extends StatelessWidget {
                                   crossAxisCount: 2,
                                   crossAxisSpacing: 4,
                                   mainAxisSpacing: 4,
-                                  childAspectRatio: 0.45,
+                                  childAspectRatio: 0.49,
                                 ),
                                 itemCount: controller.bookList.length,
                                 itemBuilder: (context, index) {

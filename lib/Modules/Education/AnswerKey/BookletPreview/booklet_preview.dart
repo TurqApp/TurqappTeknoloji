@@ -3,10 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview_controller.dart';
+import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -47,18 +50,52 @@ class BookletPreview extends StatelessWidget {
     BookletPreviewController controller,
   ) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        BackButtons(text: controller.model.yayinEvi),
-        IconButton(
-          onPressed: controller.toggleBookmark,
-          icon: Icon(
-            controller.isBookmarked.value ? AppIcons.save : AppIcons.saved,
-            color: controller.isBookmarked.value ? Colors.black : Colors.orange,
-            size: 20,
-          ),
+        Expanded(child: BackButtons(text: controller.model.yayinEvi)),
+        EducationActionIconButton(
+          onTap: controller.toggleBookmark,
+          icon: controller.isBookmarked.value
+              ? CupertinoIcons.bookmark_fill
+              : CupertinoIcons.bookmark,
+          size: 30,
+          iconSize: 18,
+          iconColor:
+              controller.isBookmarked.value ? Colors.orange : Colors.black87,
+        ),
+        6.pw,
+        pullDownMenu(controller),
+        10.pw,
+      ],
+    );
+  }
+
+  Widget pullDownMenu(BookletPreviewController controller) {
+    return PullDownButton(
+      itemBuilder: (context) => [
+        PullDownMenuItem(
+          onTap: () {
+            Get.to(
+              () => ReportUser(
+                userID: controller.model.userID,
+                postID: controller.model.docID,
+                commentID: "",
+              ),
+            );
+          },
+          title: 'Kitabı Bildir',
+          icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],
+      buttonBuilder: (context, showMenu) => CupertinoButton(
+        onPressed: showMenu,
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        child: Icon(
+          AppIcons.ellipsisVertical,
+          color: Colors.black,
+          size: 20,
+        ),
+      ),
     );
   }
 

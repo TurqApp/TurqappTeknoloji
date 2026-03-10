@@ -46,7 +46,7 @@ class SavedOpticalForms extends StatelessWidget {
                                       crossAxisCount: 2,
                                       crossAxisSpacing: 5.0,
                                       mainAxisSpacing: 5.0,
-                                      childAspectRatio: 2.4 / 5.4,
+                                      childAspectRatio: 0.49,
                                     ),
                                     itemCount: controller.list.length,
                                     itemBuilder: (context, index) {
