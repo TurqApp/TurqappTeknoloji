@@ -32,21 +32,7 @@ class SearchAnswerKeyController extends GetxController {
           await FirebaseFirestore.instance.collection("books").get();
       final newList = <BookletModel>[];
       for (var doc in snapshots.docs) {
-        newList.add(
-          BookletModel(
-            dil: doc.get("dil") ?? '',
-            sinavTuru: doc.get("sinavTuru") ?? '',
-            cover: doc.get("cover") ?? '',
-            baslik: doc.get("baslik") ?? '',
-            timeStamp: doc.get("timeStamp") ?? 0,
-            kaydet: List<String>.from(doc.get("kaydet") ?? []),
-            basimTarihi: doc.get("basimTarihi") ?? '',
-            yayinEvi: doc.get("yayinEvi") ?? '',
-            docID: doc.id,
-            userID: doc.get("userID") ?? '',
-            goruntuleme: List<String>.from(doc.get("goruntuleme") ?? []),
-          ),
-        );
+        newList.add(BookletModel.fromMap(doc.data(), doc.id));
       }
       list.assignAll(newList);
       filteredList.assignAll(newList);

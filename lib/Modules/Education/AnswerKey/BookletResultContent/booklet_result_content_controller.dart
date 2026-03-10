@@ -17,18 +17,6 @@ class BookletResultContentController extends GetxController {
         .doc(model.kitapcikID)
         .get();
 
-    anaModel.value = BookletModel(
-      dil: doc.get("dil"),
-      sinavTuru: doc.get("sinavTuru"),
-      cover: doc.get("cover"),
-      baslik: doc.get("baslik"),
-      timeStamp: doc.get("timeStamp"),
-      docID: doc.id,
-      kaydet: List.from(doc.get("kaydet")),
-      basimTarihi: doc.get("basimTarihi"),
-      yayinEvi: doc.get("yayinEvi"),
-      userID: doc.get("userID"),
-      goruntuleme: List.from(doc.get("goruntuleme")),
-    );
+    anaModel.value = BookletModel.fromMap(doc.data() ?? {}, doc.id);
   }
 }

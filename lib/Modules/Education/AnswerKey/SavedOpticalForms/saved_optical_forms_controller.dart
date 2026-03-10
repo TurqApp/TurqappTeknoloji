@@ -26,22 +26,7 @@ class SavedOpticalFormsController extends GetxController {
           .get();
 
       for (var doc in snapshots.docs) {
-        final data = doc.data();
-        list.add(
-          BookletModel(
-            dil: (data["dil"] ?? '') as String,
-            sinavTuru: (data["sinavTuru"] ?? '') as String,
-            cover: (data["cover"] ?? '') as String,
-            baslik: (data["baslik"] ?? '') as String,
-            timeStamp: (data["timeStamp"] ?? 0) as num,
-            kaydet: List<String>.from(data["kaydet"] ?? []),
-            basimTarihi: (data["basimTarihi"] ?? '') as String,
-            yayinEvi: (data["yayinEvi"] ?? '') as String,
-            docID: doc.id,
-            userID: (data["userID"] ?? '') as String,
-            goruntuleme: List<String>.from(data["goruntuleme"] ?? []),
-          ),
-        );
+        list.add(BookletModel.fromMap(doc.data(), doc.id));
       }
     } catch (e) {
       log("SavedOpticalFormsController.getData error: $e");

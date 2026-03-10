@@ -35,32 +35,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
           .get();
 
       for (var doc in snapshots.docs) {
-        final basimTarihi = doc.get("basimTarihi") as String;
-        final baslik = doc.get("baslik") as String;
-        final cover = doc.get("cover") as String;
-        final dil = doc.get("dil") as String;
-        final kaydet = List<String>.from(doc.get("kaydet"));
-        final goruntuleme = List<String>.from(doc.get("goruntuleme"));
-        final sinavTuru = doc.get("sinavTuru") as String;
-        final timeStamp = doc.get("timeStamp") as num;
-        final yayinEvi = doc.get("yayinEvi") as String;
-        final userID = doc.get("userID") as String;
-
-        final booklet = BookletModel(
-          dil: dil,
-          sinavTuru: sinavTuru,
-          cover: cover,
-          baslik: baslik,
-          timeStamp: timeStamp,
-          kaydet: kaydet,
-          basimTarihi: basimTarihi,
-          yayinEvi: yayinEvi,
-          docID: doc.id,
-          userID: userID,
-          goruntuleme: goruntuleme,
-        );
-
-        list.add(booklet);
+        list.add(BookletModel.fromMap(doc.data(), doc.id));
       }
       filteredList.assignAll(list);
     } catch (e) {

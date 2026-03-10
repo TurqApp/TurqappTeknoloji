@@ -95,25 +95,7 @@ class AnswerKeyController extends GetxController {
 
   BookletModel _fromDoc(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return BookletModel(
-      dil: (data["dil"] ?? '').toString(),
-      sinavTuru: (data["sinavTuru"] ?? '').toString(),
-      cover: (data["cover"] ?? '').toString(),
-      baslik: (data["baslik"] ?? '').toString(),
-      timeStamp: data["timeStamp"] is num
-          ? data["timeStamp"] as num
-          : num.tryParse((data["timeStamp"] ?? "0").toString()) ?? 0,
-      kaydet: (data["kaydet"] is List)
-          ? (data["kaydet"] as List).map((e) => e.toString()).toList()
-          : <String>[],
-      basimTarihi: (data["basimTarihi"] ?? '').toString(),
-      yayinEvi: (data["yayinEvi"] ?? '').toString(),
-      docID: doc.id,
-      userID: (data["userID"] ?? '').toString(),
-      goruntuleme: (data["goruntuleme"] is List)
-          ? (data["goruntuleme"] as List).map((e) => e.toString()).toList()
-          : <String>[],
-    );
+    return BookletModel.fromMap(data, doc.id);
   }
 
   Future<void> refreshData() async {

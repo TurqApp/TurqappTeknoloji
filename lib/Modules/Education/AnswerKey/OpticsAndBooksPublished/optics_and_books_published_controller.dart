@@ -44,21 +44,7 @@ class OpticsAndBooksPublishedController extends GetxController {
 
     final tempList = <BookletModel>[];
     for (var doc in snapshots.docs) {
-      tempList.add(
-        BookletModel(
-          dil: doc.get("dil"),
-          sinavTuru: doc.get("sinavTuru"),
-          cover: doc.get("cover"),
-          baslik: doc.get("baslik"),
-          timeStamp: doc.get("timeStamp"),
-          kaydet: List.from(doc.get("kaydet")),
-          basimTarihi: doc.get("basimTarihi"),
-          yayinEvi: doc.get("yayinEvi"),
-          docID: doc.id,
-          userID: doc.get("userID"),
-          goruntuleme: List.from(doc.get("goruntuleme")),
-        ),
-      );
+      tempList.add(BookletModel.fromMap(doc.data(), doc.id));
     }
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     list.assignAll(tempList);

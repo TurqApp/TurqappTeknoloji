@@ -188,7 +188,7 @@ class AnswerKeyContent extends StatelessWidget {
                 ),
               ),
               Text(
-                NumberFormatter.format(controller.model.goruntuleme.length),
+                NumberFormatter.format(controller.model.viewCount),
                 style: TextStyle(color: Colors.black, fontSize: 13),
               ),
               SizedBox(width: 3),

@@ -134,7 +134,7 @@ class CreateBookController extends GetxController {
           existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,
       "yayinEvi": yayinEviController.text,
       "userID": existingBook?.userID ?? FirebaseAuth.instance.currentUser!.uid,
-      "goruntuleme": existingBook?.goruntuleme ?? [],
+      "viewCount": existingBook?.viewCount ?? 0,
     });
     SetOptions(merge: true);
 

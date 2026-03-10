@@ -73,8 +73,14 @@ class AnswerKeyContentController extends GetxController {
   void _updateViewCount(String? currentUserId) {
     if (currentUserId != null && model.userID != currentUserId) {
       FirebaseFirestore.instance.collection("books").doc(model.docID).update({
-        "goruntuleme": FieldValue.arrayUnion([currentUserId]),
-      }).catchError((e) => log("Görüntüleme güncelleme hatası: $e"));
+        "viewCount": FieldValue.increment(1),
+      }).then((_) {
+        model.viewCount += 1;
+        return null;
+      }).catchError((e) {
+        log("Görüntüleme güncelleme hatası: $e");
+        return null;
+      });
     }
   }
 
