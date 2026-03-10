@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Models/job_review_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../JobCreator/job_creator.dart';
 import '../ApplicationReview/application_review.dart';
@@ -24,6 +25,8 @@ class JobDetailsController extends GetxController {
   final avatarUrl = kDefaultAvatarUrl.obs;
   final fullname = ''.obs;
   final RxList<JobModel> list = <JobModel>[].obs;
+  final reviews = <JobReviewModel>[].obs;
+  final reviewUsers = <String, Map<String, dynamic>>{}.obs;
 
   JobDetailsController({required JobModel model}) : model = model.obs;
 
@@ -39,6 +42,7 @@ class JobDetailsController extends GetxController {
     await checkSaved(model.value.docID);
     await checkBasvuru(model.value.docID);
     await getSimilar(model.value.meslek);
+    await fetchReviews(model.value.docID);
     _incrementViewCount();
   }
 
@@ -195,6 +199,99 @@ class JobDetailsController extends GetxController {
       list.assignAll(jobs);
     } catch (e) {
       print('getSimilar hatası: $e');
+    }
+  }
+
+  Future<void> fetchReviews(String docID) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(docID)
+          .collection('Reviews')
+          .orderBy('timeStamp', descending: true)
+          .get();
+
+      final items =
+          snapshot.docs.map((d) => JobReviewModel.fromMap(d.data(), d.id));
+      reviews.assignAll(items.toList());
+      await _fetchReviewUsers(reviews.map((e) => e.userID));
+    } catch (e) {
+      print('fetchReviews hatası: $e');
+      reviews.clear();
+    }
+  }
+
+  Future<void> _fetchReviewUsers(Iterable<String> userIDs) async {
+    final uniqueIds = userIDs.where((e) => e.trim().isNotEmpty).toSet();
+    for (final userID in uniqueIds) {
+      if (reviewUsers.containsKey(userID)) continue;
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userID)
+            .get();
+        if (!snap.exists || snap.data() == null) continue;
+        final data = snap.data()!;
+        final profile = (data['profile'] is Map<String, dynamic>)
+            ? data['profile'] as Map<String, dynamic>
+            : const <String, dynamic>{};
+        reviewUsers[userID] = {
+          ...data,
+          'avatarUrl': resolveAvatarUrl(data, profile: profile),
+        };
+      } catch (_) {}
+    }
+  }
+
+  Future<void> submitReview({
+    required int rating,
+    required String comment,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      AppSnackbar('Hata', 'Değerlendirme için tekrar giriş yapın.');
+      return;
+    }
+    if (uid == model.value.userID) {
+      AppSnackbar('Bilgi', 'Kendi ilanınızı değerlendiremezsiniz.');
+      return;
+    }
+
+    final reviewRef = FirebaseFirestore.instance
+        .collection(JobCollection.name)
+        .doc(model.value.docID)
+        .collection('Reviews')
+        .doc(uid);
+
+    try {
+      await reviewRef.set({
+        'userID': uid,
+        'jobDocID': model.value.docID,
+        'rating': rating.clamp(1, 5),
+        'comment': comment.trim(),
+        'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      });
+      await fetchReviews(model.value.docID);
+      AppSnackbar('Başarılı', 'Değerlendirmeniz kaydedildi.');
+    } catch (e) {
+      print('submitReview hatası: $e');
+      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi.');
+    }
+  }
+
+  Future<void> deleteReview(String reviewID) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(model.value.docID)
+          .collection('Reviews')
+          .doc(reviewID)
+          .delete();
+      await fetchReviews(model.value.docID);
+      AppSnackbar('Bilgi', 'Değerlendirmeniz kaldırıldı.');
+    } catch (e) {
+      print('deleteReview hatası: $e');
+      AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
     }
   }
 

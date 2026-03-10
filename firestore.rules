@@ -1008,7 +1008,7 @@ service cloud.firestore {
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['viewCount', 'applicationCount'])
+           .hasOnly(['viewCount', 'applicationCount', 'averageRating', 'reviewCount'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
@@ -1020,6 +1020,11 @@ service cloud.firestore {
           || get(/databases/$(database)/documents/isBul/$(docId)).data.userID == request.auth.uid
         );
         allow delete: if isOwner(applicantId);
+      }
+
+      match /Reviews/{reviewerId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isOwner(reviewerId);
       }
     }
     match /SavedIsBul/{docId} {
