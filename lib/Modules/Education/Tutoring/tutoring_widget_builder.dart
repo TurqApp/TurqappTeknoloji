@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
+import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -26,8 +27,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
   final Map<String, Map<String, dynamic>> users;
   final bool isGridView;
   final Widget? infoMessage;
-  final EducationFeedPostShareService shareService =
-      const EducationFeedPostShareService();
 
   const TutoringWidgetBuilder({
     super.key,
@@ -36,6 +35,39 @@ class TutoringWidgetBuilder extends StatelessWidget {
     required this.isGridView,
     this.infoMessage,
   });
+
+  Future<void> _shareExternally(TutoringModel tutoring) async {
+    final shareId = 'tutoring:${tutoring.docID}';
+    final shortTail = tutoring.docID.length >= 8
+        ? tutoring.docID.substring(0, 8)
+        : tutoring.docID;
+    final fallbackId = 'tutoring-$shortTail';
+    final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
+
+    String shortUrl = fallbackUrl;
+    try {
+      shortUrl = await ShortLinkService().getEducationPublicUrl(
+        shareId: shareId,
+        title: tutoring.baslik,
+        desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Ozel ders ilani',
+        imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
+            ? tutoring.imgs!.first
+            : null,
+      );
+    } catch (_) {
+      shortUrl = fallbackUrl;
+    }
+
+    if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
+      shortUrl = fallbackUrl;
+    }
+
+    await ShareLinkService.shareUrl(
+      url: shortUrl,
+      title: tutoring.baslik,
+      subject: tutoring.baslik,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,8 +162,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: EducationShareIconButton(
-                                    onTap: () =>
-                                        shareService.shareTutoring(tutoring),
+                                    onTap: () => _shareExternally(tutoring),
                                   ),
                                 ),
                                 Obx(() {
@@ -303,10 +334,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.only(right: 8),
-                                      child: EducationFeedShareIconButton(
-                                        onTap: () => shareService.shareTutoring(
-                                          tutoring,
-                                        ),
+                                      child: EducationShareIconButton(
+                                        onTap: () => _shareExternally(tutoring),
                                       ),
                                     ),
                                     Obx(() {
