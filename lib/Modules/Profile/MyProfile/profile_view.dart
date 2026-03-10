@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/empty_row.dart';
@@ -1458,11 +1459,11 @@ class _ProfileViewState extends State<ProfileView> {
   Future<void> _showHighlightMenu(BuildContext context,
       StoryHighlightsController hlController, StoryHighlightModel hl) async {
     final size = MediaQuery.of(context).size;
-    final anchor = RelativeRect.fromLTRB(
+    final anchor = Rect.fromLTWH(
       size.width - 90,
       0,
-      10,
-      size.height - 40,
+      80,
+      40,
     );
     showPullDownMenu(
       context: context,
