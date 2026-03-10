@@ -159,10 +159,11 @@ class AnswerKeyContent extends StatelessWidget {
             MainAxisSize.min, // Solution 3: Use minimum space in content column
         children: [
           SizedBox(
-            height: 40,
+            height: 20,
             child: Text(
               controller.model.baslik,
-              maxLines: 2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 15,
@@ -177,6 +178,8 @@ class AnswerKeyContent extends StatelessWidget {
               Expanded(
                 child: Text(
                   controller.model.sinavTuru,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.indigo,
                     fontSize: 13,
@@ -211,6 +214,8 @@ class AnswerKeyContent extends StatelessWidget {
           SizedBox(height: 3),
           Text(
             controller.model.yayinEvi,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.grey,
               fontSize: 13,
