@@ -4,6 +4,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
@@ -21,6 +22,7 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringApplicationReview/tutoring_application_review.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringReview/tutoring_review.dart';
+import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -131,6 +133,7 @@ class TutoringDetail extends StatelessWidget {
                       size: 30,
                       iconSize: 18,
                     ),
+                    6.pw,
                     Obx(() {
                       final isSaved = savedController.savedTutoringIds.contains(
                         controller.tutoring.value.docID,
@@ -158,12 +161,16 @@ class TutoringDetail extends StatelessWidget {
                             log("User ID not found");
                           }
                         },
-                        icon: isSaved ? AppIcons.saved : AppIcons.save,
+                        icon: isSaved
+                            ? CupertinoIcons.bookmark_fill
+                            : CupertinoIcons.bookmark,
                         size: 30,
                         iconSize: 18,
                         iconColor: isSaved ? Colors.orange : Colors.black87,
                       );
                     }),
+                    6.pw,
+                    pullDownMenu(controller),
                     10.pw,
                   ],
                 ),
@@ -904,6 +911,14 @@ class TutoringDetail extends StatelessWidget {
     return Obx(() {
       final canReview = currentUserId != null &&
           currentUserId != controller.tutoring.value.userID;
+      final totalReviews = controller.reviews.length;
+      final ratingCounts = <int, int>{
+        for (var star = 1; star <= 5; star++) star: 0,
+      };
+      for (final review in controller.reviews) {
+        final rating = review.rating.clamp(1, 5);
+        ratingCounts[rating] = (ratingCounts[rating] ?? 0) + 1;
+      }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -944,7 +959,62 @@ class TutoringDetail extends StatelessWidget {
               "Henüz değerlendirme yok.",
               style: TextStyles.tutoringLocation,
             )
-          else
+          else ...[
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: List.generate(5, (index) {
+                  final star = 5 - index;
+                  final count = ratingCounts[star] ?? 0;
+                  final percent =
+                      totalReviews == 0 ? 0.0 : count / totalReviews;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: index == 4 ? 0 : 8),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          child: Text(
+                            "$star",
+                            style: TextStyles.bold15Black,
+                          ),
+                        ),
+                        4.pw,
+                        Icon(Icons.star, size: 14, color: Colors.amber),
+                        8.pw,
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: percent,
+                              minHeight: 8,
+                              backgroundColor: Colors.grey.shade300,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.amber,
+                              ),
+                            ),
+                          ),
+                        ),
+                        8.pw,
+                        SizedBox(
+                          width: 42,
+                          child: Text(
+                            "%${(percent * 100).round()}",
+                            textAlign: TextAlign.right,
+                            style: TextStyles.tutoringLocation,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+            8.ph,
             ...controller.reviews.map((review) {
               final user = controller.reviewUsers[review.userID] ?? {};
               final name = (user['nickname'] ??
@@ -1026,6 +1096,7 @@ class TutoringDetail extends StatelessWidget {
                 ),
               );
             }),
+          ],
         ],
       );
     });
@@ -1159,5 +1230,34 @@ class TutoringDetail extends StatelessWidget {
         ],
       );
     });
+  }
+
+  Widget pullDownMenu(TutoringDetailController controller) {
+    return PullDownButton(
+      itemBuilder: (context) => [
+        PullDownMenuItem(
+          onTap: () {
+            Get.to(
+              () => ReportUser(
+                userID: controller.tutoring.value.userID,
+                postID: controller.tutoring.value.docID,
+                commentID: "",
+              ),
+            );
+          },
+          title: 'İlanı Bildir',
+          icon: CupertinoIcons.exclamationmark_circle,
+        ),
+      ],
+      buttonBuilder: (context, showMenu) => CupertinoButton(
+        onPressed: showMenu,
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        child: Icon(
+          AppIcons.ellipsisVertical,
+          color: Colors.black,
+        ),
+      ),
+    );
   }
 }
