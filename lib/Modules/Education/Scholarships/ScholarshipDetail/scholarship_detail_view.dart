@@ -487,7 +487,8 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                           children: [
                                             GestureDetector(
                                               onTap: () async {
-                                                String urlString = model.website;
+                                                String urlString =
+                                                    model.website;
 
                                                 if (urlString.trim().isEmpty) {
                                                   AppSnackbar(
@@ -497,11 +498,12 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                   return;
                                                 }
 
-                                                if (!urlString
-                                                        .startsWith('http://') &&
+                                                if (!urlString.startsWith(
+                                                        'http://') &&
                                                     !urlString.startsWith(
                                                         'https://')) {
-                                                  urlString = 'https://$urlString';
+                                                  urlString =
+                                                      'https://$urlString';
                                                 }
 
                                                 final url =
