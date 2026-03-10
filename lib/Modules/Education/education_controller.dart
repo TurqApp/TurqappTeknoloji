@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,6 +10,16 @@ import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 
 class EducationController extends GetxController {
+  static const List<String> allTitles = [
+    "Burslar",
+    "Soru Bankası",
+    "Denemeler",
+    "Online Sınav",
+    "Cevap Anahtarı",
+    "Özel Ders",
+    "İş Bul",
+  ];
+
   final searchController = TextEditingController();
   final searchFocus = FocusNode();
   final isSearchMode = false.obs;
@@ -16,18 +29,12 @@ class EducationController extends GetxController {
   final selectedTab = 0.obs;
   final pageController = PageController();
   final tabScrollController = ScrollController();
-  int _previousTabIndex = 0;
+  final visibleTabIndexes = List<int>.generate(allTitles.length, (i) => i).obs;
+  final pasajConfigLoaded = false.obs;
   DateTime _lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _pasajConfigSub;
 
-  final titles = [
-    "Burslar",
-    "Soru Bankası",
-    "Denemeler",
-    "Online Sınav",
-    "Cevap Anahtarı",
-    "Özel Ders",
-    "İş Bul",
-  ];
+  List<String> get titles => allTitles;
 
   @override
   void onInit() {
@@ -44,10 +51,12 @@ class EducationController extends GetxController {
 
     // Arama metnini aktif sekmeye yönlendir
     ever(searchText, (_) => _forwardSearch());
+    _bindPasajConfig();
   }
 
   @override
   void onClose() {
+    _pasajConfigSub?.cancel();
     if (Get.isRegistered<NavBarController>()) {
       Get.find<NavBarController>().showBar.value = true;
     }
@@ -58,26 +67,72 @@ class EducationController extends GetxController {
     super.onClose();
   }
 
-  void _syncTabBarPosition(int index, {required bool isForward}) {
-    if (!tabScrollController.hasClients) return;
-    // Sadece 2 hareket:
-    // 1) Sağa kaydırıp 5. sekmeye gelince (index 4) şeridi bir kez kaydır.
-    // 2) Sola kaydırıp 4. sekmeye gelince (index 3) şeridi başa al.
+  void _bindPasajConfig() {
+    _pasajConfigSub = FirebaseFirestore.instance
+        .collection('adminConfig')
+        .doc('pasaj')
+        .snapshots()
+        .listen(
+      (snap) {
+        final data = snap.data() ?? const <String, dynamic>{};
+        final nextVisible = <int>[];
 
-    if (!isForward && index == 3) {
-      tabScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-      );
-      return;
+        for (var i = 0; i < titles.length; i++) {
+          final raw = data[titles[i]];
+          final isVisible = raw is bool ? raw : true;
+          if (isVisible) nextVisible.add(i);
+        }
+
+        visibleTabIndexes.assignAll(nextVisible);
+        pasajConfigLoaded.value = true;
+
+        if (nextVisible.isEmpty) return;
+
+        if (!nextVisible.contains(selectedTab.value)) {
+          final firstActual = nextVisible.first;
+          selectedTab.value = firstActual;
+          final visibleIndex = 0;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (pageController.hasClients) {
+              pageController.jumpToPage(visibleIndex);
+            }
+          });
+          _restoreSearchForTab(firstActual);
+        } else {
+          final visibleIndex = visibleIndexForActual(selectedTab.value);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (pageController.hasClients &&
+                pageController.page?.round() != visibleIndex) {
+              pageController.jumpToPage(visibleIndex);
+            }
+          });
+        }
+      },
+      onError: (_) {
+        visibleTabIndexes.assignAll(List<int>.generate(titles.length, (i) => i));
+        pasajConfigLoaded.value = true;
+      },
+    );
+  }
+
+  int actualIndexForVisible(int visibleIndex) {
+    if (visibleIndex < 0 || visibleIndex >= visibleTabIndexes.length) {
+      return 0;
     }
+    return visibleTabIndexes[visibleIndex];
+  }
 
-    if (!(isForward && index == 4)) return;
+  int visibleIndexForActual(int actualIndex) {
+    final visibleIndex = visibleTabIndexes.indexOf(actualIndex);
+    return visibleIndex >= 0 ? visibleIndex : 0;
+  }
 
+  bool get hasVisibleTabs => visibleTabIndexes.isNotEmpty;
+
+  void _syncTabBarPosition(int visibleIndex) {
+    if (!tabScrollController.hasClients) return;
     const tabStep = 120.0;
-    const firstShift = tabStep * 4; // 5. sekme sol başa yaklaşsın
-    final target = firstShift;
+    final target = visibleIndex <= 3 ? 0.0 : tabStep * (visibleIndex - 2);
     final max = tabScrollController.position.maxScrollExtent;
     final clamped = target.clamp(0.0, max);
     tabScrollController.animateTo(
@@ -133,27 +188,30 @@ class EducationController extends GetxController {
     return false;
   }
 
-  void onTabTap(int index) {
-    final isForward = index > _previousTabIndex;
-    _previousTabIndex = index;
-    selectedTab.value = index;
-    pageController.jumpToPage(index);
-    _syncTabBarPosition(index, isForward: isForward);
-    _restoreSearchForTab(index);
+  void onTabTap(int visibleIndex) {
+    final actualIndex = actualIndexForVisible(visibleIndex);
+    selectedTab.value = actualIndex;
+    pageController.jumpToPage(visibleIndex);
+    _syncTabBarPosition(visibleIndex);
+    _restoreSearchForTab(actualIndex);
   }
 
-  void onPageChanged(int index) {
-    final isForward = index > _previousTabIndex;
-    _previousTabIndex = index;
-    selectedTab.value = index;
-    _syncTabBarPosition(index, isForward: isForward);
-    _restoreSearchForTab(index);
+  void onPageChanged(int visibleIndex) {
+    final actualIndex = actualIndexForVisible(visibleIndex);
+    selectedTab.value = actualIndex;
+    _syncTabBarPosition(visibleIndex);
+    _restoreSearchForTab(actualIndex);
   }
 
-  bool get canExitToFeed => selectedTab.value == 0;
+  bool get canExitToFeed =>
+      hasVisibleTabs && selectedTab.value == visibleTabIndexes.first;
 
   void handleBackFromEducation() {
-    if (selectedTab.value == 0) {
+    if (!hasVisibleTabs) {
+      Get.back();
+      return;
+    }
+    if (selectedTab.value == visibleTabIndexes.first) {
       Get.back();
       return;
     }

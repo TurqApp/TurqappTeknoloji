@@ -456,6 +456,10 @@ class EducationView extends StatelessWidget {
 
                 // ——— Yatay Kaydırılabilir Tab ———
                 Obx(() {
+                  if (!controller.hasVisibleTabs &&
+                      controller.pasajConfigLoaded.value) {
+                    return const SizedBox(height: 45);
+                  }
                   return SizedBox(
                     height: 45,
                     child: SingleChildScrollView(
@@ -463,12 +467,14 @@ class EducationView extends StatelessWidget {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 15),
                       child: Row(
-                        children:
-                            List.generate(controller.titles.length, (index) {
+                        children: List.generate(
+                            controller.visibleTabIndexes.length, (visibleIndex) {
+                          final actualIndex =
+                              controller.actualIndexForVisible(visibleIndex);
                           final isSelected =
-                              controller.selectedTab.value == index;
+                              controller.selectedTab.value == actualIndex;
                           return GestureDetector(
-                            onTap: () => controller.onTabTap(index),
+                            onTap: () => controller.onTabTap(visibleIndex),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 14, vertical: 8),
@@ -484,7 +490,7 @@ class EducationView extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                controller.titles[index],
+                                controller.titles[actualIndex],
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontSize: 14,
@@ -505,69 +511,90 @@ class EducationView extends StatelessWidget {
 
                 // ——— PageView ile Gömülü Modül ———
                 Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification is UserScrollNotification &&
-                          notification.metrics.axis == Axis.vertical) {
-                        controller.onVerticalScrollDirection(
-                          notification.direction,
-                        );
-                      }
-                      return controller.handleEducationBoundarySwipe(
-                        notification,
+                  child: Obx(() {
+                    if (!controller.hasVisibleTabs &&
+                        controller.pasajConfigLoaded.value) {
+                      return const Center(
+                        child: Text(
+                          "Pasaj şu anda kapalı",
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 16,
+                            fontFamily: "MontserratMedium",
+                          ),
+                        ),
                       );
-                    },
-                    child: PageView.builder(
-                      controller: controller.pageController,
-                      onPageChanged: controller.onPageChanged,
-                      itemCount: controller.titles.length,
-                      itemBuilder: (context, index) {
-                        switch (index) {
-                          case 0:
-                            return ScholarshipsView(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 1:
-                            return AntremanView2(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 2:
-                            return CikmisSorular(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 3:
-                            return DenemeSinavlari(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 4:
-                            return AnswerKey(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 5:
-                            return TutoringView(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          case 6:
-                            return JobFinder(
-                              embedded: true,
-                              showEmbeddedControls: false,
-                            );
-                          default:
-                            return const SizedBox.shrink();
+                    }
+
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is UserScrollNotification &&
+                            notification.metrics.axis == Axis.vertical) {
+                          controller.onVerticalScrollDirection(
+                            notification.direction,
+                          );
                         }
+                        return controller.handleEducationBoundarySwipe(
+                          notification,
+                        );
                       },
-                    ),
-                  ),
+                      child: PageView.builder(
+                        controller: controller.pageController,
+                        onPageChanged: controller.onPageChanged,
+                        itemCount: controller.visibleTabIndexes.length,
+                        itemBuilder: (context, visibleIndex) {
+                          final actualIndex =
+                              controller.actualIndexForVisible(visibleIndex);
+                          switch (actualIndex) {
+                            case 0:
+                              return ScholarshipsView(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 1:
+                              return AntremanView2(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 2:
+                              return CikmisSorular(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 3:
+                              return DenemeSinavlari(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 4:
+                              return AnswerKey(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 5:
+                              return TutoringView(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            case 6:
+                              return JobFinder(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
+                            default:
+                              return const SizedBox.shrink();
+                          }
+                        },
+                      ),
+                    );
+                  }),
                 ),
               ],
             ),
             Obx(() {
+              if (!controller.hasVisibleTabs) {
+                return const SizedBox.shrink();
+              }
               final scrollController = _activeScrollController();
               final showMenu = _showMenuByScrollOffset();
               final menuItems = _menuItemsForActiveTab(context);
