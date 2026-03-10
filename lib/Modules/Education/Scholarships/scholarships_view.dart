@@ -11,7 +11,6 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
-import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -53,8 +52,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipDetailController detailController = Get.put(
     ScholarshipDetailController(),
   );
-  final EducationFeedPostShareService shareService =
-      const EducationFeedPostShareService();
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 
@@ -1156,9 +1153,9 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   }
 
   Widget _buildShareButton(Map<String, dynamic> scholarshipData) {
-    return EducationFeedShareIconButton(
+    return EducationShareIconButton(
       onTap: () {
-        shareService.shareScholarship(scholarshipData);
+        controller.shareScholarshipExternally(scholarshipData);
       },
     );
   }

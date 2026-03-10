@@ -865,6 +865,20 @@ class ScholarshipsController extends GetxController {
       AppSnackbar('Yetki', 'Sadece admin ve ilan sahibi paylaşabilir.');
       return;
     }
+    await _shareScholarshipPublicLink(scholarshipData, burs);
+  }
+
+  Future<void> shareScholarshipExternally(
+    Map<String, dynamic> scholarshipData,
+  ) async {
+    final burs = scholarshipData['model'];
+    await _shareScholarshipPublicLink(scholarshipData, burs);
+  }
+
+  Future<void> _shareScholarshipPublicLink(
+    Map<String, dynamic> scholarshipData,
+    dynamic burs,
+  ) async {
     final String docId =
         (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
             .toString();
