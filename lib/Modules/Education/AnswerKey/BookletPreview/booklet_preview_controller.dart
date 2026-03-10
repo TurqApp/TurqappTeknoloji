@@ -127,7 +127,9 @@ class BookletPreviewController extends GetxController {
           .collection('books')
           .doc(model.docID);
 
-      if (isBookmarked.value) {
+      final savedDoc = await savedRef.get();
+
+      if (savedDoc.exists) {
         await savedRef.delete();
         isBookmarked.value = false;
         return;
