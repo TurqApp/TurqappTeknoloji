@@ -266,44 +266,49 @@ class DenemeSinavlari extends StatelessWidget {
                 right: 20,
                 child: Visibility(
                     visible: controller.scrollOffset.value <= 350,
-                    child: ActionButton(context: context, menuItems: [
-                      PullDownMenuItem(
-                        icon: Icons.add,
-                        title: 'Oluştur',
-                        onTap: () {
-                          if (controller.okul.value) {
-                            Get.to(() => SinavHazirla());
-                          } else {
-                            controller.showOkulAlert.value = true;
-                          }
-                        },
-                      ),
-                      PullDownMenuItem(
-                        icon: Icons.history,
-                        title: 'Sonuçlarım',
-                        onTap: () => Get.to(() => SinavSonuclarim()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.doc_text,
-                        title: 'Yayınladıklarım',
-                        onTap: () => Get.to(() => const MyPracticeExams()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.search,
-                        title: 'Ara',
-                        onTap: () => Get.to(() => SearchDeneme()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.slider_horizontal_3,
-                        title: 'Slider Yönetimi',
-                        onTap: () => Get.to(
-                          () => const SliderAdminView(
-                            sliderId: 'online_sinav',
-                            title: 'Online Sınav',
+                    child: ActionButton(
+                      context: context,
+                      permissionScope:
+                          ActionButtonPermissionScope.practiceExams,
+                      menuItems: [
+                        PullDownMenuItem(
+                          icon: Icons.add,
+                          title: 'Oluştur',
+                          onTap: () {
+                            if (controller.okul.value) {
+                              Get.to(() => SinavHazirla());
+                            } else {
+                              controller.showOkulAlert.value = true;
+                            }
+                          },
+                        ),
+                        PullDownMenuItem(
+                          icon: Icons.history,
+                          title: 'Sonuçlarım',
+                          onTap: () => Get.to(() => SinavSonuclarim()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.doc_text,
+                          title: 'Yayınladıklarım',
+                          onTap: () => Get.to(() => const MyPracticeExams()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.search,
+                          title: 'Ara',
+                          onTap: () => Get.to(() => SearchDeneme()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.slider_horizontal_3,
+                          title: 'Slider Yönetimi',
+                          onTap: () => Get.to(
+                            () => const SliderAdminView(
+                              sliderId: 'online_sinav',
+                              title: 'Online Sınav',
+                            ),
                           ),
                         ),
-                      ),
-                    ])))),
+                      ],
+                    )))),
         ],
       );
     }
@@ -359,44 +364,49 @@ class DenemeSinavlari extends StatelessWidget {
                 right: 20,
                 child: Visibility(
                     visible: controller.scrollOffset.value <= 350,
-                    child: ActionButton(context: context, menuItems: [
-                      PullDownMenuItem(
-                        icon: Icons.add,
-                        title: 'Oluştur',
-                        onTap: () {
-                          if (controller.okul.value) {
-                            Get.to(() => SinavHazirla());
-                          } else {
-                            controller.showOkulAlert.value = true;
-                          }
-                        },
-                      ),
-                      PullDownMenuItem(
-                        icon: Icons.history,
-                        title: 'Sonuçlarım',
-                        onTap: () => Get.to(() => SinavSonuclarim()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.doc_text,
-                        title: 'Yayınladıklarım',
-                        onTap: () => Get.to(() => const MyPracticeExams()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.search,
-                        title: 'Ara',
-                        onTap: () => Get.to(() => SearchDeneme()),
-                      ),
-                      PullDownMenuItem(
-                        icon: CupertinoIcons.slider_horizontal_3,
-                        title: 'Slider Yönetimi',
-                        onTap: () => Get.to(
-                          () => const SliderAdminView(
-                            sliderId: 'online_sinav',
-                            title: 'Online Sınav',
+                    child: ActionButton(
+                      context: context,
+                      permissionScope:
+                          ActionButtonPermissionScope.practiceExams,
+                      menuItems: [
+                        PullDownMenuItem(
+                          icon: Icons.add,
+                          title: 'Oluştur',
+                          onTap: () {
+                            if (controller.okul.value) {
+                              Get.to(() => SinavHazirla());
+                            } else {
+                              controller.showOkulAlert.value = true;
+                            }
+                          },
+                        ),
+                        PullDownMenuItem(
+                          icon: Icons.history,
+                          title: 'Sonuçlarım',
+                          onTap: () => Get.to(() => SinavSonuclarim()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.doc_text,
+                          title: 'Yayınladıklarım',
+                          onTap: () => Get.to(() => const MyPracticeExams()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.search,
+                          title: 'Ara',
+                          onTap: () => Get.to(() => SearchDeneme()),
+                        ),
+                        PullDownMenuItem(
+                          icon: CupertinoIcons.slider_horizontal_3,
+                          title: 'Slider Yönetimi',
+                          onTap: () => Get.to(
+                            () => const SliderAdminView(
+                              sliderId: 'online_sinav',
+                              title: 'Online Sınav',
+                            ),
                           ),
                         ),
-                      ),
-                    ])))),
+                      ],
+                    )))),
           ],
         ),
       ),

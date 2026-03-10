@@ -585,6 +585,12 @@ class EducationView extends StatelessWidget {
                       child: ActionButton(
                         context: context,
                         menuItems: menuItems,
+                        permissionScope: switch (controller.selectedTab.value) {
+                          0 => ActionButtonPermissionScope.scholarships,
+                          3 => ActionButtonPermissionScope.practiceExams,
+                          6 => ActionButtonPermissionScope.jobFinder,
+                          _ => ActionButtonPermissionScope.none,
+                        },
                       ),
                     ),
                 ],

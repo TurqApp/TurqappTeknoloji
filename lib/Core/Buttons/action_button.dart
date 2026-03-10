@@ -1,21 +1,28 @@
 import 'dart:ui';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/rozet_permissions.dart';
+
+enum ActionButtonPermissionScope {
+  none,
+  scholarships,
+  practiceExams,
+  jobFinder,
+}
 
 class ActionButton extends StatefulWidget {
   final BuildContext context;
   final List<PullDownMenuItem> menuItems;
+  final ActionButtonPermissionScope permissionScope;
 
   const ActionButton({
     super.key,
     required this.context,
     required this.menuItems,
+    this.permissionScope = ActionButtonPermissionScope.none,
   });
 
   @override
@@ -24,11 +31,6 @@ class ActionButton extends StatefulWidget {
 
 class _ActionButtonState extends State<ActionButton> {
   late final Future<Map<String, bool>> _permissionsFuture;
-  bool _rozetErrorShown = false;
-  static const Duration _rozetCacheTtl = Duration(minutes: 5);
-  static const Duration _rozetStaleRetention = Duration(minutes: 20);
-  static final Map<String, _RozetCacheEntry> _rozetCacheByUid =
-      <String, _RozetCacheEntry>{};
 
   @override
   void initState() {
@@ -36,63 +38,32 @@ class _ActionButtonState extends State<ActionButton> {
     _permissionsFuture = _loadPermissions();
   }
 
-  Future<String> _loadRozet() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return '';
-    }
-    _pruneStaleRozetCache();
-    final cached = _rozetCacheByUid[user.uid];
-    if (cached != null &&
-        DateTime.now().difference(cached.cachedAt) <= _rozetCacheTtl) {
-      return cached.rozet;
-    }
-
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
-
-      if (!doc.exists) {
-        _rozetCacheByUid[user.uid] =
-            _RozetCacheEntry(rozet: '', cachedAt: DateTime.now());
-        return '';
-      }
-
-      final rozet = (doc.data()?["rozet"] as String? ?? "").trim();
-      _rozetCacheByUid[user.uid] =
-          _RozetCacheEntry(rozet: rozet, cachedAt: DateTime.now());
-      return rozet;
-    } catch (e) {
-      if (!_rozetErrorShown) {
-        _rozetErrorShown = true;
-        AppSnackbar("Hata!", "Rozet kontrolü başarısız oldu.");
-      }
-      debugPrint("Rozet kontrol hatası: $e");
-      return '';
-    }
-  }
-
-  void _pruneStaleRozetCache() {
-    final now = DateTime.now();
-    _rozetCacheByUid.removeWhere(
-      (_, entry) => now.difference(entry.cachedAt) > _rozetStaleRetention,
-    );
-  }
-
   Future<bool> _canManageSliders() async {
     return AdminAccessService.canManageSliders();
   }
 
   Future<Map<String, bool>> _loadPermissions() async {
-    final rozet = await _loadRozet();
+    final canUseYellowTier = await currentUserHasRozetPermission('Sarı');
     final canManageSliders = await _canManageSliders();
     return {
-      'canCreateScholarship': ["Kirmizi", "Sari", "Turkuaz"].contains(rozet),
-      'canCreateExam': ["Turkuaz", "Sari"].contains(rozet),
+      'canUseYellowTier': canUseYellowTier,
       'canManageSliders': canManageSliders,
     };
+  }
+
+  bool _shouldHideForScope(PullDownMenuItem item, bool canUseYellowTier) {
+    if (canUseYellowTier) return false;
+
+    switch (widget.permissionScope) {
+      case ActionButtonPermissionScope.scholarships:
+        return item.title == 'Burs Oluştur' || item.title == 'İlanlarım';
+      case ActionButtonPermissionScope.practiceExams:
+        return item.title == 'Oluştur' || item.title == 'Yayınladıklarım';
+      case ActionButtonPermissionScope.jobFinder:
+        return item.title == 'İlan Ver' || item.title == 'İlanlarım';
+      case ActionButtonPermissionScope.none:
+        return false;
+    }
   }
 
   @override
@@ -113,22 +84,14 @@ class _ActionButtonState extends State<ActionButton> {
               child: FutureBuilder<Map<String, bool>>(
                 future: _permissionsFuture,
                 builder: (context, snapshot) {
-                  final canCreateScholarship =
-                      snapshot.data?['canCreateScholarship'] ?? false;
-                  final canCreateExam =
-                      snapshot.data?['canCreateExam'] ?? false;
+                  final canUseYellowTier =
+                      snapshot.data?['canUseYellowTier'] ?? false;
                   final canManageSliders =
                       snapshot.data?['canManageSliders'] ?? false;
                   return PullDownButton(
                     itemBuilder: (context) => widget.menuItems
                         .map((item) {
-                          if ((item.title == 'Burs Oluştur' ||
-                                  item.title == 'İlanlarım') &&
-                              !canCreateScholarship) {
-                            return null;
-                          }
-                          if (item.title == 'Deneme Oluştur' &&
-                              !canCreateExam) {
+                          if (_shouldHideForScope(item, canUseYellowTier)) {
                             return null;
                           }
                           if (item.title == 'Slider Yönetimi' &&
@@ -180,14 +143,4 @@ class _ActionButtonState extends State<ActionButton> {
       ),
     );
   }
-}
-
-class _RozetCacheEntry {
-  final String rozet;
-  final DateTime cachedAt;
-
-  const _RozetCacheEntry({
-    required this.rozet,
-    required this.cachedAt,
-  });
 }

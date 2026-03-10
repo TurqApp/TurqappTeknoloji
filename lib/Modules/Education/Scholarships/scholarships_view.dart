@@ -1224,6 +1224,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           visible: controller.scrollOffset.value <= 350,
           child: ActionButton(
             context: context,
+            permissionScope: ActionButtonPermissionScope.scholarships,
             menuItems: [
               PullDownMenuItem(
                 title: 'Burs Oluştur',
