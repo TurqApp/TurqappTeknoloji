@@ -209,11 +209,14 @@ class JobDetailsController extends GetxController {
           .doc(docID)
           .collection('Reviews')
           .orderBy('timeStamp', descending: true)
+          .limit(50)
           .get();
 
-      final items =
-          snapshot.docs.map((d) => JobReviewModel.fromMap(d.data(), d.id));
-      reviews.assignAll(items.toList());
+      final items = snapshot.docs
+          .map((d) => JobReviewModel.fromMap(d.data(), d.id))
+          .toList();
+
+      reviews.assignAll(items);
       await _fetchReviewUsers(reviews.map((e) => e.userID));
     } catch (e) {
       print('fetchReviews hatası: $e');
@@ -243,18 +246,18 @@ class JobDetailsController extends GetxController {
     }
   }
 
-  Future<void> submitReview({
+  Future<bool> submitReview({
     required int rating,
     required String comment,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       AppSnackbar('Hata', 'Değerlendirme için tekrar giriş yapın.');
-      return;
+      return false;
     }
     if (uid == model.value.userID) {
       AppSnackbar('Bilgi', 'Kendi ilanınızı değerlendiremezsiniz.');
-      return;
+      return false;
     }
 
     final reviewRef = FirebaseFirestore.instance
@@ -271,11 +274,14 @@ class JobDetailsController extends GetxController {
         'comment': comment.trim(),
         'timeStamp': DateTime.now().millisecondsSinceEpoch,
       });
+      await _recalculateAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
       AppSnackbar('Başarılı', 'Değerlendirmeniz kaydedildi.');
+      return true;
     } catch (e) {
       print('submitReview hatası: $e');
-      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi.');
+      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi: $e');
+      return false;
     }
   }
 
@@ -287,11 +293,43 @@ class JobDetailsController extends GetxController {
           .collection('Reviews')
           .doc(reviewID)
           .delete();
+      await _recalculateAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
       AppSnackbar('Bilgi', 'Değerlendirmeniz kaldırıldı.');
     } catch (e) {
       print('deleteReview hatası: $e');
       AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
+    }
+  }
+
+  Future<void> _recalculateAverageRating(String docID) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(docID)
+          .collection('Reviews')
+          .get();
+
+      final jobDocRef =
+          FirebaseFirestore.instance.collection(JobCollection.name).doc(docID);
+
+      if (snapshot.docs.isEmpty) {
+        await jobDocRef.update({'averageRating': null, 'reviewCount': 0});
+        return;
+      }
+
+      double total = 0;
+      for (final doc in snapshot.docs) {
+        total += (doc.data()['rating'] as num? ?? 0).toDouble();
+      }
+      final avg = total / snapshot.docs.length;
+
+      await jobDocRef.update({
+        'averageRating': double.parse(avg.toStringAsFixed(1)),
+        'reviewCount': snapshot.docs.length,
+      });
+    } catch (e) {
+      print('_recalculateAverageRating hatası: $e');
     }
   }
 

@@ -200,13 +200,19 @@ class JobDetails extends StatelessWidget {
     final textController = TextEditingController(
       text: existingReview?.comment ?? '',
     );
+    bool isSubmitting = false;
 
     Get.bottomSheet(
       SafeArea(
         child: StatefulBuilder(
           builder: (context, setState) {
             return Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.of(context).viewInsets.bottom,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -257,30 +263,49 @@ class JobDetails extends StatelessWidget {
                   const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
-                    child: GestureDetector(
-                      onTap: () async {
-                        await controller.submitReview(
-                          rating: selectedRating,
-                          comment: textController.text,
-                        );
-                        Get.back();
-                      },
-                      child: Container(
-                        height: 48,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.black,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              FocusScope.of(context).unfocus();
+                              setState(() => isSubmitting = true);
+                              final success = await controller.submitReview(
+                                rating: selectedRating,
+                                comment: textController.text,
+                              );
+                              if (context.mounted) {
+                                setState(() => isSubmitting = false);
+                              }
+                              if (success) {
+                                Get.back();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        disabledBackgroundColor: Colors.black54,
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          "Kaydet",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
-                          ),
-                        ),
                       ),
+                      child: isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              "Kaydet",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontFamily: "MontserratBold",
+                              ),
+                            ),
                     ),
                   ),
                 ],
