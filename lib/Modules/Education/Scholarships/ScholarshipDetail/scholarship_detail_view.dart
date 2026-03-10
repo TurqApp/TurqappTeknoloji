@@ -486,26 +486,51 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                             Row(
                                               children: [
                                                 Expanded(
-                                                  child: Text(
-                                                    _truncateLabel(
-                                                      userNick,
-                                                      maxChars: 34,
+                                                  child: Align(
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    child: Wrap(
+                                                      spacing: 0,
+                                                      crossAxisAlignment:
+                                                          WrapCrossAlignment
+                                                              .center,
+                                                      children: [
+                                                        Text(
+                                                          (userData['userID']
+                                                                          ?.toString() ??
+                                                                      '')
+                                                                  .isNotEmpty
+                                                              ? '${_truncateLabel(userNick, maxChars: 34)} '
+                                                              : _truncateLabel(
+                                                                  userNick,
+                                                                  maxChars: 34,
+                                                                ),
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            fontFamily:
+                                                                "MontserratBold",
+                                                            color: Colors.black,
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow:
+                                                              TextOverflow.clip,
+                                                          softWrap: false,
+                                                        ),
+                                                        if ((userData['userID']
+                                                                    ?.toString() ??
+                                                                '')
+                                                            .isNotEmpty)
+                                                          RozetContent(
+                                                            size: 14,
+                                                            userID: userData[
+                                                                        'userID']
+                                                                    ?.toString() ??
+                                                                '',
+                                                            leftSpacing: 0,
+                                                          ),
+                                                      ],
                                                     ),
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontFamily:
-                                                          "MontserratBold",
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
                                                   ),
-                                                ),
-                                                RozetContent(
-                                                  size: 14,
-                                                  userID: userData['userID']
-                                                          ?.toString() ??
-                                                      '',
                                                 ),
                                               ],
                                             ),
@@ -1137,6 +1162,8 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
     if (trimmed.length <= maxChars) {
       return trimmed;
     }
-    return '${trimmed.substring(0, maxChars).trimRight()}...';
+    final cutIndex = trimmed.lastIndexOf(' ', maxChars);
+    final safeIndex = cutIndex > 0 ? cutIndex : maxChars;
+    return '${trimmed.substring(0, safeIndex).trimRight()}...';
   }
 }

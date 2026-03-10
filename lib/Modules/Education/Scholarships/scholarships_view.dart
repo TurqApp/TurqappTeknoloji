@@ -507,6 +507,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildUserInfo(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
+    final userId = userData?['userID']?.toString() ?? '';
     return GestureDetector(
       onTap: _getUserTapHandler(type, userData),
       child: Row(
@@ -514,30 +515,36 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           _buildUserAvatar(type, userData, firmaData),
           6.pw,
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _truncateLabel(
-                      _getUserDisplayName(type, userData, firmaData),
-                      maxChars: 34,
-                    ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 0,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    type == 'bireysel' && userId.isNotEmpty
+                        ? '${_truncateLabel(_getUserDisplayName(type, userData, firmaData), maxChars: 34)} '
+                        : _truncateLabel(
+                            _getUserDisplayName(type, userData, firmaData),
+                            maxChars: 34,
+                          ),
                     style: TextStyle(
                       fontSize: 15,
                       fontFamily: "MontserratBold",
                       color: Colors.black,
                     ),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.clip,
                     softWrap: false,
                   ),
-                ),
-                if (type == 'bireysel')
-                  RozetContent(
-                    size: 13,
-                    userID: userData?['userID']?.toString() ?? '',
-                  ),
-              ],
+                  if (type == 'bireysel' && userId.isNotEmpty)
+                    RozetContent(
+                      size: 13,
+                      userID: userId,
+                      leftSpacing: 0,
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -608,7 +615,9 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     if (trimmed.length <= maxChars) {
       return trimmed;
     }
-    return '${trimmed.substring(0, maxChars).trimRight()}...';
+    final cutIndex = trimmed.lastIndexOf(' ', maxChars);
+    final safeIndex = cutIndex > 0 ? cutIndex : maxChars;
+    return '${trimmed.substring(0, safeIndex).trimRight()}...';
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
