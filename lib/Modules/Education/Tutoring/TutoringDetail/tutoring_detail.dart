@@ -479,22 +479,22 @@ class TutoringDetail extends StatelessWidget {
                               ),
                               16.ph,
                               // Teacher card
-                              Container(
-                                padding: EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: Colors.black, width: 1)),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (currentUserId !=
-                                        controller.tutoring.value.userID) {
-                                      Get.to(() => SocialProfile(
-                                          userID: controller
-                                              .tutoring.value.userID));
-                                    }
-                                  },
+                              GestureDetector(
+                                onTap: () {
+                                  if (currentUserId !=
+                                      controller.tutoring.value.userID) {
+                                    Get.to(() => SocialProfile(
+                                        userID: controller
+                                            .tutoring.value.userID));
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(15),
+                                  decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.black, width: 1)),
                                   child: Row(
                                     children: [
                                       ClipOval(
