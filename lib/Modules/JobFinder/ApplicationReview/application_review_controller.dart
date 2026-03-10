@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
@@ -94,6 +95,11 @@ class ApplicationReviewController extends GetxController {
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
+      final actorUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (actorUid.isEmpty) {
+        AppSnackbar('Hata', 'İşlem için tekrar giriş yapın.');
+        return;
+      }
       final applicationRef = FirebaseFirestore.instance
           .collection(JobCollection.name)
           .doc(jobDocID)
@@ -104,6 +110,11 @@ class ApplicationReviewController extends GetxController {
           .doc(userID)
           .collection('myApplications')
           .doc(jobDocID);
+      final notificationRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userID)
+          .collection('notifications')
+          .doc();
 
       final applicationSnap = await applicationRef.get();
       if (!applicationSnap.exists) {
@@ -111,7 +122,12 @@ class ApplicationReviewController extends GetxController {
         return;
       }
 
-      final applicationData = applicationSnap.data() ?? const <String, dynamic>{};
+      final applicationData =
+          applicationSnap.data() ?? const <String, dynamic>{};
+      final title = (applicationData['jobTitle'] ?? '').toString().trim();
+      final companyName =
+          (applicationData['companyName'] ?? '').toString().trim();
+      final statusBody = _statusBody(newStatus, title, companyName);
 
       final batch = FirebaseFirestore.instance.batch();
 
@@ -142,6 +158,16 @@ class ApplicationReviewController extends GetxController {
         SetOptions(merge: true),
       );
 
+      batch.set(notificationRef, {
+        'type': 'job_application',
+        'fromUserID': actorUid,
+        'postID': jobDocID,
+        'timeStamp': now,
+        'read': false,
+        'title': 'Başvuru durumu güncellendi',
+        'body': statusBody,
+      });
+
       await batch.commit();
 
       final index = applicants.indexWhere((a) => a.userID == userID);
@@ -167,6 +193,25 @@ class ApplicationReviewController extends GetxController {
     } catch (e) {
       print("Durum güncelleme hatası: $e");
       AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
+    }
+  }
+
+  String _statusBody(String status, String title, String companyName) {
+    final displayTitle = title.isNotEmpty
+        ? title
+        : companyName.isNotEmpty
+            ? companyName
+            : 'ilan';
+
+    switch (status) {
+      case 'accepted':
+        return '$displayTitle başvurun kabul edildi.';
+      case 'reviewing':
+        return '$displayTitle başvurun incelemeye alındı.';
+      case 'rejected':
+        return '$displayTitle başvurun reddedildi.';
+      default:
+        return '$displayTitle başvuru durumun güncellendi.';
     }
   }
 }

@@ -25,44 +25,48 @@ class ApplicationReview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(15),
-              child: Row(
-                children: [BackButtons(text: "Başvuranlar")],
+        child: ColoredBox(
+          color: Colors.white,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(15),
+                child: Row(
+                  children: [BackButtons(text: "Başvuranlar")],
+                ),
               ),
-            ),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(child: CupertinoActivityIndicator());
-                }
-                if (controller.applicants.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "Henüz başvuru yok",
-                      style: TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 15,
-                        color: Colors.grey,
+              Expanded(
+                child: Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(child: CupertinoActivityIndicator());
+                  }
+                  if (controller.applicants.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "Henüz başvuru yok",
+                        style: TextStyle(
+                          fontFamily: "MontserratMedium",
+                          fontSize: 15,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: controller.applicants.length,
+                    padding: const EdgeInsets.only(top: 5, bottom: 20),
+                    itemBuilder: (context, index) {
+                      final app = controller.applicants[index];
+                      return _applicantCard(app, context);
+                    },
                   );
-                }
-                return ListView.builder(
-                  itemCount: controller.applicants.length,
-                  padding: const EdgeInsets.only(top: 5),
-                  itemBuilder: (context, index) {
-                    final app = controller.applicants[index];
-                    return _applicantCard(app, context);
-                  },
-                );
-              }),
-            ),
-          ],
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -119,7 +123,8 @@ class ApplicationReview extends StatelessWidget {
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => Get.to(() => SocialProfile(userID: app.userID)),
+                      onTap: () =>
+                          Get.to(() => SocialProfile(userID: app.userID)),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(25),
                         child: SizedBox(
