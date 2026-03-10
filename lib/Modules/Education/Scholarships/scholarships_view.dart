@@ -9,6 +9,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
@@ -1191,8 +1192,8 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   }
 
   Widget _buildShareButton(Map<String, dynamic> scholarshipData) {
-    return IconButton(
-      onPressed: () {
+    return EducationShareIconButton(
+      onTap: () {
         final ctx = Get.context ?? Get.overlayContext;
         if (ctx == null) {
           AppSnackbar('Hata', 'Paylaşım başlatılamadı');
@@ -1200,11 +1201,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
         }
         controller.shareScholarship(scholarshipData, ctx);
       },
-      icon: const Icon(
-        CupertinoIcons.share_up,
-        size: 20,
-        color: Colors.black,
-      ),
     );
   }
 

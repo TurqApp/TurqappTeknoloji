@@ -6,6 +6,7 @@ import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -118,13 +119,8 @@ class AnswerKeyContent extends StatelessWidget {
             ),
           ),
           if (canShareFeed)
-            GestureDetector(
+            EducationShareIconButton(
               onTap: controller.shareBooklet,
-              child: Icon(
-                CupertinoIcons.share_up,
-                color: Colors.grey,
-                size: 20,
-              ),
             ),
         ],
       ),

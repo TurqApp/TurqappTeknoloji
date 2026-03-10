@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
@@ -288,22 +289,8 @@ class DenemeGrid extends StatelessWidget {
                         ),
                       ),
                       if (canShareFeed)
-                        GestureDetector(
+                        EducationShareIconButton(
                           onTap: _shareExam,
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              CupertinoIcons.share_up,
-                              color: Colors.black87,
-                              size: 17,
-                            ),
-                          ),
                         ),
                     ],
                   ),

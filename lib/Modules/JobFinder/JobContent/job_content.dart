@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
@@ -151,28 +152,8 @@ class JobContent extends StatelessWidget {
                                 children: [
                                   Transform.translate(
                                     offset: Offset(6, 0),
-                                    child: IconButton(
-                                      onPressed: () =>
-                                          controller.shareJob(model),
-                                      icon: Icon(
-                                        CupertinoIcons.share_up,
-                                        color: Colors.grey,
-                                        size: 19,
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      constraints: BoxConstraints(
-                                        minWidth: 0,
-                                        minHeight: 0,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                      style: ButtonStyle(
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        fixedSize: WidgetStateProperty.all(
-                                          Size(35, 35),
-                                        ),
-                                        alignment: Alignment.center,
-                                      ),
+                                    child: EducationShareIconButton(
+                                      onTap: () => controller.shareJob(model),
                                     ),
                                   ),
                                   Obx(() {
@@ -318,19 +299,10 @@ class JobContent extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      IconButton(
-                        onPressed: () => controller.shareJob(model),
-                        icon: const Icon(
-                          CupertinoIcons.share_up,
-                          size: 16,
-                          color: Colors.grey,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 28,
-                          minHeight: 28,
-                        ),
+                      EducationShareIconButton(
+                        onTap: () => controller.shareJob(model),
+                        size: 28,
+                        iconSize: 16,
                       ),
                       Obx(
                         () => IconButton(

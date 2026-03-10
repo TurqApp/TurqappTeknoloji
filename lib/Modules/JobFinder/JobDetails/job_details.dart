@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -199,19 +200,10 @@ class JobDetails extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(child: BackButtons(text: "İş Detayı")),
-                IconButton(
-                  onPressed: controller.shareJob,
-                  icon: Icon(
-                    CupertinoIcons.share_up,
-                    color: Colors.black,
-                    size: 22,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
+                EducationShareIconButton(
+                  onTap: controller.shareJob,
+                  size: 30,
+                  iconSize: 18,
                 ),
                 Obx(() {
                   return Transform.translate(

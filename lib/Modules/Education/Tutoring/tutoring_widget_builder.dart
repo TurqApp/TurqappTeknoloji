@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -131,15 +132,10 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   ),
                                 ),
                                 if (canShareFeed)
-                                  GestureDetector(
-                                    onTap: () => _shareTutoring(tutoring),
-                                    child: const Padding(
-                                      padding: EdgeInsets.only(right: 8),
-                                      child: Icon(
-                                        CupertinoIcons.share_up,
-                                        size: 19,
-                                        color: Colors.grey,
-                                      ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: EducationShareIconButton(
+                                      onTap: () => _shareTutoring(tutoring),
                                     ),
                                   ),
                                 Obx(() {
@@ -311,15 +307,11 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                       ),
                                     ),
                                     if (canShareFeed)
-                                      GestureDetector(
-                                        onTap: () => _shareTutoring(tutoring),
-                                        child: const Padding(
-                                          padding: EdgeInsets.only(right: 8),
-                                          child: Icon(
-                                            CupertinoIcons.share_up,
-                                            size: 19,
-                                            color: Colors.grey,
-                                          ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 8),
+                                        child: EducationShareIconButton(
+                                          onTap: () => _shareTutoring(tutoring),
                                         ),
                                       ),
                                     Obx(() {

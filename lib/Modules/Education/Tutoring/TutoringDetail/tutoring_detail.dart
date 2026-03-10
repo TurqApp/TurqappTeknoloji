@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
+import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
@@ -151,19 +152,10 @@ class TutoringDetail extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(child: BackButtons(text: "Özel Ders")),
-                    IconButton(
-                      onPressed: shareTutoring,
-                      icon: Icon(
-                        CupertinoIcons.share_up,
-                        color: Colors.black,
-                        size: 22,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
+                    EducationShareIconButton(
+                      onTap: shareTutoring,
+                      size: 30,
+                      iconSize: 18,
                     ),
                     Obx(() {
                       final isSaved = savedController.savedTutoringIds.contains(
