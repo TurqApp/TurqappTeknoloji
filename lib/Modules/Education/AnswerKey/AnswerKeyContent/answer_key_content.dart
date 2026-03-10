@@ -177,7 +177,7 @@ class AnswerKeyContent extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  controller.model.sinavTuru,
+                  controller.model.yayinEvi,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -187,11 +187,6 @@ class AnswerKeyContent extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                NumberFormatter.format(controller.model.viewCount),
-                style: TextStyle(color: Colors.black, fontSize: 13),
-              ),
-              SizedBox(width: 3),
               SvgPicture.asset(
                 "assets/icons/statsyeni.svg",
                 height: 20,
@@ -199,28 +194,11 @@ class AnswerKeyContent extends StatelessWidget {
                     const ColorFilter.mode(Colors.black, BlendMode.srcIn),
               ),
               SizedBox(width: 3),
-              EducationActionIconButton(
-                onTap: controller.toggleBookmark,
-                icon: controller.isBookmarked.value
-                    ? CupertinoIcons.bookmark_fill
-                    : CupertinoIcons.bookmark,
-                iconSize: 18,
-                iconColor: controller.isBookmarked.value
-                    ? Colors.orange
-                    : Colors.black87,
+              Text(
+                NumberFormatter.format(controller.model.viewCount),
+                style: TextStyle(color: Colors.black, fontSize: 13),
               ),
             ],
-          ),
-          SizedBox(height: 3),
-          Text(
-            controller.model.yayinEvi,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-              fontFamily: "MontserratBold",
-            ),
           ),
           SizedBox(height: 3),
           GestureDetector(
