@@ -104,7 +104,7 @@ class ChatListingContentController extends GetxController {
           prefs.getInt("chat_last_opened_${currentUID}_${model.chatID}") ?? 0;
       final localUnread =
           lastSenderId.isNotEmpty && lastSenderId != currentUID && ts > seenTs;
-      final seenCoversLatestMessage = ts > 0 && seenTs >= ts;
+      final seenCoversLatestMessage = ts > 0 ? seenTs >= ts : seenTs > 0;
       final unread = seenCoversLatestMessage
           ? 0
           : ((serverUnread > 0 || localUnread) ? 1 : 0);
