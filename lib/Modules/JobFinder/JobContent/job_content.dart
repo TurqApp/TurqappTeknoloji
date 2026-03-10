@@ -70,9 +70,10 @@ class JobContent extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                model.calismaTuru.join(", "),
+                                model.calismaTuru.length <= 1
+                                    ? model.calismaTuru.join(", ")
+                                    : "${model.calismaTuru.take(1).join(", ")} +${model.calismaTuru.length - 1}",
                                 maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Colors.pinkAccent,
                                   fontSize: 14,
@@ -244,7 +245,9 @@ class JobContent extends StatelessWidget {
                       ),
                     ),
                   Text(
-                    model.calismaTuru.join(", "),
+                    model.calismaTuru.length <= 1
+                        ? model.calismaTuru.join(", ")
+                        : "${model.calismaTuru.take(1).join(", ")} +${model.calismaTuru.length - 1}",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
