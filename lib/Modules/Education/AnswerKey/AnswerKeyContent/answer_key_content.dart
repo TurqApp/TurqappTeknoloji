@@ -196,17 +196,15 @@ class AnswerKeyContent extends StatelessWidget {
                     const ColorFilter.mode(Colors.black, BlendMode.srcIn),
               ),
               SizedBox(width: 3),
-              GestureDetector(
+              EducationActionIconButton(
                 onTap: controller.toggleBookmark,
-                child: Icon(
-                  controller.isBookmarked.value
-                      ? CupertinoIcons.bookmark_fill
-                      : CupertinoIcons.bookmark,
-                  color: controller.isBookmarked.value
-                      ? Colors.orange
-                      : Colors.black,
-                  size: 20,
-                ),
+                icon: controller.isBookmarked.value
+                    ? CupertinoIcons.bookmark_fill
+                    : CupertinoIcons.bookmark,
+                iconSize: 18,
+                iconColor: controller.isBookmarked.value
+                    ? Colors.orange
+                    : Colors.black87,
               ),
             ],
           ),

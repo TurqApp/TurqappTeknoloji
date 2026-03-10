@@ -206,28 +206,17 @@ class JobDetails extends StatelessWidget {
                   iconSize: 18,
                 ),
                 Obx(() {
-                  return Transform.translate(
-                    offset: const Offset(0, 0),
-                    child: IconButton(
-                      onPressed: () {
-                        controller.toggleSave(controller.model.value.docID);
-                      },
-                      icon: Icon(
-                        controller.saved.value
-                            ? CupertinoIcons.bookmark_fill
-                            : CupertinoIcons.bookmark,
-                        color: controller.saved.value
-                            ? Colors.orange
-                            : Colors.black,
-                        size: 20,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 32,
-                        minHeight: 32,
-                      ),
-                    ),
+                  return EducationActionIconButton(
+                    onTap: () {
+                      controller.toggleSave(controller.model.value.docID);
+                    },
+                    icon: controller.saved.value
+                        ? CupertinoIcons.bookmark_fill
+                        : CupertinoIcons.bookmark,
+                    size: 30,
+                    iconSize: 18,
+                    iconColor:
+                        controller.saved.value ? Colors.orange : Colors.black87,
                   );
                 }),
                 pullDownMenu(),

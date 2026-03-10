@@ -142,13 +142,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                   final isSaved = savedController
                                       .savedTutoringIds
                                       .contains(tutoring.docID);
-                                  return GestureDetector(
-                                    child: Icon(
-                                      isSaved ? AppIcons.saved : AppIcons.save,
-                                      size: 19,
-                                      color:
-                                          isSaved ? Colors.orange : Colors.grey,
-                                    ),
+                                  return EducationActionIconButton(
                                     onTap: () async {
                                       if (currentUserId != null) {
                                         if (isSaved) {
@@ -180,6 +174,13 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                         log("User ID not found");
                                       }
                                     },
+                                    icon: isSaved
+                                        ? AppIcons.saved
+                                        : AppIcons.save,
+                                    iconSize: 18,
+                                    iconColor: isSaved
+                                        ? Colors.orange
+                                        : Colors.black87,
                                   );
                                 }),
                               ],
@@ -318,16 +319,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                       final isSaved = savedController
                                           .savedTutoringIds
                                           .contains(tutoring.docID);
-                                      return GestureDetector(
-                                        child: Icon(
-                                          isSaved
-                                              ? AppIcons.saved
-                                              : AppIcons.save,
-                                          size: 19,
-                                          color: isSaved
-                                              ? Colors.orange
-                                              : Colors.grey,
-                                        ),
+                                      return EducationActionIconButton(
                                         onTap: () async {
                                           if (currentUserId != null) {
                                             if (isSaved) {
@@ -361,6 +353,13 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                             log("User ID not found");
                                           }
                                         },
+                                        icon: isSaved
+                                            ? AppIcons.saved
+                                            : AppIcons.save,
+                                        iconSize: 18,
+                                        iconColor: isSaved
+                                            ? Colors.orange
+                                            : Colors.black87,
                                       );
                                     }),
                                   ],

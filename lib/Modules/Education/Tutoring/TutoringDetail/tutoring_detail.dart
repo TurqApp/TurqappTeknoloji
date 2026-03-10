@@ -161,51 +161,41 @@ class TutoringDetail extends StatelessWidget {
                       final isSaved = savedController.savedTutoringIds.contains(
                         controller.tutoring.value.docID,
                       );
-                      return Transform.translate(
-                        offset: const Offset(0, 0),
-                        child: IconButton(
-                          onPressed: () async {
-                            if (currentUserId != null) {
-                              if (isSaved) {
-                                savedController.removeSavedTutoring(
-                                  controller.tutoring.value.docID,
-                                );
-                              } else {
-                                savedController.addSavedTutoring(
-                                  controller.tutoring.value.docID,
-                                );
-                              }
-                              await tutoringController.toggleFavorite(
+                      return EducationActionIconButton(
+                        onTap: () async {
+                          if (currentUserId != null) {
+                            if (isSaved) {
+                              savedController.removeSavedTutoring(
                                 controller.tutoring.value.docID,
-                                currentUserId,
-                                isSaved,
                               );
-                              if (isSaved) {
-                                savedController.removeSavedTutoring(
-                                  controller.tutoring.value.docID,
-                                );
-                              } else if (!controller.tutoring.value.favorites
-                                  .contains(currentUserId)) {
-                                savedController.addSavedTutoring(
-                                  controller.tutoring.value.docID,
-                                );
-                              }
                             } else {
-                              log("User ID not found");
+                              savedController.addSavedTutoring(
+                                controller.tutoring.value.docID,
+                              );
                             }
-                          },
-                          icon: Icon(
-                            isSaved ? AppIcons.saved : AppIcons.save,
-                            color: isSaved ? Colors.orange : Colors.black,
-                            size: 20,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
-                          ),
-                        ),
+                            await tutoringController.toggleFavorite(
+                              controller.tutoring.value.docID,
+                              currentUserId,
+                              isSaved,
+                            );
+                            if (isSaved) {
+                              savedController.removeSavedTutoring(
+                                controller.tutoring.value.docID,
+                              );
+                            } else if (!controller.tutoring.value.favorites
+                                .contains(currentUserId)) {
+                              savedController.addSavedTutoring(
+                                controller.tutoring.value.docID,
+                              );
+                            }
+                          } else {
+                            log("User ID not found");
+                          }
+                        },
+                        icon: isSaved ? AppIcons.saved : AppIcons.save,
+                        size: 30,
+                        iconSize: 18,
+                        iconColor: isSaved ? Colors.orange : Colors.black87,
                       );
                     }),
                     10.pw,

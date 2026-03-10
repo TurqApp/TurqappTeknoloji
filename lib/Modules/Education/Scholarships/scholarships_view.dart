@@ -1129,17 +1129,15 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       () => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            onPressed: () => controller.toggleLike(docId, type),
-            icon: Icon(
-              controller.likedScholarships[docId] ?? false
-                  ? CupertinoIcons.hand_thumbsup_fill
-                  : CupertinoIcons.hand_thumbsup,
-              size: 20,
-              color: controller.likedScholarships[docId] ?? false
-                  ? Colors.blue
-                  : Colors.black,
-            ),
+          EducationActionIconButton(
+            onTap: () => controller.toggleLike(docId, type),
+            icon: (controller.likedScholarships[docId] ?? false)
+                ? CupertinoIcons.hand_thumbsup_fill
+                : CupertinoIcons.hand_thumbsup,
+            iconSize: 18,
+            iconColor: controller.likedScholarships[docId] ?? false
+                ? Colors.blue
+                : Colors.black87,
           ),
           Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
@@ -1163,17 +1161,15 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
       () => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            onPressed: () => controller.toggleBookmark(docId, type),
-            icon: Icon(
-              controller.bookmarkedScholarships[docId] ?? false
-                  ? CupertinoIcons.bookmark_fill
-                  : CupertinoIcons.bookmark,
-              size: 20,
-              color: controller.bookmarkedScholarships[docId] ?? false
-                  ? Colors.orange
-                  : Colors.black,
-            ),
+          EducationActionIconButton(
+            onTap: () => controller.toggleBookmark(docId, type),
+            icon: (controller.bookmarkedScholarships[docId] ?? false)
+                ? CupertinoIcons.bookmark_fill
+                : CupertinoIcons.bookmark,
+            iconSize: 18,
+            iconColor: controller.bookmarkedScholarships[docId] ?? false
+                ? Colors.orange
+                : Colors.black87,
           ),
           Container(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),

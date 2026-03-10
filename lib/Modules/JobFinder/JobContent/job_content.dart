@@ -159,33 +159,17 @@ class JobContent extends StatelessWidget {
                                   Obx(() {
                                     return Transform.translate(
                                       offset: Offset(10, 0),
-                                      child: IconButton(
-                                        onPressed: () {
+                                      child: EducationActionIconButton(
+                                        onTap: () {
                                           controller.toggleSave(model.docID);
                                         },
-                                        icon: Icon(
-                                          controller.saved.value
-                                              ? CupertinoIcons.bookmark_fill
-                                              : CupertinoIcons.bookmark,
-                                          color: controller.saved.value
-                                              ? Colors.orange
-                                              : Colors.grey,
-                                          size: 19,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: BoxConstraints(
-                                          minWidth: 0,
-                                          minHeight: 0,
-                                        ),
-                                        visualDensity: VisualDensity.compact,
-                                        style: ButtonStyle(
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          fixedSize: WidgetStateProperty.all(
-                                            Size(35, 35),
-                                          ),
-                                          alignment: Alignment.center,
-                                        ),
+                                        icon: controller.saved.value
+                                            ? CupertinoIcons.bookmark_fill
+                                            : CupertinoIcons.bookmark,
+                                        iconSize: 18,
+                                        iconColor: controller.saved.value
+                                            ? Colors.orange
+                                            : Colors.black87,
                                       ),
                                     );
                                   }),
@@ -305,23 +289,16 @@ class JobContent extends StatelessWidget {
                         iconSize: 16,
                       ),
                       Obx(
-                        () => IconButton(
-                          onPressed: () => controller.toggleSave(model.docID),
-                          icon: Icon(
-                            controller.saved.value
-                                ? CupertinoIcons.bookmark_fill
-                                : CupertinoIcons.bookmark,
-                            size: 17,
-                            color: controller.saved.value
-                                ? Colors.orange
-                                : Colors.grey,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 28,
-                            minHeight: 28,
-                          ),
+                        () => EducationActionIconButton(
+                          onTap: () => controller.toggleSave(model.docID),
+                          icon: controller.saved.value
+                              ? CupertinoIcons.bookmark_fill
+                              : CupertinoIcons.bookmark,
+                          size: 28,
+                          iconSize: 16,
+                          iconColor: controller.saved.value
+                              ? Colors.orange
+                              : Colors.black87,
                         ),
                       ),
                     ],
