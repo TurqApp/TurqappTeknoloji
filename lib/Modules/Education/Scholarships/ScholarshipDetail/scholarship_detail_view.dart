@@ -23,7 +23,6 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'scholarship_detail_controller.dart';
-import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
 class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
@@ -67,8 +66,6 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
             userData['nickname'] ??
             'Kullanıcı')
         .toString();
-    controller.initializeFollowState(userData['userID']?.toString() ?? '');
-
     // Yeni ScrollController tanımlıyoruz
     final ScrollController detailScrollController = ScrollController();
 
@@ -226,154 +223,6 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: userData['userID']?.toString() !=
-                                            FirebaseAuth
-                                                .instance.currentUser?.uid
-                                        ? () => Get.to(
-                                              SocialProfile(
-                                                userID: userData['userID']
-                                                        ?.toString() ??
-                                                    '',
-                                              ),
-                                            )
-                                        : null,
-                                    child: CircleAvatar(
-                                        radius: 15,
-                                        child: ClipOval(
-                                          child: CachedNetworkImage(
-                                            memCacheHeight: 500,
-                                            imageUrl: userImage,
-                                            placeholder: (context, url) =>
-                                                CupertinoActivityIndicator(),
-                                            errorWidget:
-                                                (context, url, error) =>
-                                                    Icon(Icons.error),
-                                            width: 30,
-                                            height: 30,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        )),
-                                  ),
-                                  8.pw,
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: userData['userID']?.toString() !=
-                                              FirebaseAuth
-                                                  .instance.currentUser?.uid
-                                          ? () => Get.to(
-                                                SocialProfile(
-                                                  userID: userData['userID']
-                                                          ?.toString() ??
-                                                      '',
-                                                ),
-                                              )
-                                          : null,
-                                      child: Text(
-                                        userNick,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontFamily: "MontserratBold",
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (userData['userID']?.toString() !=
-                                      FirebaseAuth.instance.currentUser?.uid)
-                                    RozetContent(
-                                      size: 14,
-                                      userID:
-                                          userData['userID']?.toString() ?? '',
-                                    ),
-                                  Spacer(),
-                                  if (userData['userID']?.toString() !=
-                                      FirebaseAuth.instance.currentUser?.uid)
-                                    Obx(
-                                      () => ScaleTap(
-                                        enabled:
-                                            !controller.isFollowLoading.value,
-                                        onPressed: () async {
-                                          final currentUser =
-                                              FirebaseAuth.instance.currentUser;
-                                          if (currentUser == null) {
-                                            AppSnackbar(
-                                              "Hata!",
-                                              "Lütfen oturum açın.",
-                                            );
-                                            return;
-                                          }
-                                          final followedId =
-                                              userData['userID']?.toString() ??
-                                                  '';
-                                          if (followedId.isNotEmpty) {
-                                            await controller.toggleFollowStatus(
-                                              followedId,
-                                            );
-                                          } else {
-                                            AppSnackbar(
-                                              "Hata!",
-                                              "Takip edilecek kullanıcı bulunamadı.",
-                                            );
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: controller.isFollowing.value
-                                                ? Colors.white
-                                                : Colors.black,
-                                            border: Border.all(
-                                              width: 1,
-                                              color: Colors.black,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: controller
-                                                  .isFollowLoading.value
-                                              ? SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    valueColor:
-                                                        AlwaysStoppedAnimation<
-                                                            Color>(
-                                                      controller
-                                                              .isFollowing.value
-                                                          ? Colors.black
-                                                          : Colors.white,
-                                                    ),
-                                                  ),
-                                                )
-                                              : Text(
-                                                  controller.isFollowing.value
-                                                      ? 'Takip Ediyorsun'
-                                                      : 'Takip Et',
-                                                  style: TextStyle(
-                                                    color: controller
-                                                            .isFollowing.value
-                                                        ? Colors.black
-                                                        : Colors.white,
-                                                    fontSize: 12,
-                                                    fontFamily:
-                                                        "MontserratBold",
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              16.ph,
                               Text(
                                 "${model.baslik} 2025-2026 BURS BAŞVURULARI",
                                 style: TextStyle(
