@@ -192,8 +192,8 @@ class EducationController extends GetxController {
       }
     }
 
-    // Sadece Burslar sekmesinde (index 0) dış geçiş davranışına izin ver.
-    if (selectedTab.value == 0) {
+    // Sadece ilk gorunen sekmede dis gecis davranisina izin ver.
+    if (hasVisibleTabs && selectedTab.value == visibleTabIndexes.first) {
       return false;
     }
 
@@ -272,13 +272,13 @@ class EducationController extends GetxController {
   /// Arama metnini aktif sekmenin controller'ına ilet
   void _forwardSearch() {
     final query = searchText.value;
-    switch (selectedTab.value) {
-      case 0: // Burslar
+    switch (titles[selectedTab.value]) {
+      case "Burslar":
         if (Get.isRegistered<ScholarshipsController>()) {
           Get.find<ScholarshipsController>().setSearchQuery(query);
         }
         break;
-      case 6: // İş Bul
+      case "İş Bul":
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.text = query;
@@ -289,13 +289,13 @@ class EducationController extends GetxController {
 
   /// Sekme değiştiğinde önceki sekmenin aramasını sıfırla
   void _clearModuleSearch(int tabIndex) {
-    switch (tabIndex) {
-      case 0:
+    switch (titles[tabIndex]) {
+      case "Burslar":
         if (Get.isRegistered<ScholarshipsController>()) {
           Get.find<ScholarshipsController>().setSearchQuery('');
         }
         break;
-      case 6:
+      case "İş Bul":
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();

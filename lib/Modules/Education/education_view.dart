@@ -57,68 +57,62 @@ class EducationView extends StatelessWidget {
 
   final EducationController controller = Get.put(EducationController());
 
+  String _titleForIndex(int actualIndex) => controller.titles[actualIndex];
+
   void _focusGlobalSearch() {
     controller.isSearchMode.value = true;
     controller.searchFocus.requestFocus();
   }
 
   ScrollController? _activeScrollController() {
-    switch (controller.selectedTab.value) {
-      case 0:
+    switch (_titleForIndex(controller.selectedTab.value)) {
+      case "Burslar":
         return Get.isRegistered<ScholarshipsController>()
             ? Get.find<ScholarshipsController>().scrollController
             : null;
-      case 2:
-        return null;
-      case 3:
+      case "Online Sınav":
         return Get.isRegistered<DenemeSinavlariController>()
             ? Get.find<DenemeSinavlariController>().scrollController
             : null;
-      case 4:
+      case "Cevap Anahtarı":
         return Get.isRegistered<AnswerKeyController>()
             ? Get.find<AnswerKeyController>().scrollController
             : null;
-      case 5:
+      case "Özel Ders":
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollController
             : null;
-      case 6:
-        return null;
       default:
         return null;
     }
   }
 
   bool _showMenuByScrollOffset() {
-    switch (controller.selectedTab.value) {
-      case 0:
+    switch (_titleForIndex(controller.selectedTab.value)) {
+      case "Burslar":
         return Get.isRegistered<ScholarshipsController>()
             ? Get.find<ScholarshipsController>().scrollOffset.value <= 350
             : true;
-      case 2:
-        return true;
-      case 3:
+      case "Online Sınav":
         return Get.isRegistered<DenemeSinavlariController>()
             ? Get.find<DenemeSinavlariController>().scrollOffset.value <= 350
             : true;
-      case 4:
+      case "Cevap Anahtarı":
         return Get.isRegistered<AnswerKeyController>()
             ? Get.find<AnswerKeyController>().scrollOffset.value <= 350
             : true;
-      case 5:
+      case "Özel Ders":
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollOffset.value <= 350
             : true;
-      case 6:
-        return true;
       default:
         return true;
     }
   }
 
   List<PullDownMenuItem> _menuItemsForActiveTab(BuildContext context) {
-    switch (controller.selectedTab.value) {
-      case 0:
+    switch (_titleForIndex(controller.selectedTab.value)) {
+      case "Burslar":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -175,7 +169,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(PersonalizedView()),
           ),
         ];
-      case 1:
+      case "Soru Bankası":
         return [
           PullDownMenuItem(
             title: 'Ana Kategori Değiştir',
@@ -198,7 +192,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => ThenSolve()),
           ),
         ];
-      case 2:
+      case "Denemeler":
         return [
           PullDownMenuItem(
             icon: Icons.history,
@@ -216,7 +210,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case 3:
+      case "Online Sınav":
         return [
           PullDownMenuItem(
             icon: CupertinoIcons.search,
@@ -261,7 +255,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => const SavedPracticeExams()),
           ),
         ];
-      case 4:
+      case "Cevap Anahtarı":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -310,7 +304,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(OpticsAndBooksPublished()),
           ),
         ];
-      case 5:
+      case "Özel Ders":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -348,7 +342,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case 6:
+      case "İş Bul":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -545,38 +539,38 @@ class EducationView extends StatelessWidget {
                         itemBuilder: (context, visibleIndex) {
                           final actualIndex =
                               controller.actualIndexForVisible(visibleIndex);
-                          switch (actualIndex) {
-                            case 0:
+                          switch (_titleForIndex(actualIndex)) {
+                            case "Burslar":
                               return ScholarshipsView(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 1:
+                            case "Soru Bankası":
                               return AntremanView2(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 2:
+                            case "Denemeler":
                               return CikmisSorular(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 3:
+                            case "Online Sınav":
                               return DenemeSinavlari(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 4:
+                            case "Cevap Anahtarı":
                               return AnswerKey(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 5:
+                            case "Özel Ders":
                               return TutoringView(
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case 6:
+                            case "İş Bul":
                               return JobFinder(
                                 embedded: true,
                                 showEmbeddedControls: false,
@@ -618,10 +612,13 @@ class EducationView extends StatelessWidget {
                       child: ActionButton(
                         context: context,
                         menuItems: menuItems,
-                        permissionScope: switch (controller.selectedTab.value) {
-                          0 => ActionButtonPermissionScope.scholarships,
-                          3 => ActionButtonPermissionScope.practiceExams,
-                          6 => ActionButtonPermissionScope.jobFinder,
+                        permissionScope: switch (
+                          _titleForIndex(controller.selectedTab.value)
+                        ) {
+                          "Burslar" => ActionButtonPermissionScope.scholarships,
+                          "Online Sınav" =>
+                            ActionButtonPermissionScope.practiceExams,
+                          "İş Bul" => ActionButtonPermissionScope.jobFinder,
                           _ => ActionButtonPermissionScope.none,
                         },
                       ),
