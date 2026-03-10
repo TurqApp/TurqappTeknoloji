@@ -496,28 +496,53 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildUserInfo(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
+    final handle = _getUserHandle(userData);
     return GestureDetector(
       onTap: _getUserTapHandler(type, userData),
       child: Row(
         children: [
           _buildUserAvatar(type, userData, firmaData),
           6.pw,
-          Text(
-            _getUserDisplayName(type, userData, firmaData),
-            style: TextStyle(
-              fontSize: 15,
-              fontFamily: "MontserratBold",
-              color: Colors.black,
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    _getUserDisplayName(type, userData, firmaData),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontFamily: "MontserratBold",
+                      color: Colors.black,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
+                if (type == 'bireysel')
+                  RozetContent(
+                    size: 13,
+                    userID: userData?['userID']?.toString() ?? '',
+                  ),
+                if (handle != null) ...[
+                  4.pw,
+                  Flexible(
+                    child: Text(
+                      '@$handle',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontFamily: "Montserrat",
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
           ),
-          if (type == 'bireysel')
-            RozetContent(
-              size: 13,
-              userID: userData?['userID']?.toString() ?? '',
-            ),
         ],
       ),
     );
@@ -531,19 +556,19 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
             '')
         .toString();
     return CircleAvatar(
-      radius: 20,
+      radius: 15,
       child: imageUrl.isNotEmpty
           ? ClipOval(
               child: CachedNetworkImage(
                 imageUrl: imageUrl,
                 placeholder: (context, url) => CupertinoActivityIndicator(),
                 errorWidget: (context, url, error) => Icon(Icons.error),
-                width: 40,
-                height: 40,
+                width: 30,
+                height: 30,
                 fit: BoxFit.cover,
               ),
             )
-          : Icon(Icons.person, size: 24),
+          : Icon(Icons.person, size: 20),
     );
   }
 
@@ -570,16 +595,28 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   String _getUserDisplayName(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
-    // Her zaman nickname göster; yoksa fallback
-    final nick = (userData?['displayName'] ??
-            userData?['username'] ??
-            userData?['nickname'])
-        ?.toString();
-    if (nick != null && nick.isNotEmpty) return nick;
     final first = userData?['firstName']?.toString() ?? '';
     final last = userData?['lastName']?.toString() ?? '';
     final full = ('$first $last').trim();
-    return full.isNotEmpty ? full : 'Kullanıcı';
+    if (full.isNotEmpty) return full;
+    final nick = (userData?['displayName'] ??
+            userData?['nickname'] ??
+            userData?['username'])
+        ?.toString()
+        .trim();
+    return (nick != null && nick.isNotEmpty) ? nick : 'Kullanıcı';
+  }
+
+  String? _getUserHandle(Map<String, dynamic>? userData) {
+    final handle = (userData?['nickname'] ??
+            userData?['username'] ??
+            userData?['displayName'])
+        ?.toString()
+        .trim();
+    if (handle == null || handle.isEmpty) return null;
+    final displayName = _getUserDisplayName('bireysel', userData, null).trim();
+    if (displayName.toLowerCase() == handle.toLowerCase()) return null;
+    return handle.replaceFirst(RegExp(r'^@+'), '');
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
@@ -592,34 +629,37 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     return Obx(
       () {
         final isLoading = controller.followLoading[userId] ?? false;
-        return ScaleTap(
-          enabled: !isLoading,
-          onPressed: isLoading ? null : () => _handleFollowTap(userData),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: _getFollowButtonColor(userData),
-              border: Border.all(width: 1, color: Colors.black),
-              borderRadius: BorderRadius.circular(12),
+        return Transform.translate(
+          offset: const Offset(5, 0),
+          child: ScaleTap(
+            enabled: !isLoading,
+            onPressed: isLoading ? null : () => _handleFollowTap(userData),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getFollowButtonColor(userData),
+                border: Border.all(width: 1, color: Colors.black),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: isLoading
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            _getFollowButtonTextColor(userData)),
+                      ),
+                    )
+                  : Text(
+                      _getFollowButtonText(userData),
+                      style: TextStyle(
+                        color: _getFollowButtonTextColor(userData),
+                        fontSize: 12,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
             ),
-            child: isLoading
-                ? SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                          _getFollowButtonTextColor(userData)),
-                    ),
-                  )
-                : Text(
-                    _getFollowButtonText(userData),
-                    style: TextStyle(
-                      color: _getFollowButtonTextColor(userData),
-                      fontSize: 12,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
           ),
         );
       },
