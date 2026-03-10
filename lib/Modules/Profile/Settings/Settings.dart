@@ -26,6 +26,7 @@ import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_vie
 import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/pasaj_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -125,8 +126,8 @@ class SettingsView extends StatelessWidget {
                       buildRow("İzinler", CupertinoIcons.lock_shield, () {
                         Get.to(() => const PermissionsView());
                       }),
-                      buildRow("Eğitim", CupertinoIcons.nosign, () {
-                        controller.toggleEducationScreen();
+                      buildRow("Pasaj", CupertinoIcons.nosign, () {
+                        Get.to(() => PasajSettingsView());
                       }),
                       buildSectionTitle("Güvenlik ve Destek"),
                       buildRow("Hakkında", CupertinoIcons.info, () {
@@ -226,7 +227,7 @@ class SettingsView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            text == "Eğitim"
+            text == "Pasaj"
                 ? SvgPicture.asset(
                     "assets/icons/sinav.svg",
                     height: 25,
@@ -256,12 +257,6 @@ class SettingsView extends StatelessWidget {
                   fontFamily: "MontserratMedium",
                 ),
               )
-            else if (text == "Eğitim")
-              Obx(() {
-                return TurqAppToggle(
-                  isOn: controller.educationScreenIsOn.value,
-                );
-              })
             else if (text == "Hesap Gizliliği")
               // 🎯 Using CurrentUserService reactive
               Obx(() {

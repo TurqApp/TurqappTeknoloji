@@ -5,21 +5,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
+import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
 class EducationController extends GetxController {
-  static const List<String> allTitles = [
-    "Burslar",
-    "Soru Bankası",
-    "Denemeler",
-    "Online Sınav",
-    "Cevap Anahtarı",
-    "Özel Ders",
-    "İş Bul",
-  ];
-
   final searchController = TextEditingController();
   final searchFocus = FocusNode();
   final isSearchMode = false.obs;
@@ -29,12 +21,17 @@ class EducationController extends GetxController {
   final selectedTab = 0.obs;
   final pageController = PageController();
   final tabScrollController = ScrollController();
-  final visibleTabIndexes = List<int>.generate(allTitles.length, (i) => i).obs;
+  final visibleTabIndexes = List<int>.generate(pasajTabs.length, (i) => i).obs;
   final pasajConfigLoaded = false.obs;
   DateTime _lastNavToggleAt = DateTime.fromMillisecondsSinceEpoch(0);
+  final SettingsController settingsController =
+      Get.isRegistered<SettingsController>()
+          ? Get.find<SettingsController>()
+          : Get.put(SettingsController());
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _pasajConfigSub;
+  final Map<String, bool> _adminPasajVisibility = <String, bool>{};
 
-  List<String> get titles => allTitles;
+  List<String> get titles => pasajTabs;
 
   @override
   void onInit() {
@@ -51,6 +48,11 @@ class EducationController extends GetxController {
 
     // Arama metnini aktif sekmeye yönlendir
     ever(searchText, (_) => _forwardSearch());
+    ever<List<String>>(settingsController.pasajOrder, (_) => _recomputeVisibleTabs());
+    ever<Map<String, bool>>(
+      settingsController.pasajVisibility,
+      (_) => _recomputeVisibleTabs(),
+    );
     _bindPasajConfig();
   }
 
@@ -75,44 +77,64 @@ class EducationController extends GetxController {
         .listen(
       (snap) {
         final data = snap.data() ?? const <String, dynamic>{};
-        final nextVisible = <int>[];
-
+        _adminPasajVisibility.clear();
         for (var i = 0; i < titles.length; i++) {
-          final raw = data[titles[i]];
+          final title = titles[i];
+          final raw = data[title];
           final isVisible = raw is bool ? raw : true;
-          if (isVisible) nextVisible.add(i);
+          _adminPasajVisibility[title] = isVisible;
         }
-
-        visibleTabIndexes.assignAll(nextVisible);
         pasajConfigLoaded.value = true;
-
-        if (nextVisible.isEmpty) return;
-
-        if (!nextVisible.contains(selectedTab.value)) {
-          final firstActual = nextVisible.first;
-          selectedTab.value = firstActual;
-          final visibleIndex = 0;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (pageController.hasClients) {
-              pageController.jumpToPage(visibleIndex);
-            }
-          });
-          _restoreSearchForTab(firstActual);
-        } else {
-          final visibleIndex = visibleIndexForActual(selectedTab.value);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (pageController.hasClients &&
-                pageController.page?.round() != visibleIndex) {
-              pageController.jumpToPage(visibleIndex);
-            }
-          });
-        }
+        _recomputeVisibleTabs();
       },
       onError: (_) {
-        visibleTabIndexes.assignAll(List<int>.generate(titles.length, (i) => i));
+        _adminPasajVisibility
+          ..clear()
+          ..addEntries(titles.map((title) => MapEntry(title, true)));
         pasajConfigLoaded.value = true;
+        _recomputeVisibleTabs();
       },
     );
+  }
+
+  void _recomputeVisibleTabs() {
+    final storedOrder = settingsController.pasajOrder.toList(growable: false);
+    final orderedTitles = <String>[
+      ...storedOrder.where(titles.contains),
+      ...titles.where((title) => !storedOrder.contains(title)),
+    ];
+
+    final nextVisible = <int>[];
+    for (final title in orderedTitles) {
+      final adminVisible = _adminPasajVisibility[title] ?? true;
+      final localVisible = settingsController.pasajVisibility[title] ?? true;
+      if (adminVisible && localVisible) {
+        nextVisible.add(titles.indexOf(title));
+      }
+    }
+
+    visibleTabIndexes.assignAll(nextVisible);
+    if (nextVisible.isEmpty) return;
+
+    if (!nextVisible.contains(selectedTab.value)) {
+      final firstActual = nextVisible.first;
+      selectedTab.value = firstActual;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (pageController.hasClients) {
+          pageController.jumpToPage(0);
+        }
+      });
+      _restoreSearchForTab(firstActual);
+      return;
+    }
+
+    final visibleIndex = visibleIndexForActual(selectedTab.value);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pageController.hasClients &&
+          pageController.page?.round() != visibleIndex) {
+        pageController.jumpToPage(visibleIndex);
+      }
+    });
   }
 
   int actualIndexForVisible(int visibleIndex) {
