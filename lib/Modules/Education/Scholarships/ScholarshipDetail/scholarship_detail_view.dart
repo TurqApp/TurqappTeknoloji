@@ -225,7 +225,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "${model.baslik} 2025-2026 BURS BAŞVURULARI",
+                                "${model.baslik} BURS BAŞVURULARI",
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontFamily: "MontserratBold",

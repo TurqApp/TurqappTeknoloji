@@ -1017,6 +1017,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
                 fontSize: 13,
                 fontFamily: "Montserrat",
                 color: Colors.black,
+                decoration: TextDecoration.none,
               ),
             ),
           ),
