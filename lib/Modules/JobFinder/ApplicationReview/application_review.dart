@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
 
 class ApplicationReview extends StatelessWidget {
@@ -117,19 +118,22 @@ class ApplicationReview extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(25),
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: avatarUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: avatarUrl, fit: BoxFit.cover)
-                            : Container(
-                                color: Colors.grey.withAlpha(30),
-                                child: const Icon(CupertinoIcons.person_fill,
-                                    color: Colors.grey, size: 20),
-                              ),
+                    GestureDetector(
+                      onTap: () => Get.to(() => SocialProfile(userID: app.userID)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(25),
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: avatarUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: avatarUrl, fit: BoxFit.cover)
+                              : Container(
+                                  color: Colors.grey.withAlpha(30),
+                                  child: const Icon(CupertinoIcons.person_fill,
+                                      color: Colors.grey, size: 20),
+                                ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),

@@ -32,6 +32,15 @@ service cloud.firestore {
     function isAdmin() {
       return isAuth() && request.auth.token.admin == true;
     }
+    function isAllowlistedAdmin() {
+      return isAuth()
+        && exists(/databases/$(database)/documents/adminConfig/admin)
+        && get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds is list
+        && request.auth.uid in get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds;
+    }
+    function canManageAdminPanels() {
+      return isAdmin() || isAllowlistedAdmin();
+    }
     function isBlackBadge() {
       return isAuth()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -98,11 +107,8 @@ service cloud.firestore {
         );
     }
     function isAllowlistedPushSender() {
-      return isAuth()
-        && exists(/databases/$(database)/documents/adminConfig/admin)
-        && get(/databases/$(database)/documents/adminConfig/admin).data.pushSend == true
-        && get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds is list
-        && request.auth.uid in get(/databases/$(database)/documents/adminConfig/admin).data.allowedUserIds;
+      return canManageAdminPanels()
+        && get(/databases/$(database)/documents/adminConfig/admin).data.pushSend == true;
     }
     function canUseAdminPushBypass() {
       return isAdmin() || isAllowlistedPushSender();
@@ -1022,9 +1028,14 @@ service cloud.firestore {
         allow create: if isOwner(applicantId);
         allow update: if isAuth() && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/isBul/$(docId)).data.userID == request.auth.uid
+          || isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+          || canManageAdminPanels()
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isAuth() && (
+          request.auth.uid == applicantId
+          || isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+          || canManageAdminPanels()
+        );
       }
 
       match /Reviews/{reviewerId} {
@@ -1050,9 +1061,14 @@ service cloud.firestore {
         allow create: if isOwner(applicantId);
         allow update: if isAuth() && (
           request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/educators/$(docId)).data.userID == request.auth.uid
+          || isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+          || canManageAdminPanels()
         );
-        allow delete: if isOwner(applicantId);
+        allow delete: if isAuth() && (
+          request.auth.uid == applicantId
+          || isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+          || canManageAdminPanels()
+        );
       }
 
       match /Reviews/{reviewerId} {

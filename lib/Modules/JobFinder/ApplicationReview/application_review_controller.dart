@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 
@@ -93,29 +94,53 @@ class ApplicationReviewController extends GetxController {
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
+      final applicationRef = FirebaseFirestore.instance
+          .collection(JobCollection.name)
+          .doc(jobDocID)
+          .collection('Applications')
+          .doc(userID);
+      final userApplicationRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userID)
+          .collection('myApplications')
+          .doc(jobDocID);
+
+      final applicationSnap = await applicationRef.get();
+      if (!applicationSnap.exists) {
+        AppSnackbar('Hata', 'Başvuru kaydı bulunamadı.');
+        return;
+      }
+
+      final applicationData = applicationSnap.data() ?? const <String, dynamic>{};
 
       final batch = FirebaseFirestore.instance.batch();
 
-      batch.update(
-          FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID)
-              .collection('Applications')
-              .doc(userID),
-          {
-            'status': newStatus,
-            'statusUpdatedAt': now,
-          });
+      batch.set(
+        applicationRef,
+        {
+          'status': newStatus,
+          'statusUpdatedAt': now,
+        },
+        SetOptions(merge: true),
+      );
 
-      batch.update(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(userID)
-              .collection('myApplications')
-              .doc(jobDocID),
-          {
-            'status': newStatus,
-          });
+      batch.set(
+        userApplicationRef,
+        {
+          'timeStamp': applicationData['timeStamp'] ?? now,
+          'jobTitle': applicationData['jobTitle'] ?? '',
+          'companyName': applicationData['companyName'] ?? '',
+          'companyLogo': applicationData['companyLogo'] ?? '',
+          'status': newStatus,
+          'statusUpdatedAt': now,
+          'userID': userID,
+          'applicantName': applicationData['applicantName'] ?? '',
+          'applicantNickname': applicationData['applicantNickname'] ?? '',
+          'applicantPfImage': applicationData['applicantPfImage'] ?? '',
+          'note': applicationData['note'] ?? '',
+        },
+        SetOptions(merge: true),
+      );
 
       await batch.commit();
 
@@ -138,8 +163,10 @@ class ApplicationReviewController extends GetxController {
         );
         applicants.refresh();
       }
+      AppSnackbar('Başarılı', 'Başvuru durumu güncellendi.');
     } catch (e) {
       print("Durum güncelleme hatası: $e");
+      AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
     }
   }
 }
