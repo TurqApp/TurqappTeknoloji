@@ -483,29 +483,39 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          '${userData['firstName']} ${userData['lastName'] ?? ''}',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontFamily: "MontserratBold",
-                                          ),
-                                        ),
                                         Row(
                                           children: [
                                             GestureDetector(
-                                              onTap: userData['userID']
-                                                          ?.toString() !=
-                                                      FirebaseAuth.instance
-                                                          .currentUser?.uid
-                                                  ? () => Get.to(
-                                                        SocialProfile(
-                                                          userID: userData[
-                                                                      'userID']
-                                                                  ?.toString() ??
-                                                              '',
-                                                        ),
-                                                      )
-                                                  : null,
+                                              onTap: () async {
+                                                String urlString = model.website;
+
+                                                if (urlString.trim().isEmpty) {
+                                                  AppSnackbar(
+                                                    "Uyarı!",
+                                                    "Bu burs için bir başvuru bağlantısı bulunmamaktadır.",
+                                                  );
+                                                  return;
+                                                }
+
+                                                if (!urlString
+                                                        .startsWith('http://') &&
+                                                    !urlString.startsWith(
+                                                        'https://')) {
+                                                  urlString = 'https://$urlString';
+                                                }
+
+                                                final url =
+                                                    Uri.parse(urlString);
+
+                                                if (await canLaunchUrl(url)) {
+                                                  await launchUrl(url);
+                                                } else {
+                                                  AppSnackbar(
+                                                    "Hata!",
+                                                    "Web sitesi açılamadı. Lütfen geçerli bir URL girin.",
+                                                  );
+                                                }
+                                              },
                                               child: Text(
                                                 userNick,
                                                 style: TextStyle(
@@ -522,45 +532,12 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                             ),
                                           ],
                                         ),
-                                        GestureDetector(
-                                          onTap: () async {
-                                            String urlString = model.website;
-
-                                            // URL yoksa kullanıcıya bildir
-                                            if (urlString.trim().isEmpty) {
-                                              AppSnackbar(
-                                                "Uyarı!",
-                                                "Bu burs için bir başvuru bağlantısı bulunmamaktadır.",
-                                              );
-                                              return;
-                                            }
-
-                                            // Şema ekleme (http/https)
-                                            if (!urlString
-                                                    .startsWith('http://') &&
-                                                !urlString
-                                                    .startsWith('https://')) {
-                                              urlString = 'https://$urlString';
-                                            }
-
-                                            final url = Uri.parse(urlString);
-
-                                            if (await canLaunchUrl(url)) {
-                                              await launchUrl(url);
-                                            } else {
-                                              AppSnackbar(
-                                                "Hata!",
-                                                "Web sitesi açılamadı. Lütfen geçerli bir URL girin.",
-                                              );
-                                            }
-                                          },
-                                          child: Text(
-                                            'Web sitesini ziyaret et',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.black,
-                                              fontFamily: "Montserrat",
-                                            ),
+                                        Text(
+                                          'Web sitesini ziyaret et',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                            fontFamily: "Montserrat",
                                           ),
                                         ),
                                       ],
