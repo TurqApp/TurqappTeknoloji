@@ -496,53 +496,28 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   Widget _buildUserInfo(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
-    final handle = _getUserHandle(userData);
     return GestureDetector(
       onTap: _getUserTapHandler(type, userData),
       child: Row(
         children: [
           _buildUserAvatar(type, userData, firmaData),
           6.pw,
-          Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    _getUserDisplayName(type, userData, firmaData),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                      color: Colors.black,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                ),
-                if (type == 'bireysel')
-                  RozetContent(
-                    size: 13,
-                    userID: userData?['userID']?.toString() ?? '',
-                  ),
-                if (handle != null) ...[
-                  4.pw,
-                  Flexible(
-                    child: Text(
-                      '@$handle',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontFamily: "Montserrat",
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                    ),
-                  ),
-                ],
-              ],
+          Text(
+            _getUserDisplayName(type, userData, firmaData),
+            style: TextStyle(
+              fontSize: 15,
+              fontFamily: "MontserratBold",
+              color: Colors.black,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
+          if (type == 'bireysel')
+            RozetContent(
+              size: 13,
+              userID: userData?['userID']?.toString() ?? '',
+            ),
         ],
       ),
     );
@@ -595,28 +570,15 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   String _getUserDisplayName(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
+    final nick = (userData?['displayName'] ??
+            userData?['username'] ??
+            userData?['nickname'])
+        ?.toString();
+    if (nick != null && nick.isNotEmpty) return nick;
     final first = userData?['firstName']?.toString() ?? '';
     final last = userData?['lastName']?.toString() ?? '';
     final full = ('$first $last').trim();
-    if (full.isNotEmpty) return full;
-    final nick = (userData?['displayName'] ??
-            userData?['nickname'] ??
-            userData?['username'])
-        ?.toString()
-        .trim();
-    return (nick != null && nick.isNotEmpty) ? nick : 'Kullanıcı';
-  }
-
-  String? _getUserHandle(Map<String, dynamic>? userData) {
-    final handle = (userData?['nickname'] ??
-            userData?['username'] ??
-            userData?['displayName'])
-        ?.toString()
-        .trim();
-    if (handle == null || handle.isEmpty) return null;
-    final displayName = _getUserDisplayName('bireysel', userData, null).trim();
-    if (displayName.toLowerCase() == handle.toLowerCase()) return null;
-    return handle.replaceFirst(RegExp(r'^@+'), '');
+    return full.isNotEmpty ? full : 'Kullanıcı';
   }
 
   bool _shouldShowFollowButton(Map<String, dynamic>? userData) {
