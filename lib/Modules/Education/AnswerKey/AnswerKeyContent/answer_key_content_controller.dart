@@ -38,12 +38,25 @@ class AnswerKeyContentController extends GetxController {
 
   void _initialize() {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    if (currentUserId != null && model.kaydet.contains(currentUserId)) {
-      isBookmarked.value = true;
-    }
-
     _fetchUserData();
+    _loadBookmarkState(currentUserId);
     _updateViewCount(currentUserId);
+  }
+
+  Future<void> _loadBookmarkState(String? currentUserId) async {
+    if (currentUserId == null) return;
+
+    try {
+      final savedDoc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(currentUserId)
+          .collection("books")
+          .doc(model.docID)
+          .get();
+      isBookmarked.value = savedDoc.exists;
+    } catch (e) {
+      log("Kaydet durumu okunamadı: $e");
+    }
   }
 
   Future<void> _fetchUserData() async {
@@ -89,27 +102,22 @@ class AnswerKeyContentController extends GetxController {
     if (userId == null) return;
 
     try {
-      final docRef =
-          FirebaseFirestore.instance.collection('books').doc(model.docID);
+      final savedRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('books')
+          .doc(model.docID);
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final docSnapshot = await transaction.get(docRef);
+      if (isBookmarked.value) {
+        await savedRef.delete();
+        isBookmarked.value = false;
+        return;
+      }
 
-        if (!docSnapshot.exists) return;
-
-        final data = docSnapshot.data();
-        final favorites = List<String>.from(data?['kaydet'] ?? []);
-
-        if (favorites.contains(userId)) {
-          favorites.remove(userId);
-          isBookmarked.value = false;
-        } else {
-          favorites.add(userId);
-          isBookmarked.value = true;
-        }
-
-        transaction.update(docRef, {'kaydet': favorites});
+      await savedRef.set({
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
+      isBookmarked.value = true;
     } catch (e) {
       log("Yer işareti değiştirme hatası: $e");
     }

@@ -128,7 +128,6 @@ class CreateBookController extends GetxController {
       "baslik": baslikController.text,
       "cover": existingBook?.cover ?? "",
       "dil": "Türkçe",
-      "kaydet": existingBook?.kaydet ?? [],
       "sinavTuru": sinavTuru.value,
       "timeStamp":
           existingBook?.timeStamp ?? DateTime.now().millisecondsSinceEpoch,

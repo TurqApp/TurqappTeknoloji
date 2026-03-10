@@ -19,14 +19,20 @@ class SavedOpticalFormsController extends GetxController {
     try {
       list.clear();
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final snapshots = await FirebaseFirestore.instance
+      final savedSnapshots = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(uid)
           .collection("books")
-          .where("kaydet", arrayContains: uid)
-          .orderBy("timeStamp", descending: true)
+          .orderBy("createdAt", descending: true)
           .get();
 
-      for (var doc in snapshots.docs) {
-        list.add(BookletModel.fromMap(doc.data(), doc.id));
+      for (var savedDoc in savedSnapshots.docs) {
+        final bookDoc = await FirebaseFirestore.instance
+            .collection("books")
+            .doc(savedDoc.id)
+            .get();
+        if (!bookDoc.exists) continue;
+        list.add(BookletModel.fromMap(bookDoc.data() ?? {}, bookDoc.id));
       }
     } catch (e) {
       log("SavedOpticalFormsController.getData error: $e");
