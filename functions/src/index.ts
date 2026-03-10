@@ -46,6 +46,7 @@ export * from "./17_shortLinksIndex";
 export * from "./18_tutoringNotifications";
 export * from "./19_adsCenter";
 export * from "./20_moderationConfig";
+export * from "./22_badgeAdmin";
 
 // SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
 export const cleanupExpiredStories = functions.pubsub

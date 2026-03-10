@@ -23,6 +23,7 @@ import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
@@ -152,6 +153,11 @@ class SettingsView extends StatelessWidget {
                           "Yönetim / Moderasyon",
                           CupertinoIcons.flag_fill,
                           () => Get.to(() => const ModerationSettingsView()),
+                        ),
+                        buildRow(
+                          "Yönetim / Rozet Yönetimi",
+                          CupertinoIcons.checkmark_seal_fill,
+                          () => Get.to(() => const BadgeAdminView()),
                         ),
                         buildRow(
                           "Sistem ve Tanı Menüsü",
