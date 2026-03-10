@@ -287,7 +287,7 @@ class JobContent extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       EducationShareIconButton(
-                        onTap: () => shareService.shareJob(model),
+                        onTap: () => controller.shareJob(model),
                         size: 28,
                         iconSize: 16,
                       ),
