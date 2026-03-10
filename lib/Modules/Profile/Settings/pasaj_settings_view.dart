@@ -23,7 +23,7 @@ class PasajSettingsView extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.fromLTRB(15, 8, 15, 12),
               child: Text(
-                "Sekmeleri açıp kapatabilir, sağdaki yukarı ve aşağı oklarla sıralamayı değiştirebilirsin.",
+                "Sekmeleri açıp kapatabilir, sağdaki parmak ikonuyla sürükleyebilir veya oklarla sıralamayı değiştirebilirsin.",
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 14,
@@ -34,13 +34,16 @@ class PasajSettingsView extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 final tabs = controller.pasajOrder.toList(growable: false);
-                return ListView.builder(
+                return ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
                   padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
                   itemCount: tabs.length,
+                  onReorder: controller.reorderPasajTabs,
                   itemBuilder: (context, index) {
                     final title = tabs[index];
                     final isOn = controller.pasajVisibility[title] ?? true;
                     return Container(
+                      key: ValueKey('pasaj-$title'),
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -73,10 +76,13 @@ class PasajSettingsView extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Icon(
-                            Icons.touch_app,
-                            color: Colors.black38,
-                            size: 20,
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(
+                              Icons.touch_app,
+                              color: Colors.black38,
+                              size: 20,
+                            ),
                           ),
                           CupertinoSwitch(
                             value: isOn,
