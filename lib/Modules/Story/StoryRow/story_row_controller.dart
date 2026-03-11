@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import '../../../Core/Services/performance_service.dart';
+import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Services/current_user_service.dart';
@@ -138,7 +139,7 @@ class StoryRowController extends GetxController {
     unawaited(_initMiniCache());
     unawaited(_loadStoriesFromMiniCache());
     // Ensure profile changes (nickname/avatar) are reflected quickly.
-    unawaited(loadStories(silentLoad: true));
+    unawaited(loadStories(silentLoad: true, cacheFirst: true));
     // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
     _bindFollowingListener();
     // Arka planda tam listeyi genişlet (düşük öncelik)
@@ -164,10 +165,30 @@ class StoryRowController extends GetxController {
             stories: [], // Boş hikayelerle başla
           );
           users.add(myUser);
+          unawaited(_warmVisibleAvatarFiles(users, take: 6));
         }
       }
     } catch (e) {
       print("📚 AddMyUserImmediately error: $e");
+    }
+  }
+
+  Future<void> _warmVisibleAvatarFiles(
+    Iterable<StoryUserModel> source, {
+    int take = 12,
+  }) async {
+    final urls = source
+        .map((e) => e.avatarUrl.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .take(take)
+        .toList();
+    if (urls.isEmpty) return;
+
+    for (final url in urls) {
+      try {
+        await TurqImageCacheManager.instance.getSingleFile(url);
+      } catch (_) {}
     }
   }
 
@@ -326,7 +347,7 @@ class StoryRowController extends GetxController {
       Map<String, Map<String, dynamic>> userDataMap = {};
       userDataMap = await _userCache.getProfiles(
         userIds,
-        preferCache: false,
+        preferCache: true,
         cacheOnly: !ContentPolicy.isConnected,
       );
       final missingUserIds =
@@ -403,7 +424,7 @@ class StoryRowController extends GetxController {
         if (myStoryUser == null) {
           final data = await _userCache.getProfile(
             myUid,
-            preferCache: false,
+            preferCache: true,
             cacheOnly: !ContentPolicy.isConnected,
           );
           if (data != null) {
@@ -456,6 +477,7 @@ class StoryRowController extends GetxController {
         ...unseen,
         ...seen,
       ];
+      unawaited(_warmVisibleAvatarFiles(users));
       if (kDebugMode && myUid != null) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
         debugPrint(
@@ -563,6 +585,7 @@ class StoryRowController extends GetxController {
           .toList();
       if (loaded.isNotEmpty) {
         users.assignAll(loaded);
+        unawaited(_warmVisibleAvatarFiles(loaded));
       }
       _ensureMyUserPlaceholder();
     } catch (e) {

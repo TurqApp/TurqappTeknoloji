@@ -522,19 +522,51 @@ class ExploreController extends GetxController {
     final fromPool = await pool.loadPosts(
       IndexPoolKind.explore,
       limit: ContentPolicy.mobileWarmWindow,
-      allowStale: false,
+      allowStale: true,
     );
     if (fromPool.isEmpty) return;
+    final me = FirebaseAuth.instance.currentUser?.uid;
+    final profiles = await _userCache.getProfiles(
+      fromPool.map((e) => e.userID).toSet().toList(),
+      preferCache: true,
+      cacheOnly: true,
+    );
     final filtered = fromPool
         .where(_isEligibleExplorePost)
         .where((p) => p.deletedPost != true)
-        .toList();
+        .where((p) {
+      final profile = profiles[p.userID];
+      if (profile == null) return false;
+      final isPrivate = (profile['isPrivate'] ?? false) == true;
+      final isDeleted = (profile['isDeleted'] ?? false) == true;
+      final status = (profile['accountStatus'] ?? '').toString().toLowerCase();
+      final isDeactivated =
+          isDeleted || status == 'pending_deletion' || status == 'deleted';
+      if (isDeactivated) return false;
+      if (!isPrivate) return true;
+      final isMine = me != null && p.userID == me;
+      final follows = followingIDs.contains(p.userID);
+      return isMine || follows;
+    }).toList();
     if (filtered.isEmpty) return;
-    final valid =
-        _dedupeExplorePosts(await _validatePoolPostsAndPrune(filtered));
+    final valid = _dedupeExplorePosts(filtered);
     if (valid.isEmpty) return;
     explorePosts.assignAll(valid);
     _scheduleExplorePrefetchFromPosts(explorePosts);
+    unawaited(_cleanupExplorePoolFill(valid));
+  }
+
+  Future<void> _cleanupExplorePoolFill(List<PostsModel> shown) async {
+    try {
+      final valid =
+          _dedupeExplorePosts(await _validatePoolPostsAndPrune(shown));
+      if (valid.length == shown.length) return;
+      final validIds = valid.map((e) => e.docID).toSet();
+      final shownIds = shown.map((e) => e.docID).toSet();
+      explorePosts.removeWhere(
+        (p) => shownIds.contains(p.docID) && !validIds.contains(p.docID),
+      );
+    } catch (_) {}
   }
 
   Future<void> _saveExplorePostsToPool(List<PostsModel> posts) async {

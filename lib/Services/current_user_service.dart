@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 
 import '../Models/current_user_model.dart';
@@ -327,6 +328,7 @@ class CurrentUserService extends GetxController {
       _currentUser = user;
       currentUserRx.value = user;
       _userStreamController.add(user);
+      unawaited(_warmAvatar(user));
 
       print('✅ User loaded from cache: ${user.nickname}');
       return true;
@@ -728,7 +730,16 @@ class CurrentUserService extends GetxController {
     _currentUser = user;
     currentUserRx.value = user;
     _userStreamController.add(user);
+    unawaited(_warmAvatar(user));
     await _saveToCache(user);
+  }
+
+  Future<void> _warmAvatar(CurrentUserModel? user) async {
+    final url = (user?.avatarUrl ?? '').trim();
+    if (url.isEmpty) return;
+    try {
+      await TurqImageCacheManager.instance.getSingleFile(url);
+    } catch (_) {}
   }
 
   /// Update specific fields (optimistic update)

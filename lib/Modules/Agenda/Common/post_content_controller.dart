@@ -21,6 +21,7 @@ import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_delete_service.dart';
 import '../../../Services/post_interaction_service.dart';
 import '../../../Core/Services/admin_access_service.dart';
+import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Core/Utils/avatar_url.dart';
 
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
@@ -881,13 +882,17 @@ class PostContentController extends GetxController {
       return;
     }
 
-    // 1) Firestore local cache (anında) - varsa burada bitir.
+    final userProfileService = Get.isRegistered<UserProfileCacheService>()
+        ? Get.find<UserProfileCacheService>()
+        : Get.put(UserProfileCacheService(), permanent: true);
+
+    // 1) Merkezi profile cache -> Firestore cache -> server zinciri
     try {
-      final cachedDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.cache));
-      if (applyFromMap(cachedDoc.data(), uid: userID)) {
+      final cachedProfile = await userProfileService.getProfile(
+        userID,
+        preferCache: true,
+      );
+      if (applyFromMap(cachedProfile, uid: userID)) {
         return;
       }
     } catch (_) {}

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as fs;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -17,11 +17,11 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
-import 'package:turqappv2/Modules/Maintenance/maintenance_view.dart';
+import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:flutter/foundation.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../Modules/Agenda/agenda_controller.dart';
@@ -40,9 +40,11 @@ import '../../Services/current_user_service.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
+import '../../Core/Services/turq_image_cache_manager.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Core/Services/mandatory_follow_service.dart';
+import '../../Core/Slider/slider_catalog.dart';
 import '../../Services/offline_mode_service.dart';
 import '../../Core/Services/deep_link_service.dart';
 import '../../main.dart';
@@ -58,6 +60,8 @@ class _SplashViewState extends State<SplashView> {
   static const Duration _syncStartupMaxWait = Duration(milliseconds: 900);
   static const Duration _syncMinSplashDuration = Duration(milliseconds: 120);
   static const Duration _syncMinLaunchToNavDuration = Duration.zero;
+  static const Duration _introRevealDuration = Duration(seconds: 2);
+  static const String _splashWord = 'TurqApp';
   static const int _minFeedPostsForNav = 3;
   static const int _minStoryUsersForNav = 1;
   static const int _minShortsForNav = 1;
@@ -65,13 +69,26 @@ class _SplashViewState extends State<SplashView> {
   bool _minimumStartupPrepared = false;
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
-  Timer? _uiTickTimer;
   Timer? _startupWatchdogTimer;
+  Timer? _typingTimer;
+  Timer? _cursorTimer;
   bool _didNavigate = false;
+  bool _navigationScheduled = false;
+  int _typedLength = 0;
+  bool _showCursor = true;
+  late final Duration _remainingIntroBudget;
 
   @override
   void initState() {
     super.initState();
+    final elapsedSinceLaunch = Duration(
+      milliseconds: DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+    );
+    final remainingMs = (_introRevealDuration.inMilliseconds -
+            elapsedSinceLaunch.inMilliseconds)
+        .clamp(0, _introRevealDuration.inMilliseconds);
+    _remainingIntroBudget = Duration(milliseconds: remainingMs);
+    _startTypewriter();
 
     final splashInitDelta =
         DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
@@ -105,10 +122,6 @@ class _SplashViewState extends State<SplashView> {
         });
       }
     });
-
-    _uiTickTimer = Timer.periodic(const Duration(milliseconds: 240), (_) {
-      if (mounted) setState(() {});
-    });
   }
 
   Future<void> _initApp() async {
@@ -124,21 +137,11 @@ class _SplashViewState extends State<SplashView> {
       ]);
 
       // ⚡ Kalan işleri paralel başlat — en yavaş olan süreyi belirler
-      bool shouldLockApp = false;
       late final bool isFirstLaunch;
       final userService = CurrentUserService.instance;
       Get.put(userService);
 
       if (Platform.isIOS) {
-        // iOS'ta nav öncesi bloklamayı azalt:
-        // lock check + user init arka planda yürüsün.
-        unawaited(_checkLockApp(prefs: prefs).then((v) async {
-          if (!mounted) return;
-          if (v) {
-            _didNavigate = true;
-            Get.offAll(() => const MaintenanceView());
-          }
-        }));
         isFirstLaunch = await _handleFirstLaunchAuthCleanup(prefs: prefs)
             .timeout(const Duration(milliseconds: 350), onTimeout: () => false);
         unawaited(userService.initialize());
@@ -146,17 +149,8 @@ class _SplashViewState extends State<SplashView> {
         await Future.wait([
           _handleFirstLaunchAuthCleanup(prefs: prefs)
               .then((v) => isFirstLaunch = v),
-          _checkLockApp(prefs: prefs).then((v) => shouldLockApp = v),
           userService.initialize(), // Cache'den ~10ms, sync arka planda
         ]);
-      }
-
-      // 🔥 Bakım modu kontrolü
-      if (shouldLockApp) {
-        if (!mounted) return;
-        _didNavigate = true;
-        Get.offAll(() => const MaintenanceView());
-        return;
       }
 
       // GetX bağımlılıklarını hazırla
@@ -197,8 +191,19 @@ class _SplashViewState extends State<SplashView> {
     _navigateToPrimaryRoute();
   }
 
-  void _navigateToPrimaryRoute() {
+  Future<void> _navigateToPrimaryRoute() async {
+    if (!mounted || _didNavigate || _navigationScheduled) return;
+    _navigationScheduled = true;
+
+    final elapsed = Duration(
+      milliseconds: DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+    );
+    final remaining = _introRevealDuration - elapsed;
+    if (remaining > Duration.zero) {
+      await Future.delayed(remaining);
+    }
     if (!mounted || _didNavigate) return;
+
     bool loggedIn = false;
     try {
       loggedIn = FirebaseAuth.instance.currentUser != null;
@@ -446,13 +451,27 @@ class _SplashViewState extends State<SplashView> {
         })(),
       ]);
 
-      // Açılışta profil isim/avatar geç gelmesin: hafif metadata + avatar warmup.
-      unawaited(_warmUserMetaAndAvatars(
+      // Açılışta profil isim/avatar geç gelmesin: feed'e düşmeden önce
+      // merkezi profile cache ve disk image cache'i ısıt.
+      await _warmUserMetaAndAvatars(
         agendaController: agendaController,
         storyController: storyController,
         recommendedController: recommended,
         onWiFi: onWiFi,
-      ));
+      ).timeout(
+        Duration(milliseconds: onWiFi ? 900 : 500),
+        onTimeout: () {},
+      );
+      await Future.wait([
+        _warmProfileCacheSurfaces(onWiFi: onWiFi).timeout(
+          Duration(milliseconds: onWiFi ? 900 : 500),
+          onTimeout: () {},
+        ),
+        _warmSliderCaches(onWiFi: onWiFi).timeout(
+          Duration(milliseconds: onWiFi ? 1200 : 650),
+          onTimeout: () {},
+        ),
+      ]);
     } catch (_) {}
   }
 
@@ -642,13 +661,21 @@ class _SplashViewState extends State<SplashView> {
   }) async {
     try {
       final Set<String> userIds = {};
+      final currentUser = CurrentUserService.instance.currentUserRx.value;
+      final currentUid = currentUser?.userID.trim() ?? '';
+      if (currentUid.isNotEmpty) {
+        userIds.add(currentUid);
+      }
 
-      final int feedTake = onWiFi ? 20 : 10;
-      final int storyTake = onWiFi ? 20 : 10;
-      final int recommendedTake = onWiFi ? 20 : 10;
+      final int feedTake = onWiFi ? 28 : 14;
+      final int storyTake = onWiFi ? 18 : 10;
+      final int recommendedTake = onWiFi ? 18 : 10;
 
       for (final post in agendaController.agendaList.take(feedTake)) {
         userIds.add(post.userID);
+        if (post.originalUserID.isNotEmpty) {
+          userIds.add(post.originalUserID);
+        }
       }
       for (final user in storyController.users.take(storyTake)) {
         userIds.add(user.userID);
@@ -659,30 +686,182 @@ class _SplashViewState extends State<SplashView> {
 
       if (userIds.isEmpty) return;
 
-      final ids = userIds.toList();
-      final avatarUrls = <String>[];
-      for (int i = 0; i < ids.length; i += 10) {
-        final chunk =
-            ids.sublist(i, (i + 10 > ids.length) ? ids.length : i + 10);
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
+      final userCache = Get.isRegistered<UserProfileCacheService>()
+          ? Get.find<UserProfileCacheService>()
+          : Get.put(UserProfileCacheService(), permanent: true);
+      final profiles = await userCache.getProfiles(
+        userIds.toList(),
+        preferCache: true,
+      );
 
-        for (final doc in snap.docs) {
-          final pf = (doc.data()['avatarUrl'] ?? '').toString();
-          if (pf.isNotEmpty) avatarUrls.add(pf);
-        }
+      final avatarUrls = <String>[];
+      for (final uid in userIds) {
+        final url = (profiles[uid]?['avatarUrl'] ?? '').toString().trim();
+        if (url.isNotEmpty) avatarUrls.add(url);
       }
 
-      final int warmCount = onWiFi ? 30 : 8;
+      final int warmCount = onWiFi ? 36 : 12;
       for (final url in avatarUrls.take(warmCount)) {
         try {
-          final provider = CachedNetworkImageProvider(url);
+          await TurqImageCacheManager.instance.getSingleFile(url);
+          final provider = CachedNetworkImageProvider(
+            url,
+            cacheManager: TurqImageCacheManager.instance,
+          );
           if (mounted) {
             await precacheImage(provider, context);
           }
         } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmProfileCacheSurfaces({required bool onWiFi}) async {
+    try {
+      final currentUser = CurrentUserService.instance.currentUserRx.value;
+      final uid = currentUser?.userID.trim() ?? '';
+      if (uid.isEmpty) return;
+
+      final urls = <String>{};
+      final avatarUrl = CurrentUserService.instance.avatarUrl.trim();
+      if (avatarUrl.isNotEmpty) {
+        urls.add(avatarUrl);
+        try {
+          await TurqImageCacheManager.instance.getSingleFile(avatarUrl);
+          if (mounted) {
+            await precacheImage(
+              CachedNetworkImageProvider(
+                avatarUrl,
+                cacheManager: TurqImageCacheManager.instance,
+              ),
+              context,
+            );
+          }
+        } catch (_) {}
+      }
+
+      final cache = ProfilePostsCacheService();
+      final buckets = await Future.wait([
+        cache.readBucket(uid: uid, bucket: 'all'),
+        cache.readBucket(uid: uid, bucket: 'photos'),
+        cache.readBucket(uid: uid, bucket: 'videos'),
+        cache.readBucket(uid: uid, bucket: 'scheduled'),
+      ]);
+
+      for (final bucket in buckets) {
+        for (final post in bucket.take(onWiFi ? 18 : 10)) {
+          if (post.thumbnail.trim().isNotEmpty) {
+            urls.add(post.thumbnail.trim());
+          }
+          for (final img in post.img.take(2)) {
+            final normalized = img.trim();
+            if (normalized.isNotEmpty) {
+              urls.add(normalized);
+            }
+          }
+        }
+      }
+
+      for (final url
+          in urls.where((e) => e.isNotEmpty).take(onWiFi ? 40 : 20)) {
+        try {
+          await TurqImageCacheManager.instance.getSingleFile(url);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmSliderCaches({required bool onWiFi}) async {
+    try {
+      const sliderIds = <String>[
+        'is_bul',
+        'online_sinav',
+        'cevap_anahtari',
+        'ozel_ders',
+        'denemeler',
+      ];
+      final cache = SliderCacheService();
+
+      for (final sliderId in sliderIds) {
+        final snapshot = await cache.readSnapshot(sliderId);
+        if (snapshot.hasItems) {
+          for (final url in snapshot.items
+              .where((e) => e.startsWith('http'))
+              .take(onWiFi ? 8 : 4)) {
+            try {
+              await TurqImageCacheManager.instance.getSingleFile(url);
+            } catch (_) {}
+          }
+          if (snapshot.isFresh) {
+            continue;
+          }
+        }
+
+        final sliderRef =
+            fs.FirebaseFirestore.instance.collection('sliders').doc(sliderId);
+        final results = await Future.wait([
+          sliderRef.get(
+            const fs.GetOptions(source: fs.Source.serverAndCache),
+          ),
+          sliderRef
+              .collection('items')
+              .orderBy('order')
+              .get(const fs.GetOptions(source: fs.Source.serverAndCache)),
+        ]);
+
+        final metaSnapshot =
+            results[0] as fs.DocumentSnapshot<Map<String, dynamic>>;
+        final itemsSnapshot =
+            results[1] as fs.QuerySnapshot<Map<String, dynamic>>;
+
+        final hiddenDefaults =
+            ((metaSnapshot.data()?['hiddenDefaults'] as List<dynamic>?) ??
+                    const <dynamic>[])
+                .map((e) => e is num ? e.toInt() : -1)
+                .where((e) => e >= 0)
+                .toSet();
+
+        final defaults = SliderCatalog.defaultImagesFor(sliderId);
+        final resolved = <String>[];
+        final remoteByOrder = <int, String>{};
+        final extras = <String>[];
+
+        for (final doc in itemsSnapshot.docs) {
+          final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
+          final url = (doc.data()['imageUrl'] ?? '').toString().trim();
+          if (url.isEmpty) continue;
+          if (order < defaults.length) {
+            remoteByOrder[order] = url;
+          } else {
+            extras.add(url);
+          }
+        }
+
+        for (var i = 0; i < defaults.length; i++) {
+          if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
+            continue;
+          }
+          final remote = remoteByOrder[i];
+          if (remote != null && remote.isNotEmpty) {
+            resolved.add(remote);
+            continue;
+          }
+          final fallback = defaults[i];
+          if (fallback.isNotEmpty) {
+            resolved.add(fallback);
+          }
+        }
+        resolved.addAll(extras);
+
+        if (resolved.isEmpty) continue;
+        await cache.writeResolvedSources(sliderId, resolved);
+        for (final url in resolved
+            .where((e) => e.startsWith('http'))
+            .take(onWiFi ? 8 : 4)) {
+          try {
+            await TurqImageCacheManager.instance.getSingleFile(url);
+          } catch (_) {}
+        }
       }
     } catch (_) {}
   }
@@ -756,249 +935,98 @@ class _SplashViewState extends State<SplashView> {
     }
   }
 
-  /// 🔥 Early lockApp check - Debug/TestFlight bypass + cache
-  /// Returns `true` when app should be locked (show maintenance).
-  Future<bool> _checkLockApp({required SharedPreferences prefs}) async {
-    try {
-      if (kDebugMode) return false;
-
-      // Cache'den hızlı karar — PackageInfo platform channel çağrısından ÖNCE kontrol et
-      final cachedLock = prefs.getBool('lockApp_cached');
-      final cachedTime = prefs.getInt('lockApp_timestamp') ?? 0;
-      final age = DateTime.now().millisecondsSinceEpoch - cachedTime;
-      final cacheValid = age < const Duration(hours: 1).inMilliseconds;
-
-      if (cachedLock != null && cacheValid) {
-        // Arka planda Firestore'dan güncelle
-        unawaited(_refreshLockAppCache(prefs));
-        // Kalıcı güvenlik: cache'teki true tek başına lock tetiklemesin.
-        // Yalnızca sunucu doğrularsa bakım ekranı aç.
-        if (!cachedLock) return false;
-        try {
-          final doc = await _getLockConfigDoc().timeout(const Duration(
-            seconds: 2,
-          ));
-          final bool confirmedLock = _readLockApp(doc);
-          await _saveLockAppCache(prefs, confirmedLock);
-          return confirmedLock;
-        } catch (_) {
-          await _saveLockAppCache(prefs, false);
-          return false;
-        }
-      }
-
-      // Cache yoksa TestFlight kontrolü yap (PackageInfo platform channel çağrısı)
-      final PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      final bool isTestFlight = packageInfo.packageName.contains(".beta") ||
-          packageInfo.packageName.contains("TestFlight") ||
-          packageInfo.buildSignature.contains("TestFlight");
-      if (isTestFlight) return false;
-
-      // Cache yok veya eski — Firestore'dan çek (timeout ile)
-      final doc = await _getLockConfigDoc().timeout(const Duration(seconds: 3),
-          onTimeout: () {
-        throw TimeoutException('lockApp timeout');
-      });
-
-      final bool lockApp = _readLockApp(doc);
-      await _saveLockAppCache(prefs, lockApp);
-      return lockApp;
-    } on TimeoutException {
-      // Kalıcı fail-open: timeout durumunda kullanıcıyı yanlışlıkla kilitleme.
-      await _saveLockAppCache(prefs, false);
-      return false;
-    } catch (e) {
-      print("❌ lockApp kontrolü hatası: $e");
-      // Permission/network errors should not lock real users out.
-      await _saveLockAppCache(prefs, false);
-      return false;
-    }
-  }
-
-  Future<void> _refreshLockAppCache(SharedPreferences prefs) async {
-    try {
-      final doc = await _getLockConfigDoc();
-      final bool lockApp = _readLockApp(doc);
-      await _saveLockAppCache(prefs, lockApp);
-    } catch (_) {}
-  }
-
-  bool _readLockApp(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
-    final raw = data?['lockApp'];
-    if (raw is bool) return raw;
-    if (raw is num) return raw != 0;
-    if (raw is String) {
-      final v = raw.trim().toLowerCase();
-      return v == 'true' || v == '1' || v == 'yes' || v == 'on';
-    }
-    // Alan eksik/bozuk ise güvenli varsayılan: uygulamayı kilitleme.
-    return false;
-  }
-
-  Future<void> _saveLockAppCache(SharedPreferences prefs, bool lockApp) async {
-    await prefs.setBool('lockApp_cached', lockApp);
-    await prefs.setInt(
-        'lockApp_timestamp', DateTime.now().millisecondsSinceEpoch);
-  }
-
-  Future<DocumentSnapshot<Map<String, dynamic>>> _getLockConfigDoc() async {
-    return FirebaseFirestore.instance
-        .collection("adminConfig")
-        .doc("service")
-        .get();
-  }
-
   @override
   void dispose() {
-    _uiTickTimer?.cancel();
     _startupWatchdogTimer?.cancel();
+    _typingTimer?.cancel();
+    _cursorTimer?.cancel();
     super.dispose();
+  }
+
+  void _startTypewriter() {
+    if (_remainingIntroBudget <= Duration.zero) {
+      _typedLength = _splashWord.length;
+      _showCursor = false;
+      return;
+    }
+
+    _typedLength = 1;
+    final remainingChars =
+        (_splashWord.length - 1).clamp(0, _splashWord.length);
+    if (remainingChars == 0) {
+      _showCursor = false;
+      return;
+    }
+
+    final stepMs = (_remainingIntroBudget.inMilliseconds / _splashWord.length)
+        .round()
+        .clamp(1, 1000);
+
+    _typingTimer = Timer.periodic(Duration(milliseconds: stepMs), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_typedLength >= _splashWord.length) {
+        _showCursor = false;
+        timer.cancel();
+        setState(() {});
+        return;
+      }
+      setState(() {
+        _typedLength += 1;
+      });
+    });
+
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 220), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_typedLength >= _splashWord.length) {
+        _showCursor = false;
+        timer.cancel();
+        setState(() {});
+        return;
+      }
+      setState(() {
+        _showCursor = !_showCursor;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final cacheReady = _globalCacheProxyReady;
-    final feedReady = _isFeedReady();
-    final shortsReady = _isShortsReady();
-    final storyReady = _isStoryReady();
-    final readyCount = [
-      cacheReady,
-      feedReady,
-      shortsReady,
-      storyReady,
-    ].where((v) => v).length;
-    final progress = readyCount / 4.0;
-
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFF8FCFF),
-                  Color(0xFFEFF7FF),
-                  Color(0xFFF6FBF4),
-                ],
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _splashWord.substring(
+                  0, _typedLength.clamp(0, _splashWord.length)),
+              style: const TextStyle(
+                fontFamily: 'Noe',
+                fontSize: 100,
+                letterSpacing: 1.2,
+                color: Colors.white,
               ),
             ),
-          ),
-          Positioned(
-            top: -80,
-            right: -60,
-            child: Container(
-              width: (MediaQuery.of(context).size.width * 0.56)
-                  .clamp(180.0, 220.0),
-              height: (MediaQuery.of(context).size.width * 0.56)
-                  .clamp(180.0, 220.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7BC6FF).withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            const SizedBox(width: 6),
+            AnimatedOpacity(
+              opacity: _showCursor ? 1 : 0,
+              duration: const Duration(milliseconds: 120),
+              child: Container(
+                width: 3,
+                height: 84,
+                color: Colors.white,
               ),
             ),
-          ),
-          Positioned(
-            bottom: -90,
-            left: -70,
-            child: Container(
-              width: (MediaQuery.of(context).size.width * 0.62)
-                  .clamp(190.0, 240.0),
-              height: (MediaQuery.of(context).size.width * 0.62)
-                  .clamp(190.0, 240.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7FD8A6).withValues(alpha: 0.10),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.96, end: 1.0),
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeOut,
-                    builder: (context, value, child) {
-                      return Transform.scale(scale: value, child: child);
-                    },
-                    child: const Text(
-                      'TurqApp',
-                      style: TextStyle(
-                        fontFamily: 'MontserratBold',
-                        fontSize: 38,
-                        letterSpacing: 1.2,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    progress >= 0.99
-                        ? 'Hazır'
-                        : 'İlk içerikler hazırlanıyor...',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      minHeight: 8,
-                      value: progress == 0 ? null : progress.clamp(0.0, 1.0),
-                      backgroundColor: Colors.black12,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF00A86B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _statusRow('Feed', feedReady),
-                  const SizedBox(height: 8),
-                  _statusRow('Shorts', shortsReady),
-                  const SizedBox(height: 8),
-                  _statusRow('Cache', cacheReady),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _statusRow(String label, bool ready) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: ready ? const Color(0xFF00A86B) : Colors.black26,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: ready ? Colors.black87 : Colors.black45,
-            fontFamily: 'MontserratMedium',
-          ),
-        ),
-      ],
     );
   }
 }

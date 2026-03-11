@@ -11,6 +11,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -106,6 +107,11 @@ void _handleAppBackgroundTransition() {
   try {
     if (Get.isRegistered<VideoStateManager>()) {
       Get.find<VideoStateManager>().pauseAllVideos(force: true);
+    }
+  } catch (_) {}
+  try {
+    if (Get.isRegistered<AgendaController>()) {
+      unawaited(Get.find<AgendaController>().persistWarmLaunchCache());
     }
   } catch (_) {}
   try {

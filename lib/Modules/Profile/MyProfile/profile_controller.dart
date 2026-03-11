@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Models/posts_model.dart';
@@ -175,6 +176,41 @@ class ProfileController extends GetxController {
     if (loadedVideos.isNotEmpty) videos.assignAll(loadedVideos);
     if (loadedReshares.isNotEmpty) reshares.assignAll(loadedReshares);
     if (loadedScheduled.isNotEmpty) scheduledPosts.assignAll(loadedScheduled);
+    unawaited(_warmProfileSurfaceCache());
+  }
+
+  Future<void> _warmProfileSurfaceCache() async {
+    final urls = <String>{
+      userService.avatarUrl,
+    };
+
+    void collectFrom(Iterable<PostsModel> posts) {
+      for (final post in posts.take(18)) {
+        if (post.thumbnail.trim().isNotEmpty) {
+          urls.add(post.thumbnail.trim());
+        }
+        if (post.authorAvatarUrl.trim().isNotEmpty) {
+          urls.add(post.authorAvatarUrl.trim());
+        }
+        for (final img in post.img.take(2)) {
+          final normalized = img.trim();
+          if (normalized.isNotEmpty) {
+            urls.add(normalized);
+          }
+        }
+      }
+    }
+
+    collectFrom(allPosts);
+    collectFrom(photos);
+    collectFrom(videos);
+    collectFrom(scheduledPosts);
+
+    for (final url in urls.where((e) => e.isNotEmpty).take(32)) {
+      try {
+        await TurqImageCacheManager.instance.getSingleFile(url);
+      } catch (_) {}
+    }
   }
 
   void _clearInMemoryPostLists() {
@@ -409,9 +445,11 @@ class ProfileController extends GetxController {
           // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
         } else {
           allPosts.assignAll(filtered);
+          unawaited(_warmProfileSurfaceCache());
         }
       } else {
         allPosts.addAll(filtered);
+        unawaited(_warmProfileSurfaceCache());
       }
 
       if (snapshot.docs.isNotEmpty) {
@@ -469,9 +507,11 @@ class ProfileController extends GetxController {
           // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
         } else {
           photos.assignAll(filtered);
+          unawaited(_warmProfileSurfaceCache());
         }
       } else {
         photos.addAll(filtered);
+        unawaited(_warmProfileSurfaceCache());
       }
 
       if (snapshot.docs.isNotEmpty) {
@@ -552,9 +592,11 @@ class ProfileController extends GetxController {
           // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
         } else {
           videos.assignAll(filtered);
+          unawaited(_warmProfileSurfaceCache());
         }
       } else {
         videos.addAll(filtered);
+        unawaited(_warmProfileSurfaceCache());
       }
 
       if (snapshot.docs.isNotEmpty) {
@@ -603,9 +645,11 @@ class ProfileController extends GetxController {
           // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
         } else {
           scheduledPosts.assignAll(newPosts);
+          unawaited(_warmProfileSurfaceCache());
         }
       } else {
         scheduledPosts.addAll(newPosts);
+        unawaited(_warmProfileSurfaceCache());
       }
 
       if (snapshot.docs.isNotEmpty) {

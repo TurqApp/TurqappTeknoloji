@@ -973,7 +973,7 @@ class SignInController extends GetxController
         return true;
       }
       AppSnackbar("Giriş Başarısız",
-          "Sistemlerimizde planlı bir bakım çalışması gerçekleştirilmektedir. Lütfen daha sonra tekrar deneyiniz. Anlayışınız için teşekkür ederiz. (-2)");
+          "Giriş sırasında beklenmeyen bir hata oluştu. Lütfen tekrar deneyin. (-2)");
       return false;
     }
   }

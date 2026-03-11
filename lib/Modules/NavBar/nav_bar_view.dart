@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'dart:math' as math;
 import 'nav_bar_controller.dart';
@@ -311,10 +313,10 @@ class NavBarView extends StatelessWidget {
                                       }
                                     } else {
                                       // Short ikonuna tıklandığında background preload başlat
-                                      final shortController = Get
-                                              .isRegistered<ShortController>()
-                                          ? Get.find<ShortController>()
-                                          : Get.put(ShortController());
+                                      final shortController =
+                                          Get.isRegistered<ShortController>()
+                                              ? Get.find<ShortController>()
+                                              : Get.put(ShortController());
 
                                       // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
                                       shortController
@@ -425,8 +427,12 @@ class _AvatarWithRingState extends State<_AvatarWithRing> {
     final avatar = CircleAvatar(
       radius: widget.size / 2,
       backgroundColor: Colors.transparent,
-      backgroundImage:
-          widget.imageUrl.isNotEmpty ? NetworkImage(widget.imageUrl) : null,
+      backgroundImage: widget.imageUrl.isNotEmpty
+          ? CachedNetworkImageProvider(
+              widget.imageUrl,
+              cacheManager: TurqImageCacheManager.instance,
+            )
+          : null,
       child: widget.imageUrl.isEmpty
           ? Icon(Icons.person,
               size: widget.size * 0.7,

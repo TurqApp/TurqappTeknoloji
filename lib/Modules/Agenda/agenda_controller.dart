@@ -11,6 +11,7 @@ import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
+import '../../Core/Services/user_profile_cache_service.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
 import '../../Services/current_user_service.dart';
@@ -19,6 +20,10 @@ enum FeedViewMode { forYou, following, city }
 
 class AgendaController extends GetxController {
   final scrollController = ScrollController();
+  UserProfileCacheService get _profileCache =>
+      Get.isRegistered<UserProfileCacheService>()
+          ? Get.find<UserProfileCacheService>()
+          : Get.put(UserProfileCacheService(), permanent: true);
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
@@ -325,6 +330,7 @@ class AgendaController extends GetxController {
   void onClose() {
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
+    unawaited(persistWarmLaunchCache());
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
     super.onClose();
@@ -519,11 +525,11 @@ class AgendaController extends GetxController {
       return _userPrivacyCache[userID]!;
     }
     try {
-      final d = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      final data = d.data();
+      final data = await _profileCache.getProfile(
+        userID,
+        preferCache: true,
+        cacheOnly: !ContentPolicy.isConnected,
+      );
       final gizli = (data?['isPrivate'] ?? false) == true;
       _userDeactivatedCache[userID] = _isUserMarkedDeactivated(data);
       _userPrivacyCache[userID] = gizli;
@@ -549,11 +555,11 @@ class AgendaController extends GetxController {
       return _userDeactivatedCache[userID]!;
     }
     try {
-      final d = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      final data = d.data();
+      final data = await _profileCache.getProfile(
+        userID,
+        preferCache: true,
+        cacheOnly: !ContentPolicy.isConnected,
+      );
       final deactivated = _isUserMarkedDeactivated(data);
       _userDeactivatedCache[userID] = deactivated;
       _userPrivacyCache[userID] = (data?['isPrivate'] ?? false) == true;
@@ -883,26 +889,24 @@ class AgendaController extends GetxController {
         .toList();
     if (items.isEmpty) return;
 
-    // Kullanıcı gizliliklerini cache'ten getir
+    // Kullanıcı gizliliklerini merkezi profile cache + Firestore cache'ten getir
     final uniqueUserIDs = items.map((e) => e.userID).toSet().toList();
     Map<String, bool> userPrivacy = {};
     Map<String, bool> userDeactivated = {};
-    for (int i = 0; i < uniqueUserIDs.length; i += 10) {
-      final chunk = uniqueUserIDs.sublist(
-          i, i + 10 > uniqueUserIDs.length ? uniqueUserIDs.length : i + 10);
-      final usersSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get(const GetOptions(source: Source.cache));
-      for (final d in usersSnap.docs) {
-        final data = d.data();
-        final gizli = (data['isPrivate'] ?? false) == true;
-        final deactivated = _isUserMarkedDeactivated(data);
-        userPrivacy[d.id] = gizli;
-        userDeactivated[d.id] = deactivated;
-        _userPrivacyCache[d.id] = gizli;
-        _userDeactivatedCache[d.id] = deactivated;
-      }
+    final profiles = await _profileCache.getProfiles(
+      uniqueUserIDs,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    for (final uid in uniqueUserIDs) {
+      final data = profiles[uid];
+      if (data == null) continue;
+      final gizli = (data['isPrivate'] ?? false) == true;
+      final deactivated = _isUserMarkedDeactivated(data);
+      userPrivacy[uid] = gizli;
+      userDeactivated[uid] = deactivated;
+      _userPrivacyCache[uid] = gizli;
+      _userDeactivatedCache[uid] = deactivated;
     }
 
     final String? me = FirebaseAuth.instance.currentUser?.uid;
@@ -947,38 +951,38 @@ class AgendaController extends GetxController {
     final fromPool = await pool.loadPosts(
       IndexPoolKind.feed,
       limit: ContentPolicy.feedInitialFromPool,
-      allowStale: false,
+      allowStale: true,
     );
     if (fromPool.isEmpty) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final uniqueUserIds = fromPool.map((e) => e.userID).toSet().toList();
-    final userDeactivated = <String, bool>{};
-    for (final chunk in _chunkList(uniqueUserIds, 10)) {
-      try {
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final d in usersSnap.docs) {
-          final data = d.data();
-          final deactivated = _isUserMarkedDeactivated(data);
-          userDeactivated[d.id] = deactivated;
-          _userDeactivatedCache[d.id] = deactivated;
-          _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
-        }
-      } catch (_) {}
-    }
+    final uniqueUserIDs = fromPool.map((e) => e.userID).toSet().toList();
+    final profiles = await _profileCache.getProfiles(
+      uniqueUserIDs,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    final me = FirebaseAuth.instance.currentUser?.uid;
 
-    // Pool'dan gelen postları validasyonsuz hızlıca göster.
-    // Basit senkron filtre: silinmiş/gizlenmiş postları çıkar.
+    // Pool'dan gelen postları gerçekten hızlıca göster.
+    // Gizlilik için sadece cache-only profillere güveniriz; bilinmeyen kullanıcıyı
+    // hızlı listede göstermeyip ağ fetch'ine bırakırız.
     final quickFiltered = fromPool.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
-      if (userDeactivated[post.userID] == true) return false;
       if (!_isInAgendaWindow(post.timeStamp, nowMs)) return false;
       if (!_isRenderablePost(post)) return false;
-      return true;
+      final profile = profiles[post.userID];
+      if (profile == null) return false;
+      final isPrivate = (profile['isPrivate'] ?? false) == true;
+      final isDeactivated = _isUserMarkedDeactivated(profile);
+      _userPrivacyCache[post.userID] = isPrivate;
+      _userDeactivatedCache[post.userID] = isDeactivated;
+      if (isDeactivated) return false;
+      if (!isPrivate) return true;
+      final isMine = me != null && post.userID == me;
+      final follows = followingIDs.contains(post.userID);
+      return isMine || follows;
     }).toList();
 
     if (quickFiltered.isEmpty) return;
@@ -1137,6 +1141,37 @@ class AgendaController extends GetxController {
       posts,
       userMeta: userMeta,
     );
+  }
+
+  Future<void> persistWarmLaunchCache() async {
+    try {
+      if (agendaList.isEmpty) return;
+      if (!Get.isRegistered<IndexPoolStore>()) return;
+
+      final posts = agendaList.take(40).toList(growable: false);
+      if (posts.isEmpty) return;
+
+      final userIds = <String>{
+        for (final post in posts) post.userID,
+        for (final post in posts)
+          if (post.originalUserID.isNotEmpty) post.originalUserID,
+      }.toList();
+
+      final userMeta = <String, Map<String, dynamic>>{};
+      if (userIds.isNotEmpty) {
+        final profileCache = Get.isRegistered<UserProfileCacheService>()
+            ? Get.find<UserProfileCacheService>()
+            : Get.put(UserProfileCacheService(), permanent: true);
+        final cachedProfiles = await profileCache.getProfiles(
+          userIds,
+          preferCache: true,
+          cacheOnly: true,
+        );
+        userMeta.addAll(cachedProfiles);
+      }
+
+      await _saveFeedPostsToPool(posts, userMeta);
+    } catch (_) {}
   }
 
   List<List<T>> _chunkList<T>(List<T> input, int size) {

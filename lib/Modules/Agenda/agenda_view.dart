@@ -204,18 +204,11 @@ class AgendaView extends StatelessWidget {
                           child: Column(
                             children: [
                               header(),
-                              const SizedBox(height: 48),
-                              const CupertinoActivityIndicator(radius: 14),
-                              const SizedBox(height: 12),
-                              const Text(
-                                "Gönderiler yükleniyor...",
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 14,
-                                  fontFamily: AppFontFamilies.mmedium,
-                                ),
-                              ),
-                              const SizedBox(height: 260),
+                              const SizedBox(height: 18),
+                              _feedLoadingSkeleton(context),
+                              _feedLoadingSkeleton(context),
+                              _feedLoadingSkeleton(context),
+                              const SizedBox(height: 70),
                             ],
                           ),
                         );
@@ -800,6 +793,79 @@ class AgendaView extends StatelessWidget {
         StoryRow(),
         10.ph,
       ],
+    );
+  }
+
+  Widget _feedLoadingSkeleton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECECEC),
+                  borderRadius: BorderRadius.circular(19),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 110,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9E9E9),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 72,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F1F1),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: MediaQuery.of(context).size.width * 0.62,
+            height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F4F4),
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            height: 360,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(22),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
