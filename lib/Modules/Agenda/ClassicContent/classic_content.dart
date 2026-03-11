@@ -1908,17 +1908,9 @@ class _ClassicContentState extends State<ClassicContent>
   void _openLikeListing() {
     videoController?.pause();
     Get.bottomSheet(
-      Container(
-        height: Get.height / 2,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topRight: Radius.circular(18),
-            topLeft: Radius.circular(18),
-          ),
-        ),
-        child: PostLikeListing(postID: widget.model.docID),
-      ),
+      PostLikeListing(postID: widget.model.docID),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     ).then((_) {
       videoController?.play();
     });
