@@ -43,10 +43,26 @@ class JobSavedStore {
   }
 
   static Future<bool> isSaved(String uid, String jobId) async {
-    final currentSnap = await _savedJobDoc(uid, jobId).get();
+    DocumentSnapshot<Map<String, dynamic>> currentSnap;
+    try {
+      currentSnap = await _savedJobDoc(uid, jobId).get();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return false;
+      }
+      rethrow;
+    }
     if (currentSnap.exists) return true;
 
-    final legacySnap = await _legacySavedJobDoc(uid, jobId).get();
+    DocumentSnapshot<Map<String, dynamic>> legacySnap;
+    try {
+      legacySnap = await _legacySavedJobDoc(uid, jobId).get();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return false;
+      }
+      rethrow;
+    }
     if (!legacySnap.exists) return false;
 
     final legacyData = legacySnap.data() ?? const <String, dynamic>{};
@@ -72,12 +88,22 @@ class JobSavedStore {
   }
 
   static Future<List<SavedJobRecord>> getSavedJobs(String uid) async {
-    final currentSnap =
-        await _userSavedJobs(uid).orderBy('timeStamp', descending: true).get();
-    final legacySnap = await _firestore
-        .collection('SavedIsBul')
-        .where('userID', isEqualTo: uid)
-        .get();
+    QuerySnapshot<Map<String, dynamic>> currentSnap;
+    QuerySnapshot<Map<String, dynamic>> legacySnap;
+    try {
+      currentSnap = await _userSavedJobs(uid)
+          .orderBy('timeStamp', descending: true)
+          .get();
+      legacySnap = await _firestore
+          .collection('SavedIsBul')
+          .where('userID', isEqualTo: uid)
+          .get();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        return const <SavedJobRecord>[];
+      }
+      rethrow;
+    }
 
     final byJobId = <String, SavedJobRecord>{};
     for (final doc in currentSnap.docs) {

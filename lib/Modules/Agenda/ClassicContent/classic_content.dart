@@ -69,7 +69,7 @@ class _ClassicContentState extends State<ClassicContent>
   static const PostActionStyle _actionStyle = PostActionStyle(
     iconSize: 22,
     textStyle: TextStyle(
-      color: Color(0xFF5B6672),
+      color: Color(0xFF47515C),
       fontSize: 16,
       fontFamily: 'MontserratMedium',
     ),
@@ -77,7 +77,7 @@ class _ClassicContentState extends State<ClassicContent>
     sendIconSize: 20,
     rowSpacing: 0,
   );
-  static const Color _actionColor = Color(0xFF5B6672);
+  static const Color _actionColor = Color(0xFF47515C);
   static const List<String> _flagReasons = <String>[
     'Uyuşturucu',
     'Kumar',
@@ -285,6 +285,7 @@ class _ClassicContentState extends State<ClassicContent>
   static const double _reelPortraitFrameAspectRatio = 5 / 8;
   static const double _feedPortraitFrameAspectRatio = 4 / 5;
   static const double _squareFrameAspectRatio = 1;
+  static const Color _classicMediaFallbackColor = Color(0xFF15181C);
 
   double get _resolvedClassicVideoFrameAspectRatio {
     final raw = widget.model.aspectRatio.toDouble();
@@ -488,14 +489,14 @@ class _ClassicContentState extends State<ClassicContent>
     );
     const bodyStyle = TextStyle(
       color: Color(0xFF20252B),
-      fontSize: 14,
+      fontSize: 13,
       fontFamily: 'Montserrat',
       height: 1.35,
     );
     const moreStyle = TextStyle(
-      color: Color(0xFF7A828B),
+      color: Color(0xFF6E7680),
       fontSize: 14,
-      fontFamily: 'MontserratMedium',
+      fontFamily: 'Montserrat',
       height: 1.35,
     );
 
@@ -577,20 +578,67 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
+  String _buildClassicBottomTimeLabel() {
+    final sourceMs = controller.editTime.value != 0
+        ? controller.editTime.value
+        : (widget.model.izBirakYayinTarihi != 0
+            ? widget.model.izBirakYayinTarihi
+            : widget.model.timeStamp);
+    final publishedAt = DateTime.fromMillisecondsSinceEpoch(sourceMs.toInt());
+    final now = DateTime.now();
+    final diff = now.difference(publishedAt);
+
+    if (diff.inMinutes < 60) {
+      final minutes = diff.inMinutes.clamp(1, 59);
+      return '$minutes dakika önce';
+    }
+    if (diff.inHours < 24) {
+      return '${diff.inHours} saat önce';
+    }
+    if (diff.inDays < 7) {
+      return '${diff.inDays} gün önce';
+    }
+
+    const months = <String>[
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
+    ];
+
+    final monthLabel = months[publishedAt.month - 1];
+    if (publishedAt.year == now.year) {
+      return '${publishedAt.day} $monthLabel';
+    }
+    return '${publishedAt.day} $monthLabel ${publishedAt.year}';
+  }
+
   Widget _buildClassicMetaSection() {
     final caption = widget.model.metin.trim();
     final hasCaption = caption.isNotEmpty;
     final captionNickname = controller.username.value.trim().isNotEmpty
         ? controller.username.value.trim()
         : controller.nickname.value.trim();
+    final displayTime = _buildClassicBottomTimeLabel();
 
-    if (!widget.isReshared && !hasCaption && widget.model.poll.isEmpty) {
+    if (!widget.isReshared &&
+        !hasCaption &&
+        widget.model.poll.isEmpty &&
+        displayTime.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 4),
-      child: Column(
+      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 12),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.isReshared)
@@ -622,6 +670,17 @@ class _ClassicContentState extends State<ClassicContent>
               nickname: captionNickname,
               text: caption,
             ),
+          Padding(
+            padding: EdgeInsets.only(top: hasCaption ? 6 : 0),
+            child: Text(
+              displayTime,
+              style: const TextStyle(
+                color: Color(0xFF8A9199),
+                fontSize: 12,
+                fontFamily: 'Montserrat',
+              ),
+            ),
+          ),
           if (widget.model.poll.isNotEmpty) buildPollCard(),
         ],
       ),
@@ -661,20 +720,21 @@ class _ClassicContentState extends State<ClassicContent>
                           children: [
                             if (widget.model.floodCount > 1)
                               Texts.colorfulFlood,
-                            if (widget.model.originalUserID.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: SharedPostLabel(
-                                  originalUserID: widget.model.originalUserID,
-                                  fontSize: 12,
-                                  textColor: Colors.red,
-                                ),
-                              ),
                           ],
                         ),
                         const SizedBox(),
                       ],
                     ),
+                    if (widget.model.originalUserID.isNotEmpty)
+                      Positioned(
+                        left: 8,
+                        bottom: widget.model.floodCount > 1 ? 26 : 8,
+                        child: SharedPostLabel(
+                          originalUserID: widget.model.originalUserID,
+                          textColor: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
                     _buildFeedShareCta(),
                     _buildClassicMediaHeader(),
                     _buildMediaTapOverlay(
@@ -706,24 +766,24 @@ class _ClassicContentState extends State<ClassicContent>
                         );
                       },
                     ),
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.model.floodCount > 1)
-                              Texts.colorfulFlood,
-                            SharedPostLabel(
-                              originalUserID: widget.model.originalUserID,
-                              fontSize: 12,
-                              textColor: Colors.white,
-                            ),
-                          ],
+                    if (widget.model.floodCount > 1)
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8, bottom: 8),
+                          child: Texts.colorfulFlood,
                         ),
                       ),
-                    ),
+                    if (widget.model.originalUserID.isNotEmpty)
+                      Positioned(
+                        left: 8,
+                        bottom: widget.model.floodCount > 1 ? 34 : 8,
+                        child: SharedPostLabel(
+                          originalUserID: widget.model.originalUserID,
+                          textColor: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
                     Positioned(
                       bottom: 8,
                       left: 0,
@@ -1010,10 +1070,19 @@ class _ClassicContentState extends State<ClassicContent>
                             ? Image.network(
                                 widget.model.thumbnail,
                                 fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const ColoredBox(
+                                    color: _classicMediaFallbackColor,
+                                  );
+                                },
                                 errorBuilder: (_, __, ___) =>
-                                    Container(color: const Color(0xFFE8E8E8)),
+                                    const ColoredBox(
+                                        color: _classicMediaFallbackColor),
                               )
-                            : Container(color: const Color(0xFFE8E8E8)),
+                            : const ColoredBox(
+                                color: _classicMediaFallbackColor),
                       ),
                     ),
                     Positioned(
@@ -1023,8 +1092,8 @@ class _ClassicContentState extends State<ClassicContent>
                     ),
                   ]
                 else
-                  Container(
-                    color: const Color(0xFFE8E8E8),
+                  ColoredBox(
+                    color: _classicMediaFallbackColor,
                     child: widget.model.thumbnail.isEmpty
                         ? null
                         : Image.network(
@@ -1032,10 +1101,13 @@ class _ClassicContentState extends State<ClassicContent>
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
-                              return const SizedBox.shrink();
+                              return const ColoredBox(
+                                color: _classicMediaFallbackColor,
+                              );
                             },
                             errorBuilder: (context, error, stackTrace) =>
-                                const SizedBox.shrink(),
+                                const ColoredBox(
+                                    color: _classicMediaFallbackColor),
                           ),
                   ),
                 if (videoController == null)
@@ -1297,55 +1369,63 @@ class _ClassicContentState extends State<ClassicContent>
                         if (controller.isFollowing.value) {
                           return const SizedBox.shrink();
                         }
-                        return SizedBox(
-                          height: 24,
-                          child: Center(
-                            child: TextButton(
-                              onPressed: controller.followLoading.value
-                                  ? null
-                                  : () {
-                                      controller.followUser();
-                                    },
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: controller.followLoading.value
-                                  ? Container(
-                                      height: 20,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(12)),
-                                          border:
-                                              Border.all(color: Colors.black)),
-                                      child: const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 15),
-                                        child: SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.black),
+                        return Transform.translate(
+                          offset: const Offset(0, -5),
+                          child: SizedBox(
+                            height: 24,
+                            child: Center(
+                              child: TextButton(
+                                onPressed: controller.followLoading.value
+                                    ? null
+                                    : () {
+                                        controller.followUser();
+                                      },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: controller.followLoading.value
+                                    ? Container(
+                                        height: 20,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                            color: Colors.transparent,
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                                    Radius.circular(12)),
+                                            border:
+                                                Border.all(color: Colors.black)),
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 15),
+                                          child: SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.black),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                  : Texts.followMeButtonBlack,
+                                      )
+                                    : Texts.followMeButtonBlack,
+                              ),
                             ),
                           ),
                         );
                       }),
                     7.pw,
-                    SizedBox(
-                      height: 24,
-                      child: Center(
-                        child: pulldownmenu(Colors.black),
+                    Transform.translate(
+                      offset: const Offset(0, -5),
+                      child: SizedBox(
+                        height: 24,
+                        child: Center(
+                          child: pulldownmenu(Colors.black),
+                        ),
                       ),
                     ),
                   ],
@@ -1477,32 +1557,39 @@ class _ClassicContentState extends State<ClassicContent>
                         if (controller.isFollowing.value) {
                           return const SizedBox.shrink();
                         }
-                        return SizedBox(
-                          height: 24,
-                          child: Center(
-                            child: TextButton(
-                              onPressed: controller.followLoading.value
-                                  ? null
-                                  : () {
-                                      controller.followUser();
-                                    },
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: _buildClassicOverlayFollowButton(
-                                loading: controller.followLoading.value,
+                        return Transform.translate(
+                          offset: const Offset(0, -5),
+                          child: SizedBox(
+                            height: 24,
+                            child: Center(
+                              child: TextButton(
+                                onPressed: controller.followLoading.value
+                                    ? null
+                                    : () {
+                                        controller.followUser();
+                                      },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: _buildClassicOverlayFollowButton(
+                                  loading: controller.followLoading.value,
+                                ),
                               ),
                             ),
                           ),
                         );
                       }),
                     7.pw,
-                    SizedBox(
-                      height: 24,
-                      child: Center(
-                        child: pulldownmenu(Colors.white),
+                    Transform.translate(
+                      offset: const Offset(0, -5),
+                      child: SizedBox(
+                        height: 24,
+                        child: Center(
+                          child: pulldownmenu(Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -1803,24 +1890,7 @@ class _ClassicContentState extends State<ClassicContent>
         enabled: true,
         semanticsLabel: 'Beğeniler',
         onTap: controller.like,
-        onLongPress: () {
-          videoController?.pause();
-          Get.bottomSheet(
-            Container(
-              height: Get.height / 2,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(18),
-                  topLeft: Radius.circular(18),
-                ),
-              ),
-              child: PostLikeListing(postID: widget.model.docID),
-            ),
-          ).then((_) {
-            videoController?.play();
-          });
-        },
+        onLongPress: _openLikeListing,
         child: _iconAction(
           icon: isLiked
               ? CupertinoIcons.hand_thumbsup_fill
@@ -1832,6 +1902,25 @@ class _ClassicContentState extends State<ClassicContent>
           leadingTransformOffsetY: -2,
         ),
       );
+    });
+  }
+
+  void _openLikeListing() {
+    videoController?.pause();
+    Get.bottomSheet(
+      Container(
+        height: Get.height / 2,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(18),
+            topLeft: Radius.circular(18),
+          ),
+        ),
+        child: PostLikeListing(postID: widget.model.docID),
+      ),
+    ).then((_) {
+      videoController?.play();
     });
   }
 
