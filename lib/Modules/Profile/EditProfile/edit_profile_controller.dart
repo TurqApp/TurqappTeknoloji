@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -38,12 +39,11 @@ class EditProfileController extends GetxController {
   final uid = FirebaseAuth.instance.currentUser!.uid;
 
   // Varsayılan avatar URL'si ve yardımcı durum hesaplaması
-  String get defaultAvatarUrl =>
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
+  String get defaultAvatarUrl => kDefaultAvatarUrl;
 
   bool get hasCustomProfilePhoto {
     final avatarUrl = userService.currentUser?.avatarUrl ?? '';
-    return avatarUrl.isNotEmpty && avatarUrl != defaultAvatarUrl;
+    return !isDefaultAvatarUrl(avatarUrl);
   }
 
   @override

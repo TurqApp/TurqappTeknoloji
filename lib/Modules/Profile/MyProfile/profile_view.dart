@@ -421,13 +421,21 @@ class _ProfileViewState extends State<ProfileView> {
                           child: AspectRatio(
                             aspectRatio: 1,
                             child: ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: _myAvatarUrl,
-                                cacheManager: TurqImageCacheManager.instance,
-                                fit: BoxFit.cover,
-                                memCacheWidth: 300,
-                                memCacheHeight: 600,
-                              ),
+                              child: _myAvatarUrl.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: _myAvatarUrl,
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
+                                      fit: BoxFit.cover,
+                                      memCacheWidth: 300,
+                                      memCacheHeight: 600,
+                                    )
+                                  : const DefaultAvatar(
+                                      radius: 120,
+                                      backgroundColor: Colors.transparent,
+                                      iconColor: Colors.white70,
+                                      padding: EdgeInsets.all(36),
+                                    ),
                             ),
                           ),
                         )

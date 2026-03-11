@@ -23,6 +23,7 @@ import '../Short/short_view.dart';
 import '../Short/short_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../Profile/Settings/settings_controller.dart';
+import '../../Core/Widgets/cached_user_avatar.dart';
 import '../../Core/Widgets/offline_indicator.dart';
 
 class NavBarView extends StatelessWidget {
@@ -434,11 +435,14 @@ class _AvatarWithRingState extends State<_AvatarWithRing> {
             )
           : null,
       child: widget.imageUrl.isEmpty
-          ? Icon(Icons.person,
-              size: widget.size * 0.7,
-              color: widget.isSelected
+          ? DefaultAvatar(
+              radius: widget.size / 2,
+              backgroundColor: Colors.transparent,
+              iconColor: widget.isSelected
                   ? Colors.black
-                  : Colors.black.withValues(alpha: 0.5))
+                  : Colors.black.withValues(alpha: 0.5),
+              padding: EdgeInsets.all(widget.size * 0.18),
+            )
           : null,
     );
 

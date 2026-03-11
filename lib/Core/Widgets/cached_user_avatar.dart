@@ -5,7 +5,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:svg_flutter/svg.dart';
 
 /// Cached user avatar with smart loading
 ///
@@ -23,8 +25,6 @@ import 'package:turqappv2/Services/current_user_service.dart';
 /// )
 /// ```
 class CachedUserAvatar extends StatelessWidget {
-  static const String _defaultProfileImageUrl =
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
   final String? userId;
   final double radius;
   final String? imageUrl; // Manual override
@@ -52,13 +52,8 @@ class CachedUserAvatar extends StatelessWidget {
         stream: userService.userStream,
         initialData: userService.currentUser,
         builder: (context, snapshot) {
-          final currentUserImage =
-              (snapshot.data?.avatarUrl ?? _defaultProfileImageUrl).trim();
-          return _buildAvatar(
-            currentUserImage.isEmpty
-                ? _defaultProfileImageUrl
-                : currentUserImage,
-          );
+          final currentUserImage = (snapshot.data?.avatarUrl ?? '').trim();
+          return _buildAvatar(currentUserImage);
         },
       );
     }
@@ -81,9 +76,8 @@ class CachedUserAvatar extends StatelessWidget {
   }
 
   Widget _buildNetworkAvatar(
-    String imageUrl, {
-    bool attemptedDefault = false,
-  }) {
+    String imageUrl,
+  ) {
     final size = radius * 2;
     return ClipOval(
       child: SizedBox(
@@ -96,36 +90,57 @@ class CachedUserAvatar extends StatelessWidget {
           placeholder: (_, __) => Container(
             color: backgroundColor ?? Colors.grey[300],
           ),
-          errorWidget: (_, __, ___) {
-            if (!attemptedDefault && imageUrl != _defaultProfileImageUrl) {
-              return _buildNetworkAvatar(
-                _defaultProfileImageUrl,
-                attemptedDefault: true,
-              );
-            }
-            return _fallbackAvatar();
-          },
+          errorWidget: (_, __, ___) => _fallbackAvatar(),
         ),
       ),
     );
   }
 
   Widget _fallbackAvatar() {
-    return CircleAvatar(
+    return DefaultAvatar(
       radius: radius,
-      backgroundColor: backgroundColor ?? Colors.grey[300],
-      child: Icon(
-        Icons.person,
-        size: radius,
-        color: Colors.grey[600],
-      ),
+      backgroundColor: backgroundColor,
+      iconColor: Colors.grey[600],
     );
   }
 
   String _normalizeUrl(String raw) {
     final trimmed = raw.trim();
-    if (trimmed.isEmpty) return _defaultProfileImageUrl;
-    return trimmed;
+    return isDefaultAvatarUrl(trimmed) ? '' : trimmed;
+  }
+}
+
+class DefaultAvatar extends StatelessWidget {
+  final double radius;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final EdgeInsetsGeometry? padding;
+
+  const DefaultAvatar({
+    super.key,
+    this.radius = 20,
+    this.backgroundColor,
+    this.iconColor,
+    this.padding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: backgroundColor ?? Colors.grey[300],
+      child: Padding(
+        padding: padding ?? EdgeInsets.all(radius * 0.3),
+        child: SvgPicture.asset(
+          kDefaultAvatarAsset,
+          fit: BoxFit.contain,
+          colorFilter: ColorFilter.mode(
+            iconColor ?? Colors.grey[600]!,
+            BlendMode.srcIn,
+          ),
+        ),
+      ),
+    );
   }
 }
 

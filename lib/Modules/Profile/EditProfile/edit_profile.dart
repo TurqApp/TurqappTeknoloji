@@ -18,6 +18,7 @@ import 'package:turqappv2/Modules/Profile/ProfileContact/profile_contact.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 
 import '../BiographyMaker/biography_maker.dart';
 
@@ -91,10 +92,9 @@ class _EditProfileState extends State<EditProfile> {
                                                       imageUrl: _avatarUrl,
                                                       fit: BoxFit.cover,
                                                     )
-                                                  : Center(
-                                                      child:
-                                                          CupertinoActivityIndicator(
-                                                        color: Colors.grey,
+                                                  : const Center(
+                                                      child: DefaultAvatar(
+                                                        radius: 56,
                                                       ),
                                                     )),
                                         ),

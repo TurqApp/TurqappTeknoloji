@@ -20,7 +20,6 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
 admin.initializeApp();
-const DEFAULT_PROFILE_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2";
 const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS
@@ -231,7 +230,7 @@ exports.syncUserSchemaAndFlags = functions.firestore
         patch.isBot = false;
     const canonicalAvatarUrl = String(afterData?.avatarUrl ?? "").trim();
     if (!canonicalAvatarUrl) {
-        patch.avatarUrl = DEFAULT_PROFILE_IMAGE_URL;
+        patch.avatarUrl = "";
     }
     if (!afterData?.version)
         patch.version = 3;

@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 import '../Models/current_user_model.dart';
 
@@ -46,8 +47,6 @@ class _TimedValue<T> {
 /// Obx(() => Text(userService.currentUserRx.value?.nickname ?? 'Guest'))
 /// ```
 class CurrentUserService extends GetxController {
-  static const String _defaultProfileImageUrl =
-      'https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2';
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Singleton Pattern
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -92,7 +91,7 @@ class CurrentUserService extends GetxController {
   /// Current user profile image (shortcut)
   String get avatarUrl {
     final raw = (_currentUser?.avatarUrl ?? '').trim();
-    return raw.isEmpty ? _defaultProfileImageUrl : raw;
+    return isDefaultAvatarUrl(raw) ? '' : raw;
   }
 
   /// Current user full name (shortcut)
@@ -816,7 +815,7 @@ class CurrentUserService extends GetxController {
       final raw = normalizedFields['avatarUrl'];
       if (raw == null || isDeleteMarker(raw)) return current.avatarUrl;
       final trimmed = raw.toString().trim();
-      return trimmed.isEmpty ? _defaultProfileImageUrl : trimmed;
+      return isDefaultAvatarUrl(trimmed) ? '' : trimmed;
     }
 
     final patched = current.copyWith(
@@ -892,7 +891,7 @@ class CurrentUserService extends GetxController {
     if (out.containsKey('avatarUrl')) {
       final normalizedAvatar = (out['avatarUrl'] ?? '').toString().trim();
       out['avatarUrl'] =
-          normalizedAvatar.isEmpty ? _defaultProfileImageUrl : normalizedAvatar;
+          isDefaultAvatarUrl(normalizedAvatar) ? '' : normalizedAvatar;
     }
     if (out.containsKey('account.fcmToken')) {
       if (!out.containsKey('fcmToken')) {

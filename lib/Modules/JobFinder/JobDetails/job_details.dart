@@ -14,8 +14,8 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -137,7 +137,8 @@ class JobDetails extends StatelessWidget {
                   .clamp(180.0, 220.0),
               child: useAndroidStaticPreview && hasLocation
                   ? CachedNetworkImage(
-                      imageUrl: _buildAndroidStaticMapUrl(controller.model.value),
+                      imageUrl:
+                          _buildAndroidStaticMapUrl(controller.model.value),
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFFF3F5F7),
@@ -153,68 +154,69 @@ class JobDetails extends StatelessWidget {
                       ),
                     )
                   : canUseNativeMap
-                  ? AbsorbPointer(
-                      child: GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: location,
-                          zoom: 14,
-                        ),
-                        liteModeEnabled: defaultTargetPlatform == TargetPlatform.android,
-                        markers: {
-                          Marker(
-                            markerId: const MarkerId('job_location'),
-                            position: location,
-                          ),
-                        },
-                        zoomControlsEnabled: false,
-                        myLocationButtonEnabled: false,
-                        scrollGesturesEnabled: false,
-                        rotateGesturesEnabled: false,
-                        tiltGesturesEnabled: false,
-                        zoomGesturesEnabled: false,
-                        mapToolbarEnabled: false,
-                      ),
-                    )
-                  : Container(
-                      color: const Color(0xFFF3F5F7),
-                      alignment: Alignment.center,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            hasLocation
-                                ? CupertinoIcons.location_solid
-                                : CupertinoIcons.location_slash,
-                            color: hasLocation ? Colors.red : Colors.grey,
-                            size: 34,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            hasLocation
-                                ? 'Haritada Aç'
-                                : 'Konum bilgisi bulunamadı',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
+                      ? AbsorbPointer(
+                          child: GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: location,
+                              zoom: 14,
                             ),
+                            liteModeEnabled:
+                                defaultTargetPlatform == TargetPlatform.android,
+                            markers: {
+                              Marker(
+                                markerId: const MarkerId('job_location'),
+                                position: location,
+                              ),
+                            },
+                            zoomControlsEnabled: false,
+                            myLocationButtonEnabled: false,
+                            scrollGesturesEnabled: false,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
+                            zoomGesturesEnabled: false,
+                            mapToolbarEnabled: false,
                           ),
-                          if (hasLocation)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 6),
-                              child: Text(
-                                'Apple Haritalar veya diğer uygulamalarda aç',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 13,
-                                  fontFamily: "MontserratMedium",
+                        )
+                      : Container(
+                          color: const Color(0xFFF3F5F7),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                hasLocation
+                                    ? CupertinoIcons.location_solid
+                                    : CupertinoIcons.location_slash,
+                                color: hasLocation ? Colors.red : Colors.grey,
+                                size: 34,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                hasLocation
+                                    ? 'Haritada Aç'
+                                    : 'Konum bilgisi bulunamadı',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 15,
+                                  fontFamily: "MontserratBold",
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
+                              if (hasLocation)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    'Apple Haritalar veya diğer uygulamalarda aç',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 13,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
             ),
           ),
         ),
@@ -755,20 +757,23 @@ class JobDetails extends StatelessWidget {
                                       child: SizedBox(
                                         width: 50,
                                         height: 50,
-                                        child: CachedNetworkImage(
-                                          imageUrl: controller.avatarUrl.value
-                                                  .trim()
-                                                  .isNotEmpty
-                                              ? controller.avatarUrl.value
-                                                  .trim()
-                                              : kDefaultAvatarUrl,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (context, url, error) =>
-                                              const Icon(
-                                            CupertinoIcons.person_fill,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
+                                        child: controller.avatarUrl.value
+                                                .trim()
+                                                .isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: controller
+                                                    .avatarUrl.value
+                                                    .trim(),
+                                                fit: BoxFit.cover,
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const DefaultAvatar(
+                                                  radius: 25,
+                                                ),
+                                              )
+                                            : const DefaultAvatar(
+                                                radius: 25,
+                                              ),
                                       ),
                                     ),
                                     SizedBox(
@@ -1055,13 +1060,15 @@ class JobDetails extends StatelessWidget {
                                                 builder: (context, setState) {
                                                   return Container(
                                                     padding:
-                                                        const EdgeInsets.all(20),
+                                                        const EdgeInsets.all(
+                                                            20),
                                                     decoration:
                                                         const BoxDecoration(
                                                       color: Colors.white,
                                                       borderRadius:
                                                           BorderRadius.vertical(
-                                                        top: Radius.circular(16),
+                                                        top:
+                                                            Radius.circular(16),
                                                       ),
                                                     ),
                                                     child: Column(
@@ -1101,8 +1108,8 @@ class JobDetails extends StatelessWidget {
                                                           onTap: isSubmitting
                                                               ? null
                                                               : () async {
-                                                                  Get.to(
-                                                                      () => Cv());
+                                                                  Get.to(() =>
+                                                                      Cv());
                                                                 },
                                                           child: Container(
                                                             height: 50,
@@ -1142,8 +1149,7 @@ class JobDetails extends StatelessWidget {
                                                                     isSubmitting
                                                                         ? null
                                                                         : () {
-                                                                            Navigator.of(context)
-                                                                                .pop();
+                                                                            Navigator.of(context).pop();
                                                                           },
                                                                 child:
                                                                     Container(
@@ -1182,24 +1188,30 @@ class JobDetails extends StatelessWidget {
                                                             Expanded(
                                                               child:
                                                                   GestureDetector(
-                                                                onTap:
-                                                                    isSubmitting
-                                                                        ? null
-                                                                        : () async {
-                                                                            setState(
-                                                                              () => isSubmitting = true,
-                                                                            );
-                                                                            await controller.toggleBasvuru(
-                                                                              model.docID,
-                                                                            );
-                                                                            if (controller.basvuruldu.value) {
-                                                                              Navigator.of(context).pop();
-                                                                              return;
-                                                                            }
-                                                                            setState(
-                                                                              () => isSubmitting = false,
-                                                                            );
-                                                                          },
+                                                                onTap: isSubmitting
+                                                                    ? null
+                                                                    : () async {
+                                                                        setState(
+                                                                          () => isSubmitting =
+                                                                              true,
+                                                                        );
+                                                                        await controller
+                                                                            .toggleBasvuru(
+                                                                          model
+                                                                              .docID,
+                                                                        );
+                                                                        if (controller
+                                                                            .basvuruldu
+                                                                            .value) {
+                                                                          Navigator.of(context)
+                                                                              .pop();
+                                                                          return;
+                                                                        }
+                                                                        setState(
+                                                                          () => isSubmitting =
+                                                                              false,
+                                                                        );
+                                                                      },
                                                                 child:
                                                                     Container(
                                                                   height: 50,
@@ -1514,14 +1526,14 @@ class JobDetails extends StatelessWidget {
                           child: SizedBox(
                             width: 28,
                             height: 28,
-                            child: CachedNetworkImage(
-                              imageUrl: avatar.isNotEmpty
-                                  ? avatar
-                                  : kDefaultAvatarUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) =>
-                                  const Icon(Icons.person, size: 16),
-                            ),
+                            child: avatar.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: avatar,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) =>
+                                        const DefaultAvatar(radius: 14),
+                                  )
+                                : const DefaultAvatar(radius: 14),
                           ),
                         ),
                         8.pw,
@@ -1556,7 +1568,8 @@ class JobDetails extends StatelessWidget {
                         if (isOwn) ...[
                           4.pw,
                           GestureDetector(
-                            onTap: () => controller.deleteReview(review.reviewID),
+                            onTap: () =>
+                                controller.deleteReview(review.reviewID),
                             child: const Icon(
                               CupertinoIcons.trash,
                               size: 16,

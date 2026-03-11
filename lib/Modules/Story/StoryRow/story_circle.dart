@@ -124,7 +124,10 @@ class _StoryCircleState extends State<StoryCircle> {
                         isMe ? userService.avatarUrl : widget.model.avatarUrl;
 
                     if (imageUrl.isEmpty) {
-                      return Container(color: Colors.grey.withAlpha(60));
+                      return const DefaultAvatar(
+                        radius: 42,
+                        backgroundColor: Colors.transparent,
+                      );
                     }
 
                     return ClipRect(

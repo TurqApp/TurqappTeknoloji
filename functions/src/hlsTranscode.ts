@@ -416,7 +416,7 @@ export const onVideoUpload = functions
                 contentType: "image/webp",
                 cacheControl: "public, max-age=86400, s-maxage=86400",
               },
-            }).catch((e) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
+            }).catch((e: unknown) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
           ]);
 
           thumbnailUrl = `https://${CDN_DOMAIN}/${target.thumbnailStoragePath}`;
