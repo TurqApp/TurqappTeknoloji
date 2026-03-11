@@ -87,11 +87,29 @@ class PostLikeListing extends StatelessWidget {
                         );
                       }
                       return ListView.builder(
+                        controller: controller.scrollController,
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.only(bottom: 18),
-                        itemCount: items.length,
+                        itemCount:
+                            items.length + (controller.isLoadingMore.value ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (index >= items.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(Colors.black),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
                           return PostLikeContent(item: items[index]);
                         },
                       );

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -21,17 +20,24 @@ class LikeUserItem {
 
 class PostLikeListingController extends GetxController {
   PostLikeListingController({required this.postID});
+  static const int _pageSize = 20;
 
   final String postID;
   final RxList<LikeUserItem> users = <LikeUserItem>[].obs;
   final RxList<LikeUserItem> filteredUsers = <LikeUserItem>[].obs;
   final RxString query = ''.obs;
   final TextEditingController searchController = TextEditingController();
+  final ScrollController scrollController = ScrollController();
+  final RxBool isLoadingMore = false.obs;
+  final RxBool hasMore = true.obs;
+  DocumentSnapshot<Map<String, dynamic>>? _lastLikeDoc;
+  bool _isFetching = false;
 
   @override
   void onInit() {
     super.onInit();
     searchController.addListener(_syncQueryFromInput);
+    scrollController.addListener(_onScroll);
     ever<List<LikeUserItem>>(users, (_) => _applyFilter());
     ever<String>(query, (_) => _applyFilter());
     getLikes();
@@ -41,6 +47,8 @@ class PostLikeListingController extends GetxController {
   void onClose() {
     searchController.removeListener(_syncQueryFromInput);
     searchController.dispose();
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
     super.onClose();
   }
 
@@ -56,17 +64,41 @@ class PostLikeListingController extends GetxController {
   }
 
   Future<void> getLikes() async {
-    final snap = await FirebaseFirestore.instance
+    if (_isFetching || !hasMore.value) return;
+    _isFetching = true;
+    isLoadingMore.value = users.isNotEmpty;
+
+    Query<Map<String, dynamic>> queryRef = FirebaseFirestore.instance
         .collection("Posts")
         .doc(postID)
         .collection("likes")
         .orderBy("timeStamp", descending: true)
-        .get();
+        .limit(_pageSize);
 
-    final ids = snap.docs.map((v) => v.id).toList();
-    final fetched = await Future.wait(ids.map(_fetchUserItem));
-    users.value = fetched.whereType<LikeUserItem>().toList(growable: false);
-    _applyFilter();
+    if (_lastLikeDoc != null) {
+      queryRef = queryRef.startAfterDocument(_lastLikeDoc!);
+    }
+
+    try {
+      final snap = await queryRef.get();
+      if (snap.docs.isEmpty) {
+        hasMore.value = false;
+        return;
+      }
+
+      _lastLikeDoc = snap.docs.last;
+      if (snap.docs.length < _pageSize) {
+        hasMore.value = false;
+      }
+
+      final ids = snap.docs.map((v) => v.id).toList();
+      final fetched = await Future.wait(ids.map(_fetchUserItem));
+      users.addAll(fetched.whereType<LikeUserItem>());
+      _applyFilter();
+    } finally {
+      _isFetching = false;
+      isLoadingMore.value = false;
+    }
   }
 
   Future<LikeUserItem?> _fetchUserItem(String userID) async {
@@ -129,5 +161,13 @@ class PostLikeListingController extends GetxController {
     debugPrint(
       '[PostLikeSearch] total=${users.length} filtered=${filteredUsers.length} term="$term"',
     );
+  }
+
+  void _onScroll() {
+    if (!scrollController.hasClients || _isFetching || !hasMore.value) return;
+    final position = scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 180) {
+      getLikes();
+    }
   }
 }

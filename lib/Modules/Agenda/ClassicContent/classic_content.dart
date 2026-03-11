@@ -1891,6 +1891,7 @@ class _ClassicContentState extends State<ClassicContent>
         semanticsLabel: 'Beğeniler',
         onTap: controller.like,
         onLongPress: _openLikeListing,
+        longPressDuration: const Duration(milliseconds: 220),
         child: _iconAction(
           icon: isLiked
               ? CupertinoIcons.hand_thumbsup_fill

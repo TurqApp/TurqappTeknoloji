@@ -7,7 +7,6 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
 import 'package:turqappv2/Modules/Agenda/ClassicContent/classic_content.dart';
-import 'package:turqappv2/Modules/Agenda/TopTags/top_tags.dart';
 import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row.dart';
@@ -293,32 +292,36 @@ class AgendaView extends StatelessWidget {
                           // Android'de gereksiz global rebuild/jank'ı azaltır.
                           Widget buildPostContent() {
                             if (!model.hasPlayableVideo) {
-                              final viewSelection = CurrentUserService
-                                  .instance.effectiveViewSelection;
-                              if (viewSelection == 1) {
-                                return AgendaContent(
-                                  key: ValueKey(stableKeyString),
-                                  model: model,
-                                  isPreview: false,
-                                  shouldPlay: false,
-                                  isYenidenPaylasilanPost: isReshare,
-                                  reshareUserID: reshareUserID,
-                                );
-                              } else {
-                                return ClassicContent(
-                                  key: ValueKey(stableKeyString),
-                                  model: model,
-                                  isPreview: false,
-                                  shouldPlay: false,
-                                  isYenidenPaylasilanPost: isReshare,
-                                  reshareUserID: reshareUserID,
-                                );
-                              }
+                              return Obx(() {
+                                CurrentUserService.instance.currentUserRx.value;
+                                final viewSelection = CurrentUserService
+                                    .instance.effectiveViewSelection;
+                                if (viewSelection == 1) {
+                                  return AgendaContent(
+                                    key: ValueKey(stableKeyString),
+                                    model: model,
+                                    isPreview: false,
+                                    shouldPlay: false,
+                                    isYenidenPaylasilanPost: isReshare,
+                                    reshareUserID: reshareUserID,
+                                  );
+                                } else {
+                                  return ClassicContent(
+                                    key: ValueKey(stableKeyString),
+                                    model: model,
+                                    isPreview: false,
+                                    shouldPlay: false,
+                                    isYenidenPaylasilanPost: isReshare,
+                                    reshareUserID: reshareUserID,
+                                  );
+                                }
+                              });
                             }
 
                             return Obx(() {
                               final isCentered =
                                   controller.centeredIndex.value == agendaIndex;
+                              CurrentUserService.instance.currentUserRx.value;
                               final viewSelection = CurrentUserService
                                   .instance.effectiveViewSelection;
                               if (viewSelection == 1) {
@@ -646,16 +649,12 @@ class AgendaView extends StatelessWidget {
               const Spacer(),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  final prevIndex = controller.lastCenteredIndex;
-                  controller.centeredIndex.value = -1;
-                  Get.to(() => TopTags())?.then((_) {
-                    // Feed odagini geri yukle
-                    controller.centeredIndex.value = prevIndex ?? 0;
-                    // Uygulama içinde gezinip geri dönünce önerileri yenile
-                    try {
-                      recommendedController.getUsers();
-                    } catch (_) {}
+                onTap: () async {
+                  final userService = CurrentUserService.instance;
+                  final currentSelection = userService.effectiveViewSelection;
+                  final nextSelection = currentSelection == 0 ? 1 : 0;
+                  await userService.updateFields({
+                    "viewSelection": nextSelection,
                   });
                 },
                 child: Container(
@@ -664,7 +663,7 @@ class AgendaView extends StatelessWidget {
                   color: Colors.white,
                   alignment: Alignment.center,
                   child: const Icon(
-                    CupertinoIcons.number,
+                    CupertinoIcons.rectangle_grid_1x2,
                     color: Colors.black,
                     size: 20,
                   ),
