@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -154,6 +154,21 @@ const normalizeUsernameLower = (raw) => {
         .replace(/\s+/g, "");
     return s.replace(/[^a-z0-9._]/g, "");
 };
+const LEGACY_DEFAULT_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2";
+const normalizeAvatarUrl = (raw) => {
+    const value = String(raw ?? "").trim();
+    if (!value)
+        return "";
+    if (value === LEGACY_DEFAULT_AVATAR_URL)
+        return "";
+    const lower = value.toLowerCase();
+    if (lower.includes("/o/profileimage.png") ||
+        lower.endsWith("/profileimage.png") ||
+        lower.endsWith("profileimage.png")) {
+        return "";
+    }
+    return value;
+};
 const parseForceFollowUids = (data) => {
     if (!data)
         return [];
@@ -228,9 +243,9 @@ exports.syncUserSchemaAndFlags = functions.firestore
         patch.isBanned = false;
     if (afterData?.isBot === undefined)
         patch.isBot = false;
-    const canonicalAvatarUrl = String(afterData?.avatarUrl ?? "").trim();
-    if (!canonicalAvatarUrl) {
-        patch.avatarUrl = "";
+    const canonicalAvatarUrl = normalizeAvatarUrl(afterData?.avatarUrl);
+    if (String(afterData?.avatarUrl ?? "").trim() !== canonicalAvatarUrl) {
+        patch.avatarUrl = canonicalAvatarUrl;
     }
     if (!afterData?.version)
         patch.version = 3;
@@ -809,6 +824,61 @@ exports.backfillPhoneAccounts = functions.https.onCall(async (data, context) => 
 // ADMIN UTILITY: disabled (users_usernames removed)
 exports.backfillUsernames = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("failed-precondition", "users_usernames is deprecated and disabled");
+});
+// ADMIN UTILITY: Backfill users.avatarUrl legacy placeholder values to empty string
+// Authentication'da kayıtlı kullanıcıları baz alır; users/{uid} varsa normalize eder.
+exports.backfillUserAvatarUrls = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Auth required");
+    }
+    const isAdmin = context.auth.token?.admin === true;
+    const providedSecret = typeof data?.secret === "string" ? data.secret : "";
+    const configuredSecret = (process.env.USER_AVATAR_BACKFILL_SECRET || "").toString();
+    if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
+        throw new functions.https.HttpsError("permission-denied", "Admin or valid secret required");
+    }
+    const batchSize = Math.min(Math.max(Number(data?.batchSize) || 400, 1), 400);
+    const pageToken = typeof data?.pageToken === "string" ? data.pageToken.trim() : undefined;
+    const listResult = await admin.auth().listUsers(batchSize, pageToken || undefined);
+    if (listResult.users.length === 0) {
+        return { done: true, processed: 0, updated: 0, skipped: 0, missingDocs: 0 };
+    }
+    const now = Date.now();
+    const batch = db.batch();
+    let updated = 0;
+    let skipped = 0;
+    let missingDocs = 0;
+    for (const authUser of listResult.users) {
+        const docRef = db.collection("users").doc(authUser.uid);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+            missingDocs += 1;
+            continue;
+        }
+        const userData = doc.data();
+        const before = String(userData?.avatarUrl ?? "").trim();
+        const after = normalizeAvatarUrl(before);
+        if (before === after) {
+            skipped += 1;
+            continue;
+        }
+        batch.update(docRef, {
+            avatarUrl: after,
+            updatedDate: now,
+        });
+        updated += 1;
+    }
+    if (updated > 0) {
+        await batch.commit();
+    }
+    return {
+        done: !listResult.pageToken,
+        processed: listResult.users.length,
+        updated,
+        skipped,
+        missingDocs,
+        nextPageToken: listResult.pageToken ?? null,
+    };
 });
 // ADMIN UTILITY: Backfill Posts with missing originalUserID/originalUserNickname (String '')
 exports.backfillPostsOriginalFields = functions.https.onCall(async (data, context) => {

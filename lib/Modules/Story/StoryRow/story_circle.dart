@@ -146,15 +146,16 @@ class _StoryCircleState extends State<StoryCircle> {
                         Border.all(color: Colors.grey.withAlpha(50), width: 2),
                   );
 
-                  final highlightRingDecoration = ShapeDecoration(
-                    shape: const CircleBorder(),
+                  const highlightRingDecoration = ShapeDecoration(
+                    shape: CircleBorder(),
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft,
+                      begin: Alignment.topCenter,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppColors.textBlue,
-                        AppColors.textPink,
-                        AppColors.textPink,
+                        Color(0xFFB7D8FF),
+                        Color(0xFF6EB6FF),
+                        Color(0xFF2C8DFF),
+                        Color(0xFF0E5BFF),
                       ],
                     ),
                   );

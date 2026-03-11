@@ -513,32 +513,26 @@ class _AgendaContentState extends State<AgendaContent>
                                       final safeRemaining = remaining.isNegative
                                           ? Duration.zero
                                           : remaining;
-                                      return Stack(
-                                        children: [
-                                          Positioned(
-                                            top: 8,
-                                            right: 8,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black54,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                _formatDuration(safeRemaining),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 12,
-                                                  fontFamily: "Montserrat",
-                                                ),
-                                              ),
+                                      return Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            _formatDuration(safeRemaining),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontFamily: "Montserrat",
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       );
                                     },
                                   ),

@@ -97,6 +97,11 @@ class CurrentUserService extends GetxController {
   /// Current user full name (shortcut)
   String get fullName => _currentUser?.fullName ?? '';
 
+  /// Feed view selection with local fallback.
+  /// 0: Classic, 1: Modern
+  int get effectiveViewSelection =>
+      _currentUser?.viewSelection ?? _lastKnownViewSelection ?? 1;
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔧 Private Variables
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -105,12 +110,15 @@ class CurrentUserService extends GetxController {
 
   static const String _cacheKey = 'cached_current_user';
   static const String _cacheTimestampKey = 'cached_current_user_timestamp';
+  static const String _viewSelectionPrefKeyPrefix =
+      'preferred_feed_view_selection';
   static const String _emailPromptTimestampKeyPrefix =
       'email_verify_prompt_last_shown';
   static const Duration _cacheExpiration = Duration(days: 7);
 
   bool _isInitialized = false;
   bool _isSyncing = false;
+  int? _lastKnownViewSelection;
   static const Duration _subdocCacheTtl = Duration(minutes: 10);
   static const Duration _listCacheTtl = Duration(minutes: 2);
   final Map<String, _TimedValue<Map<String, dynamic>>> _subdocCache = {};
@@ -141,6 +149,7 @@ class CurrentUserService extends GetxController {
         return false;
       }
       emailVerifiedRx.value = firebaseUser.emailVerified;
+      _lastKnownViewSelection = _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
 
       // If already initialized and user exists, just ensure sync is running
       if (_isInitialized &&
@@ -170,6 +179,11 @@ class CurrentUserService extends GetxController {
 
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
       final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
+
+      // 1.5️⃣ Theme/view mode kritik bir ayar: sync'i beklemeden Firestore'dan
+      // tek alan okuyup ilk render öncesi kesinleştir.
+      await _primeViewSelectionFromFirestore(firebaseUser.uid)
+          .timeout(const Duration(milliseconds: 350), onTimeout: () {});
 
       // 2️⃣ Ağır ağ işlerini arka planda başlat; startup'ı bloklamasın.
       unawaited(_restorePendingDeletionIfNeeded(firebaseUser.uid));
@@ -315,7 +329,9 @@ class CurrentUserService extends GetxController {
       }
 
       final json = jsonDecode(cachedJson) as Map<String, dynamic>;
-      final user = CurrentUserModel.fromJson(json);
+      final user = await _applyStoredViewSelection(
+        CurrentUserModel.fromJson(json),
+      );
       if (expectedUid != null &&
           expectedUid.isNotEmpty &&
           user.userID != expectedUid) {
@@ -342,7 +358,8 @@ class CurrentUserService extends GetxController {
     try {
       final cacheSignature =
           '${user.userID}|${user.nickname}|${user.avatarUrl}|${user.counterOfFollowers}|'
-          '${user.counterOfFollowings}|${user.counterOfPosts}|${user.bio}|${user.gizliHesap}';
+          '${user.counterOfFollowings}|${user.counterOfPosts}|${user.bio}|'
+          '${user.gizliHesap}|${user.viewSelection}';
       // ⚠️ OPTIMIZATION: Skip if same user was just cached
       if (_lastCacheSignature == cacheSignature) {
         return;
@@ -358,6 +375,7 @@ class CurrentUserService extends GetxController {
           await _prefs?.setString(_cacheKey, json);
           await _prefs?.setInt(
               _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
+          await _persistViewSelection(user.userID, user.viewSelection);
           _lastCacheSignature = cacheSignature;
           print('💾 User cached: ${user.nickname}');
         } catch (e) {
@@ -726,11 +744,12 @@ class CurrentUserService extends GetxController {
 
   /// Update current user (internal)
   Future<void> _updateUser(CurrentUserModel user) async {
-    _currentUser = user;
-    currentUserRx.value = user;
-    _userStreamController.add(user);
-    unawaited(_warmAvatar(user));
-    await _saveToCache(user);
+    final resolvedUser = await _applyStoredViewSelection(user);
+    _currentUser = resolvedUser;
+    currentUserRx.value = resolvedUser;
+    _userStreamController.add(resolvedUser);
+    unawaited(_warmAvatar(resolvedUser));
+    await _saveToCache(resolvedUser);
   }
 
   Future<void> _warmAvatar(CurrentUserModel? user) async {
@@ -756,6 +775,14 @@ class CurrentUserService extends GetxController {
 
     try {
       final normalizedFields = _normalizeUserWriteFields(fields);
+      final requestedViewSelection =
+          _extractRequestedViewSelection(normalizedFields);
+      if (requestedViewSelection != null) {
+        await _persistViewSelection(
+          firebaseUser.uid,
+          requestedViewSelection,
+        );
+      }
       // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
@@ -839,6 +866,63 @@ class CurrentUserService extends GetxController {
     );
 
     await _updateUser(patched);
+  }
+
+  String _viewSelectionKey(String uid) =>
+      '${_viewSelectionPrefKeyPrefix}_$uid';
+
+  int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
+    final raw = fields['viewSelection'];
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw == null || raw is FieldValue) return null;
+    return int.tryParse(raw.toString());
+  }
+
+  Future<void> _persistViewSelection(String uid, int selection) async {
+    if (uid.isEmpty) return;
+    _prefs ??= await SharedPreferences.getInstance();
+    _lastKnownViewSelection = selection;
+    await _prefs?.setInt(_viewSelectionKey(uid), selection);
+  }
+
+  Future<CurrentUserModel> _applyStoredViewSelection(
+    CurrentUserModel user,
+  ) async {
+    if (user.userID.isEmpty) return user;
+    _prefs ??= await SharedPreferences.getInstance();
+    final stored = _prefs?.getInt(_viewSelectionKey(user.userID));
+    _lastKnownViewSelection = stored ?? user.viewSelection;
+    if (stored == null || stored == user.viewSelection) {
+      return user;
+    }
+    return user.copyWith(viewSelection: stored);
+  }
+
+  Future<void> _primeViewSelectionFromFirestore(String uid) async {
+    if (uid.isEmpty) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? const <String, dynamic>{};
+      final raw = data['viewSelection'];
+      final remote = raw is int
+          ? raw
+          : raw is num
+              ? raw.toInt()
+              : int.tryParse(raw?.toString() ?? '');
+      if (remote == null) return;
+
+      await _persistViewSelection(uid, remote);
+      final current = _currentUser;
+      if (current != null &&
+          current.userID == uid &&
+          current.viewSelection != remote) {
+        await _updateUser(current.copyWith(viewSelection: remote));
+      }
+    } catch (e, st) {
+      _logSilently('prime.viewSelection', e, st);
+    }
   }
 
   Map<String, dynamic> _normalizeUserWriteFields(Map<String, dynamic> input) {

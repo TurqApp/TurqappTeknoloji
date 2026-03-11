@@ -293,9 +293,8 @@ class AgendaView extends StatelessWidget {
                           // Android'de gereksiz global rebuild/jank'ı azaltır.
                           Widget buildPostContent() {
                             if (!model.hasPlayableVideo) {
-                              final viewSelection = CurrentUserService.instance
-                                      .currentUserRx.value?.viewSelection ??
-                                  1;
+                              final viewSelection = CurrentUserService
+                                  .instance.effectiveViewSelection;
                               if (viewSelection == 1) {
                                 return AgendaContent(
                                   key: ValueKey(stableKeyString),
@@ -320,9 +319,8 @@ class AgendaView extends StatelessWidget {
                             return Obx(() {
                               final isCentered =
                                   controller.centeredIndex.value == agendaIndex;
-                              final viewSelection = CurrentUserService.instance
-                                      .currentUserRx.value?.viewSelection ??
-                                  1;
+                              final viewSelection = CurrentUserService
+                                  .instance.effectiveViewSelection;
                               if (viewSelection == 1) {
                                 return AgendaContent(
                                   key: ValueKey(stableKeyString),

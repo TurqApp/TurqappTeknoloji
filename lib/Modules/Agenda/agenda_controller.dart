@@ -611,11 +611,11 @@ class AgendaController extends GetxController {
     final currentOffset = scrollController.offset;
     bool shouldShowNavBar;
 
-    // Negatif veya 300'den küçük offset'te daima göster
-    if (currentOffset < 300) {
+    // Üst sınıra çok yakınken daima göster.
+    if (currentOffset <= 0) {
       shouldShowNavBar = true;
     } else {
-      // 300 ve üstü ise yön kontrolü
+      // Aşağı kaydırınca gizle, yukarı kaydırınca göster.
       if (currentOffset > lastOffset) {
         shouldShowNavBar = false;
       } else if (currentOffset < lastOffset) {

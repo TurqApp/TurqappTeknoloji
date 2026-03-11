@@ -55,6 +55,10 @@ class PostContentController extends GetxController {
   final bool enableLegacyCommentSync;
   final bool scrollFeedToTopOnReshare;
 
+  ShortController get shortsController => Get.isRegistered<ShortController>()
+      ? Get.find<ShortController>()
+      : Get.put(ShortController());
+
   bool get canSendAdminPush {
     return AdminAccessService.isKnownAdminSync();
   }
@@ -460,7 +464,7 @@ class PostContentController extends GetxController {
   }
 
   Future<void> gizle() async {
-    final shortController = Get.find<ShortController>();
+    final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].gizlendi = true;
 
@@ -491,7 +495,7 @@ class PostContentController extends GetxController {
   }
 
   Future<void> gizlemeyiGeriAl() async {
-    final shortController = Get.find<ShortController>();
+    final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].gizlendi = false;
 
@@ -544,7 +548,7 @@ class PostContentController extends GetxController {
     } catch (_) {}
 
     // Tüm ilgili store ve listeleri güncelle
-    final shortController = Get.find<ShortController>();
+    final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].arsiv = true;
     final exploreController = Get.find<ExploreController>();
@@ -594,7 +598,7 @@ class PostContentController extends GetxController {
       }
     } catch (_) {}
 
-    final shortController = Get.find<ShortController>();
+    final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);
     if (index >= 0) shortController.shorts[index].arsiv = false;
 

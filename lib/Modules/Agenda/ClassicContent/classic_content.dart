@@ -1,14 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -17,9 +16,7 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
-import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
-import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import '../Common/post_content_base.dart';
 import '../Common/post_content_controller.dart';
 import '../Common/post_action_style.dart';
@@ -69,8 +66,18 @@ class ClassicContent extends PostContentBase {
 
 class _ClassicContentState extends State<ClassicContent>
     with PostContentBaseState<ClassicContent> {
-  static const PostActionStyle _actionStyle = PostActionStyle.classic();
-  static const Color _actionColor = Color(0xFF6F7A85);
+  static const PostActionStyle _actionStyle = PostActionStyle(
+    iconSize: 22,
+    textStyle: TextStyle(
+      color: Color(0xFF5B6672),
+      fontSize: 16,
+      fontFamily: 'MontserratMedium',
+    ),
+    reshareIcon: Icons.repeat,
+    sendIconSize: 20,
+    rowSpacing: 0,
+  );
+  static const Color _actionColor = Color(0xFF5B6672);
   static const List<String> _flagReasons = <String>[
     'Uyuşturucu',
     'Kumar',
@@ -82,10 +89,14 @@ class _ClassicContentState extends State<ClassicContent>
   ];
   static final RxSet<String> _flaggedPostIds = <String>{}.obs;
   final arsivController = Get.put(ArchiveController());
-  final ShortController shortsController = Get.find<ShortController>();
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final bool _isFullscreen = false;
+  bool _isCaptionExpanded = false;
+
+  ShortController get shortsController => Get.isRegistered<ShortController>()
+      ? Get.find<ShortController>()
+      : Get.put(ShortController());
 
   bool get _isBlackBadgeUser {
     final raw = (controller.userService.currentUser?.rozet ?? '')
@@ -107,10 +118,181 @@ class _ClassicContentState extends State<ClassicContent>
     } catch (_) {}
   }
 
+  void _openImageMedia() {
+    _pauseFeedBeforeFullscreen();
+    final visibleList = agendaController.agendaList
+        .where((val) =>
+            val.deletedPost == false &&
+            val.arsiv == false &&
+            val.gizlendi == false &&
+            val.img.isNotEmpty)
+        .toList();
+
+    if (widget.isPreview) {
+      Get.to(() => PhotoShorts(
+            fetchedList: visibleList,
+            startModel: widget.model,
+          ));
+    } else if (widget.model.floodCount > 1) {
+      Get.to(() => FloodListing(mainModel: widget.model));
+    } else {
+      Get.to(() => PhotoShorts(
+            fetchedList: visibleList,
+            startModel: widget.model,
+          ));
+    }
+  }
+
+  Widget _buildMediaTapOverlay({
+    VoidCallback? onTap,
+    VoidCallback? onDoubleTap,
+  }) {
+    return Positioned.fill(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+
+  Widget _buildClassicAvatar({
+    required String userId,
+    required String imageUrl,
+    double radius = 16.5,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFB7D8FF),
+            Color(0xFF6EB6FF),
+            Color(0xFF2C8DFF),
+            Color(0xFF0E5BFF),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
+        ),
+        child: CachedUserAvatar(
+          userId: userId,
+          imageUrl: imageUrl,
+          radius: radius,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassicWhiteBadge(double size) {
+    return Transform.translate(
+      offset: const Offset(0, -1),
+      child: Padding(
+        padding: const EdgeInsets.only(left: 3),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              CupertinoIcons.checkmark_seal_fill,
+              color: Colors.white,
+              size: size,
+            ),
+            Icon(
+              CupertinoIcons.check_mark,
+              color: Colors.black87,
+              size: size * 0.42,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassicOverlayFollowButton({required bool loading}) {
+    return Container(
+      height: 28,
+      alignment: Alignment.center,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 72),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: const BorderRadius.all(Radius.circular(15)),
+          border: Border.all(color: Colors.white),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          child: loading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  "Takip Et",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: "MontserratMedium",
+                    fontSize: 14,
+                    height: 1,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassicMediaHeader() {
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xB3000000),
+                  Color(0x66000000),
+                  Color(0x00000000),
+                ],
+              ),
+            ),
+            child: headerUserInfoWhite(),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   bool get enableBufferedAutoplay => false;
 
-  static const double _contentAspectRatio = 0.80;
+  static const double _reelPortraitFrameAspectRatio = 5 / 8;
+  static const double _feedPortraitFrameAspectRatio = 4 / 5;
+  static const double _squareFrameAspectRatio = 1;
+
+  double get _resolvedClassicVideoFrameAspectRatio {
+    final raw = widget.model.aspectRatio.toDouble();
+    if (raw <= 0) return _squareFrameAspectRatio;
+    if (raw < 0.7) return _reelPortraitFrameAspectRatio;
+    if (raw < 0.9) return _feedPortraitFrameAspectRatio;
+    return _squareFrameAspectRatio;
+  }
 
   @override
   void onPostInitialized() {
@@ -294,70 +476,155 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
-  Widget _buildFeedCaption({
+  Widget _buildClassicInlineCaption({
+    required String nickname,
     required String text,
-    required Color color,
   }) {
-    return ClickableTextContent(
-      text: text,
-      startWith7line: true,
-      toggleExpandOnTextTap: true,
+    const nameStyle = TextStyle(
+      color: Color(0xFF20252B),
       fontSize: 14,
-      fontColor: color,
-      mentionColor: Colors.blue,
-      hashtagColor: Colors.blue,
-      urlColor: Colors.blue,
-      interactiveColor: Colors.blue,
-      onUrlTap: _handleFeedUrlTap,
-      onHashtagTap: (tag) {
-        if (tag.trim().isEmpty) return;
-        Get.to(() => TagPosts(tag: tag.trim()));
+      fontFamily: 'MontserratBold',
+      height: 1.35,
+    );
+    const bodyStyle = TextStyle(
+      color: Color(0xFF20252B),
+      fontSize: 14,
+      fontFamily: 'Montserrat',
+      height: 1.35,
+    );
+    const moreStyle = TextStyle(
+      color: Color(0xFF7A828B),
+      fontSize: 14,
+      fontFamily: 'MontserratMedium',
+      height: 1.35,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final span = TextSpan(
+          children: [
+            TextSpan(text: nickname, style: nameStyle),
+            const TextSpan(text: '  '),
+            TextSpan(text: text, style: bodyStyle),
+          ],
+        );
+
+        final painter = TextPainter(
+          text: span,
+          textDirection: TextDirection.ltr,
+          maxLines: 2,
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final exceeds = painter.didExceedMaxLines;
+
+        Widget content = RichText(
+          text: span,
+          maxLines: _isCaptionExpanded ? null : 2,
+          overflow:
+              _isCaptionExpanded ? TextOverflow.visible : TextOverflow.clip,
+        );
+
+        if (!_isCaptionExpanded && exceeds) {
+          content = Stack(
+            children: [
+              RichText(
+                text: span,
+                maxLines: 2,
+                overflow: TextOverflow.clip,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.only(left: 8),
+                  child: const Text('...devamı', style: moreStyle),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: exceeds
+              ? () {
+                  setState(() {
+                    _isCaptionExpanded = !_isCaptionExpanded;
+                  });
+                }
+              : null,
+          child: content,
+        );
       },
-      onMentionTap: (mention) async {
-        final normalizedMention = mention.trim().replaceFirst('@', '');
-        final handle = normalizedMention.toLowerCase();
-        if (handle.isEmpty) return;
+    );
+  }
 
-        String targetUid = '';
-        try {
-          final usernameDoc = await FirebaseFirestore.instance
-              .collection('usernames')
-              .doc(handle)
-              .get();
-          targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-        } catch (_) {}
+  Widget _buildClassicActionRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          commentButton(context),
+          likeButton(),
+          reshareButton(),
+          statButton(),
+          saveButton(),
+          sendButton(),
+        ],
+      ),
+    );
+  }
 
-        if (targetUid.isEmpty) {
-          try {
-            final byUsername = await FirebaseFirestore.instance
-                .collection('users')
-                .where('usernameLower', isEqualTo: handle)
-                .limit(1)
-                .get();
-            if (byUsername.docs.isNotEmpty) {
-              targetUid = byUsername.docs.first.id;
-            }
-          } catch (_) {}
-        }
+  Widget _buildClassicMetaSection() {
+    final caption = widget.model.metin.trim();
+    final hasCaption = caption.isNotEmpty;
+    final captionNickname = controller.username.value.trim().isNotEmpty
+        ? controller.username.value.trim()
+        : controller.nickname.value.trim();
 
-        if (targetUid.isEmpty) {
-          try {
-            final byNickname = await FirebaseFirestore.instance
-                .collection('users')
-                .where('nickname', isEqualTo: normalizedMention)
-                .limit(1)
-                .get();
-            if (byNickname.docs.isNotEmpty) {
-              targetUid = byNickname.docs.first.id;
-            }
-          } catch (_) {}
-        }
+    if (!widget.isReshared && !hasCaption && widget.model.poll.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
-        final currentUid = FirebaseAuth.instance.currentUser?.uid;
-        if (targetUid.isNotEmpty && targetUid != currentUid) {
-          await Get.to(() => SocialProfile(userID: targetUid));
-        }
-      },
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.isReshared)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Image.asset(
+                    "assets/icons/reshare.webp",
+                    height: 16,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 6),
+                  ReshareAttribution(
+                    controller: controller,
+                    model: widget.model,
+                    explicitReshareUserId: widget.reshareUserID,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (hasCaption)
+            _buildClassicInlineCaption(
+              nickname: captionNickname,
+              text: caption,
+            ),
+          if (widget.model.poll.isNotEmpty) buildPollCard(),
+        ],
+      ),
     );
   }
 
@@ -370,78 +637,51 @@ class _ClassicContentState extends State<ClassicContent>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Obx(() {
-          return headerUserInfoBar();
-        }),
         if (widget.model.img.length == 1)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing),
-              child: GestureDetector(
-                onTap: () {
-                  _pauseFeedBeforeFullscreen();
-                  final visibleList = agendaController.agendaList
-                      .where((val) =>
-                          val.deletedPost == false &&
-                          val.arsiv == false &&
-                          val.gizlendi == false &&
-                          val.img.isNotEmpty)
-                      .toList();
-
-                  if (widget.isPreview) {
-                    Get.to(() => PhotoShorts(
-                          fetchedList: visibleList,
-                          startModel: widget.model,
-                        ));
-                  } else if (widget.model.floodCount > 1) {
-                    Get.to(() => FloodListing(mainModel: widget.model));
-                  } else {
-                    Get.to(() => PhotoShorts(
-                          fetchedList: visibleList,
-                          startModel: widget.model,
-                        ));
-                  }
-                },
-                onDoubleTap: () {
-                  controller.like();
-                },
-                child: AspectRatio(
-                  aspectRatio: widget.model.aspectRatio.toDouble(),
-                  child: Stack(
-                    alignment: Alignment.bottomLeft,
-                    children: [
-                      SizedBox.expand(
-                        child: CachedNetworkImage(
-                          imageUrl: widget.model.img.first,
-                          fit: BoxFit.cover,
-                        ),
+              child: AspectRatio(
+                aspectRatio: widget.model.aspectRatio.toDouble(),
+                child: Stack(
+                  alignment: Alignment.bottomLeft,
+                  children: [
+                    SizedBox.expand(
+                      child: CachedNetworkImage(
+                        imageUrl: widget.model.img.first,
+                        fit: BoxFit.cover,
                       ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (widget.model.floodCount > 1)
-                                Texts.colorfulFlood,
-                              if (widget.model.originalUserID.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: SharedPostLabel(
-                                    originalUserID: widget.model.originalUserID,
-                                    fontSize: 12,
-                                    textColor: Colors.red,
-                                  ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.model.floodCount > 1)
+                              Texts.colorfulFlood,
+                            if (widget.model.originalUserID.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: SharedPostLabel(
+                                  originalUserID: widget.model.originalUserID,
+                                  fontSize: 12,
+                                  textColor: Colors.red,
                                 ),
-                            ],
-                          ),
-                          const SizedBox(),
-                        ],
-                      ),
-                      _buildFeedShareCta(),
-                    ],
-                  ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(),
+                      ],
+                    ),
+                    _buildFeedShareCta(),
+                    _buildClassicMediaHeader(),
+                    _buildMediaTapOverlay(
+                      onTap: _openImageMedia,
+                      onDoubleTap: controller.like,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -451,129 +691,76 @@ class _ClassicContentState extends State<ClassicContent>
             offset: Offset(0, mediaVisualLift),
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing),
-              child: GestureDetector(
-                onTap: () {
-                  _pauseFeedBeforeFullscreen();
-                  final visibleList = agendaController.agendaList
-                      .where((val) =>
-                          val.deletedPost == false &&
-                          val.arsiv == false &&
-                          val.gizlendi == false &&
-                          val.img.isNotEmpty)
-                      .toList();
-
-                  if (widget.isPreview) {
-                    Get.to(() => PhotoShorts(
-                          fetchedList: visibleList,
-                          startModel: widget.model,
-                        ));
-                  } else if (widget.model.floodCount > 1) {
-                    Get.to(FloodListing(mainModel: widget.model));
-                  } else {
-                    Get.to(() => PhotoShorts(
-                          fetchedList: visibleList,
-                          startModel: widget.model,
-                        ));
-                  }
-                },
-                onDoubleTap: () {
-                  controller.like();
-                },
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Stack(
-                    children: [
-                      PageView.builder(
-                        controller: _pageController,
-                        itemCount: widget.model.img.length,
-                        itemBuilder: (context, index) {
-                          final img = widget.model.img[index];
-                          return CachedNetworkImage(
-                            imageUrl: img,
-                            fit: BoxFit.cover,
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      itemCount: widget.model.img.length,
+                      itemBuilder: (context, index) {
+                        final img = widget.model.img[index];
+                        return CachedNetworkImage(
+                          imageUrl: img,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    ),
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.model.floodCount > 1)
+                              Texts.colorfulFlood,
+                            SharedPostLabel(
+                              originalUserID: widget.model.originalUserID,
+                              fontSize: 12,
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(widget.model.img.length, (index) {
+                          final isActive = index == _currentPage;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: isActive ? 6 : 5,
+                            height: isActive ? 6 : 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isActive ? Colors.white : Colors.white54,
+                            ),
                           );
-                        },
+                        }),
                       ),
-                      Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 8, bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (widget.model.floodCount > 1)
-                                Texts.colorfulFlood,
-                              SharedPostLabel(
-                                originalUserID: widget.model.originalUserID,
-                                fontSize: 12,
-                                textColor: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:
-                              List.generate(widget.model.img.length, (index) {
-                            final isActive = index == _currentPage;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: isActive ? 6 : 5,
-                              height: isActive ? 6 : 5,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isActive ? Colors.white : Colors.white54,
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                      _buildFeedShareCta(),
-                    ],
-                  ),
+                    ),
+                    _buildFeedShareCta(),
+                    _buildClassicMediaHeader(),
+                    _buildMediaTapOverlay(
+                      onTap: _openImageMedia,
+                      onDoubleTap: controller.like,
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        if (widget.model.hasPlayableVideo || widget.model.img.isNotEmpty)
-          buildPollCard(),
-        if (!widget.model.hasPlayableVideo && widget.model.img.isEmpty)
-          buildPollCard(),
         Padding(
           padding: EdgeInsets.only(top: actionTopSpacing),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Transform.translate(
-                offset: const Offset(2, 0),
-                child: commentButton(context),
-              ),
-              Transform.translate(
-                offset: const Offset(2, 0),
-                child: likeButton(),
-              ),
-              Transform.translate(
-                offset: const Offset(2, 0),
-                child: reshareButton(),
-              ),
-              Transform.translate(
-                offset: const Offset(2, 0),
-                child: statButton(),
-              ),
-              Transform.translate(
-                offset: const Offset(2, 0),
-                child: saveButton(),
-              ),
-              sendButton(),
-            ],
-          ),
+          child: _buildClassicActionRow(context),
         ),
+        _buildClassicMetaSection(),
         3.ph,
       ],
     );
@@ -781,6 +968,7 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget videoBody(BuildContext context) {
+    final frameAspectRatio = _resolvedClassicVideoFrameAspectRatio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -789,28 +977,23 @@ class _ClassicContentState extends State<ClassicContent>
           onVisibilityChanged: (info) {
             reportMediaVisibility(info.visibleFraction);
           },
-          child: Stack(
-            children: [
-              if (videoController != null)
-                Stack(
-                  children: [
-                    // Video Player
-                    GestureDetector(
-                      onTap: null,
-                      onDoubleTap: () {
-                        controller.like();
-                      },
-                      child: AspectRatio(
-                        aspectRatio: _contentAspectRatio,
-                        child: _isFullscreen
-                            ? const SizedBox.shrink()
-                            : videoController!.buildPlayer(
-                                key: ValueKey(
-                                    'classic-${widget.model.docID}-${videoController.hashCode}'),
-                                aspectRatio: _contentAspectRatio,
-                                useAspectRatio: false,
-                              ),
-                      ),
+          child: AspectRatio(
+            aspectRatio: frameAspectRatio,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (videoController != null)
+                  ...[
+                    IgnorePointer(
+                      ignoring: true,
+                      child: _isFullscreen
+                          ? const SizedBox.shrink()
+                          : videoController!.buildPlayer(
+                              key: ValueKey(
+                                  'classic-${widget.model.docID}-${videoController.hashCode}'),
+                              aspectRatio: frameAspectRatio,
+                              useAspectRatio: false,
+                            ),
                     ),
                     // Thumbnail overlay - video hazır olana kadar göster
                     ValueListenableBuilder<HLSVideoValue>(
@@ -822,7 +1005,7 @@ class _ClassicContentState extends State<ClassicContent>
                         return child!;
                       },
                       child: AspectRatio(
-                        aspectRatio: _contentAspectRatio,
+                        aspectRatio: frameAspectRatio,
                         child: widget.model.thumbnail.isNotEmpty
                             ? Image.network(
                                 widget.model.thumbnail,
@@ -838,201 +1021,134 @@ class _ClassicContentState extends State<ClassicContent>
                       right: 8,
                       child: buildUploadIndicator(),
                     ),
-                  ],
-                )
-              else
-                Stack(
-                  children: [
-                    AspectRatio(
-                      aspectRatio: _contentAspectRatio,
-                      child: Container(
-                        color: const Color(0xFFE8E8E8),
-                        child: widget.model.thumbnail.isEmpty
-                            ? null
-                            : Image.network(
-                                widget.model.thumbnail,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const SizedBox.shrink();
-                                },
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const SizedBox.shrink(),
-                              ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: buildUploadIndicator(),
-                    ),
-                  ],
-                ),
+                  ]
+                else
+                  Container(
+                    color: const Color(0xFFE8E8E8),
+                    child: widget.model.thumbnail.isEmpty
+                        ? null
+                        : Image.network(
+                            widget.model.thumbnail,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return const SizedBox.shrink();
+                            },
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
+                          ),
+                  ),
+                if (videoController == null)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: buildUploadIndicator(),
+                  ),
 
-              // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
-              if (videoController != null)
-                ValueListenableBuilder<HLSVideoValue>(
-                  valueListenable: videoValueNotifier,
-                  builder: (_, v, __) {
-                    if (!v.isInitialized) return const SizedBox.shrink();
-                    final remaining = v.duration - v.position;
-                    final safeRemaining =
-                        remaining.isNegative ? Duration.zero : remaining;
-                    return Stack(
-                      children: [
-                        Positioned(
-                          top: 50,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _formatDuration(safeRemaining),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontFamily: "Montserrat",
-                              ),
+                // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
+                if (videoController != null)
+                  ValueListenableBuilder<HLSVideoValue>(
+                    valueListenable: videoValueNotifier,
+                    builder: (_, v, __) {
+                      if (!v.isInitialized) return const SizedBox.shrink();
+                      final remaining = v.duration - v.position;
+                      final safeRemaining =
+                          remaining.isNegative ? Duration.zero : remaining;
+                      return Positioned(
+                        top: 50,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _formatDuration(safeRemaining),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: "Montserrat",
                             ),
                           ),
                         ),
-                      ],
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
 
-              if (videoController != null && widget.model.floodCount > 1)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  child: Texts.colorfulFloodForVideo,
-                ),
+                if (videoController != null && widget.model.floodCount > 1)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: Texts.colorfulFloodForVideo,
+                  ),
 
-              if (isVideoFromCache)
-                Positioned(
-                  left: 8,
-                  bottom: (widget.model.floodCount > 1) ? 26 : 8,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(10),
+                if (isVideoFromCache)
+                  Positioned(
+                    left: 8,
+                    bottom: (widget.model.floodCount > 1) ? 26 : 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: Colors.green,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: Colors.green,
-                    ),
                   ),
-                ),
 
-              if (widget.model.originalUserID.isNotEmpty)
-                Positioned(
-                  left: 8,
-                  bottom: isVideoFromCache
-                      ? ((widget.model.floodCount > 1) ? 52 : 34)
-                      : ((widget.model.floodCount > 1) ? 26 : 8),
-                  child: SharedPostLabel(
-                    originalUserID: widget.model.originalUserID,
-                    textColor: Colors.white,
-                    fontSize: 12,
-                  ),
-                ),
-
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () {
-                    agendaController.isMuted.toggle();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Obx(() => Icon(
-                          agendaController.isMuted.value
-                              ? CupertinoIcons.volume_off
-                              : CupertinoIcons.volume_up,
-                          color: Colors.white,
-                          size: 16,
-                        )),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: headerUserInfoWhite(),
-              ),
-            ],
-          ),
-        ),
-        // Alt-sol: yeniden paylaşıldı etiketi (video)
-        if (widget.isReshared)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                children: [
-                  Image.asset(
-                    "assets/icons/reshare.webp",
-                    height: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  ReshareAttribution(
-                    controller: controller,
-                    model: widget.model,
-                    explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
-                      color: Colors.grey,
+                if (widget.model.originalUserID.isNotEmpty)
+                  Positioned(
+                    left: 8,
+                    bottom: isVideoFromCache
+                        ? ((widget.model.floodCount > 1) ? 52 : 34)
+                        : ((widget.model.floodCount > 1) ? 26 : 8),
+                    child: SharedPostLabel(
+                      originalUserID: widget.model.originalUserID,
+                      textColor: Colors.white,
                       fontSize: 12,
-                      fontFamily: 'MontserratMedium',
                     ),
                   ),
-                ],
-              ),
+
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () {
+                      agendaController.isMuted.toggle();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Obx(() => Icon(
+                            agendaController.isMuted.value
+                                ? CupertinoIcons.volume_off
+                                : CupertinoIcons.volume_up,
+                            color: Colors.white,
+                            size: 16,
+                          )),
+                    ),
+                  ),
+                ),
+                _buildClassicMediaHeader(),
+                _buildMediaTapOverlay(onDoubleTap: controller.like),
+              ],
             ),
           ),
-        // OriginalUserAttribution for video
-        Padding(
-          padding: const EdgeInsets.only(left: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.model.floodCount > 1) Texts.colorfulFlood,
-              SharedPostLabel(
-                originalUserID: widget.model.originalUserID,
-                // sharedAsPost removed
-              ),
-            ],
-          ),
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            commentButton(context),
-            likeButton(),
-            reshareButton(),
-            saveButton(),
-            statButton(),
-            sendButton(),
-          ],
-        ),
+        _buildClassicActionRow(context),
+        _buildClassicMetaSection(),
       ],
     );
   }
@@ -1071,16 +1187,6 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
-  Future<void> _handleFeedUrlTap(String url) async {
-    final handled = await _ctaNavigationService.openFromInternalUrl(url);
-    if (handled) {
-      return;
-    }
-
-    final uniqueKey = DateTime.now().millisecondsSinceEpoch.toString();
-    await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
-  }
-
   Widget headerUserInfoBar() {
     final primaryName = controller.fullName.value.trim().isNotEmpty
         ? controller.fullName.value.replaceAll("  ", " ")
@@ -1093,11 +1199,6 @@ class _ClassicContentState extends State<ClassicContent>
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final shouldHideFollow = primaryName.length +
-            controller.nickname.value.length +
-            displayTime.length >
-        28;
-
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
       child: Row(
@@ -1128,67 +1229,78 @@ class _ClassicContentState extends State<ClassicContent>
                 Row(
                   children: [
                     Expanded(
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (widget.model.userID !=
-                                    FirebaseAuth.instance.currentUser!.uid) {
-                                  videoController?.pause();
-                                  Get.to(() => SocialProfile(
-                                      userID: widget.model.userID))?.then((v) {
-                                    videoController?.play();
-                                  });
-                                }
-                              },
-                              child: Text(
-                                primaryName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
+                          SizedBox(
+                            height: 24,
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      if (widget.model.userID !=
+                                          FirebaseAuth.instance.currentUser!.uid) {
+                                        videoController?.pause();
+                                        Get.to(() => SocialProfile(
+                                            userID: widget.model.userID))?.then((v) {
+                                          videoController?.play();
+                                        });
+                                      }
+                                    },
+                                    child: Text(
+                                      primaryName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 15,
+                                        fontFamily: "MontserratBold",
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                RozetContent(
+                                    size: 13, userID: widget.model.userID),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(left: 6, right: 12),
+                                  child: Text(
+                                    displayTime,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: Text(
-                              '@$handle',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 15,
-                                fontFamily: "Montserrat",
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          RozetContent(size: 13, userID: widget.model.userID),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6, right: 12),
-                            child: Text(
-                              displayTime,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
+                          const SizedBox(height: 1),
+                          Text(
+                            '@$handle',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                              fontFamily: "Montserrat",
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (controller.isFollowing.value == false &&
-                        widget.model.userID !=
-                            FirebaseAuth.instance.currentUser!.uid &&
-                        !shouldHideFollow)
-                      Transform.translate(
-                        offset: Offset(0, 5),
-                        child: Obx(() => TextButton(
+                    if (widget.model.userID !=
+                        FirebaseAuth.instance.currentUser!.uid)
+                      Obx(() {
+                        if (controller.isFollowing.value) {
+                          return const SizedBox.shrink();
+                        }
+                        return SizedBox(
+                          height: 24,
+                          child: Center(
+                            child: TextButton(
                               onPressed: controller.followLoading.value
                                   ? null
                                   : () {
@@ -1225,10 +1337,17 @@ class _ClassicContentState extends State<ClassicContent>
                                       ),
                                     )
                                   : Texts.followMeButtonBlack,
-                            )),
-                      ),
+                            ),
+                          ),
+                        );
+                      }),
                     7.pw,
-                    pulldownmenu(Colors.black),
+                    SizedBox(
+                      height: 24,
+                      child: Center(
+                        child: pulldownmenu(Colors.black),
+                      ),
+                    ),
                   ],
                 ),
                 if (widget.model.konum != "")
@@ -1241,13 +1360,6 @@ class _ClassicContentState extends State<ClassicContent>
                       fontSize: 16,
                       fontFamily: "Montserrat",
                     ),
-                  )
-                else if ((widget.model.hasPlayableVideo ||
-                        widget.model.img.isNotEmpty) &&
-                    widget.model.metin.trim().isNotEmpty)
-                  _buildFeedCaption(
-                    text: widget.model.metin.trim(),
-                    color: Colors.black,
                   ),
               ],
             ),
@@ -1269,13 +1381,8 @@ class _ClassicContentState extends State<ClassicContent>
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final shouldHideFollow = primaryName.length +
-            controller.nickname.value.length +
-            displayTime.length >
-        28;
-
     return Padding(
-      padding: const EdgeInsets.only(left: 8, right: 8, top: 11, bottom: 8),
+      padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1290,10 +1397,9 @@ class _ClassicContentState extends State<ClassicContent>
                 });
               }
             },
-            child: Obx(() => CachedUserAvatar(
+            child: Obx(() => _buildClassicAvatar(
                   userId: widget.model.userID,
                   imageUrl: controller.avatarUrl.value,
-                  radius: 20, // 40px diameter / 2
                 )),
           ),
           7.pw,
@@ -1304,65 +1410,77 @@ class _ClassicContentState extends State<ClassicContent>
                 Row(
                   children: [
                     Expanded(
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (widget.model.userID !=
-                                    FirebaseAuth.instance.currentUser!.uid) {
-                                  videoController?.pause();
-                                  Get.to(() => SocialProfile(
-                                      userID: widget.model.userID))?.then((v) {
-                                    videoController?.play();
-                                  });
-                                }
-                              },
-                              child: Text(
-                                primaryName,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
+                          SizedBox(
+                            height: 24,
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      if (widget.model.userID !=
+                                          FirebaseAuth.instance.currentUser!.uid) {
+                                        videoController?.pause();
+                                        Get.to(() => SocialProfile(
+                                            userID: widget.model.userID))?.then((v) {
+                                          videoController?.play();
+                                        });
+                                      }
+                                    },
+                                    child: Text(
+                                      primaryName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontFamily: "MontserratBold",
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                _buildClassicWhiteBadge(13),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(left: 6, right: 12),
+                                  child: Text(
+                                    displayTime,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                      fontSize: 12,
+                                      fontFamily: "MontserratMedium",
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: Text(
-                              '@$handle',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 15,
-                                fontFamily: "Montserrat",
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          RozetContent(size: 12, userID: widget.model.userID),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6, right: 12),
-                            child: Text(
-                              displayTime,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
+                          const SizedBox(height: 1),
+                          Text(
+                            '@$handle',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontSize: 12,
+                              fontFamily: "Montserrat",
                             ),
                           ),
                         ],
                       ),
                     ),
-                    if (controller.isFollowing.value == false &&
-                        !shouldHideFollow)
-                      Transform.translate(
-                        offset: Offset(0, 5),
-                        child: Obx(() => TextButton(
+                    if (widget.model.userID !=
+                        FirebaseAuth.instance.currentUser!.uid)
+                      Obx(() {
+                        if (controller.isFollowing.value) {
+                          return const SizedBox.shrink();
+                        }
+                        return SizedBox(
+                          height: 24,
+                          child: Center(
+                            child: TextButton(
                               onPressed: controller.followLoading.value
                                   ? null
                                   : () {
@@ -1373,36 +1491,20 @@ class _ClassicContentState extends State<ClassicContent>
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
-                              child: controller.followLoading.value
-                                  ? Container(
-                                      height: 20,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(12)),
-                                          border:
-                                              Border.all(color: Colors.white)),
-                                      child: const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 15),
-                                        child: SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : Texts.followMeButtonWhite,
-                            )),
-                      ),
+                              child: _buildClassicOverlayFollowButton(
+                                loading: controller.followLoading.value,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                     7.pw,
-                    pulldownmenu(Colors.white),
+                    SizedBox(
+                      height: 24,
+                      child: Center(
+                        child: pulldownmenu(Colors.white),
+                      ),
+                    ),
                   ],
                 ),
                 if (widget.model.konum != "")
@@ -1412,16 +1514,9 @@ class _ClassicContentState extends State<ClassicContent>
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 13,
                       fontFamily: "Montserrat",
                     ),
-                  )
-                else if ((widget.model.hasPlayableVideo ||
-                        widget.model.img.isNotEmpty) &&
-                    widget.model.metin.trim().isNotEmpty)
-                  _buildFeedCaption(
-                    text: widget.model.metin.trim(),
-                    color: Colors.white,
                   ),
               ],
             ),
@@ -1692,7 +1787,7 @@ class _ClassicContentState extends State<ClassicContent>
           color: displayColor,
           label: NumberFormatter.format(controller.commentCount.value),
           labelColor: displayColor,
-          iconSize: 17,
+          iconSize: 19,
         ),
       );
     });
@@ -1730,7 +1825,7 @@ class _ClassicContentState extends State<ClassicContent>
           icon: isLiked
               ? CupertinoIcons.hand_thumbsup_fill
               : CupertinoIcons.hand_thumbsup,
-          iconSize: 17,
+          iconSize: 19,
           color: displayColor,
           label: NumberFormatter.format(controller.likeCount.value),
           labelColor: displayColor,
@@ -1752,7 +1847,7 @@ class _ClassicContentState extends State<ClassicContent>
         child: _iconAction(
           icon:
               isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
-          iconSize: 17,
+          iconSize: 19,
           color: displayColor,
           label: NumberFormatter.format(controller.savedCount.value),
           labelColor: displayColor,
@@ -1779,7 +1874,7 @@ class _ClassicContentState extends State<ClassicContent>
                   width: 20,
                   height: AnimatedActionButton.actionHeight,
                   child: Center(
-                    child: Icon(Icons.bar_chart, color: _actionColor, size: 20),
+                    child: Icon(Icons.bar_chart, color: _actionColor, size: 22),
                   ),
                 ),
                 2.pw,
