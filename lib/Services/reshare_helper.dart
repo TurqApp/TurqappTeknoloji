@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReshareHelper {
   // Nickname cache - bellekte tutulan kullanıcı adları
@@ -13,6 +16,18 @@ class ReshareHelper {
     try {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+
+      final me = FirebaseAuth.instance.currentUser?.uid;
+      if (me != null &&
+          safeUserID == me &&
+          Get.isRegistered<CurrentUserService>()) {
+        final current = Get.find<CurrentUserService>();
+        final myNickname = current.nickname.trim();
+        if (myNickname.isNotEmpty) {
+          _nicknameCache[safeUserID] = myNickname;
+          return myNickname;
+        }
+      }
 
       // Cache'te var mı kontrol et
       if (_nicknameCache.containsKey(safeUserID)) {
@@ -49,6 +64,22 @@ class ReshareHelper {
     try {
       final safeUserID = userID.trim();
       if (safeUserID.isEmpty) return 'Bilinmeyen Kullanıcı';
+
+      final me = FirebaseAuth.instance.currentUser?.uid;
+      if (me != null &&
+          safeUserID == me &&
+          Get.isRegistered<CurrentUserService>()) {
+        final current = Get.find<CurrentUserService>();
+        final myFullName = current.fullName.trim();
+        final myNickname = current.nickname.trim();
+        final resolved = myFullName.isNotEmpty
+            ? myFullName
+            : (myNickname.isNotEmpty ? myNickname : '');
+        if (resolved.isNotEmpty) {
+          _displayNameCache[safeUserID] = resolved;
+          return resolved;
+        }
+      }
 
       if (_displayNameCache.containsKey(safeUserID)) {
         return _displayNameCache[safeUserID]!;

@@ -83,32 +83,123 @@ class StoryComments extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: TextField(
-                    controller: controller.commentTextfield,
-                    focusNode: controller.commentFocus,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
-                    inputFormatters: [LengthLimitingTextInputFormatter(280)],
-                    decoration: InputDecoration(
-                      hintText: "${controller.nickname} için yorum ekle..",
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontFamily: "MontserratMedium",
-                        fontSize: 15,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Obx(() {
+                        final gifUrl = controller.selectedGifUrl.value.trim();
+                        if (gifUrl.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  gifUrl,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, progress) {
+                                    if (progress == null) return child;
+                                    return Container(
+                                      width: 72,
+                                      height: 72,
+                                      color: Colors.grey.withAlpha(18),
+                                      child: const Center(
+                                        child: CupertinoActivityIndicator(),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 72,
+                                    height: 72,
+                                    color: Colors.grey.withAlpha(18),
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: Colors.black38,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: controller.clearSelectedGif,
+                                  child: Container(
+                                    width: 18,
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withAlpha(140),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      CupertinoIcons.xmark,
+                                      color: Colors.white,
+                                      size: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      TextField(
+                        controller: controller.commentTextfield,
+                        focusNode: controller.commentFocus,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(280)
+                        ],
+                        decoration: InputDecoration(
+                          hintText: "${controller.nickname} için yorum ekle..",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                            fontFamily: "MontserratMedium",
+                            fontSize: 15,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
+                          height: 1.8,
+                        ),
+                        onChanged: (_) {},
                       ),
-                      border: InputBorder.none,
-                    ),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                      height: 1.8,
-                    ),
-                    onChanged: (_) {},
+                    ],
                   ),
                 ),
               ),
+              GestureDetector(
+                onTap: () => controller.pickGif(context),
+                child: Container(
+                  width: 36,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black26),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'GIF',
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontFamily: 'MontserratBold',
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: () {
                   controller.setComment();

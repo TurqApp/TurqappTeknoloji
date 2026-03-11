@@ -151,6 +151,7 @@ class PostContentController extends GetxController {
   StreamSubscription<DocumentSnapshot>? _postDocSub;
   StreamSubscription<QuerySnapshot>? _commentsSub;
   StreamSubscription<CurrentUserModel?>? _currentUserStreamSub;
+  Worker? _followingWorker;
 
   @override
   void onInit() {
@@ -188,6 +189,7 @@ class PostContentController extends GetxController {
     // Real-time listeners handle likes/saved/comments membership and counts.
     saveSeeing();
     followCheck();
+    _bindFollowingState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _bindMembershipListeners();
       _bindPostDocCounts();
@@ -207,7 +209,25 @@ class PostContentController extends GetxController {
     _postDocSub?.cancel();
     _commentsSub?.cancel();
     _currentUserStreamSub?.cancel();
+    _followingWorker?.dispose();
     super.onClose();
+  }
+
+  void _bindFollowingState() {
+    if (model.userID == FirebaseAuth.instance.currentUser?.uid) {
+      isFollowing.value = true;
+      return;
+    }
+
+    void syncFromAgenda() {
+      isFollowing.value = agendaController.followingIDs.contains(model.userID);
+    }
+
+    syncFromAgenda();
+    _followingWorker?.dispose();
+    _followingWorker = ever<Set<String>>(agendaController.followingIDs, (_) {
+      syncFromAgenda();
+    });
   }
 
   void _bindMembershipListeners() {
@@ -714,6 +734,10 @@ class PostContentController extends GetxController {
 
   Future<void> followCheck() async {
     if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
+      if (agendaController.followingIDs.contains(model.userID)) {
+        isFollowing.value = true;
+        return;
+      }
       final doc = await FirebaseFirestore.instance
           .collection("users")
           .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -721,6 +745,9 @@ class PostContentController extends GetxController {
           .doc(model.userID)
           .get();
       isFollowing.value = doc.exists;
+      if (doc.exists) {
+        agendaController.followingIDs.add(model.userID);
+      }
     }
   }
 

@@ -100,13 +100,48 @@ class StoryCommentUser extends StatelessWidget {
                             )
                           ],
                         ),
-                        Text(
-                          model.metin,
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontFamily: "MontserratMedium"),
-                        )
+                        if (model.metin.trim().isNotEmpty)
+                          Text(
+                            model.metin,
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontFamily: "MontserratMedium"),
+                          ),
+                        if (model.gif.trim().isNotEmpty) ...[
+                          SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              model.gif.trim(),
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Container(
+                                  width: 120,
+                                  height: 120,
+                                  color: Colors.grey.withAlpha(18),
+                                  child: Center(
+                                    child: CupertinoActivityIndicator(
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 120,
+                                height: 120,
+                                color: Colors.grey.withAlpha(18),
+                                child: Icon(
+                                  CupertinoIcons.exclamationmark_triangle,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ]
                       ],
                     ),
                   ),

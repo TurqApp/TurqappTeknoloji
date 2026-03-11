@@ -76,7 +76,10 @@ class _ProfileViewState extends State<ProfileView> {
           : Get.put(SocialMediaController());
   final userService = CurrentUserService.instance;
 
-  String get _myUserId => userService.currentUserRx.value?.userID ?? '';
+  String get _myUserId =>
+      userService.currentUserRx.value?.userID ??
+      FirebaseAuth.instance.currentUser?.uid ??
+      '';
   String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
   String get _myAvatarUrl => userService.avatarUrl;
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
@@ -232,10 +235,15 @@ class _ProfileViewState extends State<ProfileView> {
                               for (final reshare in controller.reshares.where(
                                 (post) => !post.deletedPost && !post.arsiv,
                               )) {
+                                final reshareTimestamp =
+                                    controller.reshareSortTimestampFor(
+                                  reshare.docID,
+                                  reshare.timeStamp.toInt(),
+                                );
                                 combinedPosts.add({
                                   'post': reshare,
                                   'isReshare': true,
-                                  'timestamp': reshare.timeStamp,
+                                  'timestamp': reshareTimestamp,
                                 });
                               }
 

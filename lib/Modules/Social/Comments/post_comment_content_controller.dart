@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 import '../../../Models/post_interactions_models_new.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -36,8 +37,7 @@ class PostCommentContentController extends GetxController {
         nickname.value =
             (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
                 .toString();
-        avatarUrl.value =
-            (  '').toString();
+        avatarUrl.value = resolveAvatarUrl(data);
       }
     } catch (_) {}
   }

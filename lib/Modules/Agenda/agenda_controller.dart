@@ -1484,98 +1484,108 @@ class AgendaController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Takip edilen kullanıcıların reshare eventlerini getir
-      final List<Map<String, dynamic>> allReshareEvents = [];
+      final rawSnap =
+          await FirebaseFirestore.instance.collectionGroup('reshares').get();
 
-      // Kendi reshare eventleri (her zaman göster)
-      final myReshareSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('reshared_posts')
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
+      final allReshareEvents = <Map<String, dynamic>>[];
+      final resharedPostIds = <String>{};
+      final reshareUserIds = <String>{};
 
-      for (final doc in myReshareSnap.docs) {
+      for (final doc in rawSnap.docs) {
+        final postRef = doc.reference.parent.parent;
+        final postId = postRef?.id ?? '';
+        if (postId.isEmpty) continue;
+
         final data = doc.data();
-        final postId = data['post_docID'] as String?;
+        final reshareUserId = doc.id;
         final timestamp = (data['timeStamp'] ?? 0) as int;
-        final originalUserID = data['originalUserID'] as String?;
-        final originalPostID = data['originalPostID'] as String?;
+        final originalUserID = (data['originalUserID'] ?? '').toString();
+        final originalPostID = (data['originalPostID'] ?? '').toString();
 
-        if (postId != null && postId.isNotEmpty) {
-          allReshareEvents.add({
-            'postID': postId,
-            'userID': uid,
-            'timeStamp': timestamp,
-            'originalUserID': originalUserID ?? '',
-            'originalPostID': originalPostID ?? '',
-            'type': 'reshare'
-          });
+        allReshareEvents.add({
+          'postID': postId,
+          'userID': reshareUserId,
+          'timeStamp': timestamp,
+          'originalUserID': originalUserID,
+          'originalPostID': originalPostID,
+          'type': 'reshare',
+        });
+        resharedPostIds.add(postId);
+        reshareUserIds.add(reshareUserId);
+      }
+
+      await _warmPrivacyCacheForUsers(reshareUserIds.toList());
+      for (final userId in reshareUserIds) {
+        unawaited(ReshareHelper.getUserNickname(userId));
+      }
+
+      final visibleEvents = allReshareEvents.where((event) {
+        final reshareUserId = (event['userID'] ?? '').toString();
+        if (reshareUserId.isEmpty) return false;
+        if (reshareUserId == uid) return true;
+        if (followingIDs.contains(reshareUserId)) return true;
+        final isPrivate = _userPrivacyCache[reshareUserId] ?? false;
+        final isDeactivated = _userDeactivatedCache[reshareUserId] ?? false;
+        return !isPrivate && !isDeactivated;
+      }).toList()
+        ..sort((a, b) =>
+            ((b['timeStamp'] ?? 0) as int).compareTo((a['timeStamp'] ?? 0) as int));
+
+      if (visibleEvents.length > 120) {
+        visibleEvents.removeRange(120, visibleEvents.length);
+      }
+
+      if (resharedPostIds.isEmpty) return;
+
+      final postsById = <String, PostsModel>{};
+      for (final batch in _chunkList(resharedPostIds.toList(), 10)) {
+        try {
+          final postsSnap = await FirebaseFirestore.instance
+              .collection('Posts')
+              .where(FieldPath.documentId, whereIn: batch)
+              .get();
+          for (final postDoc in postsSnap.docs) {
+            final post = PostsModel.fromMap(postDoc.data(), postDoc.id);
+            if (!await _canViewerSeePost(post)) continue;
+            postsById[post.docID] = post;
+          }
+        } catch (e) {
+          print('Error fetching reshare posts: $e');
         }
       }
 
-      // users/{otherUid}/reshared_posts owner-only olduğundan (rules),
-      // sadece current user reshare verisi kullanılır.
+      for (final event in visibleEvents) {
+        final postId = (event['postID'] ?? '').toString();
+        final post = postsById[postId];
+        if (post == null) continue;
 
-      // Reshare eventlerdeki postları getir ve feed reshare entries'e ekle
-      final Set<String> resharedPostIds =
-          allReshareEvents.map((e) => e['postID'] as String).toSet();
+        final feedEntry = {
+          'type': 'reshare',
+          'post': post,
+          'reshareTimestamp': event['timeStamp'],
+          'reshareUserID': event['userID'],
+          'originalUserID': event['originalUserID'],
+          'originalPostID': event['originalPostID'],
+        };
 
-      if (resharedPostIds.isNotEmpty) {
-        final List<String> postIdsList = resharedPostIds.toList();
+        final entryId =
+            '${post.docID}_${event['userID']}_${event['timeStamp']}';
+        final exists = feedReshareEntries.any((entry) {
+          final existingId =
+              '${(entry['post'] as PostsModel).docID}_${entry['reshareUserID']}_${entry['reshareTimestamp']}';
+          return existingId == entryId;
+        });
+        if (!exists) {
+          feedReshareEntries.add(feedEntry);
+        }
 
-        // Firebase whereIn limit 10, bu yüzden batch'lere böl
-        for (int i = 0; i < postIdsList.length; i += 10) {
-          final batch = postIdsList.sublist(
-              i, i + 10 > postIdsList.length ? postIdsList.length : i + 10);
-
-          try {
-            final postsSnap = await FirebaseFirestore.instance
-                .collection('Posts')
-                .where(FieldPath.documentId, whereIn: batch)
-                .get();
-
-            for (final postDoc in postsSnap.docs) {
-              final post = PostsModel.fromMap(postDoc.data(), postDoc.id);
-              if (!await _canViewerSeePost(post)) continue;
-
-              // Bu post ile ilgili tüm reshare eventleri
-              final relatedReshares = allReshareEvents
-                  .where((event) => event['postID'] == post.docID)
-                  .toList();
-
-              for (final reshareEvent in relatedReshares) {
-                // Feed reshare entry'si oluştur
-                final feedEntry = {
-                  'type': 'reshare',
-                  'post': post,
-                  'reshareTimestamp': reshareEvent['timeStamp'],
-                  'reshareUserID': reshareEvent['userID'],
-                  'originalUserID': reshareEvent['originalUserID'],
-                  'originalPostID': reshareEvent['originalPostID'],
-                };
-
-                // Duplicate kontrolü
-                final entryId =
-                    '${post.docID}_${reshareEvent['userID']}_${reshareEvent['timeStamp']}';
-                final exists = feedReshareEntries.any((entry) {
-                  final existingId =
-                      '${(entry['post'] as PostsModel).docID}_${entry['reshareUserID']}_${entry['reshareTimestamp']}';
-                  return existingId == entryId;
-                });
-
-                if (!exists) {
-                  feedReshareEntries.add(feedEntry);
-                }
-
-                // Metadata'ya da ekle
-                publicReshareEvents.add(reshareEvent);
-              }
-            }
-          } catch (e) {
-            print('Error fetching posts for batch $i: $e');
-          }
+        final metaKey = '${event['postID']}::${event['userID']}';
+        final metaExists = publicReshareEvents.any(
+          (existing) =>
+              '${existing['postID']}::${existing['userID']}' == metaKey,
+        );
+        if (!metaExists) {
+          publicReshareEvents.add(event);
         }
       }
     } catch (e) {

@@ -105,6 +105,13 @@
       ]
     },
     {
+      "collectionGroup": "reshares",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "timeStamp", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "Posts",
       "queryScope": "COLLECTION",
       "fields": [

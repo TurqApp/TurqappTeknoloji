@@ -302,6 +302,8 @@ class UploadQueueService extends GetxController {
             storage: FirebaseStorage.instance,
             bytes: localBytes,
             storagePathWithoutExt: 'Posts/${upload.id}/image_$i',
+            maxWidth: 600,
+            maxHeight: 600,
           );
           upload.progress = ((i + 1) / upload.imagePaths.length) * 0.8;
           _notifyQueueUpdated();
@@ -371,6 +373,9 @@ class UploadQueueService extends GetxController {
             metadata: SettableMetadata(
               contentType: 'video/mp4',
               cacheControl: 'public, max-age=31536000, immutable',
+              customMetadata: {
+                'uploaderUid': userID,
+              },
             ),
           );
           final uploadTask = await uploadTaskFuture;

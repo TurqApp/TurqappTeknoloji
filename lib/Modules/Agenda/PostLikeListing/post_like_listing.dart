@@ -27,8 +27,9 @@ class PostLikeListing extends StatelessWidget {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Container(
+            width: double.infinity,
             height: desiredHeight,
-            margin: EdgeInsets.fromLTRB(10, 10, 10, safeBottom),
+            margin: EdgeInsets.fromLTRB(0, 10, 0, safeBottom),
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.only(

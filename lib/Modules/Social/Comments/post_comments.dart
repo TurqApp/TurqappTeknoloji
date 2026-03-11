@@ -288,6 +288,68 @@ class _PostCommentsState extends State<PostComments> {
                       ),
                     );
                   }),
+                  Obx(() {
+                    final gifUrl = controller.selectedGifUrl.value.trim();
+                    if (gifUrl.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 6),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              gifUrl,
+                              width: 76,
+                              height: 76,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Container(
+                                  width: 76,
+                                  height: 76,
+                                  color: const Color(0xFFF5F6F8),
+                                  child: const Center(
+                                    child: CupertinoActivityIndicator(),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 76,
+                                height: 76,
+                                color: const Color(0xFFF5F6F8),
+                                child: const Icon(
+                                  CupertinoIcons.exclamationmark_triangle,
+                                  color: Colors.black38,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: controller.clearSelectedGif,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.55),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.xmark,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5F6F8),
@@ -328,24 +390,33 @@ class _PostCommentsState extends State<PostComments> {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              width: 34,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black26),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                "GIF",
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 10,
-                  fontFamily: AppFontFamilies.mbold,
+            GestureDetector(
+              onTap: () async {
+                await controller.pickGif(context);
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+              child: Container(
+                width: 34,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black26),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "GIF",
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 10,
+                    fontFamily: AppFontFamilies.mbold,
+                  ),
                 ),
               ),
             ),
-            if (textEditingController.text.isNotEmpty)
+            if (textEditingController.text.isNotEmpty ||
+                controller.selectedGifUrl.value.trim().isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: GestureDetector(

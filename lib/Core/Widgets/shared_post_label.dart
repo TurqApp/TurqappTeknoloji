@@ -68,14 +68,17 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
               await ReshareHelper.getUserDisplayName(widget.originalUserID);
           if (mounted) {
             setState(() {
-              _displayName = displayName;
+              _displayName = displayName.trim().isNotEmpty &&
+                      displayName != 'Bilinmeyen Kullanıcı'
+                  ? displayName
+                  : null;
               _isLoading = false;
             });
           }
         } catch (e) {
           if (mounted) {
             setState(() {
-              _displayName = 'Bilinmeyen Kullanıcı';
+              _displayName = null;
               _isLoading = false;
             });
           }
@@ -110,21 +113,26 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
           borderRadius: BorderRadius.circular(8),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.28),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Kimden $_displayName',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: widget.fontSize,
-                  fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.normal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 220),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                overflow: TextOverflow.ellipsis,
+                child: Text(
+                  'Kimden: $_displayName',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: widget.fontSize,
+                    fontWeight: FontWeight.w500,
+                    fontStyle: FontStyle.normal,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ),

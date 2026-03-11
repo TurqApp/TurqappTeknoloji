@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
 import '../StoryMaker/story_maker_controller.dart';
@@ -53,6 +54,7 @@ class _StoryViewerState extends State<StoryViewer>
   @override
   void initState() {
     super.initState();
+    VideoStateManager.instance.pauseAllVideos(force: true);
     currentPageIndex = widget.storyOwnerUsers
         .indexWhere((u) => u.userID == widget.startedUser.userID);
     if (currentPageIndex < 0) currentPageIndex = 0;
@@ -94,6 +96,14 @@ class _StoryViewerState extends State<StoryViewer>
         _onScreenshotDetected();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _returnController.dispose();
+    pageController.dispose();
+    _screenshotChannel.setMethodCallHandler(null);
+    super.dispose();
   }
 
   void _onUserStoryFinished(int currentIndex) {

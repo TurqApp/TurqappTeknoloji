@@ -1322,12 +1322,21 @@ class _ClassicContentState extends State<ClassicContent>
                       : ((widget.model.floodCount > 1) ? 26 : 8),
                 ),
 
+                _buildMediaTapOverlay(
+                  onTap: _openVideoMedia,
+                  onDoubleTap: controller.like,
+                ),
                 Positioned(
                   bottom: 8,
                   right: 8,
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       agendaController.isMuted.toggle();
+                      final vc = videoController;
+                      if (vc != null && vc.value.isInitialized) {
+                        vc.setVolume(agendaController.isMuted.value ? 0 : 1);
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(8),
@@ -1344,10 +1353,6 @@ class _ClassicContentState extends State<ClassicContent>
                           )),
                     ),
                   ),
-                ),
-                _buildMediaTapOverlay(
-                  onTap: _openVideoMedia,
-                  onDoubleTap: controller.like,
                 ),
                 _buildClassicMediaHeader(),
               ],

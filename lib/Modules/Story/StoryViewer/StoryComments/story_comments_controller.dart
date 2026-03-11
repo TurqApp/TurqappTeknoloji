@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
 
@@ -12,6 +13,7 @@ class StoryCommentsController extends GetxController {
   String nickname = "";
   String storyID = "";
   var totalComment = 0.obs;
+  final RxString selectedGifUrl = ''.obs;
 
   StoryCommentsController({required this.nickname, required this.storyID});
 
@@ -60,7 +62,8 @@ class StoryCommentsController extends GetxController {
 
   Future<void> setComment() async {
     final text = commentTextfield.text.trim();
-    if (text.isEmpty) {
+    final gif = selectedGifUrl.value.trim();
+    if (text.isEmpty && gif.isEmpty) {
       return;
     }
     try {
@@ -72,13 +75,28 @@ class StoryCommentsController extends GetxController {
         "userID": FirebaseAuth.instance.currentUser!.uid,
         "metin": text,
         "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        "gif": ""
+        "gif": gif
       });
       commentTextfield.clear();
+      selectedGifUrl.value = '';
       await getLast();
       closeKeyboard(Get.context!);
     } catch (e) {
       print("setComment error: $e");
     }
+  }
+
+  Future<void> pickGif(BuildContext context) async {
+    final url = await GiphyPickerService.pickGifUrl(
+      context,
+      randomId: 'turqapp_story_comments',
+    );
+    if (url != null && url.trim().isNotEmpty) {
+      selectedGifUrl.value = url.trim();
+    }
+  }
+
+  void clearSelectedGif() {
+    selectedGifUrl.value = '';
   }
 }

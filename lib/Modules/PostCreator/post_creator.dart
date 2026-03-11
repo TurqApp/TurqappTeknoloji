@@ -14,6 +14,7 @@ import '../../Core/Widgets/progress_indicators.dart';
 
 class PostCreator extends StatelessWidget {
   final String sharedVideoUrl;
+  final List<String> sharedImageUrls;
   final double sharedAspectRatio;
   final String sharedThumbnail;
   final bool sharedAsPost;
@@ -25,6 +26,7 @@ class PostCreator extends StatelessWidget {
   PostCreator({
     super.key,
     this.sharedVideoUrl = '',
+    this.sharedImageUrls = const <String>[],
     this.sharedAspectRatio = 9 / 16,
     this.sharedThumbnail = '',
     this.sharedAsPost = false,
@@ -40,6 +42,7 @@ class PostCreator extends StatelessWidget {
   Widget build(BuildContext context) {
     controller.applySharedSourceIfNeeded(
       videoUrl: sharedVideoUrl,
+      imageUrls: sharedImageUrls,
       aspectRatio: sharedAspectRatio,
       thumbnail: sharedThumbnail,
       sharedAsPost: sharedAsPost,
@@ -208,7 +211,8 @@ class PostCreator extends StatelessWidget {
       }
 
       final hasImages = selectedController.croppedImages.isNotEmpty ||
-          selectedController.selectedImages.isNotEmpty;
+          selectedController.selectedImages.isNotEmpty ||
+          selectedController.reusedImageUrls.isNotEmpty;
       final hasVideo = selectedController.selectedVideo.value != null;
       final hasLocation = selectedController.adres.value.trim().isNotEmpty;
       final commentActive = controller.commentVisibility.value != 0;

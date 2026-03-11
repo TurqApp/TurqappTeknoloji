@@ -61,27 +61,29 @@ class StoryGifWidget extends StatelessWidget {
         angle: element.rotation,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(
-            fadeInDuration: const Duration(milliseconds: 300),
-            fadeOutDuration: const Duration(milliseconds: 100),
-            imageUrl: element.content,
+          child: Image.network(
+            element.content,
             fit: BoxFit.contain, // Cover yerine contain - aspect ratio korunur
-            placeholder: (context, url) => Container(
-              color: Colors.grey.withValues(alpha: 0.3),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                    SizedBox(height: 8),
-                    Text("GIF",
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ],
+            gaplessPlayback: true,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return Container(
+                color: Colors.grey.withValues(alpha: 0.3),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                      SizedBox(height: 8),
+                      Text("GIF",
+                          style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            errorWidget: (context, url, error) => Container(
+              );
+            },
+            errorBuilder: (context, error, stackTrace) => Container(
               color: Colors.grey.withValues(alpha: 0.3),
               child: const Center(
                 child: Column(

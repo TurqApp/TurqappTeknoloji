@@ -276,6 +276,13 @@ class ProfileController extends GetxController {
     }
   }
 
+  int reshareSortTimestampFor(String postId, int fallback) {
+    for (final ref in _latestReshareRefs) {
+      if (ref.postId == postId) return ref.timeStamp.toInt();
+    }
+    return fallback;
+  }
+
   void _onAuthChanged(User? user) {
     final newUid = user?.uid;
     // Oturum kapandıysa tüm verileri sıfırla

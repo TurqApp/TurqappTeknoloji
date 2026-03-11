@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/sizes.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Models/post_interactions_models_new.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -50,23 +51,14 @@ class PostCommentContent extends StatelessWidget {
                   Get.to(() => SocialProfile(userID: model.userID));
                 }
               },
-              child: ClipOval(
-                child: SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: controller.avatarUrl.value.isNotEmpty
-                      ? Image.network(
-                          controller.avatarUrl.value,
-                          fit: BoxFit.cover,
-                        )
-                      : Container(
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            CupertinoIcons.person_fill,
-                            size: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
+              child: SizedBox(
+                width: 34,
+                height: 34,
+                child: CachedUserAvatar(
+                  userId: model.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 17,
+                  backgroundColor: Colors.grey.shade200,
                 ),
               ),
             ),
@@ -125,15 +117,48 @@ class PostCommentContent extends StatelessWidget {
                     ],
                   ),
                   2.ph,
-                  Text(
-                    model.text,
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontFamily: AppFontFamilies.mregular,
-                      height: 1.2,
+                  if (model.text.trim().isNotEmpty)
+                    Text(
+                      model.text,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: AppFontFamilies.mregular,
+                        height: 1.2,
+                      ),
                     ),
-                  ),
+                  if (model.imgs.isNotEmpty) ...[
+                    6.ph,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        model.imgs.first,
+                        width: 140,
+                        height: 140,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            width: 140,
+                            height: 140,
+                            color: Colors.grey.shade100,
+                            child: const Center(
+                              child: CupertinoActivityIndicator(),
+                            ),
+                          );
+                        },
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 140,
+                          height: 140,
+                          color: Colors.grey.shade100,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: Colors.black38,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   4.ph,
                   if (!isPending)
                     Row(
@@ -178,15 +203,17 @@ class PostCommentContent extends StatelessWidget {
               ),
             ),
             if (!isPending)
-              SizedBox(
-                width: 30,
-                child: GestureDetector(
-                  onTap: controller.toggleLike,
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+              GestureDetector(
+                onTap: controller.toggleLike,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Kalp yok: referansa göre yalnızca beğeni (thumb) ikonu
                       Icon(
                         hasLiked
                             ? CupertinoIcons.hand_thumbsup_fill
@@ -194,15 +221,18 @@ class PostCommentContent extends StatelessWidget {
                         color: hasLiked ? Colors.blueAccent : Colors.black54,
                         size: 18,
                       ),
-                      if (controller.likes.isNotEmpty)
+                      if (controller.likes.isNotEmpty) ...[
+                        4.pw,
                         Text(
                           controller.likes.length.toString(),
-                          style: const TextStyle(
-                            color: Colors.black54,
+                          style: TextStyle(
+                            color:
+                                hasLiked ? Colors.blueAccent : Colors.black54,
                             fontSize: 11,
-                            fontFamily: 'MontserratMedium',
+                            fontFamily: AppFontFamilies.mmedium,
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),

@@ -1962,7 +1962,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
-          if (post.images.length == 1 &&
+          if (isReusedImagePost && imageUrls.length == 1) {
+            aspectRatio =
+                post.reusedImageAspectRatio > 0 ? post.reusedImageAspectRatio : 0.8;
+          } else if (post.images.length == 1 &&
               post.video == null &&
               !isReusedVideoPost) {
             try {
@@ -1998,7 +2001,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           for (int i = 0; i < imageUrls.length; i++) {
             double itemAspect = 1.0;
             try {
-              if (i < post.images.length) {
+              if (isReusedImagePost && imageUrls.length == 1) {
+                itemAspect = post.reusedImageAspectRatio > 0
+                    ? post.reusedImageAspectRatio
+                    : itemAspect;
+              } else if (i < post.images.length) {
                 final codec = await ui.instantiateImageCodec(post.images[i]);
                 final frame = await codec.getNextFrame();
                 final image = frame.image;

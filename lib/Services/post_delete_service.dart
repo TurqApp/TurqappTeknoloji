@@ -60,6 +60,12 @@ class PostDeleteService {
       print('Cascade delete reshares error: $e');
     }
 
+    try {
+      await _cascadeDeleteSharedAs(model.docID);
+    } catch (e) {
+      print('Cascade delete shared-as error: $e');
+    }
+
     // 4) Bu gönderiye ait beğeniler toplamını sahibi üzerinden düş (idempotent)
     if (!alreadyDeleted) {
       await _decrementOwnerLikeCounter(model);
@@ -93,6 +99,56 @@ class PostDeleteService {
         await mappingCol.doc(uid).delete();
       } catch (_) {}
     }
+  }
+
+  Future<void> _cascadeDeleteSharedAs(String originalPostID) async {
+    final firestore = FirebaseFirestore.instance;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    final sharedSnap = await firestore
+        .collection('Posts')
+        .where('originalPostID', isEqualTo: originalPostID)
+        .get();
+
+    final postSharersSnap = await firestore
+        .collection('Posts')
+        .doc(originalPostID)
+        .collection('postSharers')
+        .get();
+
+    final Set<String> sharedPostIds = {
+      ...sharedSnap.docs.map((doc) => doc.id),
+      ...postSharersSnap.docs
+          .map((doc) => (doc.data()['sharedPostID'] ?? '').toString().trim())
+          .where((id) => id.isNotEmpty),
+    };
+
+    for (final sharedPostId in sharedPostIds) {
+      final doc = await firestore.collection('Posts').doc(sharedPostId).get();
+      if (!doc.exists) {
+        continue;
+      }
+
+      final data = doc.data() ?? const <String, dynamic>{};
+      if ((data['deletedPost'] ?? false) == true) {
+        continue;
+      }
+
+      try {
+        await doc.reference.update({
+          'deletedPost': true,
+          'deletedPostTime': nowMs,
+        });
+      } catch (_) {}
+
+      _updateStores(doc.id);
+    }
+
+    try {
+      for (final doc in postSharersSnap.docs) {
+        await doc.reference.delete();
+      }
+    } catch (_) {}
   }
 
   void _updateStores(String docID) {

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -214,16 +213,20 @@ class StoryMaker extends StatelessWidget {
       case StoryElementType.image:
         return Image.file(File(e.content), fit: BoxFit.cover);
       case StoryElementType.gif:
-        return CachedNetworkImage(
-          imageUrl: e.content,
+        return Image.network(
+          e.content,
           fit: BoxFit.contain,
-          placeholder: (_, __) => Container(
-            color: Colors.white12,
-            child: const Center(
-              child: CupertinoActivityIndicator(color: Colors.white),
-            ),
-          ),
-          errorWidget: (_, __, ___) => Container(
+          gaplessPlayback: true,
+          loadingBuilder: (_, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              color: Colors.white12,
+              child: const Center(
+                child: CupertinoActivityIndicator(color: Colors.white),
+              ),
+            );
+          },
+          errorBuilder: (_, __, ___) => Container(
             color: Colors.white12,
             child: const Center(
               child: Icon(Icons.broken_image, color: Colors.white70),

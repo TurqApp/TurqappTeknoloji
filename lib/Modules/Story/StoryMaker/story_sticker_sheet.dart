@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:giphy_get/giphy_get.dart';
+import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 
 import 'story_maker_controller.dart';
-
-const String _giphyApiKey =
-    String.fromEnvironment('GIPHY_API_KEY', defaultValue: '');
 
 Future<void> showStoryStickerSheet(
     BuildContext context, StoryMakerController controller) async {
@@ -100,24 +97,11 @@ Future<void> showStoryStickerSheet(
                     );
                   }),
                   _item('🎞️ GIF', () async {
-                    if (_giphyApiKey.isEmpty) {
-                      final manual = await _askText('GIF URL', 'https://...');
-                      if (manual != null && manual.trim().isNotEmpty) {
-                        controller.addGifFromUrl(manual.trim());
-                      }
-                      return;
-                    }
-                    final gif = await GiphyGet.getGif(
-                      context: context,
-                      apiKey: _giphyApiKey,
-                      lang: GiphyLanguage.turkish,
-                      randomID: 'turqapp_story',
-                      tabColor: Colors.white,
+                    final url = await GiphyPickerService.pickGifUrl(
+                      context,
+                      randomId: 'turqapp_story',
                     );
-                    final url = gif?.images?.original?.url ??
-                        gif?.images?.downsized?.url ??
-                        '';
-                    if (url.isNotEmpty) {
+                    if (url != null && url.isNotEmpty) {
                       controller.addGifFromUrl(url);
                     }
                   }),

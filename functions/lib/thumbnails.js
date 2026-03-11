@@ -1,7 +1,7 @@
 "use strict";
 // 📸 Image Thumbnail Generator
 // Automatically generates thumbnails when images are uploaded to Firebase Storage
-// Generates 3 sizes: 150px (avatars), 300px (feed), 600px (detail)
+// Generates 1 size: 600px (general feed/detail)
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateThumbnails = void 0;
 const functions = require("firebase-functions");
@@ -12,9 +12,7 @@ const fs = require("fs");
 // Use dynamic import for sharp to avoid build issues
 const sharp = require("sharp");
 const THUMBNAIL_SIZES = [
-    { width: 150, suffix: "_thumb_150" }, // Avatar size
-    { width: 300, suffix: "_thumb_300" }, // Feed preview
-    { width: 600, suffix: "_thumb_600" }, // Story preview / detail
+    { width: 600, suffix: "_thumb_600" }, // General feed/detail preview
 ];
 const SUPPORTED_FORMATS = [".jpg", ".jpeg", ".png", ".webp"];
 /**
@@ -64,6 +62,20 @@ exports.generateThumbnails = functions
     catch (error) {
         console.error("Download error:", error);
         return null;
+    }
+    try {
+        const meta = await sharp(tempFilePath).metadata();
+        const width = meta.width ?? 0;
+        const height = meta.height ?? 0;
+        const longestEdge = Math.max(width, height);
+        if (longestEdge > 0 && longestEdge <= 600) {
+            console.log("Image is already <= 600px, skipping thumbnail generation:", filePath);
+            fs.unlinkSync(tempFilePath);
+            return null;
+        }
+    }
+    catch (error) {
+        console.error("Metadata read error:", error);
     }
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🎨 GENERATE: Create thumbnails

@@ -148,9 +148,9 @@ class AgendaView extends StatelessWidget {
                       for (final reshareEntry
                           in controller.feedReshareEntries) {
                         final post = reshareEntry['post'] as PostsModel;
-                        final idx = agendaIndexByDoc[post.docID];
-                        if (idx == null || idx < 0) continue;
-                        final modelRef = controller.agendaList[idx];
+                        final idx = agendaIndexByDoc[post.docID] ?? -1;
+                        final modelRef =
+                            idx >= 0 ? controller.agendaList[idx] : post;
                         final reshareTimestamp =
                             (reshareEntry['reshareTimestamp'] ?? 0) as int;
                         final reshareUserID =

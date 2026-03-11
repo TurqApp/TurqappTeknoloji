@@ -565,6 +565,12 @@ service cloud.firestore {
       }
     }
 
+    // Collection group erişimi için reshare alt koleksiyonunu açık tanımla
+    match /{path=**}/reshares/{reshareId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == reshareId;
+    }
+
     // ──────────────────────────────────────────────
     // STORIES
     // ──────────────────────────────────────────────

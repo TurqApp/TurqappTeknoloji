@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
+import '../../../Core/Services/giphy_picker_service.dart';
 import '../../../Core/blocked_texts.dart';
 import '../../../Core/functions.dart';
 import '../../../Models/post_interactions_models_new.dart';
@@ -32,6 +33,7 @@ class PostCommentController extends GetxController {
   final RxString postUserNickname = ''.obs;
   final RxString replyingToCommentId = ''.obs;
   final RxString replyingToNickname = ''.obs;
+  final RxString selectedGifUrl = ''.obs;
   final Map<String, PostCommentModel> _pendingLocalComments = {};
 
   StreamSubscription<List<PostCommentModel>>? _commentSub;
@@ -91,6 +93,7 @@ class PostCommentController extends GetxController {
 
   Future<void> yorumYap(BuildContext context, String text,
       {VoidCallback? onComplete}) async {
+    final gifUrl = selectedGifUrl.value.trim();
     if (kufurKontrolEt(text)) {
       showAlertDialog(
         context,
@@ -101,7 +104,7 @@ class PostCommentController extends GetxController {
     }
 
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && gifUrl.isEmpty) return;
 
     final targetCommentId = replyingToCommentId.value.trim();
     String? commentId;
@@ -110,16 +113,21 @@ class PostCommentController extends GetxController {
         postID,
         targetCommentId,
         trimmed,
+        imgs: gifUrl.isEmpty ? null : <String>[gifUrl],
       );
     } else {
-      commentId = await _interactionService.addComment(postID, trimmed);
+      commentId = await _interactionService.addComment(
+        postID,
+        trimmed,
+        imgs: gifUrl.isEmpty ? null : <String>[gifUrl],
+      );
       if (commentId != null && commentId.startsWith('offline_')) {
         final currentUid = userService.userId;
         if (currentUid.isNotEmpty) {
           final local = PostCommentModel(
             likes: [],
             text: trimmed,
-            imgs: const [],
+            imgs: gifUrl.isEmpty ? const [] : <String>[gifUrl],
             videos: const [],
             timeStamp: DateTime.now().millisecondsSinceEpoch,
             userID: currentUid,
@@ -149,6 +157,7 @@ class PostCommentController extends GetxController {
     }
 
     clearReplyTarget();
+    clearSelectedGif();
     onComplete?.call();
   }
 
@@ -175,6 +184,20 @@ class PostCommentController extends GetxController {
   void clearReplyTarget() {
     replyingToCommentId.value = '';
     replyingToNickname.value = '';
+  }
+
+  Future<void> pickGif(BuildContext context) async {
+    final url = await GiphyPickerService.pickGifUrl(
+      context,
+      randomId: 'turqapp_post_comments',
+    );
+    if (url != null && url.trim().isNotEmpty) {
+      selectedGifUrl.value = url.trim();
+    }
+  }
+
+  void clearSelectedGif() {
+    selectedGifUrl.value = '';
   }
 
   @override

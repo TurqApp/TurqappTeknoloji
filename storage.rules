@@ -13,6 +13,12 @@ service firebase.storage {
           || firestore.get(/databases/(default)/documents/Posts/$(postId)).data.userID == request.auth.uid
         );
     }
+    function hasMatchingUploaderMetadata() {
+      return isAuth()
+        && request.resource != null
+        && request.resource.metadata != null
+        && request.resource.metadata.uploaderUid == request.auth.uid;
+    }
     function isStorageUploaderBypass() {
       return isAuth()
         && request.auth.uid in [
@@ -48,7 +54,9 @@ service firebase.storage {
       allow read: if isAuth();
       // Strict owner enforcement: only post owner or first media write
       // (before post shell exists) can upload.
-      allow write: if (canWritePostMedia(postId) || isStorageUploaderBypass())
+      allow write: if (canWritePostMedia(postId)
+                       || hasMatchingUploaderMetadata()
+                       || isStorageUploaderBypass())
                    && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
     }
 

@@ -148,17 +148,6 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
-  if (!kReleaseMode) {
-    final mode = kDebugMode ? 'debug' : 'profile';
-    try {
-      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(false);
-    } catch (_) {}
-    debugPrint(
-      '[AppCheck] $mode bypass enabled for local development.',
-    );
-    return;
-  }
-
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
@@ -168,6 +157,13 @@ Future<void> _activateAppCheck() async {
           ? const AppleDebugProvider()
           : const AppleDeviceCheckProvider(),
     );
+
+    if (!kReleaseMode) {
+      final mode = kDebugMode ? 'debug' : 'profile';
+      debugPrint(
+        '[AppCheck] $mode provider enabled for local development.',
+      );
+    }
 
     if (kDebugMode) {
       final token = await FirebaseAppCheck.instance.getToken(true);

@@ -46,13 +46,6 @@ class UploadValidationService {
         return ValidationResult.error('Desteklenmeyen fotoğraf formatı!');
       }
 
-      if (image.width > UploadConstants.maxImageWidth ||
-          image.height > UploadConstants.maxImageHeight) {
-        return ValidationResult.error(
-            'Fotoğraf çözünürlüğü çok yüksek! Maksimum ${UploadConstants.maxImageWidth}x${UploadConstants.maxImageHeight} olabilir. '
-            'Mevcut: ${image.width}x${image.height}');
-      }
-
       return ValidationResult.success(metadata: {
         'width': image.width,
         'height': image.height,
