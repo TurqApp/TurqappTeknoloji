@@ -8,7 +8,6 @@ import 'package:get/get.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:svg_flutter/svg.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -781,8 +780,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            AdminAccessService.isKnownAdminSync())
+        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               noYesAlert(
@@ -801,8 +799,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
-            (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -813,8 +810,7 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
-            (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();

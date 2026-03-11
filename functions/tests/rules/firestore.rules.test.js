@@ -9,6 +9,7 @@ let assertFails;
 let assertSucceeds;
 let initializeTestEnvironment;
 let doc;
+let deleteDoc;
 let getDoc;
 let setDoc;
 let updateDoc;
@@ -17,7 +18,7 @@ test.before(async () => {
   ({ initializeTestEnvironment, assertFails, assertSucceeds } = await import(
     "@firebase/rules-unit-testing"
   ));
-  ({ doc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
+  ({ doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
 
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
@@ -62,5 +63,67 @@ test("users collection blocks owner from writing moderation fields", async () =>
   const ownerCtx = testEnv.authenticatedContext(uid);
   await assertFails(
     updateDoc(doc(ownerCtx.firestore(), `users/${uid}`), { isBanned: true }),
+  );
+});
+
+test("posts collection allows admin to update another user's post", async () => {
+  const ownerUid = "post-owner";
+  const adminUid = "admin-user";
+  const postId = "foreign-post";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "ilk metin",
+      deletedPost: false,
+      deletedPostTime: 0,
+    });
+  });
+
+  const adminCtx = testEnv.authenticatedContext(adminUid, { admin: true });
+  await assertSucceeds(
+    updateDoc(doc(adminCtx.firestore(), `Posts/${postId}`), {
+      metin: "admin duzenledi",
+    }),
+  );
+});
+
+test("posts collection allows admin to delete another user's post", async () => {
+  const ownerUid = "post-owner";
+  const adminUid = "admin-user";
+  const postId = "foreign-post-delete";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "ilk metin",
+      deletedPost: false,
+      deletedPostTime: 0,
+    });
+  });
+
+  const adminCtx = testEnv.authenticatedContext(adminUid, { admin: true });
+  await assertSucceeds(deleteDoc(doc(adminCtx.firestore(), `Posts/${postId}`)));
+});
+
+test("posts collection blocks non-owner non-admin from updating another user's post", async () => {
+  const ownerUid = "post-owner";
+  const otherUid = "other-user";
+  const postId = "foreign-post-blocked";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "ilk metin",
+      deletedPost: false,
+      deletedPostTime: 0,
+    });
+  });
+
+  const otherCtx = testEnv.authenticatedContext(otherUid);
+  await assertFails(
+    updateDoc(doc(otherCtx.firestore(), `Posts/${postId}`), {
+      metin: "yetkisiz degisim",
+    }),
   );
 });

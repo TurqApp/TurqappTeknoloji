@@ -10,7 +10,6 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -1763,8 +1762,7 @@ class _AgendaContentState extends State<AgendaContent>
           title: 'Gizle',
           icon: CupertinoIcons.eye_slash,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            AdminAccessService.isKnownAdminSync())
+        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1835,8 +1833,7 @@ class _AgendaContentState extends State<AgendaContent>
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            AdminAccessService.isKnownAdminSync())
+        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               // 2) Videoyu durdur
@@ -1864,8 +1861,7 @@ class _AgendaContentState extends State<AgendaContent>
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == false &&
-            (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -1877,8 +1873,7 @@ class _AgendaContentState extends State<AgendaContent>
           ),
         if (controller.arsiv.value == false &&
             controller.model.arsiv == true &&
-            (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();

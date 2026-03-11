@@ -4,11 +4,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AdminAccessService {
   static bool _adminCached = false;
   static bool _hasRefreshed = false;
+  static String _cachedUid = '';
   static DateTime? _lastAllowlistFetchAt;
   static const Duration _allowlistTtl = Duration(minutes: 10);
   static Set<String> _allowlistCache = <String>{};
 
   static bool isKnownAdminSync() {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (_cachedUid != currentUid) {
+      _cachedUid = currentUid;
+      _adminCached = false;
+      _hasRefreshed = false;
+    }
     if (!_hasRefreshed) {
       _hasRefreshed = true;
       // Fire and forget: populate cache from custom claims.
@@ -22,7 +29,17 @@ class AdminAccessService {
 
   static Future<bool> canManageSliders() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return false;
+    if (currentUser == null) {
+      _cachedUid = '';
+      _adminCached = false;
+      _hasRefreshed = false;
+      return false;
+    }
+
+    if (_cachedUid != currentUser.uid) {
+      _cachedUid = currentUser.uid;
+      _adminCached = false;
+    }
 
     final token = await currentUser.getIdTokenResult(true);
     var allowed = token.claims?["admin"] == true;
@@ -31,6 +48,7 @@ class AdminAccessService {
       allowed = allowlist.contains(currentUser.uid);
     }
     _adminCached = allowed;
+    _hasRefreshed = true;
     return allowed;
   }
 

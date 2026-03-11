@@ -9,7 +9,6 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -799,8 +798,7 @@ class ShortsContent extends StatelessWidget {
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            AdminAccessService.isKnownAdminSync())
+        if (model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               // Videoyu durdur
@@ -827,8 +825,7 @@ class ShortsContent extends StatelessWidget {
           ),
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == false &&
-            (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivle();
@@ -840,8 +837,7 @@ class ShortsContent extends StatelessWidget {
           ),
         if (controller.arsivlendi.value == false &&
             controller.model.arsiv == true &&
-            (model.userID == FirebaseAuth.instance.currentUser!.uid ||
-                AdminAccessService.isKnownAdminSync()))
+            model.userID == FirebaseAuth.instance.currentUser!.uid)
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
