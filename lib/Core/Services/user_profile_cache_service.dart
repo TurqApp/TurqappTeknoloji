@@ -11,8 +11,8 @@ import 'turq_image_cache_manager.dart';
 
 class UserProfileCacheService extends GetxService {
   static const String _prefsKey = 'user_profile_cache_v2';
-  static const int _maxEntries = 400;
-  static const Duration _ttl = Duration(minutes: 30);
+  static const int _maxEntries = 2000;
+  static const Duration _ttl = Duration(days: 7);
 
   final LinkedHashMap<String, _CachedUserProfile> _memory =
       LinkedHashMap<String, _CachedUserProfile>();
@@ -40,7 +40,7 @@ class UserProfileCacheService extends GetxService {
     if (uid.isEmpty) return null;
 
     if (preferCache) {
-      final cached = _getFromMemory(uid, allowStale: cacheOnly);
+      final cached = _getFromMemory(uid, allowStale: true);
       if (cached != null) return cached;
     }
 
@@ -106,7 +106,7 @@ class UserProfileCacheService extends GetxService {
     final missing = <String>[];
     for (final uid in unique) {
       if (preferCache) {
-        final cached = _getFromMemory(uid, allowStale: cacheOnly);
+        final cached = _getFromMemory(uid, allowStale: true);
         if (cached != null) {
           out[uid] = cached;
           continue;
