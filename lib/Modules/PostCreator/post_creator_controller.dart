@@ -39,6 +39,8 @@ import '../../Core/Services/webp_upload_service.dart';
 class PreparedPostModel {
   final String text;
   final List<Uint8List> images;
+  final List<String> reusedImageUrls;
+  final double reusedImageAspectRatio;
   final File? video;
   final String reusedVideoUrl;
   final String reusedVideoThumbnail;
@@ -51,6 +53,8 @@ class PreparedPostModel {
   PreparedPostModel({
     required this.text,
     required this.images,
+    required this.reusedImageUrls,
+    required this.reusedImageAspectRatio,
     required this.video,
     required this.reusedVideoUrl,
     required this.reusedVideoThumbnail,
@@ -123,11 +127,82 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return code == 'unauthenticated' || code == 'unauthorized';
   }
 
-  Future<void> _refreshAuthTokenIfNeeded() async {
+  Future<String?> _ensureStorageUploadAuthReady() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      try {
+        user = await FirebaseAuth.instance.authStateChanges().firstWhere(
+          (candidate) => candidate != null,
+        );
+      } catch (_) {
+        user = FirebaseAuth.instance.currentUser;
+      }
+    }
+    if (user == null) return null;
     try {
-      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      await user.getIdToken(true);
     } catch (_) {
       // Best effort refresh only.
+    }
+    return user.uid;
+  }
+
+  Future<void> _refreshAuthTokenIfNeeded() async {
+    try {
+      await _ensureStorageUploadAuthReady();
+    } catch (_) {
+      // Best effort refresh only.
+    }
+  }
+
+  Future<void> _preparePostShellForStorageUpload({
+    required String docID,
+    required String uid,
+    required int nowMs,
+  }) async {
+    final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
+    await ref.set({
+      "userID": uid,
+      "timeStamp": nowMs,
+      "isUploading": true,
+      "hlsStatus": "none",
+    }, SetOptions(merge: true));
+    await FirebaseFirestore.instance.waitForPendingWrites();
+
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        final snap = await ref.get(const GetOptions(source: Source.server));
+        final shellUserId = (snap.data()?["userID"] ?? '').toString();
+        if (kDebugMode) {
+          debugPrint('[UploadPreflight][PostShell] '
+              'docID=$docID '
+              'uid=$uid '
+              'serverExists=${snap.exists} '
+              'serverUserID=$shellUserId '
+              'attempt=$attempt');
+        }
+        if (snap.exists && shellUserId == uid) {
+          return;
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[UploadPreflight][PostShell] '
+              'docID=$docID '
+              'uid=$uid '
+              'serverReadFailed=$e '
+              'attempt=$attempt');
+        }
+      }
+
+      if (attempt < retryDelays.length) {
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
     }
   }
 
@@ -136,13 +211,25 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     required File file,
     required SettableMetadata metadata,
   }) async {
-    try {
-      return await ref.putFile(file, metadata);
-    } on FirebaseException catch (e) {
-      if (!_isAuthRetryableStorageError(e)) rethrow;
-      await _refreshAuthTokenIfNeeded();
-      return await ref.putFile(file, metadata);
+    const retryDelays = <Duration>[
+      Duration(milliseconds: 250),
+      Duration(milliseconds: 700),
+      Duration(milliseconds: 1400),
+    ];
+
+    FirebaseException? lastError;
+    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
+      try {
+        return await ref.putFile(file, metadata);
+      } on FirebaseException catch (e) {
+        if (!_isAuthRetryableStorageError(e)) rethrow;
+        lastError = e;
+        if (attempt == retryDelays.length) break;
+        await _refreshAuthTokenIfNeeded();
+        await Future<void>.delayed(retryDelays[attempt]);
+      }
     }
+    throw lastError!;
   }
 
   NavBarController? _maybeNavBarController() {
@@ -176,6 +263,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   Future<void> applySharedSourceIfNeeded({
     required String videoUrl,
+    required List<String> imageUrls,
     required double aspectRatio,
     required String thumbnail,
     required bool sharedAsPost,
@@ -183,7 +271,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     String? originalPostID,
   }) async {
     final cleanUrl = videoUrl.trim();
-    if (cleanUrl.isEmpty || !sharedAsPost) {
+    final cleanImages =
+        imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if ((cleanUrl.isEmpty && cleanImages.isEmpty) || !sharedAsPost) {
       _sharedSourceApplied = false;
       _isSharedAsPost = false;
       _sharedOriginalUserID = "";
@@ -202,11 +292,18 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       Get.put(CreatorContentController(), tag: tag);
     }
     final c = Get.find<CreatorContentController>(tag: tag);
-    await c.setReusedVideoSource(
-      videoUrl: cleanUrl,
-      aspectRatio: aspectRatio,
-      thumbnail: thumbnail,
-    );
+    if (cleanUrl.isNotEmpty) {
+      await c.setReusedVideoSource(
+        videoUrl: cleanUrl,
+        aspectRatio: aspectRatio,
+        thumbnail: thumbnail,
+      );
+    } else {
+      await c.setReusedImageSources(
+        cleanImages,
+        aspectRatio: aspectRatio,
+      );
+    }
   }
 
   Future<void> applyEditSourceIfNeeded({
@@ -341,6 +438,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     final allVideos = <File>[];
     final allTexts = <String>[];
     bool hasReusedVideo = false;
+    bool hasReusedImages = false;
 
     // Collect all content from posts
     for (final postModel in postList) {
@@ -360,6 +458,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       if (c.reusedVideoUrl.value.trim().isNotEmpty) {
         hasReusedVideo = true;
       }
+      if (c.reusedImageUrls.isNotEmpty) {
+        hasReusedImages = true;
+      }
 
       // Collect texts
       final text = c.textEdit.text.trim();
@@ -372,7 +473,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     final validation = await UploadValidationService.validatePost(
       images: allImages,
       videos: allVideos,
-      text: hasReusedVideo ? 'video' : allTexts.join(' '),
+      text: (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
     );
 
     if (!validation.isValid) {
@@ -779,6 +880,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final text = contentController.textEdit.text.trim();
       final images =
           contentController.croppedImages.whereType<Uint8List>().toList();
+      final reusedImageUrls = contentController.reusedImageUrls.toList();
+      final reusedImageAspectRatio =
+          contentController.reusedImageAspectRatio.value;
       final video = contentController.selectedVideo.value;
       final reusedVideoUrl = contentController.reusedVideoUrl.value;
       final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
@@ -793,6 +897,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         PreparedPostModel(
           text: text,
           images: images,
+          reusedImageUrls: reusedImageUrls,
+          reusedImageAspectRatio: reusedImageAspectRatio,
           video: video,
           reusedVideoUrl: reusedVideoUrl,
           reusedVideoThumbnail: reusedVideoThumbnail,
@@ -811,15 +917,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final post = allPosts[index];
       final docID = '${uuid}_$index';
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = await _ensureStorageUploadAuthReady() ??
+          FirebaseAuth.instance.currentUser!.uid;
 
       // Storage rules require Posts/{docID}.userID to exist before media upload.
-      await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
-        "userID": uid,
-        "timeStamp": nowMs,
-        "isUploading": true,
-        "hlsStatus": "none",
-      }, SetOptions(merge: true));
+      await _preparePostShellForStorageUpload(
+        docID: docID,
+        uid: uid,
+        nowMs: nowMs,
+      );
 
       // Update progress
       progressController.updateProgress(
@@ -833,14 +939,35 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       var thumbnailUrl = "";
       final isReusedVideoPost =
           post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
+      final isReusedImagePost =
+          post.video == null &&
+          post.images.isEmpty &&
+          post.reusedImageUrls.isNotEmpty;
 
-      for (int j = 0; j < post.images.length; j++) {
-        final url = await WebpUploadService.uploadBytesAsWebp(
-          storage: FirebaseStorage.instance,
-          bytes: post.images[j],
-          storagePathWithoutExt: 'Posts/$docID/image_$j',
-        );
-        imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
+      if (isReusedImagePost) {
+        imageUrls.addAll(post.reusedImageUrls.map(CdnUrlBuilder.toCdnUrl));
+      } else {
+        for (int j = 0; j < post.images.length; j++) {
+          if (kDebugMode) {
+            final postDoc = await FirebaseFirestore.instance
+                .collection("Posts")
+                .doc(docID)
+                .get();
+            debugPrint('[UploadPreflight][PostCreator][Image] '
+                'path=Posts/$docID/image_$j.webp '
+                'uid=$uid '
+                'postExists=${postDoc.exists} '
+                'postUserID=${postDoc.data()?["userID"]}');
+          }
+          final url = await WebpUploadService.uploadBytesAsWebp(
+            storage: FirebaseStorage.instance,
+            bytes: post.images[j],
+            storagePathWithoutExt: 'Posts/$docID/image_$j',
+            maxWidth: 600,
+            maxHeight: 600,
+          );
+          imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
+        }
       }
 
       if (post.gif.isNotEmpty) {
@@ -879,6 +1006,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           metadata: SettableMetadata(
             contentType: 'video/mp4',
             cacheControl: 'public, max-age=31536000, immutable',
+            customMetadata: {
+              'uploaderUid': uid,
+            },
           ),
         );
         videoUrl = CdnUrlBuilder.toCdnUrl(
@@ -943,7 +1073,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       }
 
       double aspectRatio = 1;
-      if (post.images.length == 1 && post.video == null && !isReusedVideoPost) {
+      if (isReusedImagePost && imageUrls.length == 1) {
+        aspectRatio =
+            post.reusedImageAspectRatio > 0 ? post.reusedImageAspectRatio : 0.8;
+      } else if (post.images.length == 1 &&
+          post.video == null &&
+          !isReusedVideoPost) {
         final codec = await ui.instantiateImageCodec(post.images.first);
         final frame = await codec.getNextFrame();
         final image = frame.image;
@@ -966,7 +1101,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       for (int i = 0; i < imageUrls.length; i++) {
         double itemAspect = 1.0;
         try {
-          if (i < post.images.length) {
+          if (isReusedImagePost && imageUrls.length == 1) {
+            itemAspect = post.reusedImageAspectRatio > 0
+                ? post.reusedImageAspectRatio
+                : itemAspect;
+          } else if (i < post.images.length) {
             final codec = await ui.instantiateImageCodec(post.images[i]);
             final frame = await codec.getNextFrame();
             final image = frame.image;
@@ -1188,6 +1327,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       if (poll == null || poll.isEmpty) continue;
       final hasCaption = controller.textEdit.text.trim().isNotEmpty;
       final hasMedia = controller.croppedImages.isNotEmpty ||
+          controller.reusedImageUrls.isNotEmpty ||
           controller.selectedImages.isNotEmpty ||
           controller.selectedVideo.value != null;
       if (!hasCaption && !hasMedia) {
@@ -1224,6 +1364,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         // Only save if there's meaningful content
         if (text.isNotEmpty ||
             controller.selectedImages.isNotEmpty ||
+            controller.reusedImageUrls.isNotEmpty ||
             controller.selectedVideo.value != null ||
             controller.gif.value.isNotEmpty) {
           await _draftService.saveDraft(
@@ -1272,6 +1413,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final allVideos = <File>[];
       final allTexts = <String>[];
       bool hasReusedVideo = false;
+      bool hasReusedImages = false;
 
       // Collect all content from posts
       for (final postModel in postList) {
@@ -1287,6 +1429,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         }
         if (c.reusedVideoUrl.value.trim().isNotEmpty) {
           hasReusedVideo = true;
+        }
+        if (c.reusedImageUrls.isNotEmpty) {
+          hasReusedImages = true;
         }
 
         final text = c.textEdit.text.trim();
@@ -1321,7 +1466,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final validation = await UploadValidationService.validatePost(
         images: allImages,
         videos: allVideos,
-        text: hasReusedVideo ? 'video' : allTexts.join(' '),
+        text: (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
       );
 
       if (!validation.isValid) {
@@ -1595,6 +1740,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final text = contentController.textEdit.text.trim();
         final images =
             contentController.croppedImages.whereType<Uint8List>().toList();
+        final reusedImageUrls = contentController.reusedImageUrls.toList();
+        final reusedImageAspectRatio =
+            contentController.reusedImageAspectRatio.value;
         final video = contentController.selectedVideo.value;
         final reusedVideoUrl = contentController.reusedVideoUrl.value;
         final reusedVideoThumbnail =
@@ -1610,6 +1758,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           PreparedPostModel(
             text: text,
             images: images,
+            reusedImageUrls: reusedImageUrls,
+            reusedImageAspectRatio: reusedImageAspectRatio,
             video: video,
             reusedVideoUrl: reusedVideoUrl,
             reusedVideoThumbnail: reusedVideoThumbnail,
@@ -1630,16 +1780,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           final post = allPosts[index];
           final docID = '${uuid}_$index';
           final nowMs = DateTime.now().millisecondsSinceEpoch;
-          final uid = FirebaseAuth.instance.currentUser!.uid;
+          final uid = await _ensureStorageUploadAuthReady() ??
+              FirebaseAuth.instance.currentUser!.uid;
           final locationCity = _resolvePostLocationCity();
 
           // Storage rules require Posts/{docID}.userID to exist before media upload.
-          await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
-            "userID": uid,
-            "timeStamp": nowMs,
-            "isUploading": true,
-            "hlsStatus": "none",
-          }, SetOptions(merge: true));
+          await _preparePostShellForStorageUpload(
+            docID: docID,
+            uid: uid,
+            nowMs: nowMs,
+          );
 
           // Update progress
           progressController.updateProgress(
@@ -1653,26 +1803,47 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           var thumbnailUrl = "";
           final isReusedVideoPost =
               post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
+          final isReusedImagePost =
+              post.video == null &&
+              post.images.isEmpty &&
+              post.reusedImageUrls.isNotEmpty;
 
-          // Upload images with retry logic
-          for (int j = 0; j < post.images.length; j++) {
-            try {
-              final url = await WebpUploadService.uploadBytesAsWebp(
-                storage: FirebaseStorage.instance,
-                bytes: post.images[j],
-                storagePathWithoutExt: 'Posts/$docID/image_$j',
-              );
-              imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
-            } catch (e) {
-              await _errorService.handleError(
-                e,
-                category: ErrorCategory.upload,
-                severity: ErrorSeverity.high,
-                userMessage: 'Resim ${j + 1} yüklenemedi',
-                metadata: {'postIndex': index, 'imageIndex': j},
-                isRetryable: true,
-              );
-              rethrow;
+          if (isReusedImagePost) {
+            imageUrls.addAll(post.reusedImageUrls.map(CdnUrlBuilder.toCdnUrl));
+          } else {
+            // Upload images with retry logic
+            for (int j = 0; j < post.images.length; j++) {
+              try {
+                if (kDebugMode) {
+                  final postDoc = await FirebaseFirestore.instance
+                      .collection("Posts")
+                      .doc(docID)
+                      .get();
+                  debugPrint('[UploadPreflight][PostCreator][Image] '
+                      'path=Posts/$docID/image_$j.webp '
+                      'uid=$uid '
+                      'postExists=${postDoc.exists} '
+                      'postUserID=${postDoc.data()?["userID"]}');
+                }
+                final url = await WebpUploadService.uploadBytesAsWebp(
+                  storage: FirebaseStorage.instance,
+                  bytes: post.images[j],
+                  storagePathWithoutExt: 'Posts/$docID/image_$j',
+                  maxWidth: 600,
+                  maxHeight: 600,
+                );
+                imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
+              } catch (e) {
+                await _errorService.handleError(
+                  e,
+                  category: ErrorCategory.upload,
+                  severity: ErrorSeverity.high,
+                  userMessage: 'Resim ${j + 1} yüklenemedi',
+                  metadata: {'postIndex': index, 'imageIndex': j},
+                  isRetryable: true,
+                );
+                rethrow;
+              }
             }
           }
 
@@ -1715,6 +1886,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 metadata: SettableMetadata(
                   contentType: 'video/mp4',
                   cacheControl: 'public, max-age=31536000, immutable',
+                  customMetadata: {
+                    'uploaderUid': uid,
+                  },
                 ),
               );
               videoUrl = CdnUrlBuilder.toCdnUrl(

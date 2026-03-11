@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:io';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -42,6 +42,8 @@ class CreatorContentController extends GetxController {
   final RxString reusedVideoUrl = ''.obs;
   final RxString reusedVideoThumbnail = ''.obs;
   final RxDouble reusedVideoAspectRatio = 0.0.obs;
+  final RxDouble reusedImageAspectRatio = 0.0.obs;
+  final RxList<String> reusedImageUrls = <String>[].obs;
 
   // User-selected custom thumbnail for video posts
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
@@ -357,6 +359,7 @@ class CreatorContentController extends GetxController {
 
     // Start processing (NSFW + compression)
     isProcessing.value = true;
+    reusedImageUrls.clear();
     final nsfwResults = await OptimizedNSFWService.checkImagesParallel(
       files,
       onProgress: (current, total) {
@@ -495,6 +498,7 @@ class CreatorContentController extends GetxController {
     reusedVideoUrl.value = '';
     reusedVideoThumbnail.value = '';
     reusedVideoAspectRatio.value = 0.0;
+    reusedImageUrls.clear();
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
@@ -649,6 +653,7 @@ class CreatorContentController extends GetxController {
     reusedVideoUrl.value = '';
     reusedVideoThumbnail.value = '';
     reusedVideoAspectRatio.value = 0.0;
+    reusedImageUrls.clear();
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
@@ -689,6 +694,7 @@ class CreatorContentController extends GetxController {
     gif.value = '';
     selectedImages.clear();
     croppedImages.clear();
+    reusedImageUrls.clear();
     await rxVideoPlayerController.value?.pause();
     await rxVideoPlayerController.value?.dispose();
     rxVideoPlayerController.value = null;
@@ -700,6 +706,7 @@ class CreatorContentController extends GetxController {
     reusedVideoUrl.value = url;
     reusedVideoThumbnail.value = thumbnail.trim();
     reusedVideoAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
+    reusedImageAspectRatio.value = 0.0;
 
     final uri = Uri.tryParse(url);
     if (uri == null) {
@@ -714,6 +721,35 @@ class CreatorContentController extends GetxController {
     isPlaying.value = false;
     _listenVideo();
     hasVideo.refresh();
+    isProcessing.value = false;
+  }
+
+  Future<void> setReusedImageSources(
+    List<String> imageUrls, {
+    double aspectRatio = 0.0,
+  }) async {
+    final uniqueUrls =
+        imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (uniqueUrls.isEmpty) return;
+
+    waitingVideo.value = false;
+    isProcessing.value = true;
+
+    gif.value = '';
+    await rxVideoPlayerController.value?.pause();
+    await rxVideoPlayerController.value?.dispose();
+    rxVideoPlayerController.value = null;
+    selectedVideo.value = null;
+    isPlaying.value = false;
+    hasVideo.value = false;
+    selectedThumbnail.value = null;
+    reusedVideoUrl.value = '';
+    reusedVideoThumbnail.value = '';
+    reusedVideoAspectRatio.value = 0.0;
+    reusedImageAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
+    selectedImages.clear();
+    croppedImages.clear();
+    reusedImageUrls.assignAll(uniqueUrls);
     isProcessing.value = false;
   }
 

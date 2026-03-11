@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
@@ -16,6 +17,7 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
 import '../Common/post_content_base.dart';
 import '../Common/post_content_controller.dart';
@@ -25,6 +27,7 @@ import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
+import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Services/post_interaction_service.dart';
@@ -91,7 +94,7 @@ class _ClassicContentState extends State<ClassicContent>
   final arsivController = Get.put(ArchiveController());
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final bool _isFullscreen = false;
+  bool _isFullscreen = false;
   bool _isCaptionExpanded = false;
 
   ShortController get shortsController => Get.isRegistered<ShortController>()
@@ -143,6 +146,132 @@ class _ClassicContentState extends State<ClassicContent>
     }
   }
 
+  void _prepareVideoFullscreenTransition() {
+    markSkipNextPause();
+  }
+
+  Future<Duration> _resolveCurrentVideoPosition() async {
+    final vc = videoController;
+    if (vc != null) {
+      try {
+        final pos = vc.value.position;
+        if (pos > Duration.zero) return pos;
+      } catch (_) {}
+
+      try {
+        final seconds = await vc.hlsController.getCurrentTime();
+        if (seconds > 0) {
+          return Duration(milliseconds: (seconds * 1000).round());
+        }
+      } catch (_) {}
+    }
+
+    final savedState = videoStateManager.getVideoState(widget.model.docID);
+    return savedState?.position ?? Duration.zero;
+  }
+
+  Future<List<PostsModel>> _buildFullscreenStartList() async {
+    final candidates = agendaController.agendaList
+        .where((p) =>
+            p.deletedPost == false &&
+            p.arsiv == false &&
+            p.gizlendi == false &&
+            p.hasPlayableVideo)
+        .toList();
+
+    if (candidates.isEmpty) return [widget.model];
+
+    final ids = candidates.map((p) => p.docID).toList();
+    final freshById = <String, PostsModel>{};
+
+    for (int i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
+      final snap = await FirebaseFirestore.instance
+          .collection('Posts')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snap.docs) {
+        final model = PostsModel.fromMap(doc.data(), doc.id);
+        if (model.deletedPost == false &&
+            model.arsiv == false &&
+            model.gizlendi == false &&
+            model.hasPlayableVideo) {
+          freshById[model.docID] = model;
+        }
+      }
+    }
+
+    final List<PostsModel> ordered = candidates
+        .map<PostsModel>((p) => freshById[p.docID] ?? p)
+        .where((p) => p.hasPlayableVideo)
+        .toList();
+
+    if (ordered.any((p) => p.docID == widget.model.docID)) {
+      return ordered;
+    }
+    return [widget.model, ...ordered];
+  }
+
+  Future<void> _openVideoMedia() async {
+    if (widget.model.floodCount > 1) {
+      videoController?.pause();
+      await Get.to(() => FloodListing(mainModel: widget.model));
+      if (widget.shouldPlay) {
+        videoController?.play();
+      }
+      return;
+    }
+
+    final currentPos = await _resolveCurrentVideoPosition();
+    final listForFullscreen = await _buildFullscreenStartList();
+
+    _prepareVideoFullscreenTransition();
+    _pauseFeedBeforeFullscreen();
+    setPauseBlocked(true);
+    if (mounted) {
+      setState(() => _isFullscreen = true);
+    }
+
+    final res = await Get.to(() => SingleShortView(
+          startModel: widget.model,
+          startList: listForFullscreen,
+          initialPosition: currentPos,
+          injectedController: videoController,
+        ));
+
+    setPauseBlocked(false);
+    if (mounted) {
+      setState(() => _isFullscreen = false);
+    }
+
+    if (!mounted) return;
+
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.centeredIndex.value = modelIndex;
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+
+    final vc = videoController;
+    if (vc != null && vc.value.isInitialized) {
+      if (res is Map && res['docID'] == widget.model.docID) {
+        final int? ms = res['positionMs'] as int?;
+        if (ms != null) {
+          await vc.seekTo(Duration(milliseconds: ms));
+          if (widget.shouldPlay) {
+            vc.play();
+            vc.setVolume(agendaController.isMuted.value ? 0 : 1);
+          }
+          return;
+        }
+      }
+      if (widget.shouldPlay) {
+        tryAutoPlayWhenBuffered();
+      }
+    }
+  }
+
   Widget _buildMediaTapOverlay({
     VoidCallback? onTap,
     VoidCallback? onDoubleTap,
@@ -153,6 +282,53 @@ class _ClassicContentState extends State<ClassicContent>
         onTap: onTap,
         onDoubleTap: onDoubleTap,
         child: const SizedBox.expand(),
+      ),
+    );
+  }
+
+  Widget _buildClassicReshareOverlay({required double bottom}) {
+    if (!widget.isReshared) return const SizedBox.shrink();
+    return Positioned(
+      left: 8,
+      bottom: bottom,
+      child: IgnorePointer(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.14),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    "assets/icons/reshare.webp",
+                    height: 16,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 6),
+                  ReshareAttribution(
+                    controller: controller,
+                    model: widget.model,
+                    explicitReshareUserId: widget.reshareUserID,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -217,36 +393,40 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget _buildClassicOverlayFollowButton({required bool loading}) {
-    return Container(
-      height: 28,
-      alignment: Alignment.center,
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 72),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: const BorderRadius.all(Radius.circular(15)),
-          border: Border.all(color: Colors.white),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          child: loading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(15)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          height: 28,
+          alignment: Alignment.center,
+          constraints: const BoxConstraints(minWidth: 72),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: const BorderRadius.all(Radius.circular(15)),
+            border: Border.all(color: Colors.white),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            child: loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    "Takip Et",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: "MontserratMedium",
+                      fontSize: 14,
+                      height: 1,
+                    ),
                   ),
-                )
-              : const Text(
-                  "Takip Et",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: "MontserratMedium",
-                    fontSize: 14,
-                    height: 1,
-                  ),
-                ),
+          ),
         ),
       ),
     );
@@ -257,25 +437,7 @@ class _ClassicContentState extends State<ClassicContent>
       top: 0,
       left: 0,
       right: 0,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xB3000000),
-                  Color(0x66000000),
-                  Color(0x00000000),
-                ],
-              ),
-            ),
-            child: headerUserInfoWhite(),
-          ),
-        ),
-      ),
+      child: headerUserInfoWhite(),
     );
   }
 
@@ -287,7 +449,7 @@ class _ClassicContentState extends State<ClassicContent>
   static const double _squareFrameAspectRatio = 1;
   static const Color _classicMediaFallbackColor = Color(0xFF15181C);
 
-  double get _resolvedClassicVideoFrameAspectRatio {
+  double get _resolvedClassicFrameAspectRatio {
     final raw = widget.model.aspectRatio.toDouble();
     if (raw <= 0) return _squareFrameAspectRatio;
     if (raw < 0.7) return _reelPortraitFrameAspectRatio;
@@ -638,33 +800,9 @@ class _ClassicContentState extends State<ClassicContent>
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 12),
-        child: Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.isReshared)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Image.asset(
-                    "assets/icons/reshare.webp",
-                    height: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  ReshareAttribution(
-                    controller: controller,
-                    model: widget.model,
-                    explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ],
-              ),
-            ),
           if (hasCaption)
             _buildClassicInlineCaption(
               nickname: captionNickname,
@@ -702,7 +840,7 @@ class _ClassicContentState extends State<ClassicContent>
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing),
               child: AspectRatio(
-                aspectRatio: widget.model.aspectRatio.toDouble(),
+                aspectRatio: _resolvedClassicFrameAspectRatio,
                 child: Stack(
                   alignment: Alignment.bottomLeft,
                   children: [
@@ -735,12 +873,17 @@ class _ClassicContentState extends State<ClassicContent>
                           fontSize: 12,
                         ),
                       ),
+                    _buildClassicReshareOverlay(
+                      bottom: widget.model.originalUserID.isNotEmpty
+                          ? (widget.model.floodCount > 1 ? 52 : 34)
+                          : (widget.model.floodCount > 1 ? 26 : 8),
+                    ),
                     _buildFeedShareCta(),
-                    _buildClassicMediaHeader(),
                     _buildMediaTapOverlay(
                       onTap: _openImageMedia,
                       onDoubleTap: controller.like,
                     ),
+                    _buildClassicMediaHeader(),
                   ],
                 ),
               ),
@@ -784,6 +927,11 @@ class _ClassicContentState extends State<ClassicContent>
                           fontSize: 12,
                         ),
                       ),
+                    _buildClassicReshareOverlay(
+                      bottom: widget.model.originalUserID.isNotEmpty
+                          ? (widget.model.floodCount > 1 ? 60 : 34)
+                          : (widget.model.floodCount > 1 ? 34 : 8),
+                    ),
                     Positioned(
                       bottom: 8,
                       left: 0,
@@ -806,11 +954,11 @@ class _ClassicContentState extends State<ClassicContent>
                       ),
                     ),
                     _buildFeedShareCta(),
-                    _buildClassicMediaHeader(),
                     _buildMediaTapOverlay(
                       onTap: _openImageMedia,
                       onDoubleTap: controller.like,
                     ),
+                    _buildClassicMediaHeader(),
                   ],
                 ),
               ),
@@ -1028,7 +1176,7 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget videoBody(BuildContext context) {
-    final frameAspectRatio = _resolvedClassicVideoFrameAspectRatio;
+    final frameAspectRatio = _resolvedClassicFrameAspectRatio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1158,37 +1306,21 @@ class _ClassicContentState extends State<ClassicContent>
                     child: Texts.colorfulFloodForVideo,
                   ),
 
-                if (isVideoFromCache)
-                  Positioned(
-                    left: 8,
-                    bottom: (widget.model.floodCount > 1) ? 26 : 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.circle,
-                        size: 8,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-
                 if (widget.model.originalUserID.isNotEmpty)
                   Positioned(
                     left: 8,
-                    bottom: isVideoFromCache
-                        ? ((widget.model.floodCount > 1) ? 52 : 34)
-                        : ((widget.model.floodCount > 1) ? 26 : 8),
+                    bottom: (widget.model.floodCount > 1) ? 26 : 8,
                     child: SharedPostLabel(
                       originalUserID: widget.model.originalUserID,
                       textColor: Colors.white,
                       fontSize: 12,
                     ),
                   ),
+                _buildClassicReshareOverlay(
+                  bottom: widget.model.originalUserID.isNotEmpty
+                      ? ((widget.model.floodCount > 1) ? 52 : 34)
+                      : ((widget.model.floodCount > 1) ? 26 : 8),
+                ),
 
                 Positioned(
                   bottom: 8,
@@ -1213,8 +1345,11 @@ class _ClassicContentState extends State<ClassicContent>
                     ),
                   ),
                 ),
+                _buildMediaTapOverlay(
+                  onTap: _openVideoMedia,
+                  onDoubleTap: controller.like,
+                ),
                 _buildClassicMediaHeader(),
-                _buildMediaTapOverlay(onDoubleTap: controller.like),
               ],
             ),
           ),
@@ -1271,22 +1406,21 @@ class _ClassicContentState extends State<ClassicContent>
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
+    void openProfile() {
+      if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+        videoController?.pause();
+        Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
+          videoController?.play();
+        });
+      }
+    }
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () {
-              if (widget.model.userID !=
-                  FirebaseAuth.instance.currentUser!.uid) {
-                videoController?.pause();
-                Get.to(() => SocialProfile(userID: widget.model.userID))
-                    ?.then((v) {
-                  videoController?.play();
-                });
-              }
-            },
+            onTap: openProfile,
             child: Obx(() => CachedUserAvatar(
                   userId: widget.model.userID,
                   imageUrl: controller.avatarUrl.value,
@@ -1301,7 +1435,10 @@ class _ClassicContentState extends State<ClassicContent>
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: openProfile,
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
@@ -1309,25 +1446,13 @@ class _ClassicContentState extends State<ClassicContent>
                             child: Row(
                               children: [
                                 Flexible(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (widget.model.userID !=
-                                          FirebaseAuth.instance.currentUser!.uid) {
-                                        videoController?.pause();
-                                        Get.to(() => SocialProfile(
-                                            userID: widget.model.userID))?.then((v) {
-                                          videoController?.play();
-                                        });
-                                      }
-                                    },
-                                    child: Text(
-                                      primaryName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratBold",
-                                      ),
+                                  child: Text(
+                                    primaryName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                      fontFamily: "MontserratBold",
                                     ),
                                   ),
                                 ),
@@ -1361,7 +1486,7 @@ class _ClassicContentState extends State<ClassicContent>
                             ),
                           ),
                         ],
-                      ),
+                      )),
                     ),
                     if (widget.model.userID !=
                         FirebaseAuth.instance.currentUser!.uid)
@@ -1461,22 +1586,33 @@ class _ClassicContentState extends State<ClassicContent>
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
+    void openProfile() {
+      if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+        videoController?.pause();
+        Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
+          videoController?.play();
+        });
+      }
+    }
+    final textShadow = [
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.28),
+        blurRadius: 5,
+        offset: const Offset(0, 1),
+      ),
+      Shadow(
+        color: Colors.black.withValues(alpha: 0.14),
+        blurRadius: 10,
+        offset: const Offset(0, 1),
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () {
-              if (widget.model.userID !=
-                  FirebaseAuth.instance.currentUser!.uid) {
-                videoController?.pause();
-                Get.to(() => SocialProfile(userID: widget.model.userID))
-                    ?.then((v) {
-                  videoController?.play();
-                });
-              }
-            },
+            onTap: openProfile,
             child: Obx(() => _buildClassicAvatar(
                   userId: widget.model.userID,
                   imageUrl: controller.avatarUrl.value,
@@ -1490,7 +1626,10 @@ class _ClassicContentState extends State<ClassicContent>
                 Row(
                   children: [
                     Expanded(
-                      child: Column(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: openProfile,
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
@@ -1498,25 +1637,14 @@ class _ClassicContentState extends State<ClassicContent>
                             child: Row(
                               children: [
                                 Flexible(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (widget.model.userID !=
-                                          FirebaseAuth.instance.currentUser!.uid) {
-                                        videoController?.pause();
-                                        Get.to(() => SocialProfile(
-                                            userID: widget.model.userID))?.then((v) {
-                                          videoController?.play();
-                                        });
-                                      }
-                                    },
-                                    child: Text(
-                                      primaryName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontFamily: "MontserratBold",
-                                      ),
+                                  child: Text(
+                                    primaryName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontFamily: "MontserratBold",
+                                      shadows: textShadow,
                                     ),
                                   ),
                                 ),
@@ -1531,6 +1659,7 @@ class _ClassicContentState extends State<ClassicContent>
                                       color: Colors.white.withValues(alpha: 0.9),
                                       fontSize: 12,
                                       fontFamily: "MontserratMedium",
+                                      shadows: textShadow,
                                     ),
                                   ),
                                 ),
@@ -1546,10 +1675,11 @@ class _ClassicContentState extends State<ClassicContent>
                               color: Colors.white.withValues(alpha: 0.92),
                               fontSize: 12,
                               fontFamily: "Montserrat",
+                              shadows: textShadow,
                             ),
                           ),
                         ],
-                      ),
+                      )),
                     ),
                     if (widget.model.userID !=
                         FirebaseAuth.instance.currentUser!.uid)
@@ -1599,10 +1729,11 @@ class _ClassicContentState extends State<ClassicContent>
                     widget.model.konum,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontFamily: "Montserrat",
+                      shadows: textShadow,
                     ),
                   ),
               ],
@@ -1614,6 +1745,9 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget pulldownmenu(Color color) {
+    final canManagePost =
+        widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
+            controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -1636,6 +1770,7 @@ class _ClassicContentState extends State<ClassicContent>
 
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
+                  sharedImageUrls: widget.model.img,
                   sharedAspectRatio: widget.model.aspectRatio.toDouble(),
                   sharedThumbnail: widget.model.thumbnail,
                   originalUserID: finalOriginalUserID,
@@ -1648,7 +1783,7 @@ class _ClassicContentState extends State<ClassicContent>
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1674,7 +1809,7 @@ class _ClassicContentState extends State<ClassicContent>
           title: 'Gizle',
           icon: CupertinoIcons.eye_slash,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1745,7 +1880,7 @@ class _ClassicContentState extends State<ClassicContent>
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               // 2) Videoyu durdur

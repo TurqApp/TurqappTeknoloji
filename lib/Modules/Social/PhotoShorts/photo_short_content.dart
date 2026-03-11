@@ -707,7 +707,8 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
+            controller.canSendAdminPush)
           PullDownMenuItem(
             onTap: () {
               Get.to(() => PostSharers(postID: widget.model.docID));

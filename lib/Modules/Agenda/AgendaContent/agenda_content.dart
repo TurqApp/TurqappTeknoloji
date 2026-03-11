@@ -552,44 +552,34 @@ class _AgendaContentState extends State<AgendaContent>
                                       child: Texts.colorfulFloodLeftSide,
                                     ),
                                   ),
-                                if (isVideoFromCache)
+                                if (widget.isReshared ||
+                                    widget.model.originalUserID.isNotEmpty)
                                   Positioned(
                                     left: 8,
-                                    bottom: (widget.model.flood == false &&
+                                    bottom: ((widget.model.flood == false &&
                                             widget.model.floodCount > 1)
                                         ? 26
-                                        : 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 6, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(
-                                        Icons.circle,
-                                        size: 8,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ),
-                                if (widget.model.originalUserID.isNotEmpty)
-                                  Positioned(
-                                    left: 8,
-                                    bottom: isVideoFromCache
-                                        ? ((widget.model.flood == false &&
-                                                widget.model.floodCount > 1)
-                                            ? 52
-                                            : 34)
-                                        : ((widget.model.flood == false &&
-                                                widget.model.floodCount > 1)
-                                            ? 26
-                                            : 8),
-                                    child: SharedPostLabel(
-                                      originalUserID:
-                                          widget.model.originalUserID,
-                                      textColor: Colors.white,
-                                      fontSize: 12,
+                                        : 8),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (widget.isReshared)
+                                          _buildAgendaReshareOverlay(),
+                                        if (widget.isReshared &&
+                                            widget.model.originalUserID
+                                                .isNotEmpty)
+                                          const SizedBox(height: 6),
+                                        if (widget.model.originalUserID
+                                            .isNotEmpty)
+                                          SharedPostLabel(
+                                            originalUserID:
+                                                widget.model.originalUserID,
+                                            textColor: Colors.white,
+                                            fontSize: 12,
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 Positioned(
@@ -686,27 +676,8 @@ class _AgendaContentState extends State<AgendaContent>
             ),
           ),
 
-        // Gönderi olarak paylaş etiketi (butonların üstünde)
-        // Eğer yeniden paylaşım ise orijinal kullanıcı bilgisini göster
-        if (widget.model.originalUserID.isNotEmpty &&
-            !widget.model.hasPlayableVideo)
-          Padding(
-            padding: const EdgeInsets.only(top: 6, left: 45, right: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SharedPostLabel(
-                    originalUserID: widget.model.originalUserID,
-                    fontSize: 12,
-                    textColor: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
         // Yeniden paylaşıldı etiketi (alt-sol)
-        if (widget.isReshared)
+        if (widget.isReshared && widget.model.img.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 45, right: 8),
             child: Align(
@@ -1446,20 +1417,70 @@ class _AgendaContentState extends State<AgendaContent>
               Get.to(() => FloodListing(mainModel: widget.model));
             },
             child: Texts.colorfulFloodLeftSide,
-          )
+          ),
+        if (widget.isReshared || widget.model.originalUserID.isNotEmpty)
+          Positioned(
+            left: 8,
+            bottom:
+                (widget.model.floodCount > 1 && widget.model.flood == false)
+                    ? 26
+                    : 8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.isReshared) _buildAgendaReshareOverlay(),
+                if (widget.isReshared && widget.model.originalUserID.isNotEmpty)
+                  const SizedBox(height: 6),
+                if (widget.model.originalUserID.isNotEmpty)
+                  SharedPostLabel(
+                    originalUserID: widget.model.originalUserID,
+                    textColor: Colors.white,
+                    fontSize: 12,
+                  ),
+              ],
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildAgendaReshareOverlay() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.repeat,
+            size: 15,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 5),
+          ReshareAttribution(
+            controller: controller,
+            model: widget.model,
+            explicitReshareUserId: widget.reshareUserID,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildImageContent(List<String> images) {
     switch (images.length) {
       case 1:
-        final double modelAspect = widget.model.aspectRatio.toDouble();
-        final double singleImageAspect = (modelAspect > 0 && modelAspect < 1)
-            ? 0.80
-            : (modelAspect > 0 ? modelAspect : 1.0);
         return AspectRatio(
-          aspectRatio: singleImageAspect,
+          aspectRatio: 0.80,
           child: _buildImage(images[0], radius: BorderRadius.circular(12)),
         );
 
@@ -1696,6 +1717,9 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget pulldownmenu() {
+    final canManagePost =
+        widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
+            controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(
@@ -1718,6 +1742,7 @@ class _AgendaContentState extends State<AgendaContent>
 
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
+                  sharedImageUrls: widget.model.img,
                   sharedAspectRatio: widget.model.aspectRatio.toDouble(),
                   sharedThumbnail: widget.model.thumbnail,
                   originalUserID: finalOriginalUserID,
@@ -1730,7 +1755,7 @@ class _AgendaContentState extends State<AgendaContent>
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1756,7 +1781,7 @@ class _AgendaContentState extends State<AgendaContent>
           title: 'Gizle',
           icon: CupertinoIcons.eye_slash,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
@@ -1827,7 +1852,7 @@ class _AgendaContentState extends State<AgendaContent>
           title: 'Paylaş',
           icon: CupertinoIcons.share_up,
         ),
-        if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (canManagePost)
           PullDownMenuItem(
             onTap: () {
               // 2) Videoyu durdur

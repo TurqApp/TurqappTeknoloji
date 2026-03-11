@@ -10,6 +10,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -734,7 +735,8 @@ class ShortsContent extends StatelessWidget {
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
         ),
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid)
+        if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
+            AdminAccessService.isKnownAdminSync())
           PullDownMenuItem(
             onTap: () {
               videoPlayerController.pause();
