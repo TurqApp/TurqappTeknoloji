@@ -420,22 +420,16 @@ class _ProfileViewState extends State<ProfileView> {
                           padding: const EdgeInsets.symmetric(horizontal: 80),
                           child: AspectRatio(
                             aspectRatio: 1,
-                            child: ClipOval(
-                              child: _myAvatarUrl.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: _myAvatarUrl,
-                                      cacheManager:
-                                          TurqImageCacheManager.instance,
-                                      fit: BoxFit.cover,
-                                      memCacheWidth: 300,
-                                      memCacheHeight: 600,
-                                    )
-                                  : const DefaultAvatar(
-                                      radius: 120,
-                                      backgroundColor: Colors.transparent,
-                                      iconColor: Colors.white70,
-                                      padding: EdgeInsets.all(36),
-                                    ),
+                            child: CachedUserAvatar(
+                              userId: _myUserId,
+                              imageUrl: _myAvatarUrl,
+                              radius: 120,
+                              placeholder: const DefaultAvatar(
+                                radius: 120,
+                                backgroundColor: Colors.transparent,
+                                iconColor: Colors.white70,
+                                padding: EdgeInsets.all(36),
+                              ),
                             ),
                           ),
                         )
@@ -2131,7 +2125,8 @@ class _ProfileViewState extends State<ProfileView> {
             color: Colors.white,
           ),
           child: CachedUserAvatar(
-            userId: userService.userId,
+            userId: _myUserId,
+            imageUrl: _myAvatarUrl,
             radius: 42.5,
           ),
         ),
@@ -2139,7 +2134,8 @@ class _ProfileViewState extends State<ProfileView> {
     } else {
       // Hikaye yoksa sadece resim (border yok)
       return CachedUserAvatar(
-        userId: userService.userId,
+        userId: _myUserId,
+        imageUrl: _myAvatarUrl,
         radius: 42.5,
       );
     }
