@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.da
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -2080,9 +2081,89 @@ class _ClassicContentState extends State<ClassicContent>
     videoController?.play();
   }
 
-  void _openQuoteComposer() {
+  Future<({String userId, String displayName, String username, String avatarUrl})
+      > _resolveQuotedSourceSnapshot() async {
+    String pick(List<dynamic> values, [String fallback = '']) {
+      for (final value in values) {
+        final text = (value ?? '').toString().trim();
+        if (text.isNotEmpty) return text;
+      }
+      return fallback;
+    }
+
+    final sourceUserId = widget.model.quotedPost &&
+            widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.userID.trim();
+
+    String displayName = widget.model.quotedPost &&
+            widget.model.quotedSourceDisplayName.trim().isNotEmpty
+        ? widget.model.quotedSourceDisplayName.trim()
+        : pick([
+            controller.fullName.value,
+            controller.nickname.value,
+            controller.username.value,
+            widget.model.authorNickname,
+          ]);
+    String username = widget.model.quotedPost &&
+            widget.model.quotedSourceUsername.trim().isNotEmpty
+        ? widget.model.quotedSourceUsername.trim()
+        : pick([
+            controller.username.value,
+            controller.nickname.value,
+            widget.model.authorNickname,
+          ]);
+    String avatarUrl = widget.model.quotedPost &&
+            widget.model.quotedSourceAvatarUrl.trim().isNotEmpty
+        ? widget.model.quotedSourceAvatarUrl.trim()
+        : controller.avatarUrl.value.trim();
+
+    if (sourceUserId.isNotEmpty) {
+      try {
+        final profileCache = Get.isRegistered<UserProfileCacheService>()
+            ? Get.find<UserProfileCacheService>()
+            : Get.put(UserProfileCacheService(), permanent: true);
+        final profile =
+            (await profileCache.getProfile(
+          sourceUserId,
+          preferCache: true,
+          cacheOnly: false,
+        )) ??
+                const <String, dynamic>{};
+        displayName = pick([
+          displayName,
+          profile['displayName'],
+          profile['fullName'],
+          profile['name'],
+          profile['nickname'],
+          profile['username'],
+        ], displayName);
+        username = pick([
+          username,
+          profile['username'],
+          profile['nickname'],
+        ], username);
+        final resolvedAvatar = resolveAvatarUrl(profile).trim();
+        if (resolvedAvatar.isNotEmpty &&
+            resolvedAvatar != kDefaultAvatarUrl &&
+            avatarUrl.trim().isEmpty) {
+          avatarUrl = resolvedAvatar;
+        }
+      } catch (_) {}
+    }
+
+    return (
+      userId: sourceUserId,
+      displayName: displayName,
+      username: username,
+      avatarUrl: avatarUrl,
+    );
+  }
+
+  Future<void> _openQuoteComposer() async {
     String finalOriginalUserID;
     String finalOriginalPostID;
+    final sourceSnapshot = await _resolveQuotedSourceSnapshot();
     final String resolvedQuotedText = widget.model.quotedPost &&
             widget.model.quotedOriginalText.trim().isNotEmpty
         ? widget.model.quotedOriginalText.trim()
@@ -2090,7 +2171,11 @@ class _ClassicContentState extends State<ClassicContent>
     final String resolvedQuotedSourceUserID = widget.model.quotedPost &&
             widget.model.quotedSourceUserID.trim().isNotEmpty
         ? widget.model.quotedSourceUserID.trim()
-        : widget.model.userID;
+        : sourceSnapshot.userId;
+    final String resolvedQuotedSourceDisplayName =
+        sourceSnapshot.displayName.trim();
+    final String resolvedQuotedSourceUsername = sourceSnapshot.username.trim();
+    final String resolvedQuotedSourceAvatarUrl = sourceSnapshot.avatarUrl.trim();
 
     if (widget.model.originalUserID.isNotEmpty) {
       finalOriginalUserID = widget.model.originalUserID;
@@ -2111,6 +2196,9 @@ class _ClassicContentState extends State<ClassicContent>
           quotedPost: true,
           quotedOriginalText: resolvedQuotedText,
           quotedSourceUserID: resolvedQuotedSourceUserID,
+          quotedSourceDisplayName: resolvedQuotedSourceDisplayName,
+          quotedSourceUsername: resolvedQuotedSourceUsername,
+          quotedSourceAvatarUrl: resolvedQuotedSourceAvatarUrl,
         ))?.then((_) {
       videoController?.play();
     });
