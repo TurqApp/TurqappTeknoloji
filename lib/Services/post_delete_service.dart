@@ -108,6 +108,7 @@ class PostDeleteService {
     final sharedSnap = await firestore
         .collection('Posts')
         .where('originalPostID', isEqualTo: originalPostID)
+        .where('sharedAsPost', isEqualTo: true)
         .get();
 
     final postSharersSnap = await firestore
@@ -130,6 +131,9 @@ class PostDeleteService {
       }
 
       final data = doc.data() ?? const <String, dynamic>{};
+      if ((data['quotedPost'] ?? false) == true) {
+        continue;
+      }
       if ((data['deletedPost'] ?? false) == true) {
         continue;
       }
