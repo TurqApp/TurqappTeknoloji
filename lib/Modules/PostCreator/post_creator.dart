@@ -20,6 +20,9 @@ class PostCreator extends StatelessWidget {
   final bool sharedAsPost;
   final String? originalUserID;
   final String? originalPostID;
+  final bool quotedPost;
+  final String? quotedOriginalText;
+  final String? quotedSourceUserID;
   final bool editMode;
   final PostsModel? editPost;
 
@@ -32,6 +35,9 @@ class PostCreator extends StatelessWidget {
     this.sharedAsPost = false,
     this.originalUserID,
     this.originalPostID,
+    this.quotedPost = false,
+    this.quotedOriginalText,
+    this.quotedSourceUserID,
     this.editMode = false,
     this.editPost,
   });
@@ -48,6 +54,9 @@ class PostCreator extends StatelessWidget {
       sharedAsPost: sharedAsPost,
       originalUserID: originalUserID,
       originalPostID: originalPostID,
+      quotedPost: quotedPost,
+      quotedOriginalText: quotedOriginalText,
+      quotedSourceUserID: quotedSourceUserID,
     );
     controller.applyEditSourceIfNeeded(
       editMode: editMode,

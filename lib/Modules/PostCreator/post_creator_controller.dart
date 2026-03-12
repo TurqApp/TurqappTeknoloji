@@ -98,6 +98,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   bool _isSharedAsPost = false;
   String _sharedOriginalUserID = "";
   String _sharedOriginalPostID = "";
+  bool _isQuotedPost = false;
+  String _quotedOriginalText = "";
+  String _quotedSourceUserID = "";
   bool _editSourceApplied = false;
   final RxBool isEditMode = false.obs;
   final RxString editingPostID = ''.obs;
@@ -105,6 +108,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   Timer? _autoSaveTimer;
   Timer? _queueRingTimer;
+
+  bool get isQuotedPost => _isQuotedPost;
+  String get quotedOriginalText => _quotedOriginalText;
+  String get quotedSourceUserID => _quotedSourceUserID;
+  String get sharedOriginalUserID => _sharedOriginalUserID;
+  String get sharedOriginalPostID => _sharedOriginalPostID;
 
   String _resolvePostLocationCity() {
     final user = CurrentUserService.instance.currentUserRx.value;
@@ -132,8 +141,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     if (user == null) {
       try {
         user = await FirebaseAuth.instance.authStateChanges().firstWhere(
-          (candidate) => candidate != null,
-        );
+              (candidate) => candidate != null,
+            );
       } catch (_) {
         user = FirebaseAuth.instance.currentUser;
       }
@@ -269,15 +278,21 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     required bool sharedAsPost,
     String? originalUserID,
     String? originalPostID,
+    bool quotedPost = false,
+    String? quotedOriginalText,
+    String? quotedSourceUserID,
   }) async {
     final cleanUrl = videoUrl.trim();
     final cleanImages =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if ((cleanUrl.isEmpty && cleanImages.isEmpty) || !sharedAsPost) {
+    if (!sharedAsPost) {
       _sharedSourceApplied = false;
       _isSharedAsPost = false;
       _sharedOriginalUserID = "";
       _sharedOriginalPostID = "";
+      _isQuotedPost = false;
+      _quotedOriginalText = "";
+      _quotedSourceUserID = "";
       return;
     }
     if (_sharedSourceApplied) return;
@@ -286,6 +301,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     _isSharedAsPost = true;
     _sharedOriginalUserID = (originalUserID ?? '').trim();
     _sharedOriginalPostID = (originalPostID ?? '').trim();
+    _isQuotedPost = quotedPost;
+    _quotedOriginalText = (quotedOriginalText ?? '').trim();
+    _quotedSourceUserID = (quotedSourceUserID ?? '').trim();
 
     const tag = '0';
     if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
@@ -299,10 +317,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         thumbnail: thumbnail,
       );
     } else {
-      await c.setReusedImageSources(
-        cleanImages,
-        aspectRatio: aspectRatio,
-      );
+      if (cleanImages.isNotEmpty) {
+        await c.setReusedImageSources(
+          cleanImages,
+          aspectRatio: aspectRatio,
+        );
+      }
     }
   }
 
@@ -939,8 +959,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       var thumbnailUrl = "";
       final isReusedVideoPost =
           post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
-      final isReusedImagePost =
-          post.video == null &&
+      final isReusedImagePost = post.video == null &&
           post.images.isEmpty &&
           post.reusedImageUrls.isNotEmpty;
 
@@ -1198,6 +1217,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
         "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
         "sharedAsPost": _isSharedAsPost,
+        "quotedPost": _isSharedAsPost ? _isQuotedPost : false,
+        "quotedOriginalText":
+            (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
+        "quotedSourceUserID":
+            (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
       });
 
       if (_isSharedAsPost &&
@@ -1260,6 +1284,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           poll: pollPayload ?? const {},
           originalUserID: _isSharedAsPost ? _sharedOriginalUserID : "",
           originalPostID: _isSharedAsPost ? _sharedOriginalPostID : "",
+          quotedPost: _isSharedAsPost ? _isQuotedPost : false,
+          quotedOriginalText:
+              (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
+          quotedSourceUserID:
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
         ),
       );
 
@@ -1466,7 +1495,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final validation = await UploadValidationService.validatePost(
         images: allImages,
         videos: allVideos,
-        text: (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
+        text:
+            (hasReusedVideo || hasReusedImages) ? 'media' : allTexts.join(' '),
       );
 
       if (!validation.isValid) {
@@ -1803,8 +1833,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           var thumbnailUrl = "";
           final isReusedVideoPost =
               post.video == null && post.reusedVideoUrl.trim().isNotEmpty;
-          final isReusedImagePost =
-              post.video == null &&
+          final isReusedImagePost = post.video == null &&
               post.images.isEmpty &&
               post.reusedImageUrls.isNotEmpty;
 
@@ -1963,8 +1992,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
           if (isReusedImagePost && imageUrls.length == 1) {
-            aspectRatio =
-                post.reusedImageAspectRatio > 0 ? post.reusedImageAspectRatio : 0.8;
+            aspectRatio = post.reusedImageAspectRatio > 0
+                ? post.reusedImageAspectRatio
+                : 0.8;
           } else if (post.images.length == 1 &&
               post.video == null &&
               !isReusedVideoPost) {
@@ -2073,6 +2103,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
               "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
               "sharedAsPost": _isSharedAsPost,
+              "quotedPost": _isSharedAsPost ? _isQuotedPost : false,
+              "quotedOriginalText":
+                  (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
+              "quotedSourceUserID":
+                  (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
             });
 
             if (_isSharedAsPost &&
@@ -2135,6 +2170,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 yorumMap: {
                   "visibility": commentVisibility.value,
                 },
+                quotedPost: _isSharedAsPost ? _isQuotedPost : false,
+                quotedOriginalText: (_isSharedAsPost && _isQuotedPost)
+                    ? _quotedOriginalText
+                    : "",
+                quotedSourceUserID: (_isSharedAsPost && _isQuotedPost)
+                    ? _quotedSourceUserID
+                    : "",
                 poll: post.poll,
               ),
             );

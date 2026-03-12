@@ -81,6 +81,9 @@ class PostsModel {
   String metin;
   String originalPostID;
   String originalUserID;
+  bool quotedPost;
+  String quotedOriginalText;
+  String quotedSourceUserID;
   num paylasGizliligi;
   num scheduledAt;
   bool sikayetEdildi;
@@ -124,6 +127,9 @@ class PostsModel {
     required this.metin,
     required this.originalPostID,
     required this.originalUserID,
+    this.quotedPost = false,
+    this.quotedOriginalText = '',
+    this.quotedSourceUserID = '',
     required this.paylasGizliligi,
     required this.scheduledAt,
     required this.sikayetEdildi,
@@ -275,6 +281,9 @@ class PostsModel {
       metin: data['metin'] ?? '',
       originalPostID: data['originalPostID'] ?? '',
       originalUserID: data['originalUserID'] ?? '',
+      quotedPost: data['quotedPost'] ?? false,
+      quotedOriginalText: (data['quotedOriginalText'] ?? '').toString(),
+      quotedSourceUserID: (data['quotedSourceUserID'] ?? '').toString(),
       paylasGizliligi: parseNum(data['paylasGizliligi'], 1),
       scheduledAt: parseNum(data['scheduledAt']),
       sikayetEdildi: data['sikayetEdildi'] ?? false,
@@ -318,6 +327,9 @@ class PostsModel {
       'metin': metin,
       'originalPostID': originalPostID,
       'originalUserID': originalUserID,
+      'quotedPost': quotedPost,
+      'quotedOriginalText': quotedOriginalText,
+      'quotedSourceUserID': quotedSourceUserID,
       'paylasGizliligi': paylasGizliligi,
       'scheduledAt': scheduledAt,
       'sikayetEdildi': sikayetEdildi,
@@ -362,6 +374,9 @@ class PostsModel {
       metin: '',
       originalPostID: '',
       originalUserID: '',
+      quotedPost: false,
+      quotedOriginalText: '',
+      quotedSourceUserID: '',
       paylasGizliligi: 1,
       scheduledAt: 0,
       sikayetEdildi: false,
@@ -403,6 +418,9 @@ class PostsModel {
     String? metin,
     String? originalPostID,
     String? originalUserID,
+    bool? quotedPost,
+    String? quotedOriginalText,
+    String? quotedSourceUserID,
     num? paylasGizliligi,
     num? scheduledAt,
     bool? sikayetEdildi,
@@ -442,6 +460,9 @@ class PostsModel {
       metin: metin ?? this.metin,
       originalPostID: originalPostID ?? this.originalPostID,
       originalUserID: originalUserID ?? this.originalUserID,
+      quotedPost: quotedPost ?? this.quotedPost,
+      quotedOriginalText: quotedOriginalText ?? this.quotedOriginalText,
+      quotedSourceUserID: quotedSourceUserID ?? this.quotedSourceUserID,
       paylasGizliligi: paylasGizliligi ?? this.paylasGizliligi,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       sikayetEdildi: sikayetEdildi ?? this.sikayetEdildi,

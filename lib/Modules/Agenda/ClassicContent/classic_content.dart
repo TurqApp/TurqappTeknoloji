@@ -96,6 +96,7 @@ class _ClassicContentState extends State<ClassicContent>
   int _currentPage = 0;
   bool _isFullscreen = false;
   bool _isCaptionExpanded = false;
+  bool _isQuoteExpanded = false;
 
   ShortController get shortsController => Get.isRegistered<ShortController>()
       ? Get.find<ShortController>()
@@ -583,7 +584,10 @@ class _ClassicContentState extends State<ClassicContent>
                     left: 15,
                     child: SharedPostLabel(
                       originalUserID: widget.model.originalUserID,
-                      // sharedAsPost removed
+                      sourceUserID: widget.model.quotedPost
+                          ? widget.model.quotedSourceUserID
+                          : '',
+                      labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       fontSize: 12,
                       textColor: Colors.red,
                     ),
@@ -723,6 +727,77 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
+  Widget _buildClassicQuotedText(String text) {
+    const bodyStyle = TextStyle(
+      color: Color(0xFF8A9199),
+      fontSize: 13,
+      fontFamily: 'Montserrat',
+      height: 1.35,
+    );
+    const moreStyle = TextStyle(
+      color: Color(0xFF8A9199),
+      fontSize: 13,
+      fontFamily: 'Montserrat',
+      height: 1.35,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: const TextSpan(),
+          textDirection: TextDirection.ltr,
+          maxLines: 2,
+        )
+          ..text = const TextSpan(style: bodyStyle)
+          ..text = TextSpan(text: text, style: bodyStyle)
+          ..layout(maxWidth: constraints.maxWidth);
+
+        final exceeds = painter.didExceedMaxLines;
+
+        Widget content = Text(
+          text,
+          style: bodyStyle,
+          maxLines: _isQuoteExpanded ? null : 2,
+          overflow: _isQuoteExpanded ? TextOverflow.visible : TextOverflow.clip,
+        );
+
+        if (!_isQuoteExpanded && exceeds) {
+          content = Stack(
+            children: [
+              Text(
+                text,
+                style: bodyStyle,
+                maxLines: 2,
+                overflow: TextOverflow.clip,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.only(left: 8),
+                  child: const Text('...devamı', style: moreStyle),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: exceeds
+              ? () {
+                  setState(() {
+                    _isQuoteExpanded = !_isQuoteExpanded;
+                  });
+                }
+              : null,
+          child: content,
+        );
+      },
+    );
+  }
+
   Widget _buildClassicActionRow(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
@@ -786,12 +861,15 @@ class _ClassicContentState extends State<ClassicContent>
   Widget _buildClassicMetaSection() {
     final caption = widget.model.metin.trim();
     final hasCaption = caption.isNotEmpty;
+    final quotedText = widget.model.quotedOriginalText.trim();
+    final hasQuotedText = widget.model.quotedPost && quotedText.isNotEmpty;
     final captionNickname = controller.username.value.trim().isNotEmpty
         ? controller.username.value.trim()
         : controller.nickname.value.trim();
     final displayTime = _buildClassicBottomTimeLabel();
 
     if (!widget.isReshared &&
+        !hasQuotedText &&
         !hasCaption &&
         widget.model.poll.isEmpty &&
         displayTime.isEmpty) {
@@ -803,13 +881,17 @@ class _ClassicContentState extends State<ClassicContent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (hasQuotedText) _buildClassicQuotedText(quotedText),
+          if (hasQuotedText && hasCaption) const SizedBox(height: 4),
           if (hasCaption)
             _buildClassicInlineCaption(
               nickname: captionNickname,
               text: caption,
             ),
           Padding(
-            padding: EdgeInsets.only(top: hasCaption ? 6 : 0),
+            padding: EdgeInsets.only(
+              top: (hasQuotedText || hasCaption) ? 6 : 0,
+            ),
             child: Text(
               displayTime,
               style: const TextStyle(
@@ -869,6 +951,11 @@ class _ClassicContentState extends State<ClassicContent>
                         bottom: widget.model.floodCount > 1 ? 26 : 8,
                         child: SharedPostLabel(
                           originalUserID: widget.model.originalUserID,
+                          sourceUserID: widget.model.quotedPost
+                              ? widget.model.quotedSourceUserID
+                              : '',
+                          labelSuffix:
+                              widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
                           fontSize: 12,
                         ),
@@ -923,6 +1010,11 @@ class _ClassicContentState extends State<ClassicContent>
                         bottom: widget.model.floodCount > 1 ? 34 : 8,
                         child: SharedPostLabel(
                           originalUserID: widget.model.originalUserID,
+                          sourceUserID: widget.model.quotedPost
+                              ? widget.model.quotedSourceUserID
+                              : '',
+                          labelSuffix:
+                              widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
                           fontSize: 12,
                         ),
@@ -938,7 +1030,8 @@ class _ClassicContentState extends State<ClassicContent>
                       right: 0,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(widget.model.img.length, (index) {
+                        children:
+                            List.generate(widget.model.img.length, (index) {
                           final isActive = index == _currentPage;
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
@@ -1190,56 +1283,52 @@ class _ClassicContentState extends State<ClassicContent>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (videoController != null)
-                  ...[
-                    IgnorePointer(
-                      ignoring: true,
-                      child: _isFullscreen
-                          ? const SizedBox.shrink()
-                          : videoController!.buildPlayer(
-                              key: ValueKey(
-                                  'classic-${widget.model.docID}-${videoController.hashCode}'),
-                              aspectRatio: frameAspectRatio,
-                              useAspectRatio: false,
-                            ),
+                if (videoController != null) ...[
+                  IgnorePointer(
+                    ignoring: true,
+                    child: _isFullscreen
+                        ? const SizedBox.shrink()
+                        : videoController!.buildPlayer(
+                            key: ValueKey(
+                                'classic-${widget.model.docID}-${videoController.hashCode}'),
+                            aspectRatio: frameAspectRatio,
+                            useAspectRatio: false,
+                          ),
+                  ),
+                  // Thumbnail overlay - video hazır olana kadar göster
+                  ValueListenableBuilder<HLSVideoValue>(
+                    valueListenable: videoValueNotifier,
+                    builder: (_, v, child) {
+                      if (v.isInitialized && v.position > Duration.zero) {
+                        return const SizedBox.shrink();
+                      }
+                      return child!;
+                    },
+                    child: AspectRatio(
+                      aspectRatio: frameAspectRatio,
+                      child: widget.model.thumbnail.isNotEmpty
+                          ? Image.network(
+                              widget.model.thumbnail,
+                              fit: BoxFit.cover,
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return const ColoredBox(
+                                  color: _classicMediaFallbackColor,
+                                );
+                              },
+                              errorBuilder: (_, __, ___) => const ColoredBox(
+                                  color: _classicMediaFallbackColor),
+                            )
+                          : const ColoredBox(color: _classicMediaFallbackColor),
                     ),
-                    // Thumbnail overlay - video hazır olana kadar göster
-                    ValueListenableBuilder<HLSVideoValue>(
-                      valueListenable: videoValueNotifier,
-                      builder: (_, v, child) {
-                        if (v.isInitialized && v.position > Duration.zero) {
-                          return const SizedBox.shrink();
-                        }
-                        return child!;
-                      },
-                      child: AspectRatio(
-                        aspectRatio: frameAspectRatio,
-                        child: widget.model.thumbnail.isNotEmpty
-                            ? Image.network(
-                                widget.model.thumbnail,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return const ColoredBox(
-                                    color: _classicMediaFallbackColor,
-                                  );
-                                },
-                                errorBuilder: (_, __, ___) =>
-                                    const ColoredBox(
-                                        color: _classicMediaFallbackColor),
-                              )
-                            : const ColoredBox(
-                                color: _classicMediaFallbackColor),
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: buildUploadIndicator(),
-                    ),
-                  ]
-                else
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: buildUploadIndicator(),
+                  ),
+                ] else
                   ColoredBox(
                     color: _classicMediaFallbackColor,
                     child: widget.model.thumbnail.isEmpty
@@ -1312,6 +1401,10 @@ class _ClassicContentState extends State<ClassicContent>
                     bottom: (widget.model.floodCount > 1) ? 26 : 8,
                     child: SharedPostLabel(
                       originalUserID: widget.model.originalUserID,
+                      sourceUserID: widget.model.quotedPost
+                          ? widget.model.quotedSourceUserID
+                          : '',
+                      labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
                       fontSize: 12,
                     ),
@@ -1419,6 +1512,7 @@ class _ClassicContentState extends State<ClassicContent>
         });
       }
     }
+
     return Padding(
       padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
       child: Row(
@@ -1441,57 +1535,57 @@ class _ClassicContentState extends State<ClassicContent>
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: openProfile,
-                        child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            height: 24,
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    primaryName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 15,
-                                      fontFamily: "MontserratBold",
+                          behavior: HitTestBehavior.opaque,
+                          onTap: openProfile,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        primaryName,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 15,
+                                          fontFamily: "MontserratBold",
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                RozetContent(
-                                    size: 13, userID: widget.model.userID),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(left: 6, right: 12),
-                                  child: Text(
-                                    displayTime,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
-                                      fontFamily: "MontserratMedium",
+                                    const SizedBox(width: 4),
+                                    RozetContent(
+                                        size: 13, userID: widget.model.userID),
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 6, right: 12),
+                                      child: Text(
+                                        displayTime,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 13,
+                                          fontFamily: "MontserratMedium",
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            '@$handle',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
-                              fontFamily: "Montserrat",
-                            ),
-                          ),
-                        ],
-                      )),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                '@$handle',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                  fontFamily: "Montserrat",
+                                ),
+                              ),
+                            ],
+                          )),
                     ),
                     if (widget.model.userID !=
                         FirebaseAuth.instance.currentUser!.uid)
@@ -1525,8 +1619,8 @@ class _ClassicContentState extends State<ClassicContent>
                                             borderRadius:
                                                 const BorderRadius.all(
                                                     Radius.circular(12)),
-                                            border:
-                                                Border.all(color: Colors.black)),
+                                            border: Border.all(
+                                                color: Colors.black)),
                                         child: const Padding(
                                           padding: EdgeInsets.symmetric(
                                               horizontal: 15),
@@ -1599,6 +1693,7 @@ class _ClassicContentState extends State<ClassicContent>
         });
       }
     }
+
     final textShadow = [
       Shadow(
         color: Colors.black.withValues(alpha: 0.28),
@@ -1632,59 +1727,60 @@ class _ClassicContentState extends State<ClassicContent>
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: openProfile,
-                        child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            height: 24,
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    primaryName,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontFamily: "MontserratBold",
-                                      shadows: textShadow,
+                          behavior: HitTestBehavior.opaque,
+                          onTap: openProfile,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 24,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        primaryName,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontFamily: "MontserratBold",
+                                          shadows: textShadow,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                _buildClassicWhiteBadge(13),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(left: 6, right: 12),
-                                  child: Text(
-                                    displayTime,
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.9),
-                                      fontSize: 12,
-                                      fontFamily: "MontserratMedium",
-                                      shadows: textShadow,
+                                    const SizedBox(width: 4),
+                                    _buildClassicWhiteBadge(13),
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 6, right: 12),
+                                      child: Text(
+                                        displayTime,
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.9),
+                                          fontSize: 12,
+                                          fontFamily: "MontserratMedium",
+                                          shadows: textShadow,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            '@$handle',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
-                              shadows: textShadow,
-                            ),
-                          ),
-                        ],
-                      )),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                '@$handle',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  fontSize: 12,
+                                  fontFamily: "Montserrat",
+                                  shadows: textShadow,
+                                ),
+                              ),
+                            ],
+                          )),
                     ),
                     if (widget.model.userID !=
                         FirebaseAuth.instance.currentUser!.uid)
@@ -1962,6 +2058,47 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
+  void _runSimpleReshare() {
+    controller.reshare();
+    videoController?.play();
+  }
+
+  void _openQuoteComposer() {
+    String finalOriginalUserID;
+    String finalOriginalPostID;
+    final String resolvedQuotedText = widget.model.quotedPost &&
+            widget.model.quotedOriginalText.trim().isNotEmpty
+        ? widget.model.quotedOriginalText.trim()
+        : widget.model.metin.trim();
+    final String resolvedQuotedSourceUserID = widget.model.quotedPost &&
+            widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.userID;
+
+    if (widget.model.originalUserID.isNotEmpty) {
+      finalOriginalUserID = widget.model.originalUserID;
+      finalOriginalPostID = widget.model.originalPostID;
+    } else {
+      finalOriginalUserID = widget.model.userID;
+      finalOriginalPostID = widget.model.docID;
+    }
+
+    Get.to(() => PostCreator(
+          sharedVideoUrl: widget.model.playbackUrl,
+          sharedImageUrls: widget.model.img,
+          sharedAspectRatio: widget.model.aspectRatio.toDouble(),
+          sharedThumbnail: widget.model.thumbnail,
+          originalUserID: finalOriginalUserID,
+          originalPostID: finalOriginalPostID,
+          sharedAsPost: true,
+          quotedPost: true,
+          quotedOriginalText: resolvedQuotedText,
+          quotedSourceUserID: resolvedQuotedSourceUserID,
+        ))?.then((_) {
+      videoController?.play();
+    });
+  }
+
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
@@ -1973,16 +2110,30 @@ class _ClassicContentState extends State<ClassicContent>
       final bool isReshared = controller.yenidenPaylasildiMi.value;
       final Color displayColor = isReshared ? Colors.green : _actionColor;
 
-      return AnimatedActionButton(
-        enabled: canReshare,
-        semanticsLabel: 'Yeniden paylaş',
-        onTap: canReshare ? controller.reshare : null,
-        child: _iconAction(
-          icon: _actionStyle.reshareIcon ?? Icons.repeat,
-          iconSize: _actionStyle.iconSize,
-          color: displayColor,
-          label: NumberFormatter.format(controller.retryCount.value),
-          labelColor: displayColor,
+      return PullDownButton(
+        itemBuilder: (context) => [
+          PullDownMenuItem(
+            onTap: canReshare ? _runSimpleReshare : null,
+            title: 'Yeniden paylaş',
+            icon: Icons.repeat,
+          ),
+          PullDownMenuItem(
+            onTap: canReshare ? _openQuoteComposer : null,
+            title: 'Alıntıla',
+            icon: CupertinoIcons.quote_bubble,
+          ),
+        ],
+        buttonBuilder: (context, showMenu) => AnimatedActionButton(
+          enabled: canReshare,
+          semanticsLabel: 'Yeniden paylaş',
+          onTap: canReshare ? showMenu : null,
+          child: _iconAction(
+            icon: _actionStyle.reshareIcon ?? Icons.repeat,
+            iconSize: _actionStyle.iconSize,
+            color: displayColor,
+            label: NumberFormatter.format(controller.retryCount.value),
+            labelColor: displayColor,
+          ),
         ),
       );
     });

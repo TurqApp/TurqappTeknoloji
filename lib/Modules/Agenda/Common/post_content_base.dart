@@ -19,6 +19,7 @@ abstract class PostContentBase extends StatefulWidget {
     required this.model,
     required this.isPreview,
     required this.shouldPlay,
+    this.instanceTag,
     required this.isReshared,
     required this.reshareUserID,
     required this.showComments,
@@ -28,6 +29,7 @@ abstract class PostContentBase extends StatefulWidget {
   final PostsModel model;
   final bool isPreview;
   final bool shouldPlay;
+  final String? instanceTag;
   final bool isReshared;
   final String? reshareUserID;
   final bool showComments;
@@ -85,7 +87,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   double get bufferedAutoplayThreshold => 0.10;
 
   /// Unique tag for GetX controller retrieval.
-  String get controllerTag => widget.model.docID;
+  String get controllerTag => widget.instanceTag ?? widget.model.docID;
+
+  /// Playback handle identity must be unique per mounted video surface.
+  /// Otherwise feed card and SinglePost can fight over the same player slot.
+  String get playbackHandleKey => widget.instanceTag ?? widget.model.docID;
+
+  bool get isStandalonePostInstance =>
+      (widget.instanceTag ?? '').startsWith('single_');
 
   @override
   void initState() {
@@ -105,10 +114,29 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     // ve raster crash'e yol açabiliyor. Player'ı yalnızca oynatma gerektiğinde aç.
     // Hızlı scroll sırasında native view oluşturmayı engellemek için kısa gecikme.
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
-      _lazyInitTimer = Timer(const Duration(milliseconds: 150), () {
+      final delay = isStandalonePostInstance
+          ? Duration.zero
+          : const Duration(milliseconds: 150);
+      _lazyInitTimer = Timer(delay, () {
         if (!mounted) return;
         if (widget.shouldPlay) {
           _initVideoController();
+          if (isStandalonePostInstance) {
+            Future.delayed(const Duration(milliseconds: 220), () {
+              if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                return;
+              }
+              _videoAdapter!.setVolume(1.0);
+              _videoAdapter!.play();
+              videoStateManager.playOnlyThis(playbackHandleKey);
+              Future.delayed(const Duration(milliseconds: 220), () {
+                if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
+                  return;
+                }
+                _videoAdapter!.setVolume(1.0);
+              });
+            });
+          }
         }
       });
     }
@@ -135,21 +163,31 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     );
 
     videoStateManager.registerPlaybackHandle(
-      widget.model.docID,
+      playbackHandleKey,
       HLSAdapterPlaybackHandle(_videoAdapter!),
     );
 
     _videoAdapter!.addListener(_onVideoUpdate);
 
-    _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
-      _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
-    });
+    if (!isStandalonePostInstance) {
+      _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
+        _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
+      });
+    } else {
+      _videoAdapter?.setVolume(1.0);
+    }
 
-    _pauseAllWorker = ever(agendaController.pauseAll, (value) {
-      if (value == true) {
-        _safePauseVideo();
-      }
-    });
+    if (!isStandalonePostInstance) {
+      _pauseAllWorker = ever(agendaController.pauseAll, (value) {
+        if (value == true) {
+          _safePauseVideo();
+        }
+      });
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -168,7 +206,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     _lazyInitTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
-    videoStateManager.unregisterVideoController(widget.model.docID);
+    videoStateManager.unregisterVideoController(playbackHandleKey);
     _videoAdapter?.dispose();
     _muteWorker?.dispose();
     _pauseAllWorker?.dispose();
@@ -187,7 +225,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           _initVideoController();
         }
         _videoAdapter?.play();
-        videoStateManager.playOnlyThis(widget.model.docID);
+        videoStateManager.playOnlyThis(playbackHandleKey);
         // Cache state machine: playing olarak işaretle
         try {
           Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
@@ -220,7 +258,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void didPopNext() {
     if (widget.shouldPlay && _videoAdapter != null) {
       _videoAdapter?.play();
-      videoStateManager.playOnlyThis(widget.model.docID);
+      videoStateManager.playOnlyThis(playbackHandleKey);
     }
   }
 
@@ -236,7 +274,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     // İlk kez ready olduğunda ses ayarla
     if (v.isInitialized && !_hasAutoPlayed) {
-      _videoAdapter!.setVolume(agendaController.isMuted.value ? 0.0 : 1.0);
+      _videoAdapter!.setVolume(
+        isStandalonePostInstance
+            ? 1.0
+            : (agendaController.isMuted.value ? 0.0 : 1.0),
+      );
       if (widget.shouldPlay) {
         _hasAutoPlayed = true;
       }

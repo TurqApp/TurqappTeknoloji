@@ -18,10 +18,12 @@ import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
+import 'package:turqappv2/Modules/Agenda/SinglePost/single_post.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
@@ -46,11 +48,14 @@ import '../Common/post_action_style.dart';
 import 'agenda_content_controller.dart';
 
 class AgendaContent extends PostContentBase {
+  final bool hideVideoPoster;
   const AgendaContent({
     super.key,
     required super.model,
     required super.isPreview,
     required super.shouldPlay,
+    super.instanceTag,
+    this.hideVideoPoster = false,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
     bool? showComments = false,
@@ -233,6 +238,10 @@ class _AgendaContentState extends State<AgendaContent>
     final mediaTopSpacing = hasHeaderSubline ? 4.0 : 0.0;
     final actionTopSpacing = hasHeaderSubline ? 2.0 : 0.0;
     final mediaVisualLift = hasHeaderSubline ? 0.0 : -6.0;
+
+    if (widget.model.quotedPost) {
+      return _buildQuotedMainBody(actionTopSpacing: actionTopSpacing);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -470,8 +479,14 @@ class _AgendaContentState extends State<AgendaContent>
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
                                             builder: (_, v, child) {
+                                              if (widget.hideVideoPoster) {
+                                                return const SizedBox.shrink();
+                                              }
                                               if (v.isInitialized &&
-                                                  v.position > Duration.zero) {
+                                                  (v.isPlaying ||
+                                                      v.isBuffering ||
+                                                      v.position >
+                                                          Duration.zero)) {
                                                 return const SizedBox.shrink();
                                               }
                                               return child!;
@@ -571,11 +586,19 @@ class _AgendaContentState extends State<AgendaContent>
                                             widget.model.originalUserID
                                                 .isNotEmpty)
                                           const SizedBox(height: 6),
-                                        if (widget.model.originalUserID
-                                            .isNotEmpty)
+                                        if (widget
+                                            .model.originalUserID.isNotEmpty)
                                           SharedPostLabel(
                                             originalUserID:
                                                 widget.model.originalUserID,
+                                            sourceUserID:
+                                                widget.model.quotedPost
+                                                    ? widget.model
+                                                        .quotedSourceUserID
+                                                    : '',
+                                            labelSuffix: widget.model.quotedPost
+                                                ? 'alıntılandı'
+                                                : '',
                                             textColor: Colors.white,
                                             fontSize: 12,
                                           ),
@@ -602,7 +625,7 @@ class _AgendaContentState extends State<AgendaContent>
                                               } else {
                                                 vc.play();
                                                 videoStateManager.playOnlyThis(
-                                                    widget.model.docID);
+                                                    playbackHandleKey);
                                               }
                                             },
                                             child: Container(
@@ -757,6 +780,425 @@ class _AgendaContentState extends State<AgendaContent>
         ),
       ],
     );
+  }
+
+  Widget _buildQuotedMainBody({required double actionTopSpacing}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        headerUserInfoBar(),
+        if (widget.model.konum != "")
+          Padding(
+            padding: const EdgeInsets.only(top: 7, left: 40),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.map_pin, color: Colors.red, size: 20),
+                const SizedBox(width: 3),
+                Text(
+                  widget.model.konum,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 13,
+                    fontFamily: "MontserratMedium",
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 45, right: 8),
+          child: _buildAgendaQuoteCard(),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: actionTopSpacing),
+          child: Obx(() {
+            final me = FirebaseAuth.instance.currentUser;
+            if (me == null) return const SizedBox.shrink();
+            return Transform.translate(
+              offset: const Offset(17, 0),
+              child: SizedBox(
+                width: double.infinity,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: commentButton(context)),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: likeButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: reshareButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: statButton()),
+                        )),
+                    SizedBox(
+                        width: 58,
+                        child: Transform.translate(
+                          offset: const Offset(2, 0),
+                          child: Center(child: saveButton()),
+                        )),
+                    SizedBox(width: 58, child: Center(child: sendButton())),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgendaQuoteCard() {
+    final quotedText = widget.model.quotedOriginalText.trim();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _openQuotedOriginalPost,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD9DEE5)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildAgendaQuotedSourceHeader(),
+                  if (quotedText.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      quotedText,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF3A434D),
+                        fontSize: 14,
+                        height: 1.35,
+                        fontFamily: "Montserrat",
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (widget.model.hasPlayableVideo)
+              _buildAgendaQuotedVideoPreview()
+            else if (widget.model.img.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: _buildQuotedImageContent(widget.model.img),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAgendaQuotedSourceHeader() {
+    final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.originalUserID.trim();
+    final sourcePostId = widget.model.originalPostID.trim();
+    if (sourceUserId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final profileCache = Get.isRegistered<UserProfileCacheService>()
+        ? Get.find<UserProfileCacheService>()
+        : Get.put(UserProfileCacheService(), permanent: true);
+
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait<dynamic>([
+        profileCache.getProfile(
+          sourceUserId,
+          preferCache: true,
+          cacheOnly: false,
+        ),
+        if (sourcePostId.isNotEmpty)
+          FirebaseFirestore.instance.collection('Posts').doc(sourcePostId).get()
+        else
+          Future.value(null),
+      ]),
+      builder: (context, snapshot) {
+        final profile = (snapshot.data != null && snapshot.data!.isNotEmpty
+                ? snapshot.data!.first
+                : null) as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+        final sourcePostSnapshot =
+            snapshot.data != null && snapshot.data!.length > 1
+                ? snapshot.data![1] as DocumentSnapshot<Map<String, dynamic>>?
+                : null;
+        final sourcePostData = sourcePostSnapshot?.data() ?? const {};
+        String firstNonEmpty(List<dynamic> values, [String fallback = '']) {
+          for (final value in values) {
+            final text = (value ?? '').toString().trim();
+            if (text.isNotEmpty) return text;
+          }
+          return fallback;
+        }
+
+        final displayName = firstNonEmpty([
+          profile['displayName'],
+          profile['fullName'],
+          profile['name'],
+          sourcePostData['displayName'],
+          sourcePostData['authorDisplayName'],
+          sourcePostData['fullName'],
+          sourcePostData['authorNickname'],
+          sourcePostData['nickname'],
+          profile['nickname'],
+          profile['username'],
+        ], 'Kullanıcı');
+        final username = firstNonEmpty([
+          profile['username'],
+          sourcePostData['username'],
+          sourcePostData['authorNickname'],
+          profile['nickname'],
+        ]);
+        final avatarUrl =
+            (profile['avatarUrl'] ?? sourcePostData['authorAvatarUrl'] ?? '')
+                .toString()
+                .trim();
+        final quotedTime = ((sourcePostData['izBirakYayinTarihi'] ??
+                    sourcePostData['timeStamp']) ??
+                0)
+            .toString();
+        final timeStamp =
+            num.tryParse(quotedTime) ?? (sourcePostData['timeStamp'] ?? 0);
+        final displayTime =
+            timeStamp == 0 ? '' : timeAgoMetin(timeStamp).toString();
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CachedUserAvatar(
+              userId: sourceUserId,
+              imageUrl: avatarUrl,
+              radius: 20,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      displayName.isEmpty ? 'Kullanıcı' : displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
+                  ),
+                  if (username.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        '@$username',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                          fontFamily: "Montserrat",
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 2),
+                  RozetContent(size: 13, userID: sourceUserId),
+                  if (displayTime.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        displayTime,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildQuotedImageContent(List<String> images) {
+    final outerRadius = BorderRadius.circular(12);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: outerRadius,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _buildQuotedImageGrid(images),
+    );
+  }
+
+  Widget _buildQuotedImageGrid(List<String> images) {
+    switch (images.length) {
+      case 1:
+        return AspectRatio(
+          aspectRatio: 0.80,
+          child: _buildImage(
+            images[0],
+            radius: BorderRadius.circular(12),
+            showShareCta: false,
+          ),
+        );
+      case 2:
+        return _buildTwoImageGrid(images);
+      case 3:
+        return _buildThreeImageGrid(images);
+      case 4:
+      default:
+        return buildFourImageGrid(images);
+    }
+  }
+
+  Widget _buildAgendaQuotedVideoPreview() {
+    final thumb = widget.model.thumbnail.trim();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 0.80,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (thumb.isNotEmpty)
+                CachedNetworkImage(
+                  imageUrl: thumb,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    color: const Color(0xFFE8E8E8),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    color: const Color(0xFFE8E8E8),
+                  ),
+                )
+              else
+                Container(color: const Color(0xFFE8E8E8)),
+              Positioned.fill(
+                child: Center(
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.play_fill,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _formatDuration(
+                      videoController?.value.duration ?? Duration.zero,
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontFamily: "Montserrat",
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openQuotedOriginalPost() async {
+    final originalPostId = widget.model.originalPostID.trim();
+    if (originalPostId.isEmpty) {
+      AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('Posts')
+          .doc(originalPostId)
+          .get();
+
+      if (!doc.exists) {
+        AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+        return;
+      }
+
+      final model = PostsModel.fromMap(doc.data()!, doc.id);
+      if (model.deletedPost) {
+        AppSnackbar('Bilgi', 'Kaynak gönderi silinmiş.');
+        return;
+      }
+
+      if (model.flood == false && model.floodCount > 1) {
+        await Get.to(() => FloodListing(mainModel: model));
+        return;
+      }
+
+      try {
+        videoController?.pause();
+      } catch (_) {}
+      try {
+        videoStateManager.pauseAllVideos(force: true);
+      } catch (_) {}
+      try {
+        agendaController.pauseAll.value = false;
+      } catch (_) {}
+      await Get.to(() => SinglePost(model: model, showComments: false));
+    } catch (_) {
+      AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
+    }
   }
 
   Widget _buildFeedCaption({
@@ -1421,10 +1863,9 @@ class _AgendaContentState extends State<AgendaContent>
         if (widget.isReshared || widget.model.originalUserID.isNotEmpty)
           Positioned(
             left: 8,
-            bottom:
-                (widget.model.floodCount > 1 && widget.model.flood == false)
-                    ? 26
-                    : 8,
+            bottom: (widget.model.floodCount > 1 && widget.model.flood == false)
+                ? 26
+                : 8,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -1435,6 +1876,10 @@ class _AgendaContentState extends State<AgendaContent>
                 if (widget.model.originalUserID.isNotEmpty)
                   SharedPostLabel(
                     originalUserID: widget.model.originalUserID,
+                    sourceUserID: widget.model.quotedPost
+                        ? widget.model.quotedSourceUserID
+                        : '',
+                    labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                     textColor: Colors.white,
                     fontSize: 12,
                   ),
@@ -1620,7 +2065,11 @@ class _AgendaContentState extends State<AgendaContent>
     );
   }
 
-  Widget _buildImage(String url, {required BorderRadius radius}) {
+  Widget _buildImage(
+    String url, {
+    required BorderRadius radius,
+    bool showShareCta = true,
+  }) {
     final safeUrl = url.trim();
     if (safeUrl.isEmpty) {
       return ClipRRect(
@@ -1651,7 +2100,8 @@ class _AgendaContentState extends State<AgendaContent>
               placeholder: (_, __) => const SizedBox.shrink(),
             ),
           ),
-          if (widget.model.img.length == 1) _buildFeedShareCta(),
+          if (widget.model.img.length == 1 && showShareCta)
+            _buildFeedShareCta(),
         ],
       ),
     );
@@ -2007,18 +2457,73 @@ class _AgendaContentState extends State<AgendaContent>
       final bool isReshared = controller.yenidenPaylasildiMi.value;
       final Color displayColor = isReshared ? Colors.green : _actionColor;
 
-      return AnimatedActionButton(
-        enabled: canReshare,
-        semanticsLabel: 'Yeniden paylaş',
-        onTap: canReshare ? controller.reshare : null,
-        showTapArea: _showActionTapAreas,
-        child: _iconAction(
-          icon: Icons.repeat,
-          color: displayColor,
-          label: NumberFormatter.format(controller.retryCount.value),
-          labelColor: displayColor,
+      return PullDownButton(
+        itemBuilder: (context) => [
+          PullDownMenuItem(
+            onTap: canReshare ? _runSimpleReshare : null,
+            title: 'Yeniden paylaş',
+            icon: Icons.repeat,
+          ),
+          PullDownMenuItem(
+            onTap: canReshare ? _openQuoteComposer : null,
+            title: 'Alıntıla',
+            icon: CupertinoIcons.quote_bubble,
+          ),
+        ],
+        buttonBuilder: (context, showMenu) => AnimatedActionButton(
+          enabled: canReshare,
+          semanticsLabel: 'Yeniden paylaş',
+          onTap: canReshare ? showMenu : null,
+          showTapArea: _showActionTapAreas,
+          child: _iconAction(
+            icon: Icons.repeat,
+            color: displayColor,
+            label: NumberFormatter.format(controller.retryCount.value),
+            labelColor: displayColor,
+          ),
         ),
       );
+    });
+  }
+
+  void _runSimpleReshare() {
+    controller.reshare();
+    videoController?.play();
+  }
+
+  void _openQuoteComposer() {
+    String finalOriginalUserID;
+    String finalOriginalPostID;
+    final String resolvedQuotedText = widget.model.quotedPost &&
+            widget.model.quotedOriginalText.trim().isNotEmpty
+        ? widget.model.quotedOriginalText.trim()
+        : widget.model.metin.trim();
+    final String resolvedQuotedSourceUserID = widget.model.quotedPost &&
+            widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.userID;
+
+    if (widget.model.originalUserID.isNotEmpty) {
+      finalOriginalUserID = widget.model.originalUserID;
+      finalOriginalPostID = widget.model.originalPostID;
+    } else {
+      finalOriginalUserID = widget.model.userID;
+      finalOriginalPostID = widget.model.docID;
+    }
+
+    Get.to(() => PostCreator(
+          sharedVideoUrl: widget.model.playbackUrl,
+          sharedImageUrls: widget.model.img,
+          sharedAspectRatio: widget.model.aspectRatio.toDouble(),
+          sharedThumbnail: widget.model.thumbnail,
+          originalUserID: finalOriginalUserID,
+          originalPostID: finalOriginalPostID,
+          sharedAsPost: true,
+          quotedPost: true,
+          quotedOriginalText: resolvedQuotedText,
+          quotedSourceUserID: resolvedQuotedSourceUserID,
+        ))?.then((_) {
+      videoController?.play();
     });
   }
 

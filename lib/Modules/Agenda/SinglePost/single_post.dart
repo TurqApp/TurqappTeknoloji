@@ -8,10 +8,15 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 class SinglePost extends StatelessWidget {
   final PostsModel model;
   final bool showComments;
-  SinglePost({super.key, required this.model, required this.showComments});
+  final String instanceTag;
+  SinglePost({super.key, required this.model, required this.showComments})
+      : instanceTag =
+            'single_${model.docID}_${DateTime.now().microsecondsSinceEpoch}';
   final put = Get.find<AgendaController>();
   @override
   Widget build(BuildContext context) {
+    put.pauseAll.value = false;
+    put.isMuted.value = false;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -28,6 +33,8 @@ class SinglePost extends StatelessWidget {
                 model: model,
                 isPreview: false,
                 shouldPlay: true,
+                instanceTag: instanceTag,
+                hideVideoPoster: true,
                 showComments: showComments,
               )
             ],

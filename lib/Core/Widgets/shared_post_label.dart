@@ -7,12 +7,16 @@ import 'package:turqappv2/Services/reshare_helper.dart';
 
 class SharedPostLabel extends StatefulWidget {
   final String originalUserID;
+  final String sourceUserID;
+  final String labelSuffix;
   final Color textColor;
   final double fontSize;
 
   const SharedPostLabel({
     super.key,
     required this.originalUserID,
+    this.sourceUserID = '',
+    this.labelSuffix = '',
     this.textColor = Colors.grey,
     this.fontSize = 12,
   });
@@ -34,19 +38,26 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
   @override
   void didUpdateWidget(SharedPostLabel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.originalUserID != widget.originalUserID) {
+    if (oldWidget.originalUserID != widget.originalUserID ||
+        oldWidget.sourceUserID != widget.sourceUserID) {
       _loadDisplayName();
     }
   }
 
+  String get _effectiveUserID {
+    final source = widget.sourceUserID.trim();
+    if (source.isNotEmpty) return source;
+    return widget.originalUserID.trim();
+  }
+
   void _loadDisplayName() async {
-    if (widget.originalUserID.isEmpty) {
+    final effectiveUserID = _effectiveUserID;
+    if (effectiveUserID.isEmpty) {
       return;
     }
 
     // Önce cache'ten kontrol et
-    final cachedName =
-        ReshareHelper.getCachedDisplayName(widget.originalUserID);
+    final cachedName = ReshareHelper.getCachedDisplayName(effectiveUserID);
 
     if (cachedName != null) {
       // Cache'te var, direkt kullan
@@ -65,7 +76,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
 
         try {
           final displayName =
-              await ReshareHelper.getUserDisplayName(widget.originalUserID);
+              await ReshareHelper.getUserDisplayName(effectiveUserID);
           if (mounted) {
             setState(() {
               _displayName = displayName.trim().isNotEmpty &&
@@ -90,7 +101,8 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
   @override
   Widget build(BuildContext context) {
     // Yeniden paylaşım yoksa hiçbir şey gösterme
-    if (widget.originalUserID.isEmpty) {
+    final effectiveUserID = _effectiveUserID;
+    if (effectiveUserID.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -101,31 +113,54 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
 
     // Nickname varsa göster
     if (_displayName != null) {
+      final isLightOverlay = widget.textColor == Colors.white;
+      final labelText =
+          'Kimden: $_displayName${widget.labelSuffix.isEmpty ? '' : ' ${widget.labelSuffix.trim()}'}';
       return GestureDetector(
         onTap: () {
           // Kendi ID'si ise tıklanabilir olmasın
           final currentUserID = FirebaseAuth.instance.currentUser?.uid;
-          if (widget.originalUserID != currentUserID) {
-            Get.to(() => SocialProfile(userID: widget.originalUserID));
+          if (effectiveUserID != currentUserID) {
+            Get.to(() => SocialProfile(userID: effectiveUserID));
           }
         },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 220),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(8),
+        child: isLightOverlay
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.28),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        labelText,
+                        style: TextStyle(
+                          color: widget.textColor,
+                          fontSize: widget.fontSize,
+                          fontWeight: FontWeight.w500,
+                          fontStyle: FontStyle.normal,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ),
+              )
+            : ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 240),
                 child: Text(
-                  'Kimden: $_displayName',
+                  labelText,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: widget.textColor,
                     fontSize: widget.fontSize,
                     fontWeight: FontWeight.w500,
                     fontStyle: FontStyle.normal,
@@ -134,9 +169,6 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          ),
-        ),
       );
     }
 
