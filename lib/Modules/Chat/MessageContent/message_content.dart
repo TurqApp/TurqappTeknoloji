@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -340,6 +341,7 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[1],
+                                      cacheManager: TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -375,6 +377,7 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[2],
+                                      cacheManager: TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -413,6 +416,7 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[0],
+                                      cacheManager: TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -496,6 +500,7 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: img,
+                                      cacheManager: TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -713,6 +718,7 @@ class MessageContent extends StatelessWidget {
                   if (model.videoThumbnail.isNotEmpty)
                     CachedNetworkImage(
                       imageUrl: model.videoThumbnail,
+                      cacheManager: TurqImageCacheManager.instance,
                       fit: BoxFit.cover,
                       width: mediaSize,
                       height: mediaSize,
@@ -1319,6 +1325,7 @@ class MessageContent extends StatelessWidget {
                         children: [
                           CachedNetworkImage(
                             imageUrl: previewUrl,
+                            cacheManager: TurqImageCacheManager.instance,
                             fit: BoxFit.cover,
                           ),
                           if (hasVideo)
@@ -1638,6 +1645,7 @@ class MessageContent extends StatelessWidget {
         color: Colors.grey[200], // Arka plan sabit
         child: CachedNetworkImage(
           imageUrl: url,
+          cacheManager: TurqImageCacheManager.instance,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,

@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
+import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
 import '../Common/post_content_base.dart';
@@ -25,6 +26,7 @@ import '../Common/post_action_style.dart';
 import 'package:turqappv2/Modules/Agenda/Common/reshare_attribution.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
+import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
@@ -596,34 +598,6 @@ class _ClassicContentState extends State<ClassicContent>
             ),
           ),
         ),
-        // Reshare attribution (single instance - fixed triple rendering bug)
-        if (widget.isReshared)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                children: [
-                  Image.asset(
-                    "assets/icons/reshare.webp",
-                    height: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  ReshareAttribution(
-                    controller: controller,
-                    model: widget.model,
-                    explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: Row(
@@ -727,7 +701,10 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
-  Widget _buildClassicQuotedText(String text) {
+  Widget _buildClassicQuotedText(
+    String text, {
+    required String sourceUserId,
+  }) {
     const bodyStyle = TextStyle(
       color: Color(0xFF8A9199),
       fontSize: 13,
@@ -740,59 +717,95 @@ class _ClassicContentState extends State<ClassicContent>
       fontFamily: 'Montserrat',
       height: 1.35,
     );
+    const nickStyle = TextStyle(
+      color: Color(0xFF4B5561),
+      fontSize: 13,
+      fontFamily: 'MontserratBold',
+      height: 1.35,
+    );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final painter = TextPainter(
-          text: const TextSpan(),
-          textDirection: TextDirection.ltr,
-          maxLines: 2,
-        )
-          ..text = const TextSpan(style: bodyStyle)
-          ..text = TextSpan(text: text, style: bodyStyle)
-          ..layout(maxWidth: constraints.maxWidth);
+    final profileCache = Get.isRegistered<UserProfileCacheService>()
+        ? Get.find<UserProfileCacheService>()
+        : Get.put(UserProfileCacheService());
 
-        final exceeds = painter.didExceedMaxLines;
+    String resolveSourceNickname(Map<String, dynamic>? profile) {
+      final raw = (profile?['nickname'] ??
+              profile?['displayName'] ??
+              profile?['username'] ??
+              '')
+          .toString()
+          .trim();
+      if (raw.isNotEmpty) return raw;
+      final fallback = widget.model.quotedSourceUserID.trim() == widget.model.userID
+          ? (controller.username.value.trim().isNotEmpty
+              ? controller.username.value.trim()
+              : controller.nickname.value.trim())
+          : '';
+      return fallback;
+    }
 
-        Widget content = Text(
-          text,
-          style: bodyStyle,
-          maxLines: _isQuoteExpanded ? null : 2,
-          overflow: _isQuoteExpanded ? TextOverflow.visible : TextOverflow.clip,
-        );
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: sourceUserId.trim().isEmpty
+          ? Future.value(null)
+          : profileCache.getProfile(sourceUserId, preferCache: true),
+      builder: (context, snapshot) {
+        final sourceNickname = resolveSourceNickname(snapshot.data);
+        final quotedSpan = <InlineSpan>[
+          if (sourceNickname.isNotEmpty)
+            TextSpan(text: '$sourceNickname ', style: nickStyle),
+          TextSpan(text: text, style: bodyStyle),
+        ];
 
-        if (!_isQuoteExpanded && exceeds) {
-          content = Stack(
-            children: [
-              Text(
-                text,
-                style: bodyStyle,
-                maxLines: 2,
-                overflow: TextOverflow.clip,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.only(left: 8),
-                  child: const Text('...devamı', style: moreStyle),
-                ),
-              ),
-            ],
-          );
-        }
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final painter = TextPainter(
+              text: TextSpan(children: quotedSpan),
+              textDirection: TextDirection.ltr,
+              maxLines: 2,
+            )..layout(maxWidth: constraints.maxWidth);
 
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: exceeds
-              ? () {
-                  setState(() {
-                    _isQuoteExpanded = !_isQuoteExpanded;
-                  });
-                }
-              : null,
-          child: content,
+            final exceeds = painter.didExceedMaxLines;
+
+            Widget content = RichText(
+              text: TextSpan(children: quotedSpan),
+              maxLines: _isQuoteExpanded ? null : 2,
+              overflow:
+                  _isQuoteExpanded ? TextOverflow.visible : TextOverflow.clip,
+            );
+
+            if (!_isQuoteExpanded && exceeds) {
+              content = Stack(
+                children: [
+                  RichText(
+                    text: TextSpan(children: quotedSpan),
+                    maxLines: 2,
+                    overflow: TextOverflow.clip,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.only(left: 8),
+                      child: const Text('...devamı', style: moreStyle),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: exceeds
+                  ? () {
+                      setState(() {
+                        _isQuoteExpanded = !_isQuoteExpanded;
+                      });
+                    }
+                  : null,
+              child: content,
+            );
+          },
         );
       },
     );
@@ -881,7 +894,11 @@ class _ClassicContentState extends State<ClassicContent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (hasQuotedText) _buildClassicQuotedText(quotedText),
+          if (hasQuotedText)
+            _buildClassicQuotedText(
+              quotedText,
+              sourceUserId: widget.model.quotedSourceUserID.trim(),
+            ),
           if (hasQuotedText && hasCaption) const SizedBox(height: 4),
           if (hasCaption)
             _buildClassicInlineCaption(
@@ -2099,6 +2116,17 @@ class _ClassicContentState extends State<ClassicContent>
     });
   }
 
+  void _openReshareUsersSheet() {
+    videoController?.pause();
+    Get.bottomSheet(
+      PostReshareListing(postID: widget.model.docID),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    ).then((_) {
+      videoController?.play();
+    });
+  }
+
   Widget reshareButton() {
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
@@ -2114,7 +2142,9 @@ class _ClassicContentState extends State<ClassicContent>
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: 'Yeniden paylaş',
+            title: isReshared
+                ? 'Yeniden paylaşımı geri al'
+                : 'Yeniden paylaş',
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -2123,16 +2153,20 @@ class _ClassicContentState extends State<ClassicContent>
             icon: CupertinoIcons.quote_bubble,
           ),
         ],
-        buttonBuilder: (context, showMenu) => AnimatedActionButton(
-          enabled: canReshare,
-          semanticsLabel: 'Yeniden paylaş',
-          onTap: canReshare ? showMenu : null,
-          child: _iconAction(
-            icon: _actionStyle.reshareIcon ?? Icons.repeat,
-            iconSize: _actionStyle.iconSize,
-            color: displayColor,
-            label: NumberFormatter.format(controller.retryCount.value),
-            labelColor: displayColor,
+        buttonBuilder: (context, showMenu) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: canReshare ? _openReshareUsersSheet : null,
+          child: AnimatedActionButton(
+            enabled: canReshare,
+            semanticsLabel: 'Yeniden paylaş',
+            onTap: canReshare ? showMenu : null,
+            child: _iconAction(
+              icon: _actionStyle.reshareIcon ?? Icons.repeat,
+              iconSize: _actionStyle.iconSize,
+              color: displayColor,
+              label: NumberFormatter.format(controller.retryCount.value),
+              labelColor: displayColor,
+            ),
           ),
         ),
       );

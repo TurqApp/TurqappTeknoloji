@@ -327,6 +327,14 @@ class MessageContentController extends GetxController {
 
   Future<void> deleteMessage() async {
     if (model.source == "preview") return;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid.isEmpty) return;
+    final messageRef = FirebaseFirestore.instance
+        .collection("conversations")
+        .doc(mainID)
+        .collection("messages")
+        .doc(model.rawDocID);
+
     await showActionSheet(
       title: "Mesajı Sil",
       message: "Bu mesajı silmek istediğinizden emin misiniz?",
@@ -339,32 +347,29 @@ class MessageContentController extends GetxController {
           'text': "Sadece Benden Sil",
           'isDestructive': true,
           'color': Colors.red,
-          'onPressed': () {
-            FirebaseFirestore.instance
-                .collection("conversations")
-                .doc(mainID)
-                .collection("messages")
-                .doc(model.rawDocID)
-                .update({
-              "isDeleted": true,
-            });
+          'onPressed': () async {
+            await messageRef.set({
+              "deletedFor": FieldValue.arrayUnion([currentUid]),
+            }, SetOptions(merge: true));
           },
         },
         {
           'text': "Mesajı Herkesten Sil",
           'isDestructive': false,
           'color': Colors.red,
-          'onPressed': () {
-            FirebaseFirestore.instance
-                .collection("conversations")
-                .doc(mainID)
-                .collection("messages")
-                .doc(model.rawDocID)
-                .update({
+          'onPressed': () async {
+            await messageRef.update({
               "unsent": true,
               "text": "",
               "mediaUrls": <String>[],
-              "isDeleted": false,
+              "videoUrl": "",
+              "videoThumbnail": "",
+              "audioUrl": "",
+              "audioDurationMs": 0,
+              "location": FieldValue.delete(),
+              "contact": FieldValue.delete(),
+              "postRef": FieldValue.delete(),
+              "replyTo": FieldValue.delete(),
             });
           },
         },

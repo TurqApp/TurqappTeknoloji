@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/StoryCommentUser/story_comment_user.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 
@@ -98,23 +100,24 @@ class StoryComments extends StatelessWidget {
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  gifUrl,
+                                child: CachedNetworkImage(
+                                  imageUrl: gifUrl,
+                                  cacheManager: TurqImageCacheManager.instance,
                                   width: 72,
                                   height: 72,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (context, child, progress) {
-                                    if (progress == null) return child;
-                                    return Container(
-                                      width: 72,
-                                      height: 72,
-                                      color: Colors.grey.withAlpha(18),
-                                      child: const Center(
-                                        child: CupertinoActivityIndicator(),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (_, __, ___) => Container(
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
+                                  placeholderFadeInDuration: Duration.zero,
+                                  placeholder: (context, _) => Container(
+                                    width: 72,
+                                    height: 72,
+                                    color: Colors.grey.withAlpha(18),
+                                    child: const Center(
+                                      child: CupertinoActivityIndicator(),
+                                    ),
+                                  ),
+                                  errorWidget: (_, __, ___) => Container(
                                     width: 72,
                                     height: 72,
                                     color: Colors.grey.withAlpha(18),

@@ -22,6 +22,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var timeObserver: Any?
     private var isLooping: Bool = false
     private var isAutoPlay: Bool = true
+    private var didRequestInitialPlay: Bool = false
+    private var didStabilizeVisualLayer: Bool = false
 
     // MARK: - Observers
     private var statusObserver: NSKeyValueObservation?
@@ -65,6 +67,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     deinit {
         cleanup()
+        didRequestInitialPlay = false
+        didStabilizeVisualLayer = false
     }
 
     func view() -> UIView {
@@ -99,7 +103,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Create player
         player = AVPlayer(playerItem: playerItem)
-        player?.automaticallyWaitsToMinimizeStalling = false
+        player?.automaticallyWaitsToMinimizeStalling = true
 
         // Create player layer
         playerLayer = AVPlayerLayer(player: player)
@@ -118,15 +122,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Setup observers
         setupPlayerObservers()
 
-        // Auto play if enabled
-        if isAutoPlay {
-            player?.play()
-        }
     }
 
     // MARK: - Player Controls
     func play() {
         player?.play()
+        scheduleVisualLayerStabilization(forceReattach: true)
         sendEvent(["event": "play"])
     }
 
@@ -235,7 +236,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 switch item.status {
                 case .readyToPlay:
-                    self?.refreshPlayerLayer()
+                    self?.refreshPlayerLayer(forceReattach: true)
+                    self?.requestAutoplayIfNeeded(force: true)
                     self?.sendEvent([
                         "event": "ready",
                         "duration": item.duration.seconds.isFinite ? item.duration.seconds : 0.0
@@ -260,6 +262,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         playbackLikelyToKeepUpObserver = playerItem.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackLikelyToKeepUp {
+                self?.requestAutoplayIfNeeded(force: false)
                 self?.sendEvent(["event": "buffering", "isBuffering": false])
             }
         }
@@ -269,8 +272,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
                 DispatchQueue.main.async {
                     switch player.timeControlStatus {
-                    case .playing:
-                        self?.refreshPlayerLayer()
+                case .playing:
+                        self?.refreshPlayerLayer(forceReattach: false)
+                        self?.scheduleVisualLayerStabilization(forceReattach: false)
                         self?.sendEvent(["event": "play"])
                     case .paused:
                         self?.sendEvent(["event": "pause"])
@@ -290,6 +294,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
             let currentTime = time.seconds
             let totalDuration = duration.seconds
+
+            if currentTime >= 0.0 && currentTime < 1.2 && !self.didStabilizeVisualLayer {
+                self.scheduleVisualLayerStabilization(forceReattach: true)
+            }
 
             if currentTime.isFinite && totalDuration.isFinite {
                 self.sendEvent([
@@ -323,7 +331,24 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             object: playerItem,
             queue: .main
         ) { [weak self] _ in
+            self?.didRequestInitialPlay = false
+            self?.requestAutoplayIfNeeded(force: true)
             self?.sendEvent(["event": "buffering", "isBuffering": true])
+        }
+    }
+
+    private func requestAutoplayIfNeeded(force: Bool) {
+        guard isAutoPlay, let player = player else { return }
+        if didRequestInitialPlay && !force { return }
+        didRequestInitialPlay = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + (force ? 0.0 : 0.05)) { [weak self] in
+            guard let self = self, let player = self.player else { return }
+            self.refreshPlayerLayer()
+            if #available(iOS 10.0, *) {
+                player.playImmediately(atRate: 1.0)
+            } else {
+                player.play()
+            }
         }
     }
 
@@ -366,20 +391,39 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer?.frame = _view.bounds
     }
 
-    private func refreshPlayerLayer() {
+    private func refreshPlayerLayer(forceReattach: Bool = false) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            self.playerLayer?.player = self.player
-            self.playerLayer?.isHidden = false
-            self.playerLayer?.frame = self._view.bounds
-            self._view.linkedPlayerLayer = self.playerLayer
+            if let playerLayer = self.playerLayer {
+                playerLayer.player = self.player
+                playerLayer.isHidden = false
+                playerLayer.frame = self._view.bounds
+                if forceReattach {
+                    playerLayer.removeFromSuperlayer()
+                    self._view.layer.addSublayer(playerLayer)
+                } else if playerLayer.superlayer == nil {
+                    self._view.layer.addSublayer(playerLayer)
+                }
+                self._view.linkedPlayerLayer = playerLayer
+            }
             self._view.setNeedsLayout()
             self._view.layoutIfNeeded()
             self.playerLayer?.setNeedsDisplay()
             self._view.layer.setNeedsDisplay()
             CATransaction.commit()
+        }
+    }
+
+    private func scheduleVisualLayerStabilization(forceReattach: Bool) {
+        guard !didStabilizeVisualLayer else { return }
+        didStabilizeVisualLayer = true
+        let delays: [Double] = [0.0, 0.08, 0.22]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.refreshPlayerLayer(forceReattach: forceReattach)
+            }
         }
     }
 

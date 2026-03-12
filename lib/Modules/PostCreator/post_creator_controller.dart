@@ -1229,9 +1229,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           _sharedOriginalPostID.isNotEmpty &&
           index == 0) {
         try {
-          await FirebaseFirestore.instance
+          final originalPostRef = FirebaseFirestore.instance
               .collection("Posts")
-              .doc(_sharedOriginalPostID)
+              .doc(_sharedOriginalPostID);
+          await originalPostRef
               .collection("postSharers")
               .doc(FirebaseAuth.instance.currentUser!.uid)
               .set({
@@ -1239,6 +1240,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             "timestamp": DateTime.now().millisecondsSinceEpoch,
             "sharedPostID": docID,
           });
+          if (_isQuotedPost) {
+            await originalPostRef.update({
+              "stats.retryCount": FieldValue.increment(1),
+            });
+          }
         } catch (_) {}
       }
 
@@ -2115,9 +2121,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 _sharedOriginalPostID.isNotEmpty &&
                 index == 0) {
               try {
-                await FirebaseFirestore.instance
+                final originalPostRef = FirebaseFirestore.instance
                     .collection("Posts")
-                    .doc(_sharedOriginalPostID)
+                    .doc(_sharedOriginalPostID);
+                await originalPostRef
                     .collection("postSharers")
                     .doc(FirebaseAuth.instance.currentUser!.uid)
                     .set({
@@ -2125,6 +2132,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   "timestamp": DateTime.now().millisecondsSinceEpoch,
                   "sharedPostID": docID,
                 });
+                if (_isQuotedPost) {
+                  await originalPostRef.update({
+                    "stats.retryCount": FieldValue.increment(1),
+                  });
+                }
               } catch (_) {}
             }
 

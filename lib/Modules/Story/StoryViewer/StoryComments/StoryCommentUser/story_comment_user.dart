@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 import '../../../../../Core/rozet_content.dart';
@@ -112,25 +113,26 @@ class StoryCommentUser extends StatelessWidget {
                           SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              model.gif.trim(),
+                            child: CachedNetworkImage(
+                              imageUrl: model.gif.trim(),
+                              cacheManager: TurqImageCacheManager.instance,
                               width: 120,
                               height: 120,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  width: 120,
-                                  height: 120,
-                                  color: Colors.grey.withAlpha(18),
-                                  child: Center(
-                                    child: CupertinoActivityIndicator(
-                                      color: Colors.grey,
-                                    ),
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholderFadeInDuration: Duration.zero,
+                              placeholder: (context, _) => Container(
+                                width: 120,
+                                height: 120,
+                                color: Colors.grey.withAlpha(18),
+                                child: Center(
+                                  child: CupertinoActivityIndicator(
+                                    color: Colors.grey,
                                   ),
-                                );
-                              },
-                              errorBuilder: (_, __, ___) => Container(
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
                                 width: 120,
                                 height: 120,
                                 color: Colors.grey.withAlpha(18),

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -23,6 +24,7 @@ class StoryImageWidget extends StatelessWidget {
       child: Transform.rotate(
         angle: element.rotation,
         child: CachedNetworkImage(
+          cacheManager: TurqImageCacheManager.instance,
           fadeInDuration: const Duration(milliseconds: 200),
           fadeOutDuration: const Duration(milliseconds: 100),
           imageUrl: element.content,
@@ -61,12 +63,14 @@ class StoryGifWidget extends StatelessWidget {
         angle: element.rotation,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            element.content,
+          child: CachedNetworkImage(
+            imageUrl: element.content,
+            cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.contain, // Cover yerine contain - aspect ratio korunur
-            gaplessPlayback: true,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            placeholderFadeInDuration: Duration.zero,
+            placeholder: (context, _) {
               return Container(
                 color: Colors.grey.withValues(alpha: 0.3),
                 child: const Center(
@@ -83,7 +87,7 @@ class StoryGifWidget extends StatelessWidget {
                 ),
               );
             },
-            errorBuilder: (context, error, stackTrace) => Container(
+            errorWidget: (context, url, error) => Container(
               color: Colors.grey.withValues(alpha: 0.3),
               child: const Center(
                 child: Column(

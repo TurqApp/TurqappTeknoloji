@@ -23,6 +23,7 @@ import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
+import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing.dart';
 import 'package:turqappv2/Modules/Agenda/SinglePost/single_post.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
@@ -696,35 +697,6 @@ class _AgendaContentState extends State<AgendaContent>
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing, left: 45),
               child: buildPollCard(),
-            ),
-          ),
-
-        // Yeniden paylaşıldı etiketi (alt-sol)
-        if (widget.isReshared && widget.model.img.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 45, right: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.repeat,
-                    size: 18,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  ReshareAttribution(
-                    controller: controller,
-                    model: widget.model,
-                    explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      fontFamily: "MontserratMedium",
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
@@ -2461,7 +2433,9 @@ class _AgendaContentState extends State<AgendaContent>
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: 'Yeniden paylaş',
+            title: isReshared
+                ? 'Yeniden paylaşımı geri al'
+                : 'Yeniden paylaş',
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -2470,16 +2444,20 @@ class _AgendaContentState extends State<AgendaContent>
             icon: CupertinoIcons.quote_bubble,
           ),
         ],
-        buttonBuilder: (context, showMenu) => AnimatedActionButton(
-          enabled: canReshare,
-          semanticsLabel: 'Yeniden paylaş',
-          onTap: canReshare ? showMenu : null,
-          showTapArea: _showActionTapAreas,
-          child: _iconAction(
-            icon: Icons.repeat,
-            color: displayColor,
-            label: NumberFormatter.format(controller.retryCount.value),
-            labelColor: displayColor,
+        buttonBuilder: (context, showMenu) => GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onLongPress: canReshare ? _openReshareUsersSheet : null,
+          child: AnimatedActionButton(
+            enabled: canReshare,
+            semanticsLabel: 'Yeniden paylaş',
+            onTap: canReshare ? showMenu : null,
+            showTapArea: _showActionTapAreas,
+            child: _iconAction(
+              icon: Icons.repeat,
+              color: displayColor,
+              label: NumberFormatter.format(controller.retryCount.value),
+              labelColor: displayColor,
+            ),
           ),
         ),
       );
@@ -2489,6 +2467,17 @@ class _AgendaContentState extends State<AgendaContent>
   void _runSimpleReshare() {
     controller.reshare();
     videoController?.play();
+  }
+
+  void _openReshareUsersSheet() {
+    videoController?.pause();
+    Get.bottomSheet(
+      PostReshareListing(postID: widget.model.docID),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    ).then((_) {
+      videoController?.play();
+    });
   }
 
   void _openQuoteComposer() {

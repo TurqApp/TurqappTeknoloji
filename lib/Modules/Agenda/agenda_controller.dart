@@ -1737,9 +1737,18 @@ class AgendaController extends GetxController {
     try {
       feedReshareEntries.removeWhere((entry) {
         final entryPost = entry['post'] as PostsModel;
-        final entryUserID = entry['reshareUserID'] as String;
-        return entryPost.docID == postId && entryUserID == reshareUserID;
+        final entryUserID = (entry['reshareUserID'] ?? '').toString();
+        final entryOriginalPostID =
+            (entry['originalPostID'] ?? '').toString().trim();
+        final entryPostID = entryPost.docID.trim();
+        final normalizedTarget = postId.trim();
+        final matchesPost = entryPostID == normalizedTarget ||
+            entryOriginalPostID == normalizedTarget ||
+            entryPost.originalPostID.trim() == normalizedTarget;
+        final matchesUser = entryUserID == reshareUserID;
+        return matchesPost && matchesUser;
       });
+      feedReshareEntries.refresh();
     } catch (e) {
       print('removeReshareEntry error: $e');
     }

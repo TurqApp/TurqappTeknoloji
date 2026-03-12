@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 
 class GifLibraryService {
   GifLibraryService._();
 
   static final GifLibraryService instance = GifLibraryService._();
+  Future<void>? _warmTopCacheFuture;
+  static const String _manifestKey = 'giphyGif.globalManifest.v1';
 
   CollectionReference<Map<String, dynamic>> get _globalCollection =>
       FirebaseFirestore.instance.collection('giphyGif');
@@ -43,26 +50,62 @@ class GifLibraryService {
       ref.set(payload, SetOptions(merge: true)),
       globalRef.set(payload, SetOptions(merge: true)),
     ]);
+
+    await _updateManifest(cleanUrl, source: source, category: category);
   }
 
   Future<List<Map<String, dynamic>>> fetchGlobalLibrary({
-    int limit = 60,
+    int limit = 20,
     String? category,
   }) async {
+    final cached = await _loadManifest();
+    if (cached.isNotEmpty) {
+      return _sortAndLimit(cached, limit: limit, category: category);
+    }
+
     Query<Map<String, dynamic>> query =
         _globalCollection.orderBy('lastUsedAt', descending: true);
     if (category != null && category.isNotEmpty) {
       query = query.where('category', isEqualTo: category);
     }
-    final snap = await query.limit(limit).get();
+    final snap = await query.limit(limit * 5).get();
 
-    return snap.docs
+    final items = snap.docs
         .map((doc) => <String, dynamic>{
               'id': doc.id,
               ...doc.data(),
             })
         .where((item) => (item['url'] ?? '').toString().trim().isNotEmpty)
-        .toList(growable: false);
+        .toList(growable: true);
+
+    await _persistManifest(items);
+    return _sortAndLimit(items, limit: limit, category: category);
+  }
+
+  Future<void> warmTopGifCache({int limit = 100}) {
+    final current = _warmTopCacheFuture;
+    if (current != null) return current;
+
+    final future = _warmTopGifCacheInternal(limit: limit);
+    _warmTopCacheFuture = future.whenComplete(() {
+      _warmTopCacheFuture = null;
+    });
+    return _warmTopCacheFuture!;
+  }
+
+  Future<void> _warmTopGifCacheInternal({required int limit}) async {
+    final items = await fetchGlobalLibrary(limit: limit);
+    if (items.isEmpty) return;
+
+    await Future.wait(
+      items.map((item) async {
+        final url = (item['url'] ?? '').toString().trim();
+        if (url.isEmpty) return;
+        try {
+          await TurqImageCacheManager.instance.getSingleFile(url);
+        } catch (_) {}
+      }),
+    );
   }
 
   String _stableId(String input) {
@@ -71,5 +114,86 @@ class GifLibraryService {
       hash = ((hash * 31) + codeUnit) & 0x7fffffff;
     }
     return hash.toRadixString(16);
+  }
+
+  Future<List<Map<String, dynamic>>> _loadManifest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_manifestKey);
+      if (raw == null || raw.isEmpty) return const <Map<String, dynamic>>[];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const <Map<String, dynamic>>[];
+      return decoded
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(growable: true);
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
+  }
+
+  Future<void> _persistManifest(List<Map<String, dynamic>> items) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_manifestKey, jsonEncode(items));
+    } catch (_) {}
+  }
+
+  Future<void> _updateManifest(
+    String url, {
+    required String source,
+    required String category,
+  }) async {
+    final items = await _loadManifest();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final idx = items.indexWhere((e) => (e['url'] ?? '').toString() == url);
+    if (idx >= 0) {
+      final current = Map<String, dynamic>.from(items[idx]);
+      current['useCount'] = (((current['useCount'] ?? 0) as num).toInt() + 1);
+      current['lastUsedAt'] = now;
+      current['source'] = source;
+      current['category'] = category;
+      items[idx] = current;
+    } else {
+      items.add({
+        'id': _stableId(url),
+        'url': url,
+        'source': source,
+        'category': category,
+        'createdAt': now,
+        'lastUsedAt': now,
+        'useCount': 1,
+      });
+    }
+    await _persistManifest(items);
+  }
+
+  List<Map<String, dynamic>> _sortAndLimit(
+    List<Map<String, dynamic>> items, {
+    required int limit,
+    String? category,
+  }) {
+    final filtered = items
+        .where((item) => (item['url'] ?? '').toString().trim().isNotEmpty)
+        .where((item) =>
+            category == null ||
+            category.isEmpty ||
+            (item['category'] ?? '').toString() == category)
+        .toList(growable: true);
+
+    filtered.sort((a, b) {
+      final useA = ((a['useCount'] ?? 0) as num).toInt();
+      final useB = ((b['useCount'] ?? 0) as num).toInt();
+      final byUse = useB.compareTo(useA);
+      if (byUse != 0) return byUse;
+      final lastA = ((a['lastUsedAt'] ?? 0) as num).toInt();
+      final lastB = ((b['lastUsedAt'] ?? 0) as num).toInt();
+      return lastB.compareTo(lastA);
+    });
+
+    if (filtered.length > limit) {
+      return filtered.take(limit).toList(growable: false);
+    }
+    return filtered;
   }
 }

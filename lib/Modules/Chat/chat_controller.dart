@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -55,6 +56,7 @@ class ChatController extends GetxController {
   final picker = ImagePicker();
   RxList<File> images = <File>[].obs;
   final Rx<File?> pendingVideo = Rx<File?>(null);
+  final RxString selectedGifUrl = ''.obs;
   final replyingTo = Rxn<MessageModel>();
   final editingMessage = Rxn<MessageModel>();
   Timer? _messageSyncTimer;
@@ -629,6 +631,18 @@ class ChatController extends GetxController {
   void clearComposerAction() {
     replyingTo.value = null;
     editingMessage.value = null;
+    selectedGifUrl.value = '';
+  }
+
+  Future<void> pickGif(BuildContext context) async {
+    final url = await GiphyPickerService.pickGifUrl(
+      context,
+      randomId: 'turqapp_chat_$chatID',
+    );
+    if (url != null && url.trim().isNotEmpty) {
+      selectedGifUrl.value = url.trim();
+      focus.unfocus();
+    }
   }
 
   void startSelectionMode([String? rawId]) {

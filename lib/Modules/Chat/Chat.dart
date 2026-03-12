@@ -549,63 +549,6 @@ class ChatView extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    if (userID != FirebaseAuth.instance.currentUser!.uid) {
-                      Get.to(() => SocialProfile(userID: userID));
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xffF1F3F5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    minimumSize: const Size.fromHeight(36),
-                  ),
-                  child: const Text(
-                    "Profili gör",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    if (userID != FirebaseAuth.instance.currentUser!.uid) {
-                      Get.to(() => SocialProfile(userID: userID));
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xffF1F3F5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    minimumSize: const Size.fromHeight(36),
-                  ),
-                  child: const Text(
-                    "Topluluğu görüntüle",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
         bottomSpacing ?? const SizedBox.shrink(),
       ],
     );
@@ -939,7 +882,10 @@ class ChatView extends StatelessWidget {
               }
               final editing = controller.editingMessage.value;
               final replying = controller.replyingTo.value;
-              if (editing == null && replying == null) {
+              final selectedGifUrl = controller.selectedGifUrl.value.trim();
+              if (editing == null &&
+                  replying == null &&
+                  selectedGifUrl.isEmpty) {
                 return const SizedBox.shrink();
               }
               late final bool previewIsVideo;
@@ -948,17 +894,30 @@ class ChatView extends StatelessWidget {
               late final bool previewIsLocation;
               late final bool previewIsPost;
               late final bool previewIsContact;
+              late final bool previewIsGif;
               late final String previewThumb;
               late final String previewLabel;
               late final String previewText;
 
-              if (editing != null) {
+              if (selectedGifUrl.isNotEmpty && editing == null && replying == null) {
                 previewIsVideo = false;
                 previewIsImage = false;
                 previewIsAudio = false;
                 previewIsLocation = false;
                 previewIsPost = false;
                 previewIsContact = false;
+                previewIsGif = true;
+                previewThumb = selectedGifUrl;
+                previewLabel = "GIF";
+                previewText = "Gönderilmeye hazır";
+              } else if (editing != null) {
+                previewIsVideo = false;
+                previewIsImage = false;
+                previewIsAudio = false;
+                previewIsLocation = false;
+                previewIsPost = false;
+                previewIsContact = false;
+                previewIsGif = false;
                 previewThumb = "";
                 previewLabel = "Mesaj düzenleniyor";
                 previewText = editing.metin;
@@ -971,6 +930,7 @@ class ChatView extends StatelessWidget {
                 previewIsLocation = replyModel.lat != 0 || replyModel.long != 0;
                 previewIsPost = replyModel.postID.trim().isNotEmpty;
                 previewIsContact = replyModel.kisiAdSoyad.trim().isNotEmpty;
+                previewIsGif = false;
                 previewThumb = previewIsImage
                     ? replyModel.imgs.first
                     : (previewIsVideo ? replyModel.videoThumbnail : "");
@@ -1022,6 +982,15 @@ class ChatView extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                           ),
+                        ),
+                      )
+                    else if (previewIsGif)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.gif_box_outlined,
+                          color: Colors.black54,
+                          size: 16,
                         ),
                       )
                     else if (previewIsVideo)
@@ -1316,6 +1285,18 @@ class _ChatTextFieldState extends State<_ChatTextField> {
             ),
           ),
           const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => widget.controller.pickGif(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(bottom: 2),
+              alignment: Alignment.center,
+              child: const Icon(Icons.gif_box_outlined,
+                  color: Colors.black87, size: 22),
+            ),
+          ),
+          const SizedBox(width: 2),
           // Kamera butonu
           GestureDetector(
             onTap: widget.controller.openCustomCameraCapture,
@@ -1358,6 +1339,7 @@ class _ChatTrailingButton extends StatelessWidget {
       final hasContent = controller.textMesage.value != "" ||
           controller.images.isNotEmpty ||
           controller.pendingVideo.value != null ||
+          controller.selectedGifUrl.value.trim().isNotEmpty ||
           controller.editingMessage.value != null;
 
       if (hasContent) {
@@ -1379,7 +1361,11 @@ class _ChatTrailingButton extends StatelessWidget {
                 controller.selection.value == 1) {
               controller.uploadImageToStorage();
             } else {
-              controller.sendMessage();
+              controller.sendMessage(
+                gif: controller.selectedGifUrl.value.trim().isEmpty
+                    ? null
+                    : controller.selectedGifUrl.value.trim(),
+              );
             }
           },
           child: Container(

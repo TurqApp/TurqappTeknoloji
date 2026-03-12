@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -131,23 +134,24 @@ class PostCommentContent extends StatelessWidget {
                     6.ph,
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        model.imgs.first,
+                      child: CachedNetworkImage(
+                        imageUrl: model.imgs.first,
+                        cacheManager: TurqImageCacheManager.instance,
                         width: 140,
                         height: 140,
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            width: 140,
-                            height: 140,
-                            color: Colors.grey.shade100,
-                            child: const Center(
-                              child: CupertinoActivityIndicator(),
-                            ),
-                          );
-                        },
-                        errorBuilder: (_, __, ___) => Container(
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholderFadeInDuration: Duration.zero,
+                        placeholder: (context, _) => Container(
+                          width: 140,
+                          height: 140,
+                          color: Colors.grey.shade100,
+                          child: const Center(
+                            child: CupertinoActivityIndicator(),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Container(
                           width: 140,
                           height: 140,
                           color: Colors.grey.shade100,
@@ -186,7 +190,7 @@ class PostCommentContent extends StatelessWidget {
                           10.pw,
                           GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            onTap: () => _showActionsMenu(context, controller),
+                            onTap: () => _confirmDelete(controller),
                             child: Text(
                               'Sil',
                               style: TextStyle(
@@ -243,58 +247,15 @@ class PostCommentContent extends StatelessWidget {
     });
   }
 
-  Future<void> _showActionsMenu(
-      BuildContext context, PostCommentContentController controller) async {
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (popupContext) {
-        return CupertinoActionSheet(
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(popupContext);
-                AppSnackbar('Bilgi', 'Hikayeye ekleme yakında aktif.');
-              },
-              child: const Text(
-                'Hikayene ekleme yap',
-                style: TextStyle(
-                  fontFamily: 'MontserratMedium',
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () async {
-                final ok = await controller.deleteComment();
-                if (popupContext.mounted) {
-                  Navigator.pop(popupContext);
-                }
-                if (!ok) {
-                  AppSnackbar('Hata', 'Yorum silinemedi.');
-                }
-              },
-              child: const Text(
-                'Sil',
-                style: TextStyle(
-                  fontFamily: 'MontserratBold',
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(popupContext),
-            child: const Text(
-              'Vazgeç',
-              style: TextStyle(
-                fontFamily: 'MontserratMedium',
-                fontSize: 16,
-              ),
-            ),
-          ),
-        );
+  void _confirmDelete(PostCommentContentController controller) {
+    noYesAlert(
+      title: 'Sil',
+      message: 'Bu yorumu silmek istediğinizden emin misiniz?',
+      onYesPressed: () async {
+        final ok = await controller.deleteComment();
+        if (!ok) {
+          AppSnackbar('Hata', 'Yorum silinemedi.');
+        }
       },
     );
   }

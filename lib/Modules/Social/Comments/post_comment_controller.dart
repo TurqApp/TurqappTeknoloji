@@ -169,6 +169,11 @@ class PostCommentController extends GetxController {
     if (success && onCommentCountChange != null) {
       onCommentCountChange!(false);
     }
+    if (success) {
+      list.removeWhere((comment) => comment.docID == commentId);
+      pendingCommentIds.remove(commentId);
+      _pendingLocalComments.remove(commentId);
+    }
     return success;
   }
 

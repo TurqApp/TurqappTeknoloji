@@ -162,7 +162,11 @@ class PostInteractionService extends GetxController {
   }) async {
     final userId = currentUserID;
     if (userId == null) return null;
-    if (text.trim().isEmpty) return null;
+    final safeImgs = imgs ?? const <String>[];
+    final safeVideos = videos ?? const <String>[];
+    if (text.trim().isEmpty && safeImgs.isEmpty && safeVideos.isEmpty) {
+      return null;
+    }
 
     if (_isOffline) {
       final suffix = userId.length > 6 ? userId.substring(0, 6) : userId;
@@ -174,8 +178,8 @@ class PostInteractionService extends GetxController {
             'postId': postId,
             'userId': userId,
             'text': text,
-            'imgs': imgs ?? const <String>[],
-            'videos': videos ?? const <String>[],
+            'imgs': safeImgs,
+            'videos': safeVideos,
             'clientCommentId': tempId,
           },
         ),
@@ -196,8 +200,8 @@ class PostInteractionService extends GetxController {
       final commentModel = PostCommentModel(
         likes: [],
         text: text,
-        imgs: imgs ?? const [],
-        videos: videos ?? const [],
+        imgs: safeImgs,
+        videos: safeVideos,
         timeStamp: timestamp,
         userID: userId,
         docID: commentRef.id,
@@ -232,7 +236,11 @@ class PostInteractionService extends GetxController {
   }) async {
     final userId = currentUserID;
     if (userId == null) return null;
-    if (text.trim().isEmpty) return null;
+    final safeImgs = imgs ?? const <String>[];
+    final safeVideos = videos ?? const <String>[];
+    if (text.trim().isEmpty && safeImgs.isEmpty && safeVideos.isEmpty) {
+      return null;
+    }
 
     final commentRef = _postRef(postId).collection('comments').doc(commentId);
     final subCommentRef = commentRef.collection('sub_comments').doc();
@@ -248,8 +256,8 @@ class PostInteractionService extends GetxController {
       final subModel = SubCommentModel(
         likes: [],
         text: text,
-        imgs: imgs ?? const [],
-        videos: videos ?? const [],
+        imgs: safeImgs,
+        videos: safeVideos,
         timeStamp: timestamp,
         userID: userId,
         docID: subCommentRef.id,
@@ -280,54 +288,98 @@ class PostInteractionService extends GetxController {
     final timestamp = _nowMs();
     bool success = false;
 
-    await _firestore.runTransaction((tx) async {
-      if (isSubComment && parentCommentId != null) {
-        final parentRef =
-            _postRef(postId).collection('comments').doc(parentCommentId);
-        final subCommentRef =
-            parentRef.collection('sub_comments').doc(commentId);
+    try {
+      await _firestore.runTransaction((tx) async {
+        if (isSubComment && parentCommentId != null) {
+          final parentRef =
+              _postRef(postId).collection('comments').doc(parentCommentId);
+          final subCommentRef =
+              parentRef.collection('sub_comments').doc(commentId);
 
-        final subSnap = await tx.get(subCommentRef);
-        if (!subSnap.exists) return;
+          final subSnap = await tx.get(subCommentRef);
+          if (!subSnap.exists) return;
 
-        tx.update(subCommentRef, {
+          tx.update(subCommentRef, {
+            'deleted': true,
+            'deletedTimeStamp': timestamp,
+          });
+
+          final parentSnap = await tx.get(parentRef);
+          if (parentSnap.exists) {
+            final parentData = parentSnap.data() as Map<String, dynamic>;
+            final replies = (parentData['repliesCount'] ?? 0) as num;
+            final newReplies = math.max(replies - 1, 0);
+
+            tx.update(parentRef, {
+              'repliesCount': newReplies,
+              'hasReplies': newReplies > 0,
+            });
+          }
+
+          success = true;
+          return;
+        }
+
+        final postRef = _postRef(postId);
+        final commentRef = postRef.collection('comments').doc(commentId);
+        final commentSnap = await tx.get(commentRef);
+        if (!commentSnap.exists) return;
+
+        tx.update(commentRef, {
           'deleted': true,
           'deletedTimeStamp': timestamp,
         });
 
-        final parentSnap = await tx.get(parentRef);
-        if (parentSnap.exists) {
-          final parentData = parentSnap.data() as Map<String, dynamic>;
-          final replies = (parentData['repliesCount'] ?? 0) as num;
-          final newReplies = math.max(replies - 1, 0);
-
-          tx.update(parentRef, {
-            'repliesCount': newReplies,
-            'hasReplies': newReplies > 0,
-          });
-        }
+        final postSnap = await tx.get(postRef);
+        final stats = _statsFromSnapshot(postSnap);
+        final next = math.max(stats.commentCount - 1, 0);
+        tx.update(postRef, {'stats.commentCount': next});
 
         success = true;
-        return;
-      }
-
-      final postRef = _postRef(postId);
-      final commentRef = postRef.collection('comments').doc(commentId);
-      final commentSnap = await tx.get(commentRef);
-      if (!commentSnap.exists) return;
-
-      tx.update(commentRef, {
-        'deleted': true,
-        'deletedTimeStamp': timestamp,
       });
+    } catch (_) {
+      success = false;
+    }
 
-      final postSnap = await tx.get(postRef);
-      final stats = _statsFromSnapshot(postSnap);
-      final next = math.max(stats.commentCount - 1, 0);
-      tx.update(postRef, {'stats.commentCount': next});
-
-      success = true;
-    });
+    if (!success) {
+      try {
+        if (isSubComment && parentCommentId != null) {
+          final parentRef =
+              _postRef(postId).collection('comments').doc(parentCommentId);
+          final subCommentRef =
+              parentRef.collection('sub_comments').doc(commentId);
+          await subCommentRef.delete();
+          try {
+            await _firestore.runTransaction((tx) async {
+              final parentSnap = await tx.get(parentRef);
+              if (!parentSnap.exists) return;
+              final parentData = parentSnap.data() as Map<String, dynamic>;
+              final replies = (parentData['repliesCount'] ?? 0) as num;
+              final newReplies = math.max(replies - 1, 0);
+              tx.update(parentRef, {
+                'repliesCount': newReplies,
+                'hasReplies': newReplies > 0,
+              });
+            });
+          } catch (_) {}
+          success = true;
+        } else {
+          final postRef = _postRef(postId);
+          final commentRef = postRef.collection('comments').doc(commentId);
+          await commentRef.delete();
+          try {
+            await postRef.set({
+              'stats': {
+                'commentCount': FieldValue.increment(-1),
+              }
+            }, SetOptions(merge: true));
+          } catch (_) {}
+          success = true;
+        }
+      } catch (_) {
+        success = false;
+      }
+    }
 
     if (success) {
       _updateInteractionCache(postId, comment: false);

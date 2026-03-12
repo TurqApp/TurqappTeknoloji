@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
@@ -299,23 +300,24 @@ class _PostCommentsState extends State<PostComments> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              gifUrl,
+                            child: CachedNetworkImage(
+                              imageUrl: gifUrl,
+                              cacheManager: TurqImageCacheManager.instance,
                               width: 76,
                               height: 76,
                               fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  width: 76,
-                                  height: 76,
-                                  color: const Color(0xFFF5F6F8),
-                                  child: const Center(
-                                    child: CupertinoActivityIndicator(),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (_, __, ___) => Container(
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholderFadeInDuration: Duration.zero,
+                              placeholder: (context, _) => Container(
+                                width: 76,
+                                height: 76,
+                                color: const Color(0xFFF5F6F8),
+                                child: const Center(
+                                  child: CupertinoActivityIndicator(),
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
                                 width: 76,
                                 height: 76,
                                 color: const Color(0xFFF5F6F8),
