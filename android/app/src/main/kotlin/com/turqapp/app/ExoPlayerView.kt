@@ -114,7 +114,9 @@ class ExoPlayerView(
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                         .build()
-                    setAudioAttributes(audioAttributes, true)
+                    // Audio focus'u native katmanda zorla alma.
+                    // Feed/SinglePost geçişinde focus churn sesi sıfırlayabiliyor.
+                    setAudioAttributes(audioAttributes, false)
                 }
         } else {
             existing

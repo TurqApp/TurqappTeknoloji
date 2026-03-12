@@ -105,12 +105,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer = AVPlayerLayer(player: player)
         playerLayer?.videoGravity = .resizeAspectFill
         playerLayer?.backgroundColor = UIColor.clear.cgColor
+        playerLayer?.needsDisplayOnBoundsChange = true
         playerLayer?.frame = _view.bounds
 
         if let playerLayer = playerLayer {
             _view.layer.addSublayer(playerLayer)
             _view.linkedPlayerLayer = playerLayer
         }
+
+        refreshPlayerLayer()
 
         // Setup observers
         setupPlayerObservers()
@@ -232,6 +235,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 switch item.status {
                 case .readyToPlay:
+                    self?.refreshPlayerLayer()
                     self?.sendEvent([
                         "event": "ready",
                         "duration": item.duration.seconds.isFinite ? item.duration.seconds : 0.0
@@ -266,6 +270,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 DispatchQueue.main.async {
                     switch player.timeControlStatus {
                     case .playing:
+                        self?.refreshPlayerLayer()
                         self?.sendEvent(["event": "play"])
                     case .paused:
                         self?.sendEvent(["event": "pause"])
@@ -361,6 +366,23 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer?.frame = _view.bounds
     }
 
+    private func refreshPlayerLayer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.playerLayer?.player = self.player
+            self.playerLayer?.isHidden = false
+            self.playerLayer?.frame = self._view.bounds
+            self._view.linkedPlayerLayer = self.playerLayer
+            self._view.setNeedsLayout()
+            self._view.layoutIfNeeded()
+            self.playerLayer?.setNeedsDisplay()
+            self._view.layer.setNeedsDisplay()
+            CATransaction.commit()
+        }
+    }
+
     // MARK: - Cleanup
     private func cleanup() {
         // Remove time observer
@@ -429,6 +451,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 extension HLSPlayerView: FlutterStreamHandler {
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         self.eventSink = events
+        refreshPlayerLayer()
         // Listener geç bağlandıysa mevcut durumu replay et.
         if let item = playerItem, item.status == .readyToPlay {
             sendEvent([
