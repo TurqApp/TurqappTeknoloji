@@ -27,7 +27,7 @@ import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/pasaj_settings_view.dart';
-import 'package:turqappv2/Modules/Profile/ViewChanger/view_changer.dart';
+import 'package:turqappv2/Modules/Profile/Settings/story_music_admin_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -121,9 +121,6 @@ class SettingsView extends StatelessWidget {
                         Get.to(() => LikedPosts());
                       }),
                       buildSectionTitle("Uygulama"),
-                      buildRow("Feed Görünümü", CupertinoIcons.rectangle_grid_1x2, () {
-                        Get.to(() => ViewChanger());
-                      }),
                       buildRow("Bildirimler", CupertinoIcons.bell, () {
                         Get.to(() => const NotificationSettingsView());
                       }),
@@ -163,6 +160,11 @@ class SettingsView extends StatelessWidget {
                           "Yönetim / Rozet Yönetimi",
                           CupertinoIcons.checkmark_seal_fill,
                           () => Get.to(() => const BadgeAdminView()),
+                        ),
+                        buildRow(
+                          "Yönetim / Hikaye Müzikleri",
+                          CupertinoIcons.music_note_list,
+                          () => Get.to(() => const StoryMusicAdminView()),
                         ),
                         buildRow(
                           "Sistem ve Tanı Menüsü",

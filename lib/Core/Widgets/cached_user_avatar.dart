@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -33,6 +34,7 @@ class CachedUserAvatar extends StatefulWidget {
 
 class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _resolvedUrl = '';
+  String _resolvedFilePath = '';
   bool _didBootstrap = false;
 
   @override
@@ -59,18 +61,18 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     _didBootstrap = true;
 
     final uid = (widget.userId ?? '').trim();
-    if (uid.isEmpty) return;
+    if (uid.isEmpty) {
+      await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
+      return;
+    }
 
     final currentUser = CurrentUserService.instance;
     if (uid == currentUser.userId) {
       final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
-      if (currentAvatar.isNotEmpty &&
-          currentAvatar != _resolvedUrl &&
-          mounted) {
-        setState(() {
-          _resolvedUrl = currentAvatar;
-        });
+      if (currentAvatar.isNotEmpty) {
+        _resolvedUrl = currentAvatar;
       }
+      await _resolveLocalFile(currentAvatar, allowNetwork: true);
       return;
     }
 
@@ -89,6 +91,9 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           _resolvedUrl = cachedUrl;
         });
       }
+      if (cachedUrl.isNotEmpty) {
+        await _resolveLocalFile(cachedUrl, allowNetwork: false);
+      }
     } catch (_) {}
 
     if (_resolvedUrl.isNotEmpty) return;
@@ -103,6 +108,39 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       if (fetchedUrl.isNotEmpty && fetchedUrl != _resolvedUrl && mounted) {
         setState(() {
           _resolvedUrl = fetchedUrl;
+        });
+      }
+      if (fetchedUrl.isNotEmpty) {
+        await _resolveLocalFile(fetchedUrl, allowNetwork: true);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _resolveLocalFile(
+    String url, {
+    required bool allowNetwork,
+  }) async {
+    final normalized = _normalizeUrl(url);
+    if (normalized.isEmpty) {
+      if (_resolvedFilePath.isNotEmpty && mounted) {
+        setState(() {
+          _resolvedFilePath = '';
+        });
+      }
+      return;
+    }
+    try {
+      final cached = await TurqImageCacheManager.instance.getFileFromCache(
+        normalized,
+      );
+      File? file = cached?.file;
+      if ((file == null || !file.existsSync()) && allowNetwork) {
+        file = await TurqImageCacheManager.instance.getSingleFile(normalized);
+      }
+      final nextPath = (file != null && file.existsSync()) ? file.path : '';
+      if (nextPath != _resolvedFilePath && mounted) {
+        setState(() {
+          _resolvedFilePath = nextPath;
         });
       }
     } catch (_) {}
@@ -120,7 +158,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         builder: (context, snapshot) {
           final currentUserImage =
               _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
-          return _buildAvatar(currentUserImage);
+          if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
+            _resolvedUrl = currentUserImage;
+            _didBootstrap = false;
+            unawaited(_bootstrap());
+          }
+          return _buildAvatar(currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl);
         },
       );
     }
@@ -136,6 +179,23 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             backgroundColor: widget.backgroundColor,
             iconColor: Colors.grey[600],
           );
+    }
+    if (_resolvedFilePath.isNotEmpty) {
+      final file = File(_resolvedFilePath);
+      if (file.existsSync()) {
+        final size = widget.radius * 2;
+        return ClipOval(
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Image.file(
+              file,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
+          ),
+        );
+      }
     }
     return _buildNetworkAvatar(url);
   }

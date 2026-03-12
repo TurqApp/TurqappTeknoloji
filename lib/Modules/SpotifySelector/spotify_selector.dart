@@ -1,202 +1,383 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/functions.dart';
-import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Models/music_model.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector_controller.dart';
 
 class SpotifySelector extends StatelessWidget {
-  final Function(String) url;
+  SpotifySelector({super.key});
 
-  SpotifySelector({super.key, required this.url});
   final controller = Get.put(SpotifySelectorController());
-  final page = Get.put(
-    PageLineBarController(pageName: 'Spotify'),
-    tag: "Spotify",
-  );
+
+  static const List<String> _tabs = <String>[
+    'Senin için',
+    'Popüler',
+    'Tümü',
+    'Kaydedildi',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Müzik Seç"),
-            PageLineBar(
-              barList: ["Favoriler", "Kaydedilenler"],
-              pageName: "TurqApp",
-              pageController: controller.pageController,
+            BackButtons(text: 'Müzik'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+              child: _searchBar(),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: _tabBar(),
             ),
             Expanded(
-              child: PageView(
-                controller: controller.pageController,
-                onPageChanged: (v) {
-                  page.selection.value = v;
-                },
-                children: [
-                  Obx(() {
-                    return ListView.builder(
-                      itemCount: controller.list.length,
-                      itemBuilder: (context, index) {
-                        final model = controller.list[index];
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                        return Padding(
-                          padding: EdgeInsets.only(top: index == 0 ? 12 : 0),
-                          child: Column(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 5,
-                                  horizontal: 15,
-                                ),
-                                child: Row(
-                                  children: [
-                                    // 🔊 Müzik adına tıklanınca da çalsın
-                                    Expanded(
-                                      child: TextButton(
-                                        onPressed: () =>
-                                            Get.back(result: model.url),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          alignment: Alignment.centerLeft,
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(
-                                              width: 30,
-                                              height: 30,
-                                              child: Image.asset(
-                                                "assets/icons/spotify_s.webp",
-                                              ),
-                                            ),
-                                            SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                getMusicNameFromURL(model.url),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
-                                                style: const TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 15,
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
+                final tracks = controller.currentTabTracks();
+                if (tracks.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Henüz müzik yok',
+                      style: TextStyle(
+                        color: Color(0xFF7A828C),
+                        fontSize: 14,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  );
+                }
 
-                                    SizedBox(width: 12),
-
-                                    // ▶️ İkonla kontrol
-
-                                    Obx(() {
-                                      final isPlaying =
-                                          controller.currentPlayingUrl.value ==
-                                              model.url;
-                                      return IconButton(
-                                        icon: Icon(
-                                          isPlaying
-                                              ? Icons.pause_circle
-                                              : Icons.play_circle,
-                                          color: isPlaying
-                                              ? Colors.blueAccent
-                                              : Colors.black,
-                                          size: 35,
-                                        ),
-                                        onPressed: () =>
-                                            controller.playMusic(model.url),
-                                        splashRadius: 22,
-                                        padding: EdgeInsets.zero,
-                                        constraints:
-                                            const BoxConstraints(), // Sadece ikon kadar alan
-                                      );
-                                    })
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 15,
-                                ),
-                                child: SizedBox(
-                                  height: 2,
-                                  child: Divider(
-                                    color: Colors.grey.withAlpha(50),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  }),
-                  Obx(() {
-                    return ListView.builder(
-                      itemCount: controller.list.length,
-                      itemBuilder: (context, index) {
-                        final model = controller.list[index];
-                        return Column(
+                return ListView.separated(
+                  controller: controller.scrollController,
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 120),
+                  itemBuilder: (context, index) => _trackTile(tracks[index]),
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemCount: tracks.length,
+                );
+              }),
+            ),
+            Obx(() {
+              final currentTrack = controller.currentTrack;
+              if (currentTrack == null) return const SizedBox.shrink();
+              return SafeArea(
+                top: false,
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111827),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      _cover(currentTrack, size: 46, radius: 12),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 5,
-                                horizontal: 15,
-                              ),
-                              child: Row(
-                                children: [
-                                  SizedBox(
-                                    width: 30,
-                                    height: 30,
-                                    child: Image.asset(
-                                      "assets/icons/spotify_s.webp",
-                                    ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          getMusicNameFromURL(model.url),
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratMedium",
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              currentTrack.title.isNotEmpty
+                                  ? currentTrack.title
+                                  : 'İsimsiz Parça',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontFamily: 'MontserratSemiBold',
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                              ),
-                              child: SizedBox(
-                                height: 2,
-                                child: Divider(
-                                  color: Colors.grey.withAlpha(50),
+                            if (currentTrack.hasDisplayArtist)
+                              Text(
+                                currentTrack.displayArtist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontFamily: 'MontserratMedium',
                                 ),
                               ),
-                            ),
                           ],
-                        );
-                      },
-                    );
-                  }),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => controller.playMusic(currentTrack),
+                        icon: const Icon(
+                          CupertinoIcons.pause_solid,
+                          color: Colors.white,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Get.back(result: currentTrack),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF205FFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.arrow_right,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _searchBar() {
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F5F7),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            CupertinoIcons.search,
+            color: Color(0xFF7B8794),
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller.searchController,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Müzik ara',
+                hintStyle: TextStyle(
+                  color: Color(0xFF9AA5B1),
+                  fontSize: 14,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
+          Obx(() {
+            if (controller.query.value.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return GestureDetector(
+              onTap: controller.searchController.clear,
+              child: const Icon(
+                CupertinoIcons.clear_circled_solid,
+                color: Color(0xFF8A94A3),
+                size: 18,
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabBar() {
+    return Obx(
+      () => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(_tabs.length, (index) {
+            final selected = controller.selectedTab.value == index;
+            return Padding(
+              padding: EdgeInsets.only(right: index == _tabs.length - 1 ? 0 : 8),
+              child: GestureDetector(
+                onTap: () => controller.selectedTab.value = index,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0xFF111827)
+                        : const Color(0xFFF3F5F7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    _tabs[index],
+                    style: TextStyle(
+                      color: selected ? Colors.white : const Color(0xFF5B6572),
+                      fontSize: 12,
+                      fontFamily: selected
+                          ? 'MontserratSemiBold'
+                          : 'MontserratMedium',
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _trackTile(MusicModel track) {
+    return Obx(() {
+      final isPlaying = controller.currentPlayingUrl.value == track.audioUrl;
+      final isSaved = controller.savedTrackIds.contains(track.docID);
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE8EBF0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D101828),
+              blurRadius: 18,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => Get.back(result: track),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: Row(
+                children: [
+                  _cover(track, size: 58, radius: 16),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          track.title.isNotEmpty ? track.title : 'İsimsiz Parça',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontFamily: 'MontserratSemiBold',
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        if (track.hasDisplayArtist)
+                          Text(
+                            track.displayArtist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF667085),
+                              fontSize: 13,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${track.storyCount} hikaye • ${track.useCount} kullanım',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF98A2B3),
+                            fontSize: 11,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => controller.playMusic(track),
+                    icon: Icon(
+                      isPlaying
+                          ? CupertinoIcons.pause_circle_fill
+                          : CupertinoIcons.play_circle_fill,
+                      color: isPlaying
+                          ? const Color(0xFF205FFF)
+                          : const Color(0xFF111827),
+                      size: 32,
+                    ),
+                    splashRadius: 22,
+                  ),
+                  IconButton(
+                    onPressed: () => controller.toggleSaved(track),
+                    icon: Icon(
+                      isSaved
+                          ? CupertinoIcons.bookmark_fill
+                          : CupertinoIcons.bookmark,
+                      color: isSaved
+                          ? const Color(0xFFF4B400)
+                          : const Color(0xFF667085),
+                      size: 22,
+                    ),
+                    splashRadius: 20,
+                  ),
                 ],
               ),
             ),
-          ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _cover(
+    MusicModel track, {
+    required double size,
+    required double radius,
+  }) {
+    final coverUrl = track.coverUrl.trim();
+    if (coverUrl.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F4F7),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: const Icon(
+          CupertinoIcons.music_note_2,
+          color: Colors.black54,
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: CachedNetworkImage(
+          imageUrl: coverUrl,
+          cacheManager: TurqImageCacheManager.instance,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(color: const Color(0xFFF1F4F7)),
+          errorWidget: (_, __, ___) =>
+              Container(color: const Color(0xFFF1F4F7)),
         ),
       ),
     );

@@ -84,6 +84,9 @@ class PostsModel {
   bool quotedPost;
   String quotedOriginalText;
   String quotedSourceUserID;
+  String quotedSourceDisplayName;
+  String quotedSourceUsername;
+  String quotedSourceAvatarUrl;
   num paylasGizliligi;
   num scheduledAt;
   bool sikayetEdildi;
@@ -130,6 +133,9 @@ class PostsModel {
     this.quotedPost = false,
     this.quotedOriginalText = '',
     this.quotedSourceUserID = '',
+    this.quotedSourceDisplayName = '',
+    this.quotedSourceUsername = '',
+    this.quotedSourceAvatarUrl = '',
     required this.paylasGizliligi,
     required this.scheduledAt,
     required this.sikayetEdildi,
@@ -284,6 +290,10 @@ class PostsModel {
       quotedPost: data['quotedPost'] ?? false,
       quotedOriginalText: (data['quotedOriginalText'] ?? '').toString(),
       quotedSourceUserID: (data['quotedSourceUserID'] ?? '').toString(),
+      quotedSourceDisplayName:
+          (data['quotedSourceDisplayName'] ?? '').toString(),
+      quotedSourceUsername: (data['quotedSourceUsername'] ?? '').toString(),
+      quotedSourceAvatarUrl: (data['quotedSourceAvatarUrl'] ?? '').toString(),
       paylasGizliligi: parseNum(data['paylasGizliligi'], 1),
       scheduledAt: parseNum(data['scheduledAt']),
       sikayetEdildi: data['sikayetEdildi'] ?? false,
@@ -330,6 +340,9 @@ class PostsModel {
       'quotedPost': quotedPost,
       'quotedOriginalText': quotedOriginalText,
       'quotedSourceUserID': quotedSourceUserID,
+      'quotedSourceDisplayName': quotedSourceDisplayName,
+      'quotedSourceUsername': quotedSourceUsername,
+      'quotedSourceAvatarUrl': quotedSourceAvatarUrl,
       'paylasGizliligi': paylasGizliligi,
       'scheduledAt': scheduledAt,
       'sikayetEdildi': sikayetEdildi,
@@ -421,6 +434,9 @@ class PostsModel {
     bool? quotedPost,
     String? quotedOriginalText,
     String? quotedSourceUserID,
+    String? quotedSourceDisplayName,
+    String? quotedSourceUsername,
+    String? quotedSourceAvatarUrl,
     num? paylasGizliligi,
     num? scheduledAt,
     bool? sikayetEdildi,
@@ -463,6 +479,12 @@ class PostsModel {
       quotedPost: quotedPost ?? this.quotedPost,
       quotedOriginalText: quotedOriginalText ?? this.quotedOriginalText,
       quotedSourceUserID: quotedSourceUserID ?? this.quotedSourceUserID,
+      quotedSourceDisplayName:
+          quotedSourceDisplayName ?? this.quotedSourceDisplayName,
+      quotedSourceUsername:
+          quotedSourceUsername ?? this.quotedSourceUsername,
+      quotedSourceAvatarUrl:
+          quotedSourceAvatarUrl ?? this.quotedSourceAvatarUrl,
       paylasGizliligi: paylasGizliligi ?? this.paylasGizliligi,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       sikayetEdildi: sikayetEdildi ?? this.sikayetEdildi,

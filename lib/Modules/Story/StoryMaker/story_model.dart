@@ -7,7 +7,11 @@ class StoryModel {
   final String userId;
   final DateTime createdAt;
   final Color backgroundColor;
+  final String musicId;
   final String musicUrl;
+  final String musicTitle;
+  final String musicArtist;
+  final String musicCoverUrl;
   final List<StoryElement> elements;
 
   StoryModel({
@@ -15,7 +19,11 @@ class StoryModel {
     required this.userId,
     required this.createdAt,
     required this.backgroundColor,
+    required this.musicId,
     required this.musicUrl,
+    required this.musicTitle,
+    required this.musicArtist,
+    required this.musicCoverUrl,
     required this.elements,
   });
 
@@ -83,7 +91,11 @@ class StoryModel {
       userId: data['userId'] as String,
       createdAt: parseCreatedAt(),
       backgroundColor: Color(data['backgroundColor'] as int),
+      musicId: data['musicId'] as String? ?? "",
       musicUrl: data['musicUrl'] as String? ?? "",
+      musicTitle: data['musicTitle'] as String? ?? "",
+      musicArtist: data['musicArtist'] as String? ?? "",
+      musicCoverUrl: data['musicCoverUrl'] as String? ?? "",
       elements: elems,
     );
   }
@@ -93,7 +105,11 @@ class StoryModel {
         'userId': userId,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
+        'musicId': musicId,
         'musicUrl': musicUrl,
+        'musicTitle': musicTitle,
+        'musicArtist': musicArtist,
+        'musicCoverUrl': musicCoverUrl,
         'elements': elements
             .map(
               (e) => {
@@ -132,7 +148,11 @@ class StoryModel {
         'userId': userId,
         'createdDate': createdAt.millisecondsSinceEpoch,
         'backgroundColor': backgroundColor.toARGB32(),
+        'musicId': musicId,
         'musicUrl': musicUrl,
+        'musicTitle': musicTitle,
+        'musicArtist': musicArtist,
+        'musicCoverUrl': musicCoverUrl,
         'elements': elements
             .map(
               (e) => {
@@ -216,7 +236,11 @@ class StoryModel {
               DateTime.now().millisecondsSinceEpoch),
       backgroundColor:
           Color((data['backgroundColor'] as num?)?.toInt() ?? 0xFF000000),
+      musicId: (data['musicId'] ?? '').toString(),
       musicUrl: (data['musicUrl'] ?? '').toString(),
+      musicTitle: (data['musicTitle'] ?? '').toString(),
+      musicArtist: (data['musicArtist'] ?? '').toString(),
+      musicCoverUrl: (data['musicCoverUrl'] ?? '').toString(),
       elements: elems,
     );
   }

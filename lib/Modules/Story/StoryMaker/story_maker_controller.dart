@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
@@ -8,9 +9,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector.dart';
+import 'package:turqappv2/Models/music_model.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:video_player/video_player.dart';
@@ -111,6 +114,7 @@ class StoryMakerController extends GetxController {
   final Rx<Color> color = Colors.transparent.obs;
   RxList<StoryElement> elements = <StoryElement>[].obs;
   var music = "".obs;
+  final Rxn<MusicModel> selectedMusic = Rxn<MusicModel>();
 
   // Drag-to-delete için
   RxBool isDragging = false.obs;
@@ -175,6 +179,7 @@ class StoryMakerController extends GetxController {
 
     elements.clear();
     music.value = "";
+    selectedMusic.value = null;
     color.value = Colors.transparent;
     _colorIndex = 0;
     _zIndexCounter = 0;
@@ -461,11 +466,11 @@ class StoryMakerController extends GetxController {
   var isMusicPlaying = false.obs;
 
   void selectMusic() async {
-    final url = await Get.to<String>(
-      SpotifySelector(url: (u) => u),
+    final track = await Get.to<MusicModel>(
+      () => SpotifySelector(),
     );
 
-    if (url != null && url.isNotEmpty) {
+    if (track != null && track.audioUrl.isNotEmpty) {
       // Dinamik: Video sesleri için kullanıcıya noYesAlert ile sor
       final hasAnyUnmutedVideo =
           elements.any((e) => e.type == StoryElementType.video && !e.isMuted);
@@ -503,21 +508,24 @@ class StoryMakerController extends GetxController {
       // Yeni URL'i ayarla ve çalmaya başla
       try {
         if (_audioPlayer.state != PlayerState.disposed) {
-          _audioPlayer.play(UrlSource(url)).then((v) {
-            isMusicPlaying.value = true;
-          }).catchError((e) {
-            print("selectMusic play error: $e");
-            isMusicPlaying.value = false;
-          });
+          final playablePath = await StoryMusicLibraryService.instance
+              .resolvePlayablePath(track.audioUrl);
+          if (playablePath.isNotEmpty) {
+            await _audioPlayer.play(DeviceFileSource(playablePath));
+          } else {
+            await _audioPlayer.play(UrlSource(track.audioUrl));
+          }
+          isMusicPlaying.value = true;
+          unawaited(StoryMusicLibraryService.instance.warmTrack(track));
+          selectedMusic.value = track;
+          music.value = track.audioUrl;
+          elements.refresh();
+          print("🎵 MÜZİK ÇALIYOR: ${track.audioUrl}");
         }
       } catch (e) {
         print("selectMusic play error: $e");
         isMusicPlaying.value = false;
       }
-
-      music.value = url;
-      elements.refresh();
-      print("🎵 MÜZİK ÇALIYOR: $url");
     }
   }
 
@@ -770,12 +778,18 @@ class StoryMakerController extends GetxController {
     // Snapshot al
     final elementsSnapshot = List<StoryElement>.from(elements);
     final musicSnapshot = music.value;
+    final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
     isUploadingStory.value = true;
     Get.back();
 
-    _saveStoryBackground(user, elementsSnapshot, colorSnapshot, musicSnapshot,
+    _saveStoryBackground(
+        user,
+        elementsSnapshot,
+        colorSnapshot,
+        musicSnapshot,
+        selectedMusicSnapshot: selectedMusicSnapshot,
         scheduledAt: scheduledAt);
   }
 
@@ -795,6 +809,7 @@ class StoryMakerController extends GetxController {
     // Upload öncesi snapshot al (onClose temizliklerinden etkilenmemek için)
     final elementsSnapshot = List<StoryElement>.from(elements);
     final musicSnapshot = music.value;
+    final selectedMusicSnapshot = selectedMusic.value;
     final colorSnapshot = color.value;
 
     // Upload state'i başlat
@@ -804,7 +819,13 @@ class StoryMakerController extends GetxController {
     Get.back();
 
     // Arka planda snapshot verileri ile devam et
-    _saveStoryBackground(user, elementsSnapshot, colorSnapshot, musicSnapshot);
+    _saveStoryBackground(
+      user,
+      elementsSnapshot,
+      colorSnapshot,
+      musicSnapshot,
+      selectedMusicSnapshot: selectedMusicSnapshot,
+    );
   }
 
   Future<void> _saveStoryBackground(
@@ -812,6 +833,7 @@ class StoryMakerController extends GetxController {
     List<StoryElement> elementsSnapshot,
     Color colorSnapshot,
     String musicSnapshot, {
+    MusicModel? selectedMusicSnapshot,
     DateTime? scheduledAt,
   }) async {
     try {
@@ -901,7 +923,11 @@ class StoryMakerController extends GetxController {
         'userId': user.uid,
         'createdDate': DateTime.now().millisecondsSinceEpoch,
         'backgroundColor': colorSnapshot.toARGB32(),
+        'musicId': selectedMusicSnapshot?.docID ?? '',
         'musicUrl': musicSnapshot,
+        'musicTitle': selectedMusicSnapshot?.title ?? '',
+        'musicArtist': selectedMusicSnapshot?.artist ?? '',
+        'musicCoverUrl': selectedMusicSnapshot?.coverUrl ?? '',
         'elements': serialized,
         'deleted': scheduledAt != null, // Zamanlanmis ise baslangicta gizli
         'deletedAt': 0,
@@ -911,6 +937,17 @@ class StoryMakerController extends GetxController {
         storyData['deleteReason'] = 'scheduled';
       }
       await docRef.set(storyData);
+      if (selectedMusicSnapshot != null && scheduledAt == null) {
+        unawaited(
+          StoryMusicLibraryService.instance.recordStoryUsage(
+            track: selectedMusicSnapshot,
+            storyId: storyId,
+            userId: user.uid,
+            createdAt: storyData['createdDate'] as int? ??
+                DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
 
       // 6) Audio player'ı güvenli şekilde durdur
       try {

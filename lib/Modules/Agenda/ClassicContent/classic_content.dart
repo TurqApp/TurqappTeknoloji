@@ -33,6 +33,9 @@ import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
+import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Services/post_interaction_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
@@ -342,17 +345,27 @@ class _ClassicContentState extends State<ClassicContent>
     required String imageUrl,
     double radius = 16.5,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [
+    final hasStory = _hasStoryAvatar();
+    final ringColors = hasStory
+        ? const [
+            Color(0xFFB7F3D0),
+            Color(0xFF5AD39A),
+            Color(0xFF20B26B),
+            Color(0xFF12824D),
+          ]
+        : const [
             Color(0xFFB7D8FF),
             Color(0xFF6EB6FF),
             Color(0xFF2C8DFF),
             Color(0xFF0E5BFF),
-          ],
+          ];
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: ringColors,
           begin: Alignment.topCenter,
           end: Alignment.bottomRight,
         ),
@@ -360,7 +373,7 @@ class _ClassicContentState extends State<ClassicContent>
       child: Container(
         padding: const EdgeInsets.all(1.5),
         decoration: const BoxDecoration(
-          color: Colors.black,
+          color: Colors.white,
           shape: BoxShape.circle,
         ),
         child: CachedUserAvatar(
@@ -370,6 +383,44 @@ class _ClassicContentState extends State<ClassicContent>
         ),
       ),
     );
+  }
+
+  StoryUserModel? _resolveStoryUser() {
+    if (!Get.isRegistered<StoryRowController>()) return null;
+    final users = Get.find<StoryRowController>().users;
+    for (final user in users) {
+      if (user.userID == widget.model.userID) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  bool _hasStoryAvatar() {
+    final storyUser = _resolveStoryUser();
+    return storyUser != null && storyUser.stories.isNotEmpty;
+  }
+
+  void _openAvatarStoryOrProfile() {
+    final storyUser = _resolveStoryUser();
+    if (storyUser != null && storyUser.stories.isNotEmpty) {
+      videoController?.pause();
+      final users = Get.find<StoryRowController>().users.toList(growable: false);
+      Get.to(() => StoryViewer(
+            startedUser: storyUser,
+            storyOwnerUsers: users,
+          ))?.then((_) {
+        videoController?.play();
+      });
+      return;
+    }
+
+    if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
+      videoController?.pause();
+      Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
+        videoController?.play();
+      });
+    }
   }
 
   Widget _buildClassicWhiteBadge(double size) {
@@ -1000,7 +1051,7 @@ class _ClassicContentState extends State<ClassicContent>
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing),
               child: AspectRatio(
-                aspectRatio: 1,
+                aspectRatio: 1 / 1.2,
                 child: Stack(
                   children: [
                     PageView.builder(
@@ -1537,8 +1588,8 @@ class _ClassicContentState extends State<ClassicContent>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: openProfile,
-            child: Obx(() => CachedUserAvatar(
+            onTap: _openAvatarStoryOrProfile,
+            child: Obx(() => _buildClassicAvatar(
                   userId: widget.model.userID,
                   imageUrl: controller.avatarUrl.value,
                   radius: 20, // 40px diameter / 2
@@ -1730,7 +1781,7 @@ class _ClassicContentState extends State<ClassicContent>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: openProfile,
+            onTap: _openAvatarStoryOrProfile,
             child: Obx(() => _buildClassicAvatar(
                   userId: widget.model.userID,
                   imageUrl: controller.avatarUrl.value,

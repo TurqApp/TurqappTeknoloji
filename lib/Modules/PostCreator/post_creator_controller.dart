@@ -101,6 +101,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   bool _isQuotedPost = false;
   String _quotedOriginalText = "";
   String _quotedSourceUserID = "";
+  String _quotedSourceDisplayName = "";
+  String _quotedSourceUsername = "";
+  String _quotedSourceAvatarUrl = "";
   bool _editSourceApplied = false;
   final RxBool isEditMode = false.obs;
   final RxString editingPostID = ''.obs;
@@ -112,6 +115,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   bool get isQuotedPost => _isQuotedPost;
   String get quotedOriginalText => _quotedOriginalText;
   String get quotedSourceUserID => _quotedSourceUserID;
+  String get quotedSourceDisplayName => _quotedSourceDisplayName;
+  String get quotedSourceUsername => _quotedSourceUsername;
+  String get quotedSourceAvatarUrl => _quotedSourceAvatarUrl;
   String get sharedOriginalUserID => _sharedOriginalUserID;
   String get sharedOriginalPostID => _sharedOriginalPostID;
 
@@ -281,6 +287,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     bool quotedPost = false,
     String? quotedOriginalText,
     String? quotedSourceUserID,
+    String? quotedSourceDisplayName,
+    String? quotedSourceUsername,
+    String? quotedSourceAvatarUrl,
   }) async {
     final cleanUrl = videoUrl.trim();
     final cleanImages =
@@ -293,6 +302,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       _isQuotedPost = false;
       _quotedOriginalText = "";
       _quotedSourceUserID = "";
+      _quotedSourceDisplayName = "";
+      _quotedSourceUsername = "";
+      _quotedSourceAvatarUrl = "";
       return;
     }
     if (_sharedSourceApplied) return;
@@ -304,6 +316,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     _isQuotedPost = quotedPost;
     _quotedOriginalText = (quotedOriginalText ?? '').trim();
     _quotedSourceUserID = (quotedSourceUserID ?? '').trim();
+    _quotedSourceDisplayName = (quotedSourceDisplayName ?? '').trim();
+    _quotedSourceUsername = (quotedSourceUsername ?? '').trim();
+    _quotedSourceAvatarUrl = (quotedSourceAvatarUrl ?? '').trim();
 
     const tag = '0';
     if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
@@ -1222,6 +1237,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
         "quotedSourceUserID":
             (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
+        "quotedSourceDisplayName":
+            (_isSharedAsPost && _isQuotedPost) ? _quotedSourceDisplayName : "",
+        "quotedSourceUsername":
+            (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : "",
+        "quotedSourceAvatarUrl":
+            (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : "",
       });
 
       if (_isSharedAsPost &&
@@ -1295,6 +1316,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
           quotedSourceUserID:
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
+          quotedSourceDisplayName:
+              (_isSharedAsPost && _isQuotedPost)
+                  ? _quotedSourceDisplayName
+                  : "",
+          quotedSourceUsername:
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : "",
+          quotedSourceAvatarUrl:
+              (_isSharedAsPost && _isQuotedPost)
+                  ? _quotedSourceAvatarUrl
+                  : "",
         ),
       );
 
@@ -2114,6 +2145,18 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
               "quotedSourceUserID":
                   (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
+              "quotedSourceDisplayName":
+                  (_isSharedAsPost && _isQuotedPost)
+                      ? _quotedSourceDisplayName
+                      : "",
+              "quotedSourceUsername":
+                  (_isSharedAsPost && _isQuotedPost)
+                      ? _quotedSourceUsername
+                      : "",
+              "quotedSourceAvatarUrl":
+                  (_isSharedAsPost && _isQuotedPost)
+                      ? _quotedSourceAvatarUrl
+                      : "",
             });
 
             if (_isSharedAsPost &&
@@ -2188,6 +2231,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                     : "",
                 quotedSourceUserID: (_isSharedAsPost && _isQuotedPost)
                     ? _quotedSourceUserID
+                    : "",
+                quotedSourceDisplayName: (_isSharedAsPost && _isQuotedPost)
+                    ? _quotedSourceDisplayName
+                    : "",
+                quotedSourceUsername: (_isSharedAsPost && _isQuotedPost)
+                    ? _quotedSourceUsername
+                    : "",
+                quotedSourceAvatarUrl: (_isSharedAsPost && _isQuotedPost)
+                    ? _quotedSourceAvatarUrl
                     : "",
                 poll: post.poll,
               ),

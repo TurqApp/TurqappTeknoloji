@@ -235,10 +235,7 @@ class _GridContentState extends State<_GridContent> {
   final user = CurrentUserService.instance;
 
   void _maybeFetchMore(int index, int total) {
-    final c = widget.controller;
-    if (index >= total - 4 && c.hasMore.value && !c.isLoading.value) {
-      c.fetch();
-    }
+    // Tüm hikayeler tek seferde çekiliyor; bu ekranda paging yok.
   }
 
   void _openViewer(
@@ -269,7 +266,10 @@ class _GridContentState extends State<_GridContent> {
       if (widget.reasonFilter == null) return true;
       final reason = c.deleteReasonById[m.id];
       if (reason != null && reason.isNotEmpty) {
-        return reason == widget.reasonFilter;
+        if (widget.reasonFilter == 'expired') {
+          return reason == 'expired' || reason == 'expired_cf';
+        }
+        return reason == widget.reasonFilter || reason == 'manual';
       }
       final isExpired = DateTime.now().difference(m.createdAt).inHours >= 24;
       return widget.reasonFilter == 'expired' ? isExpired : !isExpired;
@@ -283,13 +283,8 @@ class _GridContentState extends State<_GridContent> {
         crossAxisSpacing: 10,
         childAspectRatio: 0.75, // dikdörtgen görünüm
       ),
-      itemCount: filtered.length + 1,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        if (index == filtered.length) {
-          return Obx(() => c.hasMore.value
-              ? Center(child: CupertinoActivityIndicator())
-              : SizedBox.shrink());
-        }
         _maybeFetchMore(index, filtered.length);
         final m = filtered[index];
         final delMs = c.deletedAtById[m.id] ?? 0;
@@ -324,10 +319,7 @@ class _VerticalStripState extends State<_VerticalStrip> {
   final user = CurrentUserService.instance;
 
   void _maybeFetchMore(int index) {
-    final c = widget.controller;
-    if (index >= c.list.length - 2 && c.hasMore.value && !c.isLoading.value) {
-      c.fetch();
-    }
+    // Tüm hikayeler tek seferde çekiliyor; bu ekranda paging yok.
   }
 
   void _openViewer({required int tappedIndex}) {
@@ -362,16 +354,8 @@ class _VerticalStripState extends State<_VerticalStrip> {
 
     return ListView.builder(
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      itemCount: filtered.length + 1,
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        if (index == filtered.length) {
-          return Obx(() => c.hasMore.value
-              ? Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(child: CupertinoActivityIndicator()),
-                )
-              : SizedBox.shrink());
-        }
         _maybeFetchMore(index);
         final m = filtered[index];
         final delMs = c.deletedAtById[m.id] ?? 0;

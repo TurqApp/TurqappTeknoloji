@@ -472,6 +472,30 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    match /storyMusic/{docId} {
+      allow read: if isAuth();
+      allow create, update, delete: if isAdmin() || isAllowlistedAdmin();
+
+      match /stories/{storyId} {
+        allow read: if isAuth();
+        allow create, update: if isAdmin()
+          || isAllowlistedAdmin()
+          || (isAuth() && request.resource.data.userId == request.auth.uid);
+        allow delete: if isAdmin()
+          || isAllowlistedAdmin()
+          || (isAuth() && resource.data.userId == request.auth.uid);
+      }
+
+      match /posts/{postId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isAdmin() || isAllowlistedAdmin();
+      }
+    }
+
+    match /users/{uid}/savedMusic/{musicId} {
+      allow read, write: if isOwner(uid);
+    }
+
     // ──────────────────────────────────────────────
     // POSTS
     // ──────────────────────────────────────────────

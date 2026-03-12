@@ -10,6 +10,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -18,6 +20,7 @@ import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryMaker/story_maker_controller.dart';
 import '../StoryRow/story_user_model.dart';
 import '../StoryRow/story_row_controller.dart';
+import '../StoryMusic/story_music_profile_view.dart';
 import 'story_elements.dart';
 import 'story_video_widget.dart';
 import '../StoryHighlights/highlight_picker_sheet.dart';
@@ -219,7 +222,17 @@ class _UserStoryContentState extends State<UserStoryContent>
         // Play müzik ve state değişimini bekle
         try {
           await _audioPlayer.setVolume(1);
-          await _audioPlayer.play(UrlSource(_currentMusicUrl!));
+          final playablePath = await StoryMusicLibraryService.instance
+              .resolvePlayablePath(_currentMusicUrl!);
+          if (playablePath.isNotEmpty) {
+            await _audioPlayer.play(DeviceFileSource(playablePath));
+          } else {
+            await _audioPlayer.play(UrlSource(_currentMusicUrl!));
+          }
+          unawaited(StoryMusicLibraryService.instance.warmTrackFromStory(
+            audioUrl: currentStory.musicUrl,
+            coverUrl: currentStory.musicCoverUrl,
+          ));
         } catch (e) {
           print("Müzik yüklenemedi: $e");
           _waitingForMusic = false;
@@ -576,6 +589,18 @@ class _UserStoryContentState extends State<UserStoryContent>
   Widget userInfo(StoryUserModel currentUser) {
     final currentStory = currentUser.stories[storyIndex];
     final hasMusic = currentStory.musicUrl.isNotEmpty;
+    final musicTitle = currentStory.musicTitle.trim();
+    final rawMusicArtist = currentStory.musicArtist.trim();
+    final musicArtist = (() {
+      final normalized = rawMusicArtist.toLowerCase();
+      if (normalized == 'turqapp müzik' || normalized == 'turqapp muzik') {
+        return '';
+      }
+      return rawMusicArtist;
+    })();
+    final musicLabel = musicTitle.isNotEmpty
+        ? (musicArtist.isNotEmpty ? '$musicTitle • $musicArtist' : musicTitle)
+        : getMusicNameFromURL(currentStory.musicUrl);
 
     return Padding(
       padding: const EdgeInsets.all(15),
@@ -589,20 +614,15 @@ class _UserStoryContentState extends State<UserStoryContent>
                 _audioPlayer.resume();
               });
             },
-            child: ClipOval(
-              child: SizedBox(
-                width: 33,
-                height: 33,
-                child: currentUser.avatarUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        fadeInDuration: Duration.zero,
-                        fadeOutDuration: Duration.zero,
-                        imageUrl: currentUser.avatarUrl,
-                        fit: BoxFit.cover,
-                      )
-                    : const Center(
-                        child: CupertinoActivityIndicator(),
-                      ),
+            child: CachedUserAvatar(
+              userId: currentUser.userID,
+              imageUrl: currentUser.avatarUrl,
+              radius: 16.5,
+              placeholder: const DefaultAvatar(
+                radius: 16.5,
+                backgroundColor: Colors.white24,
+                iconColor: Colors.white70,
+                padding: EdgeInsets.all(5),
               ),
             ),
           ),
@@ -654,22 +674,37 @@ class _UserStoryContentState extends State<UserStoryContent>
                 if (hasMusic)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          Icon(CupertinoIcons.music_note_2,
-                              color: Colors.white, size: 13),
-                          const SizedBox(width: 4),
-                          Text(
-                            getMusicNameFromURL(currentStory.musicUrl),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontFamily: "MontserratMedium",
+                    child: GestureDetector(
+                      onTap: currentStory.musicId.trim().isEmpty
+                          ? null
+                          : () async {
+                              await _audioPlayer.pause();
+                              await Get.to(
+                                () => StoryMusicProfileView(
+                                  musicId: currentStory.musicId,
+                                ),
+                              );
+                              if (mounted) {
+                                await _audioPlayer.resume();
+                              }
+                            },
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            Icon(CupertinoIcons.music_note_2,
+                                color: Colors.white, size: 13),
+                            const SizedBox(width: 4),
+                            Text(
+                              musicLabel,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontFamily: "MontserratMedium",
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1159,7 +1194,13 @@ class _UserStoryContentState extends State<UserStoryContent>
 
   Future<void> deleteStory(
       {required String userId, required String storyId}) async {
+    String musicId = '';
     try {
+      final storyDoc = await FirebaseFirestore.instance
+          .collection("stories")
+          .doc(storyId)
+          .get();
+      musicId = (storyDoc.data()?['musicId'] ?? '').toString().trim();
       // Silmek yerine işaretle: deleted = true
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       await FirebaseFirestore.instance
@@ -1167,6 +1208,14 @@ class _UserStoryContentState extends State<UserStoryContent>
           .doc(storyId)
           .update(
               {'deleted': true, 'deletedAt': nowMs, 'deleteReason': 'manual'});
+      if (musicId.isNotEmpty) {
+        unawaited(
+          StoryMusicLibraryService.instance.removeStoryUsage(
+            musicId: musicId,
+            storyId: storyId,
+          ),
+        );
+      }
     } catch (e) {
       print('deleteStory update error: $e');
     }
