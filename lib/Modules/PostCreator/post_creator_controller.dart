@@ -845,7 +845,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           publishMode.value = 1;
           izBirakDateTime.value = v.isAfter(maxIzBirakDate) ? maxIzBirakDate : v;
         },
-        title: "Yayın Tarihini Seç",
+        title: "İz Bırak Yayın Tarihi",
       ),
       isScrollControlled: true,
     );
