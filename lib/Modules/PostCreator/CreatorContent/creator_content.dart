@@ -10,7 +10,6 @@ import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/posts_model.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 import '../post_creator_controller.dart';
@@ -76,23 +75,11 @@ class CreatorContent extends StatelessWidget {
                 Column(
                   children: [
                     // Profil fotoğrafı
-                    ClipOval(
-                      child: SizedBox(
-                        width: 38,
-                        height: 38,
-                        child: (CurrentUserService.instance.currentUserRx.value
-                                        ?.avatarUrl ??
-                                    '')
-                                .isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: CurrentUserService.instance
-                                        .currentUserRx.value?.avatarUrl ??
-                                    '',
-                                fit: BoxFit.cover,
-                              )
-                            : Center(
-                                child: CupertinoActivityIndicator(),
-                              ),
+                    const SizedBox(
+                      width: 38,
+                      height: 38,
+                      child: CachedUserAvatar(
+                        radius: 19,
                       ),
                     ),
                     7.ph,
