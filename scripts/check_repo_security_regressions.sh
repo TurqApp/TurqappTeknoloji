@@ -75,6 +75,8 @@ check_literal "Solve test basari logunda testID dump'i geri gelmedi" 'print("Yan
 check_literal "Past result sayim logunda snapshot uzunlugu dump'i geri gelmedi" 'print("Snapshot docs: ${filtered.length}");' || failures=$((failures + 1))
 check_literal "Past result logunda timestamp dump'i geri gelmedi" 'print("Fetched timeStamp: ${timeStamp.value}");' || failures=$((failures + 1))
 check_literal "Past result logunda docID dump'i geri gelmedi" 'print("Hiç veri bulunamadı: ${model.docID}");' || failures=$((failures + 1))
+check_literal "Create test question ekrani image URL dump'i geri gelmedi" "print(controller.model.img)" || failures=$((failures + 1))
+check_literal "Scholarship share logunda shortUrl dump'i geri gelmedi" "print('Sharing: \$shortUrl');" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

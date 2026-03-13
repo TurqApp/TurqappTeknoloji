@@ -772,7 +772,6 @@ class ScholarshipsController extends GetxController {
           title: title,
           subject: title,
         );
-        print('Sharing: $shortUrl');
       });
     } catch (e) {
       AppSnackbar('Hata', 'Paylaşım başarısız.');

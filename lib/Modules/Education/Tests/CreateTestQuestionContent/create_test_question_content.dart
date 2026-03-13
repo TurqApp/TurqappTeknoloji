@@ -85,7 +85,7 @@ class CreateTestQuestionContent extends StatelessWidget {
                                     child: Image.file(
                                       controller.selectedImage.value!,
                                     ),
-                                    onTap: () => print(controller.model.img),
+                                    onTap: () {},
                                   )
                                 : controller.model.img.isEmpty
                                     ? Padding(
