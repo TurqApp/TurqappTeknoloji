@@ -96,14 +96,8 @@ function resolveThreshold(config, categoryKey) {
 exports.ensureReportsConfig = functions
     .region("europe-west3")
     .https
-    .onCall(async (data, context) => {
-    const fallbackUid = asString(data?.uid);
-    if (context.auth?.uid) {
-        await ensureAdmin(context);
-    }
-    else {
-        await ensureAdminByUid(fallbackUid);
-    }
+    .onCall(async (_data, context) => {
+    await ensureAdmin(context);
     const ref = db.doc("adminConfig/reports");
     await ref.set(DEFAULT_REPORTS_CONFIG, { merge: true });
     const snap = await ref.get();
@@ -116,10 +110,12 @@ exports.submitReport = functions
     .region("europe-west3")
     .https
     .onCall(async (data, context) => {
+    ensureAuth(context);
     await db.doc("adminConfig/reports").set(DEFAULT_REPORTS_CONFIG, { merge: true });
-    const reporterUserId = asString(data?.reporterUserId) || asString(context.auth?.uid);
-    if (!reporterUserId) {
-        throw new functions.https.HttpsError("invalid-argument", "reporter_required");
+    const authUid = asString(context.auth?.uid);
+    const reporterUserId = asString(data?.reporterUserId) || authUid;
+    if (!reporterUserId || reporterUserId != authUid) {
+        throw new functions.https.HttpsError("permission-denied", "reporter_mismatch");
     }
     const targetType = asString(data?.targetType);
     const targetId = asString(data?.targetId);
@@ -132,6 +128,9 @@ exports.submitReport = functions
     const source = asString(data?.source) || "app";
     if (!targetType || !targetId) {
         throw new functions.https.HttpsError("invalid-argument", "target_required");
+    }
+    if (!["user", "post", "comment"].includes(targetType)) {
+        throw new functions.https.HttpsError("invalid-argument", "invalid_target_type");
     }
     const nowMs = Date.now();
     const targetKey = `${targetType}_${targetId}`;

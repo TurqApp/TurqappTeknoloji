@@ -18,9 +18,6 @@ const EMAIL_DAILY_LIMIT = 8;
 const VERIFY_TTL_MS = 60 * 60 * 1000;
 const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
 const NETGSM_ENDPOINT = "https://api.netgsm.com.tr/sms/send/otp";
-const NETGSM_USERCODE = process.env.NETGSM_USERCODE || "3326062598";
-const NETGSM_PASSWORD = process.env.NETGSM_PASSWORD || "BursCity42@";
-const NETGSM_MSG_HEADER = process.env.NETGSM_MSG_HEADER || "TurqApp";
 const PASSWORD_RESET_SMS_RESEND_MS = 5 * 60 * 1000;
 const PASSWORD_RESET_SMS_TTL_MS = 60 * 1000;
 
@@ -54,6 +51,14 @@ function parsePurpose(raw: unknown): VerificationPurpose {
 
 function normalizePhone(raw: string): string {
   return String(raw || "").replace(/[^0-9]/g, "");
+}
+
+function requiredEnv(name: string): string {
+  const value = String(process.env[name] || "").trim();
+  if (!value) {
+    throw new HttpsError("failed-precondition", `${name.toLowerCase()}_missing`);
+  }
+  return value;
 }
 
 function accountRef(emailLower: string): FirebaseFirestore.DocumentReference {
@@ -640,7 +645,10 @@ export const sendPasswordResetSmsCode = onCall(
 
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-      const xml = `<?xml version="1.0"?><mainbody><header><usercode>${NETGSM_USERCODE}</usercode><password>${NETGSM_PASSWORD}</password><msgheader>${NETGSM_MSG_HEADER}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
+      const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
+      const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
+      const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
+      const xml = `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
 
       const response = await axios.post<string>(NETGSM_ENDPOINT, xml, {
         headers: {
