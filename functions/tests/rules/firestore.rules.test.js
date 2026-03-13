@@ -19,7 +19,6 @@ test.before(async () => {
     "@firebase/rules-unit-testing"
   ));
   ({ doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
-
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
     firestore: {
@@ -124,6 +123,54 @@ test("posts collection blocks non-owner non-admin from updating another user's p
   await assertFails(
     updateDoc(doc(otherCtx.firestore(), `Posts/${postId}`), {
       metin: "yetkisiz degisim",
+    }),
+  );
+});
+
+test("reports collection allows authenticated complaint payload", async () => {
+  const uid = "reporter-user";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ctx.firestore(), "reports/complaint-1"), {
+      postID: "question-123",
+      sikayetDesc: "Bu soru icin sikayet aciklamasi",
+      sikayetTitle: "Sorunun yanlis oldugunu dusunuyorum.",
+      timeStamp: Date.now(),
+      userID: uid,
+      yorumID: "",
+    }),
+  );
+});
+
+test("reports collection blocks spoofed reporter user id", async () => {
+  const ctx = testEnv.authenticatedContext("real-user");
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "reports/complaint-2"), {
+      postID: "question-456",
+      sikayetDesc: "Yetkisiz rapor",
+      sikayetTitle: "Sikayet",
+      timeStamp: Date.now(),
+      userID: "different-user",
+      yorumID: "",
+    }),
+  );
+});
+
+test("reports collection blocks unexpected complaint fields", async () => {
+  const uid = "reporter-extra";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "reports/complaint-3"), {
+      postID: "question-789",
+      sikayetDesc: "Ek alan deneniyor",
+      sikayetTitle: "Sikayet",
+      timeStamp: Date.now(),
+      userID: uid,
+      yorumID: "",
+      admin: true,
     }),
   );
 });

@@ -1155,7 +1155,34 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /reports/{docId} {
       allow read: if false;
-      allow create: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.keys().hasOnly([
+          'postID', 'sikayetDesc', 'sikayetTitle',
+          'timeStamp', 'userID', 'yorumID'
+        ])
+        && request.resource.data.keys().hasAll([
+          'postID', 'sikayetDesc', 'sikayetTitle',
+          'timeStamp', 'userID', 'yorumID'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.postID is string
+        && request.resource.data.postID.size() <= 256
+        && request.resource.data.yorumID is string
+        && request.resource.data.yorumID.size() <= 256
+        && (
+          request.resource.data.postID.size() > 0
+          || request.resource.data.yorumID.size() > 0
+        )
+        && request.resource.data.sikayetTitle is string
+        && request.resource.data.sikayetTitle.size() > 0
+        && request.resource.data.sikayetTitle.size() <= 200
+        && request.resource.data.sikayetDesc is string
+        && request.resource.data.sikayetDesc.size() > 0
+        && request.resource.data.sikayetDesc.size() <= 4000
+        && request.resource.data.timeStamp is int
+        && request.resource.data.timeStamp > 0
+        && request.resource.data.timeStamp <= request.time.toMillis() + 900000;
       allow update, delete: if false;
     }
     match /Basvurular/{docId} {
