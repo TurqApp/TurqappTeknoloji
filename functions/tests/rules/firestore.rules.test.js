@@ -267,3 +267,25 @@ test("users_usernames legacy reservation path is disabled", async () => {
     }),
   );
 });
+
+test("Hashtags legacy collection rejects client writes", async () => {
+  const uid = "legacy-hashtag-user";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "Hashtags/test-tag"), {
+      value: "#test",
+    }),
+  );
+});
+
+test("HashTags legacy collection rejects client writes", async () => {
+  const uid = "legacy-hashtag-user-2";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "HashTags/test-tag"), {
+      value: "#test",
+    }),
+  );
+});

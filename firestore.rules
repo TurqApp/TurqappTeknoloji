@@ -1284,7 +1284,7 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Hashtags/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if false; // Legacy hashtag path disabled
     }
     match /tags/{docId} {
       allow read: if isAuth();
@@ -1296,7 +1296,7 @@ service cloud.firestore {
     }
     match /HashTags/{docId} {
       allow read: if isAuth();
-      allow write: if isAuth();
+      allow write: if false; // Legacy hashtag path disabled
     }
     match /TurqAppVerified/{docId} {
       allow read: if isAuth();
