@@ -248,15 +248,15 @@ class PostCreator extends StatelessWidget {
       final disableFirstThree = controller.isEditMode.value;
       final disableFlood = controller.isEditMode.value;
 
-      const double toolbarIconSize = 20.5;
-      const double compactButtonSize = 38;
-      final bottomPadding = keyboardInset > 0 ? 8.0 : 16.0;
+      const double toolbarIconSize = 18.5;
+      const double compactButtonSize = 34;
+      final bottomPadding = keyboardInset > 0 ? 6.0 : 14.0;
       return AnimatedPadding(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         padding: EdgeInsets.only(
-          left: 12,
-          right: 12,
+          left: 8,
+          right: 8,
           bottom: bottomPadding,
         ),
         child: Align(
@@ -268,12 +268,11 @@ class PostCreator extends StatelessWidget {
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(minWidth: constraints.maxWidth),
+                      child: SizedBox(
+                        width: constraints.maxWidth,
                         child: Row(
                           mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             IconButton(
                               onPressed: disableFirstThree
@@ -294,6 +293,7 @@ class PostCreator extends StatelessWidget {
                                         : Colors.black),
                               ),
                             ),
+                            const SizedBox(width: 2),
                             IconButton(
                               onPressed: disableFirstThree
                                   ? null
@@ -316,6 +316,7 @@ class PostCreator extends StatelessWidget {
                                         : Colors.black),
                               ),
                             ),
+                            const SizedBox(width: 2),
                             IconButton(
                               onPressed: disableFirstThree
                                   ? null
@@ -333,6 +334,7 @@ class PostCreator extends StatelessWidget {
                                     : Colors.black,
                               ),
                             ),
+                            const SizedBox(width: 2),
                             IconButton(
                               onPressed: selectedController.openPollComposer,
                               iconSize: toolbarIconSize,
@@ -348,6 +350,7 @@ class PostCreator extends StatelessWidget {
                                     : Colors.black,
                               ),
                             ),
+                            const SizedBox(width: 2),
                             IconButton(
                               onPressed: selectedController.goToLocationMap,
                               iconSize: toolbarIconSize,
@@ -363,6 +366,7 @@ class PostCreator extends StatelessWidget {
                                     : Colors.black,
                               ),
                             ),
+                            const SizedBox(width: 2),
                             PullDownButton(
                               itemBuilder: (context) => [
                                 PullDownMenuItem(
@@ -423,6 +427,7 @@ class PostCreator extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 2),
                             PullDownButton(
                               itemBuilder: (context) => [
                                 PullDownMenuItem(
@@ -479,6 +484,7 @@ class PostCreator extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 2),
                             Obx(() {
                               final scheduled =
                                   controller.publishMode.value == 1;
