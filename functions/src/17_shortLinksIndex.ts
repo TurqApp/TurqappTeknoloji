@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import * as functions from "firebase-functions";
 import axios from "axios";
+import { enforceRateLimit } from "./rateLimiter";
 
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
@@ -610,6 +611,7 @@ export const upsertShortLink = onCall(
 
     const type = normalizeType(req.data?.type);
     const callerUid = ensureAuth(req);
+    enforceRateLimit(callerUid, "short_link_upsert", 30, 600);
     const entityId = normalizeText(req.data?.entityId, 128);
     if (!entityId) throw new HttpsError("invalid-argument", "entityId zorunlu.");
     const entityTarget = parseEntityTarget(db, type, entityId);

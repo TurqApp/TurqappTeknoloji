@@ -7,6 +7,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const axios_1 = require("axios");
+const rateLimiter_1 = require("./rateLimiter");
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
 const SHORT_LINK_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
@@ -490,6 +491,7 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
     const db = (0, firestore_1.getFirestore)();
     const type = normalizeType(req.data?.type);
     const callerUid = ensureAuth(req);
+    (0, rateLimiter_1.enforceRateLimit)(callerUid, "short_link_upsert", 30, 600);
     const entityId = normalizeText(req.data?.entityId, 128);
     if (!entityId)
         throw new https_1.HttpsError("invalid-argument", "entityId zorunlu.");
