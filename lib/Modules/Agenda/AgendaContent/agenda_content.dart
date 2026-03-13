@@ -416,7 +416,7 @@ class _AgendaContentState extends State<AgendaContent>
                   Expanded(
                     child: Builder(builder: (_) {
                       final double displayAspect =
-                          _isIzBirakPost ? 16 / 9 : 0.80;
+                          _isIzBirakPost ? 0.92 : 0.80;
                       return VisibilityDetector(
                         key: Key('agenda-media-${widget.model.docID}'),
                         onVisibilityChanged: (info) {
@@ -2154,12 +2154,15 @@ class _AgendaContentState extends State<AgendaContent>
 
   Widget _buildImageContent(List<String> images) {
     if (_isIzBirakPost) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: _buildImage(
-          images.first,
-          radius: BorderRadius.circular(12),
-          showShareCta: false,
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 0.92,
+          child: _buildImage(
+            images.first,
+            radius: BorderRadius.circular(12),
+            showShareCta: false,
+          ),
         ),
       );
     }

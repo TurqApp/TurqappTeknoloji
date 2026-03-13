@@ -1148,25 +1148,28 @@ class _ClassicContentState extends State<ClassicContent>
             offset: Offset(0, mediaVisualLift),
             child: Padding(
               padding: EdgeInsets.only(top: mediaTopSpacing),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  alignment: Alignment.bottomLeft,
-                  children: [
-                    SizedBox.expand(
-                      child: CachedNetworkImage(
-                        imageUrl: widget.model.img.first,
-                        fit: BoxFit.cover,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 0.92,
+                  child: Stack(
+                    alignment: Alignment.bottomLeft,
+                    children: [
+                      SizedBox.expand(
+                        child: CachedNetworkImage(
+                          imageUrl: widget.model.img.first,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                    _buildIzBirakBlurOverlay(),
-                    _buildIzBirakBottomBar(),
-                    _buildMediaTapOverlay(
-                      onTap: _openImageMediaOrFeedCta,
-                      onDoubleTap: controller.like,
-                    ),
-                    _buildClassicMediaHeader(),
-                  ],
+                      _buildIzBirakBlurOverlay(),
+                      _buildIzBirakBottomBar(),
+                      _buildMediaTapOverlay(
+                        onTap: _openImageMediaOrFeedCta,
+                        onDoubleTap: controller.like,
+                      ),
+                      _buildClassicMediaHeader(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1525,7 +1528,7 @@ class _ClassicContentState extends State<ClassicContent>
 
   Widget videoBody(BuildContext context) {
     final frameAspectRatio =
-        _isIzBirakPost ? 1.0 : _resolvedClassicFrameAspectRatio;
+        _isIzBirakPost ? 0.92 : _resolvedClassicFrameAspectRatio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
