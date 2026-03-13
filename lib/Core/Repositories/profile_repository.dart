@@ -216,8 +216,7 @@ class ProfileRepository extends GetxService {
     final scheduled = <PostsModel>[];
 
     for (final post in posts) {
-      final isIzBirakPost =
-          post.scheduledAt.toInt() > 0 || post.izBirakYayinTarihi.toInt() > 0;
+      final isIzBirakPost = post.scheduledAt.toInt() > 0;
       if (isIzBirakPost) {
         scheduled.add(post);
       }

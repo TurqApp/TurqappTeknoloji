@@ -716,6 +716,13 @@ service cloud.firestore {
         allow delete: if isAuth() && request.auth.uid == reshareId;
       }
 
+      // Iz Birak subscribers
+      match /izBirakSubscribers/{subscriberId} {
+        allow read: if false;
+        allow create, update: if isValidUidDocInteractionPayload(subscriberId);
+        allow delete: if isAuth() && request.auth.uid == subscriberId;
+      }
+
       // Reporters
       match /reporters/{reporterId} {
         allow read: if false;

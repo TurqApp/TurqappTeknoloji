@@ -403,6 +403,60 @@ test("posts reshares allow quote metadata payload", async () => {
   );
 });
 
+test("posts izBirakSubscribers allow self-scoped subscription payload", async () => {
+  const ownerUid = "post-owner-izbirak";
+  const subscriberUid = "post-subscriber-izbirak";
+  const postId = "post-izbirak-subscribe-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "iz birak test",
+    });
+  });
+
+  const subscriberCtx = testEnv.authenticatedContext(subscriberUid);
+  await assertSucceeds(
+    setDoc(
+      doc(
+        subscriberCtx.firestore(),
+        `Posts/${postId}/izBirakSubscribers/${subscriberUid}`,
+      ),
+      {
+        userID: subscriberUid,
+        timeStamp: Date.now(),
+      },
+    ),
+  );
+});
+
+test("posts izBirakSubscribers block spoofed subscription payload", async () => {
+  const ownerUid = "post-owner-izbirak-block";
+  const subscriberUid = "post-subscriber-izbirak-block";
+  const postId = "post-izbirak-subscribe-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "iz birak block test",
+    });
+  });
+
+  const subscriberCtx = testEnv.authenticatedContext(subscriberUid);
+  await assertFails(
+    setDoc(
+      doc(
+        subscriberCtx.firestore(),
+        `Posts/${postId}/izBirakSubscribers/${subscriberUid}`,
+      ),
+      {
+        userID: ownerUid,
+        timeStamp: Date.now(),
+      },
+    ),
+  );
+});
+
 test("stories likes allow self like payload", async () => {
   const ownerUid = "story-owner";
   const likerUid = "story-liker";

@@ -24,7 +24,7 @@ class IzBirakSubscriptionService extends GetxService {
         .doc(uid)
         .set({
       'userID': uid,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'timeStamp': DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
   }
 }

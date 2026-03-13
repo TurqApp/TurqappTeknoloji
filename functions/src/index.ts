@@ -690,7 +690,7 @@ export const publishScheduledIzBirakPosts = functions.pubsub
               .collection("users")
               .doc(subscriberId)
               .collection("notifications")
-              .doc(),
+              .doc(`izbirak_${postDoc.id}`),
             {
               type: "Posts",
               fromUserID: ownerId,
@@ -714,6 +714,7 @@ export const publishScheduledIzBirakPosts = functions.pubsub
         batch.set(
           postDoc.ref,
           {
+            scheduledAt: 0,
             timeStamp: now,
             updatedAt: now,
             izBirakPublishedAt: now,
