@@ -2097,6 +2097,7 @@ class _ProfileViewState extends State<ProfileView> {
                             ),
                             const SizedBox(width: 8),
                             GestureDetector(
+                              behavior: HitTestBehavior.opaque,
                               onTap: () async {
                                 await IzBirakSubscriptionService.ensure()
                                     .subscribe(model.docID);
@@ -2105,18 +2106,24 @@ class _ProfileViewState extends State<ProfileView> {
                                   'Yayın tarihinde bildirim alacaksınız.',
                                 );
                               },
-                              child: Container(
-                                width: 22,
-                                height: 22,
-                                alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.green,
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.add,
-                                  color: Colors.white,
-                                  size: 13,
+                              child: SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: Center(
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.green,
+                                    ),
+                                    child: const Icon(
+                                      CupertinoIcons.add,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
