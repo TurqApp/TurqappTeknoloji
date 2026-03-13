@@ -96,13 +96,14 @@ class NavBarController extends GetxController
     });
 
     // ⚠️ CRITICAL FIX: Safely initialize ShortController
-    try {
-      shortCtrl.preloadRange(7);
-    } catch (e) {
-      print('[NavBar] ShortController preload error: $e');
+    if (!GetPlatform.isIOS) {
+      try {
+        shortCtrl.preloadRange(7);
+      } catch (e) {
+        print('[NavBar] ShortController preload error: $e');
+      }
+      _startBackgroundCacheLoop();
     }
-
-    _startBackgroundCacheLoop();
     _startUploadIndicatorSync();
     // Baslangicta e-posta dogrulama popup'i kapali.
   }

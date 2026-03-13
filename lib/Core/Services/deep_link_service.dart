@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:app_links/app_links.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
@@ -24,7 +23,6 @@ import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 
 class DeepLinkService extends GetxService {
-  final AppLinks _appLinks = AppLinks();
   final ShortLinkService _shortLinkService = ShortLinkService();
   static const Duration _lookupTtl = Duration(seconds: 30);
   static final Map<String, _PostLookupCache> _postLookupCache =
@@ -39,7 +37,6 @@ class DeepLinkService extends GetxService {
       <String, _StoryDocLookupCache>{};
   static const Duration _staleRetention = Duration(minutes: 3);
   static const int _maxLookupEntries = 400;
-  StreamSubscription<Uri>? _subscription;
   bool _started = false;
   bool _handling = false;
   final RxBool initialLinkResolved = false.obs;
@@ -116,23 +113,7 @@ class DeepLinkService extends GetxService {
     if (_started) return;
     _started = true;
     initialLinkResolved.value = false;
-
-    _appLinks
-        .getInitialLink()
-        .then((initial) async {
-          if (initial != null) {
-            await _handle(initial);
-          }
-        })
-        .catchError((_) {})
-        .whenComplete(() {
-          initialLinkResolved.value = true;
-        });
-
-    _subscription = _appLinks.uriLinkStream.listen(
-      (uri) => unawaited(_handle(uri)),
-      onError: (_) {},
-    );
+    initialLinkResolved.value = true;
   }
 
   Future<void> _handle(Uri uri) async {
@@ -495,8 +476,6 @@ class DeepLinkService extends GetxService {
 
   @override
   void onClose() {
-    _subscription?.cancel();
-    _subscription = null;
     _started = false;
     super.onClose();
   }

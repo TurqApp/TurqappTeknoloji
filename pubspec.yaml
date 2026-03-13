@@ -64,7 +64,6 @@ dependencies:
   shared_preferences: ^2.5.4
   flutter_local_notifications: ^20.1.0
   firebase_messaging: ^16.1.1
-  app_tracking_transparency: ^2.0.6+1
   google_mobile_ads: ^7.0.0
   flutter_reorderable_grid_view: ^5.5.2
   package_info_plus: ^9.0.0
@@ -73,7 +72,6 @@ dependencies:
   firebase_crashlytics: ^5.0.7
   firebase_performance: ^0.11.1+4
   firebase_remote_config: ^6.1.1
-  app_links: ^6.4.1
   giphy_get: ^3.6.1+1
   flutter_cache_manager: ^3.4.1
   firebase_app_check: ^0.4.1+5

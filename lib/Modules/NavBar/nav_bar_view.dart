@@ -45,25 +45,26 @@ class NavBarView extends StatelessWidget {
 
   // Ensure controllers are available
   void _ensureControllersReady() {
-    if (!Get.isRegistered<ExploreController>()) {
-      Get.put(ExploreController());
-    }
+    final isIOS = GetPlatform.isIOS;
     if (!Get.isRegistered<AgendaController>()) {
       Get.put(AgendaController());
     }
-    if (!Get.isRegistered<ShortController>()) {
+    if (!isIOS && !Get.isRegistered<ExploreController>()) {
+      Get.put(ExploreController());
+    }
+    if (!isIOS && !Get.isRegistered<ShortController>()) {
       Get.put(ShortController());
     }
-    if (!Get.isRegistered<EducationController>()) {
+    if (!isIOS && !Get.isRegistered<EducationController>()) {
       Get.put(EducationController());
     }
-    if (!Get.isRegistered<StoryRowController>()) {
+    if (!isIOS && !Get.isRegistered<StoryRowController>()) {
       Get.put(StoryRowController());
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
     // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
-    if (Get.isRegistered<DeepLinkService>()) {
+    if (!isIOS && Get.isRegistered<DeepLinkService>()) {
       Get.find<DeepLinkService>().start();
     }
 
@@ -73,13 +74,13 @@ class NavBarView extends StatelessWidget {
 
     // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
     // Note: startListeners() has internal guard against multiple calls
-    if (Get.isRegistered<UnreadMessagesController>()) {
+    if (!isIOS && Get.isRegistered<UnreadMessagesController>()) {
       final unreadController = Get.find<UnreadMessagesController>();
       unreadController.startListeners();
     }
 
     // Short preload sadece bir kez tetiklensin (rebuild spam'i engelle)
-    if (Get.isRegistered<ShortController>()) {
+    if (!isIOS && Get.isRegistered<ShortController>()) {
       controller.ensureProactiveShortPreloadStarted();
     }
 

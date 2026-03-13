@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
@@ -163,11 +162,10 @@ class _SplashViewState extends State<SplashView> {
       final bool loggedIn = FirebaseAuth.instance.currentUser != null;
       if (loggedIn) {
         if (Platform.isIOS) {
-          // iOS'ta açılışı bloklamayalım; veri hazırlığı arka planda sürsün.
-          _minimumStartupPrepared =
-              true; // Çift tetiklemeyi engelle: _backgroundInit tekrar _runCriticalWarmStartLoads çağırmasın
-          unawaited(_prepareSynchronizedStartupBeforeNav(
-              isFirstLaunch: isFirstLaunch));
+          // iOS USB/wireless launch senaryolarinda ilk acilista
+          // warm-start ve medya/cache hazirligi jetsam/watchdog riskini artiriyor.
+          // Navigasyonu hemen ac; agir hazirliklari sonrasina birak.
+          _minimumStartupPrepared = true;
         } else {
           await Future.any([
             _prepareSynchronizedStartupBeforeNav(isFirstLaunch: isFirstLaunch),
@@ -177,7 +175,13 @@ class _SplashViewState extends State<SplashView> {
       }
 
       // 🚀 Ağır işleri arka plana at — navigasyonu BLOKLAMA
-      unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
+      if (Platform.isIOS) {
+        Future.delayed(const Duration(seconds: 3), () {
+          unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
+        });
+      } else {
+        unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
+      }
     } catch (e, stack) {
       debugPrint('❌ SplashView _initApp HATA: $e');
       debugPrint('$stack');
@@ -381,7 +385,7 @@ class _SplashViewState extends State<SplashView> {
     if (!Get.isRegistered<UploadQueueService>()) {
       Get.put(UploadQueueService(), permanent: true);
     }
-    if (!Get.isRegistered<DeepLinkService>()) {
+    if (!Platform.isIOS && !Get.isRegistered<DeepLinkService>()) {
       Get.put(DeepLinkService(), permanent: true);
     }
     if (!Get.isRegistered<IndexPoolStore>()) {
@@ -820,11 +824,9 @@ class _SplashViewState extends State<SplashView> {
   }
 
   Future<void> _requestTrackingPermission() async {
-    try {
-      if (Platform.isIOS || Platform.isAndroid) {
-        await AppTrackingTransparency.requestTrackingAuthorization();
-      }
-    } catch (_) {}
+    // iOS launch hattinda native plugin register crash'ini engellemek icin
+    // tracking izni istegini gecici olarak devre disi birakiyoruz.
+    return;
   }
 
   /// 🔐 First launch detection - Clear Firebase Auth if app was reinstalled
