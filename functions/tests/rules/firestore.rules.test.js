@@ -127,6 +127,173 @@ test("posts collection blocks non-owner non-admin from updating another user's p
   );
 });
 
+test("posts collection allows owner to edit content without touching counters", async () => {
+  const ownerUid = "post-owner-edit";
+  const postId = "post-owner-edit-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "ilk metin",
+      stats: {
+        likeCount: 1,
+        commentCount: 2,
+        savedCount: 3,
+        retryCount: 4,
+        statsCount: 5,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertSucceeds(
+    updateDoc(doc(ownerCtx.firestore(), `Posts/${postId}`), {
+      metin: "duzenlenmis metin",
+    }),
+  );
+});
+
+test("posts collection blocks owner from arbitrarily inflating counters", async () => {
+  const ownerUid = "post-owner-counter";
+  const postId = "post-owner-counter-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "ilk metin",
+      stats: {
+        likeCount: 1,
+        commentCount: 0,
+        savedCount: 0,
+        retryCount: 0,
+        statsCount: 0,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertFails(
+    updateDoc(doc(ownerCtx.firestore(), `Posts/${postId}`), {
+      "stats.likeCount": 99,
+    }),
+  );
+});
+
+test("posts collection allows single-step like counter increments", async () => {
+  const ownerUid = "post-owner-like-count";
+  const actorUid = "post-actor-like-count";
+  const postId = "post-like-count-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "like count test",
+      stats: {
+        likeCount: 1,
+        commentCount: 0,
+        savedCount: 0,
+        retryCount: 0,
+        statsCount: 0,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext(actorUid);
+  await assertSucceeds(
+    updateDoc(doc(actorCtx.firestore(), `Posts/${postId}`), {
+      "stats.likeCount": 2,
+    }),
+  );
+});
+
+test("posts collection blocks multi-step like counter jumps", async () => {
+  const ownerUid = "post-owner-like-jump";
+  const actorUid = "post-actor-like-jump";
+  const postId = "post-like-jump-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "like jump test",
+      stats: {
+        likeCount: 1,
+        commentCount: 0,
+        savedCount: 0,
+        retryCount: 0,
+        statsCount: 0,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext(actorUid);
+  await assertFails(
+    updateDoc(doc(actorCtx.firestore(), `Posts/${postId}`), {
+      "stats.likeCount": 4,
+    }),
+  );
+});
+
+test("posts collection allows single-step comment counter decrements", async () => {
+  const ownerUid = "post-owner-comment-count";
+  const actorUid = "post-actor-comment-count";
+  const postId = "post-comment-count-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "comment count test",
+      stats: {
+        likeCount: 0,
+        commentCount: 3,
+        savedCount: 0,
+        retryCount: 0,
+        statsCount: 0,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext(actorUid);
+  await assertSucceeds(
+    updateDoc(doc(actorCtx.firestore(), `Posts/${postId}`), {
+      "stats.commentCount": 2,
+    }),
+  );
+});
+
+test("posts collection blocks multiple stat keys in a single client update", async () => {
+  const ownerUid = "post-owner-multi-stats";
+  const actorUid = "post-actor-multi-stats";
+  const postId = "post-multi-stats-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "multi stats test",
+      stats: {
+        likeCount: 1,
+        commentCount: 1,
+        savedCount: 0,
+        retryCount: 0,
+        statsCount: 0,
+        reportedCount: 0,
+      },
+    });
+  });
+
+  const actorCtx = testEnv.authenticatedContext(actorUid);
+  await assertFails(
+    updateDoc(doc(actorCtx.firestore(), `Posts/${postId}`), {
+      "stats.likeCount": 2,
+      "stats.savedCount": 1,
+    }),
+  );
+});
+
 test("posts likes allow self-scoped interaction payload", async () => {
   const ownerUid = "post-owner-like";
   const likerUid = "post-liker";

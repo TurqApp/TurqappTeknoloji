@@ -30,7 +30,10 @@ service cloud.firestore {
       return isAuth() && isOwnerData(resource.data);
     }
     function isAdmin() {
-      return isAuth() && request.auth.token.admin == true;
+      return isAuth()
+        && request.auth.token is map
+        && request.auth.token.keys().hasAny(['admin'])
+        && request.auth.token.admin == true;
     }
     function isAllowlistedAdmin() {
       return isAuth()
@@ -64,8 +67,7 @@ service cloud.firestore {
       return v in ['active', 'shadow_hidden'];
     }
     function canFlagPostModerationUpdate() {
-      return isBlackBadge()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderation'])
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['moderation'])
         && request.resource.data.moderation is map
         && (
           (
@@ -104,7 +106,8 @@ service cloud.firestore {
             && resource.data.moderation.flaggedBy is list
             && request.auth.uid in resource.data.moderation.flaggedBy
           )
-        );
+        )
+        && isBlackBadge();
     }
     function isAllowlistedPushSender() {
       return canManageAdminPanels()
@@ -186,6 +189,96 @@ service cloud.firestore {
           !request.resource.data.keys().hasAny(['quotedPost'])
           || request.resource.data.quotedPost is bool
         );
+    }
+    function postCounterTopLevelKeys() {
+      return [
+        'stats',
+        'goruntulenmeSayisi', 'viewCount', 'seenCount',
+        'begeniSayisi', 'likeCount',
+        'yorumSayisi', 'commentCount',
+        'kaydetmeSayisi', 'savedCount',
+        'paylasilmaSayisi', 'shareCount'
+      ];
+    }
+    function postStatsKeys() {
+      return [
+        'statsCount', 'likeCount', 'commentCount',
+        'savedCount', 'retryCount', 'reportedCount'
+      ];
+    }
+    function postDocStatValue(docData, key) {
+      return docData is map
+        && docData.keys().hasAny(['stats'])
+        && docData.stats is map
+        && docData.stats.keys().hasAny([key])
+        && docData.stats[key] is int
+        ? docData.stats[key]
+        : 0;
+    }
+    function hasValidPostStatsShape(docData) {
+      return !(docData is map && docData.keys().hasAny(['stats']))
+        || (
+          docData.stats is map
+          && docData.stats.keys().hasOnly(postStatsKeys())
+          && (!docData.stats.keys().hasAny(['statsCount'])
+            || (docData.stats.statsCount is int && docData.stats.statsCount >= 0))
+          && (!docData.stats.keys().hasAny(['likeCount'])
+            || (docData.stats.likeCount is int && docData.stats.likeCount >= 0))
+          && (!docData.stats.keys().hasAny(['commentCount'])
+            || (docData.stats.commentCount is int && docData.stats.commentCount >= 0))
+          && (!docData.stats.keys().hasAny(['savedCount'])
+            || (docData.stats.savedCount is int && docData.stats.savedCount >= 0))
+          && (!docData.stats.keys().hasAny(['retryCount'])
+            || (docData.stats.retryCount is int && docData.stats.retryCount >= 0))
+          && (!docData.stats.keys().hasAny(['reportedCount'])
+            || (docData.stats.reportedCount is int && docData.stats.reportedCount >= 0))
+        );
+    }
+    function changedPostStatsKeys() {
+      return resource.data.keys().hasAny(['stats']) && resource.data.stats is map
+        ? request.resource.data.stats.diff(resource.data.stats).affectedKeys()
+        : request.resource.data.stats.keys();
+    }
+    function postStatDelta(key) {
+      return postDocStatValue(request.resource.data, key)
+        - postDocStatValue(resource.data, key);
+    }
+    function isAllowedPostStatDeltaForKey(key) {
+      return (
+        (key == 'likeCount'
+          || key == 'commentCount'
+          || key == 'savedCount'
+          || key == 'retryCount')
+        && postStatDelta(key) >= -1
+        && postStatDelta(key) <= 1
+      )
+      || (
+        (key == 'statsCount' || key == 'reportedCount')
+        && postStatDelta(key) >= 0
+        && postStatDelta(key) <= 1
+      );
+    }
+    function changedPostStatKeyIsAllowed(key) {
+      return !changedPostStatsKeys().hasAny([key])
+        || isAllowedPostStatDeltaForKey(key);
+    }
+    function canUpdatePostStatsCounters() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats'])
+        && request.resource.data.stats is map
+        && hasValidPostStatsShape(request.resource.data)
+        && changedPostStatsKeys().hasOnly(postStatsKeys())
+        && changedPostStatsKeys().size() == 1
+        && changedPostStatKeyIsAllowed('statsCount')
+        && changedPostStatKeyIsAllowed('likeCount')
+        && changedPostStatKeyIsAllowed('commentCount')
+        && changedPostStatKeyIsAllowed('savedCount')
+        && changedPostStatKeyIsAllowed('retryCount')
+        && changedPostStatKeyIsAllowed('reportedCount');
+    }
+    function canOwnerUpdatePostContent() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postCounterTopLevelKeys());
     }
     function isAllowedNotificationType(v) {
       return v in [
@@ -571,40 +664,14 @@ service cloud.firestore {
     match /Posts/{postId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
-      // Sahip: tüm alanları güncelleyebilir (istatistik alanları hariç — bunlar CF yazar)
-      // Diğer kullanıcılar: yalnızca izin verilen istatistik sayaçlarını yazabilir
+      // Sahip: içerik alanlarını güncelleyebilir.
+      // İstemci sayaçları ise yalnızca tek alan ve izinli delta ile değiştirilebilir.
       allow update: if isAuth() && (
         isAdmin()
         || isAllowlistedAdmin()
         || canFlagPostModerationUpdate()
-        || resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-             'goruntulenmeSayisi', 'viewCount', 'seenCount',
-             'begeniSayisi', 'likeCount',
-             'yorumSayisi', 'commentCount',
-             'kaydetmeSayisi', 'savedCount',
-             'paylasilmaSayisi', 'shareCount'
-           ])
-        || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats'])
-          && request.resource.data.stats is map
-          && (
-            (
-              resource.data.stats is map
-              && request.resource.data.stats.diff(resource.data.stats).affectedKeys().hasOnly([
-                'statsCount', 'likeCount', 'commentCount',
-                'savedCount', 'retryCount', 'reportedCount'
-              ])
-            )
-            || (
-              !resource.data.keys().hasAny(['stats'])
-              && request.resource.data.stats.keys().hasOnly([
-                'statsCount', 'likeCount', 'commentCount',
-                'savedCount', 'retryCount', 'reportedCount'
-              ])
-            )
-          )
-        )
+        || canOwnerUpdatePostContent()
+        || canUpdatePostStatsCounters()
       );
       allow delete: if isAuth() && (
         resource.data.userID == request.auth.uid
