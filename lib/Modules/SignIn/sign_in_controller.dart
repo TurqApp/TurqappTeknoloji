@@ -919,10 +919,8 @@ class SignInController extends GetxController
     print("Giriş işlemi başlatılıyor...");
     bool authSucceeded = false;
     try {
-      print("Email: ${signInEmail.value}");
-      print("Şifre: ${'*' * password.value.length}");
-      final userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      print("Email/şifre ile giriş deneniyor");
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailcontroller.text.contains("@")
             ? emailcontroller.text
             : signInEmail.value,
@@ -932,7 +930,7 @@ class SignInController extends GetxController
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}");
+      print("Giriş başarılı");
       await _restoreAccountIfPendingDeletion();
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
@@ -1073,17 +1071,15 @@ class SignInController extends GetxController
       );
 
       if (found != null) {
-        final nickname = (found["nickname"] ?? "").toString();
         final email = (found["email"] ?? "").toString();
-        print("nickname bulundu: $nickname");
+        print("nickname bulundu");
         signInEmail.value = email;
       } else {
         signInEmail.value = "";
         print("nickname bulunamadı");
       }
-    } catch (e, stack) {
+    } catch (e) {
       print("nicknameFinder hata: $e");
-      print("Detaylı StackTrace: $stack");
     }
   }
 }
