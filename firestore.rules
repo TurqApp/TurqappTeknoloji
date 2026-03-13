@@ -124,6 +124,69 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['timeStamp'])
         && request.resource.data.timeStamp is int;
     }
+    function isValidFutureSafeTimestamp(v) {
+      return v is int
+        && v > 0
+        && v <= request.time.toMillis() + 900000;
+    }
+    function isValidUidDocInteractionPayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        );
+    }
+    function isValidViewerPayload(docId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          docId == request.auth.uid
+          || (
+            request.resource.data.keys().hasAny(['userID'])
+            && request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        );
+    }
+    function isValidResharePayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userID', 'timeStamp', 'originalUserID',
+          'originalPostID', 'sharedPostID', 'quotedPost'
+        ])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['originalUserID'])
+          || request.resource.data.originalUserID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['originalPostID'])
+          || request.resource.data.originalPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['sharedPostID'])
+          || request.resource.data.sharedPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['quotedPost'])
+          || request.resource.data.quotedPost is bool
+        );
+    }
     function isAllowedNotificationType(v) {
       return v in [
         'Posts', 'posts', 'Comment', 'comment',
@@ -552,7 +615,7 @@ service cloud.firestore {
       // Likes
       match /likes/{likeId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
         allow delete: if isAuth() && request.auth.uid == likeId;
       }
 
@@ -575,31 +638,33 @@ service cloud.firestore {
       // Saveds
       match /saveds/{savedId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == savedId;
+        allow create, update: if isValidUidDocInteractionPayload(savedId);
+        allow delete: if isAuth() && request.auth.uid == savedId;
       }
 
       // Reshares
       match /reshares/{reshareId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == reshareId;
+        allow create, update: if isValidResharePayload(reshareId);
+        allow delete: if isAuth() && request.auth.uid == reshareId;
       }
 
       // Reporters
       match /reporters/{reporterId} {
         allow read: if false;
-        allow create: if isAuth() && request.auth.uid == reporterId;
+        allow create, update: if isValidUidDocInteractionPayload(reporterId);
         allow delete: if false;
       }
 
       // Viewers
       match /viewers/{viewerId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
         allow delete: if false;
       }
       match /Viewers/{viewerId} {
         allow read: if isAuth();
-        allow create, update: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
         allow delete: if false;
       }
     }
@@ -607,7 +672,8 @@ service cloud.firestore {
     // Collection group erişimi için reshare alt koleksiyonunu açık tanımla
     match /{path=**}/reshares/{reshareId} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == reshareId;
+      allow create, update: if isValidResharePayload(reshareId);
+      allow delete: if isAuth() && request.auth.uid == reshareId;
     }
 
     // ──────────────────────────────────────────────
@@ -621,11 +687,13 @@ service cloud.firestore {
 
       match /likes/{likeId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
+        allow delete: if isAuth() && request.auth.uid == likeId;
       }
       match /viewers/{viewerId} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
       }
     }
     match /stories/{storyId} {
@@ -642,17 +710,20 @@ service cloud.firestore {
 
       match /likes/{likeId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == likeId;
+        allow create, update: if isValidUidDocInteractionPayload(likeId);
+        allow delete: if isAuth() && request.auth.uid == likeId;
       }
 
       match /viewers/{viewerId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == viewerId;
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
       }
 
       match /Viewers/{viewerId} {
         allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == viewerId;
+        allow create, update: if isValidViewerPayload(viewerId);
+        allow delete: if false;
       }
 
       match /Yorumlar/{commentId} {

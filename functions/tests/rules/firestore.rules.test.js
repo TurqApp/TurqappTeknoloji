@@ -127,6 +127,155 @@ test("posts collection blocks non-owner non-admin from updating another user's p
   );
 });
 
+test("posts likes allow self-scoped interaction payload", async () => {
+  const ownerUid = "post-owner-like";
+  const likerUid = "post-liker";
+  const postId = "post-like-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "like test",
+    });
+  });
+
+  const likerCtx = testEnv.authenticatedContext(likerUid);
+  await assertSucceeds(
+    setDoc(doc(likerCtx.firestore(), `Posts/${postId}/likes/${likerUid}`), {
+      userID: likerUid,
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("posts likes block spoofed payload", async () => {
+  const ownerUid = "post-owner-like-block";
+  const likerUid = "post-liker-block";
+  const postId = "post-like-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "like block test",
+    });
+  });
+
+  const likerCtx = testEnv.authenticatedContext(likerUid);
+  await assertFails(
+    setDoc(doc(likerCtx.firestore(), `Posts/${postId}/likes/${likerUid}`), {
+      userID: "someone-else",
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("posts viewers allow legacy random-doc payload for self", async () => {
+  const ownerUid = "post-owner-view";
+  const viewerUid = "post-viewer";
+  const postId = "post-view-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "viewer test",
+    });
+  });
+
+  const viewerCtx = testEnv.authenticatedContext(viewerUid);
+  await assertSucceeds(
+    setDoc(doc(viewerCtx.firestore(), `Posts/${postId}/viewers/random-doc`), {
+      userID: viewerUid,
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("posts viewers block spoofed user id on random-doc payload", async () => {
+  const ownerUid = "post-owner-view-block";
+  const viewerUid = "post-viewer-block";
+  const postId = "post-view-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "viewer block test",
+    });
+  });
+
+  const viewerCtx = testEnv.authenticatedContext(viewerUid);
+  await assertFails(
+    setDoc(doc(viewerCtx.firestore(), `Posts/${postId}/viewers/random-doc`), {
+      userID: "different-user",
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("posts reshares allow quote metadata payload", async () => {
+  const ownerUid = "post-owner-reshare";
+  const sharerUid = "post-sharer";
+  const postId = "post-reshare-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "reshare test",
+    });
+  });
+
+  const sharerCtx = testEnv.authenticatedContext(sharerUid);
+  await assertSucceeds(
+    setDoc(doc(sharerCtx.firestore(), `Posts/${postId}/reshares/${sharerUid}`), {
+      userID: sharerUid,
+      timeStamp: Date.now(),
+      originalUserID: ownerUid,
+      originalPostID: postId,
+      sharedPostID: "shared-post-1",
+      quotedPost: true,
+    }),
+  );
+});
+
+test("stories likes allow self like payload", async () => {
+  const ownerUid = "story-owner";
+  const likerUid = "story-liker";
+  const storyId = "story-like-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+    });
+  });
+
+  const likerCtx = testEnv.authenticatedContext(likerUid);
+  await assertSucceeds(
+    setDoc(doc(likerCtx.firestore(), `stories/${storyId}/likes/${likerUid}`), {
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("stories viewers allow self viewer payload", async () => {
+  const ownerUid = "story-owner-view";
+  const viewerUid = "story-viewer";
+  const storyId = "story-view-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+    });
+  });
+
+  const viewerCtx = testEnv.authenticatedContext(viewerUid);
+  await assertSucceeds(
+    setDoc(doc(viewerCtx.firestore(), `stories/${storyId}/Viewers/${viewerUid}`), {
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
 test("reports collection allows authenticated complaint payload", async () => {
   const uid = "reporter-user";
   const ctx = testEnv.authenticatedContext(uid);
