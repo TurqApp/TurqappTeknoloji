@@ -1257,8 +1257,16 @@ class _AgendaContentState extends State<AgendaContent>
     required String text,
     required Color color,
   }) {
+    final cleanedText = _ctaNavigationService.sanitizeCaptionText(
+      text,
+      meta: widget.model.reshareMap,
+    );
+    if (cleanedText.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return ClickableTextContent(
-      text: text,
+      text: cleanedText,
       startWith7line: true,
       toggleExpandOnTextTap: true,
       fontSize: 14,
@@ -1885,7 +1893,12 @@ class _AgendaContentState extends State<AgendaContent>
                 ),
                 if ((widget.model.hasPlayableVideo ||
                         widget.model.img.isNotEmpty) &&
-                    widget.model.metin.trim().isNotEmpty)
+                    _ctaNavigationService
+                        .sanitizeCaptionText(
+                          widget.model.metin,
+                          meta: widget.model.reshareMap,
+                        )
+                        .isNotEmpty)
                   _buildFeedCaption(
                     text: widget.model.metin.trim(),
                     color: Colors.black,
@@ -2014,7 +2027,8 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildImageContent(List<String> images) {
-    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
+    final type =
+        _ctaNavigationService.resolveMeta(widget.model.reshareMap).type;
     final preserveScholarshipFrame =
         type == 'scholarship' && widget.model.img.length == 1;
     final singleImageAspectRatio = preserveScholarshipFrame
@@ -2207,9 +2221,11 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildFeedShareCta() {
-    final label = (widget.model.reshareMap['ctaLabel'] ?? '').toString().trim();
-    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
-    final docId = (widget.model.reshareMap['ctaDocId'] ?? '').toString().trim();
+    final resolvedCta =
+        _ctaNavigationService.resolveMeta(widget.model.reshareMap);
+    final label = resolvedCta.label;
+    final type = resolvedCta.type;
+    final docId = resolvedCta.docId;
     if (label.isEmpty || type.isEmpty || docId.isEmpty) {
       return const SizedBox.shrink();
     }

@@ -36,7 +36,9 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
   @override
   Widget build(BuildContext context) {
     final ScholarshipDetailController controller =
-        Get.find<ScholarshipDetailController>();
+        Get.isRegistered<ScholarshipDetailController>()
+            ? Get.find<ScholarshipDetailController>()
+            : Get.put(ScholarshipDetailController());
 
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData == null || scholarshipData['model'] == null) {
@@ -647,8 +649,7 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                                 (ctx, snap) {
                                                               final count = snap
                                                                       .hasData
-                                                                  ? snap
-                                                                      .data!
+                                                                  ? snap.data!
                                                                   : 0;
                                                               return Text(
                                                                 "Başvurular ($count)",

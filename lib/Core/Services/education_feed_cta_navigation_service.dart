@@ -22,50 +22,87 @@ class EducationFeedCtaNavigationService {
       NotifyLookupRepository.ensure();
 
   Future<bool> openFromInternalUrl(String url) async {
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null || uri.scheme.toLowerCase() != 'turqapp') {
-      return false;
-    }
-
-    final host = uri.host.toLowerCase().trim();
-    final segments =
-        uri.pathSegments.where((e) => e.trim().isNotEmpty).toList();
-    if (segments.isEmpty) {
-      return false;
-    }
-
-    String type = '';
-    String docId = '';
-
-    if (host == 'education' || host == 'edu') {
-      if (segments.length >= 2) {
-        type = segments[0];
-        docId = segments[1];
-      } else if (segments.first.contains(':')) {
-        final parts = segments.first.split(':');
-        if (parts.length >= 2) {
-          type = parts.first;
-          docId = parts.sublist(1).join(':');
-        }
-      }
-    }
-
-    final normalizedType = _normalizeType(type);
-    final normalizedDocId = docId.trim();
-    if (normalizedType.isEmpty || normalizedDocId.isEmpty) {
+    final target = _parseInternalEducationTarget(url);
+    if (target == null) {
       return false;
     }
 
     await openFromPostMeta({
-      'ctaType': normalizedType,
-      'ctaDocId': normalizedDocId,
+      'ctaType': target.type,
+      'ctaDocId': target.docId,
     });
     return true;
   }
 
+  ({String label, String type, String docId}) resolveMeta(
+    Map<String, dynamic> meta,
+  ) {
+    final rawLabel = (meta['ctaLabel'] ?? '').toString().trim();
+    var type = _normalizeType((meta['ctaType'] ?? '').toString());
+    var docId = (meta['ctaDocId'] ?? '').toString().trim();
+    final ctaUrl = (meta['ctaUrl'] ?? '').toString().trim();
+
+    final target = _parseInternalEducationTarget(ctaUrl);
+    if (target != null) {
+      if (type.isEmpty) {
+        type = target.type;
+      }
+      if (docId.isEmpty) {
+        docId = target.docId;
+      }
+    }
+
+    final label = rawLabel.isNotEmpty ? rawLabel : _defaultLabelForType(type);
+    return (label: label, type: type, docId: docId);
+  }
+
+  String sanitizeCaptionText(
+    String text, {
+    Map<String, dynamic>? meta,
+  }) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) {
+      return '';
+    }
+
+    final resolved = resolveMeta(meta ?? const <String, dynamic>{});
+    final hasEducationCta = resolved.type.isNotEmpty ||
+        normalized.toLowerCase().contains('turqapp://education/');
+    if (!hasEducationCta) {
+      return normalized;
+    }
+
+    final blockedLabels = <String>{
+      'bursu incele',
+      'sınavı incele',
+      'sinavı incele',
+      'ilanı incele',
+      'ilani incele',
+      if (resolved.label.isNotEmpty) resolved.label.trim().toLowerCase(),
+    };
+
+    final cleanedLines =
+        normalized.split('\n').map((line) => line.trim()).where((line) {
+      if (line.isEmpty) {
+        return false;
+      }
+      final lower = line.toLowerCase();
+      if (lower.contains('turqapp://education/')) {
+        return false;
+      }
+      if (blockedLabels.contains(lower)) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+
+    return cleanedLines.join('\n').trim();
+  }
+
   Future<void> openFromPostMeta(Map<String, dynamic> meta) async {
-    final type = _normalizeType((meta['ctaType'] ?? '').toString());
-    final docId = (meta['ctaDocId'] ?? '').toString().trim();
+    final resolved = resolveMeta(meta);
+    final type = resolved.type;
+    final docId = resolved.docId;
 
     if (type.isEmpty || docId.isEmpty) {
       AppSnackbar('Hata', 'İçerik açılamadı.');
@@ -114,6 +151,55 @@ class EducationFeedCtaNavigationService {
       default:
         return '';
     }
+  }
+
+  String _defaultLabelForType(String type) {
+    switch (type) {
+      case 'scholarship':
+        return 'Bursu İncele';
+      case 'practice-exam':
+        return 'Sınavı İncele';
+      case 'tutoring':
+      case 'job':
+        return 'İlanı İncele';
+      default:
+        return '';
+    }
+  }
+
+  ({String type, String docId})? _parseInternalEducationTarget(String url) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || uri.scheme.toLowerCase() != 'turqapp') {
+      return null;
+    }
+
+    final host = uri.host.toLowerCase().trim();
+    final segments =
+        uri.pathSegments.where((e) => e.trim().isNotEmpty).toList();
+    if (segments.isEmpty || (host != 'education' && host != 'edu')) {
+      return null;
+    }
+
+    String type = '';
+    String docId = '';
+    if (segments.length >= 2) {
+      type = segments[0];
+      docId = segments[1];
+    } else if (segments.first.contains(':')) {
+      final parts = segments.first.split(':');
+      if (parts.length >= 2) {
+        type = parts.first;
+        docId = parts.sublist(1).join(':');
+      }
+    }
+
+    final normalizedType = _normalizeType(type);
+    final normalizedDocId = docId.trim();
+    if (normalizedType.isEmpty || normalizedDocId.isEmpty) {
+      return null;
+    }
+
+    return (type: normalizedType, docId: normalizedDocId);
   }
 
   Future<void> _openScholarship(String docId) async {

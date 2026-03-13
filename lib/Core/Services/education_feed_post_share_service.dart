@@ -54,7 +54,6 @@ class EducationFeedPostShareService {
       ),
       burs.bursVeren.isNotEmpty ? 'Burs Veren: ${burs.bursVeren}' : '',
       burs.bitisTarihi.isNotEmpty ? 'Son Başvuru: ${burs.bitisTarihi}' : '',
-      '[Bursu İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -78,7 +77,6 @@ class EducationFeedPostShareService {
       '"${model.sinavAdi}"',
       _shorten(model.sinavAciklama),
       model.sinavTuru.isNotEmpty ? '${model.sinavTuru} Online Sınavı' : '',
-      '[Sınavı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -104,7 +102,6 @@ class EducationFeedPostShareService {
       _shorten(model.aciklama),
       model.brans.isNotEmpty ? 'Branş: ${model.brans}' : '',
       '${model.sehir}/${model.ilce}',
-      '[İlanı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(
@@ -131,7 +128,6 @@ class EducationFeedPostShareService {
       _shorten(model.about.isNotEmpty ? model.about : model.isTanimi),
       model.brand.isNotEmpty ? 'Şirket: ${model.brand}' : '',
       '${model.city}/${model.town}',
-      '[İlanı İncele]($internalUrl)',
     ]);
 
     await _shareDirectly(

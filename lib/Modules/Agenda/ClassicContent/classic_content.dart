@@ -513,7 +513,8 @@ class _ClassicContentState extends State<ClassicContent>
   static const Color _classicMediaFallbackColor = Color(0xFF15181C);
 
   bool get _shouldPreserveScholarshipShareFrame {
-    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
+    final type =
+        _ctaNavigationService.resolveMeta(widget.model.reshareMap).type;
     return type == 'scholarship' && widget.model.img.length == 1;
   }
 
@@ -594,6 +595,10 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget textOnlyBody(BuildContext context) {
+    final sanitizedCaption = _ctaNavigationService.sanitizeCaptionText(
+      widget.model.metin,
+      meta: widget.model.reshareMap,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -625,7 +630,7 @@ class _ClassicContentState extends State<ClassicContent>
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Text(
-                    widget.model.metin.trim(),
+                    sanitizedCaption,
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 13,
@@ -955,7 +960,10 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget _buildClassicMetaSection() {
-    final caption = widget.model.metin.trim();
+    final caption = _ctaNavigationService.sanitizeCaptionText(
+      widget.model.metin,
+      meta: widget.model.reshareMap,
+    );
     final hasCaption = caption.isNotEmpty;
     final quotedText = widget.model.quotedOriginalText.trim();
     final hasQuotedText = widget.model.quotedPost && quotedText.isNotEmpty;
@@ -1008,7 +1016,12 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget imgBody(BuildContext context) {
-    final hasHeaderSubline = widget.model.metin.trim().isNotEmpty;
+    final hasHeaderSubline = _ctaNavigationService
+        .sanitizeCaptionText(
+          widget.model.metin,
+          meta: widget.model.reshareMap,
+        )
+        .isNotEmpty;
     final mediaTopSpacing = hasHeaderSubline ? 4.0 : 0.0;
     final actionTopSpacing = hasHeaderSubline ? 2.0 : 0.0;
     final mediaVisualLift = hasHeaderSubline ? 0.0 : -6.0;
@@ -1553,9 +1566,11 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget _buildFeedShareCta() {
-    final label = (widget.model.reshareMap['ctaLabel'] ?? '').toString().trim();
-    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
-    final docId = (widget.model.reshareMap['ctaDocId'] ?? '').toString().trim();
+    final resolvedCta =
+        _ctaNavigationService.resolveMeta(widget.model.reshareMap);
+    final label = resolvedCta.label;
+    final type = resolvedCta.type;
+    final docId = resolvedCta.docId;
     if (label.isEmpty || type.isEmpty || docId.isEmpty) {
       return const SizedBox.shrink();
     }
