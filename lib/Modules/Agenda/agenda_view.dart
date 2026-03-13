@@ -196,6 +196,23 @@ class AgendaView extends StatelessWidget {
                         }).toList(growable: false);
                       }
 
+                      final bool shouldFallbackToForYou =
+                          display.isNotEmpty &&
+                          filteredDisplay.isEmpty &&
+                          !controller.isLoading.value &&
+                          (controller.isFollowingMode || controller.isCityMode);
+                      if (shouldFallbackToForYou) {
+                        filteredDisplay = display;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!Get.isRegistered<AgendaController>()) return;
+                          final agendaController = Get.find<AgendaController>();
+                          if (agendaController.feedViewMode.value !=
+                              FeedViewMode.forYou) {
+                            agendaController.setFeedViewMode(FeedViewMode.forYou);
+                          }
+                        });
+                      }
+
                       if (display.isEmpty) {
                         unawaited(controller.ensureInitialFeedLoaded());
                         return SingleChildScrollView(

@@ -154,6 +154,17 @@ class StoryRowController extends GetxController {
       }
       final lim = limit ?? initialLimit;
       final myUid = FirebaseAuth.instance.currentUser?.uid;
+
+      if (myUid != null) {
+        final now = DateTime.now();
+        final shouldCleanup = _lastExpireCleanupAt == null ||
+            now.difference(_lastExpireCleanupAt!) >= _expireCleanupInterval;
+        if (shouldCleanup) {
+          _lastExpireCleanupAt = now;
+          await _storyRepository.markExpiredStoriesDeleted(myUid);
+        }
+      }
+
       final result = await _storyRepository.fetchStoryUsers(
         limit: lim,
         cacheFirst: cacheFirst,
@@ -239,21 +250,10 @@ class StoryRowController extends GetxController {
           _storyRepository.saveStoryRowCache(users, ownerUid: myUid),
         );
       }
-
-      // Kendi süresi dolmuş hikayelerini arşivle ve kaldır
-      if (myUid != null) {
-        final now = DateTime.now();
-        final shouldCleanup = _lastExpireCleanupAt == null ||
-            now.difference(_lastExpireCleanupAt!) >= _expireCleanupInterval;
-        if (shouldCleanup) {
-          _lastExpireCleanupAt = now;
-          await _storyRepository.markExpiredStoriesDeleted(myUid);
-        }
-      }
     } catch (e) {
       print("📚 LoadStories error: $e");
       if (users.isEmpty) {
-        await _loadStoriesFromMiniCache(allowExpired: true);
+        await _loadStoriesFromMiniCache();
       }
     } finally {
       _ensureMyUserPlaceholder();

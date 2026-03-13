@@ -64,6 +64,9 @@ class StoryRepository extends GetxService {
   String? _storyRowCachePath;
   SharedPreferences? _prefs;
 
+  static DateTime get _storyExpiryCutoff =>
+      DateTime.now().subtract(const Duration(hours: 24));
+
   static StoryRepository ensure() {
     if (Get.isRegistered<StoryRepository>()) {
       return Get.find<StoryRepository>();
@@ -263,9 +266,25 @@ class StoryRepository extends GetxService {
       }
       final usersJson =
           (data['users'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+      final expiryCutoff = _storyExpiryCutoff;
       return usersJson
           .map(StoryUserModel.fromCacheMap)
+          .map((user) {
+            if (allowExpired) return user;
+            final activeStories = user.stories
+                .where((story) => story.createdAt.isAfter(expiryCutoff))
+                .toList(growable: false)
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return StoryUserModel(
+              nickname: user.nickname,
+              avatarUrl: user.avatarUrl,
+              fullName: user.fullName,
+              userID: user.userID,
+              stories: activeStories,
+            );
+          })
           .where((u) => u.userID.isNotEmpty)
+          .where((u) => u.stories.isNotEmpty || u.userID == ownerUid)
           .toList(growable: false);
     } catch (_) {
       return const <StoryUserModel>[];
@@ -563,11 +582,13 @@ class StoryRepository extends GetxService {
       snap = await runQuery(null);
     }
 
+    final expiryCutoff = _storyExpiryCutoff;
     final stories = snap.docs
         .where(
           (doc) => includeDeleted || (doc.data()['deleted'] ?? false) != true,
         )
         .map(StoryModel.fromDoc)
+        .where((story) => includeDeleted || story.createdAt.isAfter(expiryCutoff))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return stories;

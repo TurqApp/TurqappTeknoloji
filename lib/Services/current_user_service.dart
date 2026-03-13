@@ -82,6 +82,11 @@ class CurrentUserService extends GetxController {
   /// Stream of user updates
   Stream<CurrentUserModel?> get userStream => _userStreamController.stream;
 
+  void _emitUserEvent(CurrentUserModel? user) {
+    if (_userStreamController.isClosed) return;
+    _userStreamController.add(user);
+  }
+
   /// Current user (synchronous access)
   CurrentUserModel? get currentUser => _currentUser;
 
@@ -365,7 +370,7 @@ class CurrentUserService extends GetxController {
 
       _currentUser = user;
       currentUserRx.value = user;
-      _userStreamController.add(user);
+      _emitUserEvent(user);
       unawaited(_warmAvatar(user));
 
       print('✅ User loaded from cache: ${user.nickname}');
@@ -899,7 +904,7 @@ class CurrentUserService extends GetxController {
     final resolvedUser = await _applyStoredViewSelection(user);
     _currentUser = resolvedUser;
     currentUserRx.value = resolvedUser;
-    _userStreamController.add(resolvedUser);
+    _emitUserEvent(resolvedUser);
     await UserRepository.ensure().seedCurrentUser(resolvedUser);
     unawaited(_warmAvatar(resolvedUser));
     await _saveToCache(resolvedUser);
@@ -1432,7 +1437,7 @@ class CurrentUserService extends GetxController {
 
       _currentUser = null;
       currentUserRx.value = null;
-      _userStreamController.add(null);
+      _emitUserEvent(null);
 
       // 🔥 CRITICAL: Reset initialization flag to allow re-initialization
       _isInitialized = false;
@@ -1457,6 +1462,7 @@ class CurrentUserService extends GetxController {
     _listCache.clear();
     _silentLogAt.clear();
     _userStreamController.close();
+    _instance = null;
     super.onClose();
   }
 

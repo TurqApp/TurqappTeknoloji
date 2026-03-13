@@ -35,6 +35,11 @@ class _PageLineBarState extends State<PageLineBar> {
   late PageLineBarController controller;
   bool _didInit = false;
 
+  bool get _hasAttachedPageController {
+    final pageController = widget.pageController;
+    return pageController != null && pageController.hasClients;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,7 +57,7 @@ class _PageLineBarState extends State<PageLineBar> {
       _didInit = true;
       if (widget.initialIndex != controller.selection.value) {
         controller.selection.value = widget.initialIndex;
-        if (widget.pageController != null) {
+        if (_hasAttachedPageController) {
           widget.pageController!.jumpToPage(widget.initialIndex);
         } else {
           controller.setSelectionTo(widget.initialIndex);
@@ -71,7 +76,7 @@ class _PageLineBarState extends State<PageLineBar> {
             child: GestureDetector(
               onTap: () {
                 controller.selection.value = index;
-                if (widget.pageController != null) {
+                if (_hasAttachedPageController) {
                   widget.pageController!.animateToPage(
                     index,
                     duration: const Duration(milliseconds: 300),
