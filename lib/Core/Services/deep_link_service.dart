@@ -116,7 +116,7 @@ class DeepLinkService extends GetxService {
     initialLinkResolved.value = true;
   }
 
-  Future<void> _handle(Uri uri) async {
+  Future<void> handle(Uri uri) async {
     if (_handling) return;
     final parsed = _parse(uri);
     if (parsed == null) return;
