@@ -86,7 +86,6 @@ class _SoruContentState extends State<SoruContent> {
         storagePathWithoutExt:
             'practiceExams/$mainID/questions/${widget.model.docID}',
       );
-      print("Download URL: $downloadUrl");
 
       FirebaseFirestore.instance
           .collection("practiceExams")

@@ -68,6 +68,7 @@ check_literal "Flood error logunda docID dump'i geri gelmedi" "print('🔥 Flood
 check_literal "Copy link debug print docID geri gelmedi" "print(widget.model.docID);" || failures=$((failures + 1))
 check_literal "Flood listing init docID debug print geri gelmedi" "print(widget.mainModel.docID);" || failures=$((failures + 1))
 check_literal "Antreman yorumlarinda ham user data dump'i geri gelmedi" 'log("User data for $userID: $data");' || failures=$((failures + 1))
+check_literal "Test soru upload logunda signed URL dump'i geri gelmedi" 'print("Download URL: $downloadUrl");' || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

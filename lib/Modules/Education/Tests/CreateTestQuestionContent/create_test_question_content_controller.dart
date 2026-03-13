@@ -72,7 +72,6 @@ class CreateTestQuestionContentController extends GetxController {
         storagePathWithoutExt:
             'Testler/$testID/${DateTime.now().millisecondsSinceEpoch}',
       );
-      print("Download URL: $downloadUrl");
 
       await FirebaseFirestore.instance
           .collection("Testler")
