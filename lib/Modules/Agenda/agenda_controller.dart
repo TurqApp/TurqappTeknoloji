@@ -170,6 +170,42 @@ class AgendaController extends GetxController {
     return value > 0;
   }
 
+  Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
+    required int nowMs,
+    required int cutoffMs,
+    int limit = 40,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final publicIzBirakPosts =
+        await _postRepository.fetchPublicScheduledIzBirakPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (publicIzBirakPosts.isEmpty) return const <PostsModel>[];
+
+    final authorMeta = await _userRepository.getUsersRaw(
+      publicIzBirakPosts.map((p) => p.userID).toSet().toList(),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    final String? me = FirebaseAuth.instance.currentUser?.uid;
+
+    return publicIzBirakPosts.where((post) {
+      final meta = authorMeta[post.userID];
+      final rozet = (meta?['rozet'] ?? '').toString().trim();
+      if (rozet.isEmpty) return false;
+      final isPrivate = (meta?['isPrivate'] ?? false) == true;
+      if (!isPrivate) return true;
+      final isMine = me != null && post.userID == me;
+      final follows = followingIDs.contains(post.userID);
+      return isMine || follows;
+    }).toList(growable: false);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -890,8 +926,6 @@ class AgendaController extends GetxController {
       preferCache: true,
       cacheOnly: true,
     );
-    _usePrimaryFeedPaging = page.usesPrimaryFeed;
-    lastDoc = page.lastDoc;
     if (page.items.isEmpty) return;
 
     final items = page.items
@@ -967,7 +1001,19 @@ class AgendaController extends GetxController {
     if (fromPool.isEmpty) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final uniqueUserIDs = fromPool.map((e) => e.userID).toSet().toList();
+    final cutoffMs = _agendaCutoffMs(nowMs);
+    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: ContentPolicy.feedInitialFromPool,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    final sourcePosts = <PostsModel>[
+      ...fromPool,
+      ...publicIzBirakPosts,
+    ];
+    final uniqueUserIDs = sourcePosts.map((e) => e.userID).toSet().toList();
     final profiles = await _profileCache.getProfiles(
       uniqueUserIDs,
       preferCache: true,
@@ -978,7 +1024,7 @@ class AgendaController extends GetxController {
     // Pool'dan gelen postları gerçekten hızlıca göster.
     // Gizlilik için sadece cache-only profillere güveniriz; bilinmeyen kullanıcıyı
     // hızlı listede göstermeyip ağ fetch'ine bırakırız.
-    final quickFiltered = fromPool.where((post) {
+    final quickFiltered = sourcePosts.where((post) {
       if (hiddenPosts.contains(post.docID)) return false;
       if (post.deletedPost == true) return false;
       if (!_isInAgendaWindow(post.timeStamp, nowMs)) return false;
@@ -1001,7 +1047,7 @@ class AgendaController extends GetxController {
     _addUniqueToAgenda(quickFiltered);
 
     // Arka planda: validasyon + gizlilik kontrolü + reshare
-    unawaited(_postPoolFillCleanup(fromPool, quickFiltered));
+    unawaited(_postPoolFillCleanup(sourcePosts, quickFiltered));
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1263,7 +1309,7 @@ class AgendaController extends GetxController {
       }
     }
 
-    final publicIzBirakPosts = await _postRepository.fetchPublicScheduledIzBirakPosts(
+    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: max(20, limit),
@@ -1425,7 +1471,16 @@ class AgendaController extends GetxController {
       limit: _initialShuffleSize,
     );
 
-    final items = page.items
+    final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: _initialShuffleSize,
+    );
+
+    final items = <PostsModel>[
+      ...page.items,
+      ...publicIzBirakPosts,
+    ]
         .where((p) => _isEligibleAgendaPost(p, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
@@ -1475,7 +1530,16 @@ class AgendaController extends GetxController {
         limit: _backgroundShuffleFetchSize,
       );
 
-      final items = page.items
+      final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: _backgroundShuffleFetchSize,
+      );
+
+      final items = <PostsModel>[
+        ...page.items,
+        ...publicIzBirakPosts,
+      ]
           .where((p) => _isEligibleAgendaPost(p, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
