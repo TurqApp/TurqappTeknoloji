@@ -79,6 +79,7 @@ class PreparedPostModel {
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  static const int _maxScheduledWindowDays = 90;
   final PostRepository _postRepository = PostRepository.ensure();
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
@@ -159,6 +160,19 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   NavBarController? _maybeNavBarController() =>
       _PostCreatorControllerUploadSupportX(this)._maybeNavBarController();
+
+  DateTime get maxIzBirakDate =>
+      DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
+
+  DateTime? _normalizedIzBirakDateTime() {
+    final picked = izBirakDateTime.value;
+    if (publishMode.value != 1 || picked == null) return null;
+    final now = DateTime.now();
+    if (picked.isBefore(now)) return now;
+    final max = maxIzBirakDate;
+    if (picked.isAfter(max)) return max;
+    return picked;
+  }
 
   @override
   void onInit() {
@@ -825,10 +839,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           DateTime.now().month,
           DateTime.now().day + 1,
         ),
+        maximumDate: maxIzBirakDate,
         withTime: true,
         onSelected: (v) {
           publishMode.value = 1;
-          izBirakDateTime.value = v;
+          izBirakDateTime.value = v.isAfter(maxIzBirakDate) ? maxIzBirakDate : v;
         },
         title: "Yayın Tarihini Seç",
       ),
@@ -1102,10 +1117,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         statusText: 'Veritabanına kaydediliyor...',
       );
 
-      final scheduledMs =
-          (publishMode.value == 1 && izBirakDateTime.value != null)
-              ? izBirakDateTime.value!.millisecondsSinceEpoch
-              : 0;
+      final scheduledDate = _normalizedIzBirakDateTime();
+      final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
       final baseTime = scheduledMs != 0 ? scheduledMs : nowMs;
       final locationCity = _resolvePostLocationCity();
 
@@ -1142,7 +1155,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "reshareMap": {
           "visibility": paylasimSelection.value,
         },
-        "scheduledAt": 0,
+        "scheduledAt": scheduledMs,
         "sikayetEdildi": false,
         "stabilized": false,
         "tags": index == 0 ? allHashtags.toList() : [],
@@ -1271,7 +1284,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           reshareMap: {
             "visibility": paylasimSelection.value,
           },
-          scheduledAt: 0,
+          scheduledAt: scheduledMs,
           sikayetEdildi: false,
           stabilized: false,
           tags: index == 0 ? allHashtags.toList() : [],
@@ -1416,7 +1429,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             gif: controller.gif.value,
             commentEnabled: comment.value,
             sharePrivacy: paylasimSelection.value,
-            scheduledDate: izBirakDateTime.value,
+            scheduledDate: _normalizedIzBirakDateTime(),
           );
         }
       }
@@ -1601,10 +1614,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           'quotedSourceAvatarUrl': (_isSharedAsPost && _isQuotedPost)
               ? _quotedSourceAvatarUrl
               : '',
-          'scheduledAt':
-              (publishMode.value == 1 && izBirakDateTime.value != null)
-                  ? izBirakDateTime.value!.millisecondsSinceEpoch
-                  : 0,
+          'scheduledAt': _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0,
         };
 
         // Persist compressed images to temp files for queue (use croppedImages if available)
@@ -2007,10 +2017,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           }
 
           // Calculate timing
-          final baseTime =
-              publishMode.value == 1 && izBirakDateTime.value != null
-                  ? izBirakDateTime.value!.millisecondsSinceEpoch
-                  : nowMs;
+          final scheduledDate = _normalizedIzBirakDateTime();
+          final baseTime = scheduledDate?.millisecondsSinceEpoch ?? nowMs;
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
@@ -2108,7 +2116,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "reshareMap": {
                 "visibility": paylasimSelection.value,
               },
-              "scheduledAt": 0,
+              "scheduledAt": scheduledDate?.millisecondsSinceEpoch ?? 0,
               "sikayetEdildi": false,
               "stabilized": false,
               "tags": index == 0 ? allHashtags.toList() : [],
@@ -2248,7 +2256,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 reshareMap: {
                   "visibility": paylasimSelection.value,
                 },
-                scheduledAt: 0,
+                scheduledAt: scheduledDate?.millisecondsSinceEpoch ?? 0,
                 sikayetEdildi: false,
                 stabilized: false,
                 tags: index == 0 ? allHashtags.toList() : [],

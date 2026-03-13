@@ -22,16 +22,29 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
 
   DateTime _stripTime(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
 
+  DateTime _resolveMaximumDate(DateTime now) =>
+      maximumDate ?? now.add(const Duration(days: 90));
+
+  DateTime _clampPickedDate(DateTime picked, DateTime now) {
+    final max = _resolveMaximumDate(now);
+    if (picked.isBefore(now)) return now;
+    if (picked.isAfter(max)) return max;
+    return picked;
+  }
+
   @override
   Widget build(BuildContext context) {
     final DateTime now = DateTime.now();
     final DateTime today = _stripTime(now);
+    final DateTime resolvedMaximumDate = _resolveMaximumDate(now);
 
     final DateTime effectiveInitial = withTime
-        ? (initialDate.isBefore(now) ? now : initialDate)
+        ? _clampPickedDate(initialDate, now)
         : (() {
             var d = _stripTime(initialDate);
             if (d.isBefore(today)) d = today;
+            final maxDay = _stripTime(resolvedMaximumDate);
+            if (d.isAfter(maxDay)) d = maxDay;
             return d;
           })();
 
@@ -77,9 +90,9 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                         : CupertinoDatePickerMode.date,
                     initialDateTime: effectiveInitial,
                     minimumDate: withTime ? now : today,
-                    maximumDate: maximumDate,
+                    maximumDate: resolvedMaximumDate,
                     onDateTimeChanged: (DateTime date) {
-                      tempPicked = date;
+                      tempPicked = withTime ? _clampPickedDate(date, now) : date;
                     },
                     use24hFormat: true,
                     dateOrder: DatePickerDateOrder.dmy,
@@ -115,7 +128,9 @@ class FutureDatePickerBottomSheet extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      onSelected(tempPicked);
+                      onSelected(withTime
+                          ? _clampPickedDate(tempPicked, now)
+                          : tempPicked);
                       Get.back();
                     },
                     child: Container(
