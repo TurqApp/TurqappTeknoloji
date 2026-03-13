@@ -434,34 +434,80 @@ class PostCreator extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            Obx(() => IconButton(
-                                  onPressed: () {
-                                    if (controller.publishMode.value == 1) {
-                                      noYesAlert(
-                                        title: 'Planlamayı Kaldır',
-                                        message:
-                                            'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
-                                        yesText: 'Kaldır',
-                                        onYesPressed: () {
-                                          controller.publishMode.value = 0;
-                                          controller.izBirakDateTime.value =
-                                              null;
-                                        },
-                                      );
-                                    } else {
-                                      controller.showPublishModePicker();
-                                    }
-                                  },
-                                  iconSize: toolbarIconSize,
-                                  icon: Icon(
-                                    controller.publishMode.value == 1
-                                        ? CupertinoIcons.clock_fill
-                                        : CupertinoIcons.clock,
-                                    color: controller.publishMode.value == 1
-                                        ? Colors.blueAccent
-                                        : Colors.black,
+                            Obx(() {
+                              final scheduled =
+                                  controller.publishMode.value == 1;
+                              return TextButton(
+                                onPressed: () {
+                                  if (scheduled) {
+                                    noYesAlert(
+                                      title: 'Planlamayı Kaldır',
+                                      message:
+                                          'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
+                                      yesText: 'Kaldır',
+                                      onYesPressed: () {
+                                        controller.publishMode.value = 0;
+                                        controller.izBirakDateTime.value = null;
+                                      },
+                                    );
+                                  } else {
+                                    controller.showPublishModePicker();
+                                  }
+                                },
+                                style: ButtonStyle(
+                                  padding: WidgetStateProperty.all(
+                                    const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                   ),
-                                )),
+                                  minimumSize:
+                                      WidgetStateProperty.all(Size.zero),
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  backgroundColor: WidgetStateProperty.all(
+                                    scheduled
+                                        ? const Color(0xFF111111)
+                                        : const Color(0xFFF2F4F8),
+                                  ),
+                                  shape: WidgetStateProperty.all(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(999),
+                                      side: BorderSide(
+                                        color: scheduled
+                                            ? Colors.transparent
+                                            : const Color(0xFFD7DDE8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      scheduled
+                                          ? CupertinoIcons.clock_fill
+                                          : CupertinoIcons.clock,
+                                      size: 18,
+                                      color: scheduled
+                                          ? Colors.white
+                                          : const Color(0xFF111111),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'İz Bırak',
+                                      style: TextStyle(
+                                        color: scheduled
+                                            ? Colors.white
+                                            : const Color(0xFF111111),
+                                        fontSize: 13,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                           ],
                         ),
                       ),
