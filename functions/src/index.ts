@@ -76,7 +76,7 @@ export const cleanupExpiredStories = functions.pubsub
           deletedAt: now,
           reason: "expired_cf",
           userId: userId,
-          createdAtOriginal: data.createdAt ?? now,
+          createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
           backgroundColor: data.backgroundColor ?? 0,
           musicUrl: data.musicUrl ?? "",
           elements: data.elements ?? [],
@@ -110,7 +110,7 @@ export const archiveOnStoryDelete = functions.firestore
         deletedAt: now,
         reason: "onDelete_trigger",
         userId: userId,
-        createdAtOriginal: data.createdAt ?? now,
+        createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
         backgroundColor: data.backgroundColor ?? 0,
         musicUrl: data.musicUrl ?? "",
         elements: data.elements ?? [],
@@ -492,7 +492,10 @@ export const onUserNotificationCreate = functions.firestore
       const userData = (userDoc.data() || {}) as any;
       const token = String((userData.fcmToken as string) || "");
       if (!token) {
-        console.log("onUserNotificationCreate skip:no_token", { uid, type });
+        console.log("onUserNotificationCreate skip:no_token", {
+          type,
+          targetPresent: targetDocID.length > 0,
+        });
         return;
       }
 
@@ -531,7 +534,11 @@ export const onUserNotificationCreate = functions.firestore
           },
         },
       });
-      console.log("onUserNotificationCreate sent", { uid, type, tokenPresent: true });
+      console.log("onUserNotificationCreate sent", {
+        type,
+        tokenPresent: true,
+        targetPresent: targetDocID.length > 0,
+      });
     } catch (e) {
       console.error("onUserNotificationCreate error", e);
     }

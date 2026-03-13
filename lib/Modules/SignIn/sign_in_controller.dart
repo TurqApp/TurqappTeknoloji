@@ -905,7 +905,7 @@ class SignInController extends GetxController
         "Şifreniz başarılı bir şekilde değiştirildi ve giriş yapıldı",
       );
     } on FirebaseAuthException catch (e) {
-      print("Hata: ${e.code} - ${e.message}");
+      print("Şifre güncelleme/giriş akışında auth hatası: ${e.code}");
       AppSnackbar(
         "Bir şeyler ters gitti",
         "Bilinmeyen bir hata oluştu. Hata devam ederse bize ulaşın.",
@@ -963,7 +963,7 @@ class SignInController extends GetxController
       Get.offAll(() => NavBarView());
       return true;
     } on FirebaseAuthException catch (e) {
-      print("Giriş hatası oluştu: ${e.code} - ${e.message}");
+      print("Giriş hatası oluştu: ${e.code}");
       wait.value = false;
       String message;
       switch (e.code) {

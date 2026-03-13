@@ -79,14 +79,10 @@ Future<void> getDeviceInfo() async {
         "deviceVersion": androidInfo.version.release,
         },
       );
-      print(
-        "Android Device Info: Model: ${androidInfo.model} - Version: ${androidInfo.version.release} - Name: ${androidInfo.name}",
-      );
+      print("Android device info synced");
     } else if (Platform.isIOS) {
       IosDeviceInfo iosInfo = await deviceInfoPlugin.iosInfo;
-      print(iosInfo.systemName);
-      print(iosInfo.modelName);
-      print(iosInfo.systemVersion);
+      print("iOS device info synced");
 
       await UserRepository.ensure().updateUserFields(
         FirebaseAuth.instance.currentUser!.uid,

@@ -48,6 +48,9 @@ check_literal "Legacy cache sifresi tekrar hydrate edilmiyor" "sifre: json['sifr
 check_literal "Auth akisinda ham email logu geri gelmedi" 'print("Email: ${signInEmail.value}")' || failures=$((failures + 1))
 check_literal "Auth akisinda parola uzunlugu logu geri gelmedi" 'print("Şifre: ${'"'"'*'"'"' * password.value.length}")' || failures=$((failures + 1))
 check_literal "Auth akisinda UID logu geri gelmedi" 'print("Giriş başarılı! Kullanıcı UID: ${userCredential.user?.uid}")' || failures=$((failures + 1))
+check_literal "Auth akisinda hata mesaji dump'i geri gelmedi" 'print("Giriş hatası oluştu: ${e.code} - ${e.message}")' || failures=$((failures + 1))
+check_literal "Sifre guncelleme akisinda hata mesaji dump'i geri gelmedi" 'print("Hata: ${e.code} - ${e.message}")' || failures=$((failures + 1))
+check_literal "Notification loglarinda uid dump'i geri gelmedi" 'console.log("onUserNotificationCreate sent", { uid, type, tokenPresent: true });' || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo
