@@ -909,10 +909,9 @@ class _AgendaContentState extends State<AgendaContent>
                 ? snapshot.data!.first
                 : null) as Map<String, dynamic>? ??
             const <String, dynamic>{};
-        final sourcePostMap =
-            snapshot.data != null && snapshot.data!.length > 1
-                ? snapshot.data![1] as Map<String, PostsModel>?
-                : null;
+        final sourcePostMap = snapshot.data != null && snapshot.data!.length > 1
+            ? snapshot.data![1] as Map<String, PostsModel>?
+            : null;
         final sourcePostData =
             sourcePostMap?[sourcePostId]?.toMap() ?? const <String, dynamic>{};
         String firstNonEmpty(List<dynamic> values, [String fallback = '']) {
@@ -2015,10 +2014,17 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildImageContent(List<String> images) {
+    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
+    final preserveScholarshipFrame =
+        type == 'scholarship' && widget.model.img.length == 1;
+    final singleImageAspectRatio = preserveScholarshipFrame
+        ? widget.model.aspectRatio.toDouble().clamp(0.65, 1.8)
+        : 0.80;
+
     switch (images.length) {
       case 1:
         return AspectRatio(
-          aspectRatio: 0.80,
+          aspectRatio: singleImageAspectRatio,
           child: _buildImage(images[0], radius: BorderRadius.circular(12)),
         );
 

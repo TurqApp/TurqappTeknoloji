@@ -13,6 +13,16 @@ const storage = admin.storage();
 
 const CDN_DOMAIN = "cdn.turqapp.com";
 
+const TURQ_CLEAN_VISION = Object.freeze({
+  brightness: 0.05,
+  contrast: 0.88,
+  saturation: 1.06,
+  gamma: 1.06,
+  sharpenAmount: 0.65,
+  bloomOpacity: 0.20,
+  bloomSigma: 7,
+});
+
 const clampSegment = (value: unknown, fallback: number): number => {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return fallback;
@@ -78,6 +88,43 @@ const buildForceKeyFrames = (
 
   return marks.join(",");
 };
+
+const buildTurqCleanVisionFilterComplex = (
+  renditionLabel: string,
+  scaleFilter: string
+): string => {
+  const baseLabel = `${renditionLabel}base`;
+  const bloomSourceLabel = `${renditionLabel}bloomsrc`;
+  const bloomLabel = `${renditionLabel}bloom`;
+  const outputLabel = `${renditionLabel}out`;
+
+  const baseChain = [
+    scaleFilter,
+    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
+    "curves=all='0/0.04 0.22/0.30 0.58/0.75 0.84/0.95 1/1'",
+    "colorbalance=rs=-0.01:bs=0.02",
+    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
+  ].join(",");
+
+  const bloomIsolation = [
+    "curves=all='0/0 0.70/0 0.80/0.42 0.90/0.82 1/1'",
+    `gblur=sigma=${TURQ_CLEAN_VISION.bloomSigma}:steps=1`,
+  ].join(",");
+
+  return [
+    `[0:v]${baseChain},split=2[${baseLabel}][${bloomSourceLabel}]`,
+    `[${bloomSourceLabel}]${bloomIsolation}[${bloomLabel}]`,
+    `[${baseLabel}][${bloomLabel}]blend=all_mode='screen':all_opacity=${TURQ_CLEAN_VISION.bloomOpacity}[${outputLabel}]`,
+  ].join(";");
+};
+
+const buildTurqCleanVisionThumbnailFilter = (): string =>
+  [
+    `eq=brightness=${TURQ_CLEAN_VISION.brightness}:contrast=${TURQ_CLEAN_VISION.contrast}:saturation=${TURQ_CLEAN_VISION.saturation}:gamma=${TURQ_CLEAN_VISION.gamma}`,
+    "curves=all='0/0 0.28/0.33 0.62/0.78 0.82/0.94 1/1'",
+    "colorbalance=rs=-0.01:bs=0.02",
+    `unsharp=5:5:${TURQ_CLEAN_VISION.sharpenAmount}:3:3:0.0`,
+  ].join(",");
 
 /**
  * Video tipi bilgisi: path pattern'e göre belirlenir.
@@ -278,15 +325,20 @@ export const onVideoUpload = functions
 
       // ffmpeg multi-output ABR encoding
       const ffmpegArgs = ["-i", inputPath];
+      const filterComplexParts: string[] = [];
+      const outputArgs: string[] = [];
 
       for (let i = 0; i < renditions.length; i++) {
         const r = renditions[i];
         const scale = isPortrait
-          ? `scale=${r.height}:-2`
-          : `scale=-2:${r.height}`;
-        ffmpegArgs.push(
-          "-map", "0:v:0", "-map", "0:a:0?",
-          `-filter:v:${i}`, scale,
+          ? `scale=${r.height}:-2:flags=lanczos`
+          : `scale=-2:${r.height}:flags=lanczos`;
+        const renditionLabel = `r${i}`;
+        filterComplexParts.push(
+          buildTurqCleanVisionFilterComplex(renditionLabel, scale)
+        );
+        outputArgs.push(
+          "-map", `[${renditionLabel}out]`, "-map", "0:a:0?",
           `-c:v:${i}`, "libx264",
           `-b:v:${i}`, `${r.bitrate}k`,
           `-maxrate:v:${i}`, `${r.maxrate}k`,
@@ -302,6 +354,9 @@ export const onVideoUpload = functions
           `-ar:${i}`, "48000",
         );
       }
+
+      ffmpegArgs.push("-filter_complex", filterComplexParts.join(";"));
+      ffmpegArgs.push(...outputArgs);
 
       // forceKeyFrames tüm stream'lere
       if (forceKeyFrames) {
@@ -386,6 +441,7 @@ export const onVideoUpload = functions
             "-i", inputPath,
             "-ss", "1",
             "-vframes", "1",
+            "-vf", buildTurqCleanVisionThumbnailFilter(),
             "-q:v", "2",
             thumbnailJpgPath,
           ]);

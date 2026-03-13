@@ -120,6 +120,15 @@ class _ShortViewState extends State<ShortView> {
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
 
+  Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
+    if (adapter.isDisposed) return;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await adapter.stopPlayback();
+      return;
+    }
+    await adapter.pause();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -172,7 +181,7 @@ class _ShortViewState extends State<ShortView> {
     // Eski video'yu hemen durdur (ucuz operasyon)
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
-      oldVc.pause();
+      _releasePlayback(oldVc);
       oldVc.removeListener(_videoEndListener);
       oldVc.removeListener(_telemetryListener);
     }
@@ -218,7 +227,7 @@ class _ShortViewState extends State<ShortView> {
       if (idx == activePage) continue;
       try {
         vc.setVolume(0);
-        vc.pause();
+        _releasePlayback(vc);
       } catch (_) {}
     }
   }
@@ -409,7 +418,7 @@ class _ShortViewState extends State<ShortView> {
 
     final vc = controller.cache[currentPage];
     if (vc != null) {
-      vc.pause();
+      _releasePlayback(vc);
       vc.removeListener(_videoEndListener);
       vc.removeListener(_telemetryListener);
     }

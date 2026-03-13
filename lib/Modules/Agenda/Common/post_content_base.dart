@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -302,7 +303,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
-      v.pause();
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          !isStandalonePostInstance) {
+        v.stopPlayback();
+      } else {
+        v.pause();
+      }
       _hasAutoPlayed = false;
     }
   }

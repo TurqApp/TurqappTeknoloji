@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,10 +16,12 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
+import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/Components/post_state_messages.dart';
 import '../Common/post_content_base.dart';
@@ -43,12 +46,14 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
 import '../../../Core/functions.dart';
+import '../../../Core/redirection_link.dart';
 import '../../../Core/rozet_content.dart';
 import '../../../Core/texts.dart';
 import '../../../Core/Services/upload_queue_service.dart';
 import '../../Social/PostSharers/post_sharers.dart';
 import '../../SocialProfile/social_profile.dart';
 import '../../PostCreator/post_creator.dart';
+import '../TagPosts/tag_posts.dart';
 import 'classic_content_controller.dart';
 
 class ClassicContent extends PostContentBase {
@@ -119,6 +124,15 @@ class _ClassicContentState extends State<ClassicContent>
 
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
+
+  Future<void> _openMentionProfile(String mention) async {
+    final targetUid =
+        await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (targetUid.isNotEmpty && targetUid != currentUid) {
+      await Get.to(() => SocialProfile(userID: targetUid));
+    }
+  }
 
   void _pauseFeedBeforeFullscreen() {
     try {
@@ -498,8 +512,16 @@ class _ClassicContentState extends State<ClassicContent>
   static const double _squareFrameAspectRatio = 1;
   static const Color _classicMediaFallbackColor = Color(0xFF15181C);
 
+  bool get _shouldPreserveScholarshipShareFrame {
+    final type = (widget.model.reshareMap['ctaType'] ?? '').toString().trim();
+    return type == 'scholarship' && widget.model.img.length == 1;
+  }
+
   double get _resolvedClassicFrameAspectRatio {
     final raw = widget.model.aspectRatio.toDouble();
+    if (_shouldPreserveScholarshipShareFrame && raw > 0) {
+      return raw.clamp(0.65, 1.8);
+    }
     if (raw <= 0) return _squareFrameAspectRatio;
     if (raw < 0.7) return _reelPortraitFrameAspectRatio;
     if (raw < 0.9) return _feedPortraitFrameAspectRatio;
@@ -692,7 +714,21 @@ class _ClassicContentState extends State<ClassicContent>
           children: [
             TextSpan(text: nickname, style: nameStyle),
             const TextSpan(text: '  '),
-            TextSpan(text: text, style: bodyStyle),
+            ...ClickableTextController.buildSpans(
+              text: text,
+              plainStyle: bodyStyle,
+              urlStyle: bodyStyle.copyWith(color: Colors.blue),
+              hashtagStyle: bodyStyle.copyWith(color: Colors.blue),
+              mentionStyle: bodyStyle.copyWith(color: Colors.blue),
+              onUrlTap: (url) => RedirectionLink().goToLink(url),
+              onHashtagTap: (tag) {
+                if (tag.trim().isEmpty) return;
+                Get.to(() => TagPosts(tag: tag.trim()));
+              },
+              onMentionTap: (mention) {
+                unawaited(_openMentionProfile(mention));
+              },
+            ),
           ],
         );
 

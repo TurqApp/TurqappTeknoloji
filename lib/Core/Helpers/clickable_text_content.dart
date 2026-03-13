@@ -43,11 +43,17 @@ class ClickableTextController extends GetxController {
     _buildSpans();
   }
 
-  void _buildSpans() {
-    for (final span in spans) {
-      span.recognizer?.dispose();
-    }
-
+  static List<TextSpan> buildSpans({
+    required String text,
+    required TextStyle plainStyle,
+    required TextStyle urlStyle,
+    required TextStyle hashtagStyle,
+    required TextStyle mentionStyle,
+    void Function(String url)? onUrlTap,
+    void Function(String hashtag)? onHashtagTap,
+    void Function(String mention)? onMentionTap,
+    void Function(String plain)? onPlainTextTap,
+  }) {
     final List<TextSpan> result = [];
     final pattern = RegExp(
       r'(\[([^\]]+)\]\(([^)\s]+)\))|((?:https?:\/\/)[^\s]+)|(@[^\s@#]+)|(#[^\s#@]+)',
@@ -62,11 +68,11 @@ class ClickableTextController extends GetxController {
         result.add(
           TextSpan(
             text: plain,
-            style: _plainStyle(),
+            style: plainStyle,
             recognizer: onPlainTextTap == null
                 ? null
                 : (TapGestureRecognizer()
-                  ..onTap = () => onPlainTextTap?.call(plain.trim())),
+                  ..onTap = () => onPlainTextTap.call(plain.trim())),
           ),
         );
       }
@@ -78,30 +84,28 @@ class ClickableTextController extends GetxController {
       if (markdownLabel != null && markdownTarget != null) {
         result.add(TextSpan(
           text: markdownLabel,
-          style: _urlStyle(),
+          style: urlStyle,
           recognizer: TapGestureRecognizer()
             ..onTap = () => onUrlTap?.call(markdownTarget),
         ));
       } else if (match.startsWith('http')) {
         result.add(TextSpan(
           text: match,
-          style: _urlStyle(),
+          style: urlStyle,
           recognizer: TapGestureRecognizer()
             ..onTap = () => onUrlTap?.call(match),
         ));
       } else if (match.startsWith('#')) {
         result.add(TextSpan(
           text: match,
-          style: _hashtagStyle(),
+          style: hashtagStyle,
           recognizer: TapGestureRecognizer()
             ..onTap = () => onHashtagTap?.call(match.substring(1)),
         ));
       } else if (match.startsWith('@')) {
-        // Mentions: sadece '@' işaretinden önce boşluk veya satır başı varsa tıkla/renkli yap
         bool validBoundary = true;
         if (m.start > 0) {
           final prevChar = text[m.start - 1];
-          // Öncesi boşluk değilse (ör. e‑posta 'abc@domain' gibi) mention sayma
           if (!RegExp(r'\s').hasMatch(prevChar)) {
             validBoundary = false;
           }
@@ -109,19 +113,18 @@ class ClickableTextController extends GetxController {
         if (validBoundary) {
           result.add(TextSpan(
             text: match,
-            style: _mentionStyle(),
+            style: mentionStyle,
             recognizer: TapGestureRecognizer()
               ..onTap = () => onMentionTap?.call(match.substring(1)),
           ));
         } else {
-          // Normal metin olarak ekle
           result.add(TextSpan(
             text: match,
-            style: _plainStyle(),
+            style: plainStyle,
             recognizer: onPlainTextTap == null
                 ? null
                 : (TapGestureRecognizer()
-                  ..onTap = () => onPlainTextTap?.call(match.trim())),
+                  ..onTap = () => onPlainTextTap.call(match.trim())),
           ));
         }
       }
@@ -133,15 +136,34 @@ class ClickableTextController extends GetxController {
       final plain = text.substring(lastEnd);
       result.add(TextSpan(
         text: plain,
-        style: _plainStyle(),
+        style: plainStyle,
         recognizer: onPlainTextTap == null
             ? null
             : (TapGestureRecognizer()
-              ..onTap = () => onPlainTextTap?.call(plain.trim())),
+              ..onTap = () => onPlainTextTap.call(plain.trim())),
       ));
     }
 
-    spans.assignAll(result);
+    return result;
+  }
+
+  void _buildSpans() {
+    for (final span in spans) {
+      span.recognizer?.dispose();
+    }
+    spans.assignAll(
+      buildSpans(
+        text: text,
+        plainStyle: _plainStyle(),
+        urlStyle: _urlStyle(),
+        hashtagStyle: _hashtagStyle(),
+        mentionStyle: _mentionStyle(),
+        onUrlTap: onUrlTap,
+        onHashtagTap: onHashtagTap,
+        onMentionTap: onMentionTap,
+        onPlainTextTap: onPlainTextTap,
+      ),
+    );
   }
 
   void toggleExpand() {

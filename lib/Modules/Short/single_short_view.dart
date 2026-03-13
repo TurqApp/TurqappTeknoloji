@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -120,6 +121,15 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
 
+  Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
+    if (adapter.isDisposed) return;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await adapter.stopPlayback();
+      return;
+    }
+    await adapter.pause();
+  }
+
   Widget _cachedThumb(String url) {
     return CachedNetworkImage(
       imageUrl: url,
@@ -167,8 +177,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     for (final vp in _videoControllers.values) {
       try {
         if (vp.isDisposed) continue;
-        if (vp.value.isInitialized && vp.value.isPlaying) {
-          await vp.pause();
+        if (vp.value.isInitialized) {
+          await _releasePlayback(vp);
         }
       } catch (_) {}
     }
@@ -178,8 +188,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       try {
         if (injected.isDisposed) {
           // no-op
-        } else if (injected.value.isInitialized && injected.value.isPlaying) {
-          await injected.pause();
+        } else if (injected.value.isInitialized) {
+          await _releasePlayback(injected);
         }
       } catch (_) {}
     }
@@ -395,7 +405,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final prev = _videoControllers[currentPage];
     if (prev != null) {
       try {
-        prev.pause();
+        _releasePlayback(prev);
       } catch (_) {}
     }
 
@@ -413,7 +423,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     for (final entry in _videoControllers.entries) {
       if (entry.key == currentPage) continue;
       try {
-        entry.value.pause();
+        _releasePlayback(entry.value);
       } catch (_) {}
     }
 
@@ -434,7 +444,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final injected = widget.injectedController;
     if (injected != null && (vp == null || !identical(injected, vp))) {
       try {
-        injected.pause();
+        _releasePlayback(injected);
       } catch (_) {}
     }
 

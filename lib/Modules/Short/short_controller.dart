@@ -73,6 +73,14 @@ class ShortController extends GetxController {
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
 
+  Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await adapter.stopPlayback();
+      return;
+    }
+    await adapter.pause();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -591,7 +599,7 @@ class ShortController extends GetxController {
     // Uzak videolar COLD aşamasında dispose edildiğinden toplam yük yine kontrol altında.
     for (final i in warmIndices) {
       if (cache.containsKey(i) && _tiers[i] != _CacheTier.warm) {
-        cache[i]!.pause();
+        await _downgradeAdapterForWarmTier(cache[i]!);
         _tiers[i] = _CacheTier.warm;
       }
     }
@@ -631,7 +639,7 @@ class ShortController extends GetxController {
           cache.remove(k);
           _tiers.remove(k);
         } else {
-          cache[k]?.pause();
+          cache[k]?.stopPlayback();
           _tiers[k] = _CacheTier.warm;
         }
       }
