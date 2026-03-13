@@ -521,6 +521,40 @@ class PostRepository extends GetxService {
     return sorted;
   }
 
+  Future<List<PostsModel>> fetchPublicScheduledIzBirakPosts({
+    required int nowMs,
+    required int cutoffMs,
+    int limit = 40,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final snap = await _getQueryWithSource(
+      _firestore
+          .collection('Posts')
+          .where('arsiv', isEqualTo: false)
+          .where('deletedPost', isEqualTo: false)
+          .where('flood', isEqualTo: false)
+          .where('scheduledAt', isGreaterThan: 0)
+          .orderBy('scheduledAt')
+          .limit(limit),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+
+    final merged = <String, PostsModel>{};
+    for (final doc in snap.docs) {
+      final model = PostsModel.fromMap(doc.data(), doc.id);
+      final ts = model.timeStamp.toInt();
+      if (ts < cutoffMs) continue;
+      if (ts > nowMs && model.scheduledAt.toInt() <= 0) continue;
+      merged[model.docID] = model;
+    }
+
+    final sorted = merged.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return sorted;
+  }
+
   Future<PostsModel?> fetchPostById(
     String postId, {
     bool preferCache = true,

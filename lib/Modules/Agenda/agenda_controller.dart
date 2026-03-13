@@ -1263,6 +1263,17 @@ class AgendaController extends GetxController {
       }
     }
 
+    final publicIzBirakPosts = await _postRepository.fetchPublicScheduledIzBirakPosts(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: max(20, limit),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    for (final post in publicIzBirakPosts) {
+      merged.putIfAbsent(post.docID, () => post);
+    }
+
     if (merged.isEmpty && page.lastDoc == null && lastDoc == null) {
       return _loadLegacyAgendaSourcePage(
         nowMs: nowMs,
