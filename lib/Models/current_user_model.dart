@@ -559,6 +559,19 @@ class CurrentUserModel {
     };
   }
 
+  /// Redacted cache payload for local device storage.
+  ///
+  /// Keep UX-critical profile fields, but avoid persisting device and push
+  /// metadata that can be re-hydrated from Firebase/Auth on demand.
+  Map<String, dynamic> toCacheJson() {
+    final json = toJson();
+    json.remove('device');
+    json.remove('deviceID');
+    json.remove('deviceVersion');
+    json.remove('token');
+    return json;
+  }
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 📥 From JSON (for SharedPreferences cache)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

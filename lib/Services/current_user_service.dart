@@ -399,7 +399,7 @@ class CurrentUserService extends GetxController {
       // Debounce: Wait 300ms before actually writing
       _cacheSaveTimer = Timer(const Duration(milliseconds: 300), () async {
         try {
-          final json = jsonEncode(user.toJson());
+          final json = jsonEncode(user.toCacheJson());
           await _prefs?.setString(_cacheKey, json);
           await _prefs?.setInt(
               _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
