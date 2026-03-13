@@ -56,6 +56,34 @@ export function enforceRateLimit(
   _maybeCleanup(nowMs);
 
   const key = `${action}:${uid}`;
+  _enforceRateLimitForStoreKey(key, action, limit, windowSec, nowMs);
+}
+
+export function enforceRateLimitForKey(
+  keySubject: string,
+  action: string,
+  limit: number,
+  windowSec: number
+): void {
+  const normalized = String(keySubject || "").trim().toLowerCase();
+  if (!normalized) {
+    throw new HttpsError("invalid-argument", "rate_limit_key_required");
+  }
+
+  const nowMs = Date.now();
+  _maybeCleanup(nowMs);
+
+  const key = `${action}:${normalized}`;
+  _enforceRateLimitForStoreKey(key, action, limit, windowSec, nowMs);
+}
+
+function _enforceRateLimitForStoreKey(
+  key: string,
+  action: string,
+  limit: number,
+  windowSec: number,
+  nowMs: number
+): void {
   const windowMs = windowSec * 1000;
 
   const entry = _store.get(key);

@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { enforceRateLimit } = require("../../lib/rateLimiter.js");
+const {
+  enforceRateLimit,
+  enforceRateLimitForKey,
+} = require("../../lib/rateLimiter.js");
 
 test("enforceRateLimit allows requests while under limit", () => {
   const uid = `allow-${Date.now()}-${Math.random()}`;
@@ -17,6 +20,26 @@ test("enforceRateLimit throws resource-exhausted when limit is exceeded", () => 
 
   assert.throws(
     () => enforceRateLimit(uid, "unit_deny", 1, 60),
+    (error) =>
+      typeof error?.code === "string" &&
+      error.code.includes("resource-exhausted"),
+  );
+});
+
+test("enforceRateLimitForKey allows requests while under limit", () => {
+  const key = `allow-${Date.now()}-${Math.random()}@example.com`;
+  assert.doesNotThrow(() => {
+    enforceRateLimitForKey(key, "unit_key_allow", 2, 60);
+    enforceRateLimitForKey(key, "unit_key_allow", 2, 60);
+  });
+});
+
+test("enforceRateLimitForKey throws resource-exhausted when limit is exceeded", () => {
+  const key = `deny-${Date.now()}-${Math.random()}`;
+  enforceRateLimitForKey(key, "unit_key_deny", 1, 60);
+
+  assert.throws(
+    () => enforceRateLimitForKey(key, "unit_key_deny", 1, 60),
     (error) =>
       typeof error?.code === "string" &&
       error.code.includes("resource-exhausted"),

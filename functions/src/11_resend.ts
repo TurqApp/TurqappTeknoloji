@@ -3,6 +3,7 @@ import axios from "axios";
 import { Resend } from "resend";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
 
 const REGION = "europe-west3";
 const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
@@ -353,6 +354,7 @@ export const sendEmailVerificationCode = onCall(
     if (!validEmail(emailLower)) {
       throw new HttpsError("invalid-argument", "Geçersiz e-posta formatı");
     }
+    enforceRateLimitForKey(emailLower, `email_code_send_${purpose}`, 5, 600);
 
     await sendCodeInternal(request, emailLower, purpose);
 
@@ -376,6 +378,7 @@ export const verifyEmailCode = onCall(
     }
 
     const emailLower = emailRaw.toLowerCase().trim();
+    enforceRateLimitForKey(emailLower, `email_code_verify_${purpose}`, 12, 600);
     const codeRef = verificationRef(emailLower, purpose);
     const verificationDoc = await codeRef.get();
 
@@ -424,6 +427,7 @@ export const updateUserEmail = onCall(
   },
   async (request: CallableRequest) => {
     const caller = await resolveCaller(request);
+    RateLimits.general(caller.uid);
     const newEmail = String(request.data?.newEmail || "").toLowerCase().trim();
 
     if (!newEmail || !validEmail(newEmail)) {
@@ -474,6 +478,7 @@ export const markCurrentEmailVerified = onCall(
   },
   async (request: CallableRequest) => {
     const caller = await resolveCaller(request);
+    RateLimits.general(caller.uid);
     const userSnap = await db.collection("users").doc(caller.uid).get();
     const profileEmail = String((userSnap.data() || {}).email || "").toLowerCase().trim();
     const emailToConfirm = profileEmail || String(caller.email || "").toLowerCase().trim();
@@ -559,6 +564,7 @@ export const updateUserPhoneNumberAfterEmailVerification = onCall(
   },
   async (request: CallableRequest) => {
     const caller = await resolveCaller(request);
+    RateLimits.general(caller.uid);
     const newPhoneRaw = String(request.data?.newPhone || "").trim();
     const newPhone = normalizePhone(newPhoneRaw);
     if (newPhone.length !== 10 || !newPhone.startsWith("5")) {
@@ -617,6 +623,7 @@ export const sendPasswordResetSmsCode = onCall(
       if (!validEmail(emailLower)) {
         throw new HttpsError("invalid-argument", "Geçersiz e-posta formatı");
       }
+      enforceRateLimitForKey(emailLower, "password_reset_sms_send", 5, 600);
 
       const userQuery = await db
         .collection("users")
@@ -720,6 +727,7 @@ export const sendSignupSmsCode = onCall(
       if (phone.length !== 10 || !phone.startsWith("5")) {
         throw new HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
       }
+      enforceRateLimitForKey(phone, "signup_sms_send", 4, 900);
 
       const existingUser = await db
         .collection("users")
@@ -817,6 +825,7 @@ export const verifySignupSmsCode = onCall(
     if (!/^\d{6}$/.test(verificationCode)) {
       throw new HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
     }
+    enforceRateLimitForKey(phone, "signup_sms_verify", 12, 900);
 
     const smsRef = signupSmsRef(phone);
     const snap = await smsRef.get();
@@ -880,6 +889,7 @@ export const verifyPasswordResetSmsCode = onCall(
     if (!/^\d{6}$/.test(verificationCode)) {
       throw new HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
     }
+    enforceRateLimitForKey(emailLower, "password_reset_sms_verify", 12, 900);
 
     const smsRef = passwordResetSmsRef(emailLower);
     const snap = await smsRef.get();

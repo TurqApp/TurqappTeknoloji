@@ -6,6 +6,7 @@ const axios_1 = require("axios");
 const resend_1 = require("resend");
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
+const rateLimiter_1 = require("./rateLimiter");
 const REGION = "europe-west3";
 const RESEND_API_KEY = (0, params_1.defineSecret)("RESEND_API_KEY");
 const EMAIL_ACCOUNTS_COLLECTION = "emailAccounts";
@@ -295,6 +296,7 @@ exports.sendEmailVerificationCode = (0, https_1.onCall)({
     if (!validEmail(emailLower)) {
         throw new https_1.HttpsError("invalid-argument", "Geçersiz e-posta formatı");
     }
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, `email_code_send_${purpose}`, 5, 600);
     await sendCodeInternal(request, emailLower, purpose);
     return { success: true, message: "Doğrulama kodu e-posta adresinize gönderildi" };
 });
@@ -310,6 +312,7 @@ exports.verifyEmailCode = (0, https_1.onCall)({
         throw new https_1.HttpsError("invalid-argument", "Email ve doğrulama kodu gereklidir");
     }
     const emailLower = emailRaw.toLowerCase().trim();
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, `email_code_verify_${purpose}`, 12, 600);
     const codeRef = verificationRef(emailLower, purpose);
     const verificationDoc = await codeRef.get();
     if (!verificationDoc.exists) {
@@ -347,6 +350,7 @@ exports.updateUserEmail = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const newEmail = String(request.data?.newEmail || "").toLowerCase().trim();
     if (!newEmail || !validEmail(newEmail)) {
         throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta adresi gerekli");
@@ -383,6 +387,7 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const userSnap = await db.collection("users").doc(caller.uid).get();
     const profileEmail = String((userSnap.data() || {}).email || "").toLowerCase().trim();
     const emailToConfirm = profileEmail || String(caller.email || "").toLowerCase().trim();
@@ -452,6 +457,7 @@ exports.updateUserPhoneNumberAfterEmailVerification = (0, https_1.onCall)({
     memory: "256MiB",
 }, async (request) => {
     const caller = await resolveCaller(request);
+    rateLimiter_1.RateLimits.general(caller.uid);
     const newPhoneRaw = String(request.data?.newPhone || "").trim();
     const newPhone = normalizePhone(newPhoneRaw);
     if (newPhone.length !== 10 || !newPhone.startsWith("5")) {
@@ -495,6 +501,7 @@ exports.sendPasswordResetSmsCode = (0, https_1.onCall)({
         if (!validEmail(emailLower)) {
             throw new https_1.HttpsError("invalid-argument", "Geçersiz e-posta formatı");
         }
+        (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, "password_reset_sms_send", 5, 600);
         const userQuery = await db
             .collection("users")
             .where("email", "==", emailLower)
@@ -581,6 +588,7 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
         if (phone.length !== 10 || !phone.startsWith("5")) {
             throw new https_1.HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
         }
+        (0, rateLimiter_1.enforceRateLimitForKey)(phone, "signup_sms_send", 4, 900);
         const existingUser = await db
             .collection("users")
             .where("phoneNumber", "==", phone)
@@ -662,6 +670,7 @@ exports.verifySignupSmsCode = (0, https_1.onCall)({
     if (!/^\d{6}$/.test(verificationCode)) {
         throw new https_1.HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
     }
+    (0, rateLimiter_1.enforceRateLimitForKey)(phone, "signup_sms_verify", 12, 900);
     const smsRef = signupSmsRef(phone);
     const snap = await smsRef.get();
     if (!snap.exists) {
@@ -708,6 +717,7 @@ exports.verifyPasswordResetSmsCode = (0, https_1.onCall)({
     if (!/^\d{6}$/.test(verificationCode)) {
         throw new https_1.HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
     }
+    (0, rateLimiter_1.enforceRateLimitForKey)(emailLower, "password_reset_sms_verify", 12, 900);
     const smsRef = passwordResetSmsRef(emailLower);
     const snap = await smsRef.get();
     if (!snap.exists) {
