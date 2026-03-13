@@ -40,3 +40,9 @@ assets/data/service_account.json
 # macOS metadata
 .DS_Store
 **/.DS_Store
+
+# Firebase emulator logs
+functions/*-debug.log
+functions/firestore-debug.log
+functions/storage-debug.log
+functions/ui-debug.log
