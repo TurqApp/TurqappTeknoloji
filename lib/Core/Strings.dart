@@ -2,78 +2,93 @@ import '../Models/report_model.dart';
 
 List<ReportModel> reportSelections = [
   ReportModel(
-    title: "Telif ve/veya Taklit Kullanıcı",
+    key: "impersonation",
+    title: "Taklit / Sahte Hesap / Kimlik Kullanımı",
     description:
-        "Şikayet konusu hesap, bana ait telif haklarıyla korunan içerikleri izinsiz kullanmakta ve/veya kimliğimi taklit etmektedir. İlgili içerik ve hesabın incelenerek kaldırılmasını talep ediyorum.",
+        "Bu hesap veya içerik, kimlik taklidi, sahte hesap kullanımı ya da başka bir kişiyi izinsiz temsil etme şüphesi taşıyor.",
   ),
   ReportModel(
-    title: "Küfür",
+    key: "copyright",
+    title: "Telif / İzinsiz İçerik Kullanımı",
     description:
-        "Bu içerikte açık bir şekilde küfür, argo ya da toplum normlarına aykırı dil kullanımı bulunmaktadır.",
+        "Bu içerik telif hakkıyla korunan materyalleri izinsiz kullanıyor veya fikri mülkiyet ihlali içeriyor olabilir.",
   ),
   ReportModel(
-    title: "Hakaret",
+    key: "harassment",
+    title: "Taciz / Hedef Gösterme / Zorbalık",
     description:
-        "Bu içerikte şahsıma ya da bir başkasına yönelik hakaret, alay ya da aşağılayıcı ifadeler yer almaktadır.",
+        "Bu içerik bir kişiyi rahatsız etme, aşağılamaya çalışma, hedef gösterme ya da sistematik zorbalık içeriği taşıyor.",
   ),
   ReportModel(
-    title: "Spam",
+    key: "hate_speech",
+    title: "Nefret Söylemi",
     description:
-        "Bu içerik tekrar eden ya da gereksiz mesajlar içeriyor ve spam niteliği taşıyor. Rahatsız edici bir davranış sergileniyor.",
+        "Bu içerik bir gruba veya kişiye karşı nefret, ayrımcılık ya da aşağılayıcı söylem içeriyor.",
   ),
   ReportModel(
-    title: "Yalan, İftira, Taciz",
+    key: "nudity",
+    title: "Çıplaklık / Cinsel İçerik",
     description:
-        "Bu içerikte doğru olmayan bilgiler, iftiralar ya da herhangi bir kişiyi rahatsız edebilecek düzeyde taciz içeriği bulunmaktadır.",
+        "Bu içerik çıplaklık, müstehcenlik ya da açık cinsel içerik barındırıyor olabilir.",
   ),
   ReportModel(
-    title: "Bahis ve Kumara Özendirme",
+    key: "violence",
+    title: "Şiddet / Tehdit",
     description:
-        "Bu içerik bahis oyunları ya da kumar gibi zararlı alışkanlıklara yönlendirme veya teşvik edici unsurlar içeriyor.",
+        "Bu içerik fiziksel şiddet, tehdit, korkutma ya da zarar verme çağrısı içeriyor olabilir.",
   ),
   ReportModel(
-    title: "Şiddet ve Nefret Söylemi",
+    key: "spam",
+    title: "Spam / Alakasız Tekrar İçerik",
     description:
-        "Bu içerik bireylere veya gruplara karşı şiddet içeren mesajlar ya da nefret söylemi barındırmaktadır.",
+        "Bu içerik tekrar eden, alakasız, yanıltıcı ya da rahatsız edici biçimde spam niteliği taşıyor.",
   ),
   ReportModel(
-    title: "Çocuk Güvenliği",
+    key: "scam",
+    title: "Dolandırıcılık / Yanıltma",
     description:
-        "Bu içerik, çocukların güvenliğini tehlikeye atabilecek unsurlar veya yaşlarına uygun olmayan materyaller içeriyor.",
+        "Bu içerik para, bilgi ya da güven istismarı amacıyla yanıltıcı veya dolandırıcılık içerikli olabilir.",
   ),
   ReportModel(
-    title: "Çıplaklık veya Cinsellik",
+    key: "misinformation",
+    title: "Yanlış Bilgi / Manipülasyon",
     description:
-        "Bu içerik uygunsuz çıplaklık, müstehcen görüntüler ya da cinsel içerikli materyaller içermektedir.",
+        "Bu içerik gerçeği çarpıtan, yanlış bilgi yayan ya da manipülatif yönlendirme yapan unsurlar içeriyor olabilir.",
   ),
   ReportModel(
-    title: "Uyuşturucu",
+    key: "illegal_content",
+    title: "Yasa Dışı İçerik",
     description:
-        "Bu içerik uyuşturucu madde kullanımını teşvik ediyor ya da yasadışı maddelere ilişkin açık referanslar barındırıyor.",
+        "Bu içerik yasa dışı faaliyet, suç teşviki ya da hukuka aykırı materyal içeriyor olabilir.",
   ),
   ReportModel(
-    title: "İntihar ve Kendine Zarar Verme",
+    key: "child_safety",
+    title: "Çocuk Güvenliği İhlali",
     description:
-        "Bu içerik intihar düşüncelerini teşvik eden ya da kendine zarar verme eylemlerini destekleyici unsurlar içeriyor.",
+        "Bu içerik çocuk güvenliğini tehlikeye atıyor ya da çocuklara uygun olmayan zararlı unsurlar taşıyor olabilir.",
   ),
   ReportModel(
-    title: "Fikri Mülkiyet Hakkı",
+    key: "self_harm",
+    title: "Kendine Zarar Verme / İntihar Teşviki",
     description:
-        "Bu içerik, telif hakkı ya da fikri mülkiyet haklarını ihlal eden unsurlar barındırıyor olabilir.",
+        "Bu içerik kendine zarar verme, intihar teşviki ya da bu yönde yönlendirme içeriyor olabilir.",
   ),
   ReportModel(
+    key: "privacy_violation",
     title: "Gizlilik İhlali",
     description:
-        "Bu içerik, kişisel bilgilerin izinsiz paylaşımı ya da mahremiyetin ihlaline yönelik unsurlar içeriyor.",
+        "Bu içerik kişisel verilerin izinsiz paylaşımı, doxxing ya da mahremiyet ihlali içeriyor olabilir.",
   ),
   ReportModel(
-    title: "Yalan Haber",
+    key: "fake_engagement",
+    title: "Sahte Etkileşim / Bot / Manipülatif Büyütme",
     description:
-        "Bu içerik yanıltıcı veya gerçek dışı bilgiler sunarak insanları yanlış yönlendirme amacı taşıyor.",
+        "Bu içerik sahte beğeni, bot etkileşimi ya da yapay büyütme amaçlı manipülatif davranış içeriyor olabilir.",
   ),
   ReportModel(
-    title: "Dini Hakaret",
+    key: "other",
+    title: "Diğer",
     description:
-        "Bu içerik dini inançlara veya değerlere karşı saygısızlık ya da hakaret içeriyor olabilir.",
+        "Yukarıdaki seçeneklerin dışında kalan, ayrıca incelenmesini istediğiniz başka bir ihlal nedeni bulunuyor.",
   ),
 ];
