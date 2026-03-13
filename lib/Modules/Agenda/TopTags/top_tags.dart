@@ -44,9 +44,7 @@ class TopTags extends StatelessWidget {
                 backgroundColor: Colors.black,
                 color: Colors.white,
                 onRefresh: () async {
-                  controller.lastDoc = null;
-                  controller.hasMore = true;
-                  controller.agendaList.clear();
+                  controller.resetFeedState();
                   await controller.fetchAgendaBigData(initial: true);
                   await controller.getTags();
                 },

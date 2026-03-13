@@ -44,6 +44,13 @@ class TopTagsController extends GetxController {
     super.onClose();
   }
 
+  void resetFeedState() {
+    hasMore = true;
+    agendaList.clear();
+    centeredIndex.value = 0;
+    lastCenteredIndex = null;
+  }
+
   Future<void> fetchAgendaBigData({bool initial = false}) async {
     if (isLoadingMore || (!initial && !hasMore)) return;
 
