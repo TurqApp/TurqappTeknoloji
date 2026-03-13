@@ -4,7 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import * as functions from "firebase-functions";
 import axios from "axios";
-import { enforceRateLimit } from "./rateLimiter";
+import { enforceRateLimit, enforceRateLimitForKey } from "./rateLimiter";
 
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
@@ -850,6 +850,15 @@ export const resolveShortLink = onCall(
     const type = normalizeType(req.data?.type);
     const inputId = normalizeText(req.data?.id, 64);
     if (!inputId) throw new HttpsError("invalid-argument", "id zorunlu.");
+
+    const rawRequest = (req as CallableRequest<ResolveShortLinkPayload> & {
+      rawRequest?: { ip?: string; headers?: Record<string, string | string[] | undefined> };
+    }).rawRequest;
+    const ipHeader = rawRequest?.headers?.["cf-connecting-ip"];
+    const rateKey = Array.isArray(ipHeader)
+      ? String(ipHeader[0] || rawRequest?.ip || inputId)
+      : String(ipHeader || rawRequest?.ip || inputId);
+    enforceRateLimitForKey(rateKey, "short_link_resolve", 120, 60);
 
     // user slug her zaman lowercase; post/story shortId case-sensitive.
     const candidateIds =

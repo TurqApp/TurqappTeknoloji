@@ -1075,7 +1075,8 @@ export const f15_getLatestPostIdsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
