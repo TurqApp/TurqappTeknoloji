@@ -838,8 +838,11 @@ class PostRepository extends GetxService {
       query = query.startAfterDocument(lastDoc);
     }
     final snap = await query.get();
+    final filteredDocs = snap.docs
+        .where((doc) => doc.data()['quotedPost'] != true)
+        .toList(growable: false);
     return PostSubcollectionPage(
-      userIds: snap.docs
+      userIds: filteredDocs
           .map((doc) => (doc.data()['userID'] ?? doc.id).toString())
           .where((id) => id.trim().isNotEmpty)
           .toList(growable: false),
@@ -853,7 +856,41 @@ class PostRepository extends GetxService {
     DocumentSnapshot<Map<String, dynamic>>? lastDoc,
     int limit = 20,
   }) async {
-    if (postId.trim().isEmpty) {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty) {
+      return const PostSubcollectionPage(
+        userIds: <String>[],
+        lastDoc: null,
+        hasMore: false,
+      );
+    }
+
+    Query<Map<String, dynamic>> quoteQuery = _firestore
+        .collection('Posts')
+        .doc(normalizedPostId)
+        .collection('reshares')
+        .orderBy('timeStamp', descending: true)
+        .limit(limit * 3);
+    if (lastDoc != null) {
+      quoteQuery = quoteQuery.startAfterDocument(lastDoc);
+    }
+
+    final explicitSnap = await quoteQuery.get();
+    final quoteDocs = explicitSnap.docs
+        .where((doc) => doc.data()['quotedPost'] == true)
+        .toList(growable: false);
+    if (quoteDocs.isNotEmpty) {
+      return PostSubcollectionPage(
+        userIds: quoteDocs
+            .map((doc) => (doc.data()['userID'] ?? doc.id).toString().trim())
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false),
+        lastDoc: explicitSnap.docs.last,
+        hasMore: explicitSnap.docs.length >= (limit * 3),
+      );
+    }
+
+    if (lastDoc != null) {
       return const PostSubcollectionPage(
         userIds: <String>[],
         lastDoc: null,
@@ -863,13 +900,37 @@ class PostRepository extends GetxService {
 
     final collected = <String>[];
     final seen = <String>{};
-    var cursor = lastDoc;
+    DocumentSnapshot<Map<String, dynamic>>? cursor;
     var hasMore = true;
+
+    Future<void> collectQuotePostsByField(String field) async {
+      final snap = await _firestore
+          .collection('Posts')
+          .where(field, isEqualTo: normalizedPostId)
+          .where('quotedPost', isEqualTo: true)
+          .limit(limit * 2)
+          .get();
+
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if (data['deletedPost'] == true) continue;
+        final userId = (data['userID'] ?? '').toString().trim();
+        if (userId.isEmpty || seen.contains(userId)) continue;
+        seen.add(userId);
+        collected.add(userId);
+        if (collected.length >= limit) return;
+      }
+    }
+
+    await collectQuotePostsByField('sourcePostID');
+    if (collected.length < limit) {
+      await collectQuotePostsByField('originalPostID');
+    }
 
     while (collected.length < limit && hasMore) {
       Query<Map<String, dynamic>> query = _firestore
           .collection('Posts')
-          .doc(postId.trim())
+          .doc(normalizedPostId)
           .collection('postSharers')
           .orderBy('timestamp', descending: true)
           .limit(limit);

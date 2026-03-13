@@ -20,6 +20,7 @@ class PostCreator extends StatelessWidget {
   final bool sharedAsPost;
   final String? originalUserID;
   final String? originalPostID;
+  final String? sourcePostID;
   final bool quotedPost;
   final String? quotedOriginalText;
   final String? quotedSourceUserID;
@@ -38,6 +39,7 @@ class PostCreator extends StatelessWidget {
     this.sharedAsPost = false,
     this.originalUserID,
     this.originalPostID,
+    this.sourcePostID,
     this.quotedPost = false,
     this.quotedOriginalText,
     this.quotedSourceUserID,
@@ -60,6 +62,7 @@ class PostCreator extends StatelessWidget {
       sharedAsPost: sharedAsPost,
       originalUserID: originalUserID,
       originalPostID: originalPostID,
+      sourcePostID: sourcePostID,
       quotedPost: quotedPost,
       quotedOriginalText: quotedOriginalText,
       quotedSourceUserID: quotedSourceUserID,

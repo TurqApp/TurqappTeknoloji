@@ -99,9 +99,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   late final UploadQueueService _uploadQueueService;
   late final DraftService _draftService;
   bool _sharedSourceApplied = false;
+  String _sharedSourceFingerprint = "";
   bool _isSharedAsPost = false;
   String _sharedOriginalUserID = "";
   String _sharedOriginalPostID = "";
+  String _sharedSourcePostID = "";
   bool _isQuotedPost = false;
   String _quotedOriginalText = "";
   String _quotedSourceUserID = "";
@@ -190,6 +192,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     required bool sharedAsPost,
     String? originalUserID,
     String? originalPostID,
+    String? sourcePostID,
     bool quotedPost = false,
     String? quotedOriginalText,
     String? quotedSourceUserID,
@@ -200,11 +203,29 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     final cleanUrl = videoUrl.trim();
     final cleanImages =
         imageUrls.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final fingerprint = [
+      sharedAsPost,
+      cleanUrl,
+      cleanImages.join('|'),
+      aspectRatio.toStringAsFixed(6),
+      thumbnail.trim(),
+      (originalUserID ?? '').trim(),
+      (originalPostID ?? '').trim(),
+      (sourcePostID ?? '').trim(),
+      quotedPost,
+      (quotedOriginalText ?? '').trim(),
+      (quotedSourceUserID ?? '').trim(),
+      (quotedSourceDisplayName ?? '').trim(),
+      (quotedSourceUsername ?? '').trim(),
+      (quotedSourceAvatarUrl ?? '').trim(),
+    ].join('::');
     if (!sharedAsPost) {
       _sharedSourceApplied = false;
+      _sharedSourceFingerprint = "";
       _isSharedAsPost = false;
       _sharedOriginalUserID = "";
       _sharedOriginalPostID = "";
+      _sharedSourcePostID = "";
       _isQuotedPost = false;
       _quotedOriginalText = "";
       _quotedSourceUserID = "";
@@ -213,12 +234,14 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       _quotedSourceAvatarUrl = "";
       return;
     }
-    if (_sharedSourceApplied) return;
+    if (_sharedSourceApplied && _sharedSourceFingerprint == fingerprint) return;
     _sharedSourceApplied = true;
+    _sharedSourceFingerprint = fingerprint;
 
     _isSharedAsPost = true;
     _sharedOriginalUserID = (originalUserID ?? '').trim();
     _sharedOriginalPostID = (originalPostID ?? '').trim();
+    _sharedSourcePostID = (sourcePostID ?? '').trim();
     _isQuotedPost = quotedPost;
     _quotedOriginalText = (quotedOriginalText ?? '').trim();
     _quotedSourceUserID = (quotedSourceUserID ?? '').trim();
@@ -1137,6 +1160,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         // Schema: Original attribution fields must always exist
         "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
         "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
+        "sourcePostID": _isSharedAsPost ? _sharedSourcePostID : "",
         "sharedAsPost": _isSharedAsPost,
         "quotedPost": _isSharedAsPost ? _isQuotedPost : false,
         "quotedOriginalText":
@@ -1156,24 +1180,71 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           _sharedOriginalPostID.isNotEmpty &&
           index == 0) {
         try {
+          final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+          final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
+          debugPrint(
+            '[QuotePublish/direct] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId',
+          );
           final originalPostRef = FirebaseFirestore.instance
               .collection("Posts")
               .doc(_sharedOriginalPostID);
-          await originalPostRef
-              .collection("postSharers")
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .set({
-            "userID": FirebaseAuth.instance.currentUser!.uid,
-            "timestamp": DateTime.now().millisecondsSinceEpoch,
+          await originalPostRef.collection("reshares").doc(currentUserId).set({
+            "userID": currentUserId,
+            "timeStamp": quoteTimestamp,
+            "originalUserID": _sharedOriginalUserID,
+            "originalPostID": _sharedOriginalPostID,
             "sharedPostID": docID,
             "quotedPost": _isQuotedPost,
-          });
+          }, SetOptions(merge: true));
+          if (!_isQuotedPost) {
+            await FirebaseFirestore.instance
+                .collection("users")
+                .doc(currentUserId)
+                .collection("reshared_posts")
+                .doc(_sharedOriginalPostID)
+                .set({
+              "post_docID": _sharedOriginalPostID,
+              "timeStamp": quoteTimestamp,
+              "originalUserID": _sharedOriginalUserID,
+              "originalPostID": _sharedOriginalPostID,
+              "sharedPostID": docID,
+              "quotedPost": false,
+            }, SetOptions(merge: true));
+          }
           if (_isQuotedPost) {
             await originalPostRef.update({
               "stats.retryCount": FieldValue.increment(1),
             });
+            debugPrint(
+              '[QuotePublish/direct] incremented original retryCount post=$_sharedOriginalPostID',
+            );
           }
-        } catch (_) {}
+          if (_sharedSourcePostID.isNotEmpty &&
+              _sharedSourcePostID != _sharedOriginalPostID) {
+            final sourcePostRef = FirebaseFirestore.instance
+                .collection("Posts")
+                .doc(_sharedSourcePostID);
+            await sourcePostRef.collection("reshares").doc(currentUserId).set({
+              "userID": currentUserId,
+              "timeStamp": quoteTimestamp,
+              "originalUserID": _sharedOriginalUserID,
+              "originalPostID": _sharedOriginalPostID,
+              "sharedPostID": docID,
+              "quotedPost": _isQuotedPost,
+            }, SetOptions(merge: true));
+            if (_isQuotedPost) {
+              await sourcePostRef.update({
+                "stats.retryCount": FieldValue.increment(1),
+              });
+              debugPrint(
+                '[QuotePublish/direct] incremented source retryCount post=$_sharedSourcePostID',
+              );
+            }
+          }
+        } catch (e, st) {
+          debugPrint('[QuotePublish/direct] failed: $e');
+          debugPrintStack(stackTrace: st);
+        }
       }
 
       uploadedPosts.add(
@@ -1513,6 +1584,23 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           },
           if (controller.pollData.value != null)
             'poll': controller.pollData.value,
+          'sharedAsPost': _isSharedAsPost,
+          'originalUserID': _sharedOriginalUserID,
+          'originalPostID': _sharedOriginalPostID,
+          'sourcePostID': _sharedSourcePostID,
+          'quotedPost': _isSharedAsPost ? _isQuotedPost : false,
+          'quotedOriginalText':
+              (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : '',
+          'quotedSourceUserID':
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : '',
+          'quotedSourceDisplayName': (_isSharedAsPost && _isQuotedPost)
+              ? _quotedSourceDisplayName
+              : '',
+          'quotedSourceUsername':
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : '',
+          'quotedSourceAvatarUrl': (_isSharedAsPost && _isQuotedPost)
+              ? _quotedSourceAvatarUrl
+              : '',
           'scheduledAt':
               (publishMode.value == 1 && izBirakDateTime.value != null)
                   ? izBirakDateTime.value!.millisecondsSinceEpoch
@@ -2037,6 +2125,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               if (post.poll.isNotEmpty) "poll": post.poll,
               "originalUserID": _isSharedAsPost ? _sharedOriginalUserID : "",
               "originalPostID": _isSharedAsPost ? _sharedOriginalPostID : "",
+              "sourcePostID": _isSharedAsPost ? _sharedSourcePostID : "",
               "sharedAsPost": _isSharedAsPost,
               "quotedPost": _isSharedAsPost ? _isQuotedPost : false,
               "quotedOriginalText":
@@ -2059,24 +2148,77 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 _sharedOriginalPostID.isNotEmpty &&
                 index == 0) {
               try {
+                final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+                final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
+                debugPrint(
+                  '[QuotePublish/direct-alt] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId',
+                );
                 final originalPostRef = FirebaseFirestore.instance
                     .collection("Posts")
                     .doc(_sharedOriginalPostID);
                 await originalPostRef
-                    .collection("postSharers")
-                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .collection("reshares")
+                    .doc(currentUserId)
                     .set({
-                  "userID": FirebaseAuth.instance.currentUser!.uid,
-                  "timestamp": DateTime.now().millisecondsSinceEpoch,
+                  "userID": currentUserId,
+                  "timeStamp": quoteTimestamp,
+                  "originalUserID": _sharedOriginalUserID,
+                  "originalPostID": _sharedOriginalPostID,
                   "sharedPostID": docID,
                   "quotedPost": _isQuotedPost,
-                });
+                }, SetOptions(merge: true));
+                if (!_isQuotedPost) {
+                  await FirebaseFirestore.instance
+                      .collection("users")
+                      .doc(currentUserId)
+                      .collection("reshared_posts")
+                      .doc(_sharedOriginalPostID)
+                      .set({
+                    "post_docID": _sharedOriginalPostID,
+                    "timeStamp": quoteTimestamp,
+                    "originalUserID": _sharedOriginalUserID,
+                    "originalPostID": _sharedOriginalPostID,
+                    "sharedPostID": docID,
+                    "quotedPost": false,
+                  }, SetOptions(merge: true));
+                }
                 if (_isQuotedPost) {
                   await originalPostRef.update({
                     "stats.retryCount": FieldValue.increment(1),
                   });
+                  debugPrint(
+                    '[QuotePublish/direct-alt] incremented original retryCount post=$_sharedOriginalPostID',
+                  );
                 }
-              } catch (_) {}
+                if (_sharedSourcePostID.isNotEmpty &&
+                    _sharedSourcePostID != _sharedOriginalPostID) {
+                  final sourcePostRef = FirebaseFirestore.instance
+                      .collection("Posts")
+                      .doc(_sharedSourcePostID);
+                  await sourcePostRef
+                      .collection("reshares")
+                      .doc(currentUserId)
+                      .set({
+                    "userID": currentUserId,
+                    "timeStamp": quoteTimestamp,
+                    "originalUserID": _sharedOriginalUserID,
+                    "originalPostID": _sharedOriginalPostID,
+                    "sharedPostID": docID,
+                    "quotedPost": _isQuotedPost,
+                  }, SetOptions(merge: true));
+                  if (_isQuotedPost) {
+                    await sourcePostRef.update({
+                      "stats.retryCount": FieldValue.increment(1),
+                    });
+                    debugPrint(
+                      '[QuotePublish/direct-alt] incremented source retryCount post=$_sharedSourcePostID',
+                    );
+                  }
+                }
+              } catch (e, st) {
+                debugPrint('[QuotePublish/direct-alt] failed: $e');
+                debugPrintStack(stackTrace: st);
+              }
             }
 
             // Create PostsModel

@@ -4,7 +4,7 @@ import 'package:turqappv2/Modules/Agenda/PostReshareListing/PostReshareContent/p
 import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
-class PostReshareListing extends StatelessWidget {
+class PostReshareListing extends StatefulWidget {
   const PostReshareListing({
     super.key,
     required this.postID,
@@ -13,14 +13,40 @@ class PostReshareListing extends StatelessWidget {
   final String postID;
 
   @override
+  State<PostReshareListing> createState() => _PostReshareListingState();
+}
+
+class _PostReshareListingState extends State<PostReshareListing> {
+  late final PostReshareListingController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<PostReshareListingController>(tag: widget.postID)) {
+      Get.delete<PostReshareListingController>(
+        tag: widget.postID,
+        force: true,
+      );
+    }
+    controller = Get.put(
+      PostReshareListingController(postID: widget.postID),
+      tag: widget.postID,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<PostReshareListingController>(tag: widget.postID)) {
+      Get.delete<PostReshareListingController>(
+        tag: widget.postID,
+        force: true,
+      );
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller =
-        Get.isRegistered<PostReshareListingController>(tag: postID)
-            ? Get.find<PostReshareListingController>(tag: postID)
-            : Get.put(
-                PostReshareListingController(postID: postID),
-                tag: postID,
-              );
     final screenHeight = MediaQuery.of(context).size.height;
     final safeTop = MediaQuery.of(context).padding.top;
     final safeBottom = MediaQuery.of(context).padding.bottom;

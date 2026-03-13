@@ -2288,6 +2288,7 @@ class _ClassicContentState extends State<ClassicContent>
           sharedThumbnail: widget.model.thumbnail,
           originalUserID: finalOriginalUserID,
           originalPostID: finalOriginalPostID,
+          sourcePostID: widget.model.docID,
           sharedAsPost: true,
           quotedPost: true,
           quotedOriginalText: resolvedQuotedText,
@@ -2302,8 +2303,11 @@ class _ClassicContentState extends State<ClassicContent>
 
   void _openReshareUsersSheet() {
     videoController?.pause();
+    final targetPostId = widget.model.originalPostID.trim().isNotEmpty
+        ? widget.model.originalPostID.trim()
+        : widget.model.docID;
     Get.bottomSheet(
-      PostReshareListing(postID: widget.model.docID),
+      PostReshareListing(postID: targetPostId),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     ).then((_) {
@@ -2315,11 +2319,16 @@ class _ClassicContentState extends State<ClassicContent>
     return Obx(() {
       final int visibility = widget.model.paylasimVisibility;
       final bool isOwner = controller.userService.userId == widget.model.userID;
+      final currentUserId = controller.userService.userId;
       final bool canReshare = isOwner ||
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
-      final bool isReshared = controller.yenidenPaylasildiMi.value;
+      final bool isCurrentUsersReshareCard =
+          currentUserId.isNotEmpty &&
+          widget.reshareUserID?.trim() == currentUserId;
+      final bool isReshared =
+          controller.yenidenPaylasildiMi.value || isCurrentUsersReshareCard;
       final Color displayColor = isReshared ? Colors.green : _actionColor;
 
       return PullDownButton(

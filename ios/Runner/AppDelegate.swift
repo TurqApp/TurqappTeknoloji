@@ -16,20 +16,11 @@ import AVFoundation
     setenv("FIRAAppCheckDebugToken", "5E0932DD-33D6-44AB-B373-7E5EEEA9B36E", 1)
 #endif
 
-    GeneratedPluginRegistrant.register(with: self)
+    // iOS beyaz ekrani native plugin register zincirinden izole etmek icin
+    // ilk frame testinde otomatik plugin kaydini gecici olarak kapat.
 
-    // Register native HLS player plugin
-    if let registrar = self.registrar(forPlugin: "HLSPlayerPlugin") {
-      HLSPlayerPlugin.register(with: registrar)
-    }
-
-    // Google Maps API key (Info.plist: GMSApiKey)
-    if let mapsKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String,
-       !mapsKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-      DispatchQueue.main.async {
-        GMSServices.provideAPIKey(mapsKey)
-      }
-    }
+    // iOS launch hattindaki native beyaz ekran davranisini izole etmek icin
+    // ek native plugin/kurulum islerini gecici olarak ertele.
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

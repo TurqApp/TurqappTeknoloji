@@ -165,10 +165,6 @@ Future<void> _activateAppCheck() async {
       );
     }
 
-    if (kDebugMode) {
-      final token = await FirebaseAppCheck.instance.getToken(true);
-      debugPrint('[AppCheck] Debug token: $token');
-    }
   } catch (e, st) {
     debugPrint('[AppCheck] activation failed: $e');
     FirebaseCrashlytics.instance.recordError(e, st, fatal: false);
@@ -361,6 +357,49 @@ class MyApp extends StatelessWidget {
             ),
           );
         },
-        home: const SplashView());
+        home: GetPlatform.isIOS
+            ? const _IOSLaunchProbe()
+            : const SplashView());
+  }
+}
+
+class _IOSLaunchProbe extends StatefulWidget {
+  const _IOSLaunchProbe();
+
+  @override
+  State<_IOSLaunchProbe> createState() => _IOSLaunchProbeState();
+}
+
+class _IOSLaunchProbeState extends State<_IOSLaunchProbe> {
+  bool _navigated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[LaunchProbe] first frame rendered');
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        if (!mounted || _navigated) return;
+        _navigated = true;
+        Get.offAll(() => const SplashView());
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Text(
+          'TurqApp',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 42,
+            fontFamily: AppFontFamilies.mbold,
+          ),
+        ),
+      ),
+    );
   }
 }

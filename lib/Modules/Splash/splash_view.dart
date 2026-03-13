@@ -128,7 +128,20 @@ class _SplashViewState extends State<SplashView> {
       // En yavaş olan toplam süreyi belirler (sıralı değil)
       late final SharedPreferences prefs;
       await Future.wait([
-        firebaseBootstrapFuture.then((_) => FirestoreConfig.initialize()),
+        (() async {
+          await firebaseBootstrapFuture.timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              debugPrint('[StartupTrace] firebase bootstrap timeout');
+            },
+          );
+          await FirestoreConfig.initialize().timeout(
+            const Duration(seconds: 2),
+            onTimeout: () {
+              debugPrint('[StartupTrace] firestore config timeout');
+            },
+          );
+        })(),
         SharedPreferences.getInstance().then((v) => prefs = v),
         _initAudioContext().catchError((_) {}),
       ]);

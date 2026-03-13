@@ -200,6 +200,24 @@ class UploadQueueService extends GetxController {
           Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
       final Map<String, dynamic> poll =
           Map<String, dynamic>.from(postDataMap['poll'] ?? {});
+      final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
+      final String originalUserID =
+          (postDataMap['originalUserID'] ?? '').toString().trim();
+      final String originalPostID =
+          (postDataMap['originalPostID'] ?? '').toString().trim();
+      final String sourcePostID =
+          (postDataMap['sourcePostID'] ?? '').toString().trim();
+      final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
+      final String quotedOriginalText =
+          (postDataMap['quotedOriginalText'] ?? '').toString().trim();
+      final String quotedSourceUserID =
+          (postDataMap['quotedSourceUserID'] ?? '').toString().trim();
+      final String quotedSourceDisplayName =
+          (postDataMap['quotedSourceDisplayName'] ?? '').toString().trim();
+      final String quotedSourceUsername =
+          (postDataMap['quotedSourceUsername'] ?? '').toString().trim();
+      final String quotedSourceAvatarUrl =
+          (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
       if (yorumMap.isEmpty) {
         final bool comment = (postDataMap['comment'] ?? true) == true;
         yorumMap['visibility'] = comment ? 0 : 3;
@@ -273,8 +291,21 @@ class UploadQueueService extends GetxController {
         "yorumMap": yorumMap,
         "reshareMap": reshareMap,
         if (poll.isNotEmpty) "poll": poll,
-        "originalUserID": "",
-        "originalPostID": "",
+        "originalUserID": sharedAsPost ? originalUserID : "",
+        "originalPostID": sharedAsPost ? originalPostID : "",
+        "sourcePostID": sharedAsPost ? sourcePostID : "",
+        "sharedAsPost": sharedAsPost,
+        "quotedPost": sharedAsPost ? quotedPost : false,
+        "quotedOriginalText":
+            (sharedAsPost && quotedPost) ? quotedOriginalText : "",
+        "quotedSourceUserID":
+            (sharedAsPost && quotedPost) ? quotedSourceUserID : "",
+        "quotedSourceDisplayName":
+            (sharedAsPost && quotedPost) ? quotedSourceDisplayName : "",
+        "quotedSourceUsername":
+            (sharedAsPost && quotedPost) ? quotedSourceUsername : "",
+        "quotedSourceAvatarUrl":
+            (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
       }, SetOptions(merge: true));
 
       // Upload images first (preserve extension; prefer .webp)
@@ -526,14 +557,82 @@ class UploadQueueService extends GetxController {
         "reshareMap": reshareMap,
         if (poll.isNotEmpty) "poll": poll,
         // Schema: always include original attribution fields
-        "originalUserID": "",
-        "originalPostID": "",
+        "originalUserID": sharedAsPost ? originalUserID : "",
+        "originalPostID": sharedAsPost ? originalPostID : "",
+        "sourcePostID": sharedAsPost ? sourcePostID : "",
+        "sharedAsPost": sharedAsPost,
+        "quotedPost": sharedAsPost ? quotedPost : false,
+        "quotedOriginalText":
+            (sharedAsPost && quotedPost) ? quotedOriginalText : "",
+        "quotedSourceUserID":
+            (sharedAsPost && quotedPost) ? quotedSourceUserID : "",
+        "quotedSourceDisplayName":
+            (sharedAsPost && quotedPost) ? quotedSourceDisplayName : "",
+        "quotedSourceUsername":
+            (sharedAsPost && quotedPost) ? quotedSourceUsername : "",
+        "quotedSourceAvatarUrl":
+            (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
       };
 
       await FirebaseFirestore.instance
           .collection('Posts')
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
+
+      if (sharedAsPost &&
+          originalUserID.isNotEmpty &&
+          originalPostID.isNotEmpty) {
+        try {
+          final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final originalPostRef =
+              FirebaseFirestore.instance.collection('Posts').doc(originalPostID);
+          await originalPostRef.collection('reshares').doc(userID).set({
+            'userID': userID,
+            'timeStamp': quoteTimestamp,
+            'originalUserID': originalUserID,
+            'originalPostID': originalPostID,
+            'sharedPostID': upload.id,
+            'quotedPost': quotedPost,
+          }, SetOptions(merge: true));
+          if (!quotedPost) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userID)
+                .collection('reshared_posts')
+                .doc(originalPostID)
+                .set({
+              'post_docID': originalPostID,
+              'timeStamp': quoteTimestamp,
+              'originalUserID': originalUserID,
+              'originalPostID': originalPostID,
+              'sharedPostID': upload.id,
+              'quotedPost': false,
+            }, SetOptions(merge: true));
+          }
+          if (quotedPost) {
+            await originalPostRef.update({
+              'stats.retryCount': FieldValue.increment(1),
+            });
+          }
+          if (sourcePostID.isNotEmpty && sourcePostID != originalPostID) {
+            final sourcePostRef =
+                FirebaseFirestore.instance.collection('Posts').doc(sourcePostID);
+            await sourcePostRef.collection('reshares').doc(userID).set({
+              'userID': userID,
+              'timeStamp': quoteTimestamp,
+              'originalUserID': originalUserID,
+              'originalPostID': originalPostID,
+              'sharedPostID': upload.id,
+              'quotedPost': quotedPost,
+            }, SetOptions(merge: true));
+            if (quotedPost) {
+              await sourcePostRef.update({
+                'stats.retryCount': FieldValue.increment(1),
+              });
+            }
+          }
+        } catch (_) {}
+      }
 
       // Mark as completed
       upload.status = UploadStatus.completed;
