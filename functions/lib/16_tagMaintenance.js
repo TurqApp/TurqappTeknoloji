@@ -229,7 +229,7 @@ exports.f15_reconcilePostTags = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
 }, async (request) => {
     ensureAdmin();
     validateAuth(request);
@@ -289,7 +289,7 @@ exports.f15_pruneTagsCollection = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
 }, async (request) => {
     ensureAdmin();
     validateAuth(request);

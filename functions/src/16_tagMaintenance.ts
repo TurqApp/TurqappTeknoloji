@@ -304,7 +304,7 @@ export const f15_reconcilePostTags = onCall(
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request: CallableRequest<ReconcileInput>): Promise<ReconcileOutput> => {
     ensureAdmin();
@@ -379,7 +379,7 @@ export const f15_pruneTagsCollection = onCall(
     region: REGION,
     timeoutSeconds: 540,
     memory: "1GiB",
-    enforceAppCheck: false,
+    enforceAppCheck: true,
   },
   async (request: CallableRequest<PruneInput>): Promise<PruneOutput> => {
     ensureAdmin();
