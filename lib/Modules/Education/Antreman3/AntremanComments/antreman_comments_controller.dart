@@ -211,7 +211,6 @@ class AntremanCommentsController extends GetxController {
         userID,
         preferCache: true,
       );
-      log("User data for $userID: $data");
       if (data == null) {
         userInfoCache[userID] = {
           'avatarUrl': '',
