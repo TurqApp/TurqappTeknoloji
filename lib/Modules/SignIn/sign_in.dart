@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -1310,62 +1309,9 @@ class SignIn extends StatelessWidget {
                     onTap: controller.wait.value
                         ? null
                         : () async {
-                            final code = controller.otpCode.value.trim();
-                            if (code.length != 6) {
-                              AppSnackbar('Eksik Kod',
-                                  'Lütfen 6 haneli doğrulama kodunu girin.');
-                              return;
-                            }
-                            controller.wait.value = true;
-                            if (code ==
-                                controller.wasSentCode.value.toString()) {
-                              try {
-                                await FirebaseAuth.instance
-                                    .createUserWithEmailAndPassword(
-                                  email: controller.email.value.trim(),
-                                  password: controller.password.value.trim(),
-                                );
-                                controller.addToFirestore(context);
-                              } on FirebaseAuthException catch (e) {
-                                controller.wait.value = false;
-                                final code = e.code;
-                                String message;
-                                switch (code) {
-                                  case 'email-already-in-use':
-                                    message =
-                                        'Bu e-posta adresi zaten kullanımda.';
-                                    break;
-                                  case 'invalid-email':
-                                    message = 'E-posta adresi geçersiz.';
-                                    break;
-                                  case 'weak-password':
-                                    message =
-                                        'Şifre çok zayıf. Daha güçlü bir şifre deneyin.';
-                                    break;
-                                  case 'operation-not-allowed':
-                                    message =
-                                        'E-posta/şifre kayıt yöntemi kapalı.';
-                                    break;
-                                  case 'network-request-failed':
-                                    message = 'İnternet bağlantısı kurulamadı.';
-                                    break;
-                                  default:
-                                    message =
-                                        '${e.message ?? 'Kayıt işlemi başarısız.'} ($code)';
-                                }
-                                AppSnackbar('Hesap oluşturulamadı', message);
-                              } catch (e) {
-                                controller.wait.value = false;
-                                AppSnackbar(
-                                  'Hesap oluşturulamadı',
-                                  'Kayıt sırasında beklenmeyen bir hata oluştu.',
-                                );
-                              }
-                            } else {
-                              controller.wait.value = false;
-                              AppSnackbar('Kodlar Eşleşmiyor',
-                                  'Girdiğiniz doğrulama kodu ile size gönderdiğimiz doğrulama kodu eşleşmiyor');
-                            }
+                            await controller.verifySignupOtpAndCreateAccount(
+                              context,
+                            );
                           },
                     child: Container(
                       width: 80,

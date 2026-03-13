@@ -57,7 +57,6 @@ class SignInController extends GetxController
   Rx<FocusNode> newPasswordFocus = FocusNode().obs;
   Rx<FocusNode> newPasswordRepeatFocus = FocusNode().obs;
 
-  var wasSentCode = generateRandomNumber(100000, 999999).obs;
   // Rx values
   var firstName = ''.obs;
   var lastName = ''.obs;
@@ -93,6 +92,8 @@ class SignInController extends GetxController
   var resetCodeRequested = false.obs;
 
   var signInEmail = "".obs;
+  final FirebaseFunctions _functions =
+      FirebaseFunctions.instanceFor(region: 'europe-west3');
 
   void _ensureFeedTabSelected() {
     if (Get.isRegistered<NavBarController>()) {
@@ -502,11 +503,40 @@ class SignInController extends GetxController
 
     selection.value = 4;
     otpRequestInFlight.value = true;
-    wasSentCode.value = generateRandomNumber(100000, 999999);
-    sendRequest(wasSentCode.value.toString(), phone);
-    startOtpTimer(); // TIMER BAŞLAT
-    signupCodeRequested.value = true;
-    otpRequestInFlight.value = false;
+    try {
+      await _functions.httpsCallable('sendSignupSmsCode').call({
+        "phone": phone,
+      });
+      startOtpTimer();
+      signupCodeRequested.value = true;
+      AppSnackbar(
+        "Kod Gönderildi",
+        "SMS gönderildi. Kod 5 dakika geçerli.",
+      );
+    } on FirebaseFunctionsException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'invalid-argument':
+          message = "Telefon numarası 5 ile başlayan 10 hane olmalı.";
+          break;
+        case 'already-exists':
+          message = "Bu telefon numarası zaten kullanımda.";
+          break;
+        case 'failed-precondition':
+          message = e.message ?? "Yeni kod istemeden önce biraz bekleyin.";
+          break;
+        case 'unavailable':
+          message = "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.";
+          break;
+        default:
+          message = "Kod gönderilemedi. Lütfen tekrar deneyin.";
+      }
+      AppSnackbar("Kod Gönderilemedi", message);
+    } catch (_) {
+      AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
+    } finally {
+      otpRequestInFlight.value = false;
+    }
   }
 
   void startOtpTimer() {
@@ -578,6 +608,93 @@ class SignInController extends GetxController
       AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
     } finally {
       wait.value = false;
+    }
+  }
+
+  Future<void> verifySignupOtpAndCreateAccount(BuildContext context) async {
+    final phone = phoneNumber.value.trim();
+    final code = otpCode.value.trim();
+
+    if (phone.length != 10 || !phone.startsWith('5')) {
+      AppSnackbar(
+        "Geçersiz Telefon",
+        "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.",
+      );
+      return;
+    }
+    if (code.length != 6 || int.tryParse(code) == null) {
+      AppSnackbar(
+        "Geçersiz Kod",
+        "Lütfen 6 haneli doğrulama kodunu girin.",
+      );
+      return;
+    }
+
+    wait.value = true;
+    try {
+      await _functions.httpsCallable('verifySignupSmsCode').call({
+        "phone": phone,
+        "verificationCode": code,
+      });
+
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.value.trim(),
+        password: password.value.trim(),
+      );
+      addToFirestore(context);
+    } on FirebaseFunctionsException catch (e) {
+      wait.value = false;
+      String message;
+      switch (e.code) {
+        case 'deadline-exceeded':
+          message = "Kodun süresi doldu. Lütfen yeni kod isteyin.";
+          break;
+        case 'not-found':
+          message = "Doğrulama kodu bulunamadı. Yeniden kod alın.";
+          break;
+        case 'invalid-argument':
+          message = "Doğrulama kodu hatalı.";
+          break;
+        case 'resource-exhausted':
+          message = "Çok fazla hatalı deneme yapıldı. Yeni kod isteyin.";
+          break;
+        case 'failed-precondition':
+          message = e.message ?? "Kod artık geçerli değil. Yeni kod alın.";
+          break;
+        default:
+          message = "Kod doğrulanamadı. Lütfen tekrar deneyin.";
+      }
+      AppSnackbar("Doğrulama Başarısız", message);
+    } on FirebaseAuthException catch (e) {
+      wait.value = false;
+      final code = e.code;
+      String message;
+      switch (code) {
+        case 'email-already-in-use':
+          message = 'Bu e-posta adresi zaten kullanımda.';
+          break;
+        case 'invalid-email':
+          message = 'E-posta adresi geçersiz.';
+          break;
+        case 'weak-password':
+          message = 'Şifre çok zayıf. Daha güçlü bir şifre deneyin.';
+          break;
+        case 'operation-not-allowed':
+          message = 'E-posta/şifre kayıt yöntemi kapalı.';
+          break;
+        case 'network-request-failed':
+          message = 'İnternet bağlantısı kurulamadı.';
+          break;
+        default:
+          message = '${e.message ?? 'Kayıt işlemi başarısız.'} ($code)';
+      }
+      AppSnackbar('Hesap oluşturulamadı', message);
+    } catch (_) {
+      wait.value = false;
+      AppSnackbar(
+        'Hesap oluşturulamadı',
+        'Kayıt sırasında beklenmeyen bir hata oluştu.',
+      );
     }
   }
 

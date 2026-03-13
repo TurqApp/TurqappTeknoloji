@@ -18,6 +18,8 @@ const EMAIL_DAILY_LIMIT = 8;
 const VERIFY_TTL_MS = 60 * 60 * 1000;
 const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
 const NETGSM_ENDPOINT = "https://api.netgsm.com.tr/sms/send/otp";
+const SIGNUP_SMS_RESEND_MS = 5 * 60 * 1000;
+const SIGNUP_SMS_TTL_MS = 5 * 60 * 1000;
 const PASSWORD_RESET_SMS_RESEND_MS = 5 * 60 * 1000;
 const PASSWORD_RESET_SMS_TTL_MS = 60 * 1000;
 
@@ -74,6 +76,10 @@ function verificationRef(
 
 function passwordResetSmsRef(emailLower: string): FirebaseFirestore.DocumentReference {
   return accountRef(emailLower).collection("smsVerifications").doc("password_reset");
+}
+
+function signupSmsRef(phone: string): FirebaseFirestore.DocumentReference {
+  return db.collection("phoneVerifications").doc(phone);
 }
 
 function isNetgsmSuccessResponse(rawBody: string): boolean {
@@ -697,6 +703,160 @@ export const sendPasswordResetSmsCode = onCall(
       });
       throw new HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
     }
+  },
+);
+
+export const sendSignupSmsCode = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 60,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    try {
+      const phoneRaw = String(request.data?.phone || "").trim();
+      const phone = normalizePhone(phoneRaw);
+
+      if (phone.length !== 10 || !phone.startsWith("5")) {
+        throw new HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
+      }
+
+      const existingUser = await db
+        .collection("users")
+        .where("phoneNumber", "==", phone)
+        .limit(1)
+        .get();
+      if (!existingUser.empty) {
+        throw new HttpsError("already-exists", "Bu telefon numarası zaten kullanımda");
+      }
+
+      const smsRef = signupSmsRef(phone);
+      const existing = await smsRef.get();
+      const now = Date.now();
+      if (existing.exists) {
+        const data = existing.data() || {};
+        const lastSentAt = Number(data.lastSentAt || 0);
+        const leftMs = SIGNUP_SMS_RESEND_MS - (now - lastSentAt);
+        if (lastSentAt > 0 && leftMs > 0) {
+          const leftSec = Math.ceil(leftMs / 1000);
+          throw new HttpsError(
+            "failed-precondition",
+            `Yeni SMS için ${leftSec} saniye bekleyin.`,
+          );
+        }
+      }
+
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
+      const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
+      const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
+      const xml = `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
+
+      const response = await axios.post<string>(NETGSM_ENDPOINT, xml, {
+        headers: {
+          "Content-Type": "application/xml",
+        },
+        timeout: 15000,
+      });
+      const netgsmBody = String(response.data || "").trim();
+      if (!isNetgsmSuccessResponse(netgsmBody)) {
+        console.error("sendSignupSmsCode netgsm-error", {
+          phone,
+          netgsmBody,
+        });
+        throw new HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
+      }
+
+      await smsRef.set(
+        {
+          phone,
+          verificationCode,
+          createdAt: now,
+          lastSentAt: now,
+          expiresAt: now + SIGNUP_SMS_TTL_MS,
+          attempts: 0,
+          verified: false,
+          verifiedAt: admin.firestore.FieldValue.delete(),
+        },
+        { merge: true },
+      );
+
+      return {
+        success: true,
+        message: "Doğrulama kodu telefon numaranıza gönderildi",
+        resendInSec: 300,
+        expiresInSec: 300,
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+      const message = (error as { message?: string })?.message || "unknown";
+      console.error("sendSignupSmsCode fatal-error", {
+        message,
+      });
+      throw new HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
+    }
+  },
+);
+
+export const verifySignupSmsCode = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    const phoneRaw = String(request.data?.phone || "").trim();
+    const verificationCode = String(request.data?.verificationCode || "").trim();
+    const phone = normalizePhone(phoneRaw);
+
+    if (phone.length !== 10 || !phone.startsWith("5") || !verificationCode) {
+      throw new HttpsError("invalid-argument", "Telefon numarası ve doğrulama kodu gereklidir");
+    }
+    if (!/^\d{6}$/.test(verificationCode)) {
+      throw new HttpsError("invalid-argument", "Doğrulama kodu 6 hane olmalı");
+    }
+
+    const smsRef = signupSmsRef(phone);
+    const snap = await smsRef.get();
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.");
+    }
+
+    const data = snap.data() || {};
+    const expiresAt = Number(data.expiresAt || 0);
+    const now = Date.now();
+    if (!expiresAt || now > expiresAt) {
+      throw new HttpsError("deadline-exceeded", "Doğrulama kodunun süresi doldu");
+    }
+
+    const attempts = Number(data.attempts || 0);
+    if (attempts >= 5) {
+      throw new HttpsError("resource-exhausted", "Çok fazla hatalı deneme. Yeni kod isteyin.");
+    }
+
+    if (String(data.verificationCode || "") !== verificationCode) {
+      await smsRef.set(
+        { attempts: admin.firestore.FieldValue.increment(1) },
+        { merge: true },
+      );
+      throw new HttpsError("invalid-argument", "Geçersiz doğrulama kodu");
+    }
+
+    await smsRef.set(
+      {
+        verified: true,
+        verifiedAt: now,
+        attempts,
+      },
+      { merge: true },
+    );
+
+    return {
+      success: true,
+      message: "Telefon doğrulaması başarılı",
+    };
   },
 );
 

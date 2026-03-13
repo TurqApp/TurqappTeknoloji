@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
@@ -8,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'dart:ui' as ui;
@@ -237,51 +235,6 @@ class KilometerInputFormatter extends TextInputFormatter {
       text: formattedText,
       selection: TextSelection.collapsed(offset: formattedText.length),
     );
-  }
-}
-
-void sendRequest(String otpCode, String phoneNumber) async {
-  String xml =
-      """<?xml version="1.0"?><mainbody><header><usercode>3326062598</usercode><password>BursCity42@</password><msgheader>TurqApp</msgheader></header><body><msg><![CDATA[$otpCode TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>$phoneNumber</no></body></mainbody>""";
-
-  Uri url = Uri.parse("https://api.netgsm.com.tr/sms/send/otp");
-  try {
-    var response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/xml'},
-      body: utf8.encode(xml),
-    );
-
-    if (response.statusCode == 200) {
-      print("NETGSM ${utf8.decode(response.bodyBytes)}");
-      print("OTPFROMNETGSM $otpCode");
-    } else {
-      print("Error: ${response.statusCode}");
-    }
-  } catch (error) {
-    print("Error: $error");
-  }
-}
-
-void sendRequestForDelete(String otpCode, String phoneNumber) async {
-  String xml =
-      """<?xml version="1.0"?><mainbody><header><usercode>3326062598</usercode><password>BursCity42@</password><msgheader>TurqApp</msgheader></header><body><msg><![CDATA[$otpCode Talebe hesabınızı silmek için doğrulama kodunuz.]]></msg><no>$phoneNumber</no></body></mainbody>""";
-
-  Uri url = Uri.parse("https://api.netgsm.com.tr/sms/send/otp");
-  try {
-    var response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/xml'},
-      body: utf8.encode(xml),
-    );
-
-    if (response.statusCode == 200) {
-      print("NETGSM ${utf8.decode(response.bodyBytes)}");
-    } else {
-      print("Error: ${response.statusCode}");
-    }
-  } catch (error) {
-    print("Error: $error");
   }
 }
 
