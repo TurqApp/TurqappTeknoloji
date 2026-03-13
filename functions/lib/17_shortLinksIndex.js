@@ -881,7 +881,7 @@ exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "publi
         data,
     };
 });
-exports.shortLinkIndexConfig = (0, https_1.onCall)({ region: REGION, invoker: "public" }, async () => {
+exports.shortLinkIndexConfig = (0, https_1.onCall)({ region: REGION, invoker: "public", enforceAppCheck: true }, async () => {
     return {
         ok: true,
         routeCollection: SHORT_LINK_ROUTE_COLLECTION,

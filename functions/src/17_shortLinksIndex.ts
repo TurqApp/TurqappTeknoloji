@@ -1032,15 +1032,18 @@ export const resolveShortLink = onCall(
   }
 );
 
-export const shortLinkIndexConfig = onCall({ region: REGION, invoker: "public" }, async () => {
-  return {
-    ok: true,
-    routeCollection: SHORT_LINK_ROUTE_COLLECTION,
-    domain: SHORT_LINK_DOMAIN,
-    routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id"],
-    cloudflareKvSyncEnabled:
-      !!getEnv("CF_API_TOKEN") &&
-      !!getEnv("CF_ACCOUNT_ID") &&
-      !!getEnv("CF_KV_NAMESPACE_ID"),
-  };
-});
+export const shortLinkIndexConfig = onCall(
+  { region: REGION, invoker: "public", enforceAppCheck: true },
+  async () => {
+    return {
+      ok: true,
+      routeCollection: SHORT_LINK_ROUTE_COLLECTION,
+      domain: SHORT_LINK_DOMAIN,
+      routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id"],
+      cloudflareKvSyncEnabled:
+        !!getEnv("CF_API_TOKEN") &&
+        !!getEnv("CF_ACCOUNT_ID") &&
+        !!getEnv("CF_KV_NAMESPACE_ID"),
+    };
+  }
+);
