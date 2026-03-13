@@ -68,7 +68,7 @@ class CreatorContent extends StatelessWidget {
           controller.focus.requestFocus();
         },
         child: Obx(() {
-          final currentUser = CurrentUserService.instance;
+          final currentUser = CurrentUserService.instance.currentUserRx.value;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,8 +81,8 @@ class CreatorContent extends StatelessWidget {
                       width: 38,
                       height: 38,
                       child: CachedUserAvatar(
-                        userId: currentUser.userId,
-                        imageUrl: currentUser.avatarUrl,
+                        userId: currentUser?.userID,
+                        imageUrl: currentUser?.avatarUrl,
                         radius: 19,
                       ),
                     ),
