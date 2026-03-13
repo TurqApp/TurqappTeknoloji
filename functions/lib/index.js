@@ -1153,6 +1153,11 @@ exports.migrateusersToUsers = functions
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Auth required');
     }
+    const isAdmin = context.auth.token?.admin === true;
+    if (!isAdmin) {
+        throw new functions.https.HttpsError('permission-denied', 'Admin privileges required');
+    }
+    rateLimiter_1.RateLimits.admin(context.auth.uid);
     const batchSize = Math.min(Number(data?.batchSize) || 100, 500);
     const startAfterId = typeof data?.startAfter === 'string' ? data.startAfter : undefined;
     const copySubcollections = data?.copySubcollections === true;
