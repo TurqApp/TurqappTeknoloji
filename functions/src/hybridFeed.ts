@@ -23,7 +23,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-const db = admin.firestore();
+const db = () => admin.firestore();
 
 /// Takipçi eşiği: üzerindeyse celebrity (fan-in), altındaysa fan-out
 const FAN_OUT_THRESHOLD = 10_000;
@@ -34,8 +34,8 @@ const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-async function resolveFollowerCollection(authorId: string): Promise<string> {
-  const followersSnap = await db
+export async function resolveFollowerCollection(authorId: string): Promise<string> {
+  const followersSnap = await db()
     .collection("users")
     .doc(authorId)
     .collection("followers")
@@ -45,6 +45,107 @@ async function resolveFollowerCollection(authorId: string): Promise<string> {
     return "followers";
   }
   return "TakipciLer";
+}
+
+export async function upsertPostIntoHybridFeed(args: {
+  postId: string;
+  authorId: string;
+  timeStamp: number;
+  isVideo: boolean;
+}): Promise<void> {
+  const { postId, authorId, timeStamp, isVideo } = args;
+  if (!postId || !authorId) return;
+
+  const authorDoc = await db().collection("users").doc(authorId).get();
+  const followerCount: number =
+    Number(authorDoc.data()?.followerCount) ||
+    Number(authorDoc.data()?.takipciSayisi) ||
+    Number(authorDoc.data()?.counterOfFollowers) ||
+    0;
+
+  if (followerCount > FAN_OUT_THRESHOLD) {
+    await db().collection("celebAccounts").doc(authorId).set(
+      { uid: authorId, followerCount, updatedAt: Date.now() },
+      { merge: true }
+    );
+    await db()
+      .collection("userFeeds")
+      .doc(authorId)
+      .collection("items")
+      .doc(postId)
+      .set(
+        {
+          postId,
+          authorId,
+          timeStamp,
+          isVideo,
+          expiresAt: timeStamp + FEED_TTL_MS,
+          isCelebrity: true,
+        },
+        { merge: true }
+      );
+    return;
+  }
+
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+  const followerCollection = await resolveFollowerCollection(authorId);
+
+  while (true) {
+    let q: admin.firestore.Query = db()
+      .collection("users")
+      .doc(authorId)
+      .collection(followerCollection)
+      .limit(FAN_OUT_BATCH_SIZE);
+
+    if (lastDoc) q = q.startAfter(lastDoc);
+
+    const followersSnap = await q.get();
+    if (followersSnap.empty) break;
+
+    const wb = db().batch();
+    for (const followerDoc of followersSnap.docs) {
+      const followerUid = followerDoc.id;
+      const feedRef = db()
+        .collection("userFeeds")
+        .doc(followerUid)
+        .collection("items")
+        .doc(postId);
+
+      wb.set(
+        feedRef,
+        {
+          postId,
+          authorId,
+          timeStamp,
+          isVideo,
+          expiresAt: timeStamp + FEED_TTL_MS,
+          isCelebrity: false,
+        },
+        { merge: true }
+      );
+    }
+
+    await wb.commit();
+    lastDoc = followersSnap.docs[followersSnap.docs.length - 1];
+    if (followersSnap.docs.length < FAN_OUT_BATCH_SIZE) break;
+  }
+
+  await db()
+    .collection("userFeeds")
+    .doc(authorId)
+    .collection("items")
+    .doc(postId)
+    .set(
+      {
+        postId,
+        authorId,
+        timeStamp,
+        isVideo,
+        expiresAt: timeStamp + FEED_TTL_MS,
+        isCelebrity: false,
+      },
+      { merge: true }
+    );
 }
 
 // ─────────────────────────────────────────────────────────
@@ -68,83 +169,14 @@ export const onPostCreate = functions
     if (!authorId || arsiv || deletedPost) return;
 
     try {
-      // 1. Takipçi sayısını kontrol et
-      const authorDoc = await db.collection("users").doc(authorId).get();
-      const followerCount: number =
-        Number(authorDoc.data()?.followerCount) ||
-        Number(authorDoc.data()?.takipciSayisi) ||
-        Number(authorDoc.data()?.counterOfFollowers) ||
-        0;
+      await upsertPostIntoHybridFeed({
+        postId,
+        authorId,
+        timeStamp,
+        isVideo,
+      });
 
-      if (followerCount > FAN_OUT_THRESHOLD) {
-        // Celebrity: fan-in listesine ekle, fan-out yapma
-        await db.collection("celebAccounts").doc(authorId).set(
-          { uid: authorId, followerCount, updatedAt: Date.now() },
-          { merge: true }
-        );
-        console.log(`[HybridFeed] Celebrity fan-in enabled (${followerCount} followers)`);
-        return;
-      }
-
-      // 2. Küçük hesap: fan-out — tüm takipçilere yaz
-      let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
-      let totalFannedOut = 0;
-      const followerCollection = await resolveFollowerCollection(authorId);
-
-      while (true) {
-        let q: admin.firestore.Query = db
-          .collection("users")
-          .doc(authorId)
-          .collection(followerCollection)
-          .limit(FAN_OUT_BATCH_SIZE);
-
-        if (lastDoc) q = q.startAfter(lastDoc);
-
-        const followersSnap = await q.get();
-        if (followersSnap.empty) break;
-
-        const wb = db.batch();
-        for (const followerDoc of followersSnap.docs) {
-          const followerUid = followerDoc.id;
-          const feedRef = db
-            .collection("userFeeds")
-            .doc(followerUid)
-            .collection("items")
-            .doc(postId);
-
-          wb.set(feedRef, {
-            postId,
-            authorId,
-            timeStamp,
-            isVideo,
-            expiresAt: timeStamp + FEED_TTL_MS,
-            isCelebrity: false,
-          });
-        }
-
-        await wb.commit();
-        totalFannedOut += followersSnap.docs.length;
-        lastDoc = followersSnap.docs[followersSnap.docs.length - 1];
-
-        if (followersSnap.docs.length < FAN_OUT_BATCH_SIZE) break;
-      }
-
-      // Ayrıca author'ın kendi feed'ine de ekle
-      await db
-        .collection("userFeeds")
-        .doc(authorId)
-        .collection("items")
-        .doc(postId)
-        .set({
-          postId,
-          authorId,
-          timeStamp,
-          isVideo,
-          expiresAt: timeStamp + FEED_TTL_MS,
-          isCelebrity: false,
-        });
-
-      console.log(`[HybridFeed] Fan-out complete: ${postId} → ${totalFannedOut} followers`);
+      console.log(`[HybridFeed] Fan-out complete: ${postId}`);
     } catch (e) {
       console.error(`[HybridFeed] onPostCreate error for ${postId}:`, e);
     }
@@ -164,7 +196,7 @@ export const onPostDelete = functions
 
     try {
       // Author'ın kendi feed'inden sil
-      await db
+      await db()
         .collection("userFeeds")
         .doc(authorId)
         .collection("items")
@@ -174,7 +206,7 @@ export const onPostDelete = functions
       // Takipçilerin feed'inden temizle (collectionGroup sorgusu)
       let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
       while (true) {
-        let q: admin.firestore.Query = db
+        let q: admin.firestore.Query = db()
           .collectionGroup("items")
           .where("postId", "==", postId)
           .limit(400);
@@ -183,7 +215,7 @@ export const onPostDelete = functions
         const snap = await q.get();
         if (snap.empty) break;
 
-        const wb = db.batch();
+        const wb = db().batch();
         for (const d of snap.docs) wb.delete(d.ref);
         await wb.commit();
 
@@ -214,7 +246,7 @@ export const onNewFollower = functions
 
     try {
       // Author'ın son 20 postunu yeni takipçinin feed'ine ekle
-      const postsSnap = await db
+      const postsSnap = await db()
         .collection("Posts")
         .where("userID", "==", authorId)
         .where("arsiv", "==", false)
@@ -225,11 +257,11 @@ export const onNewFollower = functions
 
       if (postsSnap.empty) return;
 
-      const wb = db.batch();
+      const wb = db().batch();
       const now = Date.now();
       for (const postDoc of postsSnap.docs) {
         const d = postDoc.data();
-        const feedRef = db
+        const feedRef = db()
           .collection("userFeeds")
           .doc(followerId)
           .collection("items")
@@ -265,7 +297,7 @@ export const cleanupExpiredFeedItems = functions
 
     let lastDocRef: admin.firestore.QueryDocumentSnapshot | null = null;
     while (true) {
-      let q: admin.firestore.Query = db
+      let q: admin.firestore.Query = db()
         .collectionGroup("items")
         .where("expiresAt", "<", now)
         .limit(400);
@@ -274,7 +306,7 @@ export const cleanupExpiredFeedItems = functions
       const snap = await q.get();
       if (snap.empty) break;
 
-      const wb = db.batch();
+      const wb = db().batch();
       for (const d of snap.docs) wb.delete(d.ref);
       await wb.commit();
 

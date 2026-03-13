@@ -2,6 +2,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
+import { upsertPostIntoHybridFeed } from "./hybridFeed";
 
 admin.initializeApp();
 
@@ -723,6 +724,12 @@ export const publishScheduledIzBirakPosts = functions.pubsub
           { merge: true },
         );
         await batch.commit();
+        await upsertPostIntoHybridFeed({
+          postId: postDoc.id,
+          authorId: ownerId,
+          timeStamp: now,
+          isVideo: !!(data.videoHLSMasterUrl || data.hlsMasterUrl || data.video),
+        });
 
         console.log("publishScheduledIzBirakPosts:published", {
           postId: postDoc.id,
