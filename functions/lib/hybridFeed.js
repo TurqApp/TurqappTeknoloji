@@ -71,7 +71,7 @@ exports.onPostCreate = functions
         if (followerCount > FAN_OUT_THRESHOLD) {
             // Celebrity: fan-in listesine ekle, fan-out yapma
             await db.collection("celebAccounts").doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
-            console.log(`[HybridFeed] Celebrity fan-in: ${authorId} (${followerCount} followers)`);
+            console.log(`[HybridFeed] Celebrity fan-in enabled (${followerCount} followers)`);
             return;
         }
         // 2. Küçük hesap: fan-out — tüm takipçilere yaz

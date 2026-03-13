@@ -49,7 +49,7 @@ export const denormAuthorOnPostWrite = functions
       if (!authorNickname && !authorAvatarUrl) return;
 
       await snap.ref.update({ authorNickname, authorAvatarUrl });
-      console.log(`[AuthorDenorm] Post ${context.params.postId} author alanları güncellendi`);
+      console.log("[AuthorDenorm] Post author alanları güncellendi");
     } catch (e) {
       console.error(`[AuthorDenorm] denormAuthorOnPostWrite error:`, e);
     }
@@ -110,7 +110,7 @@ export const syncAuthorFieldsOnProfileUpdate = functions
       }
 
       console.log(
-        `[AuthorDenorm] ${uid} profil değişikliği → ${postsSnap.size} post güncellendi`
+        `[AuthorDenorm] Profil değişikliği işlendi → ${postsSnap.size} post güncellendi`
       );
     } catch (e) {
       console.error(`[AuthorDenorm] syncAuthorFieldsOnProfileUpdate error:`, e);

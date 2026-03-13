@@ -82,7 +82,7 @@ export const onPostCreate = functions
           { uid: authorId, followerCount, updatedAt: Date.now() },
           { merge: true }
         );
-        console.log(`[HybridFeed] Celebrity fan-in: ${authorId} (${followerCount} followers)`);
+        console.log(`[HybridFeed] Celebrity fan-in enabled (${followerCount} followers)`);
         return;
       }
 

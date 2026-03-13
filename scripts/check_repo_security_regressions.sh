@@ -55,6 +55,10 @@ check_literal "Current user init logunda uid dump'i geri gelmedi" "print('🔄 I
 check_literal "Scholarship detail logunda uid dump'i geri gelmedi" "print('Başvuru durumu kontrol ediliyor: \${currentUser.uid}');" || failures=$((failures + 1))
 check_literal "DenemeGrid logunda userID dump'i geri gelmedi" "debugPrint('[DenemeGrid] profile fetch failed for \$userID: \$e');" || failures=$((failures + 1))
 check_literal "DenemeGrid logunda docID dump'i geri gelmedi" "debugPrint('[DenemeGrid] applicant count fetch failed for \$docID: \$e');" || failures=$((failures + 1))
+check_literal "Hybrid feed logunda authorId dump'i geri gelmedi" 'console.log(`[HybridFeed] Celebrity fan-in: ${authorId} (${followerCount} followers)`);' || failures=$((failures + 1))
+check_literal "Author denorm logunda postId dump'i geri gelmedi" 'console.log(`[AuthorDenorm] Post ${context.params.postId} author alanları güncellendi`);' || failures=$((failures + 1))
+check_literal "Author denorm logunda uid dump'i geri gelmedi" '`${uid} profil değişikliği' || failures=$((failures + 1))
+check_literal "Email verify warning logunda uid dump'i geri gelmedi" "uid: caller.uid," || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

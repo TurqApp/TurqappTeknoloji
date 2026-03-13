@@ -416,10 +416,8 @@ exports.markCurrentEmailVerified = (0, https_1.onCall)({
         const code = error?.code || "";
         const message = error?.message || "";
         console.error("markCurrentEmailVerified:updateUser warning", {
-            uid: caller.uid,
-            emailToConfirm,
             code,
-            message,
+            hasPendingEmail: emailToConfirm.length > 0,
         });
         // Runtime service account yetkisi yoksa akışı bozma:
         // uygulama tarafı Firestore emailVerified alanını esas alacak.
