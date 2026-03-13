@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class UserSummary {
@@ -44,7 +45,7 @@ class UserSummary {
       displayName: (raw['displayName'] ?? '').toString().trim(),
       nickname: (raw['nickname'] ?? '').toString().trim(),
       username: (raw['username'] ?? '').toString().trim(),
-      avatarUrl: (raw['avatarUrl'] ?? '').toString().trim(),
+      avatarUrl: resolveAvatarUrl(raw),
       bio: (raw['bio'] ?? '').toString(),
       rozet: (raw['rozet'] ?? '').toString().trim(),
       token: (raw['token'] ?? '').toString().trim(),

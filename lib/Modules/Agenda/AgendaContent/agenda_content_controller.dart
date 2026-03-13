@@ -4,18 +4,24 @@ class AgendaContentController extends PostContentController {
   AgendaContentController({required super.model});
 
   @override
-  Future<void> onReshareAdded(String? uid) async {
+  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      await agendaController.addNewReshareEntryWithoutScroll(model.docID, uid);
+      await agendaController.addNewReshareEntryWithoutScroll(
+        (targetPostId ?? model.docID).trim(),
+        uid,
+      );
     } catch (_) {}
   }
 
   @override
-  Future<void> onReshareRemoved(String? uid) async {
+  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      agendaController.removeReshareEntry(model.docID, uid);
+      agendaController.removeReshareEntry(
+        (targetPostId ?? model.docID).trim(),
+        uid,
+      );
     } catch (_) {}
   }
 }

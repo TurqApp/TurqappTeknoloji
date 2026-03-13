@@ -8,19 +8,25 @@ class ClassicContentController extends PostContentController {
         );
 
   @override
-  Future<void> onReshareAdded(String? uid) async {
-    await super.onReshareAdded(uid);
+  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
+    await super.onReshareAdded(uid, targetPostId: targetPostId);
     if (uid == null) return;
     try {
-      await agendaController.addNewReshareEntryWithoutScroll(model.docID, uid);
+      await agendaController.addNewReshareEntryWithoutScroll(
+        (targetPostId ?? model.docID).trim(),
+        uid,
+      );
     } catch (_) {}
   }
 
   @override
-  Future<void> onReshareRemoved(String? uid) async {
+  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {
     if (uid == null) return;
     try {
-      agendaController.removeReshareEntry(model.docID, uid);
+      agendaController.removeReshareEntry(
+        (targetPostId ?? model.docID).trim(),
+        uid,
+      );
     } catch (_) {}
   }
 }

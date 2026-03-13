@@ -44,10 +44,12 @@ class PostReshareEntry {
   const PostReshareEntry({
     required this.userId,
     required this.timeStamp,
+    required this.quotedPost,
   });
 
   final String userId;
   final int timeStamp;
+  final bool quotedPost;
 }
 
 class PostQueryPage {
@@ -618,6 +620,7 @@ class PostRepository extends GetxService {
         .map((doc) => PostReshareEntry(
               userId: (doc.data()['userID'] ?? doc.id).toString().trim(),
               timeStamp: ((doc.data()['timeStamp'] ?? 0) as num).toInt(),
+              quotedPost: doc.data()['quotedPost'] == true,
             ))
         .where((entry) => entry.userId.isNotEmpty)
         .toList(growable: false);
@@ -667,10 +670,13 @@ class PostRepository extends GetxService {
             'timeStamp': ((data['timeStamp'] ?? 0) as num).toInt(),
             'originalUserID': (data['originalUserID'] ?? '').toString(),
             'originalPostID': (data['originalPostID'] ?? '').toString(),
+            'quotedPost': data['quotedPost'] == true,
             'type': 'reshare',
           };
         })
-        .where((entry) => (entry['postID'] as String).isNotEmpty)
+        .where((entry) =>
+            (entry['postID'] as String).isNotEmpty &&
+            entry['quotedPost'] != true)
         .toList(growable: false);
   }
 

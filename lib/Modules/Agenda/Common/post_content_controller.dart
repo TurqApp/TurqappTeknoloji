@@ -149,6 +149,15 @@ class PostContentController extends GetxController {
   Worker? _followingWorker;
   Worker? _interactionWorker;
   Worker? _postDataWorker;
+  Worker? _myResharesWorker;
+
+  String get reshareTargetPostId {
+    final originalPostId = model.originalPostID.trim();
+    if (originalPostId.isNotEmpty && model.quotedPost != true) {
+      return originalPostId;
+    }
+    return model.docID;
+  }
 
   @override
   void onInit() {
@@ -210,6 +219,7 @@ class PostContentController extends GetxController {
     _postDocSub?.cancel();
     _currentUserStreamSub?.cancel();
     _followingWorker?.dispose();
+    _myResharesWorker?.dispose();
     super.onClose();
   }
 
@@ -234,6 +244,7 @@ class PostContentController extends GetxController {
     _postState = _postRepository.attachPost(model);
     _syncSharedInteractionState();
     _interactionWorker?.dispose();
+    _myResharesWorker?.dispose();
     if (_postState != null) {
       _interactionWorker = everAll([
         _postState!.liked,
@@ -244,6 +255,10 @@ class PostContentController extends GetxController {
         _syncSharedInteractionState();
       });
     }
+    _myResharesWorker =
+        ever<Map<String, int>>(agendaController.myReshares, (_) {
+      _syncSharedInteractionState();
+    });
   }
 
   void _bindPostDocCounts() {
@@ -310,7 +325,8 @@ class PostContentController extends GetxController {
       }
     }
     saved.value = _postState!.saved.value;
-    yenidenPaylasildiMi.value = _postState!.reshared.value;
+    yenidenPaylasildiMi.value = _postState!.reshared.value ||
+        agendaController.myReshares.containsKey(reshareTargetPostId);
     if (uid != null) {
       if (_postState!.commented.value) {
         if (!comments.contains(uid)) comments.add(uid);
@@ -580,33 +596,41 @@ class PostContentController extends GetxController {
   }
 
   Future<void> reshare() async {
+    final targetPostId = reshareTargetPostId;
     final bool wasReshared = yenidenPaylasildiMi.value;
 
     try {
-      final status = await _postRepository.toggleReshare(model);
+      final status = targetPostId == model.docID
+          ? await _postRepository.toggleReshare(model)
+          : await _interactionService.toggleReshare(targetPostId);
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
 
       if (status) {
+        yenidenPaylasildiMi.value = true;
         if (uid != null && !reSharedUsers.contains(uid)) {
           reSharedUsers.add(uid);
           reShareUserUserID.value = uid;
           reShareUserNickname.value = 'Sen';
+          agendaController.myReshares[targetPostId] =
+              DateTime.now().millisecondsSinceEpoch;
         }
         try {
           Get.find<ProfileController>().getResharesSingle();
         } catch (_) {}
-        await onReshareAdded(uid);
+        await onReshareAdded(uid, targetPostId: targetPostId);
       } else {
+        yenidenPaylasildiMi.value = false;
         if (uid != null) {
           reSharedUsers.remove(uid);
+          agendaController.myReshares.remove(targetPostId);
         }
         reShareUserUserID.value = '';
         reShareUserNickname.value = '';
         try {
-          Get.find<ProfileController>().removeReshare(model.docID);
+          Get.find<ProfileController>().removeReshare(targetPostId);
         } catch (_) {}
-        await onReshareRemoved(uid);
+        await onReshareRemoved(uid, targetPostId: targetPostId);
       }
     } catch (e) {
       yenidenPaylasildiMi.value = wasReshared;
@@ -1073,7 +1097,7 @@ class PostContentController extends GetxController {
   void onPostFrameBound() {}
 
   @protected
-  Future<void> onReshareAdded(String? uid) async {
+  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
     if (!scrollFeedToTopOnReshare) return;
     try {
       final controller = agendaController.scrollController;
@@ -1088,7 +1112,7 @@ class PostContentController extends GetxController {
   }
 
   @protected
-  Future<void> onReshareRemoved(String? uid) async {}
+  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}
 }
 
 class _UserProfileCacheEntry {

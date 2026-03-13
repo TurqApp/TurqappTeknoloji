@@ -167,6 +167,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       playbackHandleKey,
       HLSAdapterPlaybackHandle(_videoAdapter!),
     );
+    if (isStandalonePostInstance) {
+      videoStateManager.enterExclusiveMode(playbackHandleKey);
+    }
 
     _videoAdapter!.addListener(_onVideoUpdate);
 
@@ -207,6 +210,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     _lazyInitTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
+    if (isStandalonePostInstance) {
+      videoStateManager.exitExclusiveMode();
+    }
     videoStateManager.unregisterVideoController(playbackHandleKey);
     _videoAdapter?.dispose();
     _muteWorker?.dispose();
@@ -224,6 +230,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         _lazyInitTimer?.cancel();
         if (_videoAdapter == null && widget.model.hasPlayableVideo) {
           _initVideoController();
+        }
+        if (isStandalonePostInstance) {
+          videoStateManager.enterExclusiveMode(playbackHandleKey);
         }
         _videoAdapter?.play();
         videoStateManager.playOnlyThis(playbackHandleKey);
@@ -258,6 +267,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   @override
   void didPopNext() {
     if (widget.shouldPlay && _videoAdapter != null) {
+      if (isStandalonePostInstance) {
+        videoStateManager.enterExclusiveMode(playbackHandleKey);
+      }
       _videoAdapter?.play();
       videoStateManager.playOnlyThis(playbackHandleKey);
     }

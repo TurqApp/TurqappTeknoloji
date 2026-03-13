@@ -455,6 +455,9 @@ class AgendaController extends GetxController {
             limit: perPostLimit,
           );
           for (final entry in entries) {
+            if (entry.quotedPost) {
+              continue;
+            }
             final rid = entry.userId;
             if (uid != null && rid == uid) {
               continue; // my own handled via myReshares

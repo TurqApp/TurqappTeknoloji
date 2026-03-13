@@ -13,6 +13,19 @@ String resolveAvatarUrl(
   Map<String, dynamic>? profile,
 }) {
   final p = profile ?? const <String, dynamic>{};
-  final raw = (data['avatarUrl'] ?? p['avatarUrl'] ?? '').toString().trim();
-  return isDefaultAvatarUrl(raw) ? kDefaultAvatarUrl : raw;
+  const keys = <String>[
+    'avatarUrl',
+    'profileImage',
+    'profileImageUrl',
+    'photoUrl',
+    'imageUrl',
+    'image',
+  ];
+  for (final key in keys) {
+    final raw = (data[key] ?? p[key] ?? '').toString().trim();
+    if (!isDefaultAvatarUrl(raw) && raw.isNotEmpty) {
+      return raw;
+    }
+  }
+  return kDefaultAvatarUrl;
 }
