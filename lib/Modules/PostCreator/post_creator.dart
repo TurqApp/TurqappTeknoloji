@@ -268,10 +268,8 @@ class PostCreator extends StatelessWidget {
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
+                      child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             IconButton(
@@ -523,7 +521,6 @@ class PostCreator extends StatelessWidget {
                             }),
                           ],
                         ),
-                      ),
                     );
                   },
                 ),
