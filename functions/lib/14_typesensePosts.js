@@ -6,6 +6,7 @@ const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const axios_1 = require("axios");
+const rateLimiter_1 = require("./rateLimiter");
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
 const USERS_COLLECTION = "users_search";
@@ -28,6 +29,7 @@ function requireAdminAuth(request) {
     if (token?.admin !== true) {
         throw new https_1.HttpsError("permission-denied", "admin_required");
     }
+    rateLimiter_1.RateLimits.admin(uid);
     return uid;
 }
 function getEnv(name) {

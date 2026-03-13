@@ -4,6 +4,7 @@ exports.manualSyncUserProfile = exports.syncUserProfileToPosts = void 0;
 const admin = require("firebase-admin");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const rateLimiter_1 = require("./rateLimiter");
 const BATCH_SIZE = 500;
 const MAX_POSTS_PER_EXECUTION = 2000;
 const REGION = "europe-west3";
@@ -173,6 +174,7 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
     if (request.auth.token?.admin !== true) {
         throw new https_1.HttpsError("permission-denied", "Admin privileges required");
     }
+    rateLimiter_1.RateLimits.admin(request.auth.uid);
     const userId = request.data?.userId;
     if (!userId) {
         throw new https_1.HttpsError("invalid-argument", "userId is required");

@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
+import { RateLimits } from "./rateLimiter";
 
 const BATCH_SIZE = 500;
 const MAX_POSTS_PER_EXECUTION = 2000;
@@ -213,6 +214,7 @@ export const manualSyncUserProfile = onCall(
     if (request.auth.token?.admin !== true) {
       throw new HttpsError("permission-denied", "Admin privileges required");
     }
+    RateLimits.admin(request.auth.uid);
 
     const userId = request.data?.userId as string | undefined;
     if (!userId) {

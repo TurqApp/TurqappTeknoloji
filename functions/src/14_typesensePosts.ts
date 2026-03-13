@@ -3,6 +3,7 @@ import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functio
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
+import { RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
@@ -28,6 +29,7 @@ function requireAdminAuth(request: CallableRequest<unknown>): string {
   if (token?.admin !== true) {
     throw new HttpsError("permission-denied", "admin_required");
   }
+  RateLimits.admin(uid);
   return uid;
 }
 

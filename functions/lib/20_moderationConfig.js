@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ensureModerationConfig = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const rateLimiter_1 = require("./rateLimiter");
 const db = admin.firestore();
 const DEFAULT_MODERATION_CONFIG = {
     enabled: true,
@@ -22,16 +23,20 @@ async function ensureAdmin(context) {
     ensureAuth(context);
     const uid = context.auth.uid;
     const claims = context.auth?.token;
-    if (claims?.admin === true)
+    if (claims?.admin === true) {
+        rateLimiter_1.RateLimits.admin(uid);
         return;
+    }
     const allowSnap = await db.doc("adminConfig/admin").get();
     const allowedRaw = allowSnap.data()?.allowedUserIds;
     if (Array.isArray(allowedRaw)) {
         const allowed = allowedRaw
             .map((v) => String(v ?? "").trim())
             .filter((v) => v.length > 0);
-        if (allowed.includes(uid))
+        if (allowed.includes(uid)) {
+            rateLimiter_1.RateLimits.admin(uid);
             return;
+        }
     }
     throw new functions.https.HttpsError("permission-denied", "admin_required");
 }
