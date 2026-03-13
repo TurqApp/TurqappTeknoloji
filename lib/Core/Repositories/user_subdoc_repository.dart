@@ -103,6 +103,38 @@ class UserSubdocRepository extends GetxService {
     );
   }
 
+  Future<void> setDoc(
+    String uid, {
+    required String collection,
+    required String docId,
+    required Map<String, dynamic> data,
+    bool merge = true,
+  }) async {
+    if (uid.isEmpty || collection.isEmpty || docId.isEmpty) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection(collection)
+        .doc(docId)
+        .set(data, SetOptions(merge: merge));
+    final current = await getDoc(
+      uid,
+      collection: collection,
+      docId: docId,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    final merged = merge
+        ? (Map<String, dynamic>.from(current)..addAll(data))
+        : Map<String, dynamic>.from(data);
+    await putDoc(
+      uid,
+      collection: collection,
+      docId: docId,
+      data: merged,
+    );
+  }
+
   Future<void> invalidate(
     String uid, {
     required String collection,

@@ -305,13 +305,7 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> arsivle() async {
-    // Firestore güncelle
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": true,
-    });
+    await _postRepository.setArchived(model, true);
 
     // Tüm ilgili store ve listeleri güncelle
     final shortController = Get.find<ShortController>();
@@ -333,38 +327,15 @@ class ShortContentController extends GetxController {
     final index8 = store8.agendaList.indexOf(model);
     if (index8 >= 0) store8.agendaList[index8].arsiv = true;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final profile = Get.find<ProfileController>();
+    final profileIndex = profile.allPosts.indexOf(model);
+    if (profileIndex >= 0) profile.allPosts[profileIndex].arsiv = true;
 
     arsivlendi.value = true;
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(-1)});
-      }
-    } catch (_) {}
   }
 
   Future<void> arsivdenCikart() async {
-    // Firestore güncelle
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": false,
-    });
+    await _postRepository.setArchived(model, false);
 
     // Tüm ilgili store ve listeleri güncelle
     final shortController = Get.find<ShortController>();
@@ -386,28 +357,11 @@ class ShortContentController extends GetxController {
     final index8 = store8.agendaList.indexOf(model);
     if (index8 >= 0) store8.agendaList[index8].arsiv = false;
 
-    final store9 = Get.find<ProfileController>();
-    final index9 = store9.allPosts.indexOf(model);
-    if (index9 >= 0) store9.allPosts[index9].arsiv = false;
-
-    final store10 = Get.find<ProfileController>();
-    final index10 = store10.allPosts.indexOf(model);
-    if (index10 >= 0) store10.allPosts[index10].arsiv = false;
+    final profile = Get.find<ProfileController>();
+    final profileIndex = profile.allPosts.indexOf(model);
+    if (profileIndex >= 0) profile.allPosts[profileIndex].arsiv = false;
 
     arsivlendi.value = false;
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts +=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(1)});
-      }
-    } catch (_) {}
   }
 
   Future<void> sil() async {
@@ -452,8 +406,8 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> fetchUserData(String userID) async {
-    final data = await _userRepository.getUserRaw(userID) ??
-        const <String, dynamic>{};
+    final data =
+        await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
     avatarUrl.value = (data["avatarUrl"] ??
             data["avatarUrl"] ??
             data["avatarUrl"] ??

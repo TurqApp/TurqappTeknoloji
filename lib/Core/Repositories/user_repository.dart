@@ -183,6 +183,23 @@ class UserRepository extends GetxService {
     await _cache.putProfile(uid, merged);
   }
 
+  Future<void> upsertUserFields(
+    String uid,
+    Map<String, dynamic> data, {
+    bool mergeIntoCache = true,
+  }) async {
+    if (uid.isEmpty || data.isEmpty) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+    if (!mergeIntoCache) return;
+    final existing = _cache.peekProfile(uid, allowStale: true) ??
+        const <String, dynamic>{};
+    final merged = Map<String, dynamic>.from(existing)..addAll(data);
+    await _cache.putProfile(uid, merged);
+  }
+
   UserSummary? peekUser(String uid, {bool allowStale = true}) {
     if (uid.isEmpty) return null;
     final data = _cache.peekProfile(uid, allowStale: allowStale);

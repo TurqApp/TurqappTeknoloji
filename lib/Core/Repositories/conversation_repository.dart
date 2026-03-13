@@ -179,6 +179,36 @@ class ConversationRepository extends GetxService {
     } catch (_) {}
   }
 
+  Future<void> setUnreadCount({
+    required String chatId,
+    required String currentUid,
+    required int unreadCount,
+  }) async {
+    await _firestore.collection("conversations").doc(chatId).set({
+      "unread.$currentUid": unreadCount < 0 ? 0 : unreadCount,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> setPinned({
+    required String chatId,
+    required String currentUid,
+    required bool pinned,
+  }) async {
+    await _firestore.collection("conversations").doc(chatId).set({
+      "pinned.$currentUid": pinned,
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> setMuted({
+    required String chatId,
+    required String currentUid,
+    required bool muted,
+  }) async {
+    await _firestore.collection("conversations").doc(chatId).set({
+      "muted.$currentUid": muted,
+    }, SetOptions(merge: true));
+  }
+
   Future<void> setDeletedCutoff({
     required String currentUid,
     required String otherUserId,

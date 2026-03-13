@@ -152,10 +152,11 @@ class ChatController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .set({"unread.$uid": 0}, SetOptions(merge: true));
+      await _conversationRepository.setUnreadCount(
+        chatId: chatID,
+        currentUid: uid,
+        unreadCount: 0,
+      );
     } catch (_) {}
   }
 
@@ -788,8 +789,13 @@ class ChatController extends GetxController {
           batch.update(msgRef, {"status": "delivered"});
         }
       }
-      batch.set(convRef, {"unread.$currentUID": 0}, SetOptions(merge: true));
-      batch.commit().catchError((_) => null);
+      batch.commit().then((_) {
+        return _conversationRepository.setUnreadCount(
+          chatId: chatID,
+          currentUid: currentUID,
+          unreadCount: 0,
+        );
+      }).catchError((_) => null);
     }
 
     if (latestSeenTs > 0) {

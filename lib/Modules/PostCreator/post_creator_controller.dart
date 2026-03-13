@@ -21,6 +21,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../NavBar/nav_bar_controller.dart';
@@ -76,6 +77,7 @@ class PreparedPostModel {
 
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  final PostRepository _postRepository = PostRepository.ensure();
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
   final RxBool isKeyboardOpen = false.obs;
@@ -404,22 +406,28 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
     try {
       isSavingEdit.value = true;
-      final postsRef = FirebaseFirestore.instance.collection('Posts');
       String targetDocID = docID;
 
       try {
-        await postsRef.doc(targetDocID).update(update);
+        await FirebaseFirestore.instance
+            .collection('Posts')
+            .doc(targetDocID)
+            .update(update);
       } on FirebaseException catch (e) {
         if (e.code != 'not-found') rethrow;
 
-        // Eski/veri uyumsuz kayıtlar için: id alanından gerçek belgeyi bul.
-        final byId =
-            await postsRef.where('id', isEqualTo: docID).limit(1).get();
-        if (byId.docs.isEmpty) {
+        final resolvedId = await _postRepository.resolveDocumentIdByLegacyId(
+          docID,
+          preferCache: true,
+        );
+        if (resolvedId == null) {
           rethrow;
         }
-        targetDocID = byId.docs.first.id;
-        await postsRef.doc(targetDocID).update(update);
+        targetDocID = resolvedId;
+        await FirebaseFirestore.instance
+            .collection('Posts')
+            .doc(targetDocID)
+            .update(update);
       }
 
       // Feed üzerinde anlık güncelle
@@ -983,15 +991,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       } else {
         for (int j = 0; j < post.images.length; j++) {
           if (kDebugMode) {
-            final postDoc = await FirebaseFirestore.instance
-                .collection("Posts")
-                .doc(docID)
-                .get();
-            debugPrint('[UploadPreflight][PostCreator][Image] '
-                'path=Posts/$docID/image_$j.webp '
-                'uid=$uid '
-                'postExists=${postDoc.exists} '
-                'postUserID=${postDoc.data()?["userID"]}');
+                final postDoc =
+                    await _postRepository.fetchPostRawById(docID);
+                debugPrint('[UploadPreflight][PostCreator][Image] '
+                    'path=Posts/$docID/image_$j.webp '
+                    'uid=$uid '
+                    'postExists=${postDoc != null} '
+                    'postUserID=${postDoc?["userID"]}');
           }
           final url = await WebpUploadService.uploadBytesAsWebp(
             storage: FirebaseStorage.instance,
@@ -1024,15 +1030,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               'Posts/$docID/video.mp4',
             );
         if (kDebugMode) {
-          final postDoc = await FirebaseFirestore.instance
-              .collection("Posts")
-              .doc(docID)
-              .get();
+          final postDoc = await _postRepository.fetchPostRawById(docID);
           debugPrint('[UploadPreflight][PostCreator] '
               'path=${videoRef.fullPath} '
               'uid=$uid '
-              'postExists=${postDoc.exists} '
-              'postUserID=${postDoc.data()?["userID"]}');
+              'postExists=${postDoc != null} '
+              'postUserID=${postDoc?["userID"]}');
         }
         final uploadTask = await _putFileWithAuthRetry(
           ref: videoRef,
@@ -1879,15 +1882,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             for (int j = 0; j < post.images.length; j++) {
               try {
                 if (kDebugMode) {
-                  final postDoc = await FirebaseFirestore.instance
-                      .collection("Posts")
-                      .doc(docID)
-                      .get();
+                  final postDoc = await _postRepository.fetchPostRawById(docID);
                   debugPrint('[UploadPreflight][PostCreator][Image] '
                       'path=Posts/$docID/image_$j.webp '
                       'uid=$uid '
-                      'postExists=${postDoc.exists} '
-                      'postUserID=${postDoc.data()?["userID"]}');
+                      'postExists=${postDoc != null} '
+                      'postUserID=${postDoc?["userID"]}');
                 }
                 final url = await WebpUploadService.uploadBytesAsWebp(
                   storage: FirebaseStorage.instance,
@@ -1934,15 +1934,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   .ref()
                   .child('Posts/$docID/video.mp4');
               if (kDebugMode) {
-                final postDoc = await FirebaseFirestore.instance
-                    .collection("Posts")
-                    .doc(docID)
-                    .get();
+                final postDoc = await _postRepository.fetchPostRawById(docID);
                 debugPrint('[UploadPreflight][PostCreator] '
                     'path=${videoRef.fullPath} '
                     'uid=$uid '
-                    'postExists=${postDoc.exists} '
-                    'postUserID=${postDoc.data()?["userID"]}');
+                    'postExists=${postDoc != null} '
+                    'postUserID=${postDoc?["userID"]}');
               }
               final uploadTask = await _putFileWithAuthRetry(
                 ref: videoRef,

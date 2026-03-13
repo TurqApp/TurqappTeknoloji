@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -9,6 +8,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/chat.dart';
@@ -30,6 +30,8 @@ class ChatListingContent extends StatelessWidget {
     this.isArchiveTab = false,
   });
   late final ChatListingContentController controller;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
   final GlobalKey _timeAnchorKey = GlobalKey();
 
   String _buildSubtitle() {
@@ -65,12 +67,11 @@ class ChatListingContent extends StatelessWidget {
   }
 
   Future<void> _markUnread() async {
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(model.chatID)
-        .set({
-      "unread.$_uid": 1,
-    }, SetOptions(merge: true));
+    await _conversationRepository.setUnreadCount(
+      chatId: model.chatID,
+      currentUid: _uid,
+      unreadCount: 1,
+    );
     await _refreshList();
     AppSnackbar("Tamamlandı", "Sohbet okunmadı olarak işaretlendi");
   }
@@ -87,72 +88,46 @@ class ChatListingContent extends StatelessWidget {
         return;
       }
     }
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(model.chatID)
-        .set({
-      "pinned.$_uid": newValue,
-    }, SetOptions(merge: true));
+    await _conversationRepository.setPinned(
+      chatId: model.chatID,
+      currentUid: _uid,
+      pinned: newValue,
+    );
     await _refreshList();
     AppSnackbar("Tamamlandı", "İşlem tamamlandı");
   }
 
   Future<void> _toggleMuted() async {
     final newValue = !model.isMuted;
-    await FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(model.chatID)
-        .set({
-      "muted.$_uid": newValue,
-    }, SetOptions(merge: true));
+    await _conversationRepository.setMuted(
+      chatId: model.chatID,
+      currentUid: _uid,
+      muted: newValue,
+    );
     await _refreshList();
     AppSnackbar("Tamamlandı",
         newValue ? "Sohbet sessize alındı" : "Sohbet sesi açıldı");
   }
 
   Future<void> _archiveChat() async {
-    final db = FirebaseFirestore.instance;
-    await db
-        .collection("users")
-        .doc(_uid)
-        .collection("chatArchives")
-        .doc(model.userID)
-        .set({
-      "userID": model.userID,
-      "chatID": model.chatID,
-      "archived": true,
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-    await db.collection("conversations").doc(model.chatID).set({
-      "archived.$_uid": true,
-    }, SetOptions(merge: true));
+    await _conversationRepository.setArchived(
+      currentUid: _uid,
+      otherUserId: model.userID,
+      chatId: model.chatID,
+      archived: true,
+    );
 
     await _refreshList();
     AppSnackbar("Tamamlandı", "Sohbet arşive taşındı");
   }
 
   Future<void> _unarchiveChat() async {
-    final db = FirebaseFirestore.instance;
-
-    try {
-      await db
-          .collection("users")
-          .doc(_uid)
-          .collection("chatArchives")
-          .doc(model.userID)
-          .set({
-        "userID": model.userID,
-        "chatID": model.chatID,
-        "archived": false,
-        "updatedDate": DateTime.now().millisecondsSinceEpoch,
-      }, SetOptions(merge: true));
-    } catch (_) {}
-
-    try {
-      await db.collection("conversations").doc(model.chatID).set({
-        "archived.$_uid": false,
-      }, SetOptions(merge: true));
-    } catch (_) {}
+    await _conversationRepository.setArchived(
+      currentUid: _uid,
+      otherUserId: model.userID,
+      chatId: model.chatID,
+      archived: false,
+    );
 
     await _refreshList();
     AppSnackbar("Tamamlandı", "Sohbet arşivden çıkarıldı");
@@ -328,13 +303,13 @@ class ChatListingContent extends StatelessWidget {
                             .markChatNotificationsReadLocal(
                                 chatId: model.chatID);
                       }
-                      unawaited(
-                        FirebaseFirestore.instance
-                            .collection("conversations")
-                            .doc(model.chatID)
-                            .set({"unread.$_uid": 0},
-                                SetOptions(merge: true)).catchError((_) {}),
-                      );
+                      unawaited(_conversationRepository
+                          .setUnreadCount(
+                            chatId: model.chatID,
+                            currentUid: _uid,
+                            unreadCount: 0,
+                          )
+                          .catchError((_) {}));
                       await Get.to(() =>
                           ChatView(chatID: model.chatID, userID: model.userID));
                       if (Get.isRegistered<ChatListingController>()) {

@@ -255,6 +255,33 @@ class PostRepository extends GetxService {
     await _ensureInteraction(state, forceRefresh: true);
   }
 
+  Future<void> setArchived(
+    PostsModel model,
+    bool archived,
+  ) async {
+    await _firestore.collection('Posts').doc(model.docID).update({
+      'arsiv': archived,
+    });
+
+    final me = _auth.currentUser?.uid;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final isVisible = (model.timeStamp <= nowMs) && !model.flood;
+    if (me != null && model.userID == me && isVisible) {
+      await _firestore.collection('users').doc(me).update({
+        'counterOfPosts': FieldValue.increment(archived ? -1 : 1),
+      });
+    }
+
+    final state = _states[model.docID];
+    final latest = state?.latestPostData.value;
+    if (latest != null) {
+      state!.latestPostData.value = {
+        ...latest,
+        'arsiv': archived,
+      };
+    }
+  }
+
   Future<Map<String, PostsModel>> fetchPostsByIds(
     List<String> postIds, {
     bool preferCache = true,
@@ -380,6 +407,35 @@ class PostRepository extends GetxService {
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
     nextState.latestPostData.value = Map<String, dynamic>.from(data);
     return Map<String, dynamic>.from(data);
+  }
+
+  Future<String?> resolveDocumentIdByLegacyId(
+    String legacyId, {
+    bool preferCache = true,
+  }) async {
+    final normalized = legacyId.trim();
+    if (normalized.isEmpty) return null;
+    if (_states.containsKey(normalized)) {
+      return normalized;
+    }
+    final byDocId = await fetchPostRawById(
+      normalized,
+      preferCache: preferCache,
+    );
+    if (byDocId != null) {
+      return normalized;
+    }
+    final snap = await _firestore
+        .collection('Posts')
+        .where('id', isEqualTo: normalized)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    final doc = snap.docs.first;
+    final state =
+        _states.putIfAbsent(doc.id, () => PostRepositoryState(doc.id));
+    state.latestPostData.value = Map<String, dynamic>.from(doc.data());
+    return doc.id;
   }
 
   Future<List<PostReshareEntry>> fetchAllReshareEntries(

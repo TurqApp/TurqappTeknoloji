@@ -487,26 +487,7 @@ class PostContentController extends GetxController {
   }
 
   Future<void> arsivle() async {
-    // Firestore güncelle
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": true,
-    });
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts -=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(-1)});
-      }
-    } catch (_) {}
+    await _postRepository.setArchived(model, true);
 
     // Tüm ilgili store ve listeleri güncelle
     final shortController = shortsController;
@@ -539,25 +520,7 @@ class PostContentController extends GetxController {
   }
 
   Future<void> arsivdenCikart() async {
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update({
-      "arsiv": false,
-    });
-
-    // Sayaç: görünür bir kök post ise ve sahibi isek counterOfPosts +=1
-    try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (me != null && model.userID == me && isVisible) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(me)
-            .update({'counterOfPosts': FieldValue.increment(1)});
-      }
-    } catch (_) {}
+    await _postRepository.setArchived(model, false);
 
     final shortController = shortsController;
     final index = shortController.shorts.indexOf(model);

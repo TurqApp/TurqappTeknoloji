@@ -136,31 +136,20 @@ class CreateBookController extends GetxController {
       "yayinEvi": yayinEviController.text,
       "userID": existingBook?.userID ?? FirebaseAuth.instance.currentUser!.uid,
       "viewCount": existingBook?.viewCount ?? 0,
-    });
-    SetOptions(merge: true);
+    }, SetOptions(merge: true));
 
-    final oldAnswers = await FirebaseFirestore.instance
-        .collection("books")
-        .doc(docID)
-        .collection("CevapAnahtarlari")
-        .get();
-    for (final doc in oldAnswers.docs) {
-      await doc.reference.delete();
-    }
-
-    for (var item in list) {
-      await FirebaseFirestore.instance
-          .collection("books")
-          .doc(docID)
-          .collection("CevapAnahtarlari")
-          .doc(DateTime.now().microsecondsSinceEpoch.toString())
-          .set({
-        "baslik": item.baslik,
-        "sira": item.sira,
-        "dogruCevaplar": item.dogruCevaplar,
-      });
-      SetOptions(merge: true);
-    }
+    await _bookletRepository.replaceAnswerKeys(
+      docID,
+      list
+          .map(
+            (item) => <String, dynamic>{
+              "baslik": item.baslik,
+              "sira": item.sira,
+              "dogruCevaplar": item.dogruCevaplar,
+            },
+          )
+          .toList(growable: false),
+    );
 
     if (imageFile.value != null) {
       await uploadImageToFirebaseStorage(imageFile.value!, context);
@@ -183,20 +172,17 @@ class CreateBookController extends GetxController {
       book.docID,
       preferCache: true,
     );
-    final items = answers
-        .map(
-          (item) {
-            final data =
-                Map<String, dynamic>.from(item['data'] ?? const <String, dynamic>{});
-            return CevapAnahtariHazirlikModel(
-              baslik: (data['baslik'] ?? '').toString(),
-              dogruCevaplar:
-                  List<String>.from(data['dogruCevaplar'] ?? const []),
-              sira: (data['sira'] as num?)?.toInt() ?? 0,
-            );
-          },
-        )
-        .toList()
+    final items = answers.map(
+      (item) {
+        final data = Map<String, dynamic>.from(
+            item['data'] ?? const <String, dynamic>{});
+        return CevapAnahtariHazirlikModel(
+          baslik: (data['baslik'] ?? '').toString(),
+          dogruCevaplar: List<String>.from(data['dogruCevaplar'] ?? const []),
+          sira: (data['sira'] as num?)?.toInt() ?? 0,
+        );
+      },
+    ).toList()
       ..sort((a, b) => a.sira.compareTo(b.sira));
     list.assignAll(items);
   }

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +11,7 @@ import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -25,6 +25,8 @@ import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
   final UserRepository _userRepository = UserRepository.ensure();
+  final UserSubdocRepository _userSubdocRepository =
+      UserSubdocRepository.ensure();
   late AnimationController animationController;
 
   var selection = 0.obs;
@@ -262,33 +264,30 @@ class SignInController extends GetxController
           print(
             '⚠️ phoneAccounts permission-denied, users fallback create uygulanıyor',
           );
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .set(userDoc, SetOptions(merge: true));
+          await _userRepository.upsertUserFields(uid, userDoc);
         } else {
           rethrow;
         }
       }
 
       // Güvenlik: users dokümanında eksik alan kalmaması için merge ile kesinleştir.
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .set(userDoc, SetOptions(merge: true));
-      final rootRef = FirebaseFirestore.instance.collection('users').doc(uid);
-      final subBatch = FirebaseFirestore.instance.batch();
+      await _userRepository.upsertUserFields(uid, userDoc);
+      final subdocWrites = <Future<void>>[];
       userSubdocs.forEach((path, data) {
         final segments = path.split('/');
         if (segments.length == 2) {
-          subBatch.set(
-            rootRef.collection(segments[0]).doc(segments[1]),
-            data,
-            SetOptions(merge: true),
+          subdocWrites.add(
+            _userSubdocRepository.setDoc(
+              uid,
+              collection: segments[0],
+              docId: segments[1],
+              data: Map<String, dynamic>.from(data),
+              merge: true,
+            ),
           );
         }
       });
-      await subBatch.commit();
+      await Future.wait(subdocWrites);
       accountProvisioned = true;
 
       final createdUserData =
