@@ -701,7 +701,8 @@ class CurrentUserModel {
       deletedAccount: (json['isDeleted'] ?? false) == true,
       bot: (json['isBot'] ?? false) == true,
       signInMethod: json['signInMethod'] ?? '',
-      sifre: json['sifre'] ?? '',
+      // Legacy caches may still contain this field; never rehydrate it.
+      sifre: '',
       refCode: json['refCode'] ?? '',
       blockedUsers: List<String>.from(json['blockedUsers'] ?? []),
       device: json['device'] ?? '',

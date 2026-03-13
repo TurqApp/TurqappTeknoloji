@@ -43,4 +43,16 @@ void main() {
     expect(cachedUser.deviceID, isEmpty);
     expect(cachedUser.deviceVersion, isEmpty);
   });
+
+  test('fromJson ignores legacy cached password values', () {
+    final user = CurrentUserModel.fromJson(const {
+      'userID': 'user-3',
+      'nickname': 'legacy-user',
+      'sifre': 'plaintext-should-not-load',
+    });
+
+    expect(user.userID, 'user-3');
+    expect(user.nickname, 'legacy-user');
+    expect(user.sifre, isEmpty);
+  });
 }
