@@ -174,3 +174,85 @@ test("reports collection blocks unexpected complaint fields", async () => {
     }),
   );
 });
+
+test("phoneAccounts allows canonical self create payload", async () => {
+  const uid = "phone-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ctx.firestore(), "phoneAccounts/5551112233"), {
+      phone: "5551112233",
+      count: 1,
+      limit: 5,
+      accounts: [uid],
+      createdDate: Date.now(),
+      lastCreatedAt: Date.now(),
+    }),
+  );
+});
+
+test("phoneAccounts blocks unexpected fields on create", async () => {
+  const uid = "phone-owner-extra";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "phoneAccounts/5551112244"), {
+      phone: "5551112244",
+      count: 1,
+      limit: 5,
+      accounts: [uid],
+      createdDate: Date.now(),
+      lastCreatedAt: Date.now(),
+      role: "admin",
+    }),
+  );
+});
+
+test("phoneAccounts allows self removal update without changing phone", async () => {
+  const uid = "phone-owner-delete";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "phoneAccounts/5551112255"), {
+      phone: "5551112255",
+      count: 1,
+      limit: 5,
+      accounts: [uid],
+      createdDate: Date.now() - 1000,
+      lastCreatedAt: Date.now() - 1000,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(
+    updateDoc(doc(ctx.firestore(), "phoneAccounts/5551112255"), {
+      count: 0,
+      accounts: [],
+      lastUpdatedAt: Date.now(),
+    }),
+  );
+});
+
+test("phoneAccounts blocks phone mutation on update", async () => {
+  const uid = "phone-owner-mutate";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "phoneAccounts/5551112266"), {
+      phone: "5551112266",
+      count: 1,
+      limit: 5,
+      accounts: [uid],
+      createdDate: Date.now() - 1000,
+      lastCreatedAt: Date.now() - 1000,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertFails(
+    updateDoc(doc(ctx.firestore(), "phoneAccounts/5551112266"), {
+      phone: "5550000000",
+      count: 0,
+      accounts: [],
+      lastUpdatedAt: Date.now(),
+    }),
+  );
+});

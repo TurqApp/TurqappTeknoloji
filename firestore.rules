@@ -1236,6 +1236,24 @@ service cloud.firestore {
     match /phoneAccounts/{phone} {
       allow read: if false;
 
+      function hasAllowedPhoneAccountKeys(data) {
+        return data.keys().hasOnly([
+          'phone', 'count', 'limit', 'accounts',
+          'createdAt', 'createdDate', 'lastCreatedAt', 'lastUpdatedAt'
+        ]);
+      }
+      function hasValidPhoneAccountTypes(data) {
+        return data.phone is string
+          && data.phone == phone
+          && data.count is int
+          && data.accounts is list
+          && (!data.keys().hasAny(['limit']) || data.limit == null || data.limit is int)
+          && (!data.keys().hasAny(['createdAt']) || data.createdAt is int)
+          && (!data.keys().hasAny(['createdDate']) || data.createdDate is int)
+          && (!data.keys().hasAny(['lastCreatedAt']) || data.lastCreatedAt is int)
+          && (!data.keys().hasAny(['lastUpdatedAt']) || data.lastUpdatedAt is int);
+      }
+
       function isSelfAdd(prev, next) {
         return next.count == prev.count + 1
           && !(request.auth.uid in prev.accounts)
@@ -1254,12 +1272,17 @@ service cloud.firestore {
       }
 
       allow create: if isAuth()
+        && hasAllowedPhoneAccountKeys(request.resource.data)
+        && hasValidPhoneAccountTypes(request.resource.data)
         && request.resource.data.count == 1
         && request.resource.data.accounts.size() == 1
         && (request.auth.uid in request.resource.data.accounts)
         && (request.resource.data.limit == null || request.resource.data.limit >= 1)
         && request.resource.data.phone == phone;
       allow update: if isAuth()
+        && hasAllowedPhoneAccountKeys(request.resource.data)
+        && hasValidPhoneAccountTypes(request.resource.data)
+        && request.resource.data.phone == resource.data.phone
         && (isSelfAdd(resource.data, request.resource.data)
             || isSelfRemove(resource.data, request.resource.data));
       allow delete: if false;
