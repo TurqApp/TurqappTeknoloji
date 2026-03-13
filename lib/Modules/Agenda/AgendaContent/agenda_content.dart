@@ -106,6 +106,15 @@ class _AgendaContentState extends State<AgendaContent>
 
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
+  bool get _shouldBlurIzBirakPost =>
+      _isIzBirakPost && _izBirakPublishDate.isAfter(DateTime.now());
+
+  String get _izBirakFeedHandle {
+    final nickname = controller.nickname.value.trim();
+    final username = controller.username.value.trim();
+    return nickname.isNotEmpty ? nickname : username;
+  }
+
   DateTime get _izBirakPublishDate => DateTime.fromMillisecondsSinceEpoch(
         widget.model.scheduledAt.toInt() > 0
             ? widget.model.scheduledAt.toInt()
@@ -121,7 +130,7 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildIzBirakBlurOverlay() {
-    if (!_isIzBirakPost) return const SizedBox.shrink();
+    if (!_shouldBlurIzBirakPost) return const SizedBox.shrink();
     return Positioned.fill(
       child: ClipRect(
         child: BackdropFilter(
@@ -136,6 +145,10 @@ class _AgendaContentState extends State<AgendaContent>
 
   Widget _buildIzBirakBottomBar() {
     if (!_isIzBirakPost) return const SizedBox.shrink();
+    final handle = _izBirakFeedHandle;
+    final text = handle.isNotEmpty
+        ? '${formatIzBirakLong(_izBirakPublishDate)} - @$handle İz Bıraktı'
+        : formatIzBirakLong(_izBirakPublishDate);
     return Positioned(
       left: 10,
       right: 10,
@@ -150,7 +163,7 @@ class _AgendaContentState extends State<AgendaContent>
           children: [
             Expanded(
               child: Text(
-                formatIzBirakLong(_izBirakPublishDate),
+                text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
