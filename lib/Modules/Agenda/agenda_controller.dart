@@ -151,6 +151,25 @@ class AgendaController extends GetxController {
     return v >= _agendaCutoffMs(nowMs) && v <= nowMs;
   }
 
+  bool _isEligibleAgendaPost(PostsModel post, int nowMs) {
+    final ts = post.timeStamp.toInt();
+    if (_agendaWindow != null && ts < _agendaCutoffMs(nowMs)) {
+      return false;
+    }
+    if (ts <= nowMs) {
+      return true;
+    }
+    return post.scheduledAt.toInt() > 0;
+  }
+
+  bool _isEligibleFeedReference(num ts, int nowMs) {
+    final value = ts.toInt();
+    if (_agendaWindow != null && value < _agendaCutoffMs(nowMs)) {
+      return false;
+    }
+    return value > 0;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -1204,7 +1223,7 @@ class AgendaController extends GetxController {
         .where(
           (item) =>
               item.timeStamp > 0 &&
-              _isInAgendaWindow(item.timeStamp, nowMs) &&
+              _isEligibleFeedReference(item.timeStamp, nowMs) &&
               (item.expiresAt <= 0 || item.expiresAt >= nowMs),
         )
         .toList(growable: false);
@@ -1281,7 +1300,7 @@ class AgendaController extends GetxController {
     );
     return _AgendaSourcePage(
       items: page.items
-          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
+          .where((p) => _isEligibleAgendaPost(p, nowMs))
           .where((p) => p.deletedPost != true)
           .toList(growable: false),
       lastDoc: page.lastDoc,
@@ -1396,7 +1415,7 @@ class AgendaController extends GetxController {
     );
 
     final items = page.items
-        .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
+        .where((p) => _isEligibleAgendaPost(p, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
 
@@ -1446,7 +1465,7 @@ class AgendaController extends GetxController {
       );
 
       final items = page.items
-          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
+          .where((p) => _isEligibleAgendaPost(p, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
 

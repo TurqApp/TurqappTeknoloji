@@ -375,7 +375,6 @@ class PostRepository extends GetxService {
         .where('arsiv', isEqualTo: false)
         .where('flood', isEqualTo: false)
         .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy('timeStamp', descending: true)
         .limit(limit);
     if (startAfter != null) {
@@ -504,8 +503,9 @@ class PostRepository extends GetxService {
       );
       return snap.docs
           .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
-          .where(
-              (post) => post.timeStamp >= cutoffMs && post.timeStamp <= nowMs)
+          .where((post) =>
+              post.timeStamp >= cutoffMs &&
+              (post.timeStamp <= nowMs || post.scheduledAt.toInt() > 0))
           .toList(growable: false);
     });
 
