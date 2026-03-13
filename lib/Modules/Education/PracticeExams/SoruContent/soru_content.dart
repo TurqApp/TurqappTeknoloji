@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -139,7 +140,9 @@ class _SoruContentState extends State<SoruContent> {
                           children: [
                             SizedBox(height: 7),
                             widget.model.soru != ""
-                                ? Image.network(widget.model.soru)
+                                ? CachedNetworkImage(
+                                    imageUrl: widget.model.soru,
+                                  )
                                 : Column(
                                     children: [
                                       SizedBox(height: 15),

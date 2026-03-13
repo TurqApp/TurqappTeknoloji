@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -82,9 +83,15 @@ class TestPastResultContent extends StatelessWidget {
                                 child: SizedBox(
                                   width: 75,
                                   height: 75,
-                                  child: Image.network(
-                                    model.img,
+                                  child: CachedNetworkImage(
+                                    imageUrl: model.img,
                                     fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        const Center(
+                                      child: CupertinoActivityIndicator(),
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(Icons.broken_image),
                                   ),
                                 ),
                               ),

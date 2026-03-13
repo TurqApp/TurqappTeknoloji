@@ -7,12 +7,15 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
@@ -21,6 +24,10 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
 
 class ScholarshipsController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
   final ScrollController scrollController = ScrollController();
   final RxList<Map<String, dynamic>> allScholarships =
       <Map<String, dynamic>>[].obs;
@@ -54,7 +61,6 @@ class ScholarshipsController extends GetxController {
   final int minSearchLength = 2; // minimum search query length
   static const String _scholarshipsCacheKey = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
-  static const int _maxUserFetchBatch = 30;
   int _searchRequestToken = 0;
 
   bool get hasActiveSearch => searchQuery.value.length >= minSearchLength;
@@ -79,8 +85,9 @@ class ScholarshipsController extends GetxController {
 
   Future<void> refreshTotalCount() async {
     try {
-      final agg = await ScholarshipFirestorePath.collection().count().get();
-      totalCount.value = agg.count ?? 0;
+      totalCount.value = await _scholarshipRepository.fetchTotalCount(
+        preferCache: true,
+      );
     } catch (e) {
       // ignore silently; keep last known count
     }
@@ -232,25 +239,9 @@ class ScholarshipsController extends GetxController {
     final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
     if (orderedIds.isEmpty) return const [];
 
-    const chunkSize = 10;
-    final byId = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-    for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end = (i + chunkSize > orderedIds.length)
-          ? orderedIds.length
-          : i + chunkSize;
-      final chunk = orderedIds.sublist(i, end);
-      final snap = await ScholarshipFirestorePath.collection()
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        byId[doc.id] = doc;
-      }
-    }
-
-    final docs =
-        orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    final docs = await _scholarshipRepository.fetchByIdsRaw(orderedIds);
     final userIds = docs
-        .map((doc) => doc.data()['userID'] as String? ?? '')
+        .map((doc) => doc['userID'] as String? ?? '')
         .where((id) => id.isNotEmpty)
         .toList();
     final userDocsById = await _fetchUsersByIds(userIds);
@@ -258,7 +249,8 @@ class ScholarshipsController extends GetxController {
     final items = <Map<String, dynamic>>[];
 
     for (final doc in docs) {
-      final data = doc.data();
+      final data = Map<String, dynamic>.from(doc);
+      final currentDocId = (data['docId'] ?? '').toString();
       final userID = data['userID'] as String? ?? '';
       final userData = _buildUserDataFromDoc(userID, userDocsById[userID]);
       final begeniler = data['begeniler'] as List<dynamic>? ?? [];
@@ -271,7 +263,7 @@ class ScholarshipsController extends GetxController {
         'model': IndividualScholarshipsModel.fromJson(data),
         'type': 'bireysel',
         'userData': userData,
-        'docId': doc.id,
+        'docId': (data['docId'] ?? '').toString(),
         'likesCount': likesCount,
         'bookmarksCount': bookmarksCount,
         'timeStamp': data['timeStamp'] as int? ?? 0,
@@ -279,10 +271,11 @@ class ScholarshipsController extends GetxController {
       });
 
       if (currentUserId.isNotEmpty) {
-        likedScholarships[doc.id] = begeniler.contains(currentUserId) ||
-            _likedByCurrentUser.contains(doc.id);
-        bookmarkedScholarships[doc.id] = kaydedenler.contains(currentUserId) ||
-            _bookmarkedByCurrentUser.contains(doc.id);
+        likedScholarships[currentDocId] = begeniler.contains(currentUserId) ||
+            _likedByCurrentUser.contains(currentDocId);
+        bookmarkedScholarships[currentDocId] =
+            kaydedenler.contains(currentUserId) ||
+                _bookmarkedByCurrentUser.contains(currentDocId);
         if (userID.isNotEmpty && !followedUsers.containsKey(userID)) {
           followedUsers[userID] =
               await _checkFollowStatus(userID, currentUserId);
@@ -293,39 +286,24 @@ class ScholarshipsController extends GetxController {
     return items;
   }
 
-  Future<Map<String, DocumentSnapshot>> _fetchUsersByIds(
+  Future<Map<String, Map<String, dynamic>>> _fetchUsersByIds(
       List<String> userIds) async {
     final uniqueIds = userIds.where((id) => id.isNotEmpty).toSet().toList();
     if (uniqueIds.isEmpty) return {};
 
-    final Map<String, DocumentSnapshot> result = {};
-
-    for (var i = 0; i < uniqueIds.length; i += _maxUserFetchBatch) {
-      final end = (i + _maxUserFetchBatch) > uniqueIds.length
-          ? uniqueIds.length
-          : (i + _maxUserFetchBatch);
-      final batchIds = uniqueIds.sublist(i, end);
-      if (batchIds.isEmpty) continue;
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: batchIds)
-          .get();
-      for (final doc in snap.docs) {
-        result[doc.id] = doc;
-      }
-    }
-
-    return result;
+    return _userRepository.getUsersRaw(uniqueIds);
   }
 
   Map<String, dynamic> _buildUserDataFromDoc(
     String userId,
-    DocumentSnapshot? userDoc,
+    dynamic userDoc,
   ) {
-    if (userId.isEmpty || userDoc == null || !userDoc.exists) {
+    if (userId.isEmpty || userDoc == null) {
       return {'avatarUrl': '', 'nickname': '', 'userID': userId};
     }
-    final data = userDoc.data() as Map<String, dynamic>? ?? {};
+    final data = userDoc is Map<String, dynamic>
+        ? userDoc
+        : (userDoc.data() as Map<String, dynamic>? ?? {});
     final profileName =
         (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
             .toString();
@@ -363,10 +341,9 @@ class ScholarshipsController extends GetxController {
       }
 
       final startQueryTime = DateTime.now();
-      final snapshot = await ScholarshipFirestorePath.collection()
-          .orderBy('timeStamp', descending: true)
-          .limit(initialBatchSize)
-          .get();
+      final snapshot = await _scholarshipRepository.fetchLatestPage(
+        limit: initialBatchSize,
+      );
       print(
         'Firestore queries took: ${DateTime.now().difference(startQueryTime).inMilliseconds}ms',
       );
@@ -475,11 +452,10 @@ class ScholarshipsController extends GetxController {
       print('Starting loadMoreScholarships at ${DateTime.now()}');
 
       final startQueryTime = DateTime.now();
-      final snapshot = await ScholarshipFirestorePath.collection()
-          .orderBy('timeStamp', descending: true)
-          .startAfterDocument(lastBireyselDoc!)
-          .limit(batchSize)
-          .get();
+      final snapshot = await _scholarshipRepository.fetchLatestPage(
+        limit: batchSize,
+        startAfter: lastBireyselDoc,
+      );
       print(
         'Firestore queries for loadMore took: ${DateTime.now().difference(startQueryTime).inMilliseconds}ms',
       );
@@ -601,7 +577,6 @@ class ScholarshipsController extends GetxController {
     final wasLiked = likedScholarships[docId] ?? false;
 
     try {
-      final docRef = ScholarshipFirestorePath.doc(docId);
       likedScholarships[docId] = !wasLiked;
       if (wasLiked) {
         _likedByCurrentUser.remove(docId);
@@ -625,12 +600,7 @@ class ScholarshipsController extends GetxController {
         visibleScholarships.refresh();
       }
 
-      await docRef.update({
-        'begeniler': wasLiked
-            ? FieldValue.arrayRemove([userId])
-            : FieldValue.arrayUnion([userId]),
-        'likesCount': FieldValue.increment(wasLiked ? -1 : 1),
-      });
+      await _scholarshipRepository.toggleLike(docId, userId: userId);
     } catch (e) {
       likedScholarships[docId] = wasLiked;
       if (wasLiked) {
@@ -669,7 +639,6 @@ class ScholarshipsController extends GetxController {
     final wasBookmarked = bookmarkedScholarships[docId] ?? false;
 
     try {
-      final docRef = ScholarshipFirestorePath.doc(docId);
       bookmarkedScholarships[docId] = !wasBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.remove(docId);
@@ -693,12 +662,7 @@ class ScholarshipsController extends GetxController {
         visibleScholarships.refresh();
       }
 
-      await docRef.update({
-        'kaydedenler': wasBookmarked
-            ? FieldValue.arrayRemove([userId])
-            : FieldValue.arrayUnion([userId]),
-        'bookmarksCount': FieldValue.increment(wasBookmarked ? -1 : 1),
-      });
+      await _scholarshipRepository.toggleBookmark(docId, userId: userId);
     } catch (e) {
       bookmarkedScholarships[docId] = wasBookmarked;
       if (wasBookmarked) {
@@ -989,39 +953,29 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<bool> _checkFollowStatus(String followedId, String followerId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(followedId)
-        .collection('followers')
-        .doc(followerId)
-        .get();
-    return doc.exists;
+    return _followRepository.isFollowing(
+      followedId,
+      currentUid: followerId,
+      preferCache: true,
+    );
   }
 
   Future<void> toggleFollow(String followedId) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
-    final followerId = currentUser.uid;
-
-    if (followedUsers[followedId] ?? false) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(followedId)
-          .collection('followers')
-          .doc(followerId)
-          .delete();
-      followedUsers[followedId] = false;
-    } else {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(followedId)
-          .collection('followers')
-          .doc(followerId)
-          .set({
-        'followerId': followerId,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      }, SetOptions(merge: true));
-      followedUsers[followedId] = true;
+    followLoading[followedId] = true;
+    try {
+      final outcome = await FollowService.toggleFollow(followedId);
+      if (outcome.limitReached) {
+        AppSnackbar(
+          "Limit",
+          "Günlük takip limitine ulaştınız.",
+        );
+        return;
+      }
+      followedUsers[followedId] = outcome.nowFollowing;
+    } finally {
+      followLoading[followedId] = false;
     }
   }
 

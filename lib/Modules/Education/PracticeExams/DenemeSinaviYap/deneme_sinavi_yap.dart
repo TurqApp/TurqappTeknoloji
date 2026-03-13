@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -62,9 +63,9 @@ class DenemeSinaviYap extends StatelessWidget {
                             ),
                           ],
                         ),
-                        Image.network(
-                          soru.soru,
-                          errorBuilder: (context, error, stackTrace) => Text(
+                        CachedNetworkImage(
+                          imageUrl: soru.soru,
+                          errorWidget: (context, url, error) => Text(
                             "Soru resmi yüklenemedi.",
                             style: TextStyle(
                               color: Colors.red,

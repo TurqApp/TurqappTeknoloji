@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -48,8 +49,8 @@ class TestsGrid extends StatelessWidget {
                               height: 23,
                               child: Obx(
                                 () => controller.avatarUrl.value.isNotEmpty
-                                    ? Image.network(
-                                        controller.avatarUrl.value,
+                                    ? CachedNetworkImage(
+                                        imageUrl: controller.avatarUrl.value,
                                         fit: BoxFit.cover,
                                       )
                                     : Center(
@@ -102,7 +103,10 @@ class TestsGrid extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 1,
               child: model.img.isNotEmpty
-                  ? Image.network(model.img, fit: BoxFit.cover)
+                  ? CachedNetworkImage(
+                      imageUrl: model.img,
+                      fit: BoxFit.cover,
+                    )
                   : Center(child: CupertinoActivityIndicator()),
             ),
           ),

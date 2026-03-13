@@ -1,7 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 import '../../../Models/post_interactions_models_new.dart';
 import '../../../Services/post_interaction_service.dart';
@@ -28,16 +27,14 @@ class PostCommentContentController extends GetxController {
 
   Future<void> _loadUserProfile(String userID) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      if (doc.exists) {
-        final data = doc.data() ?? const <String, dynamic>{};
-        nickname.value =
-            (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
-                .toString();
-        avatarUrl.value = resolveAvatarUrl(data);
+      final summary = await UserRepository.ensure().getUser(
+        userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary != null) {
+        nickname.value = summary.preferredName;
+        avatarUrl.value = summary.avatarUrl;
       }
     } catch (_) {}
   }

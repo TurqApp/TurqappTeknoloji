@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class SearchTestsController extends GetxController {
+  final TestRepository _testRepository = TestRepository.ensure();
   final list = <TestsModel>[].obs;
   final filteredList = <TestsModel>[].obs;
   final searchController = TextEditingController();
@@ -29,33 +30,7 @@ class SearchTestsController extends GetxController {
     list.clear();
     filteredList.clear();
 
-    final snap = await FirebaseFirestore.instance.collection("Testler").get();
-
-    for (var doc in snap.docs) {
-      final aciklama = doc.get("aciklama") as String;
-      final testTuru = doc.get("testTuru") as String;
-      final dersler = List<String>.from(doc['dersler'] ?? []);
-      final img = doc.get("img") as String;
-      final timeStamp = doc.get("timeStamp") as String;
-      final userID = doc.get("userID") as String;
-      final paylasilabilir = doc.get("paylasilabilir") as bool;
-      final taslak = doc.get("taslak") as bool;
-
-      list.add(
-        TestsModel(
-          userID: userID,
-          timeStamp: timeStamp,
-          aciklama: aciklama,
-          dersler: dersler,
-          img: img,
-          docID: doc.id,
-          paylasilabilir: paylasilabilir,
-          testTuru: testTuru,
-          taslak: taslak,
-        ),
-      );
-    }
-
+    list.assignAll(await _testRepository.fetchAll(preferCache: true));
     filteredList.assignAll(list);
   }
 

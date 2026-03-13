@@ -1,10 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:get/get.dart';
 
 class ScholarshipApplicationsContentController extends GetxController {
   final String userID;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   ScholarshipApplicationsContentController({required this.userID});
 
@@ -79,13 +80,8 @@ class ScholarshipApplicationsContentController extends GetxController {
   Future<void> loadInitialData() async {
     try {
       isLoading.value = true;
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+      final data = await _userRepository.getUserRaw(userID);
+      if (data != null) {
         nickname.value =
             (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
                 .toString();
@@ -103,13 +99,8 @@ class ScholarshipApplicationsContentController extends GetxController {
 
   Future<void> getData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+      final data = await _userRepository.getUserRaw(userID);
+      if (data != null) {
         // ad.value = doc.get("firstName") ?? "";
         // soyad.value = doc.get("lastName") ?? "";
         phoneNumber.value = userString(data, key: "phoneNumber");
@@ -134,13 +125,8 @@ class ScholarshipApplicationsContentController extends GetxController {
 
   Future<void> ogrenciBilgileriniKontrolEt() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>? ?? {};
+      final data = await _userRepository.getUserRaw(userID);
+      if (data != null) {
         dogumTarigi.value =
             userString(data, key: "dogumTarihi", scope: "profile");
         medeniHal.value = userString(data, key: "medeniHal", scope: "profile");

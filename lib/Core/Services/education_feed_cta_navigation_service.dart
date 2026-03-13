@@ -1,19 +1,25 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
-import 'package:turqappv2/Models/Education/tutoring_model.dart';
-import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
-import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
 
 class EducationFeedCtaNavigationService {
   const EducationFeedCtaNavigationService();
+
+  UserRepository get _userRepository => UserRepository.ensure();
+  PracticeExamRepository get _practiceExamRepository =>
+      PracticeExamRepository.ensure();
+  ScholarshipRepository get _scholarshipRepository =>
+      ScholarshipRepository.ensure();
+  NotifyLookupRepository get _notifyLookupRepository =>
+      NotifyLookupRepository.ensure();
 
   Future<bool> openFromInternalUrl(String url) async {
     final uri = Uri.tryParse(url.trim());
@@ -111,25 +117,27 @@ class EducationFeedCtaNavigationService {
   }
 
   Future<void> _openScholarship(String docId) async {
-    final doc = await ScholarshipFirestorePath.doc(docId).get();
-    if (!doc.exists || doc.data() == null) {
+    final data = await _scholarshipRepository.fetchRawById(
+      docId,
+      preferCache: true,
+    );
+    if (data == null) {
       AppSnackbar('Hata', 'Burs bulunamadı.');
       return;
     }
 
-    final data = doc.data()!;
     final model = IndividualScholarshipsModel.fromJson(data);
     final ownerId = (data['userID'] ?? '').toString().trim();
     Map<String, dynamic> userData = <String, dynamic>{'userID': ownerId};
 
     if (ownerId.isNotEmpty) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(ownerId)
-          .get();
-      if (userDoc.exists && userDoc.data() != null) {
+      final userDoc = await _userRepository.getUserRaw(
+        ownerId,
+        preferCache: true,
+      );
+      if (userDoc != null) {
         userData = {
-          ...userDoc.data()!,
+          ...userDoc,
           'userID': ownerId,
         };
       }
@@ -147,61 +155,33 @@ class EducationFeedCtaNavigationService {
   }
 
   Future<void> _openPracticeExam(String docId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('practiceExams')
-        .doc(docId)
-        .get();
-    if (!doc.exists || doc.data() == null) {
+    final model = await _practiceExamRepository.fetchById(
+      docId,
+      preferCache: true,
+    );
+    if (model == null) {
       AppSnackbar('Hata', 'Sınav bulunamadı.');
       return;
     }
-
-    final data = doc.data()!;
-    final model = SinavModel(
-      docID: doc.id,
-      cover: (data['cover'] ?? '').toString(),
-      sinavTuru: (data['sinavTuru'] ?? '').toString(),
-      timeStamp: (data['timeStamp'] ?? 0) as num,
-      sinavAciklama: (data['sinavAciklama'] ?? '').toString(),
-      sinavAdi: (data['sinavAdi'] ?? '').toString(),
-      kpssSecilenLisans: (data['kpssSecilenLisans'] ?? '').toString(),
-      dersler: List<String>.from(data['dersler'] ?? const []),
-      userID: (data['userID'] ?? '').toString(),
-      public: (data['public'] ?? false) as bool,
-      taslak: (data['taslak'] ?? false) as bool,
-      soruSayilari: List<String>.from(data['soruSayilari'] ?? const []),
-      bitis: (data['bitis'] ?? 0) as num,
-      bitisDk: (data['bitisDk'] ?? 0) as num,
-    );
 
     await Get.to(() => DenemeSinaviPreview(model: model));
   }
 
   Future<void> _openTutoring(String docId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('educators')
-        .doc(docId)
-        .get();
-    if (!doc.exists || doc.data() == null) {
+    final lookup = await _notifyLookupRepository.getTutoringLookup(docId);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Hata', 'İlan bulunamadı.');
       return;
     }
-
-    final model = TutoringModel.fromJson(doc.data()!, doc.id);
-    await Get.to(() => TutoringDetail(), arguments: model);
+    await Get.to(() => TutoringDetail(), arguments: lookup.model);
   }
 
   Future<void> _openJob(String docId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(docId)
-        .get();
-    if (!doc.exists || doc.data() == null) {
+    final lookup = await _notifyLookupRepository.getJobLookup(docId);
+    if (!lookup.exists || lookup.model == null) {
       AppSnackbar('Hata', 'İlan bulunamadı.');
       return;
     }
-
-    final model = JobModel.fromMap(doc.data()!, doc.id);
-    await Get.to(() => JobDetails(model: model));
+    await Get.to(() => JobDetails(model: lookup.model!));
   }
 }

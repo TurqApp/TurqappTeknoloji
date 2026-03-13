@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
@@ -10,7 +9,7 @@ import 'top_tags_repository.dart';
 class TopTagsController extends GetxController {
   final TopTagsRepository _repo;
   TopTagsController({TopTagsRepository? repository})
-      : _repo = repository ?? TopTagsRepository();
+      : _repo = repository ?? TopTagsRepository.ensure();
 
   final navbar = Get.isRegistered<NavBarController>()
       ? Get.find<NavBarController>()
@@ -29,7 +28,6 @@ class TopTagsController extends GetxController {
 
   bool isLoadingMore = false;
   bool hasMore = true;
-  DocumentSnapshot? lastDoc;
 
   @override
   void onInit() {
@@ -50,30 +48,16 @@ class TopTagsController extends GetxController {
     if (isLoadingMore || (!initial && !hasMore)) return;
 
     isLoadingMore = true;
-    final query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("arsiv", isEqualTo: false)
-        .where("img", isNotEqualTo: [])
-        .where("flood", isEqualTo: false)
-        .orderBy("timeStamp", descending: true)
-        .limit(15);
-
-    final pagedQuery =
-        lastDoc != null ? query.startAfterDocument(lastDoc!) : query;
 
     try {
-      final snap = await pagedQuery.get();
+      final before = agendaList.length;
+      final items = await _repo.fetchImagePostsPage(
+        limit: 15,
+        reset: initial,
+      );
       if (initial) agendaList.clear();
-
-      if (snap.docs.isNotEmpty) {
-        lastDoc = snap.docs.last;
-        for (var doc in snap.docs) {
-          final model = PostsModel.fromFirestore(doc);
-          if (model.deletedPost != true) {
-            agendaList.add(model);
-          }
-        }
-      } else {
+      agendaList.assignAll(items);
+      if (items.length == before) {
         hasMore = false;
       }
     } catch (e) {

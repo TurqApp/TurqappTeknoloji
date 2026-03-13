@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -14,6 +13,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -40,43 +40,9 @@ class JobDetails extends StatelessWidget {
 
   Future<void> _openMentionProfile(String mention) async {
     final normalizedMention = mention.trim().replaceFirst('@', '');
-    final handle = normalizedMention.toLowerCase();
-    if (handle.isEmpty) return;
-
-    String targetUid = '';
-    try {
-      final usernameDoc = await FirebaseFirestore.instance
-          .collection('usernames')
-          .doc(handle)
-          .get();
-      targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-    } catch (_) {}
-
-    if (targetUid.isEmpty) {
-      try {
-        final byUsername = await FirebaseFirestore.instance
-            .collection('users')
-            .where('usernameLower', isEqualTo: handle)
-            .limit(1)
-            .get();
-        if (byUsername.docs.isNotEmpty) {
-          targetUid = byUsername.docs.first.id;
-        }
-      } catch (_) {}
-    }
-
-    if (targetUid.isEmpty) {
-      try {
-        final byNickname = await FirebaseFirestore.instance
-            .collection('users')
-            .where('nickname', isEqualTo: normalizedMention)
-            .limit(1)
-            .get();
-        if (byNickname.docs.isNotEmpty) {
-          targetUid = byNickname.docs.first.id;
-        }
-      } catch (_) {}
-    }
+    if (normalizedMention.isEmpty) return;
+    final targetUid =
+        await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
 
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (targetUid.isNotEmpty && targetUid != currentUid) {

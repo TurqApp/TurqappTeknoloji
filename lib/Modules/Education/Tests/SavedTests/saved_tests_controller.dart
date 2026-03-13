@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class SavedTestsController extends GetxController {
+  final TestRepository _testRepository = TestRepository.ensure();
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
 
@@ -17,38 +18,12 @@ class SavedTestsController extends GetxController {
     isLoading.value = true;
     list.clear();
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("Testler")
-          .where(
-            "favoriler",
-            arrayContains: FirebaseAuth.instance.currentUser!.uid,
-          )
-          .get();
-
-      for (var doc in snap.docs) {
-        final aciklama = doc.get("aciklama") as String;
-        final testTuru = doc.get("testTuru") as String;
-        final dersler = List<String>.from(doc['dersler'] ?? []);
-        final img = doc.get("img") as String;
-        final timeStamp = doc.get("timeStamp") as String;
-        final userID = doc.get("userID") as String;
-        final paylasilabilir = doc.get("paylasilabilir") as bool;
-        final taslak = doc.get("taslak") as bool;
-
-        list.add(
-          TestsModel(
-            userID: userID,
-            timeStamp: timeStamp,
-            aciklama: aciklama,
-            dersler: dersler,
-            img: img,
-            docID: doc.id,
-            paylasilabilir: paylasilabilir,
-            testTuru: testTuru,
-            taslak: taslak,
-          ),
-        );
-      }
+      list.assignAll(
+        await _testRepository.fetchFavorites(
+          FirebaseAuth.instance.currentUser!.uid,
+          preferCache: true,
+        ),
+      );
     } catch (e) {
       print("Error fetching saved tests: $e");
     } finally {

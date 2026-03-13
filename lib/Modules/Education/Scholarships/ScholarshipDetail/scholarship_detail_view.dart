@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,7 +9,6 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -607,20 +605,11 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                         );
                                                         return;
                                                       }
-                                                      List<String> basvuranlar =
-                                                          [];
-                                                      final doc =
-                                                          await ScholarshipFirestorePath
-                                                                  .doc(
-                                                                      scholarshipId)
-                                                              .get();
-                                                      if (doc.exists) {
-                                                        basvuranlar = List<
-                                                            String>.from(doc
-                                                                    .data()?[
-                                                                'basvurular'] ??
-                                                            []);
-                                                      }
+                                                      final basvuranlar =
+                                                          await controller
+                                                              .getApplicantIds(
+                                                        scholarshipId,
+                                                      );
                                                       Get.to(
                                                         () =>
                                                             ScholarshipApplicationsList(
@@ -649,22 +638,17 @@ class ScholarshipDetailView extends GetView<ScholarshipDetailController> {
                                                             style: TextStyles
                                                                 .bold16White,
                                                           )
-                                                        : FutureBuilder<
-                                                            QuerySnapshot>(
-                                                            future: ScholarshipFirestorePath
-                                                                    .doc(
-                                                                        scholarshipDocId)
-                                                                .collection(
-                                                                    'Basvurular')
-                                                                .get(),
+                                                        : FutureBuilder<int>(
+                                                            future: controller
+                                                                .getApplicantCount(
+                                                              scholarshipDocId,
+                                                            ),
                                                             builder:
                                                                 (ctx, snap) {
                                                               final count = snap
                                                                       .hasData
                                                                   ? snap
                                                                       .data!
-                                                                      .docs
-                                                                      .length
                                                                   : 0;
                                                               return Text(
                                                                 "Başvurular ($count)",

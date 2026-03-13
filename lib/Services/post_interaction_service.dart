@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
 import '../Models/post_interactions_models_new.dart';
 import '../Models/posts_model.dart';
@@ -48,6 +49,8 @@ class PostInteractionService extends GetxController {
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   static const Duration _cacheTTL = Duration(seconds: 30);
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
@@ -145,8 +148,14 @@ class PostInteractionService extends GetxController {
   Future<bool> isPostLiked(String postId) async {
     final userId = currentUserID;
     if (userId == null) return false;
-    final doc = await _postRef(postId).collection('likes').doc(userId).get();
-    return doc.exists;
+    final entry = await _userSubcollectionRepository.getEntry(
+      userId,
+      subcollection: 'liked_posts',
+      docId: postId,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    return entry != null;
   }
 
   // ---------------------------------------------------------------------------
@@ -505,8 +514,14 @@ class PostInteractionService extends GetxController {
   Future<bool> isPostSaved(String postId) async {
     final userId = currentUserID;
     if (userId == null) return false;
-    final doc = await _postRef(postId).collection('saveds').doc(userId).get();
-    return doc.exists;
+    final entry = await _userSubcollectionRepository.getEntry(
+      userId,
+      subcollection: 'saved_posts',
+      docId: postId,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    return entry != null;
   }
 
   // ---------------------------------------------------------------------------
@@ -844,10 +859,28 @@ class PostInteractionService extends GetxController {
     }
 
     try {
-      final futures = await Future.wait([
-        _postRef(postId).collection('likes').doc(userId).get(),
-        _postRef(postId).collection('saveds').doc(userId).get(),
-        _postRef(postId).collection('reshares').doc(userId).get(),
+      final futures = await Future.wait<UserSubcollectionEntry?>([
+        _userSubcollectionRepository.getEntry(
+          userId,
+          subcollection: 'liked_posts',
+          docId: postId,
+          preferCache: true,
+          forceRefresh: false,
+        ),
+        _userSubcollectionRepository.getEntry(
+          userId,
+          subcollection: 'saved_posts',
+          docId: postId,
+          preferCache: true,
+          forceRefresh: false,
+        ),
+        _userSubcollectionRepository.getEntry(
+          userId,
+          subcollection: 'reshared_posts',
+          docId: postId,
+          preferCache: true,
+          forceRefresh: false,
+        ),
       ]);
 
       // reporters read'i Firestore rules gereği kapalı; gereksiz permission-denied
@@ -855,9 +888,9 @@ class PostInteractionService extends GetxController {
       final reported = _reportedByMe.contains(postId);
 
       final status = <String, bool>{
-        'liked': futures[0].exists,
-        'saved': futures[1].exists,
-        'reshared': futures[2].exists,
+        'liked': futures[0] != null,
+        'saved': futures[1] != null,
+        'reshared': futures[2] != null,
         'reported': reported,
       };
 

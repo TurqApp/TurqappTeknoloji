@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Models/Education/cikmis_soru_sonuc_model.dart';
 
@@ -18,6 +18,7 @@ class CikmisSoruSonucPreview extends StatefulWidget {
 }
 
 class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<CikmisSorularinModeli> list = []; //icerisinde dogruCevap == String
   List<String> cevaplar = [];
   String? selectedSubject;
@@ -31,42 +32,19 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
   }
 
   void _getData(String docID) {
-    _loadQuestions(docID).then((questionDocs) {
-      for (var doc in questionDocs) {
-        final question = CikmisSorularinModeli(
-          ders: doc.get("ders"),
-          dogruCevap: doc.get("dogruCevap"),
-          soru: doc.get("soru"),
-          kacCevap: doc.get("kacCevap"),
-          docID: doc.id,
-          soruNo: doc.get("soruNo"),
-        );
-
-        if (mounted) {
-          setState(() {
-            list.add(question);
-            if (!dersler.contains(question.ders)) {
-              dersler.add(question.ders);
-            }
-          });
+    _repository.fetchQuestionItems(docID).then((questions) {
+      if (!mounted) return;
+      final localDersler = <String>[];
+      for (final question in questions) {
+        if (!localDersler.contains(question.ders)) {
+          localDersler.add(question.ders);
         }
       }
+      setState(() {
+        list = questions;
+        dersler = localDersler;
+      });
     });
-  }
-
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadQuestions(
-    String docID,
-  ) async {
-    final baseDoc =
-        FirebaseFirestore.instance.collection("questions").doc(docID);
-
-    final questionsSnap = await baseDoc.collection("questions").get();
-    if (questionsSnap.docs.isNotEmpty) {
-      return questionsSnap.docs;
-    }
-
-    final sorularSnap = await baseDoc.collection("Sorular").get();
-    return sorularSnap.docs;
   }
 
   @override

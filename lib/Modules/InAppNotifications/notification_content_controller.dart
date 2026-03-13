@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -14,50 +16,29 @@ class NotificationContentController extends GetxController {
   var following = false.obs;
   var followLoading = false.obs;
   var model = PostsModel.empty().obs;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
+  final NotifyLookupRepository _notifyLookupRepository =
+      NotifyLookupRepository.ensure();
 
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      if (!doc.exists) {
-        avatarUrl.value = "";
-        nickname.value = "TurqApp";
-        return;
-      }
-      avatarUrl.value = (doc.data()?["avatarUrl"] ?? "").toString();
-      nickname.value = (doc.data()?["nickname"] ?? "TurqApp").toString();
-    });
-
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("followings")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      following.value = doc.exists;
-    });
+    _loadUser();
+    _loadFollowingState();
   }
 
   Future<void> getPostData(String docID) async {
-    print("VERI CEKILDI");
-    FirebaseFirestore.instance.collection("Posts").doc(docID).get().then((doc) {
-      final data = doc.data();
-      if (data == null) return;
-      final m = PostsModel.fromMap(data, docID);
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisibleNow = m.timeStamp <= nowMs;
-      if (isVisibleNow && m.deletedPost != true) {
-        model.value = m;
-      } else {
-        // Zamanı gelmemiş veya silinmiş gönderiyi göstermeyelim
-        model.value = PostsModel.empty();
-      }
-    });
+    final lookup = await _notifyLookupRepository.getPostLookup(docID);
+    final m = lookup.model;
+    if (m == null) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final isVisibleNow = m.timeStamp <= nowMs;
+    if (isVisibleNow && m.deletedPost != true) {
+      model.value = m;
+    } else {
+      model.value = PostsModel.empty();
+    }
   }
 
   Future<void> toggleFollowStatus(String userID) async {
@@ -76,5 +57,30 @@ class NotificationContentController extends GetxController {
     } finally {
       followLoading.value = false;
     }
+  }
+
+  Future<void> _loadUser() async {
+    final user = await _userRepository.getUser(
+      userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (user == null) {
+      avatarUrl.value = "";
+      nickname.value = "TurqApp";
+      return;
+    }
+    avatarUrl.value = user.avatarUrl;
+    nickname.value = user.nickname.isNotEmpty ? user.nickname : user.preferredName;
+  }
+
+  Future<void> _loadFollowingState() async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null || currentUid.isEmpty) return;
+    following.value = await _followRepository.isFollowing(
+      userID,
+      currentUid: currentUid,
+      preferCache: true,
+    );
   }
 }

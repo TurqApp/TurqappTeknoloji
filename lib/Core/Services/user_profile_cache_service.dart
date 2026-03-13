@@ -36,10 +36,11 @@ class UserProfileCacheService extends GetxService {
     String uid, {
     bool preferCache = true,
     bool cacheOnly = false,
+    bool forceServer = false,
   }) async {
     if (uid.isEmpty) return null;
 
-    if (preferCache) {
+    if (!forceServer && preferCache) {
       final cached = _getFromMemory(uid, allowStale: true);
       if (cached != null) return cached;
     }
@@ -57,7 +58,7 @@ class UserProfileCacheService extends GetxService {
       return map;
     }
 
-    if (preferCache) {
+    if (!forceServer && preferCache) {
       try {
         final doc = await FirebaseFirestore.instance
             .collection('users')
@@ -77,6 +78,19 @@ class UserProfileCacheService extends GetxService {
     final map = _sanitizeProfile(server.data() ?? const <String, dynamic>{});
     _put(uid, map);
     return map;
+  }
+
+  Future<void> putProfile(String uid, Map<String, dynamic> profile) async {
+    if (uid.isEmpty) return;
+    _put(uid, _sanitizeProfile(profile));
+  }
+
+  Map<String, dynamic>? peekProfile(
+    String uid, {
+    bool allowStale = true,
+  }) {
+    if (uid.isEmpty) return null;
+    return _getFromMemory(uid, allowStale: allowStale);
   }
 
   Future<void> invalidateUser(String uid) async {
@@ -293,6 +307,7 @@ class UserProfileCacheService extends GetxService {
         raw['postCount'] ?? raw['counterOfPosts'] ?? raw['gonderi'] ?? 0;
 
     return <String, dynamic>{
+      'userID': (raw['userID'] ?? '').toString(),
       'displayName': displayName,
       'nickname': nickname,
       'username': username,
@@ -303,10 +318,12 @@ class UserProfileCacheService extends GetxService {
       'fullName': (raw['fullName'] ?? '').toString(),
       'token': (raw['token'] ?? '').toString(),
       'bio': (raw['bio'] ?? '').toString(),
+      'rozet': (raw['rozet'] ?? raw['badge'] ?? '').toString(),
       'followerCount': followerCount,
       'followersCount': followerCount,
       'followingCount': followingCount,
       'postCount': postCount,
+      'isApproved': raw['isApproved'] == true,
       'isPrivate': raw['isPrivate'] == true,
       'isDeleted': raw['isDeleted'] == true,
       'accountStatus': (raw['accountStatus'] ?? '').toString(),

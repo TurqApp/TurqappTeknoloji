@@ -5,12 +5,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
-import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Models/posts_model.dart';
 
@@ -65,6 +67,8 @@ class ShortController extends GetxController {
     capacity: 500,
     ttl: const Duration(minutes: 10),
   );
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ShortRepository _shortRepository = ShortRepository.ensure();
 
   // Shuffle kontrolü - sadece UYGULAMA AÇILIŞINDA bir kez
   static bool _globalShuffleCompleted = false;
@@ -113,15 +117,13 @@ class ShortController extends GetxController {
   /// Fetch following list once
   Future<void> _fetchFollowingList(String myUid) async {
     try {
-      final qs = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(myUid)
-          .collection('followings')
-          .get(); // ✅ get() instead of snapshots()
-
+      final ids = await FollowRepository.ensure().getFollowingIds(
+        myUid,
+        preferCache: true,
+      );
       _followingIDs
         ..clear()
-        ..addAll(qs.docs.map((d) => d.id));
+        ..addAll(ids);
     } catch (e) {
       _log('following fetch error: $e');
     }
@@ -130,59 +132,19 @@ class ShortController extends GetxController {
   Future<_ShortPageResult> _fetchPage(
       {QueryDocumentSnapshot<Map<String, dynamic>>? startAfter}) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final base = FirebaseFirestore.instance.collection('Posts');
+    final page = await _shortRepository.fetchReadyPage(
+      startAfter: startAfter,
+      pageSize: pageSize,
+      nowMs: nowMs,
+    );
 
-    // Primary query: DB seviyesinde video-ready filtrelemesi ile gereksiz read azalt.
-    Query<Map<String, dynamic>> query = base
-        .where('hlsStatus', isEqualTo: 'ready')
-        .where('arsiv', isEqualTo: false)
-        .where('deletedPost', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
-        .orderBy('timeStamp', descending: true)
-        .limit(pageSize);
-
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-
-    QuerySnapshot<Map<String, dynamic>> snap;
-    try {
-      snap = await query.get();
-    } catch (e) {
-      final isIndexError = e is FirebaseException
-          ? e.code == 'failed-precondition'
-          : e.toString().contains('requires an index');
-      if (!isIndexError) rethrow;
-
-      Query<Map<String, dynamic>> fallback = base
-          .where('arsiv', isEqualTo: false)
-          .where('deletedPost', isEqualTo: false)
-          .where('timeStamp', isLessThanOrEqualTo: nowMs)
-          .orderBy('timeStamp', descending: true)
-          .limit(pageSize);
-      if (startAfter != null) {
-        fallback = fallback.startAfterDocument(startAfter);
-      }
-      try {
-        snap = await fallback.get();
-      } catch (_) {
-        Query<Map<String, dynamic>> broad =
-            base.orderBy('timeStamp', descending: true).limit(pageSize);
-        if (startAfter != null) {
-          broad = broad.startAfterDocument(startAfter);
-        }
-        snap = await broad.get();
-      }
-    }
-
-    if (snap.docs.isEmpty) {
+    if (page.posts.isEmpty) {
       return _ShortPageResult(
           posts: const [], lastDoc: startAfter, hasMore: false);
     }
 
-    final lastDoc = snap.docs.last;
-    final allPosts =
-        snap.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
+    final lastDoc = page.lastDoc;
+    final allPosts = page.posts;
 
     final rawWithVideo =
         allPosts.where((p) => p.hasPlayableVideo).toList(growable: false);
@@ -225,7 +187,7 @@ class ShortController extends GetxController {
           posts: const [], lastDoc: lastDoc, hasMore: false);
     }
 
-    final hasMoreDocs = snap.docs.length == pageSize;
+    final hasMoreDocs = page.hasMore;
     return _ShortPageResult(
         posts: filtered, lastDoc: lastDoc, hasMore: hasMoreDocs);
   }
@@ -482,10 +444,7 @@ class ShortController extends GetxController {
     if (isLoading.value || !hasMore.value) return;
     isLoading.value = true;
     try {
-      final result = await PerformanceService.traceOperation(
-        'shorts_page_load',
-        () => _fetchPage(startAfter: _lastDoc),
-      );
+      final result = await _fetchPage(startAfter: _lastDoc);
 
       if (result.posts.isEmpty) {
         hasMore.value = result.hasMore;
@@ -552,15 +511,15 @@ class ShortController extends GetxController {
     for (int i = 0; i < missing.length; i += chunk) {
       final part = missing.sublist(i, (i + chunk).clamp(0, missing.length));
       try {
-        final qs = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: part)
-            .get();
+        final users = await _userRepository.getUsersRaw(
+          part,
+          preferCache: true,
+        );
 
-        for (final d in qs.docs) {
-          final isPrivate = (d.data()['isPrivate'] ?? false) == true;
-          result[d.id] = isPrivate;
-          _privacyCache.put(d.id, isPrivate);
+        for (final entry in users.entries) {
+          final isPrivate = (entry.value['isPrivate'] ?? false) == true;
+          result[entry.key] = isPrivate;
+          _privacyCache.put(entry.key, isPrivate);
         }
       } catch (e) {
         _log('_fetchUsersPrivacy chunk error: $e');
@@ -700,15 +659,15 @@ class ShortController extends GetxController {
 
   // PostModel güncelle
   Future<void> updateShort(String docID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(docID).get();
-    if (doc.exists) {
-      final updatedPost = PostsModel.fromMap(doc.data()!, doc.id);
-      final idx = shorts.indexWhere((e) => e.docID == docID);
-      if (idx != -1) {
-        shorts[idx] = updatedPost;
-        shorts.refresh();
-      }
+    final updatedPost = await _shortRepository.fetchById(
+      docID,
+      preferCache: true,
+    );
+    if (updatedPost == null) return;
+    final idx = shorts.indexWhere((e) => e.docID == docID);
+    if (idx != -1) {
+      shorts[idx] = updatedPost;
+      shorts.refresh();
     }
   }
 
@@ -767,39 +726,32 @@ class ShortController extends GetxController {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final postIds =
-        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
+        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet().toList();
     final userIds =
         posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
 
     final validPostIds = <String>{};
-    for (final chunk in _chunkList(postIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final d in snap.docs) {
-        final data = d.data();
-        final deleted = (data['deletedPost'] ?? false) == true;
-        final archived = (data['arsiv'] ?? false) == true;
-        final isPlayable = (data['playbackUrl'] ?? '').toString().isNotEmpty &&
-            (data['videoHLSMasterUrl'] ?? '').toString().isNotEmpty;
-        final ts =
-            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
-        if (!deleted && !archived && isPlayable && ts <= nowMs) {
-          validPostIds.add(d.id);
-        }
-      }
+    final postMap = await _shortRepository.fetchByIds(
+      postIds,
+      preferCache: true,
+    );
+    for (final entry in postMap.entries) {
+      final post = entry.value;
+      final isPlayable = post.hasPlayableVideo;
+      if (post.deletedPost == true) continue;
+      if (post.arsiv == true) continue;
+      if (!isPlayable) continue;
+      if (post.timeStamp > nowMs) continue;
+      validPostIds.add(entry.key);
     }
 
     final validUserIds = <String>{};
     for (final chunk in _chunkList(userIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final d in snap.docs) {
-        validUserIds.add(d.id);
-      }
+      final users = await _userRepository.getUsersRaw(
+        chunk,
+        preferCache: true,
+      );
+      validUserIds.addAll(users.keys);
     }
 
     final valid = posts

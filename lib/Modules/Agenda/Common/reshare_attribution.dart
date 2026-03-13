@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 
 import '../../../Models/posts_model.dart';
@@ -28,7 +29,7 @@ class ReshareAttribution extends StatefulWidget {
 }
 
 class _ReshareAttributionState extends State<ReshareAttribution> {
-  Future<String>? _nicknameFuture;
+  String? _resolvedNickname;
 
   TextStyle get _labelStyle =>
       widget.style ??
@@ -53,14 +54,34 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
   }
 
   void _prepareNicknameFuture() {
-    _nicknameFuture = null;
+    _resolvedNickname = null;
     final targetId = widget.explicitReshareUserId;
     if (targetId == null) return;
     final me = FirebaseAuth.instance.currentUser?.uid;
     if (me != null && targetId == me) return;
     final cached = ReshareHelper.getCachedNickname(targetId);
-    if (cached != null) return;
-    _nicknameFuture = ReshareHelper.getUserNickname(targetId);
+    if (cached != null && cached.trim().isNotEmpty) {
+      _resolvedNickname = cached.trim();
+      return;
+    }
+    _loadNickname(targetId);
+  }
+
+  Future<void> _loadNickname(String userId) async {
+    final summary = await UserRepository.ensure().getUser(
+      userId,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (!mounted) return;
+    final resolved = summary?.nickname.trim().isNotEmpty == true
+        ? summary!.nickname.trim()
+        : summary?.preferredName.trim() ?? '';
+    if (resolved.isEmpty) return;
+    ReshareHelper.cacheNickname(userId, resolved);
+    setState(() {
+      _resolvedNickname = resolved;
+    });
   }
 
   @override
@@ -79,16 +100,11 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
           cached != 'Bilinmeyen Kullanıcı') {
         return Text('$cached yeniden paylaştı', style: _labelStyle);
       }
-      return FutureBuilder<String>(
-        future: _nicknameFuture,
-        builder: (context, snapshot) {
-          final name = snapshot.data?.trim() ?? '';
-          if (name.isEmpty || name == 'Bilinmeyen Kullanıcı') {
-            return widget.placeholder;
-          }
-          return Text('$name yeniden paylaştı', style: _labelStyle);
-        },
-      );
+      final name = _resolvedNickname?.trim() ?? '';
+      if (name.isEmpty || name == 'Bilinmeyen Kullanıcı') {
+        return widget.placeholder;
+      }
+      return Text('$name yeniden paylaştı', style: _labelStyle);
     }
 
     return Obx(() {

@@ -1,11 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class AboutProfileController extends GetxController {
   // 🎯 Using CurrentUserService for optimized access
   final userService = CurrentUserService.instance;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   var avatarUrl = "".obs;
   var nickname = "".obs;
@@ -26,14 +27,8 @@ class AboutProfileController extends GetxController {
       }
 
       // For other users, fetch from Firebase
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-
-      if (!doc.exists) return;
-
-      final data = doc.data() ?? {};
+      final data = await _userRepository.getUserRaw(userID);
+      if (data == null) return;
 
       avatarUrl.value = (data["avatarUrl"] ??
               data["avatarUrl"] ??

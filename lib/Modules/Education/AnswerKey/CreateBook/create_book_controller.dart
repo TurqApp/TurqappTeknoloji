@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
@@ -26,6 +27,7 @@ class CreateBookController extends GetxController {
   final showIndicator = false.obs;
   late final String docID;
   final picker = ImagePicker();
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   CreateBookController(this.onBack, {this.existingBook}) {
     docID =
@@ -177,19 +179,22 @@ class CreateBookController extends GetxController {
     basimTarihiController.text = book.basimTarihi;
     sinavTuru.value = book.sinavTuru;
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection("books")
-        .doc(book.docID)
-        .collection("CevapAnahtarlari")
-        .get();
-    final items = snapshot.docs
+    final answers = await _bookletRepository.fetchAnswerKeys(
+      book.docID,
+      preferCache: true,
+    );
+    final items = answers
         .map(
-          (doc) => CevapAnahtariHazirlikModel(
-            baslik: (doc.data()['baslik'] ?? '').toString(),
-            dogruCevaplar:
-                List<String>.from(doc.data()['dogruCevaplar'] ?? const []),
-            sira: (doc.data()['sira'] as num?)?.toInt() ?? 0,
-          ),
+          (item) {
+            final data =
+                Map<String, dynamic>.from(item['data'] ?? const <String, dynamic>{});
+            return CevapAnahtariHazirlikModel(
+              baslik: (data['baslik'] ?? '').toString(),
+              dogruCevaplar:
+                  List<String>.from(data['dogruCevaplar'] ?? const []),
+              sira: (data['sira'] as num?)?.toInt() ?? 0,
+            );
+          },
         )
         .toList()
       ..sort((a, b) => a.sira.compareTo(b.sira));

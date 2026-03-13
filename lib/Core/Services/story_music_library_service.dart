@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
@@ -17,18 +18,11 @@ class StoryMusicLibraryService {
   static const String _cacheKey = 'storyMusic.library.v1';
   static const String _cacheTimeKey = 'storyMusic.library.updatedAt.v1';
   static const Duration _cacheTtl = Duration(days: 7);
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   CollectionReference<Map<String, dynamic>> get _collection =>
       FirebaseFirestore.instance.collection('storyMusic');
-
-  CollectionReference<Map<String, dynamic>>? get _savedCollection {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return null;
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('savedMusic');
-  }
 
   Future<List<MusicModel>> fetchTracks({
     int limit = 20,
@@ -56,6 +50,55 @@ class StoryMusicLibraryService {
     }
 
     return const <MusicModel>[];
+  }
+
+  Future<List<MusicModel>> fetchAdminTracks({
+    bool preferCache = true,
+    bool forceRemote = false,
+  }) async {
+    if (preferCache && !forceRemote) {
+      final cached = await _loadCache(ignoreTtl: true);
+      if (cached.isNotEmpty) {
+        return cached.toList(growable: true)
+          ..sort((a, b) {
+            final byOrder = a.order.compareTo(b.order);
+            if (byOrder != 0) return byOrder;
+            return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          });
+      }
+    }
+
+    try {
+      final snap = await _collection.orderBy('order').get();
+      final items = snap.docs
+          .map((doc) => MusicModel.fromMap(doc.data(), doc.id))
+          .toList(growable: true);
+      if (items.isNotEmpty) {
+        await _persistCache(items);
+      }
+      return items;
+    } catch (_) {
+      final cached = await _loadCache(ignoreTtl: true);
+      return cached.toList(growable: true)
+        ..sort((a, b) {
+          final byOrder = a.order.compareTo(b.order);
+          if (byOrder != 0) return byOrder;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+    }
+  }
+
+  Future<int> fetchNextOrder() async {
+    try {
+      final tracks = await fetchAdminTracks(preferCache: true);
+      if (tracks.isEmpty) return 1;
+      return tracks
+              .map((e) => e.order)
+              .fold<int>(0, (max, value) => value > max ? value : max) +
+          1;
+    } catch (_) {
+      return 1;
+    }
   }
 
   Future<void> incrementUseCount(MusicModel track) async {
@@ -149,34 +192,53 @@ class StoryMusicLibraryService {
   }
 
   Future<Set<String>> fetchSavedMusicIds() async {
-    final collection = _savedCollection;
-    if (collection == null) return <String>{};
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return <String>{};
     try {
-      final snap = await collection.orderBy('savedAt', descending: true).limit(200).get();
-      return snap.docs.map((doc) => doc.id).toSet();
+      final entries = await _userSubcollectionRepository.getEntries(
+        uid,
+        subcollection: 'savedMusic',
+        orderByField: 'savedAt',
+        descending: true,
+        preferCache: true,
+      );
+      return entries.map((entry) => entry.id).toSet();
     } catch (_) {
       return <String>{};
     }
   }
 
   Future<bool> toggleSavedMusic(MusicModel track) async {
-    final collection = _savedCollection;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     final cleanId = track.docID.trim();
-    if (collection == null || cleanId.isEmpty) return false;
-    final ref = collection.doc(cleanId);
-    final exists = await ref.get();
-    if (exists.exists) {
-      await ref.delete();
+    if (uid == null || uid.isEmpty || cleanId.isEmpty) return false;
+    final existing = await _userSubcollectionRepository.getEntry(
+      uid,
+      subcollection: 'savedMusic',
+      docId: cleanId,
+      preferCache: true,
+    );
+    if (existing != null) {
+      await _userSubcollectionRepository.deleteEntry(
+        uid,
+        subcollection: 'savedMusic',
+        docId: cleanId,
+      );
       return false;
     }
-    await ref.set({
-      'musicId': cleanId,
-      'title': track.title,
-      'artist': track.artist,
-      'audioUrl': track.audioUrl,
-      'coverUrl': track.coverUrl,
-      'savedAt': DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
+    await _userSubcollectionRepository.upsertEntry(
+      uid,
+      subcollection: 'savedMusic',
+      docId: cleanId,
+      data: {
+        'musicId': cleanId,
+        'title': track.title,
+        'artist': track.artist,
+        'audioUrl': track.audioUrl,
+        'coverUrl': track.coverUrl,
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+      },
+    );
     return true;
   }
 

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -138,10 +139,20 @@ class SolveTest extends StatelessWidget {
                                                 vertical: 40,
                                                 horizontal: 20,
                                               ),
-                                              child: Image.network(
-                                                controller
+                                              child: CachedNetworkImage(
+                                                imageUrl: controller
                                                     .soruList[index - 1].img,
                                                 fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    const Center(
+                                                  child:
+                                                      CupertinoActivityIndicator(),
+                                                ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const Icon(
+                                                  Icons.broken_image,
+                                                ),
                                               ),
                                             ),
                                             Padding(

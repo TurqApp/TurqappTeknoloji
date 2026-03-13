@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import '../../Services/network_awareness_service.dart';
 
 class UnreadMessagesController extends GetxController {
@@ -17,6 +18,8 @@ class UnreadMessagesController extends GetxController {
   bool _readStateReady = false;
   DateTime? _lastServerSyncAt;
   bool _isSyncing = false;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
 
   NetworkAwarenessService? get _network =>
       Get.isRegistered<NetworkAwarenessService>()
@@ -103,15 +106,13 @@ class UnreadMessagesController extends GetxController {
             DateTime.now().difference(_lastServerSyncAt!) > _serverSyncGap);
     _isSyncing = true;
     try {
-      final convQuery = FirebaseFirestore.instance
-          .collection("conversations")
-          .where("participants", arrayContains: uid);
-      final convSnap = await _getWithCachePreference(
-        convQuery,
+      final docs = await _conversationRepository.fetchUserConversations(
+        uid,
         preferCache: !shouldHitServer,
         cacheOnly: cacheOnly,
+        includeLegacy: false,
       );
-      _applyConversationDocs(convSnap.docs, uid);
+      _applyConversationDocs(docs, uid);
       if (shouldHitServer) {
         _lastServerSyncAt = DateTime.now();
       }
@@ -174,10 +175,8 @@ class UnreadMessagesController extends GetxController {
     await _hydratePersistedReadState(uid);
     if (!_listenersStarted || _activeUid != uid) return;
     _readStateReady = true;
-    _conversationsSub = FirebaseFirestore.instance
-        .collection("conversations")
-        .where("participants", arrayContains: uid)
-        .snapshots()
+    _conversationsSub = _conversationRepository
+        .watchUserConversations(uid)
         .listen((snapshot) {
       _applyConversationDocs(snapshot.docs, uid);
     }, onError: (_) {});
@@ -222,23 +221,6 @@ class UnreadMessagesController extends GetxController {
       await prefs.setInt("chat_last_opened_${uid}_$chatId", cutoffMs);
     } catch (_) {}
   }
-
-  Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
-    Query<Map<String, dynamic>> query, {
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    if (preferCache) {
-      try {
-        return await query.get(const GetOptions(source: Source.cache));
-      } catch (_) {}
-    }
-    if (cacheOnly) {
-      return query.get(const GetOptions(source: Source.cache));
-    }
-    return query.get(const GetOptions(source: Source.server));
-  }
-
   void _cancelAllSubscriptions() {
     _syncTimer?.cancel();
     _syncTimer = null;

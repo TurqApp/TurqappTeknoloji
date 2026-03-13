@@ -1260,6 +1260,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             "userID": FirebaseAuth.instance.currentUser!.uid,
             "timestamp": DateTime.now().millisecondsSinceEpoch,
             "sharedPostID": docID,
+            "quotedPost": _isQuotedPost,
           });
           if (_isQuotedPost) {
             await originalPostRef.update({
@@ -1316,16 +1317,13 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
           quotedSourceUserID:
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
-          quotedSourceDisplayName:
-              (_isSharedAsPost && _isQuotedPost)
-                  ? _quotedSourceDisplayName
-                  : "",
+          quotedSourceDisplayName: (_isSharedAsPost && _isQuotedPost)
+              ? _quotedSourceDisplayName
+              : "",
           quotedSourceUsername:
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : "",
           quotedSourceAvatarUrl:
-              (_isSharedAsPost && _isQuotedPost)
-                  ? _quotedSourceAvatarUrl
-                  : "",
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : "",
         ),
       );
 
@@ -2145,18 +2143,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   (_isSharedAsPost && _isQuotedPost) ? _quotedOriginalText : "",
               "quotedSourceUserID":
                   (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUserID : "",
-              "quotedSourceDisplayName":
-                  (_isSharedAsPost && _isQuotedPost)
-                      ? _quotedSourceDisplayName
-                      : "",
-              "quotedSourceUsername":
-                  (_isSharedAsPost && _isQuotedPost)
-                      ? _quotedSourceUsername
-                      : "",
-              "quotedSourceAvatarUrl":
-                  (_isSharedAsPost && _isQuotedPost)
-                      ? _quotedSourceAvatarUrl
-                      : "",
+              "quotedSourceDisplayName": (_isSharedAsPost && _isQuotedPost)
+                  ? _quotedSourceDisplayName
+                  : "",
+              "quotedSourceUsername": (_isSharedAsPost && _isQuotedPost)
+                  ? _quotedSourceUsername
+                  : "",
+              "quotedSourceAvatarUrl": (_isSharedAsPost && _isQuotedPost)
+                  ? _quotedSourceAvatarUrl
+                  : "",
             });
 
             if (_isSharedAsPost &&
@@ -2174,6 +2169,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   "userID": FirebaseAuth.instance.currentUser!.uid,
                   "timestamp": DateTime.now().millisecondsSinceEpoch,
                   "sharedPostID": docID,
+                  "quotedPost": _isQuotedPost,
                 });
                 if (_isQuotedPost) {
                   await originalPostRef.update({

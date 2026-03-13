@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class ReshareHelper {
@@ -34,16 +34,21 @@ class ReshareHelper {
         return _nicknameCache[safeUserID]!;
       }
 
-      // Cache'te yok, Firebase'den çek
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(safeUserID)
-          .get();
-
       String nickname = 'Bilinmeyen Kullanıcı';
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        nickname = data?['nickname'] ?? 'Bilinmeyen Kullanıcı';
+      final summary = await UserRepository.ensure().getUser(
+        safeUserID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary != null) {
+        final resolved = summary.nickname.trim().isNotEmpty
+            ? summary.nickname.trim()
+            : (summary.username.trim().isNotEmpty
+                ? summary.username.trim()
+                : summary.preferredName.trim());
+        if (resolved.isNotEmpty) {
+          nickname = resolved;
+        }
       }
 
       // Cache'e ekle
@@ -85,23 +90,16 @@ class ReshareHelper {
         return _displayNameCache[safeUserID]!;
       }
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(safeUserID)
-          .get();
-
       String displayName = 'Bilinmeyen Kullanıcı';
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        final firstName = (data?['firstName'] ?? '').toString().trim();
-        final lastName = (data?['lastName'] ?? '').toString().trim();
-        final fullName = '$firstName $lastName'.trim();
-        final fallbackNickname = (data?['nickname'] ?? '').toString().trim();
-
-        if (fullName.isNotEmpty) {
-          displayName = fullName;
-        } else if (fallbackNickname.isNotEmpty) {
-          displayName = fallbackNickname;
+      final summary = await UserRepository.ensure().getUser(
+        safeUserID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary != null) {
+        final resolved = summary.preferredName.trim();
+        if (resolved.isNotEmpty) {
+          displayName = resolved;
         }
       }
 

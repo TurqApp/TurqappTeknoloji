@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
@@ -37,17 +38,11 @@ class HighlightStoryViewerService {
       }
 
       if (stories.isEmpty) {
-        final storySnaps = await Future.wait(
-          uniqueIds.map(
-            (id) =>
-                FirebaseFirestore.instance.collection('stories').doc(id).get(),
-          ),
+        final storyMap = await StoryRepository.ensure().fetchStoriesByIds(
+          uniqueIds,
         );
 
-        stories = storySnaps
-            .where((doc) => doc.exists)
-            .where((doc) => (doc.data()?['deleted'] ?? false) != true)
-            .map((doc) => StoryModel.fromDoc(doc))
+        stories = storyMap.values
             .where((s) => s.userId == userId)
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -59,18 +54,18 @@ class HighlightStoryViewerService {
         return;
       }
 
-      final userSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-      final userData = userSnap.data() ?? const <String, dynamic>{};
+      final userData = await UserRepository.ensure().getUserRaw(userId) ??
+          const <String, dynamic>{};
       final nickname = ((userData['nickname'] ?? userData['username'] ?? '')
               .toString()
               .trim())
           .toString();
-      final firstName = (userData['firstName'] ?? '').toString();
-      final lastName = (userData['lastName'] ?? '').toString();
-      final fullName = '$firstName $lastName'.trim();
+      final firstName = (userData['firstName'] ?? '').toString().trim();
+      final lastName = (userData['lastName'] ?? '').toString().trim();
+      final displayName = (userData['displayName'] ?? '').toString().trim();
+      final fullName = '$firstName $lastName'.trim().isNotEmpty
+          ? '$firstName $lastName'.trim()
+          : displayName;
 
       final storyUser = StoryUserModel(
         nickname: nickname,

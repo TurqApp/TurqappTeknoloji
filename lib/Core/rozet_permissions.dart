@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 String normalizeRozetValue(String? raw) {
@@ -66,12 +66,12 @@ Future<String> getCurrentUserRozet() async {
   if (uid == null || uid.isEmpty) return '';
 
   try {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get(const GetOptions(source: Source.serverAndCache));
-    final data = doc.data() ?? const <String, dynamic>{};
-    return (data['rozet'] ?? '').toString().trim();
+    final summary = await UserRepository.ensure().getUser(
+      uid,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    return summary?.rozet.trim() ?? '';
   } catch (_) {
     return '';
   }

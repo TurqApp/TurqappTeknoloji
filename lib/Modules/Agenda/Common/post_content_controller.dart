@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
@@ -21,8 +22,10 @@ import '../../../Services/post_count_manager.dart';
 import '../../../Services/post_delete_service.dart';
 import '../../../Services/post_interaction_service.dart';
 import '../../../Core/Services/admin_access_service.dart';
-import '../../../Core/Services/user_profile_cache_service.dart';
+import '../../../Core/Repositories/post_repository.dart';
+import '../../../Core/Repositories/user_repository.dart';
 import '../../../Core/Utils/avatar_url.dart';
+import '../../../Core/Repositories/admin_push_repository.dart';
 
 /// Shared interaction/controller layer for both Modern and Classic agenda views.
 class PostContentController extends GetxController {
@@ -30,7 +33,6 @@ class PostContentController extends GetxController {
   static const Duration _userProfileCacheTtl = Duration(minutes: 20);
   static final Map<String, _ReshareUsersCacheEntry> _reshareUsersCache = {};
   static const Duration _reshareUsersCacheTtl = Duration(minutes: 2);
-  static const int _pushTargetCutoffMs = 1772409600000;
 
   static void invalidateUserProfileCache(String userId) {
     if (userId.trim().isEmpty) return;
@@ -61,15 +63,6 @@ class PostContentController extends GetxController {
 
   bool get canSendAdminPush {
     return AdminAccessService.isKnownAdminSync();
-  }
-
-  bool _shouldSendPushToUser(DocumentSnapshot<Map<String, dynamic>> userDoc) {
-    final data = userDoc.data() ?? const <String, dynamic>{};
-    final rawCreatedDate = data['createdDate'];
-    final createdAtMs = rawCreatedDate is num
-        ? rawCreatedDate.toInt()
-        : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
-    return createdAtMs >= _pushTargetCutoffMs;
   }
 
   ({String title, String body}) _buildPostPushCopy() {
@@ -144,19 +137,25 @@ class PostContentController extends GetxController {
   final yenidenPaylasildiMi = false.obs;
 
   final AgendaController agendaController = Get.find<AgendaController>();
+  late final PostRepository _postRepository;
+  late final AdminPushRepository _adminPushRepository;
+  PostRepositoryState? _postState;
   StreamSubscription<DocumentSnapshot>? _userSub;
   StreamSubscription<DocumentSnapshot>? _likeDocSub;
   StreamSubscription<DocumentSnapshot>? _savedDocSub;
   StreamSubscription<DocumentSnapshot>? _reshareDocSub;
   StreamSubscription<DocumentSnapshot>? _postDocSub;
-  StreamSubscription<QuerySnapshot>? _commentsSub;
   StreamSubscription<CurrentUserModel?>? _currentUserStreamSub;
   Worker? _followingWorker;
+  Worker? _interactionWorker;
+  Worker? _postDataWorker;
 
   @override
   void onInit() {
     super.onInit();
     _interactionService = Get.put(PostInteractionService());
+    _postRepository = PostRepository.ensure();
+    _adminPushRepository = AdminPushRepository.ensure();
     currentModel.value = model;
     final denormAvatar = model.authorAvatarUrl.trim();
     avatarUrl.value = denormAvatar.isNotEmpty
@@ -193,7 +192,6 @@ class PostContentController extends GetxController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _bindMembershipListeners();
       _bindPostDocCounts();
-      _bindCommentsListener();
       onPostFrameBound();
     });
 
@@ -202,12 +200,14 @@ class PostContentController extends GetxController {
 
   @override
   void onClose() {
+    _interactionWorker?.dispose();
+    _postDataWorker?.dispose();
+    _postRepository.releasePost(model.docID);
     _userSub?.cancel();
     _likeDocSub?.cancel();
     _savedDocSub?.cancel();
     _reshareDocSub?.cancel();
     _postDocSub?.cancel();
-    _commentsSub?.cancel();
     _currentUserStreamSub?.cancel();
     _followingWorker?.dispose();
     super.onClose();
@@ -231,51 +231,27 @@ class PostContentController extends GetxController {
   }
 
   void _bindMembershipListeners() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    _likeDocSub?.cancel();
-    _savedDocSub?.cancel();
-    _reshareDocSub?.cancel();
-    final postRef =
-        FirebaseFirestore.instance.collection('Posts').doc(model.docID);
-    Future.wait([
-      postRef.collection('likes').doc(uid).get(),
-      postRef.collection('saveds').doc(uid).get(),
-      postRef.collection('reshares').doc(uid).get(),
-    ]).then((docs) {
-      final likeDoc = docs[0];
-      final savedDoc = docs[1];
-      final reshareDoc = docs[2];
-      if (likeDoc.exists) {
-        if (!likes.contains(uid)) likes.add(uid);
-      } else {
-        likes.remove(uid);
-      }
-      saved.value = savedDoc.exists;
-      yenidenPaylasildiMi.value = reshareDoc.exists;
-    }).catchError((_) {});
+    _postState = _postRepository.attachPost(model);
+    _syncSharedInteractionState();
+    _interactionWorker?.dispose();
+    if (_postState != null) {
+      _interactionWorker = everAll([
+        _postState!.liked,
+        _postState!.saved,
+        _postState!.reshared,
+        _postState!.commented,
+      ], (_) {
+        _syncSharedInteractionState();
+      });
+    }
   }
 
   void _bindPostDocCounts() {
-    _postDocSub?.cancel();
-    _postDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .snapshots()
-        .listen((d) {
-      final data = d.data();
+    _postDataWorker?.dispose();
+    if (_postState == null) return;
+    _postDataWorker =
+        ever<Map<String, dynamic>?>(_postState!.latestPostData, (data) {
       if (data == null) return;
-      final stats = data['stats'] as Map<String, dynamic>? ?? {};
-      countManager.getLikeCount(model.docID).value =
-          (stats['likeCount'] ?? data['likeCount'] ?? 0) as int;
-      countManager.getCommentCount(model.docID).value =
-          (stats['commentCount'] ?? data['commentCount'] ?? 0) as int;
-      countManager.getSavedCount(model.docID).value =
-          (stats['savedCount'] ?? data['savedCount'] ?? 0) as int;
-      countManager.getRetryCount(model.docID).value =
-          (stats['retryCount'] ?? data['retryCount'] ?? 0) as int;
-      countManager.getStatsCount(model.docID).value =
-          (stats['statsCount'] ?? data['statsCount'] ?? 0) as int;
       final rawEditTime = data['editTime'];
       if (rawEditTime is num) {
         editTime.value = rawEditTime.toInt();
@@ -320,6 +296,28 @@ class PostContentController extends GetxController {
         } catch (_) {}
       }
     });
+  }
+
+  void _syncSharedInteractionState() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (_postState == null) return;
+    final liked = _postState!.liked.value;
+    if (uid != null) {
+      if (liked) {
+        if (!likes.contains(uid)) likes.add(uid);
+      } else {
+        likes.remove(uid);
+      }
+    }
+    saved.value = _postState!.saved.value;
+    yenidenPaylasildiMi.value = _postState!.reshared.value;
+    if (uid != null) {
+      if (_postState!.commented.value) {
+        if (!comments.contains(uid)) comments.add(uid);
+      } else {
+        comments.remove(uid);
+      }
+    }
   }
 
   Future<void> votePoll(int optionIndex) async {
@@ -409,63 +407,6 @@ class PostContentController extends GetxController {
     } catch (_) {
       model.poll = originalPoll;
       currentModel.value = model;
-    }
-  }
-
-  void _bindCommentsListener() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    _commentsSub?.cancel();
-    _commentsSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .collection('comments')
-        .where('deleted', isEqualTo: false)
-        .snapshots()
-        .listen((snap) {
-      final userCommentIds = snap.docs
-          .where((doc) => doc.data()['userID'] == uid)
-          .map((doc) => doc.id)
-          .toList();
-
-      if (userCommentIds.isNotEmpty) {
-        if (!comments.contains(uid)) {
-          comments.add(uid);
-        }
-      } else {
-        comments.remove(uid);
-      }
-    });
-
-    if (enableLegacyCommentSync) {
-      // Legacy collections fallback for backward compatibility
-      FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("comments")
-          .where('deleted', isEqualTo: false)
-          .where('userID', isEqualTo: uid)
-          .get()
-          .then((snap) {
-        if (snap.docs.isNotEmpty) {
-          if (!comments.contains(uid)) comments.add(uid);
-        } else {
-          FirebaseFirestore.instance
-              .collection("Posts")
-              .doc(model.docID)
-              .collection("Yorumlar")
-              .where('userID', isEqualTo: uid)
-              .get()
-              .then((oldSnap) {
-            if (oldSnap.docs.isNotEmpty) {
-              if (!comments.contains(uid)) comments.add(uid);
-            } else {
-              comments.remove(uid);
-            }
-          });
-        }
-      });
     }
   }
 
@@ -677,30 +618,9 @@ class PostContentController extends GetxController {
 
   Future<void> reshare() async {
     final bool wasReshared = yenidenPaylasildiMi.value;
-    final retryCounter = countManager.getRetryCount(model.docID);
-    final int initialRetryCount = retryCounter.value;
-    final num initialRetryStat = model.stats.retryCount;
-
-    void applyState(bool target) {
-      yenidenPaylasildiMi.value = target;
-
-      final int nextCount =
-          initialRetryCount + (target ? 1 : 0) - (wasReshared ? 1 : 0);
-      retryCounter.value = nextCount < 0 ? 0 : nextCount;
-
-      final num statNext =
-          initialRetryStat + (target ? 1 : 0) - (wasReshared ? 1 : 0);
-      model.stats.retryCount = statNext < 0 ? 0 : statNext;
-    }
-
-    final bool optimisticTarget = !wasReshared;
-    applyState(optimisticTarget);
 
     try {
-      final status = await _interactionService.toggleReshare(model.docID);
-      if (status != optimisticTarget) {
-        applyState(status);
-      }
+      final status = await _postRepository.toggleReshare(model);
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
 
@@ -725,9 +645,8 @@ class PostContentController extends GetxController {
         } catch (_) {}
         await onReshareRemoved(uid);
       }
-
     } catch (e) {
-      applyState(wasReshared);
+      yenidenPaylasildiMi.value = wasReshared;
       AppSnackbar('Hata', 'Yeniden paylaşma işlemi başarısız: $e');
     }
   }
@@ -738,14 +657,13 @@ class PostContentController extends GetxController {
         isFollowing.value = true;
         return;
       }
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("followings")
-          .doc(model.userID)
-          .get();
-      isFollowing.value = doc.exists;
-      if (doc.exists) {
+      final docExists = await FollowRepository.ensure().isFollowing(
+        model.userID,
+        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      isFollowing.value = docExists;
+      if (docExists) {
         agendaController.followingIDs.add(model.userID);
       }
     }
@@ -762,8 +680,7 @@ class PostContentController extends GetxController {
       required String name,
     }) {
       final rawImage = image.toString().trim();
-      final shouldUsePostFallback =
-          postLevelAvatarFallback.isNotEmpty &&
+      final shouldUsePostFallback = postLevelAvatarFallback.isNotEmpty &&
           (rawImage.isEmpty || rawImage == kDefaultAvatarUrl);
       final normalizedImage = shouldUsePostFallback
           ? postLevelAvatarFallback
@@ -818,52 +735,6 @@ class PostContentController extends GetxController {
       });
     }
 
-    bool applyFromMap(Map<String, dynamic>? data, {required String uid}) {
-      if (data == null) return false;
-      final uname =
-          (data["username"] ?? data["nickname"] ?? data["displayName"] ?? "")
-              .toString();
-      final nick =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-      final image = resolveAvatarUrl(data);
-      final pushToken = (data["token"] ?? "").toString();
-      final fullNameFromParts =
-          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-              .trim();
-      final displayName = (data["displayName"] ?? "").toString().trim();
-      final name = fullNameFromParts.isNotEmpty
-          ? fullNameFromParts
-          : (displayName.isNotEmpty ? displayName : nick);
-      applyProfile(
-        nick: nick,
-        uname: uname,
-        image: image,
-        pushToken: pushToken,
-        name: name,
-      );
-
-      // Self-heal: bazı eski kullanıcı dökümanlarında avatarUrl boş kalmış olabilir.
-      // Post denormalize avatar'ı varsa kök users/{uid}.avatarUrl alanını doldur.
-      final currentAvatarRaw = (data["avatarUrl"] ?? "").toString().trim();
-      if (postLevelAvatarFallback.isNotEmpty &&
-          (currentAvatarRaw.isEmpty || currentAvatarRaw == kDefaultAvatarUrl)) {
-        FirebaseFirestore.instance.collection("users").doc(uid).set({
-          "avatarUrl": postLevelAvatarFallback,
-          "updatedDate": DateTime.now().millisecondsSinceEpoch,
-        }, SetOptions(merge: true)).catchError((_) => null);
-      }
-      cacheProfile(
-        uid: uid,
-        nick: nick,
-        uname: uname,
-        image: image,
-        pushToken: pushToken,
-        name: name,
-      );
-      return true;
-    }
-
     // Current user posts should stay bound to current-user stream so avatar/
     // nickname changes are reflected immediately in feed cards.
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -913,28 +784,56 @@ class PostContentController extends GetxController {
       return;
     }
 
-    final userProfileService = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService(), permanent: true);
+    final userRepository = UserRepository.ensure();
+    final warmProfile = userRepository.peekUser(userID, allowStale: true);
+    if (warmProfile != null) {
+      applyProfile(
+        nick: warmProfile.nickname,
+        uname: warmProfile.username.isNotEmpty
+            ? warmProfile.username
+            : warmProfile.nickname,
+        image: warmProfile.avatarUrl,
+        pushToken: warmProfile.token,
+        name: warmProfile.preferredName,
+      );
+      cacheProfile(
+        uid: userID,
+        nick: warmProfile.nickname,
+        uname: warmProfile.username.isNotEmpty
+            ? warmProfile.username
+            : warmProfile.nickname,
+        image: warmProfile.avatarUrl,
+        pushToken: warmProfile.token,
+        name: warmProfile.preferredName,
+      );
+      return;
+    }
 
-    // 1) Merkezi profile cache -> Firestore cache -> server zinciri
     try {
-      final cachedProfile = await userProfileService.getProfile(
+      final summary = await userRepository.getUser(
         userID,
         preferCache: true,
+        cacheOnly: false,
       );
-      if (applyFromMap(cachedProfile, uid: userID)) {
-        return;
+      if (summary != null) {
+        applyProfile(
+          nick: summary.nickname,
+          uname:
+              summary.username.isNotEmpty ? summary.username : summary.nickname,
+          image: summary.avatarUrl,
+          pushToken: summary.token,
+          name: summary.preferredName,
+        );
+        cacheProfile(
+          uid: userID,
+          nick: summary.nickname,
+          uname:
+              summary.username.isNotEmpty ? summary.username : summary.nickname,
+          image: summary.avatarUrl,
+          pushToken: summary.token,
+          name: summary.preferredName,
+        );
       }
-    } catch (_) {}
-
-    // 2) Cache boşsa tek network dokunuşu (serverAndCache), sonra belleğe al.
-    try {
-      final fastDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.serverAndCache));
-      applyFromMap(fastDoc.data(), uid: userID);
     } catch (_) {}
   }
 
@@ -958,14 +857,12 @@ class PostContentController extends GetxController {
       return;
     }
 
-    final ref = FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(docID)
-        .collection("reshares");
-    ref.get().then((snap) async {
-      final entries = snap.docs
-          .map((d) => MapEntry(d.id, (d.data()['timeStamp'] ?? 0) as int))
-          .toList();
+    final reshareEntries = await _postRepository.fetchAllReshareEntries(
+      docID,
+      limit: 200,
+    );
+    final entries =
+        reshareEntries.map((e) => MapEntry(e.userId, e.timeStamp)).toList();
       // ID listesi
       final list = entries.map((e) => e.key).toList();
       reSharedUsers.value = list;
@@ -1021,76 +918,33 @@ class PostContentController extends GetxController {
         displayUserId: '',
         displayNickname: '',
       );
-    });
   }
 
   Future<void> like() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final bool wasLiked = uid != null && likes.contains(uid);
-    final likeCounter = countManager.getLikeCount(model.docID);
-    final int initialLikeCount = likeCounter.value;
-    final num initialLikeStat = model.stats.likeCount;
 
-    void applyState(bool target) {
+    try {
+      await _postRepository.toggleLike(model);
+    } catch (e) {
       if (uid != null) {
-        if (target) {
+        if (wasLiked) {
           if (!likes.contains(uid)) likes.add(uid);
         } else {
           likes.remove(uid);
         }
       }
-
-      final int nextCount =
-          initialLikeCount + (target ? 1 : 0) - (wasLiked ? 1 : 0);
-      likeCounter.value = nextCount < 0 ? 0 : nextCount;
-
-      final num statNext =
-          initialLikeStat + (target ? 1 : 0) - (wasLiked ? 1 : 0);
-      model.stats.likeCount = statNext < 0 ? 0 : statNext;
-    }
-
-    final bool optimisticTarget = !wasLiked;
-    applyState(optimisticTarget);
-
-    try {
-      final toggled = await _interactionService.toggleLike(model.docID);
-      if (toggled != optimisticTarget) {
-        applyState(toggled);
-      }
-    } catch (e) {
-      applyState(wasLiked);
       AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
     }
   }
 
   Future<void> save() async {
     final bool wasSaved = saved.value;
-    final savedCounter = countManager.getSavedCount(model.docID);
-    final int initialSavedCount = savedCounter.value;
-    final num initialSavedStat = model.stats.savedCount;
-
-    void applyState(bool target) {
-      saved.value = target;
-
-      final int nextCount =
-          initialSavedCount + (target ? 1 : 0) - (wasSaved ? 1 : 0);
-      savedCounter.value = nextCount < 0 ? 0 : nextCount;
-
-      final num statNext =
-          initialSavedStat + (target ? 1 : 0) - (wasSaved ? 1 : 0);
-      model.stats.savedCount = statNext < 0 ? 0 : statNext;
-    }
-
-    final bool optimisticTarget = !wasSaved;
-    applyState(optimisticTarget);
 
     try {
-      final status = await _interactionService.toggleSave(model.docID);
-      if (status != optimisticTarget) {
-        applyState(status);
-      }
+      await _postRepository.toggleSave(model);
     } catch (e) {
-      applyState(wasSaved);
+      saved.value = wasSaved;
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
     }
   }
@@ -1132,14 +986,13 @@ class PostContentController extends GetxController {
   Future<void> onlyFollowUserOneTime() async {
     try {
       if (followLoading.value) return;
-      final myRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('followings')
-          .doc(model.userID);
-
-      final snap = await myRef.get();
-      if (snap.exists) {
+      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
+        model.userID,
+        currentUid: currentUid,
+        preferCache: true,
+      );
+      if (alreadyFollowing) {
         isFollowing.value = true;
         return;
       }
@@ -1180,88 +1033,23 @@ class PostContentController extends GetxController {
     final title = pushCopy.title;
     final body = pushCopy.body;
     final imageUrl = _pushPreviewImageUrl();
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     try {
-      var written = 0;
-      var opCount = 0;
-      var batch = FirebaseFirestore.instance.batch();
-      final pushedUserIds = <String>{};
-
-      Future<void> commitBatch() async {
-        if (opCount == 0) return;
-        await batch.commit();
-        batch = FirebaseFirestore.instance.batch();
-        opCount = 0;
-      }
-
-      void enqueueNotification(DocumentSnapshot<Map<String, dynamic>> userDoc) {
-        if (userDoc.id == currentUid ||
-            pushedUserIds.contains(userDoc.id) ||
-            !_shouldSendPushToUser(userDoc)) {
-          return;
-        }
-        pushedUserIds.add(userDoc.id);
-        final notificationRef =
-            userDoc.reference.collection('notifications').doc();
-        batch.set(notificationRef, {
-          'type': 'posts',
-          'fromUserID': currentUid,
-          'postID': model.docID,
-          if (imageUrl != null) 'imageUrl': imageUrl,
-          'adminPush': true,
-          'hideInAppInbox': true,
-          'timeStamp': nowMs,
-          'read': false,
-          'title': title,
-          'body': body,
-        });
-        written++;
-        opCount++;
-      }
-
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-          .collection('users')
-          .where('createdDate', isGreaterThanOrEqualTo: _pushTargetCutoffMs)
-          .orderBy('createdDate')
-          .limit(350);
-
-      while (true) {
-        final usersSnap = await query.get();
-        if (usersSnap.docs.isEmpty) break;
-
-        for (final userDoc in usersSnap.docs) {
-          enqueueNotification(userDoc);
-          if (opCount >= 400) {
-            await commitBatch();
-          }
-        }
-
-        if (usersSnap.docs.length < 350) break;
-        query = FirebaseFirestore.instance
-            .collection('users')
-            .where('createdDate', isGreaterThanOrEqualTo: _pushTargetCutoffMs)
-            .orderBy('createdDate')
-            .startAfterDocument(usersSnap.docs.last)
-            .limit(350);
-      }
-
-      await commitBatch();
+      final written = await _adminPushRepository.sendPostPush(
+        postId: model.docID,
+        title: title,
+        body: body,
+        imageUrl: imageUrl,
+      );
       try {
-        await FirebaseFirestore.instance
-            .collection('adminConfig')
-            .doc('admin')
-            .collection('pushReports')
-            .add({
-          'senderUid': currentUid,
-          'title': title,
-          'body': body,
-          'type': 'posts',
-          if (imageUrl != null) 'imageUrl': imageUrl,
-          'targetCount': written,
-          'postID': model.docID,
-          'createdDate': DateTime.now().millisecondsSinceEpoch,
-        });
+        await _adminPushRepository.addPostReport(
+          senderUid: currentUid,
+          title: title,
+          body: body,
+          targetCount: written,
+          postId: model.docID,
+          imageUrl: imageUrl,
+        );
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
       }

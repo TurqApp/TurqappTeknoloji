@@ -1,5 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class CreateChatContentController extends GetxController {
   var nickname = "".obs;
@@ -10,20 +12,20 @@ class CreateChatContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    unawaited(_loadUser());
+  }
 
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      final data = doc.data() ?? const <String, dynamic>{};
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
-      fullName.value =
-          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-              .trim();
-    });
+  Future<void> _loadUser() async {
+    final user = await UserRepository.ensure().getUser(
+      userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (user == null) return;
+    nickname.value = user.nickname.isNotEmpty
+        ? user.nickname
+        : (user.username.isNotEmpty ? user.username : user.displayName);
+    avatarUrl.value = user.avatarUrl;
+    fullName.value = user.displayName;
   }
 }

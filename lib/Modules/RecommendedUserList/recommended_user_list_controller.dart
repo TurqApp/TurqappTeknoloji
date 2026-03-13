@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/recommended_users_repository.dart';
 import 'package:turqappv2/Models/recommended_user_model.dart';
 
 class RecommendedUserListController extends GetxController {
@@ -84,41 +86,18 @@ class RecommendedUserListController extends GetxController {
       return;
     }
 
-    if (isLoadingFollowing || !hasMoreFollowing) return;
+    if (isLoadingFollowing) return;
     isLoadingFollowing = true;
 
     try {
       final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-      Query query = FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserId)
-          .collection("followings")
-          .orderBy("timeStamp", descending: true)
-          .limit(followingLimit);
-
-      if (lastFollowingDoc != null) {
-        query = query.startAfterDocument(lastFollowingDoc!);
-      }
-
-      final snap = await query.get(const GetOptions(
-        source: Source.serverAndCache, // Cache öncelikli
-      ));
-
-      if (snap.docs.isNotEmpty) {
-        lastFollowingDoc = snap.docs.last;
-        for (var doc in snap.docs) {
-          final id = doc.id;
-          if (!takipEdilenler.contains(id)) {
-            takipEdilenler.add(id);
-          }
-        }
-        if (snap.docs.length < followingLimit) {
-          hasMoreFollowing = false;
-        }
-        _lastFollowingLoadTime = DateTime.now();
-      } else {
-        hasMoreFollowing = false;
-      }
+      final ids = await FollowRepository.ensure().getFollowingIds(
+        currentUserId,
+        preferCache: true,
+      );
+      takipEdilenler.assignAll(ids.toList());
+      hasMoreFollowing = false;
+      _lastFollowingLoadTime = DateTime.now();
     } catch (e) {
       print('Error loading following list: $e');
       // Takip listesi yüklenemezse boş devam et
@@ -151,11 +130,8 @@ class RecommendedUserListController extends GetxController {
       final lim = limit ?? usersLimitFull;
 
       // Timeout ekle - 10 saniye içinde cevap gelmezse iptal et
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('isPrivate', isEqualTo: false)
-          .limit(lim)
-          .get(const GetOptions(source: Source.serverAndCache))
+      final candidates = await RecommendedUsersRepository.ensure()
+          .fetchCandidates(limit: lim, preferCache: true)
           .timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -164,15 +140,12 @@ class RecommendedUserListController extends GetxController {
       );
 
       // Filtre: ne kendimiz ne de takip ettiklerimiz; rozetler client-side elenir
-      final filtered = snap.docs
-          .where((doc) {
-            if (doc.id == currentUserId) return false;
-            if (takipEdilenler.contains(doc.id)) return false;
-            final r = (doc.data())['rozet'] as String? ?? '';
-            return r.isNotEmpty && r != 'Kirmizi' && r != 'Gri';
-          })
-          .map((doc) => RecommendedUserModel.fromDocument(doc))
-          .toList()
+      final filtered = candidates.where((user) {
+        if (user.userID == currentUserId) return false;
+        if (takipEdilenler.contains(user.userID)) return false;
+        final r = user.rozet.trim();
+        return r.isNotEmpty && r != 'Kirmizi' && r != 'Gri';
+      }).toList()
         ..shuffle();
 
       // Listeye ata

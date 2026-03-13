@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:turqappv2/Core/Repositories/slider_repository.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Slider/slider_catalog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SliderCacheSnapshot {
@@ -25,6 +28,7 @@ class SliderCacheService {
   static const Duration ttl = Duration(days: 7);
 
   SharedPreferences? _prefs;
+  final SliderRepository _sliderRepository = SliderRepository.ensure();
 
   Future<SharedPreferences> _prefsInstance() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -91,5 +95,75 @@ class SliderCacheService {
         }),
       );
     } catch (_) {}
+  }
+
+  Future<List<String>> resolveRemoteSources(String sliderId) async {
+    final cleanId = sliderId.trim();
+    if (cleanId.isEmpty) return const <String>[];
+    final remote = await _sliderRepository.fetchSlider(cleanId);
+    final metaSnapshot = remote.meta;
+    final itemsSnapshot = remote.items;
+
+    final hiddenDefaults =
+        ((metaSnapshot.data()?['hiddenDefaults'] as List<dynamic>?) ??
+                const <dynamic>[])
+            .map((e) => e is num ? e.toInt() : -1)
+            .where((e) => e >= 0)
+            .toSet();
+
+    final defaults = SliderCatalog.defaultImagesFor(cleanId);
+    final remoteByOrder = <int, String>{};
+    final extras = <String>[];
+
+    for (final doc in itemsSnapshot.docs) {
+      final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
+      final url = (doc.data()['imageUrl'] ?? '').toString().trim();
+      if (url.isEmpty) continue;
+      if (order < defaults.length) {
+        remoteByOrder[order] = url;
+      } else {
+        extras.add(url);
+      }
+    }
+
+    final resolved = <String>[];
+    for (var i = 0; i < defaults.length; i++) {
+      if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
+        continue;
+      }
+      final remote = remoteByOrder[i];
+      if (remote != null && remote.isNotEmpty) {
+        resolved.add(remote);
+        continue;
+      }
+      final fallback = defaults[i];
+      if (fallback.isNotEmpty) {
+        resolved.add(fallback);
+      }
+    }
+    resolved.addAll(extras);
+    return resolved;
+  }
+
+  Future<List<String>> refreshAndCacheSources(
+    String sliderId, {
+    int warmRemoteLimit = 8,
+  }) async {
+    final resolved = await resolveRemoteSources(sliderId);
+    if (resolved.isEmpty) return const <String>[];
+    await writeResolvedSources(sliderId, resolved);
+    await warmImages(resolved, remoteLimit: warmRemoteLimit);
+    return resolved;
+  }
+
+  Future<void> warmImages(
+    List<String> sources, {
+    int remoteLimit = 8,
+  }) async {
+    for (final url in sources.where((e) => e.startsWith('http')).take(remoteLimit)) {
+      try {
+        await TurqImageCacheManager.instance.getSingleFile(url);
+      } catch (_) {}
+    }
   }
 }

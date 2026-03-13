@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
 
 class CareerProfileController extends GetxController {
+  final CvRepository _cvRepository = CvRepository.ensure();
   var cvVar = false.obs;
   var isFindingJob = false.obs;
   var isLoading = false.obs;
@@ -28,12 +30,10 @@ class CareerProfileController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      final doc =
-          await FirebaseFirestore.instance.collection('CV').doc(uid).get();
+      final data = await _cvRepository.getCv(uid, preferCache: true);
 
-      if (doc.exists && doc.data() != null) {
+      if (data != null) {
         cvVar.value = true;
-        final data = doc.data()!;
         fullName.value =
             '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
         about.value = data['about'] ?? '';
@@ -73,6 +73,13 @@ class CareerProfileController extends GetxController {
           .collection('CV')
           .doc(uid)
           .update({'findingJob': isFindingJob.value});
+      final current = await _cvRepository.getCv(uid, preferCache: true);
+      if (current != null) {
+        current['findingJob'] = isFindingJob.value;
+        await _cvRepository.setCv(uid, current);
+      } else {
+        await _cvRepository.invalidate(uid);
+      }
     } catch (e) {
       print("findingJob toggle hatası: $e");
       isFindingJob.value = !isFindingJob.value;

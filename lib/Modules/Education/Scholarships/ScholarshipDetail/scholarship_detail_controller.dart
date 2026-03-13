@@ -4,12 +4,19 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 
 class ScholarshipDetailController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
   var showAllUniversities = false.obs;
   var hiddenUniversityCount = 0.obs;
   var isLoading = false.obs;
@@ -59,13 +66,9 @@ class ScholarshipDetailController extends GetxController {
 
     try {
       isLoading.value = true;
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      final data = await _userRepository.getUserRaw(currentUser.uid);
 
-      if (userDoc.exists) {
-        final data = userDoc.data() as Map<String, dynamic>;
+      if (data != null) {
         final educationLevel =
             userString(data, key: 'educationLevel', scope: 'education');
         final fatherLiving =
@@ -180,21 +183,10 @@ class ScholarshipDetailController extends GetxController {
       print('Burs ID: $scholarshipId, Tür: $type');
 
       if (scholarshipId.isNotEmpty) {
-        final docRef = ScholarshipFirestorePath.doc(scholarshipId);
-        final field = 'basvurular';
-
-        print('Koleksiyon kontrol ediliyor: ${docRef.path}');
-
-        final doc =
-            await docRef.collection('Basvurular').doc(currentUser.uid).get();
-
-        allreadyApplied.value = doc.exists;
-        if (!allreadyApplied.value) {
-          final parentDoc = await docRef.get();
-          final applicants = List<String>.from(parentDoc.data()?[field] ?? []);
-          allreadyApplied.value = applicants.contains(currentUser.uid);
-          print('Başvurular dizisi kontrolü: ${allreadyApplied.value}');
-        }
+        allreadyApplied.value = await _scholarshipRepository.hasUserApplied(
+          scholarshipId,
+          currentUser.uid,
+        );
 
         print('Son başvuru durumu: ${allreadyApplied.value}');
       } else {
@@ -233,6 +225,11 @@ class ScholarshipDetailController extends GetxController {
       await docRef.update({
         field: FieldValue.arrayUnion([currentUser.uid]),
       });
+      await _scholarshipRepository.setUserAppliedCache(
+        scholarshipId,
+        currentUser.uid,
+        true,
+      );
 
       allreadyApplied.value = true;
       AppSnackbar("Başarılı", "Burs başvurunuz alınmıştır.");
@@ -254,13 +251,10 @@ class ScholarshipDetailController extends GetxController {
     if (_followInitForId == followedId) return;
     _followInitForId = followedId;
     final followerId = currentUser.uid;
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(followedId)
-        .collection('followers')
-        .doc(followerId)
-        .get();
-    isFollowing.value = doc.exists;
+    isFollowing.value = await _followRepository.isFollowing(
+      followedId,
+      currentUid: followerId,
+    );
   }
 
   void updatePageIndex(int pageIndex) {
@@ -348,5 +342,19 @@ class ScholarshipDetailController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<List<String>> getApplicantIds(String scholarshipId) {
+    return _scholarshipRepository.fetchApplicantIds(
+      scholarshipId,
+      preferCache: true,
+    );
+  }
+
+  Future<int> getApplicantCount(String scholarshipId) {
+    return _scholarshipRepository.fetchApplicantCount(
+      scholarshipId,
+      preferCache: true,
+    );
   }
 }

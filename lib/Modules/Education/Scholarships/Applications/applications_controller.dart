@@ -2,9 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 
 class ApplicationsController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
   final isLoading = true.obs;
   final applications = <Map<String, dynamic>>[].obs;
 
@@ -24,35 +29,22 @@ class ApplicationsController extends GetxController {
         return;
       }
 
-      final bursSnapshot = await ScholarshipFirestorePath.collection()
-          .where('basvurular', arrayContains: userID)
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
+      final bursList =
+          await _scholarshipRepository.fetchAppliedByUserRaw(userID, limit: 50);
 
       // Batch user fetch instead of N+1
-      final ownerIds = bursSnapshot.docs
-          .map((d) => d.data()['userID'] as String? ?? '')
+      final ownerIds = bursList
+          .map((d) => d['userID'] as String? ?? '')
           .where((id) => id.isNotEmpty)
           .toSet()
           .toList();
-      final userDocsById = <String, Map<String, dynamic>>{};
-      for (var i = 0; i < ownerIds.length; i += 30) {
-        final end = (i + 30) > ownerIds.length ? ownerIds.length : (i + 30);
-        final batchIds = ownerIds.sublist(i, end);
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batchIds)
-            .get();
-        for (final doc in snap.docs) {
-          userDocsById[doc.id] = doc.data();
-        }
-      }
+      final userDocsById = ownerIds.isEmpty
+          ? <String, Map<String, dynamic>>{}
+          : await _userRepository.getUsersRaw(ownerIds);
 
       final applicationList = <Map<String, dynamic>>[];
 
-      for (var bursDoc in bursSnapshot.docs) {
-        final data = bursDoc.data();
+      for (final data in bursList) {
         final bursOwnerID = data['userID'] as String? ?? '';
         final ownerData = userDocsById[bursOwnerID];
         final nickname = (ownerData?['displayName'] ??
@@ -68,7 +60,7 @@ class ApplicationsController extends GetxController {
             .toString();
 
         applicationList.add({
-          'bursID': bursDoc.id,
+          'bursID': (data['docId'] ?? '').toString(),
           'title': data['baslik'] as String? ?? 'Burs Başlığı',
           'img': data['img'] as String? ?? '',
           'desc': data['aciklama'] as String? ?? 'Açıklama yok',

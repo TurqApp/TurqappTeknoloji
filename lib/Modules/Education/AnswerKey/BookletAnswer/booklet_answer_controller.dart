@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class BookletAnswerController extends GetxController {
+  final ConfigRepository _configRepository = ConfigRepository.ensure();
   final AnswerKeySubModel model;
   final BookletModel anaModel;
 
@@ -32,12 +34,12 @@ class BookletAnswerController extends GetxController {
 
   Future<void> fetchAds() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("Yönetim")
-          .doc("Genel")
-          .get();
-      iosList.value = doc.get("iosFullReklamlar") ?? '';
-      androidList.value = doc.get("androidFullReklamlar") ?? '';
+      final doc = await _configRepository.getLegacyConfigDoc(
+        collection: 'Yönetim',
+        docId: 'Genel',
+      );
+      iosList.value = (doc?["iosFullReklamlar"] ?? '').toString();
+      androidList.value = (doc?["androidFullReklamlar"] ?? '').toString();
       runAds();
     } catch (e) {
       log("Reklam verisi çekme hatası: $e");

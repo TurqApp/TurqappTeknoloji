@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -51,6 +52,7 @@ class SettingsView extends StatelessWidget {
   SettingsView({super.key});
   final controller = Get.put(SettingsController());
   final scholarshipsController = Get.put(ScholarshipsController());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
@@ -186,10 +188,10 @@ class SettingsView extends StatelessWidget {
                             final currentUser =
                                 FirebaseAuth.instance.currentUser?.uid;
                             if (currentUser != null) {
-                              await FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(currentUser)
-                                  .update({"token": ""});
+                              await _userRepository.updateUserFields(
+                                currentUser,
+                                {"token": ""},
+                              );
                             }
 
                             try {
@@ -864,9 +866,11 @@ class _AdminPushMenuTileState extends State<_AdminPushMenuTile> {
     final isAdmin = await AdminAccessService.canManageSliders();
     if (!isAdmin) return false;
 
-    final adminCfg =
-        await FirebaseFirestore.instance.doc("adminConfig/admin").get();
-    final data = adminCfg.data() ?? <String, dynamic>{};
+    final data = await ConfigRepository.ensure().getAdminConfigDoc(
+          'admin',
+          preferCache: true,
+        ) ??
+        <String, dynamic>{};
     return data["pushSend"] == true;
   }
 

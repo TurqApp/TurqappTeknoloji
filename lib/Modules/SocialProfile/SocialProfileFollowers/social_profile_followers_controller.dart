@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 
 class SocialProfileFollowersController extends GetxController {
   String userID;
@@ -11,8 +11,6 @@ class SocialProfileFollowersController extends GetxController {
   RxList<String> takipEdilenler = <String>[].obs;
 
   final int limit = 50;
-  DocumentSnapshot? lastFollowerDoc;
-  DocumentSnapshot? lastFollowingDoc;
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
@@ -22,6 +20,7 @@ class SocialProfileFollowersController extends GetxController {
   static const int _maxRelationCacheEntries = 400;
   static final Map<String, _RelationListCacheEntry> _relationCache =
       <String, _RelationListCacheEntry>{};
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   SocialProfileFollowersController(
       {required int initialPage, required this.userID}) {
@@ -50,22 +49,12 @@ class SocialProfileFollowersController extends GetxController {
     if (isLoadingFollowers || !hasMoreFollowers) return;
     isLoadingFollowers = true;
 
-    Query query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .collection("followers")
-        .orderBy("timeStamp", descending: true)
-        .limit(limit);
-
-    if (lastFollowerDoc != null) {
-      query = query.startAfterDocument(lastFollowerDoc!);
-    }
-
-    final snap = await query.get();
-    if (snap.docs.isNotEmpty) {
-      lastFollowerDoc = snap.docs.last;
-      takipciler.addAll(snap.docs.map((val) => val.id));
-    }
+    final ids = await _followRepository.getFollowerIds(
+      userID,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    takipciler.value = ids.take(limit).toList();
     _relationCache[followersCacheKey] = _RelationListCacheEntry(
       ids: List<String>.from(takipciler),
       cachedAt: DateTime.now(),
@@ -89,22 +78,12 @@ class SocialProfileFollowersController extends GetxController {
     if (isLoadingFollowing || !hasMoreFollowing) return;
     isLoadingFollowing = true;
 
-    Query query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .collection("followings")
-        .orderBy("timeStamp", descending: true)
-        .limit(limit);
-
-    if (lastFollowingDoc != null) {
-      query = query.startAfterDocument(lastFollowingDoc!);
-    }
-
-    final snap = await query.get();
-    if (snap.docs.isNotEmpty) {
-      lastFollowingDoc = snap.docs.last;
-      takipEdilenler.addAll(snap.docs.map((val) => val.id));
-    }
+    final ids = await _followRepository.getFollowingIds(
+      userID,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    takipEdilenler.value = ids.take(limit).toList();
     _relationCache[followingsCacheKey] = _RelationListCacheEntry(
       ids: List<String>.from(takipEdilenler),
       cachedAt: DateTime.now(),

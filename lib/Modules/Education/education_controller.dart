@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
@@ -31,7 +32,7 @@ class EducationController extends GetxController {
       Get.isRegistered<SettingsController>()
           ? Get.find<SettingsController>()
           : Get.put(SettingsController());
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _pasajConfigSub;
+  StreamSubscription<Map<String, dynamic>>? _pasajConfigSub;
   final Map<String, bool> _adminPasajVisibility = <String, bool>{};
 
   List<String> get titles => pasajTabs;
@@ -74,13 +75,9 @@ class EducationController extends GetxController {
   }
 
   void _bindPasajConfig() {
-    _pasajConfigSub = FirebaseFirestore.instance
-        .collection('adminConfig')
-        .doc('pasaj')
-        .snapshots()
-        .listen(
+    _pasajConfigSub = ConfigRepository.ensure().watchAdminConfigDoc('pasaj').listen(
       (snap) {
-        final data = snap.data() ?? const <String, dynamic>{};
+        final data = snap;
         _adminPasajVisibility.clear();
         for (var i = 0; i < titles.length; i++) {
           final title = titles[i];

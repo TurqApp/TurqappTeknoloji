@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import '../../main.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
@@ -118,6 +119,15 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final Map<int, HLSVideoAdapter> _videoControllers = {};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
+
+  Widget _cachedThumb(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => const SizedBox.shrink(),
+      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+    );
+  }
 
   Future<void> _ensureInjectedInitialPlayback(
       HLSVideoAdapter ctrl, String docId) async {
@@ -351,16 +361,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     List<PostsModel> items = [];
 
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where('hlsStatus', isEqualTo: 'ready')
-          .limit(1000)
-          .get();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      items = snap.docs
-          .map(PostsModel.fromFirestore)
-          .where((p) => (p.timeStamp) <= nowMs)
-          .toList()
+      items = await ShortRepository.ensure().fetchRandomReadyPosts(limit: 1000)
         ..shuffle();
     } catch (e) {
       print("fetch error: $e");
@@ -816,18 +817,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                 aspectRatio: shorts[idx].aspectRatio > 1.2
                                     ? shorts[idx].aspectRatio.toDouble()
                                     : 1.0,
-                                child: Image.network(injThumb,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const SizedBox.shrink()),
+                                child: _cachedThumb(injThumb),
                               ),
                             );
                           }
                           return SizedBox.expand(
-                            child: Image.network(injThumb,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox.shrink()),
+                            child: _cachedThumb(injThumb),
                           );
                         },
                       ),
@@ -864,17 +859,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                             child: AspectRatio(
                               aspectRatio:
                                   loadingThumbAr > 1.2 ? loadingThumbAr : 1.0,
-                              child: Image.network(thumb,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const SizedBox.shrink()),
+                              child: _cachedThumb(thumb),
                             ),
                           )
                         else
-                          Image.network(thumb,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink())
+                          _cachedThumb(thumb)
                       else
                         const SizedBox.shrink(),
                       const Center(
@@ -898,17 +887,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                               Center(
                                 child: AspectRatio(
                                   aspectRatio: thumbAr > 1.2 ? thumbAr : 1.0,
-                                  child: Image.network(thumb,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          const SizedBox.shrink()),
+                                  child: _cachedThumb(thumb),
                                 ),
                               )
                             else
-                              Image.network(thumb,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const SizedBox.shrink()),
+                              _cachedThumb(thumb),
                         ],
                       )
                     : Stack(
@@ -940,18 +923,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                     aspectRatio: shorts[idx].aspectRatio > 1.2
                                         ? shorts[idx].aspectRatio.toDouble()
                                         : 1.0,
-                                    child: Image.network(thumb,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const SizedBox.shrink()),
+                                    child: _cachedThumb(thumb),
                                   ),
                                 );
                               }
                               return SizedBox.expand(
-                                child: Image.network(thumb,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const SizedBox.shrink()),
+                                child: _cachedThumb(thumb),
                               );
                             },
                           ),

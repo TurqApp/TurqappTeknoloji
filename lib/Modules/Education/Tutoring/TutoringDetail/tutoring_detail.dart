@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
@@ -57,43 +58,10 @@ class TutoringDetail extends StatelessWidget {
 
     Future<void> openMentionProfile(String mention) async {
       final normalizedMention = mention.trim().replaceFirst('@', '');
-      final handle = normalizedMention.toLowerCase();
-      if (handle.isEmpty) return;
-
-      String targetUid = '';
-      try {
-        final usernameDoc = await FirebaseFirestore.instance
-            .collection('usernames')
-            .doc(handle)
-            .get();
-        targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-      } catch (_) {}
-
-      if (targetUid.isEmpty) {
-        try {
-          final byUsername = await FirebaseFirestore.instance
-              .collection('users')
-              .where('usernameLower', isEqualTo: handle)
-              .limit(1)
-              .get();
-          if (byUsername.docs.isNotEmpty) {
-            targetUid = byUsername.docs.first.id;
-          }
-        } catch (_) {}
-      }
-
-      if (targetUid.isEmpty) {
-        try {
-          final byNickname = await FirebaseFirestore.instance
-              .collection('users')
-              .where('nickname', isEqualTo: normalizedMention)
-              .limit(1)
-              .get();
-          if (byNickname.docs.isNotEmpty) {
-            targetUid = byNickname.docs.first.id;
-          }
-        } catch (_) {}
-      }
+      if (normalizedMention.isEmpty) return;
+      final targetUid =
+          await UsernameLookupRepository.ensure().findUidForHandle(mention) ??
+              '';
 
       if (targetUid.isNotEmpty && targetUid != currentUserId) {
         await Get.to(() => SocialProfile(userID: targetUid));

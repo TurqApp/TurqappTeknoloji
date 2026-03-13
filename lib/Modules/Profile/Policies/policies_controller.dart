@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
 class PoliciesController extends GetxController {
   var privacyPolicy = "".obs;
@@ -12,17 +12,20 @@ class PoliciesController extends GetxController {
 
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
-    FirebaseFirestore.instance
-        .collection('Yönetim')
-        .doc("Policies")
-        .get()
-        .then((doc) {
-      privacyPolicy.value = doc.get("privacy");
-      eula.value = doc.get("eula");
-      ad.value = doc.get("ad");
-    });
+    _loadPolicies();
+  }
+
+  Future<void> _loadPolicies() async {
+    final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+      collection: 'Yönetim',
+      docId: 'Policies',
+      preferCache: true,
+    );
+    if (doc == null) return;
+    privacyPolicy.value = (doc["privacy"] ?? "").toString();
+    eula.value = (doc["eula"] ?? "").toString();
+    ad.value = (doc["ad"] ?? "").toString();
   }
 
   void goToPage(int index) {

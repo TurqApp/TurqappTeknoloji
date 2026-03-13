@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
@@ -10,6 +10,7 @@ class TestEntryController extends GetxController {
   final focusNode = FocusNode();
   final model = Rx<TestsModel?>(null);
   final isLoading = false.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   @override
   void onInit() {
@@ -39,19 +40,18 @@ class TestEntryController extends GetxController {
   Future<void> getTests(String testID) async {
     isLoading.value = true;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
+      final data = await _testRepository.fetchRawById(
+        testID,
+        preferCache: true,
+      );
+      if (data != null) {
         model.value = TestsModel(
           userID: data['userID'] as String,
           timeStamp: data['timeStamp'] as String,
           aciklama: data['aciklama'] as String,
           dersler: List<String>.from(data['dersler'] ?? []),
           img: data['img'] as String,
-          docID: doc.id,
+          docID: testID,
           paylasilabilir: data['paylasilabilir'] as bool,
           testTuru: data['testTuru'] as String,
           taslak: data['taslak'] as bool,

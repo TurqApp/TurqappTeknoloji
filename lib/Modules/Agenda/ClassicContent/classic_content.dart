@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
@@ -10,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -75,6 +75,7 @@ class ClassicContent extends PostContentBase {
 
 class _ClassicContentState extends State<ClassicContent>
     with PostContentBaseState<ClassicContent> {
+  final PostRepository _postRepository = PostRepository.ensure();
   static const PostActionStyle _actionStyle = PostActionStyle(
     iconSize: 22,
     textStyle: TextStyle(
@@ -189,24 +190,16 @@ class _ClassicContentState extends State<ClassicContent>
     if (candidates.isEmpty) return [widget.model];
 
     final ids = candidates.map((p) => p.docID).toList();
+    final fetched = await _postRepository.fetchPostsByIds(ids);
     final freshById = <String, PostsModel>{};
-
-    for (int i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        final model = PostsModel.fromMap(doc.data(), doc.id);
-        if (model.deletedPost == false &&
-            model.arsiv == false &&
-            model.gizlendi == false &&
-            model.hasPlayableVideo) {
-          freshById[model.docID] = model;
-        }
+    fetched.forEach((key, model) {
+      if (model.deletedPost == false &&
+          model.arsiv == false &&
+          model.gizlendi == false &&
+          model.hasPlayableVideo) {
+        freshById[key] = model;
       }
-    }
+    });
 
     final List<PostsModel> ordered = candidates
         .map<PostsModel>((p) => freshById[p.docID] ?? p)
@@ -405,7 +398,8 @@ class _ClassicContentState extends State<ClassicContent>
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
-      final users = Get.find<StoryRowController>().users.toList(growable: false);
+      final users =
+          Get.find<StoryRowController>().users.toList(growable: false);
       Get.to(() => StoryViewer(
             startedUser: storyUser,
             storyOwnerUsers: users,
@@ -788,11 +782,12 @@ class _ClassicContentState extends State<ClassicContent>
           .toString()
           .trim();
       if (raw.isNotEmpty) return raw;
-      final fallback = widget.model.quotedSourceUserID.trim() == widget.model.userID
-          ? (controller.username.value.trim().isNotEmpty
-              ? controller.username.value.trim()
-              : controller.nickname.value.trim())
-          : '';
+      final fallback =
+          widget.model.quotedSourceUserID.trim() == widget.model.userID
+              ? (controller.username.value.trim().isNotEmpty
+                  ? controller.username.value.trim()
+                  : controller.nickname.value.trim())
+              : '';
       return fallback;
     }
 
@@ -1376,18 +1371,15 @@ class _ClassicContentState extends State<ClassicContent>
                     child: AspectRatio(
                       aspectRatio: frameAspectRatio,
                       child: widget.model.thumbnail.isNotEmpty
-                          ? Image.network(
-                              widget.model.thumbnail,
+                          ? CachedNetworkImage(
+                              imageUrl: widget.model.thumbnail,
                               fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const ColoredBox(
-                                  color: _classicMediaFallbackColor,
-                                );
-                              },
-                              errorBuilder: (_, __, ___) => const ColoredBox(
-                                  color: _classicMediaFallbackColor),
+                              placeholder: (_, __) => const ColoredBox(
+                                color: _classicMediaFallbackColor,
+                              ),
+                              errorWidget: (_, __, ___) => const ColoredBox(
+                                color: _classicMediaFallbackColor,
+                              ),
                             )
                           : const ColoredBox(color: _classicMediaFallbackColor),
                     ),
@@ -1402,18 +1394,15 @@ class _ClassicContentState extends State<ClassicContent>
                     color: _classicMediaFallbackColor,
                     child: widget.model.thumbnail.isEmpty
                         ? null
-                        : Image.network(
-                            widget.model.thumbnail,
+                        : CachedNetworkImage(
+                            imageUrl: widget.model.thumbnail,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const ColoredBox(
-                                color: _classicMediaFallbackColor,
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) =>
-                                const ColoredBox(
-                                    color: _classicMediaFallbackColor),
+                            placeholder: (_, __) => const ColoredBox(
+                              color: _classicMediaFallbackColor,
+                            ),
+                            errorWidget: (_, __, ___) => const ColoredBox(
+                              color: _classicMediaFallbackColor,
+                            ),
                           ),
                   ),
                 if (videoController == null)
@@ -2132,8 +2121,13 @@ class _ClassicContentState extends State<ClassicContent>
     videoController?.play();
   }
 
-  Future<({String userId, String displayName, String username, String avatarUrl})
-      > _resolveQuotedSourceSnapshot() async {
+  Future<
+      ({
+        String userId,
+        String displayName,
+        String username,
+        String avatarUrl
+      })> _resolveQuotedSourceSnapshot() async {
     String pick(List<dynamic> values, [String fallback = '']) {
       for (final value in values) {
         final text = (value ?? '').toString().trim();
@@ -2174,13 +2168,12 @@ class _ClassicContentState extends State<ClassicContent>
         final profileCache = Get.isRegistered<UserProfileCacheService>()
             ? Get.find<UserProfileCacheService>()
             : Get.put(UserProfileCacheService(), permanent: true);
-        final profile =
-            (await profileCache.getProfile(
-          sourceUserId,
-          preferCache: true,
-          cacheOnly: false,
-        )) ??
-                const <String, dynamic>{};
+        final profile = (await profileCache.getProfile(
+              sourceUserId,
+              preferCache: true,
+              cacheOnly: false,
+            )) ??
+            const <String, dynamic>{};
         displayName = pick([
           displayName,
           profile['displayName'],
@@ -2226,7 +2219,8 @@ class _ClassicContentState extends State<ClassicContent>
     final String resolvedQuotedSourceDisplayName =
         sourceSnapshot.displayName.trim();
     final String resolvedQuotedSourceUsername = sourceSnapshot.username.trim();
-    final String resolvedQuotedSourceAvatarUrl = sourceSnapshot.avatarUrl.trim();
+    final String resolvedQuotedSourceAvatarUrl =
+        sourceSnapshot.avatarUrl.trim();
 
     if (widget.model.originalUserID.isNotEmpty) {
       finalOriginalUserID = widget.model.originalUserID;
@@ -2281,9 +2275,7 @@ class _ClassicContentState extends State<ClassicContent>
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared
-                ? 'Yeniden paylaşımı geri al'
-                : 'Yeniden paylaş',
+            title: isReshared ? 'Yeniden paylaşımı geri al' : 'Yeniden paylaş',
             icon: Icons.repeat,
           ),
           PullDownMenuItem(

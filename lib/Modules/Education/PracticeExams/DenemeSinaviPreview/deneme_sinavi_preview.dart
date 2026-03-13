@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -32,10 +33,10 @@ class DenemeSinaviPreview extends StatelessWidget {
         SizedBox(
           width: Get.width,
           height: Get.width,
-          child: Image.network(
-            controller.model.cover,
+          child: CachedNetworkImage(
+            imageUrl: controller.model.cover,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Text(
+            errorWidget: (context, url, error) => Text(
               "Kapak resmi yüklenemedi.",
               style: TextStyle(
                 color: Colors.red,
@@ -178,10 +179,10 @@ class DenemeSinaviPreview extends StatelessWidget {
                             child: SizedBox(
                               width: 50,
                               height: 50,
-                              child: Image.network(
-                                controller.avatarUrl.value,
+                              child: CachedNetworkImage(
+                                imageUrl: controller.avatarUrl.value,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
+                                errorWidget: (context, url, error) =>
                                     Icon(
                                   Icons.person,
                                   size: 50,

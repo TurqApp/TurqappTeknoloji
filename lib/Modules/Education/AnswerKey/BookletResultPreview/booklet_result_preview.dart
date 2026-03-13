@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -79,10 +80,28 @@ class BookletResultPreview extends StatelessWidget {
                                         padding: const EdgeInsets.all(15),
                                         child: Row(
                                           children: [
-                                            Image.network(
-                                              controller.anaModel.value!.cover,
+                                            CachedNetworkImage(
+                                              imageUrl: controller
+                                                  .anaModel.value!.cover,
                                               fit: BoxFit.contain,
                                               height: 50,
+                                              placeholder:
+                                                  (context, url) =>
+                                                      const SizedBox(
+                                                height: 50,
+                                                child: Center(
+                                                  child:
+                                                      CupertinoActivityIndicator(),
+                                                ),
+                                              ),
+                                              errorWidget: (
+                                                context,
+                                                url,
+                                                error,
+                                              ) =>
+                                                  const Icon(
+                                                Icons.broken_image,
+                                              ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(

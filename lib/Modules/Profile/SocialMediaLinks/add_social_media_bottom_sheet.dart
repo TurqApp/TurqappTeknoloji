@@ -1,10 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Models/social_media_model.dart';
 
 import 'social_media_links_controller.dart';
 
@@ -280,18 +279,15 @@ class AddSocialMediaBottomSheet extends StatelessWidget {
                                 );
                               }
 
-                              final ref = FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                                  .collection("SosyalMedyaLinkleri")
-                                  .doc(docID);
-
-                              await ref.set({
-                                "title": controller.textController.text.trim(),
-                                "url": controller.urlController.text.trim(),
-                                "sira": controller.list.length + 1,
-                                "logo": logoValue,
-                              });
+                              await controller.saveLink(
+                                SocialMediaModel(
+                                  docID: docID,
+                                  title: controller.textController.text.trim(),
+                                  url: controller.urlController.text.trim(),
+                                  sira: controller.list.length + 1,
+                                  logo: logoValue,
+                                ),
+                              );
 
                               await controller.getData();
                               controller.resetFields();

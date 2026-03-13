@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../StoryMaker/story_maker_controller.dart';
@@ -137,40 +137,13 @@ class StoryTextWidget extends StatelessWidget {
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
             // Find user by canonical username/display mapping first, then fallback.
-            try {
-              final lowered = username.toLowerCase();
-              final usernameDoc = await FirebaseFirestore.instance
-                  .collection('usernames')
-                  .doc(lowered)
-                  .get();
-              final mappedUid =
-                  (usernameDoc.data()?['uid'] ?? '').toString().trim();
-              if (mappedUid.isNotEmpty) {
-                Get.to(() => SocialProfile(userID: mappedUid));
-                return;
-              }
-            } catch (_) {}
-            try {
-              final byUsername = await FirebaseFirestore.instance
-                  .collection('users')
-                  .where('username', isEqualTo: username.toLowerCase())
-                  .limit(1)
-                  .get();
-              if (byUsername.docs.isNotEmpty) {
-                Get.to(() => SocialProfile(userID: byUsername.docs.first.id));
-                return;
-              }
-            } catch (_) {}
-            try {
-              final snap = await FirebaseFirestore.instance
-                  .collection('users')
-                  .where('nickname', isEqualTo: username)
-                  .limit(1)
-                  .get();
-              if (snap.docs.isNotEmpty) {
-                Get.to(() => SocialProfile(userID: snap.docs.first.id));
-              }
-            } catch (_) {}
+            final targetUid =
+                await UsernameLookupRepository.ensure().findUidForHandle(
+              username,
+            );
+            if ((targetUid ?? '').isNotEmpty) {
+              Get.to(() => SocialProfile(userID: targetUid!));
+            }
           },
       ));
       lastEnd = match.end;

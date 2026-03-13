@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import '../AgendaContent/agenda_content_controller.dart';
 
@@ -17,6 +17,7 @@ class FloodListingController extends GetxController {
   // Ekranda ortalanan içeriğin index'i
   final centeredIndex = 0.obs;
   int? lastCenteredIndex;
+  final PostRepository _postRepository = PostRepository.ensure();
 
   @override
   void onInit() {
@@ -88,14 +89,15 @@ class FloodListingController extends GetxController {
 
     // “foo_17” → baseID = “foo”
     final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
-    final postsColl = FirebaseFirestore.instance.collection('Posts');
+    final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
+    final fetched = await _postRepository.fetchPostsByIds(ids);
 
     // 1️⃣ Kök flood her zaman "_0"
     final rootID = '${baseID}_0';
     try {
-      final rootSnap = await postsColl.doc(rootID).get();
-      if (rootSnap.exists) {
-        final m = PostsModel.fromFirestore(rootSnap);
+      final rootModel = fetched[rootID];
+      if (rootModel != null) {
+        final m = rootModel;
         if (m.deletedPost != true) floods.add(m);
       }
     } catch (e) {
@@ -106,9 +108,9 @@ class FloodListingController extends GetxController {
     for (var i = 1; i < floodCount; i++) {
       final docID = '${baseID}_$i';
       try {
-        final snap = await postsColl.doc(docID).get();
-        if (snap.exists) {
-          final m = PostsModel.fromFirestore(snap);
+        final model = fetched[docID];
+        if (model != null) {
+          final m = model;
           if (m.deletedPost != true) floods.add(m);
         }
       } catch (e) {

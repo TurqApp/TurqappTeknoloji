@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 
 import 'cikmis_sorular_yil_sectirme.dart';
 
@@ -20,36 +20,33 @@ class CikmisSorularDilSectirmeYDT extends StatefulWidget {
 
 class _CikmisSorularDilSectirmeYDTState
     extends State<CikmisSorularDilSectirmeYDT> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> diller = [];
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        String sinavTuru = doc.get("sinavTuru");
-        String baslik2 = doc.get("baslik2");
-
-        if (!diller.contains(baslik2) && sinavTuru == "YDT") {
-          if (baslik2 != "İngilizce") {
-            if (mounted) {
-              setState(() {
-                diller.add(baslik2);
-              });
-            }
-          } else {
-            if (mounted) {
-              setState(() {
-                diller.insert(0, baslik2);
-              });
-            }
-          }
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == 'YDT',
+          field: 'baslik2',
+        )
+        .then((items) {
+      final ordered = <String>[];
+      for (final item in items) {
+        if (item != 'İngilizce') {
+          ordered.add(item);
+        } else {
+          ordered.insert(0, item);
         }
+      }
+      if (mounted) {
+        setState(() {
+          diller = ordered;
+        });
       }
     });
   }

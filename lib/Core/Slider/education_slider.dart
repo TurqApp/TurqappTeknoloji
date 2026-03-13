@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
@@ -67,7 +66,7 @@ class _EducationSliderState extends State<EducationSlider> {
     final snapshot = await _cache.readSnapshot(sliderId);
     if (snapshot.hasItems) {
       _setSources(snapshot.items);
-      unawaited(_warmImages(snapshot.items));
+      unawaited(_cache.warmImages(snapshot.items));
     }
 
     if (snapshot.isFresh) return;
@@ -77,71 +76,10 @@ class _EducationSliderState extends State<EducationSlider> {
 
   Future<void> _refreshRemote(String sliderId) async {
     try {
-      final sliderRef =
-          FirebaseFirestore.instance.collection('sliders').doc(sliderId);
-      final results = await Future.wait([
-        sliderRef.get(const GetOptions(source: Source.serverAndCache)),
-        sliderRef
-            .collection('items')
-            .orderBy('order')
-            .get(const GetOptions(source: Source.serverAndCache)),
-      ]);
-
-      final metaSnapshot = results[0] as DocumentSnapshot<Map<String, dynamic>>;
-      final itemsSnapshot = results[1] as QuerySnapshot<Map<String, dynamic>>;
-
-      final hiddenDefaults =
-          ((metaSnapshot.data()?['hiddenDefaults'] as List<dynamic>?) ??
-                  const <dynamic>[])
-              .map((e) => e is num ? e.toInt() : -1)
-              .where((e) => e >= 0)
-              .toSet();
-
-      final defaults = SliderCatalog.defaultImagesFor(sliderId);
-      final sourceImages = <String>[];
-      final remoteByOrder = <int, String>{};
-      final extras = <String>[];
-
-      for (final doc in itemsSnapshot.docs) {
-        final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
-        final url = (doc.data()['imageUrl'] ?? '').toString().trim();
-        if (url.isEmpty) continue;
-        if (order < defaults.length) {
-          remoteByOrder[order] = url;
-        } else {
-          extras.add(url);
-        }
-      }
-
-      for (var i = 0; i < defaults.length; i++) {
-        if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
-          continue;
-        }
-        final remote = remoteByOrder[i];
-        if (remote != null && remote.isNotEmpty) {
-          sourceImages.add(remote);
-          continue;
-        }
-        final fallback = defaults[i];
-        if (fallback.isNotEmpty) {
-          sourceImages.add(fallback);
-        }
-      }
-      sourceImages.addAll(extras);
-
-      final resolved = sourceImages.isEmpty ? _defaultSources() : sourceImages;
+      final remote = await _cache.refreshAndCacheSources(sliderId);
+      final resolved = remote.isEmpty ? _defaultSources() : remote;
       _setSources(resolved);
-      await _cache.writeResolvedSources(sliderId, resolved);
-      unawaited(_warmImages(resolved));
     } catch (_) {}
-  }
-
-  Future<void> _warmImages(List<String> sources) async {
-    for (final url in sources.where((e) => e.startsWith('http')).take(8)) {
-      try {
-        await TurqImageCacheManager.instance.getSingleFile(url);
-      } catch (_) {}
-    }
   }
 
   void _setSources(List<String> next) {

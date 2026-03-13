@@ -1,10 +1,12 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestsController extends GetxController {
+  final TestRepository _testRepository = TestRepository.ensure();
   final list = <TestsModel>[].obs;
   final showButtons = false.obs;
   final ustBar = true.obs;
@@ -56,37 +58,15 @@ class TestsController extends GetxController {
     });
   }
 
-  TestsModel _fromDoc(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return TestsModel(
-      userID: (data["userID"] ?? '') as String,
-      timeStamp: (data["timeStamp"] ?? '') as String,
-      aciklama: (data["aciklama"] ?? '') as String,
-      dersler: List<String>.from(data['dersler'] ?? []),
-      img: (data["img"] ?? '') as String,
-      docID: doc.id,
-      paylasilabilir: (data["paylasilabilir"] ?? false) as bool,
-      testTuru: (data["testTuru"] ?? '') as String,
-      taslak: (data["taslak"] ?? false) as bool,
-    );
-  }
-
   Future<void> getData() async {
     isLoading.value = true;
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("Testler")
-          .where("paylasilabilir", isEqualTo: true)
-          .orderBy("timeStamp", descending: true)
-          .limit(_pageSize)
-          .get();
-
-      list.assignAll(snap.docs.map(_fromDoc).toList());
-
-      if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
-      if (snap.docs.length < _pageSize) hasMore.value = false;
+      final page = await _testRepository.fetchSharedPage(limit: _pageSize);
+      list.assignAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
     } catch (e) {
       log("TestsController.getData error: $e");
     } finally {
@@ -99,18 +79,13 @@ class TestsController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("Testler")
-          .where("paylasilabilir", isEqualTo: true)
-          .orderBy("timeStamp", descending: true)
-          .startAfterDocument(_lastDocument!)
-          .limit(_pageSize)
-          .get();
-
-      list.addAll(snap.docs.map(_fromDoc).toList());
-
-      if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
-      if (snap.docs.length < _pageSize) hasMore.value = false;
+      final page = await _testRepository.fetchSharedPage(
+        startAfter: _lastDocument,
+        limit: _pageSize,
+      );
+      list.addAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
     } catch (e) {
       log("TestsController.loadMore error: $e");
     } finally {

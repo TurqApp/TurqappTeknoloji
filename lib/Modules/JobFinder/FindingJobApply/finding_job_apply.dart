@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -58,16 +56,7 @@ class FindingJobApply extends StatelessWidget {
                         return controller.cvVar.value
                             ? GestureDetector(
                                 onTap: () {
-                                  controller.isFinding.value =
-                                      !controller.isFinding.value;
-                                  FirebaseFirestore.instance
-                                      .collection("CV")
-                                      .doc(FirebaseAuth
-                                              .instance.currentUser?.uid ??
-                                          '')
-                                      .update({
-                                    "findingJob": controller.isFinding.value
-                                  });
+                                  controller.toggleFindingJob();
                                 },
                                 child: Container(
                                   height: 50,

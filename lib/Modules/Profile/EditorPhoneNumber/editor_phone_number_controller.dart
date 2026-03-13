@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class EditorPhoneNumberController extends GetxController {
   final phoneController = TextEditingController();
@@ -15,21 +15,14 @@ class EditorPhoneNumberController extends GetxController {
   final countdown = 0.obs;
   final isCodeSent = false.obs;
   final isBusy = false.obs;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   Timer? _timer;
 
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
-      phoneController.text =
-          (doc.data() ?? const {})["phoneNumber"]?.toString() ?? "";
-      phoneValue.value = phoneController.text;
-    });
+    _loadInitialPhone();
 
     phoneController.addListener(() {
       phoneValue.value = phoneController.text;
@@ -38,6 +31,13 @@ class EditorPhoneNumberController extends GetxController {
     codeController.addListener(() {
       codeValue.value = codeController.text;
     });
+  }
+
+  Future<void> _loadInitialPhone() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final data = await _userRepository.getUserRaw(uid);
+    phoneController.text = (data ?? const {})["phoneNumber"]?.toString() ?? "";
+    phoneValue.value = phoneController.text;
   }
 
   @override
@@ -61,11 +61,8 @@ class EditorPhoneNumberController extends GetxController {
     final authEmail = (current.email ?? "").trim().toLowerCase();
     if (authEmail.isNotEmpty) return authEmail;
 
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(current.uid)
-        .get();
-    return ((doc.data() ?? const {})["email"] ?? "")
+    final data = await _userRepository.getUserRaw(current.uid);
+    return (((data ?? const {})["email"]) ?? "")
         .toString()
         .trim()
         .toLowerCase();

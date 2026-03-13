@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
 import '../Models/posts_model.dart';
 import '../Models/user_post_reference.dart';
@@ -6,9 +8,13 @@ import '../Models/user_post_reference.dart';
 /// Kullanıcı-post ilişkilerini yöneten yardımcı servis.
 class UserPostLinkService {
   UserPostLinkService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _userSubcollectionRepository = UserSubcollectionRepository.ensure(),
+        _postRepository = PostRepository.ensure();
 
   final FirebaseFirestore _firestore;
+  final UserSubcollectionRepository _userSubcollectionRepository;
+  final PostRepository _postRepository;
   static const int _maxRefsPerFetch = 240;
 
   Stream<List<UserPostReference>> listenLikedPosts(String userId) =>
@@ -28,14 +34,46 @@ class UserPostLinkService {
 
   Stream<List<UserPostReference>> _listenUserRefs(
       String userId, String collection) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection(collection)
-        .orderBy('timeStamp', descending: true)
-        .limit(_maxRefsPerFetch)
-        .snapshots()
-        .map((snap) => snap.docs.map(UserPostReference.fromDoc).toList());
+    return (() async* {
+      final cached = await _userSubcollectionRepository.getEntries(
+        userId,
+        subcollection: collection,
+        orderByField: 'timeStamp',
+        descending: true,
+        preferCache: true,
+      );
+      if (cached.isNotEmpty) {
+        yield cached
+            .map(
+              (entry) => UserPostReference.fromMap(entry.data, entry.id),
+            )
+            .toList(growable: false);
+      }
+
+      yield* _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(collection)
+          .orderBy('timeStamp', descending: true)
+          .limit(_maxRefsPerFetch)
+          .snapshots()
+          .asyncMap((snap) async {
+        final entries = snap.docs
+            .map(
+              (doc) => UserSubcollectionEntry(
+                id: doc.id,
+                data: Map<String, dynamic>.from(doc.data()),
+              ),
+            )
+            .toList(growable: false);
+        await _userSubcollectionRepository.setEntries(
+          userId,
+          subcollection: collection,
+          items: entries,
+        );
+        return snap.docs.map(UserPostReference.fromDoc).toList(growable: false);
+      });
+    })();
   }
 
   /// Verilen referanslar için Posts koleksiyonundan modelleri getirir.
@@ -63,16 +101,12 @@ class UserPostLinkService {
         i + 10 > limitedRefs.length ? limitedRefs.length : i + 10,
       );
       final ids = chunk.map((e) => e.postId).toSet().toList();
-
-      final query = await _firestore
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: ids)
-          .get();
+      final query = await _postRepository.fetchPostsByIds(ids);
 
       final foundIds = <String>{};
-      for (final doc in query.docs) {
-        foundIds.add(doc.id);
-        result.add(PostsModel.fromMap(doc.data(), doc.id));
+      for (final entry in query.entries) {
+        foundIds.add(entry.key);
+        result.add(entry.value);
       }
 
       for (final ref in chunk) {
@@ -119,6 +153,10 @@ class UserPostLinkService {
       batch.delete(docRef);
     }
     await batch.commit();
+    await _userSubcollectionRepository.invalidate(
+      userId,
+      subcollection: collection,
+    );
   }
 
   Future<List<PostsModel>> fetchLikedPosts(

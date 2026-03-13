@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../main.dart'; // navigatorKey için
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'NotifyReader/notify_reader_controller.dart';
 
@@ -79,9 +80,9 @@ class NotificationService {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await FirebaseFirestore.instance.collection("users").doc(user.uid).set(
+      await UserRepository.ensure().updateUserFields(
+        user.uid,
         {"fcmToken": token},
-        SetOptions(merge: true),
       );
     }
 
@@ -318,12 +319,7 @@ class NotificationService {
 
   Future<String?> _resolveUserIdByToken(String token) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("fcmToken", isEqualTo: token)
-          .limit(1)
-          .get();
-      return snap.docs.isNotEmpty ? snap.docs.first.id : null;
+      return await UserRepository.ensure().findUserIdByFcmToken(token);
     } catch (_) {
       return null;
     }

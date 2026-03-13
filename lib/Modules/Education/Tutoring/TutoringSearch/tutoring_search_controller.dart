@@ -1,9 +1,12 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class TutoringSearchController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   var isLoading = true.obs;
   var searchQuery = ''.obs;
   var searchResults = <TutoringModel>[].obs;
@@ -30,16 +33,8 @@ class TutoringSearchController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
-        }
-      }
+      final fetched = await _userRepository.getUsersRaw(toFetch);
+      users.addAll(fetched);
     } catch (e) {
       log("Error batch fetching users: $e");
     }
@@ -48,15 +43,8 @@ class TutoringSearchController extends GetxController {
   Future<void> fetchInitialData() async {
     isLoading.value = true;
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .orderBy('timeStamp', descending: true)
-          .limit(200)
-          .get();
-
-      _allTutorings = querySnapshot.docs
-          .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
-          .toList();
+      final page = await _tutoringRepository.fetchPage(limit: 200);
+      _allTutorings = page.items;
 
       final userIds = _allTutorings.map((t) => t.userID).toSet();
       await _batchFetchUsers(userIds);

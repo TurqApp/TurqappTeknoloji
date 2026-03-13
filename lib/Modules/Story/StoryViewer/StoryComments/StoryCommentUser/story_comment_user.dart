@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -166,12 +166,10 @@ class StoryCommentUser extends StatelessWidget {
                                 final index = store.list.indexOf(model);
                                 store.list.removeAt(index);
                                 store.totalComment.value--;
-                                FirebaseFirestore.instance
-                                    .collection("stories")
-                                    .doc(storyID)
-                                    .collection("Yorumlar")
-                                    .doc(model.docID)
-                                    .delete();
+                                StoryRepository.ensure().deleteStoryComment(
+                                  storyID,
+                                  commentId: model.docID,
+                                );
                               });
                         },
                         icon: Icon(CupertinoIcons.trash,

@@ -3,12 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 
@@ -32,6 +32,7 @@ class FieldConfig {
 
 class PersonelInfoController extends GetxController
     with GetTickerProviderStateMixin {
+  final UserRepository _userRepository = UserRepository.ensure();
   final tc = ''.obs;
   final medeniHal = 'Bekar'.obs;
   final county = 'Türkiye'.obs;
@@ -335,10 +336,8 @@ class PersonelInfoController extends GetxController
 
     try {
       isLoading.value = true;
-      final doc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
-      if (doc.exists) {
-        final data = doc.data()!;
+      final data = await _userRepository.getUserRaw(uid);
+      if (data != null) {
         tc.value =
             originalTC.value = userString(data, key: "tc", scope: "profile");
         medeniHal.value = originalMedeniHal.value = userString(
@@ -443,7 +442,7 @@ class PersonelInfoController extends GetxController
           ? DateFormat("dd.MM.yyyy", "tr_TR").format(selectedDate.value!)
           : "";
 
-      await FirebaseFirestore.instance.collection("users").doc(uid).update({
+      await _userRepository.updateUserFields(uid, {
         ...scopedUserUpdate(
           scope: 'family',
           values: {"engelliRaporu": engelliRaporu.value},

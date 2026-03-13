@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_controller.dart';
 
@@ -15,6 +15,7 @@ class DormitoryInfoView extends StatelessWidget {
   DormitoryInfoView({super.key});
 
   final DormitoryInfoController controller = Get.put(DormitoryInfoController());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   Widget build(BuildContext context) {
@@ -53,15 +54,13 @@ class DormitoryInfoView extends StatelessWidget {
                             controller.yurtInputText.value = "";
                             controller.yurtSelectionController.clear();
 
-                            await FirebaseFirestore.instance
-                                .collection("users")
-                                .doc(FirebaseAuth.instance.currentUser?.uid)
-                                .update(
-                                  scopedUserUpdate(
-                                    scope: 'family',
-                                    values: {"yurt": ""},
-                                  ),
-                                );
+                            await _userRepository.updateUserFields(
+                              FirebaseAuth.instance.currentUser?.uid ?? '',
+                              scopedUserUpdate(
+                                scope: 'family',
+                                values: {"yurt": ""},
+                              ),
+                            );
 
                             AppSnackbar(
                               "Başarılı",

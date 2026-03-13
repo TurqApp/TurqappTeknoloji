@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -23,6 +24,7 @@ import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 
 class SignInController extends GetxController
     with GetSingleTickerProviderStateMixin {
+  final UserRepository _userRepository = UserRepository.ensure();
   late AnimationController animationController;
 
   var selection = 0.obs;
@@ -126,84 +128,7 @@ class SignInController extends GetxController
   }
 
   Future<void> _restoreAccountIfPendingDeletion() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
-
-    final userRef = FirebaseFirestore.instance.collection("users").doc(uid);
-    final userSnap = await userRef.get();
-    final userData = userSnap.data();
-    if (userData == null) return;
-
-    final status = (userData["accountStatus"] ?? "").toString().toLowerCase();
-    if (status != "pending_deletion") return;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    int? scheduledAtMs;
-    final dynamic scheduledRaw = userData["deletionScheduledAt"];
-    if (scheduledRaw is Timestamp) {
-      scheduledAtMs = scheduledRaw.millisecondsSinceEpoch;
-    } else if (scheduledRaw is num) {
-      scheduledAtMs = scheduledRaw.toInt();
-    }
-
-    // Süresi dolmuşsa (silinme zamanı geçmişse) otomatik geri açma yapma.
-    if (scheduledAtMs != null && scheduledAtMs <= nowMs) {
-      return;
-    }
-
-    // Hesabı yeniden aktif et
-    await userRef.set({
-      "accountStatus": "active",
-      "isDeleted": false,
-      "isPrivate": false,
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-
-    // Bekleyen silme aksiyonunu iptal işaretle
-    try {
-      final actionSnap = await userRef
-          .collection("account_actions")
-          .where("type", isEqualTo: "deletion")
-          .where("status", isEqualTo: "pending")
-          .limit(1)
-          .get();
-      if (actionSnap.docs.isNotEmpty) {
-        await actionSnap.docs.first.reference.set({
-          "status": "cancelled",
-          "cancelledAt": DateTime.now().millisecondsSinceEpoch,
-        }, SetOptions(merge: true));
-      }
-    } catch (_) {}
-
-    // Silme sırasında gizlenen postları geri aç
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("userID", isEqualTo: uid)
-        .where("deletedPost", isEqualTo: true)
-        .limit(400);
-
-    while (true) {
-      final snap = await query.get();
-      if (snap.docs.isEmpty) break;
-
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snap.docs) {
-        batch.update(doc.reference, {
-          "deletedPost": false,
-          "deletedPostTime": 0,
-          "updatedDate": DateTime.now().millisecondsSinceEpoch,
-        });
-      }
-      await batch.commit();
-
-      if (snap.docs.length < 400) break;
-      query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: uid)
-          .where("deletedPost", isEqualTo: true)
-          .startAfterDocument(snap.docs.last)
-          .limit(400);
-    }
+    await CurrentUserService.instance.restorePendingDeletionIfNeededForCurrentUser();
   }
 
   @override
@@ -366,9 +291,9 @@ class SignInController extends GetxController
       await subBatch.commit();
       accountProvisioned = true;
 
-      final createdUserSnap =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (!createdUserSnap.exists) {
+      final createdUserData =
+          await _userRepository.getUserRaw(uid, preferCache: false);
+      if (createdUserData == null) {
         throw Exception('users-doc-not-created-after-signup');
       }
 
@@ -507,12 +432,11 @@ class SignInController extends GetxController
         emailAvilable.value = true;
         return;
       }
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("email", isEqualTo: emailcontroller.text)
-          .get();
-
-      emailAvilable.value = snap.docs.isEmpty;
+      final exists = await _userRepository.emailExists(
+        emailcontroller.text,
+        preferCache: true,
+      );
+      emailAvilable.value = !exists;
     }
   }
 
@@ -551,12 +475,10 @@ class SignInController extends GetxController
         nicknameAvilable.value = true;
         return;
       }
-      final plainSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("usernameLower", isEqualTo: usernameLower)
-          .limit(1)
-          .get();
-      nicknameAvilable.value = plainSnap.docs.isEmpty;
+      nicknameAvilable.value = await _userRepository.usernameLowerAvailable(
+        usernameLower,
+        preferCache: true,
+      );
     }
   }
 
@@ -678,31 +600,26 @@ class SignInController extends GetxController
     resetUserID.value = "";
     // 1. Önce email ile ara
     try {
-      final emailSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("email", isEqualTo: email)
-          .limit(1)
-          .get();
+      final emailUser = await _userRepository.findUserByEmail(
+        email,
+        preferCache: true,
+      );
 
-      if (emailSnap.docs.isNotEmpty) {
-        // Email ile eşleşen kayıt bulundu
-        final doc = emailSnap.docs.first;
-        resetPhoneNumber.value = (doc.data()["phoneNumber"] ?? "").toString();
-        resetUserID.value = doc.id;
+      if (emailUser != null) {
+        resetPhoneNumber.value = (emailUser["phoneNumber"] ?? "").toString();
+        resetUserID.value = (emailUser["id"] ?? "").toString();
         return;
       }
 
       // 2. Email bulunamadıysa nickname ile ara
-      final nickSnap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isEqualTo: nickname)
-          .limit(1)
-          .get();
+      final nickUser = await _userRepository.findUserByNickname(
+        nickname,
+        preferCache: true,
+      );
 
-      if (nickSnap.docs.isNotEmpty) {
-        final doc = nickSnap.docs.first;
-        resetPhoneNumber.value = (doc.data()["phoneNumber"] ?? "").toString();
-        resetUserID.value = doc.id;
+      if (nickUser != null) {
+        resetPhoneNumber.value = (nickUser["phoneNumber"] ?? "").toString();
+        resetUserID.value = (nickUser["id"] ?? "").toString();
       }
     } catch (_) {
       // Sign-in ekranında users read kuralı kapalıysa sessiz fallback.
@@ -1034,16 +951,14 @@ class SignInController extends GetxController
         return;
       }
 
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isGreaterThanOrEqualTo: search)
-          .where("nickname", isLessThan: '$search\uf8ff')
-          .limit(1)
-          .get();
+      final found = await _userRepository.findFirstByNicknamePrefix(
+        search,
+        preferCache: true,
+      );
 
-      if (snap.docs.isNotEmpty) {
-        final nickname = snap.docs.first.get("nickname");
-        final email = snap.docs.first.get("email");
+      if (found != null) {
+        final nickname = (found["nickname"] ?? "").toString();
+        final email = (found["email"] ?? "").toString();
         print("nickname bulundu: $nickname");
         signInEmail.value = email;
       } else {

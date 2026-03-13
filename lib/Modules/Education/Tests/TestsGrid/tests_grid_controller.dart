@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test.dart';
 import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
@@ -23,6 +26,7 @@ class TestsGridController extends GetxController {
   final isFavorite = false.obs;
   final appStore = ''.obs;
   final googlePlay = ''.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   TestsGridController(this.model, this.onUpdate) {
     _initialize();
@@ -36,81 +40,55 @@ class TestsGridController extends GetxController {
   }
 
   void getUserData() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(model.userID)
-        .get();
-    final data = doc.data() ?? const <String, dynamic>{};
-    final firstName = (data["firstName"] ?? "").toString();
-    final lastName = (data["lastName"] ?? "").toString();
-    final avatarUrl = (data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            "")
-        .toString();
-    final nickname =
-        (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-            .toString();
-
-    fullName.value = "$firstName $lastName";
-    this.avatarUrl.value = avatarUrl;
-    this.nickname.value = nickname;
+    final user = await UserRepository.ensure().getUser(
+      model.userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    fullName.value = user?.displayName ?? '';
+    avatarUrl.value = user?.avatarUrl ?? '';
+    nickname.value = user?.preferredName ?? '';
   }
 
   void getTotalYanit() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .get();
-    totalYanit.value = snapshot.docs.length;
+    final snapshot = await _testRepository.fetchAnswers(
+      model.docID,
+      preferCache: true,
+    );
+    totalYanit.value = snapshot.length;
   }
 
   void getUygulamaLinks() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("Yönetim")
-        .doc("Genel")
-        .get();
-    appStore.value = doc.get("appStore") as String;
-    googlePlay.value = doc.get("googlePlay") as String;
+    final data = await ConfigRepository.ensure().getLegacyConfigDoc(
+          collection: "Yönetim",
+          docId: "Genel",
+          preferCache: true,
+          ttl: const Duration(hours: 12),
+        ) ??
+        const <String, dynamic>{};
+    appStore.value = (data["appStore"] ?? "").toString();
+    googlePlay.value = (data["googlePlay"] ?? "").toString();
   }
 
   void checkIfFavorite() async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
-    final docSnapshot = await FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(model.docID)
-        .get();
+    final data = await _testRepository.fetchRawById(
+      model.docID,
+      preferCache: true,
+    );
 
-    if (docSnapshot.exists) {
-      final favorites = List<String>.from(docSnapshot['favoriler'] ?? []);
+    if (data != null) {
+      final favorites = List<String>.from(data['favoriler'] ?? []);
       isFavorite.value = favorites.contains(userId);
     }
   }
 
   void toggleFavorite() async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
-    final docRef =
-        FirebaseFirestore.instance.collection("Testler").doc(model.docID);
-
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final favorites = List<String>.from(docSnapshot['favoriler'] ?? []);
-
-      if (favorites.contains(userId)) {
-        await docRef.update({
-          "favoriler": FieldValue.arrayRemove([userId]),
-        });
-        isFavorite.value = false;
-      } else {
-        await docRef.update({
-          "favoriler": FieldValue.arrayUnion([userId]),
-        });
-        isFavorite.value = true;
-      }
-    }
+    isFavorite.value = await _testRepository.toggleFavorite(
+      model.docID,
+      userId: userId,
+    );
   }
 
   void showReportModal(BuildContext context) {

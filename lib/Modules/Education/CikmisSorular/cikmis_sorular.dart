@@ -1,9 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
@@ -29,6 +29,7 @@ class CikmisSorular extends StatefulWidget {
 }
 
 class _CikmisSorularState extends State<CikmisSorular> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   bool showButons = false;
   List<CikmisSorularCoverModel> list = [];
   @override
@@ -38,8 +39,8 @@ class _CikmisSorularState extends State<CikmisSorular> {
     scrolControlcu();
   }
 
-  void getData() {
-    List<String> baslikSirasi = [
+  Future<void> getData() async {
+    const baslikSirasi = <String>[
       "LGS",
       "YKS",
       "KPSS",
@@ -49,47 +50,19 @@ class _CikmisSorularState extends State<CikmisSorular> {
       "TUS",
       "DUS",
     ];
-
-    FirebaseFirestore.instance
-        .collection("questions")
-        .orderBy("sira", descending: false)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      List<CikmisSorularCoverModel> tempList = [];
-
-      for (var doc in snapshot.docs) {
-        String anaBaslik = doc.get("anaBaslik");
-        String sinavTuru = doc.get("sinavTuru");
-
-        if (!tempList.any((baslik) => baslik.anaBaslik == anaBaslik) &&
-            mounted) {
-          tempList.add(
-            CikmisSorularCoverModel(
-              anaBaslik: anaBaslik,
-              docID: doc.id,
-              sinavTuru: sinavTuru,
-            ),
-          );
-        }
-      }
-
-      // Sıralama işlemi
-      tempList.sort((a, b) {
-        int indexA = baslikSirasi.indexOf(a.anaBaslik);
-        int indexB = baslikSirasi.indexOf(b.anaBaslik);
-
-        if (indexA == -1) indexA = baslikSirasi.length;
-        if (indexB == -1) indexB = baslikSirasi.length;
-
-        return indexA.compareTo(indexB);
-      });
-
-      if (mounted) {
-        setState(() {
-          list = tempList;
-        });
-      }
+    final tempList = await _repository.fetchCovers();
+    tempList.sort((a, b) {
+      var indexA = baslikSirasi.indexOf(a.anaBaslik);
+      var indexB = baslikSirasi.indexOf(b.anaBaslik);
+      if (indexA == -1) indexA = baslikSirasi.length;
+      if (indexB == -1) indexB = baslikSirasi.length;
+      return indexA.compareTo(indexB);
     });
+    if (mounted) {
+      setState(() {
+        list = tempList;
+      });
+    }
   }
 
   double _previousOffset = 0.0;

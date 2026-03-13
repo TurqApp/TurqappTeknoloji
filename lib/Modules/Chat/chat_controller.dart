@@ -17,6 +17,8 @@ import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/giphy_picker_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing_controller.dart';
@@ -57,6 +59,8 @@ class ChatController extends GetxController {
   RxList<File> images = <File>[].obs;
   final Rx<File?> pendingVideo = Rx<File?>(null);
   final RxString selectedGifUrl = ''.obs;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
   final replyingTo = Rxn<MessageModel>();
   final editingMessage = Rxn<MessageModel>();
   Timer? _messageSyncTimer;
@@ -98,6 +102,7 @@ class ChatController extends GetxController {
       Get.isRegistered<NetworkAwarenessService>()
           ? Get.find<NetworkAwarenessService>()
           : null;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   bool get _isOffline => _network?.currentNetwork == NetworkType.none;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
@@ -349,15 +354,12 @@ class ChatController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final ref =
-          FirebaseFirestore.instance.collection("conversations").doc(chatID);
-      DocumentSnapshot<Map<String, dynamic>> doc;
-      try {
-        doc = await ref.get(const GetOptions(source: Source.cache));
-      } catch (_) {
-        doc = await ref.get(const GetOptions(source: Source.server));
-      }
-      final data = doc.data() ?? <String, dynamic>{};
+      final data = await _conversationRepository.getConversation(
+            chatID,
+            preferCache: true,
+            cacheOnly: false,
+          ) ??
+          const <String, dynamic>{};
       final raw = (data["chatBg.$uid"] ?? data["chatBgIndex"]) as dynamic;
       final muted = data["muted"] as Map<String, dynamic>? ?? {};
       _recipientMuted = muted[userID] == true;
@@ -603,11 +605,18 @@ class ChatController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final convRef =
-          FirebaseFirestore.instance.collection("conversations").doc(chatID);
-      final convDoc = await convRef.get();
-      if (convDoc.exists) {
-        await convRef.set({"archived.$uid": true}, SetOptions(merge: true));
+      final convDoc = await _conversationRepository.getConversation(
+        chatID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (convDoc != null) {
+        await _conversationRepository.setArchived(
+          currentUid: uid,
+          otherUserId: userID,
+          chatId: chatID,
+          archived: true,
+        );
       }
     } catch (_) {}
   }
@@ -924,12 +933,12 @@ class ChatController extends GetxController {
     }
 
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("conversations")
-          .doc(chatID)
-          .get();
-      if (snap.exists) {
-        final data = snap.data() ?? const <String, dynamic>{};
+      final data = await _conversationRepository.getConversation(
+        chatID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (data != null) {
         final participants = data["participants"];
         if (participants is List) {
           for (final p in participants) {
@@ -1028,9 +1037,13 @@ class ChatController extends GetxController {
     final participants = [currentUid, targetUserId]..sort();
     final convRef =
         FirebaseFirestore.instance.collection("conversations").doc(chatID);
-    final convSnap = await convRef.get();
+    final convData = await _conversationRepository.getConversation(
+      chatID,
+      preferCache: true,
+      cacheOnly: false,
+    );
 
-    if (!convSnap.exists) {
+    if (convData == null) {
       await convRef.set({
         "participants": participants,
         "userID1": participants.first,
@@ -1067,7 +1080,7 @@ class ChatController extends GetxController {
       return;
     }
 
-    final data = convSnap.data() ?? const <String, dynamic>{};
+    final data = convData;
     final existingParticipants = data["participants"] is List
         ? List<String>.from(
             (data["participants"] as List).map((e) => e.toString()),
@@ -1486,28 +1499,44 @@ class ChatController extends GetxController {
 
   Future<void> openForwardPicker(MessageModel model) async {
     final currentUID = FirebaseAuth.instance.currentUser!.uid;
-    final snap = await FirebaseFirestore.instance
-        .collection("conversations")
-        .where("participants", arrayContains: currentUID)
-        .orderBy("lastMessageAt", descending: true)
-        .limit(30)
-        .get();
+    final docs = await _conversationRepository.fetchUserConversations(
+      currentUID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    final sortedDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+      docs,
+    )..sort((a, b) {
+        final aTs = ((a.data()["lastMessageAt"] ?? 0) as num).toInt();
+        final bTs = ((b.data()["lastMessageAt"] ?? 0) as num).toInt();
+        return bTs.compareTo(aTs);
+      });
+    final snapDocs = sortedDocs.take(30).toList(growable: false);
 
     final items = <Map<String, String>>[];
-    for (final doc in snap.docs) {
+    final otherIds = <String>[];
+    for (final doc in snapDocs) {
       if (doc.id == chatID) continue;
       final participants = List<String>.from(doc.data()["participants"] ?? []);
       final other = participants.firstWhereOrNull((v) => v != currentUID);
       if (other == null || other.isEmpty) continue;
-      final userDoc =
-          await FirebaseFirestore.instance.collection("users").doc(other).get();
-      if (!userDoc.exists) continue;
+      otherIds.add(other);
+    }
+
+    final userMap = await _userRepository.getUsersRaw(otherIds);
+    for (final doc in snapDocs) {
+      if (doc.id == chatID) continue;
+      final participants = List<String>.from(doc.data()["participants"] ?? []);
+      final other = participants.firstWhereOrNull((v) => v != currentUID);
+      if (other == null || other.isEmpty) continue;
+      final userData = userMap[other];
+      if (userData == null) continue;
       items.add({
         "chatID": doc.id,
         "userID": other,
-        "nickname": (userDoc.data()?["displayName"] ??
-                userDoc.data()?["username"] ??
-                userDoc.data()?["nickname"] ??
+        "nickname": (userData["displayName"] ??
+                userData["username"] ??
+                userData["nickname"] ??
                 "")
             .toString(),
       });
@@ -1605,9 +1634,13 @@ class ChatController extends GetxController {
         .doc(targetChatId);
     final participants = [currentUID, targetUserId]..sort();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final convSnap = await convRef.get();
+    final convData = await _conversationRepository.getConversation(
+      targetChatId,
+      preferCache: true,
+      cacheOnly: false,
+    );
 
-    if (!convSnap.exists) {
+    if (convData == null) {
       await convRef.set({
         "participants": participants,
         "userID1": participants.first,
@@ -1642,7 +1675,7 @@ class ChatController extends GetxController {
         },
       });
     } else {
-      final data = convSnap.data() ?? const <String, dynamic>{};
+      final data = convData;
       final existingParticipants = data["participants"] is List
           ? List<String>.from(
               (data["participants"] as List).map((e) => e.toString()),

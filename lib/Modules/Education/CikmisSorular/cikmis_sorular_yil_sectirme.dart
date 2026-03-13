@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik2_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_baslik3_secimi.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
@@ -25,6 +25,7 @@ class CikmisSorularYilSectirme extends StatefulWidget {
 }
 
 class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> yillar = [];
 
   String _denemeLabel(int index) => "Deneme ${index + 1}";
@@ -40,85 +41,42 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   }
 
   void getData() {
-    if (widget.baslik2 == "TTBT" ||
-        widget.baslik2 == "KTBT" ||
-        widget.baslik2 == "ALES" ||
-        widget.baslik2 == "Almanca" ||
-        widget.baslik2 == "İngilizce" ||
-        widget.baslik2 == "Fransızca" ||
-        widget.baslik2 == "Rusça" ||
-        widget.baslik2 == "Arapça") {
-      print("DEVELOPER 3");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik3 = doc.get("baslik3");
-
-          if (!yillar.contains(yil)) {
-            print("DEVELOPER $baslik3");
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
+    _repository
+        .distinctValues(
+          where: (doc) {
+            if ((doc['anaBaslik'] ?? '').toString() != widget.anaBaslik ||
+                (doc['sinavTuru'] ?? '').toString() != widget.sinavTuru) {
+              return false;
             }
-          }
-        }
-      });
-    } else if (widget.baslik3 != "") {
-      print("DEVELOPER 1");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik3 = doc.get("baslik3");
-          String baslik2 = doc.get("baslik2");
-
-          if (!yillar.contains(yil) &&
-              baslik3 == widget.baslik3 &&
-              baslik2 == widget.baslik2) {
-            print("DEVELOPER $baslik3");
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
+            if (widget.baslik2 == "TTBT" ||
+                widget.baslik2 == "KTBT" ||
+                widget.baslik2 == "ALES" ||
+                widget.baslik2 == "Almanca" ||
+                widget.baslik2 == "İngilizce" ||
+                widget.baslik2 == "Fransızca" ||
+                widget.baslik2 == "Rusça" ||
+                widget.baslik2 == "Arapça") {
+              return true;
             }
-          }
-        }
-      });
-    } else if (widget.baslik2 != "") {
-      print("DEVELOPER 2");
-      FirebaseFirestore.instance
-          .collection("questions")
-          .where("anaBaslik", isEqualTo: widget.anaBaslik)
-          .where("sinavTuru", isEqualTo: widget.sinavTuru)
-          .get()
-          .then((QuerySnapshot snapshot) {
-        for (var doc in snapshot.docs) {
-          String yil = doc.get("yil");
-          String baslik2 = doc.get("baslik2");
-
-          if (!yillar.contains(yil) && baslik2 == widget.baslik2) {
-            if (mounted) {
-              setState(() {
-                yillar.add(yil);
-                yillar.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
-              });
+            if (widget.baslik3.isNotEmpty) {
+              return (doc['baslik3'] ?? '').toString() == widget.baslik3 &&
+                  (doc['baslik2'] ?? '').toString() == widget.baslik2;
             }
-          }
-        }
-      });
-    }
+            if (widget.baslik2.isNotEmpty) {
+              return (doc['baslik2'] ?? '').toString() == widget.baslik2;
+            }
+            return true;
+          },
+          field: 'yil',
+          descendingNumeric: true,
+        )
+        .then((items) {
+      if (mounted) {
+        setState(() {
+          yillar = items;
+        });
+      }
+    });
   }
 
   @override

@@ -5,11 +5,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinavlariController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var list = <SinavModel>[].obs;
   var okul = false.obs;
   var showButons = false.obs;
@@ -65,12 +70,11 @@ class DenemeSinavlariController extends GetxController {
 
   Future<void> getOkulBilgisi() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      final rozet =
-          (doc.data() ?? const <String, dynamic>{})["rozet"] as String?;
+      final data = await _userRepository.getUserRaw(
+            FirebaseAuth.instance.currentUser!.uid,
+          ) ??
+          const <String, dynamic>{};
+      final rozet = data["rozet"] as String?;
       okul.value =
           hasRozetPermission(currentRozet: rozet, minimumRozet: "Sarı");
     } catch (e) {
@@ -78,41 +82,15 @@ class DenemeSinavlariController extends GetxController {
     }
   }
 
-  SinavModel _fromDoc(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return SinavModel(
-      docID: doc.id,
-      cover: (data["cover"] ?? '') as String,
-      sinavTuru: (data["sinavTuru"] ?? '') as String,
-      timeStamp: (data["timeStamp"] ?? 0) as num,
-      sinavAciklama: (data["sinavAciklama"] ?? '') as String,
-      sinavAdi: (data["sinavAdi"] ?? '') as String,
-      kpssSecilenLisans: (data["kpssSecilenLisans"] ?? '') as String,
-      dersler: List<String>.from(data['dersler'] ?? []),
-      userID: (data["userID"] ?? '') as String,
-      public: (data["public"] ?? false) as bool,
-      taslak: (data["taslak"] ?? false) as bool,
-      soruSayilari: List<String>.from(data['soruSayilari'] ?? []),
-      bitis: (data["bitis"] ?? 0) as num,
-      bitisDk: (data["bitisDk"] ?? 0) as num,
-    );
-  }
-
   Future<void> getData() async {
     isLoading.value = true;
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .orderBy("timeStamp", descending: true)
-          .limit(_pageSize)
-          .get();
-
-      list.assignAll(snapshot.docs.map(_fromDoc).toList());
-
-      if (snapshot.docs.isNotEmpty) _lastDocument = snapshot.docs.last;
-      if (snapshot.docs.length < _pageSize) hasMore.value = false;
+      final page = await _practiceExamRepository.fetchPage(limit: _pageSize);
+      list.assignAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
     } catch (e) {
       log("DenemeSinavlariController.getData error: $e");
       AppSnackbar("Hata", "Veriler yüklenemedi.");
@@ -126,17 +104,13 @@ class DenemeSinavlariController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .orderBy("timeStamp", descending: true)
-          .startAfterDocument(_lastDocument!)
-          .limit(_pageSize)
-          .get();
-
-      list.addAll(snapshot.docs.map(_fromDoc).toList());
-
-      if (snapshot.docs.isNotEmpty) _lastDocument = snapshot.docs.last;
-      if (snapshot.docs.length < _pageSize) hasMore.value = false;
+      final page = await _practiceExamRepository.fetchPage(
+        startAfter: _lastDocument,
+        limit: _pageSize,
+      );
+      list.addAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
     } catch (e) {
       log("DenemeSinavlariController.loadMore error: $e");
     } finally {
@@ -190,25 +164,7 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<List<SinavModel>> _fetchByDocIds(List<String> docIds) async {
-    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
-    if (orderedIds.isEmpty) return const [];
-
-    final byId = <String, SinavModel>{};
-    const chunkSize = 10;
-    for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end = (i + chunkSize > orderedIds.length)
-          ? orderedIds.length
-          : i + chunkSize;
-      final chunk = orderedIds.sublist(i, end);
-      final snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snapshot.docs) {
-        byId[doc.id] = _fromDoc(doc);
-      }
-    }
-    return orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    return _practiceExamRepository.fetchByIds(docIds);
   }
 
   @override

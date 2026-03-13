@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
 class AdminAccessService {
   static bool _adminCached = false;
@@ -60,11 +60,12 @@ class AdminAccessService {
     }
 
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc('admin')
-          .get();
-      final data = snap.data() ?? const <String, dynamic>{};
+      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+            'admin',
+            preferCache: true,
+            ttl: _allowlistTtl,
+          ) ??
+          const <String, dynamic>{};
       final raw = data['allowedUserIds'];
       final out = <String>{};
       if (raw is List) {

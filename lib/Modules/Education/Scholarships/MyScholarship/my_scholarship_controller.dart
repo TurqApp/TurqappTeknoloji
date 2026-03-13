@@ -1,11 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class MyScholarshipController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
   var isLoading = true.obs;
   final myScholarships = <Map<String, dynamic>>[].obs;
 
@@ -25,30 +28,25 @@ class MyScholarshipController extends GetxController {
 
     isLoading.value = true;
     try {
-      final snapshot = await ScholarshipFirestorePath.collection()
-          .where('userID', isEqualTo: user.uid)
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
+      final rawScholarships = await _scholarshipRepository.fetchMyScholarshipsRaw(
+        user.uid,
+        limit: 50,
+      );
 
       final scholarships = <Map<String, dynamic>>[];
 
-      // Batch fetch users
       final userIds = <String>{};
-      for (var doc in snapshot.docs) {
-        final userID = doc.data()['userID'] as String? ?? '';
+      for (final data in rawScholarships) {
+        final userID = data['userID'] as String? ?? '';
         if (userID.isNotEmpty) userIds.add(userID);
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      for (var i = 0; i < userIds.length; i += 10) {
-        final batch = userIds.skip(i).take(10).toList();
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (final d in usersSnap.docs) {
-          final user = d.data();
+      final fetchedUsers = userIds.isEmpty
+          ? <String, Map<String, dynamic>>{}
+          : await _userRepository.getUsersRaw(userIds.toList());
+      for (final entry in fetchedUsers.entries) {
+          final user = entry.value;
           final profileImage = (user['avatarUrl'] ??
                   user['avatarUrl'] ??
                   user['avatarUrl'] ??
@@ -59,17 +57,15 @@ class MyScholarshipController extends GetxController {
                   user['nickname'] ??
                   '')
               .toString();
-          userDataMap[d.id] = {
+          userDataMap[entry.key] = {
             'avatarUrl': profileImage,
             'nickname': profileName,
             'displayName': profileName,
-            'userID': d.id,
+            'userID': entry.key,
           };
-        }
       }
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
+      for (final data in rawScholarships) {
         try {
           final userID = data['userID'] as String? ?? '';
           final userData = userDataMap[userID] ??
@@ -79,7 +75,7 @@ class MyScholarshipController extends GetxController {
             'model': IndividualScholarshipsModel.fromJson(data),
             'type': 'bireysel',
             'userData': userData,
-            'docId': doc.id,
+            'docId': (data['docId'] ?? '').toString(),
           });
         } catch (e) {
           AppSnackbar('Hata', 'Burs verisi işlenemedi.');

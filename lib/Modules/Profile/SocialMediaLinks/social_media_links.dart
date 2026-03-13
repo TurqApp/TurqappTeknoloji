@@ -1,6 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/reorderable_builder.dart';
@@ -37,26 +35,6 @@ class SocialMediaLinks extends StatelessWidget {
                         final oldList = controller.list.toList();
                         final newList =
                             reorderFn(oldList).cast<SocialMediaModel>();
-
-                        // Eski sıraya göre modeli bul
-                        for (int i = 0; i < oldList.length; i++) {
-                          if (oldList[i].docID != newList[i].docID) {
-                            final movedModel = newList[i];
-                            final fromIndex = oldList
-                                .indexWhere((e) => e.docID == movedModel.docID);
-                            final toIndex = i;
-                            print("Taşınan başlık: ${movedModel.title}");
-                            FirebaseFirestore.instance
-                                .collection("users")
-                                .doc(FirebaseAuth.instance.currentUser!.uid)
-                                .collection("SosyalMedyaLinkleri")
-                                .doc(movedModel.docID)
-                                .update({"sira": toIndex});
-                            print(
-                                "Eski index: $fromIndex → Yeni index: $toIndex");
-                            break;
-                          }
-                        }
 
                         controller.list.value = newList;
                         await controller.updateAllSira();
@@ -180,12 +158,7 @@ class SocialMediaLinks extends StatelessWidget {
       yesText: "Kaldır",
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .collection("SosyalMedyaLinkleri")
-            .doc(model.docID)
-            .delete();
+        await controller.deleteLink(model.docID);
         await controller.getData();
       },
     );

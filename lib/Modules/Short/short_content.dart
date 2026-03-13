@@ -1,6 +1,5 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -364,44 +364,10 @@ class ShortsContent extends StatelessWidget {
                     },
                     onMentionTap: (mention) {
                       (() async {
-                        final normalizedMention =
-                            mention.trim().replaceFirst('@', '');
-                        final handle = normalizedMention.toLowerCase();
-                        if (handle.isEmpty) return;
-                        String targetUid = "";
-                        try {
-                          final usernameDoc = await FirebaseFirestore.instance
-                              .collection("usernames")
-                              .doc(handle)
-                              .get();
-                          targetUid = (usernameDoc.data()?["uid"] ?? "")
-                              .toString()
-                              .trim();
-                        } catch (_) {}
-                        if (targetUid.isEmpty) {
-                          try {
-                            final byUsername = await FirebaseFirestore.instance
-                                .collection("users")
-                                .where("username", isEqualTo: handle)
-                                .limit(1)
-                                .get();
-                            if (byUsername.docs.isNotEmpty) {
-                              targetUid = byUsername.docs.first.id;
-                            }
-                          } catch (_) {}
-                        }
-                        if (targetUid.isEmpty) {
-                          try {
-                            final byNickname = await FirebaseFirestore.instance
-                                .collection("users")
-                                .where("nickname", isEqualTo: normalizedMention)
-                                .limit(1)
-                                .get();
-                            if (byNickname.docs.isNotEmpty) {
-                              targetUid = byNickname.docs.first.id;
-                            }
-                          } catch (_) {}
-                        }
+                        final targetUid =
+                            await UsernameLookupRepository.ensure()
+                                    .findUidForHandle(mention) ??
+                                "";
                         if (targetUid.isNotEmpty &&
                             targetUid !=
                                 FirebaseAuth.instance.currentUser!.uid) {

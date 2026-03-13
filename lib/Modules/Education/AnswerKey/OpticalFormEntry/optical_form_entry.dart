@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -255,10 +256,28 @@ class OpticalFormEntry extends StatelessWidget {
                                                   child: SizedBox(
                                                     width: 50,
                                                     height: 50,
-                                                    child: Image.network(
-                                                      controller
+                                                    child: CachedNetworkImage(
+                                                      imageUrl: controller
                                                           .avatarUrl.value,
                                                       fit: BoxFit.cover,
+                                                      placeholder: (
+                                                        context,
+                                                        url,
+                                                      ) =>
+                                                          const Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      ),
+                                                      errorWidget: (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) =>
+                                                          const Icon(
+                                                        Icons.person,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

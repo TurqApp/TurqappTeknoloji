@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/date_picker_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_controller.dart';
 
@@ -16,6 +16,7 @@ class PersonelInfoView extends StatelessWidget {
   PersonelInfoView({super.key});
 
   final PersonelInfoController controller = Get.put(PersonelInfoController());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +51,9 @@ class PersonelInfoView extends StatelessWidget {
                               // 1) Controller reset
                               controller.resetToOriginal();
                               // 2) Firestore güncellemesi
-                              await FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(FirebaseAuth.instance.currentUser?.uid)
-                                  .update({
+                              await _userRepository.updateUserFields(
+                                FirebaseAuth.instance.currentUser?.uid ?? '',
+                                {
                                 ...scopedUserUpdate(
                                   scope: 'family',
                                   values: {"engelliRaporu": "Yok"},
@@ -71,7 +71,8 @@ class PersonelInfoView extends StatelessWidget {
                                     "dogumTarihi": "",
                                   },
                                 ),
-                              });
+                              },
+                              );
                               // 3) Yeni veriyi çek
                               await controller.fetchData();
                               // 4) Başarılı snackbar

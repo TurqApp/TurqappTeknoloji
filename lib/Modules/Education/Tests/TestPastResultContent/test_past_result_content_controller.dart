@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestPastResultContentController extends GetxController {
@@ -8,6 +8,7 @@ class TestPastResultContentController extends GetxController {
   final count = 0.obs;
   final isLoading = true.obs;
   final timeStamp = 0.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   TestPastResultContentController(this.model);
 
@@ -22,22 +23,26 @@ class TestPastResultContentController extends GetxController {
     count.value = 0;
     timeStamp.value = 0;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(model.docID)
-          .collection("Yanitlar")
+      final snapshot = await _testRepository.fetchAnswers(
+        model.docID,
+        preferCache: true,
+      );
+      final filtered = snapshot
           .where(
-            "userID",
-            isEqualTo: FirebaseAuth.instance.currentUser!.uid,
+            (doc) =>
+                (doc["userID"] ?? "").toString() ==
+                FirebaseAuth.instance.currentUser!.uid,
           )
-          .orderBy("timeStamp", descending: true)
-          .limit(1)
-          .get();
+          .toList(growable: false)
+        ..sort(
+          (a, b) => ((b["timeStamp"] ?? 0) as num)
+              .compareTo((a["timeStamp"] ?? 0) as num),
+        );
 
-      print("Snapshot docs: ${snapshot.docs.length}");
-      if (snapshot.docs.isNotEmpty) {
-        count.value = snapshot.docs.length;
-        timeStamp.value = snapshot.docs.first.get("timeStamp") as int;
+      print("Snapshot docs: ${filtered.length}");
+      if (filtered.isNotEmpty) {
+        count.value = filtered.length;
+        timeStamp.value = ((filtered.first["timeStamp"] ?? 0) as num).toInt();
         print("Fetched timeStamp: ${timeStamp.value}");
       } else {
         print("Hiç veri bulunamadı: ${model.docID}");

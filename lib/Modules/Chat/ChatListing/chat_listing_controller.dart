@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 
 import '../../../Models/chat_listing_model.dart';
 import '../../../Core/Services/network_awareness_service.dart';
@@ -25,6 +26,8 @@ class ChatListingController extends GetxController {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _conversationsSub;
   bool _isRefreshing = false;
   bool _cacheLoaded = false;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
 
   NetworkAwarenessService? get _network =>
       Get.isRegistered<NetworkAwarenessService>()
@@ -279,62 +282,22 @@ class ChatListingController extends GetxController {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      final query = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("chatArchives");
-      final snap = await _getWithCachePreference(
-        query,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      final map = <String, bool>{};
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final userId = (data["userID"] ?? "").toString();
-        if (userId.isEmpty) continue;
-        final archived = data["archived"] == true;
-        map[userId] = archived;
-      }
-      return map;
-    } catch (_) {
-      return <String, bool>{};
-    }
+    return _conversationRepository.fetchArchiveOverrides(
+      _uid,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
   }
 
   Future<Map<String, int>> _fetchDeletedOverrides({
     required bool preferCache,
     required bool cacheOnly,
   }) async {
-    try {
-      final query = FirebaseFirestore.instance
-          .collection("users")
-          .doc(_uid)
-          .collection("chatDeletions");
-      final snap = await _getWithCachePreference(
-        query,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      final map = <String, int>{};
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final userId = (data["userID"] ?? "").toString();
-        if (userId.isEmpty) continue;
-        final rawDeletedAt = data["deletedAt"];
-        final deletedAt = rawDeletedAt is num
-            ? rawDeletedAt.toInt()
-            : int.tryParse("$rawDeletedAt") ?? 0;
-        if (deletedAt > 0) {
-          map[userId] = deletedAt;
-        }
-      }
-      return map;
-    } catch (_) {
-      return <String, int>{};
-    }
+    return _conversationRepository.fetchDeletedOverrides(
+      _uid,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
   }
 
   Future<List<ChatListingModel>> _fetchConversations({
@@ -344,50 +307,18 @@ class ChatListingController extends GetxController {
     final tempList = <ChatListingModel>[];
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final prefs = await SharedPreferences.getInstance();
-    final docsById = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
-
-    Future<void> mergeQuery(Query<Map<String, dynamic>> query) async {
-      try {
-        final snap = await _getWithCachePreference(
-          query,
-          preferCache: preferCache,
-          cacheOnly: cacheOnly,
-        );
-        for (final doc in snap.docs) {
-          docsById[doc.id] = doc;
-        }
-      } catch (_) {}
-    }
-
-    if (docsById.isEmpty) {
-      final legacyQuery1 = FirebaseFirestore.instance
-          .collection("conversations")
-          .where("userID1", isEqualTo: uid);
-      final legacyQuery2 = FirebaseFirestore.instance
-          .collection("conversations")
-          .where("userID2", isEqualTo: uid);
-      await mergeQuery(legacyQuery1);
-      await mergeQuery(legacyQuery2);
-    } else {
-      // Legacy documentleri de çekip tek listede birleştir.
-      await mergeQuery(
-        FirebaseFirestore.instance
-            .collection("conversations")
-            .where("userID1", isEqualTo: uid),
-      );
-      await mergeQuery(
-        FirebaseFirestore.instance
-            .collection("conversations")
-            .where("userID2", isEqualTo: uid),
-      );
-    }
-
-    if (docsById.isEmpty) {
+    final docs = await _conversationRepository.fetchUserConversations(
+      uid,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+      includeLegacy: true,
+    );
+    if (docs.isEmpty) {
       return tempList;
     }
 
     final userCache = Get.find<UserProfileCacheService>();
-    for (final doc in docsById.values) {
+    for (final doc in docs) {
       final data = doc.data();
       final archivedMap = data["archived"] is Map
           ? Map<String, dynamic>.from(data["archived"] as Map)
@@ -506,10 +437,8 @@ class ChatListingController extends GetxController {
     if (uid == null) return;
 
     if (!_isOffline) {
-      _conversationsSub = FirebaseFirestore.instance
-          .collection("conversations")
-          .where("participants", arrayContains: uid)
-          .snapshots()
+      _conversationsSub = _conversationRepository
+          .watchUserConversations(uid)
           .listen((_) {
         _realtimeRefreshDebounce?.cancel();
         _realtimeRefreshDebounce = Timer(const Duration(milliseconds: 350), () {
@@ -547,22 +476,6 @@ class ChatListingController extends GetxController {
       _onSearchChanged();
     }
     _saveCachedList(list.toList());
-  }
-
-  Future<QuerySnapshot<Map<String, dynamic>>> _getWithCachePreference(
-    Query<Map<String, dynamic>> query, {
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    if (preferCache) {
-      try {
-        return await query.get(const GetOptions(source: Source.cache));
-      } catch (_) {}
-    }
-    if (cacheOnly) {
-      return query.get(const GetOptions(source: Source.cache));
-    }
-    return query.get(const GetOptions(source: Source.server));
   }
 
   void setTab(String tab) {
@@ -603,31 +516,12 @@ class ChatListingController extends GetxController {
     final now = DateTime.now().millisecondsSinceEpoch;
     final conversationTs = int.tryParse(item.timeStamp) ?? 0;
     final deletedCutoff = conversationTs > now ? conversationTs : now;
-    final db = FirebaseFirestore.instance;
-
-    await db
-        .collection("users")
-        .doc(_uid)
-        .collection("chatDeletions")
-        .doc(item.userID)
-        .set({
-      "userID": item.userID,
-      "chatID": item.chatID,
-      "deletedAt": deletedCutoff,
-      "updatedDate": now,
-    }, SetOptions(merge: true));
-
-    await db
-        .collection("users")
-        .doc(_uid)
-        .collection("chatArchives")
-        .doc(item.userID)
-        .set({
-      "userID": item.userID,
-      "chatID": item.chatID,
-      "archived": false,
-      "updatedDate": now,
-    }, SetOptions(merge: true));
+    await _conversationRepository.setDeletedCutoff(
+      currentUid: _uid,
+      otherUserId: item.userID,
+      chatId: item.chatID,
+      deletedAt: deletedCutoff,
+    );
 
     for (final entry in list) {
       if (entry.chatID != item.chatID) continue;

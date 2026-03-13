@@ -1,11 +1,14 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:flutter/material.dart';
 
 class MyTutoringsController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
   final RxMap<String, Map<String, dynamic>> users =
       <String, Map<String, dynamic>>{}.obs;
@@ -34,14 +37,7 @@ class MyTutoringsController extends GetxController {
 
   Future<void> fetchMyTutorings(String currentUserId) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .where('userID', isEqualTo: currentUserId)
-          .get();
-
-      final tutorings = snapshot.docs.map((doc) {
-        return TutoringModel.fromJson(doc.data(), doc.id);
-      }).toList();
+      final tutorings = await _tutoringRepository.fetchByOwner(currentUserId);
       myTutorings.assignAll(tutorings);
 
       updateTutoringsStatus();
@@ -77,15 +73,12 @@ class MyTutoringsController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
-        }
+      final rawUsers = await _userRepository.getUsersRaw(
+        toFetch,
+        preferCache: true,
+      );
+      for (final entry in rawUsers.entries) {
+        users[entry.key] = entry.value;
       }
     } catch (e) {
       errorMessage.value = "Kullanıcı bilgileri yüklenirken hata oluştu: $e";

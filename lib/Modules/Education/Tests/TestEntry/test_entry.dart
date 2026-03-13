@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -136,11 +137,30 @@ class TestEntry extends StatelessWidget {
                                                                 .value!
                                                                 .img
                                                                 .isNotEmpty
-                                                            ? Image.network(
-                                                                controller.model
-                                                                    .value!.img,
+                                                            ? CachedNetworkImage(
+                                                                imageUrl: controller
+                                                                    .model
+                                                                    .value!
+                                                                    .img,
                                                                 fit: BoxFit
                                                                     .cover,
+                                                                placeholder: (
+                                                                  context,
+                                                                  url,
+                                                                ) =>
+                                                                    const Center(
+                                                                  child:
+                                                                      CupertinoActivityIndicator(),
+                                                                ),
+                                                                errorWidget: (
+                                                                  context,
+                                                                  url,
+                                                                  error,
+                                                                ) =>
+                                                                    const Icon(
+                                                                  Icons
+                                                                      .broken_image,
+                                                                ),
                                                               )
                                                             : const Center(
                                                                 child:

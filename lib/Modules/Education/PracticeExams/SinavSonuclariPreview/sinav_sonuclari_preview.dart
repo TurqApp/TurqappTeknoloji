@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -445,10 +446,13 @@ class SinavSonuclariPreview extends StatelessWidget {
                   vertical: 40,
                   horizontal: 20,
                 ),
-                child: Image.network(
-                  soru.soru,
+                child: CachedNetworkImage(
+                  imageUrl: soru.soru,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Text(
+                  placeholder: (context, url) => const Center(
+                    child: CupertinoActivityIndicator(),
+                  ),
+                  errorWidget: (context, url, error) => Text(
                     "Soru resmi yüklenemedi.",
                     style: TextStyle(
                       color: Colors.red,

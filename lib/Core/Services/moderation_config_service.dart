@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Models/moderation_config_model.dart';
 
 class ModerationConfigService {
@@ -8,22 +8,26 @@ class ModerationConfigService {
   static const String collection = 'adminConfig';
   static const String docId = 'moderation';
 
-  DocumentReference<Map<String, dynamic>> get _docRef =>
-      FirebaseFirestore.instance.collection(collection).doc(docId);
-
   Future<ModerationConfigModel> fetch() async {
     try {
-      final snap = await _docRef.get();
-      return ModerationConfigModel.fromMap(snap.data());
+      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+            docId,
+            preferCache: true,
+            ttl: const Duration(hours: 6),
+          );
+      return ModerationConfigModel.fromMap(data);
     } catch (_) {
       return ModerationConfigModel.defaults;
     }
   }
 
   Stream<ModerationConfigModel> watch() {
-    return _docRef.snapshots().map(
-          (snap) => ModerationConfigModel.fromMap(snap.data()),
-        );
+    return ConfigRepository.ensure()
+        .watchAdminConfigDoc(
+          docId,
+          ttl: const Duration(hours: 6),
+        )
+        .map(ModerationConfigModel.fromMap);
   }
 
   Future<ModerationConfigModel> ensureWithCallable() async {
@@ -34,6 +38,7 @@ class ModerationConfigService {
       final data = res.data;
       if (data is Map && data['config'] is Map) {
         final configMap = Map<String, dynamic>.from(data['config'] as Map);
+        await ConfigRepository.ensure().putAdminConfigDoc(docId, configMap);
         return ModerationConfigModel.fromMap(configMap);
       }
     } catch (_) {

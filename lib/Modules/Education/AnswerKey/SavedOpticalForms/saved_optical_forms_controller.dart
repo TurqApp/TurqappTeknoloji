@@ -1,12 +1,16 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class SavedOpticalFormsController extends GetxController {
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
   final list = <BookletModel>[].obs;
   final isLoading = false.obs;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   @override
   void onInit() {
@@ -19,21 +23,18 @@ class SavedOpticalFormsController extends GetxController {
     try {
       list.clear();
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final savedSnapshots = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("books")
-          .orderBy("createdAt", descending: true)
-          .get();
-
-      for (var savedDoc in savedSnapshots.docs) {
-        final bookDoc = await FirebaseFirestore.instance
-            .collection("books")
-            .doc(savedDoc.id)
-            .get();
-        if (!bookDoc.exists) continue;
-        list.add(BookletModel.fromMap(bookDoc.data() ?? {}, bookDoc.id));
-      }
+      final savedEntries = await _userSubcollectionRepository.getEntries(
+        uid,
+        subcollection: "books",
+        orderByField: "createdAt",
+        descending: true,
+        preferCache: true,
+      );
+      final books = await _bookletRepository.fetchByIds(
+        savedEntries.map((e) => e.id).toList(growable: false),
+        preferCache: true,
+      );
+      list.assignAll(books);
     } catch (e) {
       log("SavedOpticalFormsController.getData error: $e");
     } finally {

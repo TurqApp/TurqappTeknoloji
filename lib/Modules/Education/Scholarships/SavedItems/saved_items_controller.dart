@@ -1,9 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class SavedItemsController extends GetxController {
@@ -12,6 +12,9 @@ class SavedItemsController extends GetxController {
   final bookmarkedScholarships = <Map<String, dynamic>>[].obs;
   final selectedTabIndex = 0.obs;
   final pageController = PageController();
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
 
   @override
   void onInit() {
@@ -42,54 +45,43 @@ class SavedItemsController extends GetxController {
     bool isBookmarked = false,
   }) async {
     try {
-      final snapshot = await ScholarshipFirestorePath.collection()
-          .where(
-            isLiked ? 'begeniler' : 'kaydedenler',
-            arrayContains: userId,
-          )
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
+      final docs = await _scholarshipRepository.fetchByArrayMembershipRaw(
+        isLiked ? 'begeniler' : 'kaydedenler',
+        userId,
+        limit: 50,
+      );
 
       final scholarships = <Map<String, dynamic>>[];
 
       // Batch fetch users
       final userIds = <String>{};
-      for (var doc in snapshot.docs) {
-        final userID = doc.data()['userID'] as String? ?? '';
+      for (final data in docs) {
+        final userID = data['userID'] as String? ?? '';
         if (userID.isNotEmpty) userIds.add(userID);
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      for (var i = 0; i < userIds.length; i += 10) {
-        final batch = userIds.skip(i).take(10).toList();
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (final d in usersSnap.docs) {
-          final user = d.data();
-          final profileImage = (user['avatarUrl'] ??
-                  user['avatarUrl'] ??
-                  user['avatarUrl'] ??
-                  '')
-              .toString();
-          final profileName = (user['displayName'] ??
-                  user['username'] ??
-                  user['nickname'] ??
-                  '')
-              .toString();
-          userDataMap[d.id] = {
-            'avatarUrl': profileImage,
-            'nickname': profileName,
-            'displayName': profileName,
-            'userID': d.id,
-          };
-        }
+      final users = await _userRepository.getUsersRaw(
+        userIds.toList(growable: false),
+        preferCache: true,
+      );
+      for (final entry in users.entries) {
+        final user = entry.value;
+        final profileImage = (user['avatarUrl'] ?? '').toString();
+        final profileName = (user['displayName'] ??
+                user['username'] ??
+                user['nickname'] ??
+                '')
+            .toString();
+        userDataMap[entry.key] = {
+          'avatarUrl': profileImage,
+          'nickname': profileName,
+          'displayName': profileName,
+          'userID': entry.key,
+        };
       }
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
+      for (final data in docs) {
         final begeniler = data['begeniler'] as List<dynamic>? ?? [];
         final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
 
@@ -102,7 +94,7 @@ class SavedItemsController extends GetxController {
             'model': IndividualScholarshipsModel.fromJson(data),
             'type': 'bireysel',
             'userData': userData,
-            'docId': doc.id,
+            'docId': (data['docId'] ?? '').toString(),
             'likesCount': begeniler.length,
             'bookmarksCount': kaydedenler.length,
           });
@@ -130,22 +122,10 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef = ScholarshipFirestorePath.doc(docId);
-
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        AppSnackbar('Hata', 'Burs bulunamadı.');
-        return;
-      }
-
-      final begeniler = List<String>.from(doc.data()?['begeniler'] ?? []);
-      if (begeniler.contains(userId)) {
-        begeniler.remove(userId);
-      } else {
-        begeniler.add(userId);
-      }
-
-      await docRef.update({'begeniler': begeniler});
+      await _scholarshipRepository.toggleLike(
+        docId,
+        userId: userId,
+      );
       // Pull-based: listeyi yeniden çek
       await _fetchScholarships(userId, isLiked: true);
     } catch (e) {
@@ -162,22 +142,10 @@ class SavedItemsController extends GetxController {
     final userId = user.uid;
 
     try {
-      final docRef = ScholarshipFirestorePath.doc(docId);
-
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        AppSnackbar('Hata', 'Burs bulunamadı.');
-        return;
-      }
-
-      final kaydedenler = List<String>.from(doc.data()?['kaydedenler'] ?? []);
-      if (kaydedenler.contains(userId)) {
-        kaydedenler.remove(userId);
-      } else {
-        kaydedenler.add(userId);
-      }
-
-      await docRef.update({'kaydedenler': kaydedenler});
+      await _scholarshipRepository.toggleBookmark(
+        docId,
+        userId: userId,
+      );
       // Pull-based: listeyi yeniden çek
       await _fetchScholarships(userId, isBookmarked: true);
     } catch (e) {

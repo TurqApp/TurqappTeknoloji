@@ -1,10 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
@@ -27,6 +28,8 @@ class StoryMusicProfileView extends StatefulWidget {
 }
 
 class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final StoryRepository _storyRepository = StoryRepository.ensure();
   bool _isLoading = true;
   MusicModel? _track;
   List<_MusicStoryEntry> _entries = const [];
@@ -53,37 +56,24 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
       }
     }
 
-    final storyDocsById = <String, DocumentSnapshot<Map<String, dynamic>>>{};
+    final storyDocsById = <String, StoryModel>{};
     if (storyIds.isNotEmpty) {
-      final ids = storyIds.toList(growable: false);
-      const chunkSize = 10;
-      for (int i = 0; i < ids.length; i += chunkSize) {
-        final end = (i + chunkSize > ids.length) ? ids.length : i + chunkSize;
-        final chunk = ids.sublist(i, end);
-        final snap = await FirebaseFirestore.instance
-            .collection('stories')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          storyDocsById[doc.id] = doc;
-        }
-      }
+      storyDocsById.addAll(await _storyRepository.fetchStoriesByIds(storyIds.toList(growable: false)));
     }
 
     if (storyDocsById.isEmpty) {
       try {
-        final fallbackSnap = await FirebaseFirestore.instance
-            .collection('stories')
-            .where('musicId', isEqualTo: widget.musicId)
-            .limit(60)
-            .get();
-        for (final doc in fallbackSnap.docs) {
-          storyDocsById[doc.id] = doc;
+        final fallbackStories = await _storyRepository.fetchActiveStoriesByMusicId(
+          widget.musicId,
+          limit: 60,
+        );
+        for (final story in fallbackStories) {
+          storyDocsById[story.id] = story;
         }
       } catch (_) {}
     }
 
-    final activeStoryDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
+    final activeStories = <StoryModel>[];
     final orderedIds = <String>[
       ...links
           .map((link) => (link.data()['storyId'] ?? link.id).toString().trim())
@@ -91,51 +81,25 @@ class _StoryMusicProfileViewState extends State<StoryMusicProfileView> {
       ...storyDocsById.keys,
     ];
     for (final id in orderedIds.toSet()) {
-      final storyDoc = storyDocsById[id];
-      if (storyDoc == null || !storyDoc.exists) continue;
-      final data = storyDoc.data() ?? const <String, dynamic>{};
-      final isDeleted = data['deleted'] == true;
-      if (isDeleted) continue;
-      final createdAtRaw = data['createdDate'];
-      final createdAtMs = createdAtRaw is Timestamp
-          ? createdAtRaw.toDate().millisecondsSinceEpoch
-          : (createdAtRaw as num?)?.toInt() ?? 0;
-      if (createdAtMs <= 0) continue;
-      if (DateTime.now()
-              .difference(DateTime.fromMillisecondsSinceEpoch(createdAtMs))
-              .inHours >=
-          24) {
-        continue;
-      }
-      activeStoryDocs.add(storyDoc);
+      final story = storyDocsById[id];
+      if (story == null) continue;
+      if (DateTime.now().difference(story.createdAt).inHours >= 24) continue;
+      activeStories.add(story);
     }
 
-    final userIds = activeStoryDocs
-        .map((doc) => (doc.data()?['userId'] ?? '').toString().trim())
+    final userIds = activeStories
+        .map((story) => story.userId.trim())
         .where((uid) => uid.isNotEmpty)
         .toSet()
         .toList(growable: false);
 
     final userDataById = <String, Map<String, dynamic>>{};
     if (userIds.isNotEmpty) {
-      const chunkSize = 10;
-      for (int i = 0; i < userIds.length; i += chunkSize) {
-        final end =
-            (i + chunkSize > userIds.length) ? userIds.length : i + chunkSize;
-        final chunk = userIds.sublist(i, end);
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          userDataById[doc.id] = Map<String, dynamic>.from(doc.data());
-        }
-      }
+      userDataById.addAll(await _userRepository.getUsersRaw(userIds));
     }
 
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    final entries = activeStoryDocs.map((doc) {
-      final story = StoryModel.fromDoc(doc);
+    final entries = activeStories.map((story) {
       final userData = userDataById[story.userId] ?? const <String, dynamic>{};
       final nickname = _resolveNickname(userData, story.userId == currentUid);
       final fullName = _resolveFullName(userData);

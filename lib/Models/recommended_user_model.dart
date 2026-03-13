@@ -8,6 +8,7 @@ class RecommendedUserModel {
   final String avatarUrl;
   final String nickname;
   final String bio; // ✱ Yeni alan
+  final String rozet;
 
   RecommendedUserModel({
     required this.userID,
@@ -16,6 +17,7 @@ class RecommendedUserModel {
     required this.avatarUrl,
     required this.nickname,
     required this.bio, // ✱ Yapıcıda zorunlu kılındı
+    required this.rozet,
   });
 
   /// Eski fromMap fabrika korunuyor, bio da ekleniyor
@@ -27,6 +29,7 @@ class RecommendedUserModel {
       avatarUrl: data['avatarUrl'] ?? '',
       nickname: data['nickname'] ?? '',
       bio: data['bio'] ?? '', // ✱ Buradan al
+      rozet: data['rozet'] ?? '',
     );
   }
 
@@ -34,5 +37,17 @@ class RecommendedUserModel {
   factory RecommendedUserModel.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return RecommendedUserModel.fromMap(doc.id, data);
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userID': userID,
+      'firstName': firstName,
+      'lastName': lastName,
+      'avatarUrl': avatarUrl,
+      'nickname': nickname,
+      'bio': bio,
+      'rozet': rozet,
+    };
   }
 }

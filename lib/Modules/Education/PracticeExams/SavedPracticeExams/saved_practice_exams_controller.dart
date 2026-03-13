@@ -1,9 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class SavedPracticeExamsController extends GetxController {
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
   final RxList<String> savedExamIds = <String>[].obs;
   final RxList<SinavModel> savedExams = <SinavModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -20,51 +25,25 @@ class SavedPracticeExamsController extends GetxController {
 
     isLoading.value = true;
     try {
-      final savedSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('saved_practice_exams')
-          .orderBy('timeStamp', descending: true)
-          .get();
+      final savedEntries = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'saved_practice_exams',
+        orderByField: 'timeStamp',
+        descending: true,
+        preferCache: true,
+        forceRefresh: false,
+      );
 
-      savedExamIds.assignAll(savedSnap.docs.map((doc) => doc.id));
-      if (savedSnap.docs.isEmpty) {
+      savedExamIds.assignAll(savedEntries.map((doc) => doc.id));
+      if (savedEntries.isEmpty) {
         savedExams.clear();
         return;
       }
 
-      final docs = await Future.wait(
-        savedSnap.docs.map(
-          (doc) => FirebaseFirestore.instance
-              .collection('practiceExams')
-              .doc(doc.id)
-              .get(),
-        ),
+      final exams = await _practiceExamRepository.fetchByIds(
+        savedEntries.map((doc) => doc.id).toList(growable: false),
+        preferCache: true,
       );
-
-      final exams = <SinavModel>[];
-      for (final doc in docs) {
-        if (!doc.exists) continue;
-        final data = doc.data() ?? const <String, dynamic>{};
-        exams.add(
-          SinavModel(
-            docID: doc.id,
-            cover: (data["cover"] ?? '') as String,
-            sinavTuru: (data["sinavTuru"] ?? '') as String,
-            timeStamp: (data["timeStamp"] ?? 0) as num,
-            sinavAciklama: (data["sinavAciklama"] ?? '') as String,
-            sinavAdi: (data["sinavAdi"] ?? '') as String,
-            kpssSecilenLisans: (data["kpssSecilenLisans"] ?? '') as String,
-            dersler: List<String>.from(data['dersler'] ?? const []),
-            userID: (data["userID"] ?? '') as String,
-            public: (data["public"] ?? false) as bool,
-            taslak: (data["taslak"] ?? false) as bool,
-            soruSayilari: List<String>.from(data['soruSayilari'] ?? const []),
-            bitis: (data["bitis"] ?? 0) as num,
-            bitisDk: (data["bitisDk"] ?? 0) as num,
-          ),
-        );
-      }
       savedExams.assignAll(exams);
     } finally {
       isLoading.value = false;
@@ -75,22 +54,25 @@ class SavedPracticeExamsController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final ref = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('saved_practice_exams')
-        .doc(docId);
-
     if (savedExamIds.contains(docId)) {
       savedExamIds.remove(docId);
       savedExams.removeWhere((exam) => exam.docID == docId);
-      await ref.delete();
+      await _subcollectionRepository.deleteEntry(
+        uid,
+        subcollection: 'saved_practice_exams',
+        docId: docId,
+      );
       return;
     }
 
     savedExamIds.add(docId);
-    await ref.set({
-      'timeStamp': DateTime.now().millisecondsSinceEpoch,
-    });
+    await _subcollectionRepository.upsertEntry(
+      uid,
+      subcollection: 'saved_practice_exams',
+      docId: docId,
+      data: {
+        'timeStamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    );
   }
 }

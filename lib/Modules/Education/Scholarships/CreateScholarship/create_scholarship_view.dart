@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1538,13 +1539,16 @@ class CreateScholarshipView extends StatelessWidget {
                                       ),
                                       child: controller.logo.value
                                               .startsWith('http')
-                                          ? Image.network(
-                                              controller.logo.value,
+                                          ? CachedNetworkImage(
+                                              imageUrl: controller.logo.value,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
+                                              errorWidget: (
+                                                context,
+                                                url,
+                                                error,
+                                              ) =>
                                                   const Icon(Icons.error),
                                             )
                                           : Image.file(
@@ -1653,13 +1657,17 @@ class CreateScholarshipView extends StatelessWidget {
                                       ),
                                       child: controller.customImagePath.value
                                               .startsWith('http')
-                                          ? Image.network(
-                                              controller.customImagePath.value,
+                                          ? CachedNetworkImage(
+                                              imageUrl: controller
+                                                  .customImagePath.value,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
+                                              errorWidget: (
+                                                context,
+                                                url,
+                                                error,
+                                              ) =>
                                                   const Icon(Icons.error),
                                             )
                                           : Image.file(

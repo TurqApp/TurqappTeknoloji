@@ -1,10 +1,13 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 
 class SolveTestController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final TestRepository _testRepository = TestRepository.ensure();
   final String testID;
   final Function showSucces;
   final soruList = <TestReadinessModel>[].obs;
@@ -47,30 +50,12 @@ class SolveTestController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .collection("Sorular")
-          .orderBy("id", descending: false)
-          .get();
-
-      soruList.clear();
-      for (var doc in snapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      soruList.assignAll(
+        await _testRepository.fetchQuestions(
+          testID,
+          preferCache: true,
+        ),
+      );
       cevaplar.assignAll(List.generate(soruList.length, (index) => ""));
     } catch (e) {
       print("Error fetching questions: $e");
@@ -81,11 +66,10 @@ class SolveTestController extends GetxController {
 
   Future<void> getUserFullName() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      final data = doc.data() ?? const <String, dynamic>{};
+      final data = await _userRepository.getUserRaw(
+            FirebaseAuth.instance.currentUser!.uid,
+          ) ??
+          const <String, dynamic>{};
       final nick =
           (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString()
@@ -106,16 +90,13 @@ class SolveTestController extends GetxController {
   }
 
   void testiBitir() {
-    FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID)
-        .collection("Yanitlar")
-        .doc(DateTime.now().millisecondsSinceEpoch.toString())
-        .set({
-      "cevaplar": cevaplar.toList(),
-      "timeStamp": DateTime.now().millisecondsSinceEpoch.toInt(),
-      "userID": FirebaseAuth.instance.currentUser!.uid,
-    }).then((value) {
+    _testRepository
+        .submitAnswers(
+      testID,
+      userId: FirebaseAuth.instance.currentUser!.uid,
+      answers: cevaplar.toList(growable: false),
+    )
+        .then((_) {
       print("Yanitlar başarıyla eklendi: $testID");
     }).catchError((error) {
       print("Yanitlar eklenirken hata: $error");

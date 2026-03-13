@@ -1,11 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/jobs.dart';
 
 class JobSelectorController extends GetxController {
   var job = "".obs;
   var filteredJobs = <String>[].obs;
+  final UserRepository _userRepository = UserRepository.ensure();
   late final List<String> _initialJobs;
   bool _userInteracted = false;
 
@@ -33,13 +34,11 @@ class JobSelectorController extends GetxController {
     super.onInit();
     _initialJobs = _buildInitialJobs();
     filteredJobs.assignAll(_initialJobs);
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
+    _userRepository
+        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
+        .then((data) {
       if (!_userInteracted) {
-        job.value = (doc.data()?["meslekKategori"] ?? "").toString();
+        job.value = ((data ?? const {})["meslekKategori"] ?? "").toString();
       }
       filteredJobs.assignAll(_initialWithSelected());
     });
@@ -67,10 +66,10 @@ class JobSelectorController extends GetxController {
     if (selected.isEmpty) {
       return;
     }
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"meslekKategori": selected});
+    await _userRepository.updateUserFields(
+      FirebaseAuth.instance.currentUser!.uid,
+      {"meslekKategori": selected},
+    );
 
     Get.back();
   }

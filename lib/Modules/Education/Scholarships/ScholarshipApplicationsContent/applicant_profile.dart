@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -166,14 +167,12 @@ class ApplicantProfile extends StatelessWidget {
                     width: 60,
                     height: 60,
                     child: controller.avatarUrl.value.isNotEmpty
-                        ? Image.network(
-                            controller.avatarUrl.value,
+                        ? CachedNetworkImage(
+                            imageUrl: controller.avatarUrl.value,
                             fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return CupertinoActivityIndicator(radius: 12);
-                            },
-                            errorBuilder: (context, error, stackTrace) {
+                            placeholder: (context, url) =>
+                                CupertinoActivityIndicator(radius: 12),
+                            errorWidget: (context, url, error) {
                               return Container(
                                 color: Colors.grey.withAlpha(50),
                                 child: Icon(Icons.person, size: 30),

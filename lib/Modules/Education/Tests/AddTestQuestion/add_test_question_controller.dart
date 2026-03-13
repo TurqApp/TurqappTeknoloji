@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
@@ -19,6 +20,7 @@ class AddTestQuestionController extends GetxController {
   final selections = ['A'].obs;
   final isLoading = true.obs;
   final ImagePicker picker = ImagePicker();
+  final TestRepository _testRepository = TestRepository.ensure();
 
   AddTestQuestionController({
     required this.initialSoruList,
@@ -37,30 +39,11 @@ class AddTestQuestionController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .collection("Sorular")
-          .orderBy("id", descending: true)
-          .get();
-
-      soruList.clear();
-      for (var doc in snapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      final questions = await _testRepository.fetchQuestions(
+        testID,
+        preferCache: true,
+      );
+      soruList.assignAll(questions.reversed);
     } catch (e) {
       print("Error fetching questions: $e");
     } finally {

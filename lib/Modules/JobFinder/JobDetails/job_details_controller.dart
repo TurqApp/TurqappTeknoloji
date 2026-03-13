@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
@@ -28,6 +29,9 @@ class JobDetailsController extends GetxController {
   final RxList<JobModel> list = <JobModel>[].obs;
   final reviews = <JobReviewModel>[].obs;
   final reviewUsers = <String, Map<String, dynamic>>{}.obs;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CvRepository _cvRepository = CvRepository.ensure();
+  final JobRepository _jobRepository = JobRepository.ensure();
 
   JobDetailsController({required JobModel model}) : model = model.obs;
 
@@ -52,35 +56,24 @@ class JobDetailsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       if (model.value.userID == uid) return;
-      await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(model.value.docID)
-          .update({'viewCount': FieldValue.increment(1)});
+      await _jobRepository.incrementViewCount(model.value.docID);
     } catch (_) {}
   }
 
   Future<void> getUserData(String userID) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-
-      if (!snap.exists || snap.data() == null) {
+      final summary = await _userRepository.getUser(userID);
+      if (summary == null) {
         avatarUrl.value = kDefaultAvatarUrl;
         return;
       }
-      final data = snap.data()!;
-
-      fullname.value = '${data['firstName'] ?? ''} '
-          '${data['lastName'] ?? ''}';
-      nickname.value =
-          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
-              .toString();
-      final profile = (data['profile'] is Map<String, dynamic>)
-          ? data['profile'] as Map<String, dynamic>
-          : const <String, dynamic>{};
-      avatarUrl.value = resolveAvatarUrl(data, profile: profile);
+      fullname.value = summary.displayName;
+      nickname.value = summary.nickname.isNotEmpty
+          ? summary.nickname
+          : summary.preferredName;
+      avatarUrl.value = summary.avatarUrl.isNotEmpty
+          ? summary.avatarUrl
+          : kDefaultAvatarUrl;
     } catch (e) {
       print('getUserData hatası: $e');
       avatarUrl.value = kDefaultAvatarUrl;
@@ -89,11 +82,13 @@ class JobDetailsController extends GetxController {
 
   Future<void> cvCheck() async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('CV')
-          .doc(FirebaseAuth.instance.currentUser?.uid ?? '')
-          .get();
-      cvVar.value = snap.exists;
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (uid.isEmpty) {
+        cvVar.value = false;
+        return;
+      }
+      final cv = await _cvRepository.getCv(uid, preferCache: true);
+      cvVar.value = cv != null;
     } catch (e) {
       print('cvCheck hatası: $e');
     }
@@ -173,15 +168,7 @@ class JobDetailsController extends GetxController {
 
   Future<void> getSimilar(String meslek) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where('meslek', isEqualTo: meslek)
-          .where('ended', isEqualTo: false)
-          .limit(15)
-          .get();
-
-      final jobs =
-          snapshot.docs.map((d) => JobModel.fromMap(d.data(), d.id)).toList();
+      final jobs = await _jobRepository.fetchSimilarByProfession(meslek);
       list.assignAll(jobs);
     } catch (e) {
       print('getSimilar hatası: $e');
@@ -190,18 +177,10 @@ class JobDetailsController extends GetxController {
 
   Future<void> fetchReviews(String docID) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docID)
-          .collection('Reviews')
-          .orderBy('timeStamp', descending: true)
-          .limit(50)
-          .get();
-
-      final items = snapshot.docs
-          .map((d) => JobReviewModel.fromMap(d.data(), d.id))
-          .toList();
-
+      final items = await _jobRepository.fetchReviews(
+        docID,
+        preferCache: true,
+      );
       reviews.assignAll(items);
       await _fetchReviewUsers(reviews.map((e) => e.userID));
     } catch (e) {
@@ -212,23 +191,11 @@ class JobDetailsController extends GetxController {
 
   Future<void> _fetchReviewUsers(Iterable<String> userIDs) async {
     final uniqueIds = userIDs.where((e) => e.trim().isNotEmpty).toSet();
-    for (final userID in uniqueIds) {
-      if (reviewUsers.containsKey(userID)) continue;
-      try {
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userID)
-            .get();
-        if (!snap.exists || snap.data() == null) continue;
-        final data = snap.data()!;
-        final profile = (data['profile'] is Map<String, dynamic>)
-            ? data['profile'] as Map<String, dynamic>
-            : const <String, dynamic>{};
-        reviewUsers[userID] = {
-          ...data,
-          'avatarUrl': resolveAvatarUrl(data, profile: profile),
-        };
-      } catch (_) {}
+    final toFetch = uniqueIds.where((userID) => !reviewUsers.containsKey(userID));
+    if (toFetch.isEmpty) return;
+    final summaries = await _userRepository.getUsers(toFetch.toList());
+    for (final entry in summaries.entries) {
+      reviewUsers[entry.key] = entry.value.toMap();
     }
   }
 
@@ -246,21 +213,14 @@ class JobDetailsController extends GetxController {
       return false;
     }
 
-    final reviewRef = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(model.value.docID)
-        .collection('Reviews')
-        .doc(uid);
-
     try {
-      await reviewRef.set({
-        'userID': uid,
-        'jobDocID': model.value.docID,
-        'rating': rating.clamp(1, 5),
-        'comment': comment.trim(),
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
-      });
-      await _recalculateAverageRating(model.value.docID);
+      await _jobRepository.saveReview(
+        jobDocId: model.value.docID,
+        userId: uid,
+        rating: rating,
+        comment: comment,
+      );
+      await _jobRepository.refreshAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
       AppSnackbar('Başarılı', 'Değerlendirmeniz kaydedildi.');
       return true;
@@ -273,49 +233,16 @@ class JobDetailsController extends GetxController {
 
   Future<void> deleteReview(String reviewID) async {
     try {
-      await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(model.value.docID)
-          .collection('Reviews')
-          .doc(reviewID)
-          .delete();
-      await _recalculateAverageRating(model.value.docID);
+      await _jobRepository.deleteReview(
+        jobDocId: model.value.docID,
+        reviewId: reviewID,
+      );
+      await _jobRepository.refreshAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
       AppSnackbar('Bilgi', 'Değerlendirmeniz kaldırıldı.');
     } catch (e) {
       print('deleteReview hatası: $e');
       AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
-    }
-  }
-
-  Future<void> _recalculateAverageRating(String docID) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docID)
-          .collection('Reviews')
-          .get();
-
-      final jobDocRef =
-          FirebaseFirestore.instance.collection(JobCollection.name).doc(docID);
-
-      if (snapshot.docs.isEmpty) {
-        await jobDocRef.update({'averageRating': null, 'reviewCount': 0});
-        return;
-      }
-
-      double total = 0;
-      for (final doc in snapshot.docs) {
-        total += (doc.data()['rating'] as num? ?? 0).toDouble();
-      }
-      final avg = total / snapshot.docs.length;
-
-      await jobDocRef.update({
-        'averageRating': double.parse(avg.toStringAsFixed(1)),
-        'reviewCount': snapshot.docs.length,
-      });
-    } catch (e) {
-      print('_recalculateAverageRating hatası: $e');
     }
   }
 
@@ -429,13 +356,11 @@ class JobDetailsController extends GetxController {
   Future<void> checkBasvuru(String docID) async {
     try {
       final uid = (FirebaseAuth.instance.currentUser?.uid ?? '');
-      final snap = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docID)
-          .collection('Applications')
-          .doc(uid)
-          .get();
-      basvuruldu.value = snap.exists;
+      if (uid.isEmpty) {
+        basvuruldu.value = false;
+        return;
+      }
+      basvuruldu.value = await _jobRepository.hasApplication(docID, uid);
     } catch (e) {
       print('checkBasvuru hatası: $e');
       basvuruldu.value = false;
@@ -449,119 +374,32 @@ class JobDetailsController extends GetxController {
       AppSnackbar('Hata', 'Başvuru için tekrar giriş yapın.');
       return;
     }
-    final jobRef = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(docId)
-        .collection('Applications')
-        .doc(uid);
-    final userRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('myApplications')
-        .doc(docId);
-    final ownerNotificationRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(model.value.userID)
-        .collection('notifications')
-        .doc();
-    final jobDocRef =
-        FirebaseFirestore.instance.collection(JobCollection.name).doc(docId);
-
     try {
-      final snap = await jobRef.get();
-      final batch = FirebaseFirestore.instance.batch();
+      final wasApplied = await _jobRepository.hasApplication(docId, uid);
+      final job = model.value;
+      final title = job.ilanBasligi.isNotEmpty ? job.ilanBasligi : job.meslek;
+      final currentUserSummary = await _userRepository.getUser(uid);
+      final applicantName = currentUserSummary?.displayName.trim() ?? '';
+      final applicantImage =
+          currentUserSummary?.avatarUrl.trim() ?? kDefaultAvatarUrl;
+      final applicantNickname =
+          currentUserSummary?.nickname.trim().isNotEmpty == true
+              ? currentUserSummary!.nickname.trim()
+              : (currentUserSummary?.username.trim() ?? '');
 
-      if (snap.exists) {
-        // Cancel application
-        batch.delete(jobRef);
-        batch.delete(userRef);
-        batch.update(jobDocRef, {'applicationCount': FieldValue.increment(-1)});
-        await batch.commit();
-
-        // Prevent negative count
-        final jobSnap = await jobDocRef.get();
-        if (jobSnap.exists) {
-          final count = (jobSnap.data()?['applicationCount'] ?? 0) as num;
-          if (count < 0) {
-            await jobDocRef.update({'applicationCount': 0});
-          }
-        }
-
-        basvuruldu.value = false;
-      } else {
-        final now = DateTime.now().millisecondsSinceEpoch;
-        final job = model.value;
-        final title = job.ilanBasligi.isNotEmpty ? job.ilanBasligi : job.meslek;
-        final currentUserDoc =
-            await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        final currentUserData = currentUserDoc.data() ?? const {};
-        final applicantName = [
-          (currentUserData['firstName'] ?? '').toString().trim(),
-          (currentUserData['lastName'] ?? '').toString().trim(),
-        ].where((e) => e.isNotEmpty).join(' ').trim();
-        final applicantLabel = applicantName.isNotEmpty
-            ? applicantName
-            : (currentUserData['nickname'] ??
-                    currentUserData['username'] ??
-                    currentUserData['displayName'] ??
-                    'Bir kullanıcı')
-                .toString();
-        final applicantImage =
-            (currentUserData['avatarUrl'] ?? currentUserData['avatarUrl'] ?? '')
-                .toString();
-
-        batch.set(jobRef, {
-          'timeStamp': now,
-          'status': 'pending',
-          'statusUpdatedAt': now,
-          'note': '',
-          'jobTitle': title,
-          'companyName': job.brand,
-          'companyLogo': job.logo,
-          'applicantName': applicantName,
-          'applicantNickname': (currentUserData['nickname'] ??
-                  currentUserData['username'] ??
-                  currentUserData['displayName'] ??
-                  '')
-              .toString()
-              .trim(),
-          'applicantPfImage': applicantImage,
-          'userID': uid,
-        });
-
-        batch.set(userRef, {
-          'timeStamp': now,
-          'jobTitle': title,
-          'companyName': job.brand,
-          'companyLogo': job.logo,
-          'status': 'pending',
-          'userID': uid,
-          'applicantName': applicantName,
-          'applicantNickname': (currentUserData['nickname'] ??
-                  currentUserData['username'] ??
-                  currentUserData['displayName'] ??
-                  '')
-              .toString()
-              .trim(),
-          'applicantPfImage': applicantImage,
-        });
-
-        batch.update(jobDocRef, {
-          'applicationCount': FieldValue.increment(1),
-        });
-        batch.set(ownerNotificationRef, {
-          'type': 'job_application',
-          'fromUserID': uid,
-          'postID': docId,
-          'timeStamp': now,
-          'read': false,
-          'title': applicantLabel,
-          'body': '$title ilanina basvuru yapti',
-          'thumbnail': applicantImage,
-        });
-
-        await batch.commit();
-        basvuruldu.value = true;
+      await _jobRepository.toggleApplication(
+        jobDocId: docId,
+        ownerUserId: model.value.userID,
+        userId: uid,
+        jobTitle: title,
+        companyName: job.brand,
+        companyLogo: job.logo,
+        applicantName: applicantName,
+        applicantNickname: applicantNickname,
+        applicantPfImage: applicantImage,
+      );
+      basvuruldu.value = !wasApplied;
+      if (!wasApplied) {
         AppSnackbar('Başarılı', 'Başvurun gönderildi.');
       }
     } catch (e) {
@@ -575,13 +413,13 @@ class JobDetailsController extends GetxController {
         await Get.to<JobModel?>(JobCreator(existingJob: model.value));
     if (result != null) {
       try {
-        final snap = await FirebaseFirestore.instance
-            .collection(JobCollection.name)
-            .doc(model.value.docID)
-            .get();
-
-        if (snap.exists && snap.data() != null) {
-          model.value = JobModel.fromMap(snap.data()!, snap.id);
+        final refreshed = await _jobRepository.fetchById(
+          model.value.docID,
+          preferCache: false,
+          forceRefresh: true,
+        );
+        if (refreshed != null) {
+          model.value = refreshed;
         }
       } catch (e) {
         print('goToEdit hatası: $e');
@@ -599,20 +437,17 @@ class JobDetailsController extends GetxController {
 
   Future<void> unpublishAd() async {
     final docId = model.value.docID;
-    final ref =
-        FirebaseFirestore.instance.collection(JobCollection.name).doc(docId);
-    final snap = await ref.get();
+    final existing =
+        await _jobRepository.fetchById(docId, preferCache: false, forceRefresh: true);
 
-    if (!snap.exists) throw Exception('İlan bulunamadı');
+    if (existing == null) throw Exception('İlan bulunamadı');
 
-    await ref.update({
-      'ended': true,
-      'endedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    await _jobRepository.unpublishJob(docId);
 
-    final refreshed = await ref.get();
-    if (refreshed.exists && refreshed.data() != null) {
-      model.value = JobModel.fromMap(refreshed.data()!, refreshed.id);
+    final refreshed =
+        await _jobRepository.fetchById(docId, preferCache: false, forceRefresh: true);
+    if (refreshed != null) {
+      model.value = refreshed;
     }
   }
 }

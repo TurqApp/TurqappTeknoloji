@@ -205,8 +205,8 @@ class BookletPreview extends StatelessWidget {
                 width: 40,
                 height: 40,
                 child: controller.avatarUrl.value.isNotEmpty
-                    ? Image.network(
-                        controller.avatarUrl.value,
+                    ? CachedNetworkImage(
+                        imageUrl: controller.avatarUrl.value,
                         fit: BoxFit.cover,
                       )
                     : const CupertinoActivityIndicator(),

@@ -2,9 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 
 class MyApplicationsController extends GetxController {
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  final JobRepository _jobRepository = JobRepository.ensure();
   RxList<JobApplicationModel> applications = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
 
@@ -19,15 +24,17 @@ class MyApplicationsController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myApplications')
-          .orderBy('timeStamp', descending: true)
-          .get();
+      final items = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'myApplications',
+        orderByField: 'timeStamp',
+        descending: true,
+        preferCache: true,
+        forceRefresh: false,
+      );
 
-      applications.value = snapshot.docs
-          .map((doc) => JobApplicationModel.fromMap(doc.data(), doc.id))
+      applications.value = items
+          .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList();
     } catch (e) {
       print("Başvurular yüklenirken hata: $e");
@@ -64,21 +71,21 @@ class MyApplicationsController extends GetxController {
       await batch.commit();
 
       // Prevent negative count
-      final jobSnap = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(jobDocID)
-          .get();
-      if (jobSnap.exists) {
-        final count = (jobSnap.data()?['applicationCount'] ?? 0) as num;
-        if (count < 0) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(jobDocID)
-              .update({'applicationCount': 0});
-        }
-      }
+      await _jobRepository.normalizeApplicationCount(jobDocID);
 
       applications.removeWhere((a) => a.jobDocID == jobDocID);
+      await _subcollectionRepository.setEntries(
+        uid,
+        subcollection: 'myApplications',
+        items: applications
+            .map(
+              (e) => UserSubcollectionEntry(
+                id: e.jobDocID,
+                data: e.toMap(),
+              ),
+            )
+            .toList(growable: false),
+      );
     } catch (e) {
       print("Başvuru iptal hatası: $e");
     }

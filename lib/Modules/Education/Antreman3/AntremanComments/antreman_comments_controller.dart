@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,8 @@ import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
@@ -93,6 +94,8 @@ class Reply {
 
 class AntremanCommentsController extends GetxController {
   final QuestionBankModel question;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final String userID = FirebaseAuth.instance.currentUser?.uid ?? '';
   final FocusNode focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
@@ -170,19 +173,14 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> fetchComments() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .orderBy('timeStamp', descending: true)
-          .get();
-
       comments.clear();
-      for (var doc in snapshot.docs) {
-        final comment = Comment.fromJson(doc.id, doc.data());
+      final fetchedComments = await _antremanRepository.fetchComments(
+        question.docID,
+      );
+      for (final comment in fetchedComments) {
         comments.add(comment);
-        fetchReplies(doc.id);
-        repliesVisible[doc.id] = false;
+        fetchReplies(comment.docID);
+        repliesVisible[comment.docID] = false;
       }
     } catch (e) {
       log("Yorumlar çekilirken hata: $e");
@@ -195,20 +193,10 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> fetchReplies(String commentDocID) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .orderBy('timeStamp', descending: true)
-          .get();
-
-      final replyList = <Reply>[];
-      for (var doc in snapshot.docs) {
-        replyList.add(Reply.fromJson(doc.id, doc.data()));
-      }
-      replies[commentDocID] = replyList;
+      replies[commentDocID] = await _antremanRepository.fetchReplies(
+        question.docID,
+        commentDocID,
+      );
     } catch (e) {
       log("Yanıtlar çekilirken hata: $e");
     }
@@ -219,12 +207,11 @@ class AntremanCommentsController extends GetxController {
       return userInfoCache[userID]!;
     }
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      final data = doc.data();
-      log("User data for $userID: ${doc.data()}");
+      final data = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+      );
+      log("User data for $userID: $data");
       if (data == null) {
         userInfoCache[userID] = {
           'avatarUrl': '',
@@ -283,11 +270,10 @@ class AntremanCommentsController extends GetxController {
     );
 
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .add(newComment.toJson());
+      await _antremanRepository.addComment(
+        questionId: question.docID,
+        comment: newComment,
+      );
       commentController.clear();
       selectedImage.value = null;
       replyingToCommentDocID.value = '';
@@ -325,13 +311,11 @@ class AntremanCommentsController extends GetxController {
     );
 
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .add(newReply.toJson());
+      await _antremanRepository.addReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        reply: newReply,
+      );
       commentController.clear();
       selectedImage.value = null;
       replyingToCommentDocID.value = '';
@@ -349,12 +333,10 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> deleteComment(String commentDocID) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .delete();
+      await _antremanRepository.deleteComment(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+      );
       fetchComments();
       AppSnackbar("Başarılı", "Yorumunuz silindi!");
     } catch (e) {
@@ -368,14 +350,11 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> deleteReply(String commentDocID, String replyDocID) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .delete();
+      await _antremanRepository.deleteReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+      );
       fetchReplies(commentDocID);
       AppSnackbar("Başarılı", "Yanıtınız silindi!");
     } catch (e) {
@@ -389,12 +368,11 @@ class AntremanCommentsController extends GetxController {
 
   Future<void> editComment(String commentDocID, String newText) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .update({'metin': newText});
+      await _antremanRepository.updateCommentText(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        text: newText,
+      );
       commentController.clear();
       editingCommentDocID.value = '';
       fetchComments();
@@ -414,14 +392,12 @@ class AntremanCommentsController extends GetxController {
     String newText,
   ) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .update({'metin': newText});
+      await _antremanRepository.updateReplyText(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+        text: newText,
+      );
       commentController.clear();
       editingReplyDocID.value = '';
       fetchReplies(commentDocID);
@@ -446,16 +422,12 @@ class AntremanCommentsController extends GetxController {
   Future<void> toggleLikeComment(String commentDocID, Comment comment) async {
     final isLiked = comment.begeniler.contains(userID);
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .update({
-        'begeniler': isLiked
-            ? FieldValue.arrayRemove([userID])
-            : FieldValue.arrayUnion([userID]),
-      });
+      await _antremanRepository.toggleLikeComment(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        userId: userID,
+        currentlyLiked: isLiked,
+      );
       final updatedComment = Comment(
         docID: comment.docID,
         userID: comment.userID,
@@ -485,18 +457,13 @@ class AntremanCommentsController extends GetxController {
   ) async {
     final isLiked = reply.begeniler.contains(userID);
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .collection('Yorumlar')
-          .doc(commentDocID)
-          .collection('Yanitlar')
-          .doc(replyDocID)
-          .update({
-        'begeniler': isLiked
-            ? FieldValue.arrayRemove([userID])
-            : FieldValue.arrayUnion([userID]),
-      });
+      await _antremanRepository.toggleLikeReply(
+        questionId: question.docID,
+        commentDocId: commentDocID,
+        replyDocId: replyDocID,
+        userId: userID,
+        currentlyLiked: isLiked,
+      );
       final updatedReplies = replies[commentDocID]!.map((r) {
         if (r.docID == replyDocID) {
           return Reply(

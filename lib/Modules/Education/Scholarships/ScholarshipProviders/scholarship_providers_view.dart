@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -97,34 +98,27 @@ class ScholarshipProvidersView extends StatelessWidget {
                                                         children: [
                                                           provider['avatarUrl']
                                                                   .isNotEmpty
-                                                              ? Image.network(
-                                                                  provider[
+                                                              ? CachedNetworkImage(
+                                                                  imageUrl: provider[
                                                                       'avatarUrl'],
                                                                   width: 50,
                                                                   height: 50,
                                                                   fit: BoxFit
                                                                       .cover,
-                                                                  loadingBuilder:
+                                                                  placeholder:
                                                                       (
                                                                     context,
-                                                                    child,
-                                                                    loadingProgress,
-                                                                  ) {
-                                                                    if (loadingProgress ==
-                                                                        null) {
-                                                                      return child;
-                                                                    }
-                                                                    return CupertinoActivityIndicator();
-                                                                  },
-                                                                  errorBuilder:
+                                                                    url,
+                                                                  ) =>
+                                                                          CupertinoActivityIndicator(),
+                                                                  errorWidget:
                                                                       (
                                                                     context,
+                                                                    url,
                                                                     error,
-                                                                    stackTrace,
-                                                                  ) {
-                                                                    return SizedBox
-                                                                        .shrink();
-                                                                  },
+                                                                  ) =>
+                                                                          SizedBox
+                                                                              .shrink(),
                                                                 )
                                                               : SizedBox
                                                                   .shrink(),

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 String kacGunKaldi(int timestampMillis) {
   final hedefTarih = DateTime.fromMillisecondsSinceEpoch(timestampMillis);
@@ -74,13 +74,13 @@ Future<void> getDeviceInfo() async {
   if (FirebaseAuth.instance.currentUser != null) {
     if (Platform.isAndroid) {
       AndroidDeviceInfo androidInfo = await deviceInfoPlugin.androidInfo;
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .set({
+      await UserRepository.ensure().updateUserFields(
+        FirebaseAuth.instance.currentUser!.uid,
+        {
         "device": "Android ${androidInfo.model}",
         "deviceVersion": androidInfo.version.release,
-      }, SetOptions(merge: true));
+        },
+      );
       print(
         "Android Device Info: Model: ${androidInfo.model} - Version: ${androidInfo.version.release} - Name: ${androidInfo.name}",
       );
@@ -90,13 +90,13 @@ Future<void> getDeviceInfo() async {
       print(iosInfo.modelName);
       print(iosInfo.systemVersion);
 
-      FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .set({
+      await UserRepository.ensure().updateUserFields(
+        FirebaseAuth.instance.currentUser!.uid,
+        {
         "device": "Apple ${iosInfo.modelName}",
         "deviceVersion": iosInfo.systemVersion,
-      }, SetOptions(merge: true));
+        },
+      );
     }
   }
 }

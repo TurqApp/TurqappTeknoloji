@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class ReshareUserItem {
   const ReshareUserItem({
@@ -22,6 +24,7 @@ class PostReshareListingController extends GetxController {
   static const int _pageSize = 20;
 
   final String postID;
+  final PostRepository _postRepository = PostRepository.ensure();
   final RxList<ReshareUserItem> reshareUsers = <ReshareUserItem>[].obs;
   final RxList<ReshareUserItem> quoteUsers = <ReshareUserItem>[].obs;
   final RxBool isLoadingReshares = false.obs;
@@ -71,35 +74,22 @@ class PostReshareListingController extends GetxController {
       isLoadingMoreReshares.value = true;
     }
 
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(postID)
-        .collection('reshares')
-        .orderBy('timeStamp', descending: true)
-        .limit(_pageSize);
-
-    if (_lastReshareDoc != null) {
-      query = query.startAfterDocument(_lastReshareDoc!);
-    }
-
     try {
-      final snap = await query.get();
-      if (snap.docs.isEmpty) {
+      final page = await _postRepository.fetchReshareUserIdsPage(
+        postID,
+        lastDoc: _lastReshareDoc,
+        limit: _pageSize,
+      );
+      if (page.userIds.isEmpty) {
         hasMoreReshares.value = false;
         return;
       }
 
-      _lastReshareDoc = snap.docs.last;
-      if (snap.docs.length < _pageSize) {
-        hasMoreReshares.value = false;
-      }
+      _lastReshareDoc = page.lastDoc;
+      hasMoreReshares.value = page.hasMore;
 
       final fetched = await Future.wait(
-        snap.docs.map(
-          (doc) => _fetchUserItem(
-            (doc.data()['userID'] ?? doc.id).toString(),
-          ),
-        ),
+        page.userIds.map(_fetchUserItem),
       );
       final existingIds = reshareUsers.map((e) => e.userID).toSet();
       reshareUsers.addAll(
@@ -127,50 +117,18 @@ class PostReshareListingController extends GetxController {
     final existingIds = quoteUsers.map((e) => e.userID).toSet();
 
     try {
-      while (newItems.length < _pageSize && hasMoreQuotes.value) {
-        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-            .collection('Posts')
-            .doc(postID)
-            .collection('postSharers')
-            .orderBy('timestamp', descending: true)
-            .limit(_pageSize);
+      final page = await _postRepository.fetchQuoteUserIdsPage(
+        postID,
+        lastDoc: _lastQuoteSharerDoc,
+        limit: _pageSize,
+      );
+      _lastQuoteSharerDoc = page.lastDoc;
+      hasMoreQuotes.value = page.hasMore;
 
-        if (_lastQuoteSharerDoc != null) {
-          query = query.startAfterDocument(_lastQuoteSharerDoc!);
-        }
-
-        final snap = await query.get();
-        if (snap.docs.isEmpty) {
-          hasMoreQuotes.value = false;
-          break;
-        }
-
-        _lastQuoteSharerDoc = snap.docs.last;
-        if (snap.docs.length < _pageSize) {
-          hasMoreQuotes.value = false;
-        }
-
-        for (final doc in snap.docs) {
-          final data = doc.data();
-          final userID = (data['userID'] ?? doc.id).toString().trim();
-          final sharedPostID = (data['sharedPostID'] ?? '').toString().trim();
-          if (userID.isEmpty || sharedPostID.isEmpty) continue;
-          if (existingIds.contains(userID)) continue;
-
-          final sharedPostSnap = await FirebaseFirestore.instance
-              .collection('Posts')
-              .doc(sharedPostID)
-              .get();
-          final sharedPostData = sharedPostSnap.data() ?? const {};
-          final isQuoted = sharedPostData['quotedPost'] == true;
-          final isDeleted = sharedPostData['deletedPost'] == true;
-          if (!isQuoted || isDeleted) continue;
-
-          final item = await _fetchUserItem(userID);
-          if (item != null && existingIds.add(item.userID)) {
-            newItems.add(item);
-          }
-          if (newItems.length >= _pageSize) break;
+      final fetched = await Future.wait(page.userIds.map(_fetchUserItem));
+      for (final item in fetched.whereType<ReshareUserItem>()) {
+        if (existingIds.add(item.userID)) {
+          newItems.add(item);
         }
       }
 
@@ -184,22 +142,17 @@ class PostReshareListingController extends GetxController {
 
   Future<ReshareUserItem?> _fetchUserItem(String userID) async {
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(userID).get();
-      final data = doc.data() ?? const <String, dynamic>{};
-      final nickname =
-          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
-              .toString()
-              .trim();
-      final fullName =
-          '${(data['firstName'] ?? '').toString()} ${(data['lastName'] ?? '').toString()}'
-              .trim();
-      final avatarUrl = (data['avatarUrl'] ?? '').toString().trim();
+      final summary = await UserRepository.ensure().getUser(
+        userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary == null) return null;
       return ReshareUserItem(
         userID: userID,
-        nickname: nickname,
-        fullName: fullName,
-        avatarUrl: avatarUrl,
+        nickname: summary.nickname.trim(),
+        fullName: summary.displayName.trim(),
+        avatarUrl: summary.avatarUrl.trim(),
       );
     } catch (_) {
       return null;

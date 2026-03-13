@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
@@ -13,6 +14,7 @@ import 'package:turqappv2/Modules/JobFinder/MyJobAds/my_job_ads_controller.dart'
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 
 class JobContentController extends GetxController {
+  final JobRepository _jobRepository = JobRepository.ensure();
   var saved = false.obs;
 
   Future<void> checkSaved(String docId) async {
@@ -50,16 +52,16 @@ class JobContentController extends GetxController {
     if (model.userID != uid || !model.ended) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    final ref = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(model.docID);
-    final snap = await ref.get();
-
-    if (!snap.exists) {
+    final existing =
+        await _jobRepository.fetchById(model.docID, preferCache: false, forceRefresh: true);
+    if (existing == null) {
       Get.snackbar("Uyarı", "İlan bulunamadı.");
       return;
     }
 
+    final ref = FirebaseFirestore.instance
+        .collection(JobCollection.name)
+        .doc(model.docID);
     await ref.update({
       "ended": false,
       "timeStamp": now,

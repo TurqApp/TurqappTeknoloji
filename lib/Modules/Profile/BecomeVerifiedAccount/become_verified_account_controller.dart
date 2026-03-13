@@ -1,10 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import '../../../Models/verified_account_model.dart';
 
 class BecomeVerifiedAccountController extends GetxController {
+  final VerifiedAccountRepository _verifiedAccountRepository =
+      VerifiedAccountRepository.ensure();
   final RxString aciklamaText = "".obs;
   var selected = Rx<VerifiedAccountModel?>(null);
   Rx<String> selectedColor = "2196F3".obs;
@@ -28,12 +30,13 @@ class BecomeVerifiedAccountController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("TurqAppVerified")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
-      if (doc.exists) {
+    _verifiedAccountRepository
+        .hasApplication(
+          FirebaseAuth.instance.currentUser!.uid,
+          preferCache: true,
+        )
+        .then((exists) {
+      if (exists) {
         bodySelection.value = 3;
       } else {
         selectItem(
@@ -104,10 +107,7 @@ class BecomeVerifiedAccountController extends GetxController {
   }
 
   void submitApplication() {
-    FirebaseFirestore.instance
-        .collection("TurqAppVerified")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .set({
+    _verifiedAccountRepository.submitApplication({
       "selected": selected.value?.title,
       "timeStamp": DateTime.now().millisecondsSinceEpoch,
       "aciklama": aciklama.text,

@@ -1,20 +1,21 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 
-Future<Size> getImageSize(String imageUrl) async {
-  final Completer<Size> completer = Completer();
-  final Image image = Image.network(imageUrl);
+Future<ui.Size> getImageSize(String imageUrl) async {
+  final file = await TurqImageCacheManager.instance.getSingleFile(imageUrl);
+  final bytes = await file.readAsBytes();
+  return _decodeSize(bytes);
+}
 
-  image.image.resolve(const ImageConfiguration()).addListener(
-    ImageStreamListener((ImageInfo info, bool _) {
-      final Size mySize = Size(
-        info.image.width.toDouble(),
-        info.image.height.toDouble(),
-      );
-      completer.complete(mySize);
-    }),
-  );
-
+Future<ui.Size> _decodeSize(Uint8List bytes) async {
+  final Completer<ui.Size> completer = Completer<ui.Size>();
+  ui.decodeImageFromList(bytes, (ui.Image image) {
+    completer.complete(
+      ui.Size(image.width.toDouble(), image.height.toDouble()),
+    );
+  });
   return completer.future;
 }

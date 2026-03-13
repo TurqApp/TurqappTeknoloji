@@ -2,11 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
 class SavedJobsController extends GetxController {
+  final JobRepository _jobRepository = JobRepository.ensure();
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;
   static const int _whereInChunkSize = 10;
@@ -45,23 +47,19 @@ class SavedJobsController extends GetxController {
       final idsToMarkEnded = <String>[];
 
       for (final chunk in _chunkList(savedIds, _whereInChunkSize)) {
-        final snap = await FirebaseFirestore.instance
-            .collection(JobCollection.name)
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        final foundIds = snap.docs.map((d) => d.id).toSet();
+        final fetched = await _jobRepository.fetchByIds(chunk);
+        final foundIds = fetched.map((job) => job.docID).toSet();
         for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
           staleSavedIds.add(missingId);
         }
 
-        for (final doc in snap.docs) {
-          final job = JobModel.fromMap(doc.data(), doc.id);
+        for (final job in fetched) {
           if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-            idsToMarkEnded.add(doc.id);
+            idsToMarkEnded.add(job.docID);
             continue;
           }
           if (!job.ended) {
-            jobsById[doc.id] = job;
+            jobsById[job.docID] = job;
           }
         }
       }

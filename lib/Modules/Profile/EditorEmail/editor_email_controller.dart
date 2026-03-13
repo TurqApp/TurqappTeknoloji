@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -17,6 +17,7 @@ class EditorEmailController extends GetxController {
   final isEmailConfirmed = false.obs;
 
   Timer? _timer;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   void onInit() {
@@ -34,10 +35,8 @@ class EditorEmailController extends GetxController {
 
   Future<void> fetchAndSetUserData() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(uid).get();
-    if (doc.exists) {
-      final data = doc.data() ?? const {};
+    final data = await _userRepository.getUserRaw(uid);
+    if (data != null) {
       emailController.text = data["email"]?.toString() ?? "";
       final firestoreVerified = data["emailVerified"] == true;
       final authVerified =

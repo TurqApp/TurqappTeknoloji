@@ -1,14 +1,19 @@
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class MyBookletResultsController extends GetxController {
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
   final list = <BookletResultModel>[].obs;
   final optikSonuclari = <OpticalFormModel>[].obs;
   final selection = 0.obs;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   @override
   void onInit() {
@@ -23,16 +28,17 @@ class MyBookletResultsController extends GetxController {
 
   Future<void> fetchBookletResults() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection("KitapcikCevaplari")
-          .orderBy("timeStamp", descending: true)
-          .get();
+      final snapshot = await _userSubcollectionRepository.getEntries(
+        FirebaseAuth.instance.currentUser!.uid,
+        subcollection: "KitapcikCevaplari",
+        orderByField: "timeStamp",
+        descending: true,
+        preferCache: true,
+      );
 
       final tempList = <BookletResultModel>[];
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
+      for (final doc in snapshot) {
+        final data = doc.data;
         tempList.add(
           BookletResultModel(
             cevaplar: List.from(data["cevaplar"] ?? []),
@@ -62,51 +68,10 @@ class MyBookletResultsController extends GetxController {
     final currentUserUID = FirebaseAuth.instance.currentUser!.uid;
 
     try {
-      // 1) Kullanıcının yanıt verdiği tüm OptikKodlar'ın Yanitlar dokümanlarını bul
-      // OptikKodlar'da Yanitlar doc ID'si = userID olduğundan, documentId filtresi kullanıyoruz
-      // Ancak collectionGroup'ta documentId filtresi yok, bu yüzden path'ten filtreliyoruz
-      final yanitlarSnap = await FirebaseFirestore.instance
-          .collectionGroup("Yanitlar")
-          .where(FieldPath.documentId, isEqualTo: currentUserUID)
-          .get();
-
-      // 2) Parent OptikKodlar doc ID'lerini topla
-      final optikDocIds = <String>{};
-      for (var yanitDoc in yanitlarSnap.docs) {
-        final parentRef = yanitDoc.reference.parent.parent;
-        if (parentRef != null && parentRef.parent.id == "optikForm") {
-          optikDocIds.add(parentRef.id);
-        }
-      }
-
-      if (optikDocIds.isEmpty) return;
-
-      // 3) Parent OptikKodlar dokümanlarını batch çek
-      final tempList = <OpticalFormModel>[];
-      final idList = optikDocIds.toList();
-      for (var i = 0; i < idList.length; i += 10) {
-        final batch = idList.skip(i).take(10).toList();
-        final optikSnap = await FirebaseFirestore.instance
-            .collection("optikForm")
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-
-        for (var doc in optikSnap.docs) {
-          final data = doc.data();
-          tempList.add(
-            OpticalFormModel(
-              docID: doc.id,
-              cevaplar: List<String>.from(data['cevaplar'] ?? []),
-              max: data["max"] ?? 0,
-              name: data["name"] ?? '',
-              userID: data["userID"] ?? '',
-              bitis: data["bitis"] ?? 0,
-              baslangic: data["baslangic"] ?? 0,
-              kisitlama: data["kisitlama"] ?? false,
-            ),
-          );
-        }
-      }
+      final tempList = await _opticalFormRepository.fetchAnsweredByUser(
+        currentUserUID,
+        preferCache: true,
+      );
 
       tempList.sort((a, b) => b.baslangic.compareTo(a.baslangic));
       optikSonuclari.assignAll(tempList);

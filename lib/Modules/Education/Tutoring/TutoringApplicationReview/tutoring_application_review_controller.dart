@@ -1,8 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 
 class TutoringApplicationReviewController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final CvRepository _cvRepository = CvRepository.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final String tutoringDocID;
   TutoringApplicationReviewController({required this.tutoringDocID});
 
@@ -22,27 +27,10 @@ class TutoringApplicationReviewController extends GetxController {
   Future<void> loadApplicants() async {
     isLoading.value = true;
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .doc(tutoringDocID)
-          .collection('Applications')
-          .orderBy('timeStamp', descending: true)
-          .get();
-
-      applicants.value = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return TutoringApplicationModel(
-          tutoringDocID: tutoringDocID,
-          userID: doc.id,
-          tutoringTitle: data['tutoringTitle'] ?? '',
-          tutorName: data['tutorName'] ?? '',
-          tutorImage: data['tutorImage'] ?? '',
-          status: data['status'] ?? 'pending',
-          timeStamp: data['timeStamp'] ?? 0,
-          statusUpdatedAt: data['statusUpdatedAt'] ?? 0,
-          note: data['note'] ?? '',
-        );
-      }).toList();
+      applicants.value = await _tutoringRepository.fetchApplications(
+        tutoringDocID,
+        preferCache: true,
+      );
     } catch (e) {
       print("Özel ders başvuranları yüklenirken hata: $e");
     } finally {
@@ -55,15 +43,14 @@ class TutoringApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantCV(String userID) async {
     if (cvCache.containsKey(userID)) return cvCache[userID];
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('CV').doc(userID).get();
-      if (doc.exists && doc.data() != null) {
+      final data = await _cvRepository.getCv(userID, preferCache: true);
+      if (data != null) {
         if (cvCache.length >= _maxCacheSize) {
           final oldestKey = cvCache.keys.first;
           cvCache.remove(oldestKey);
         }
-        cvCache[userID] = doc.data()!;
-        return doc.data();
+        cvCache[userID] = data;
+        return data;
       }
     } catch (e) {
       print("CV yükleme hatası: $e");
@@ -73,13 +60,7 @@ class TutoringApplicationReviewController extends GetxController {
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      if (doc.exists && doc.data() != null) {
-        return doc.data();
-      }
+      return await _userRepository.getUserRaw(userID);
     } catch (e) {
       print("Profil yükleme hatası: $e");
     }
@@ -89,31 +70,11 @@ class TutoringApplicationReviewController extends GetxController {
   Future<void> updateStatus(String userID, String newStatus) async {
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection('educators')
-              .doc(tutoringDocID)
-              .collection('Applications')
-              .doc(userID),
-          {
-            'status': newStatus,
-            'statusUpdatedAt': now,
-          });
-
-      batch.update(
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(userID)
-              .collection('myTutoringApplications')
-              .doc(tutoringDocID),
-          {
-            'status': newStatus,
-          });
-
-      await batch.commit();
+      await _tutoringRepository.updateApplicationStatus(
+        tutoringId: tutoringDocID,
+        userId: userID,
+        status: newStatus,
+      );
 
       final index = applicants.indexWhere((a) => a.userID == userID);
       if (index != -1) {

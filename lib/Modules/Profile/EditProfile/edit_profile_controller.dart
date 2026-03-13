@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -10,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -32,6 +32,7 @@ class EditProfileController extends GetxController {
 
   // 🎯 Using CurrentUserService for optimized user data access
   final userService = CurrentUserService.instance;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
@@ -69,15 +70,10 @@ class EditProfileController extends GetxController {
       lastNameController.text = currentUser.lastName;
     } else {
       // Fallback: Firebase'den çek (ilk açılış)
-      final doc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
-
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null) {
-          firstNameController.text = data["firstName"] ?? "";
-          lastNameController.text = data["lastName"] ?? "";
-        }
+      final data = await _userRepository.getUserRaw(uid);
+      if (data != null) {
+        firstNameController.text = data["firstName"] ?? "";
+        lastNameController.text = data["lastName"] ?? "";
       }
     }
   }
@@ -198,10 +194,14 @@ class EditProfileController extends GetxController {
           storagePathWithoutExt: 'users/$uid/$fileBase',
         );
         // Hard guarantee: persist avatar URL directly to users root doc.
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'avatarUrl': newImageUrl,
-          'updatedDate': DateTime.now().millisecondsSinceEpoch,
-        }, SetOptions(merge: true));
+        await _userRepository.updateUserFields(
+          uid,
+          {
+            'avatarUrl': newImageUrl,
+            'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          },
+          mergeIntoCache: true,
+        );
         await _cleanupOldAvatarFiles(uid, keepFileName: '$fileBase.webp');
       }
 

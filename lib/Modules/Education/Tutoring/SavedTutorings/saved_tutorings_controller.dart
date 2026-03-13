@@ -1,8 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
 class SavedTutoringsController extends GetxController {
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
   var savedTutoringIds = <String>[].obs;
 
   @override
@@ -15,26 +17,57 @@ class SavedTutoringsController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('educators')
-          .get();
-      savedTutoringIds.value = snap.docs.map((doc) => doc.id).toList();
+      final entries = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'educators',
+        preferCache: true,
+        forceRefresh: false,
+      );
+      savedTutoringIds.value = entries.map((doc) => doc.id).toList();
     } catch (e) {
       print("Error loading saved tutorings: $e");
     }
   }
 
-  void addSavedTutoring(String docId) {
+  Future<void> addSavedTutoring(String docId) async {
     if (!savedTutoringIds.contains(docId)) {
       savedTutoringIds.add(docId);
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await _subcollectionRepository.setEntries(
+          uid,
+          subcollection: 'educators',
+          items: savedTutoringIds
+              .map(
+                (id) => UserSubcollectionEntry(
+                  id: id,
+                  data: const <String, dynamic>{},
+                ),
+              )
+              .toList(growable: false),
+        );
+      }
     }
   }
 
-  void removeSavedTutoring(String docId) {
+  Future<void> removeSavedTutoring(String docId) async {
     if (savedTutoringIds.contains(docId)) {
       savedTutoringIds.remove(docId);
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await _subcollectionRepository.setEntries(
+          uid,
+          subcollection: 'educators',
+          items: savedTutoringIds
+              .map(
+                (id) => UserSubcollectionEntry(
+                  id: id,
+                  data: const <String, dynamic>{},
+                ),
+              )
+              .toList(growable: false),
+        );
+      }
     }
   }
 }

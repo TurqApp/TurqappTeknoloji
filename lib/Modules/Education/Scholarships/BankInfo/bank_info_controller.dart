@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,9 +5,11 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class BankInfoController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
   // Reactive variables
   final RxInt color = 0xFF000000.obs;
   final RxString selectedBank = "Banka Seç".obs;
@@ -51,37 +52,33 @@ class BankInfoController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    bindStream();
+    loadData();
   }
 
-  void bindStream() {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .snapshots()
-        .listen(
-      (DocumentSnapshot doc) {
-        isLoading.value = false;
-        final data = doc.data() as Map<String, dynamic>? ?? {};
-        final bank = userString(data, key: "bank", scope: "finance");
-        final iban = userString(data, key: "iban", scope: "finance");
-        final kolayAdresFromDb = userString(
-          data,
-          key: "kolayAdresSelection",
-          scope: "preferences",
-          fallback: "E-Posta",
-        );
-        selectedBank.value = bank.isNotEmpty ? bank : "Banka Seç";
-        this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
-        kolayAdres.value = kolayAdresList.contains(kolayAdresFromDb)
-            ? kolayAdresFromDb
-            : "E-Posta";
-      },
-      onError: (e) {
-        isLoading.value = false;
-        AppSnackbar('Hata', 'Veri yüklenemedi.');
-      },
-    );
+  Future<void> loadData() async {
+    try {
+      final data = await _userRepository.getUserRaw(
+            FirebaseAuth.instance.currentUser!.uid,
+          ) ??
+          const <String, dynamic>{};
+      final bank = userString(data, key: "bank", scope: "finance");
+      final iban = userString(data, key: "iban", scope: "finance");
+      final kolayAdresFromDb = userString(
+        data,
+        key: "kolayAdresSelection",
+        scope: "preferences",
+        fallback: "E-Posta",
+      );
+      selectedBank.value = bank.isNotEmpty ? bank : "Banka Seç";
+      this.iban.text = iban.startsWith("TR") ? iban.substring(2) : iban;
+      kolayAdres.value = kolayAdresList.contains(kolayAdresFromDb)
+          ? kolayAdresFromDb
+          : "E-Posta";
+    } catch (e) {
+      AppSnackbar('Hata', 'Veri yüklenemedi.');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void showBankBottomSheet(BuildContext context) {
@@ -144,10 +141,8 @@ class BankInfoController extends GetxController {
     }
 
     // Save to Firestore
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({
+    _userRepository
+        .updateUserFields(FirebaseAuth.instance.currentUser!.uid, {
       ...scopedUserUpdate(
         scope: 'finance',
         values: {

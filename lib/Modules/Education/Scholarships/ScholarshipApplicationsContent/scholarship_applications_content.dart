@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -50,25 +51,17 @@ class ScholarshipApplicationsContent extends StatelessWidget {
                     width: 50,
                     height: 50,
                     child: controller.avatarUrl.value.isNotEmpty
-                        ? Image.network(
-                            controller.avatarUrl.value,
+                        ? CachedNetworkImage(
+                            imageUrl: controller.avatarUrl.value,
                             fit: BoxFit.cover,
-                            loadingBuilder: (
+                            placeholder: (context, url) =>
+                                CupertinoActivityIndicator(
+                              radius: 8,
+                            ),
+                            errorWidget: (
                               context,
-                              child,
-                              loadingProgress,
-                            ) {
-                              if (loadingProgress == null) {
-                                return child;
-                              }
-                              return CupertinoActivityIndicator(
-                                radius: 8,
-                              );
-                            },
-                            errorBuilder: (
-                              context,
+                              url,
                               error,
-                              stackTrace,
                             ) {
                               return Container(
                                 color: Colors.grey.withAlpha(50),

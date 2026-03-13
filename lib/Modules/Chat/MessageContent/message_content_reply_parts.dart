@@ -1,36 +1,34 @@
 part of 'message_content.dart';
 
-class _ReplyPostDocFutureCacheEntry {
-  final Future<DocumentSnapshot<Map<String, dynamic>>> future;
+class _ReplyPostFutureCacheEntry {
+  final Future<NotifyPostLookup> future;
   final DateTime createdAt;
 
-  const _ReplyPostDocFutureCacheEntry({
+  const _ReplyPostFutureCacheEntry({
     required this.future,
     required this.createdAt,
   });
 }
 
-final Map<String, _ReplyPostDocFutureCacheEntry> _replyPostDocFutureCache = {};
-const Duration _replyPostDocFutureTtl = Duration(seconds: 30);
+final Map<String, _ReplyPostFutureCacheEntry> _replyPostFutureCache = {};
+const Duration _replyPostFutureTtl = Duration(seconds: 30);
 
 extension MessageContentReplyParts on MessageContent {
-  Future<DocumentSnapshot<Map<String, dynamic>>> _getReplyPostFuture(
-      String target) {
+  Future<NotifyPostLookup> _getReplyPostFuture(String target) {
     final key = target.trim();
     final now = DateTime.now();
-    final cached = _replyPostDocFutureCache[key];
+    final cached = _replyPostFutureCache[key];
     if (cached != null &&
-        now.difference(cached.createdAt) < _replyPostDocFutureTtl) {
+        now.difference(cached.createdAt) < _replyPostFutureTtl) {
       return cached.future;
     }
 
-    final future =
-        FirebaseFirestore.instance.collection("Posts").doc(key).get();
-    _replyPostDocFutureCache[key] =
-        _ReplyPostDocFutureCacheEntry(future: future, createdAt: now);
+    final future = NotifyLookupRepository.ensure().getPostLookup(key);
+    _replyPostFutureCache[key] =
+        _ReplyPostFutureCacheEntry(future: future, createdAt: now);
 
-    if (_replyPostDocFutureCache.length > 400) {
-      _replyPostDocFutureCache.clear();
+    if (_replyPostFutureCache.length > 400) {
+      _replyPostFutureCache.clear();
     }
     return future;
   }
@@ -313,14 +311,12 @@ extension MessageContentReplyParts on MessageContent {
         );
       }
 
-      return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      return FutureBuilder<NotifyPostLookup>(
         future: _getReplyPostFuture(target),
         builder: (context, snapshot) {
-          final data = snapshot.data?.data();
-          final imgList = List<String>.from(
-            data?["imgs"] ?? data?["img"] ?? const [],
-          );
-          final thumb = (data?["thumbnail"] ?? "").toString().trim();
+          final model = snapshot.data?.model;
+          final imgList = model?.img ?? const <String>[];
+          final thumb = (model?.thumbnail ?? '').trim();
           final fallbackImg = imgList.isNotEmpty ? imgList.first.trim() : "";
           final resolvedThumb = thumb.isNotEmpty ? thumb : fallbackImg;
           if (resolvedThumb.isNotEmpty) {

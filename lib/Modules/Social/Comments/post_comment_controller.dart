@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 import '../../../Core/Services/giphy_picker_service.dart';
 import '../../../Core/blocked_texts.dart';
@@ -27,6 +27,7 @@ class PostCommentController extends GetxController {
   final CurrentUserService userService = CurrentUserService.instance;
   final PostInteractionService _interactionService =
       Get.put(PostInteractionService());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   final RxList<PostCommentModel> list = <PostCommentModel>[].obs;
   final RxSet<String> pendingCommentIds = <String>{}.obs;
@@ -76,12 +77,11 @@ class PostCommentController extends GetxController {
 
   Future<void> _loadPostOwnerNickname() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      if (doc.exists) {
-        final data = doc.data() ?? const <String, dynamic>{};
+      final data = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+      );
+      if (data != null) {
         postUserNickname.value =
             (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
                 .toString();

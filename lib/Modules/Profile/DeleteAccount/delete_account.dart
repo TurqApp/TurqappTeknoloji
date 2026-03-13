@@ -6,6 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/app_snackbar.dart';
 import '../../../Services/phone_account_limiter.dart';
@@ -30,32 +33,20 @@ class _DeleteAccountState extends State<DeleteAccount> {
   bool _isBusy = false;
   int _countdown = 0;
   Timer? _timer;
-  StreamSubscription<DocumentSnapshot>? _userSub;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final PostRepository _postRepository = PostRepository.ensure();
 
   @override
   void initState() {
     super.initState();
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      _userSub = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .snapshots()
-          .listen((DocumentSnapshot doc) {
-        if (!doc.exists || !mounted) return;
-        final data = doc.data() as Map<String, dynamic>? ?? const {};
-        setState(() {
-          _phoneNumber = (data["phoneNumber"] ?? "").toString();
-          _email = (data["email"] ?? "").toString().trim().toLowerCase();
-        });
-      });
-    }
+    final current = CurrentUserService.instance.currentUser;
+    _phoneNumber = (current?.phoneNumber ?? '').trim();
+    _email = (current?.email ?? '').trim().toLowerCase();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _userSub?.cancel();
     _codeController.dispose();
     super.dispose();
   }
@@ -342,21 +333,25 @@ class _DeleteAccountState extends State<DeleteAccount> {
             .decrementOnUserDelete(uid: user.uid, phone: _phoneNumber);
       } catch (_) {}
 
-      final usersRef = FirebaseFirestore.instance.collection("users");
       final now = DateTime.now();
       final scheduledAt = now.add(
         const Duration(days: _deletionGraceDays),
       );
-      final userRef = usersRef.doc(user.uid);
+      final userRef =
+          FirebaseFirestore.instance.collection("users").doc(user.uid);
 
-      await userRef.update({
-        "accountStatus": "pending_deletion",
-        "isDeleted": true,
-        "isPrivate": true,
-        "deletionRequestedAt": DateTime.now().millisecondsSinceEpoch,
-        "deletionScheduledAt": scheduledAt.millisecondsSinceEpoch,
-        "updatedDate": DateTime.now().millisecondsSinceEpoch,
-      });
+      await _userRepository.updateUserFields(
+        user.uid,
+        {
+          "accountStatus": "pending_deletion",
+          "isDeleted": true,
+          "isPrivate": true,
+          "deletionRequestedAt": DateTime.now().millisecondsSinceEpoch,
+          "deletionScheduledAt": scheduledAt.millisecondsSinceEpoch,
+          "updatedDate": DateTime.now().millisecondsSinceEpoch,
+        },
+        mergeIntoCache: false,
+      );
 
       await userRef.collection("account_actions").add({
         "type": "deletion",
@@ -400,32 +395,7 @@ class _DeleteAccountState extends State<DeleteAccount> {
   }
 
   Future<void> _hideUserPosts(String uid) async {
-    final postsRef = FirebaseFirestore.instance.collection("Posts");
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    DocumentSnapshot? lastDoc;
-
-    while (true) {
-      Query query = postsRef.where("userID", isEqualTo: uid).limit(200);
-      if (lastDoc != null) {
-        query = query.startAfterDocument(lastDoc);
-      }
-
-      final snap = await query.get();
-      if (snap.docs.isEmpty) break;
-
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snap.docs) {
-        batch.update(doc.reference, {
-          "isDeleted": true,
-          "deletedPost": true,
-          "deletedPostTime": nowMs,
-          "updatedDate": DateTime.now().millisecondsSinceEpoch,
-        });
-      }
-      await batch.commit();
-
-      lastDoc = snap.docs.last;
-      if (snap.docs.length < 200) break;
-    }
+    await _postRepository.markAllPostsDeletedForUser(uid, nowMs: nowMs);
   }
 }

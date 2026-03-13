@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -115,16 +116,20 @@ class ScholarshipPreviewView extends StatelessWidget {
                                               right: 12,
                                               child: controller.logo.value
                                                       .startsWith('http')
-                                                  ? Image.network(
-                                                      controller.logo.value,
+                                                  ? CachedNetworkImage(
+                                                      imageUrl:
+                                                          controller.logo.value,
                                                       width: logoSize,
                                                       height: logoSize,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder: (context,
-                                                              error,
-                                                              stackTrace) =>
+                                                      errorWidget: (
+                                                        context,
+                                                        url,
+                                                        error,
+                                                      ) =>
                                                           const Icon(
-                                                              Icons.error),
+                                                        Icons.error,
+                                                      ),
                                                     )
                                                   : Image.file(
                                                       File(controller
@@ -176,11 +181,15 @@ class ScholarshipPreviewView extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(12),
                                       child: controller.customImagePath.value
                                               .startsWith('http')
-                                          ? Image.network(
-                                              controller.customImagePath.value,
+                                          ? CachedNetworkImage(
+                                              imageUrl: controller
+                                                  .customImagePath.value,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error,
-                                                      stackTrace) =>
+                                              errorWidget: (
+                                                context,
+                                                url,
+                                                error,
+                                              ) =>
                                                   const Icon(Icons.error),
                                             )
                                           : Image.file(

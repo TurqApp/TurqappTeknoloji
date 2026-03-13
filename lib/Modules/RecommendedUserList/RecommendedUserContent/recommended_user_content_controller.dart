@@ -1,55 +1,31 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class RecommendedUserContentController extends GetxController {
   String userID;
   var isFollowing = false.obs;
   var followLoading = false.obs;
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _followSub;
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   RecommendedUserContentController({required this.userID});
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    // Başlangıçta anlık durumu al ve ardından canlı dinlemeyi başlat
+    // Başlangıçta anlık durumu merkezi follow cache hattından al
     getTakipStatus();
-    listenTakipStatus();
-  }
-
-  @override
-  void onClose() {
-    _followSub?.cancel();
-    super.onClose();
   }
 
   Future<void> getTakipStatus() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("followings")
-        .doc(userID)
-        .get()
-        .then((DocumentSnapshot doc) {
-      isFollowing.value = doc.exists;
-    });
-  }
-
-  void listenTakipStatus() {
-    _followSub?.cancel();
-    _followSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("followings")
-        .doc(userID)
-        .snapshots()
-        .listen((doc) {
-      isFollowing.value = doc.exists;
-    });
+    isFollowing.value = await _followRepository.isFollowing(
+      userID,
+      currentUid: FirebaseAuth.instance.currentUser!.uid,
+      preferCache: true,
+    );
   }
 
   Future<void> follow() async {

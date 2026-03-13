@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class AntremanScoreController extends GetxController {
-  static const String _scoreCollection = 'questionBankSkor';
   static List<Map<String, dynamic>>? _cachedLeaderboard;
   static DateTime? _cachedAt;
   static String? _cachedMonthKey;
@@ -18,21 +19,14 @@ class AntremanScoreController extends GetxController {
   final now = DateTime.now();
   final monthName = RxString(monthNames[DateTime.now().month]);
   static const _excludedRozet = {'Turkuaz'};
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
 
   String get _monthKey {
     final now = DateTime.now();
     final month = now.month.toString().padLeft(2, '0');
     return '${now.year}-$month';
   }
-
-  CollectionReference<Map<String, dynamic>> get _scoreEntriesRef =>
-      FirebaseFirestore.instance
-          .collection(_scoreCollection)
-          .doc(_monthKey)
-          .collection('items');
-
-  DocumentReference<Map<String, dynamic>> get _currentUserScoreRef =>
-      _scoreEntriesRef.doc(FirebaseAuth.instance.currentUser?.uid);
 
   static const monthNames = [
     '',
@@ -131,11 +125,10 @@ class AntremanScoreController extends GetxController {
         final userId = (entry['userID'] ?? '').toString();
         if (userId.isEmpty) return;
 
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
-        final userData = userDoc.data();
+        final userData = await _userRepository.getUserRaw(
+          userId,
+          preferCache: true,
+        );
         if (userData == null) return;
 
         final profileImage = ('').toString().trim();
@@ -184,37 +177,31 @@ class AntremanScoreController extends GetxController {
       final tempLeaderboard = <Map<String, dynamic>>[];
       const int limit = 40;
       const int pageSize = 200;
-      DocumentSnapshot? lastDocument;
+      DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       userRank.value = 0;
       final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
       while (tempLeaderboard.length < limit) {
-        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-            .collection(_scoreCollection)
-            .doc(_monthKey)
-            .collection('items')
-            .orderBy('antPoint', descending: true)
-            .limit(pageSize);
+        final page = await _antremanRepository.fetchLeaderboardPage(
+          monthKey: _monthKey,
+          pageSize: pageSize,
+          lastDocument: lastDocument,
+        );
+        if (page.isEmpty) break;
 
-        if (lastDocument != null) {
-          query = query.startAfterDocument(lastDocument);
-        }
-
-        final snapshot = await query.get();
-
-        if (snapshot.docs.isEmpty) break;
-
-        for (var doc in snapshot.docs) {
-          final data = Map<String, dynamic>.from(doc.data());
-          data['userID'] = doc.id;
+        for (final entry in page) {
+          final data = Map<String, dynamic>.from(entry)
+            ..remove('_doc');
+          final userId = (data['userID'] ?? '').toString();
           if (_isEligibleEntry(data) &&
-              !tempLeaderboard.any((user) => user['userID'] == doc.id)) {
+              !tempLeaderboard.any((user) => user['userID'] == userId)) {
             tempLeaderboard.add(data);
           }
         }
 
-        if (snapshot.docs.isNotEmpty) {
-          lastDocument = snapshot.docs.last;
+        final doc = page.last['_doc'];
+        if (doc is DocumentSnapshot<Map<String, dynamic>>) {
+          lastDocument = doc;
         } else {
           break;
         }
@@ -246,19 +233,18 @@ class AntremanScoreController extends GetxController {
   }
 
   Future<void> getUserAntPoint() async {
-    final monthlyDoc = await _currentUserScoreRef.get();
-    if (monthlyDoc.exists) {
-      userPoint.value =
-          ((monthlyDoc.data()?["antPoint"] ?? 100) as num).toInt();
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final monthlyScore = await _antremanRepository.getMonthlyScore(uid);
+    if (monthlyScore != null) {
+      userPoint.value = monthlyScore;
     } else {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .get();
-      userPoint.value = ((userDoc.data()?["antPoint"] ?? 100) as num).toInt();
+      final userData = await _userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+      );
+      userPoint.value = ((userData?["antPoint"] ?? 100) as num).toInt();
     }
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
+    if (uid.isNotEmpty) {
       unawaited(_computeUserRank(uid));
     }
   }
@@ -266,38 +252,35 @@ class AntremanScoreController extends GetxController {
   Future<void> _computeUserRank(String currentUserId) async {
     try {
       int rank = 1;
-      DocumentSnapshot? lastDocument;
+      DocumentSnapshot<Map<String, dynamic>>? lastDocument;
       const int pageSize = 400;
       while (true) {
-        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-            .collection(_scoreCollection)
-            .doc(_monthKey)
-            .collection('items')
-            .orderBy('antPoint', descending: true)
-            .limit(pageSize);
-        if (lastDocument != null) {
-          query = query.startAfterDocument(lastDocument);
-        }
-        final snapshot = await query.get();
-        if (snapshot.docs.isEmpty) break;
+        final page = await _antremanRepository.fetchLeaderboardPage(
+          monthKey: _monthKey,
+          pageSize: pageSize,
+          lastDocument: lastDocument,
+        );
+        if (page.isEmpty) break;
 
-        final eligibleDocs = snapshot.docs.where((doc) {
-          return _isEligibleEntry(doc.data());
+        final eligibleDocs = page.where((entry) {
+          return _isEligibleEntry(entry);
         }).toList()
-          ..sort((a, b) => _compareEntries(
-                <String, dynamic>{...a.data(), 'userID': a.id},
-                <String, dynamic>{...b.data(), 'userID': b.id},
-              ));
+          ..sort(_compareEntries);
 
         for (final doc in eligibleDocs) {
-          if (doc.id == currentUserId) {
+          if (doc['userID'] == currentUserId) {
             userRank.value = rank;
             return;
           }
           rank++;
         }
 
-        lastDocument = snapshot.docs.last;
+        final last = page.last['_doc'];
+        if (last is DocumentSnapshot<Map<String, dynamic>>) {
+          lastDocument = last;
+        } else {
+          break;
+        }
       }
     } catch (e) {
       log("Sıralama hesaplanamadı: $e");

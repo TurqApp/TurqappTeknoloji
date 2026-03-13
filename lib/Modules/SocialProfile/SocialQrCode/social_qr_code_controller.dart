@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -16,19 +17,20 @@ class SocialQrCodeController extends GetxController {
   var profileImage = "".obs;
   final RxString profileLink = ''.obs;
   final ShortLinkService _shortLinkService = ShortLinkService();
+  final UserRepository _userRepository = UserRepository.ensure();
   @override
   void onInit() {
     // TODO: implement onInit
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      nickname.value = doc.get("nickname");
-      profileImage.value = (doc.data()?['avatarUrl'] ?? '').toString();
-      unawaited(_prepareProfileLink());
-    });
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final data = await _userRepository.getUserRaw(userID);
+    if (data == null) return;
+    nickname.value = (data["nickname"] ?? data["username"] ?? "").toString();
+    profileImage.value = resolveAvatarUrl(data);
+    unawaited(_prepareProfileLink());
   }
 
   Future<String> _buildProfileLink() async {

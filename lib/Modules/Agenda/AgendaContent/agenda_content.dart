@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,8 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -157,24 +158,10 @@ class _AgendaContentState extends State<AgendaContent>
     }
 
     final ids = candidates.map((p) => p.docID).toSet().toList();
-    final freshById = <String, PostsModel>{};
-
-    for (int i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        final model = PostsModel.fromMap(doc.data(), doc.id);
-        if (model.deletedPost == false &&
-            model.arsiv == false &&
-            model.gizlendi == false &&
-            model.hasPlayableVideo) {
-          freshById[doc.id] = model;
-        }
-      }
-    }
+    final freshById = await PostRepository.ensure().fetchPostsByIds(
+      ids,
+      preferCache: true,
+    );
 
     final refreshed = candidates
         .map((p) => freshById[p.docID] ?? p)
@@ -452,22 +439,16 @@ class _AgendaContentState extends State<AgendaContent>
                                           return Container(
                                               color: const Color(0xFFE8E8E8));
                                         }
-                                        return Image.network(
-                                          thumb,
+                                        return CachedNetworkImage(
+                                          imageUrl: thumb,
                                           fit: BoxFit.cover,
-                                          loadingBuilder: (context, child,
-                                              loadingProgress) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return Container(
-                                                color: const Color(0xFFE8E8E8));
-                                          },
-                                          errorBuilder: (context, error,
-                                                  stackTrace) =>
+                                          placeholder: (_, __) => Container(
+                                            color: const Color(0xFFE8E8E8),
+                                          ),
+                                          errorWidget: (_, __, ___) =>
                                               Container(
-                                                  color:
-                                                      const Color(0xFFE8E8E8)),
+                                            color: const Color(0xFFE8E8E8),
+                                          ),
                                         );
                                       }
                                       return Stack(
@@ -497,12 +478,16 @@ class _AgendaContentState extends State<AgendaContent>
                                               return child!;
                                             },
                                             child: thumb.isNotEmpty
-                                                ? Image.network(
-                                                    thumb,
+                                                ? CachedNetworkImage(
+                                                    imageUrl: thumb,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (_, __, ___) =>
-                                                            Container(
+                                                    placeholder: (_, __) =>
+                                                        Container(
+                                                      color: const Color(
+                                                          0xFFE8E8E8),
+                                                    ),
+                                                    errorWidget: (_, __, ___) =>
+                                                        Container(
                                                       color: const Color(
                                                           0xFFE8E8E8),
                                                     ),
@@ -905,6 +890,7 @@ class _AgendaContentState extends State<AgendaContent>
     final profileCache = Get.isRegistered<UserProfileCacheService>()
         ? Get.find<UserProfileCacheService>()
         : Get.put(UserProfileCacheService(), permanent: true);
+    final postRepository = PostRepository.ensure();
 
     return FutureBuilder<List<dynamic>>(
       future: Future.wait<dynamic>([
@@ -914,7 +900,7 @@ class _AgendaContentState extends State<AgendaContent>
           cacheOnly: false,
         ),
         if (sourcePostId.isNotEmpty)
-          FirebaseFirestore.instance.collection('Posts').doc(sourcePostId).get()
+          postRepository.fetchPostsByIds([sourcePostId])
         else
           Future.value(null),
       ]),
@@ -923,11 +909,12 @@ class _AgendaContentState extends State<AgendaContent>
                 ? snapshot.data!.first
                 : null) as Map<String, dynamic>? ??
             const <String, dynamic>{};
-        final sourcePostSnapshot =
+        final sourcePostMap =
             snapshot.data != null && snapshot.data!.length > 1
-                ? snapshot.data![1] as DocumentSnapshot<Map<String, dynamic>>?
+                ? snapshot.data![1] as Map<String, PostsModel>?
                 : null;
-        final sourcePostData = sourcePostSnapshot?.data() ?? const {};
+        final sourcePostData =
+            sourcePostMap?[sourcePostId]?.toMap() ?? const <String, dynamic>{};
         String firstNonEmpty(List<dynamic> values, [String fallback = '']) {
           for (final value in values) {
             final text = (value ?? '').toString().trim();
@@ -956,14 +943,13 @@ class _AgendaContentState extends State<AgendaContent>
           profile['nickname'],
           profile['username'],
         ], username.isNotEmpty ? username : 'Kullanıcı');
-        final avatarUrl =
-            (widget.model.quotedSourceAvatarUrl.isNotEmpty
-                    ? widget.model.quotedSourceAvatarUrl
-                    : (profile['avatarUrl'] ??
-                        sourcePostData['authorAvatarUrl'] ??
-                        ''))
-                .toString()
-                .trim();
+        final avatarUrl = (widget.model.quotedSourceAvatarUrl.isNotEmpty
+                ? widget.model.quotedSourceAvatarUrl
+                : (profile['avatarUrl'] ??
+                    sourcePostData['authorAvatarUrl'] ??
+                    ''))
+            .toString()
+            .trim();
         final quotedTime = ((sourcePostData['izBirakYayinTarihi'] ??
                     sourcePostData['timeStamp']) ??
                 0)
@@ -1151,17 +1137,15 @@ class _AgendaContentState extends State<AgendaContent>
     }
 
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('Posts')
-          .doc(originalPostId)
-          .get();
+      final model = await PostRepository.ensure().fetchPostById(
+        originalPostId,
+        preferCache: true,
+      );
 
-      if (!doc.exists) {
+      if (model == null) {
         AppSnackbar('Bilgi', 'Kaynak gönderiye ulaşılamıyor.');
         return;
       }
-
-      final model = PostsModel.fromMap(doc.data()!, doc.id);
       if (model.deletedPost) {
         AppSnackbar('Bilgi', 'Kaynak gönderi silinmiş.');
         return;
@@ -1187,8 +1171,13 @@ class _AgendaContentState extends State<AgendaContent>
     }
   }
 
-  Future<({String userId, String displayName, String username, String avatarUrl})
-      > _resolveQuotedSourceSnapshot() async {
+  Future<
+      ({
+        String userId,
+        String displayName,
+        String username,
+        String avatarUrl
+      })> _resolveQuotedSourceSnapshot() async {
     String pick(List<dynamic> values, [String fallback = '']) {
       for (final value in values) {
         final text = (value ?? '').toString().trim();
@@ -1229,13 +1218,12 @@ class _AgendaContentState extends State<AgendaContent>
         final profileCache = Get.isRegistered<UserProfileCacheService>()
             ? Get.find<UserProfileCacheService>()
             : Get.put(UserProfileCacheService(), permanent: true);
-        final profile =
-            (await profileCache.getProfile(
-          sourceUserId,
-          preferCache: true,
-          cacheOnly: false,
-        )) ??
-                const <String, dynamic>{};
+        final profile = (await profileCache.getProfile(
+              sourceUserId,
+              preferCache: true,
+              cacheOnly: false,
+            )) ??
+            const <String, dynamic>{};
         displayName = pick([
           displayName,
           profile['displayName'],
@@ -1286,44 +1274,9 @@ class _AgendaContentState extends State<AgendaContent>
         Get.to(() => TagPosts(tag: tag.trim()));
       },
       onMentionTap: (mention) async {
-        final normalizedMention = mention.trim().replaceFirst('@', '');
-        final handle = normalizedMention.toLowerCase();
-        if (handle.isEmpty) return;
-
-        String targetUid = '';
-        try {
-          final usernameDoc = await FirebaseFirestore.instance
-              .collection('usernames')
-              .doc(handle)
-              .get();
-          targetUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-        } catch (_) {}
-
-        if (targetUid.isEmpty) {
-          try {
-            final byUsername = await FirebaseFirestore.instance
-                .collection('users')
-                .where('usernameLower', isEqualTo: handle)
-                .limit(1)
-                .get();
-            if (byUsername.docs.isNotEmpty) {
-              targetUid = byUsername.docs.first.id;
-            }
-          } catch (_) {}
-        }
-
-        if (targetUid.isEmpty) {
-          try {
-            final byNickname = await FirebaseFirestore.instance
-                .collection('users')
-                .where('nickname', isEqualTo: normalizedMention)
-                .limit(1)
-                .get();
-            if (byNickname.docs.isNotEmpty) {
-              targetUid = byNickname.docs.first.id;
-            }
-          } catch (_) {}
-        }
+        final targetUid =
+            await UsernameLookupRepository.ensure().findUidForHandle(mention) ??
+                '';
 
         final currentUid = FirebaseAuth.instance.currentUser?.uid;
         if (targetUid.isNotEmpty && targetUid != currentUid) {
@@ -1727,7 +1680,8 @@ class _AgendaContentState extends State<AgendaContent>
     final storyUser = _resolveStoryUser();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
       videoController?.pause();
-      final users = Get.find<StoryRowController>().users.toList(growable: false);
+      final users =
+          Get.find<StoryRowController>().users.toList(growable: false);
       Get.to(() => StoryViewer(
             startedUser: storyUser,
             storyOwnerUsers: users,
@@ -2600,9 +2554,7 @@ class _AgendaContentState extends State<AgendaContent>
         itemBuilder: (context) => [
           PullDownMenuItem(
             onTap: canReshare ? _runSimpleReshare : null,
-            title: isReshared
-                ? 'Yeniden paylaşımı geri al'
-                : 'Yeniden paylaş',
+            title: isReshared ? 'Yeniden paylaşımı geri al' : 'Yeniden paylaş',
             icon: Icons.repeat,
           ),
           PullDownMenuItem(
@@ -2662,7 +2614,8 @@ class _AgendaContentState extends State<AgendaContent>
     final String resolvedQuotedSourceDisplayName =
         sourceSnapshot.displayName.trim();
     final String resolvedQuotedSourceUsername = sourceSnapshot.username.trim();
-    final String resolvedQuotedSourceAvatarUrl = sourceSnapshot.avatarUrl.trim();
+    final String resolvedQuotedSourceAvatarUrl =
+        sourceSnapshot.avatarUrl.trim();
 
     if (widget.model.originalUserID.isNotEmpty) {
       finalOriginalUserID = widget.model.originalUserID;

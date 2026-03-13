@@ -1,13 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class OpticalPreviewController extends GetxController {
   final OpticalFormModel model;
   final Function? onUpdate;
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
 
   final cevaplar = <String>[].obs;
   final isConnected = true.obs;
@@ -44,31 +46,23 @@ class OpticalPreviewController extends GetxController {
   }
 
   void setData() {
-    FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "cevaplar": cevaplar,
-      "ogrenciNo": ogrenciNo.text,
-      "fullName": fullName.text,
-    });
-    Get.back();
+    _opticalFormRepository
+        .saveUserAnswers(
+          model.docID,
+          FirebaseAuth.instance.currentUser!.uid,
+          answers: cevaplar.toList(growable: false),
+          ogrenciNo: ogrenciNo.text,
+          fullName: fullName.text,
+        )
+        .then((_) => Get.back());
   }
 
   void kullaniciyiSinavGirdiKaydet() {
-    FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .set({
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "cevaplar": List.filled(model.cevaplar.length, ""),
-    });
-    SetOptions(merge: true);
+    _opticalFormRepository.initializeUserAnswers(
+      model.docID,
+      FirebaseAuth.instance.currentUser!.uid,
+      model.cevaplar.length,
+    );
   }
 
   void toggleAnswer(int index, String item) {

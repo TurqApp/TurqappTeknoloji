@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -123,12 +124,29 @@ class CategoryBasedAnswerKey extends StatelessWidget {
                                               padding: EdgeInsets.all(12),
                                               child: Row(
                                                 children: [
-                                                  Image.network(
-                                                    controller
+                                                  CachedNetworkImage(
+                                                    imageUrl: controller
                                                         .filteredList[index]
                                                         .cover,
                                                     fit: BoxFit.contain,
                                                     height: 80,
+                                                    placeholder:
+                                                        (context, url) =>
+                                                            const SizedBox(
+                                                      height: 80,
+                                                      child: Center(
+                                                        child:
+                                                            CupertinoActivityIndicator(),
+                                                      ),
+                                                    ),
+                                                    errorWidget: (
+                                                      context,
+                                                      url,
+                                                      error,
+                                                    ) =>
+                                                        const Icon(
+                                                      Icons.broken_image,
+                                                    ),
                                                   ),
                                                   SizedBox(width: 12),
                                                   Expanded(

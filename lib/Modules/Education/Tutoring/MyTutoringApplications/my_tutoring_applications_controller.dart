@@ -1,9 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 
 class MyTutoringApplicationsController extends GetxController {
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   RxList<TutoringApplicationModel> applications =
       <TutoringApplicationModel>[].obs;
   var isLoading = false.obs;
@@ -19,15 +23,17 @@ class MyTutoringApplicationsController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myTutoringApplications')
-          .orderBy('timeStamp', descending: true)
-          .get();
+      final items = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'myTutoringApplications',
+        orderByField: 'timeStamp',
+        descending: true,
+        preferCache: true,
+        forceRefresh: false,
+      );
 
-      applications.value = snapshot.docs
-          .map((doc) => TutoringApplicationModel.fromMap(doc.data(), doc.id))
+      applications.value = items
+          .map((doc) => TutoringApplicationModel.fromMap(doc.data, doc.id))
           .toList();
     } catch (e) {
       print("Özel ders başvuruları yüklenirken hata: $e");
@@ -41,42 +47,24 @@ class MyTutoringApplicationsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.delete(FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('myTutoringApplications')
-          .doc(tutoringDocID));
-
-      batch.delete(FirebaseFirestore.instance
-          .collection('educators')
-          .doc(tutoringDocID)
-          .collection('Applications')
-          .doc(uid));
-
-      batch.update(
-          FirebaseFirestore.instance.collection('educators').doc(tutoringDocID),
-          {'applicationCount': FieldValue.increment(-1)});
-
-      await batch.commit();
-
-      // Prevent negative count
-      final docSnap = await FirebaseFirestore.instance
-          .collection('educators')
-          .doc(tutoringDocID)
-          .get();
-      if (docSnap.exists) {
-        final count = (docSnap.data()?['applicationCount'] ?? 0) as num;
-        if (count < 0) {
-          await FirebaseFirestore.instance
-              .collection('educators')
-              .doc(tutoringDocID)
-              .update({'applicationCount': 0});
-        }
-      }
+      await _tutoringRepository.cancelApplication(
+        tutoringId: tutoringDocID,
+        userId: uid,
+      );
 
       applications.removeWhere((a) => a.tutoringDocID == tutoringDocID);
+      await _subcollectionRepository.setEntries(
+        uid,
+        subcollection: 'myTutoringApplications',
+        items: applications
+            .map(
+              (e) => UserSubcollectionEntry(
+                id: e.tutoringDocID,
+                data: e.toMap(),
+              ),
+            )
+            .toList(growable: false),
+      );
     } catch (e) {
       print("Özel ders başvuru iptal hatası: $e");
     }

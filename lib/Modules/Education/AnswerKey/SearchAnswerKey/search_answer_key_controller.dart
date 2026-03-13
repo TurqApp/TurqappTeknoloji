@@ -1,8 +1,8 @@
 import 'dart:developer';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
 
@@ -10,6 +10,7 @@ class SearchAnswerKeyController extends GetxController {
   final searchController = TextEditingController();
   final list = <BookletModel>[].obs;
   final filteredList = <BookletModel>[].obs;
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   @override
   void onInit() {
@@ -28,12 +29,7 @@ class SearchAnswerKeyController extends GetxController {
 
   Future<void> getData() async {
     try {
-      final snapshots =
-          await FirebaseFirestore.instance.collection("books").get();
-      final newList = <BookletModel>[];
-      for (var doc in snapshots.docs) {
-        newList.add(BookletModel.fromMap(doc.data(), doc.id));
-      }
+      final newList = await _bookletRepository.fetchAll(preferCache: true);
       list.assignAll(newList);
       filteredList.assignAll(newList);
       log("Çekilen kitapçık sayısı: ${newList.length}");

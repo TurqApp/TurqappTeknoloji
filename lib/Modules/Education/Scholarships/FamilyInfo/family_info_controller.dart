@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,9 +7,11 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class FamilyInfoController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
   final isLoading = true.obs;
   final familyInfo = ''.obs;
 
@@ -80,13 +81,10 @@ class FamilyInfoController extends GetxController {
 
   Future<void> fetchFromFirestore() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      if (doc.exists) {
-        final data = doc.data();
-        if (data != null) {
+      final data = await _userRepository.getUserRaw(
+        FirebaseAuth.instance.currentUser!.uid,
+      );
+      if (data != null) {
           familyInfo.value =
               userString(data, key: 'familyInfo', scope: 'family');
           fatherName.value.text =
@@ -145,9 +143,6 @@ class FamilyInfoController extends GetxController {
           );
           city.value = userString(data, key: 'ikametSehir', scope: 'profile');
           town.value = userString(data, key: 'ikametIlce', scope: 'profile');
-        } else {
-          _resetToDefaults();
-        }
       } else {
         _resetToDefaults();
       }
@@ -360,10 +355,9 @@ class FamilyInfoController extends GetxController {
 
     // Veri kaydetme
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({
+      await _userRepository.updateUserFields(
+        FirebaseAuth.instance.currentUser!.uid,
+        {
         ...scopedUserUpdate(
           scope: 'family',
           values: {
@@ -401,7 +395,8 @@ class FamilyInfoController extends GetxController {
             "ikametIlce": town.value,
           },
         ),
-      });
+      },
+      );
 
       Get.back();
       AppSnackbar("Başarılı", "Aile Bilgileriniz Kaydedildi.");
@@ -414,10 +409,9 @@ class FamilyInfoController extends GetxController {
   void resetFamilyInfo() async {
     try {
       // Firestore'dan aile bilgilerini sıfırla
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .update({
+      await _userRepository.updateUserFields(
+        FirebaseAuth.instance.currentUser!.uid,
+        {
         ...scopedUserUpdate(
           scope: 'family',
           values: {
@@ -445,7 +439,8 @@ class FamilyInfoController extends GetxController {
             "ikametIlce": "",
           },
         ),
-      });
+      },
+      );
 
       // UI'yi hemen güncelle
       familyInfo.value = "";

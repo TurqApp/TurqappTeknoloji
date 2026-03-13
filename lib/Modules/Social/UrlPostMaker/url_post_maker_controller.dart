@@ -176,6 +176,7 @@ class UrlPostMakerController extends GetxController {
               "userID": FirebaseAuth.instance.currentUser!.uid,
               "timestamp": DateTime.now().millisecondsSinceEpoch,
               "sharedPostID": uuid, // Paylaşılan yeni post ID'si
+              "quotedPost": false,
             });
             print(
                 'postSharers updated for post: $targetPostID by user: ${FirebaseAuth.instance.currentUser!.uid}');

@@ -1,20 +1,20 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:uuid/uuid.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
+  final ProfileRepository _profileRepository = ProfileRepository.ensure();
   final scrollController = ScrollController();
 
   final RxList<PostsModel> list = <PostsModel>[].obs;
   final Map<int, GlobalKey> _agendaKeys = {};
   int? lastCenteredIndex;
   final centeredIndex = 0.obs;
-  StreamSubscription? _sub;
   StreamSubscription<User?>? _authSub;
 
   @override
@@ -29,7 +29,6 @@ class ArchiveController extends GetxController {
   void onClose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
-    _sub?.cancel();
     _authSub?.cancel();
     super.onClose();
   }
@@ -89,30 +88,29 @@ class ArchiveController extends GetxController {
   void _bindAuth() {
     _authSub = FirebaseAuth.instance.userChanges().listen((user) {
       list.clear();
-      _sub?.cancel();
-      _bindArchive();
+      unawaited(fetchData(initial: true));
     });
   }
 
-  void _bindArchive() {
+  Future<void> _bindArchive() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    _sub = FirebaseFirestore.instance
-        .collection('Posts')
-        .where('userID', isEqualTo: uid)
-        .where('arsiv', isEqualTo: true)
-        .orderBy('timeStamp', descending: true)
-        .snapshots()
-        .listen((snap) {
-      list.value =
-          snap.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList();
-    }, onError: (e) => print('Archive listen error: $e'));
+    final cached = await _profileRepository.readCachedArchive(uid);
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      return;
+    }
+    final posts = await _profileRepository.fetchArchive(uid);
+    list.assignAll(posts);
   }
 
   Future<void> fetchData({bool initial = false}) async {
-    // Manual refresh: mevcut binding'i tetiklemek için yeniden kur
-    list.clear();
-    _sub?.cancel();
-    _bindArchive();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    if (!initial) {
+      list.clear();
+    }
+    final posts = await _profileRepository.fetchArchive(uid);
+    list.assignAll(posts);
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -163,8 +164,8 @@ class SinavHazirla extends StatelessWidget {
                                           borderRadius: BorderRadius.all(
                                             Radius.circular(12),
                                           ),
-                                          child: Image.network(
-                                            sinavModel!.cover,
+                                          child: CachedNetworkImage(
+                                            imageUrl: sinavModel!.cover,
                                             fit: BoxFit.cover,
                                             width: MediaQuery.of(
                                               context,
@@ -172,10 +173,10 @@ class SinavHazirla extends StatelessWidget {
                                             height: MediaQuery.of(
                                               context,
                                             ).size.width,
-                                            errorBuilder: (
+                                            errorWidget: (
                                               context,
+                                              url,
                                               error,
-                                              stackTrace,
                                             ) =>
                                                 Container(
                                               alignment: Alignment.center,

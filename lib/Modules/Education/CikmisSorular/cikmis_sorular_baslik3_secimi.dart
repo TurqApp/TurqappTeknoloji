@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 
 import 'cikmis_sorular_preview.dart';
 
@@ -24,34 +24,25 @@ class CikmisSorularBaslik3Secimi extends StatefulWidget {
 
 class _CikmisSorularBaslik3SecimiState
     extends State<CikmisSorularBaslik3Secimi> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> basliklar = [];
 
   @override
   void initState() {
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .where("sinavTuru", isEqualTo: widget.sinavTuru)
-        .where("yil", isEqualTo: widget.yil)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      for (var doc in snapshot.docs) {
-        String baslik2 = doc.get("baslik2");
-        String baslik3 = doc.get("baslik3");
-
-        if (!basliklar.contains(baslik3) && widget.baslik2 == baslik2) {
-          if (mounted) {
-            setState(() {
-              basliklar.add(baslik3);
-            });
-          }
-        }
-      }
-      // Veri tamamen yüklendikten sonra sıralama
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru &&
+              (doc['yil'] ?? '').toString() == widget.yil &&
+              (doc['baslik2'] ?? '').toString() == widget.baslik2,
+          field: 'baslik3',
+        )
+        .then((items) {
       if (mounted) {
         setState(() {
-          basliklar.sort(); // A -> Z sıralaması
+          basliklar = items;
         });
       }
     });

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -10,11 +9,13 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/Complaint/complaint.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -22,6 +23,7 @@ class ThenSolve extends StatelessWidget {
   ThenSolve({super.key});
 
   final AntremanController controller = Get.find<AntremanController>();
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -55,49 +57,30 @@ class ThenSolve extends StatelessWidget {
                       onTap: () => Get.to(AntremanScore()),
                       child: Row(
                         children: [
-                          StreamBuilder<DocumentSnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('questionBankSkor')
-                                .doc(
-                                  '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-                                )
-                                .collection('items')
-                                .doc(controller.userID)
-                                .snapshots(),
+                          StreamBuilder<int?>(
+                            stream: _antremanRepository.scoreStream(
+                              controller.userID,
+                            ),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                       ConnectionState.waiting ||
                                   snapshot.hasError ||
                                   !snapshot.hasData ||
-                                  !snapshot.data!.exists) {
-                                return StreamBuilder<DocumentSnapshot>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(controller.userID)
-                                      .snapshots(),
-                                  builder: (context, userSnapshot) {
-                                    if (!userSnapshot.hasData ||
-                                        !userSnapshot.data!.exists) {
-                                      return const Text("0");
-                                    }
-                                    final userData = userSnapshot.data!.data()
-                                        as Map<String, dynamic>?;
-                                    final antPoint =
-                                        (userData?['antPoint'] as num?)
-                                                ?.toInt() ??
-                                            100;
-                                    return Text(
-                                      antPoint.toString(),
-                                      style: TextStyles.textFieldTitle,
-                                    );
-                                  },
-                                );
+                                  snapshot.data == null) {
+                                return Obx(() {
+                                  final current =
+                                      CurrentUserService.instance.currentUser;
+                                  final antPoint =
+                                      current?.userID == controller.userID
+                                          ? current?.antPoint ?? 100
+                                          : 100;
+                                  return Text(
+                                    antPoint.toString(),
+                                    style: TextStyles.textFieldTitle,
+                                  );
+                                });
                               }
-                              final scoreData = snapshot.data!.data()
-                                  as Map<String, dynamic>?;
-                              final antPoint =
-                                  (scoreData?['antPoint'] as num?)?.toInt() ??
-                                      0;
+                              final antPoint = snapshot.data ?? 0;
                               return Text(
                                 antPoint.toString(),
                                 style: TextStyles.textFieldTitle,
@@ -405,27 +388,20 @@ class ThenSolve extends StatelessWidget {
                                         }
                                       },
                                     ),
-                                    StreamBuilder<QuerySnapshot>(
-                                      stream: FirebaseFirestore.instance
-                                          .collection('questionBank')
-                                          .doc(question.docID)
-                                          .collection('Yorumlar')
-                                          .snapshots(),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.hasData) {
-                                          int commentCount =
-                                              snapshot.data!.docs.length;
-                                          return Text(
-                                            "$commentCount",
-                                            style: TextStyle(fontSize: 14),
-                                          );
-                                        }
-                                        return Text(
-                                          "0",
-                                          style: TextStyle(fontSize: 14),
-                                        );
-                                      },
-                                    ),
+                                        StreamBuilder<int>(
+                                          stream: _antremanRepository
+                                              .commentCountStream(
+                                            question.docID,
+                                          ),
+                                          builder: (context, snapshot) {
+                                            final commentCount =
+                                                snapshot.data ?? 0;
+                                            return Text(
+                                              "$commentCount",
+                                              style: TextStyle(fontSize: 14),
+                                            );
+                                          },
+                                        ),
                                   ],
                                 ),
                                 Obx(

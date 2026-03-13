@@ -11,7 +11,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
@@ -106,7 +112,7 @@ class CurrentUserService extends GetxController {
   // 🔧 Private Variables
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   SharedPreferences? _prefs;
-  StreamSubscription<DocumentSnapshot>? _firestoreSubscription;
+  StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
 
   static const String _cacheKey = 'cached_current_user';
   static const String _cacheTimestampKey = 'cached_current_user_timestamp';
@@ -119,8 +125,12 @@ class CurrentUserService extends GetxController {
   bool _isInitialized = false;
   bool _isSyncing = false;
   int? _lastKnownViewSelection;
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  static const Duration _rootDocCacheTtl = Duration(minutes: 2);
   static const Duration _subdocCacheTtl = Duration(minutes: 10);
   static const Duration _listCacheTtl = Duration(minutes: 2);
+  final Map<String, _TimedValue<Map<String, dynamic>>> _rootDocCache = {};
   final Map<String, _TimedValue<Map<String, dynamic>>> _subdocCache = {};
   final Map<String, _TimedValue<Map<String, dynamic>>> _listCache = {};
   final Map<String, DateTime> _silentLogAt = {};
@@ -149,7 +159,8 @@ class CurrentUserService extends GetxController {
         return false;
       }
       emailVerifiedRx.value = firebaseUser.emailVerified;
-      _lastKnownViewSelection = _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
+      _lastKnownViewSelection =
+          _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
 
       // If already initialized and user exists, just ensure sync is running
       if (_isInitialized &&
@@ -204,10 +215,9 @@ class CurrentUserService extends GetxController {
 
   Future<void> _restorePendingDeletionIfNeeded(String uid) async {
     try {
-      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-      final userSnap = await userRef.get();
-      final data = userSnap.data();
-      if (data == null) return;
+      final userRepository = UserRepository.ensure();
+      final data = await _readRootUserData(uid, preferCache: true);
+      if (data.isEmpty) return;
 
       final status = (data['accountStatus'] ?? '').toString().toLowerCase();
       if (status != 'pending_deletion') return;
@@ -224,61 +234,67 @@ class CurrentUserService extends GetxController {
         return;
       }
 
-      await userRef.set({
+      await userRepository.updateUserFields(uid, {
         'accountStatus': 'active',
         'isDeleted': false,
         'isPrivate': false,
         'updatedDate': DateTime.now().millisecondsSinceEpoch,
-      }, SetOptions(merge: true));
+      });
 
       try {
-        final actionSnap = await userRef
-            .collection('account_actions')
-            .where('type', isEqualTo: 'deletion')
-            .where('status', isEqualTo: 'pending')
-            .limit(1)
-            .get();
-        if (actionSnap.docs.isNotEmpty) {
-          await actionSnap.docs.first.reference.set({
-            'status': 'cancelled',
-            'cancelledAt': DateTime.now().millisecondsSinceEpoch,
-          }, SetOptions(merge: true));
+        final actions = await _userSubcollectionRepository.getEntries(
+          uid,
+          subcollection: 'account_actions',
+          preferCache: true,
+        );
+        final pendingDeletion = actions.firstWhereOrNull(
+          (entry) =>
+              (entry.data['type'] ?? '').toString() == 'deletion' &&
+              (entry.data['status'] ?? '').toString() == 'pending',
+        );
+        if (pendingDeletion != null) {
+          await _userSubcollectionRepository.upsertEntry(
+            uid,
+            subcollection: 'account_actions',
+            docId: pendingDeletion.id,
+            data: {
+              'status': 'cancelled',
+              'cancelledAt': DateTime.now().millisecondsSinceEpoch,
+            },
+          );
+          final next = actions
+              .map((entry) {
+                if (entry.id != pendingDeletion.id) return entry;
+                return UserSubcollectionEntry(
+                  id: entry.id,
+                  data: {
+                    ...entry.data,
+                    'status': 'cancelled',
+                    'cancelledAt': DateTime.now().millisecondsSinceEpoch,
+                  },
+                );
+              })
+              .toList(growable: false);
+          await _userSubcollectionRepository.setEntries(
+            uid,
+            subcollection: 'account_actions',
+            items: next,
+          );
         }
       } catch (e, st) {
         _logSilently('restore.account_actions', e, st);
       }
 
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-          .collection('Posts')
-          .where('userID', isEqualTo: uid)
-          .where('deletedPost', isEqualTo: true)
-          .limit(400);
-
-      while (true) {
-        final snap = await query.get();
-        if (snap.docs.isEmpty) break;
-
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in snap.docs) {
-          batch.update(doc.reference, {
-            'deletedPost': false,
-            'deletedPostTime': 0,
-            'updatedDate': DateTime.now().millisecondsSinceEpoch,
-          });
-        }
-        await batch.commit();
-
-        if (snap.docs.length < 400) break;
-        query = FirebaseFirestore.instance
-            .collection('Posts')
-            .where('userID', isEqualTo: uid)
-            .where('deletedPost', isEqualTo: true)
-            .startAfterDocument(snap.docs.last)
-            .limit(400);
-      }
+      await PostRepository.ensure().restoreDeletedPostsForUser(uid);
     } catch (e) {
       print('⚠️ pending_deletion restore skipped: $e');
     }
+  }
+
+  Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    await _restorePendingDeletionIfNeeded(uid);
   }
 
   /// Force refresh from Firebase (bypasses cache)
@@ -288,15 +304,16 @@ class CurrentUserService extends GetxController {
 
     try {
       _purgeUserScopedCaches(firebaseUser.uid);
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .get();
+      final data = await _readRootUserData(
+        firebaseUser.uid,
+        preferCache: false,
+        forceServer: true,
+      );
 
-      if (doc.exists) {
+      if (data.isNotEmpty) {
         final merged = await _buildMergedUserData(
           uid: firebaseUser.uid,
-          rootData: doc.data() ?? const <String, dynamic>{},
+          rootData: data,
         );
         await _updateUser(CurrentUserModel.fromJson(merged));
       }
@@ -329,6 +346,12 @@ class CurrentUserService extends GetxController {
       }
 
       final json = jsonDecode(cachedJson) as Map<String, dynamic>;
+      final cachedUid = expectedUid?.trim().isNotEmpty == true
+          ? expectedUid!.trim()
+          : (json['userID'] ?? '').toString().trim();
+      if (cachedUid.isNotEmpty) {
+        _storeRootUserData(cachedUid, json);
+      }
       final user = await _applyStoredViewSelection(
         CurrentUserModel.fromJson(json),
       );
@@ -398,9 +421,6 @@ class CurrentUserService extends GetxController {
     }
   }
 
-  String _subdocCacheKey(String uid, String col, String doc) =>
-      '$uid::$col::$doc';
-
   String _listCacheKey(String uid, String key) => '$uid::$key';
 
   bool _isFresh(DateTime fetchedAt, Duration ttl) =>
@@ -408,12 +428,83 @@ class CurrentUserService extends GetxController {
 
   void _purgeUserScopedCaches(String? uid) {
     if (uid == null || uid.isEmpty) {
+      _rootDocCache.clear();
       _subdocCache.clear();
       _listCache.clear();
       return;
     }
+    _rootDocCache.removeWhere((key, _) => key == uid);
     _subdocCache.removeWhere((key, _) => key.startsWith('$uid::'));
     _listCache.removeWhere((key, _) => key.startsWith('$uid::'));
+  }
+
+  void _storeRootUserData(String uid, Map<String, dynamic> data) {
+    if (uid.isEmpty || data.isEmpty) return;
+    _rootDocCache[uid] = _TimedValue<Map<String, dynamic>>(
+      value: Map<String, dynamic>.from(data),
+      fetchedAt: DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic>? _peekRootUserData(
+    String uid, {
+    bool allowStale = false,
+  }) {
+    if (uid.isEmpty) return null;
+    final cached = _rootDocCache[uid];
+    if (cached == null) return null;
+    if (!allowStale && !_isFresh(cached.fetchedAt, _rootDocCacheTtl)) {
+      return null;
+    }
+    return Map<String, dynamic>.from(cached.value);
+  }
+
+  Future<Map<String, dynamic>> _readRootUserData(
+    String uid, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+    bool forceServer = false,
+  }) async {
+    if (uid.isEmpty) return const <String, dynamic>{};
+
+    final userRepository = UserRepository.ensure();
+
+    if (!forceServer) {
+      final memory = _peekRootUserData(uid, allowStale: false);
+      if (preferCache && memory != null) {
+        return memory;
+      }
+    }
+
+    if (preferCache && !forceServer) {
+      final cached = await userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (cached != null && cached.isNotEmpty) {
+        _storeRootUserData(uid, cached);
+        return Map<String, dynamic>.from(cached);
+      }
+    }
+
+    if (cacheOnly) {
+      return _peekRootUserData(uid, allowStale: true) ??
+          const <String, dynamic>{};
+    }
+
+    final data = await userRepository.getUserRaw(
+          uid,
+          preferCache: false,
+          cacheOnly: false,
+          forceServer: true,
+        ) ??
+        const <String, dynamic>{};
+    if (data.isNotEmpty) {
+      _storeRootUserData(uid, data);
+      await userRepository.putUserRaw(uid, data);
+    }
+    return Map<String, dynamic>.from(data);
   }
 
   void _logSilently(String key, Object error, [StackTrace? stackTrace]) {
@@ -447,20 +538,18 @@ class CurrentUserService extends GetxController {
       await _firestoreSubscription?.cancel();
 
       // Listen to user document changes
-      _firestoreSubscription = FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .snapshots()
-          .listen(
-        (doc) async {
-          if (!doc.exists) {
+      _firestoreSubscription =
+          UserRepository.ensure().watchUserRaw(firebaseUser.uid).listen(
+        (data) async {
+          if (data == null || data.isEmpty) {
             print('❌ User document not found in Firestore');
             return;
           }
+          _storeRootUserData(firebaseUser.uid, data);
 
           final merged = await _buildMergedUserData(
             uid: firebaseUser.uid,
-            rootData: doc.data() ?? const <String, dynamic>{},
+            rootData: data,
           );
           final user = CurrentUserModel.fromJson(merged);
           await _updateUser(user);
@@ -482,7 +571,10 @@ class CurrentUserService extends GetxController {
     required Map<String, dynamic> rootData,
   }) async {
     final merged = <String, dynamic>{...rootData};
-    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    final currentSnapshot =
+        (_currentUser != null && _currentUser!.userID == uid)
+            ? _currentUser!.toJson()
+            : const <String, dynamic>{};
 
     Map<String, dynamic> extractRootMap(String key) {
       final raw = rootData[key];
@@ -493,28 +585,31 @@ class CurrentUserService extends GetxController {
       return <String, dynamic>{};
     }
 
-    Future<Map<String, dynamic>> readSubdocCached(
-        String col, String doc) async {
-      final key = _subdocCacheKey(uid, col, doc);
-      final cached = _subdocCache[key];
-      if (cached != null && _isFresh(cached.fetchedAt, _subdocCacheTtl)) {
-        return Map<String, dynamic>.from(cached.value);
+    Map<String, dynamic> extractCurrentMap(String key) {
+      final raw = currentSnapshot[key];
+      if (raw is Map<String, dynamic>) return Map<String, dynamic>.from(raw);
+      if (raw is Map) {
+        return raw.map((mapKey, value) => MapEntry(mapKey.toString(), value));
       }
+      return <String, dynamic>{};
+    }
+
+    Future<Map<String, dynamic>> readSubdocCached(
+      String col,
+      String doc,
+    ) async {
+      final repository = UserSubdocRepository.ensure();
       try {
-        final s = await userRef.collection(col).doc(doc).get();
-        final data = s.exists
-            ? Map<String, dynamic>.from(s.data() ?? const <String, dynamic>{})
-            : <String, dynamic>{};
-        _subdocCache[key] = _TimedValue<Map<String, dynamic>>(
-          value: data,
-          fetchedAt: DateTime.now(),
+        final data = await repository.getDoc(
+          uid,
+          collection: col,
+          docId: doc,
+          preferCache: true,
+          ttl: _subdocCacheTtl,
         );
         return data;
       } catch (e, st) {
         _logSilently('subdoc.$col.$doc', e, st);
-        if (cached != null) {
-          return Map<String, dynamic>.from(cached.value);
-        }
         return <String, dynamic>{};
       }
     }
@@ -551,22 +646,37 @@ class CurrentUserService extends GetxController {
     final rootFamily = extractRootMap('family');
     final rootSettings = extractRootMap('settings');
     final rootStats = extractRootMap('stats');
+    final currentPrivate = extractCurrentMap('private');
+    final currentEducation = extractCurrentMap('education');
+    final currentFamily = extractCurrentMap('family');
+    final currentSettings = extractCurrentMap('settings');
+    final currentStats = extractCurrentMap('stats');
 
     final privateAccount = rootPrivate.isNotEmpty
         ? rootPrivate
-        : await readSubdocCached('private', 'account');
+        : (currentPrivate.isNotEmpty
+            ? currentPrivate
+            : await readSubdocCached('private', 'account'));
     final education = rootEducation.isNotEmpty
         ? rootEducation
-        : await readSubdocCached('education', 'info');
+        : (currentEducation.isNotEmpty
+            ? currentEducation
+            : await readSubdocCached('education', 'info'));
     final family = rootFamily.isNotEmpty
         ? rootFamily
-        : await readSubdocCached('family', 'info');
+        : (currentFamily.isNotEmpty
+            ? currentFamily
+            : await readSubdocCached('family', 'info'));
     final settings = rootSettings.isNotEmpty
         ? rootSettings
-        : await readSubdocCached('settings', 'preferences');
+        : (currentSettings.isNotEmpty
+            ? currentSettings
+            : await readSubdocCached('settings', 'preferences'));
     final stats = rootStats.isNotEmpty
         ? rootStats
-        : await readSubdocCached('stats', 'summary');
+        : (currentStats.isNotEmpty
+            ? currentStats
+            : await readSubdocCached('stats', 'summary'));
 
     void mergeOverride(Map<String, dynamic> source) {
       source.forEach((k, v) {
@@ -657,73 +767,115 @@ class CurrentUserService extends GetxController {
     }
 
     // blockedUsers/readStories/lastSearches canonical subcollections.
+    final currentBlocked = currentSnapshot['blockedUsers'];
     if (merged['blockedUsers'] is! List) {
-      final blocked = await readListCache('blockedUsers', () async {
-        final snap = await userRef.collection('blockedUsers').get();
-        return <String, dynamic>{
-          'blockedUsers': snap.docs.map((d) => d.id).toList(growable: false),
-        };
-      });
-      final list = blocked['blockedUsers'];
-      if (list is List) {
-        merged['blockedUsers'] = list.map((e) => e.toString()).toList();
-      }
-    }
-    if (merged['readStories'] is! List) {
-      final readStories = await readListCache('readStories', () async {
-        final snap = await userRef.collection('readStories').get();
-        final times = <String, int>{};
-        for (final d in snap.docs) {
-          final t = d.data()['readDate'];
-          if (t is num) times[d.id] = t.toInt();
-        }
-        return <String, dynamic>{
-          'readStories': snap.docs.map((d) => d.id).toList(growable: false),
-          'readStoriesTimes': times,
-        };
-      });
-      final list = readStories['readStories'];
-      if (list is List) {
-        merged['readStories'] = list.map((e) => e.toString()).toList();
-      }
-      final times = readStories['readStoriesTimes'];
-      if (times is Map) {
-        final normalized = <String, int>{};
-        times.forEach((k, v) {
-          if (v is num) normalized[k.toString()] = v.toInt();
+      if (currentBlocked is List && currentBlocked.isNotEmpty) {
+        merged['blockedUsers'] =
+            currentBlocked.map((e) => e.toString()).toList(growable: false);
+      } else {
+        final blocked = await readListCache('blockedUsers', () async {
+          final entries = await _userSubcollectionRepository.getEntries(
+            uid,
+            subcollection: 'blockedUsers',
+            preferCache: true,
+          );
+          return <String, dynamic>{
+            'blockedUsers': entries.map((d) => d.id).toList(growable: false),
+          };
         });
-        if (normalized.isNotEmpty) {
-          merged['readStoriesTimes'] = normalized;
+        final list = blocked['blockedUsers'];
+        if (list is List) {
+          merged['blockedUsers'] = list.map((e) => e.toString()).toList();
         }
       }
     }
-    if (merged['lastSearchList'] is! List) {
-      final searches = await readListCache('lastSearches', () async {
-        final snap = await userRef.collection('lastSearches').limit(200).get();
-        final docs = snap.docs.toList()
-          ..sort((a, b) {
-            final aData = a.data();
-            final bData = b.data();
-            final aTs = (aData['updatedDate'] is num)
-                ? (aData['updatedDate'] as num).toInt()
-                : ((aData['timeStamp'] is num)
-                    ? (aData['timeStamp'] as num).toInt()
-                    : 0);
-            final bTs = (bData['updatedDate'] is num)
-                ? (bData['updatedDate'] as num).toInt()
-                : ((bData['timeStamp'] is num)
-                    ? (bData['timeStamp'] as num).toInt()
-                    : 0);
-            return bTs.compareTo(aTs);
+    final currentReadStories = currentSnapshot['readStories'];
+    final currentReadStoriesTimes = currentSnapshot['readStoriesTimes'];
+    if (merged['readStories'] is! List) {
+      if (currentReadStories is List && currentReadStories.isNotEmpty) {
+        merged['readStories'] =
+            currentReadStories.map((e) => e.toString()).toList(growable: false);
+        if (currentReadStoriesTimes is Map &&
+            currentReadStoriesTimes.isNotEmpty) {
+          final normalized = <String, int>{};
+          currentReadStoriesTimes.forEach((k, v) {
+            if (v is num) normalized[k.toString()] = v.toInt();
           });
-        return <String, dynamic>{
-          'lastSearchList':
-              docs.take(100).map((d) => d.id).toList(growable: false),
-        };
-      });
-      final list = searches['lastSearchList'];
-      if (list is List) {
-        merged['lastSearchList'] = list.map((e) => e.toString()).toList();
+          if (normalized.isNotEmpty) {
+            merged['readStoriesTimes'] = normalized;
+          }
+        }
+      } else {
+        final readStories = await readListCache('readStories', () async {
+          final entries = await _userSubcollectionRepository.getEntries(
+            uid,
+            subcollection: 'readStories',
+            preferCache: true,
+          );
+          final times = <String, int>{};
+          for (final entry in entries) {
+            final t = entry.data['readDate'];
+            if (t is num) times[entry.id] = t.toInt();
+          }
+          return <String, dynamic>{
+            'readStories': entries.map((e) => e.id).toList(growable: false),
+            'readStoriesTimes': times,
+          };
+        });
+        final list = readStories['readStories'];
+        if (list is List) {
+          merged['readStories'] = list.map((e) => e.toString()).toList();
+        }
+        final times = readStories['readStoriesTimes'];
+        if (times is Map) {
+          final normalized = <String, int>{};
+          times.forEach((k, v) {
+            if (v is num) normalized[k.toString()] = v.toInt();
+          });
+          if (normalized.isNotEmpty) {
+            merged['readStoriesTimes'] = normalized;
+          }
+        }
+      }
+    }
+    final currentLastSearchList = currentSnapshot['lastSearchList'];
+    if (merged['lastSearchList'] is! List) {
+      if (currentLastSearchList is List && currentLastSearchList.isNotEmpty) {
+        merged['lastSearchList'] = currentLastSearchList
+            .map((e) => e.toString())
+            .toList(growable: false);
+      } else {
+        final searches = await readListCache('lastSearches', () async {
+          final entries = await _userSubcollectionRepository.getEntries(
+            uid,
+            subcollection: 'lastSearches',
+            preferCache: true,
+          );
+          final docs = entries.toList()
+            ..sort((a, b) {
+              final aData = a.data;
+              final bData = b.data;
+              final aTs = (aData['updatedDate'] is num)
+                  ? (aData['updatedDate'] as num).toInt()
+                  : ((aData['timeStamp'] is num)
+                      ? (aData['timeStamp'] as num).toInt()
+                      : 0);
+              final bTs = (bData['updatedDate'] is num)
+                  ? (bData['updatedDate'] as num).toInt()
+                  : ((bData['timeStamp'] is num)
+                      ? (bData['timeStamp'] as num).toInt()
+                      : 0);
+              return bTs.compareTo(aTs);
+            });
+          return <String, dynamic>{
+            'lastSearchList':
+                docs.take(100).map((d) => d.id).toList(growable: false),
+          };
+        });
+        final list = searches['lastSearchList'];
+        if (list is List) {
+          merged['lastSearchList'] = list.map((e) => e.toString()).toList();
+        }
       }
     }
 
@@ -748,6 +900,7 @@ class CurrentUserService extends GetxController {
     _currentUser = resolvedUser;
     currentUserRx.value = resolvedUser;
     _userStreamController.add(resolvedUser);
+    await UserRepository.ensure().seedCurrentUser(resolvedUser);
     unawaited(_warmAvatar(resolvedUser));
     await _saveToCache(resolvedUser);
   }
@@ -783,11 +936,12 @@ class CurrentUserService extends GetxController {
           requestedViewSelection,
         );
       }
-      // Update Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(firebaseUser.uid)
-          .update(normalizedFields);
+      // Update Firestore through the central user repository.
+      await UserRepository.ensure().updateUserFields(
+        firebaseUser.uid,
+        normalizedFields,
+        mergeIntoCache: false,
+      );
 
       await _applyOptimisticLocalPatch(normalizedFields);
       _purgeUserScopedCaches(firebaseUser.uid);
@@ -868,8 +1022,7 @@ class CurrentUserService extends GetxController {
     await _updateUser(patched);
   }
 
-  String _viewSelectionKey(String uid) =>
-      '${_viewSelectionPrefKeyPrefix}_$uid';
+  String _viewSelectionKey(String uid) => '${_viewSelectionPrefKeyPrefix}_$uid';
 
   int? _extractRequestedViewSelection(Map<String, dynamic> fields) {
     final raw = fields['viewSelection'];
@@ -902,9 +1055,8 @@ class CurrentUserService extends GetxController {
   Future<void> _primeViewSelectionFromFirestore(String uid) async {
     if (uid.isEmpty) return;
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (!doc.exists) return;
-      final data = doc.data() ?? const <String, dynamic>{};
+      final data = await _readRootUserData(uid, preferCache: true);
+      if (data.isEmpty) return;
       final raw = data['viewSelection'];
       final remote = raw is int
           ? raw
@@ -1113,11 +1265,13 @@ class CurrentUserService extends GetxController {
 
   Future<void> _loadEmailVerifyConfig() async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc('emailVerify')
-          .get();
-      final verifyDay = (snap.data() ?? const {})['verifyDay'];
+      final data = await ConfigRepository.ensure().getAdminConfigDoc(
+            'emailVerify',
+            preferCache: true,
+            ttl: const Duration(hours: 6),
+          ) ??
+          const <String, dynamic>{};
+      final verifyDay = data['verifyDay'];
       final days = verifyDay is num ? verifyDay.toInt() : 7;
       _emailPromptCooldown = Duration(days: days.clamp(1, 30));
     } catch (e, st) {
@@ -1143,11 +1297,8 @@ class CurrentUserService extends GetxController {
         try {
           final uid = user?.uid;
           if (uid != null && uid.isNotEmpty) {
-            final snap = await FirebaseFirestore.instance
-                .collection('users')
-                .doc(uid)
-                .get();
-            isVerified = (snap.data() ?? const {})['emailVerified'] == true;
+            final data = await _readRootUserData(uid, preferCache: true);
+            isVerified = data['emailVerified'] == true;
           }
         } catch (e, st) {
           _logSilently('email.verify.root-check', e, st);
@@ -1165,12 +1316,8 @@ class CurrentUserService extends GetxController {
       try {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null && uid.isNotEmpty) {
-          final snap = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .get();
-          emailVerifiedRx.value =
-              (snap.data() ?? const {})['emailVerified'] == true;
+          final data = await _readRootUserData(uid, preferCache: true);
+          emailVerifiedRx.value = data['emailVerified'] == true;
           return;
         }
       } catch (inner, innerSt) {
@@ -1272,6 +1419,9 @@ class CurrentUserService extends GetxController {
       _purgeUserScopedCaches(oldUid);
       if (Get.isRegistered<UserProfileCacheService>()) {
         await Get.find<UserProfileCacheService>().clearAll();
+      }
+      if (Get.isRegistered<FollowRepository>()) {
+        await Get.find<FollowRepository>().clearAll();
       }
       _silentLogAt.clear();
 

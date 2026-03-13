@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart' as fs;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -44,7 +43,6 @@ import '../../Core/Services/turq_image_cache_manager.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../../Core/Services/video_emotion_config_service.dart';
 import '../../Core/Services/mandatory_follow_service.dart';
-import '../../Core/Slider/slider_catalog.dart';
 import '../../Services/offline_mode_service.dart';
 import '../../Core/Services/deep_link_service.dart';
 import '../../main.dart';
@@ -797,71 +795,11 @@ class _SplashViewState extends State<SplashView> {
           }
         }
 
-        final sliderRef =
-            fs.FirebaseFirestore.instance.collection('sliders').doc(sliderId);
-        final results = await Future.wait([
-          sliderRef.get(
-            const fs.GetOptions(source: fs.Source.serverAndCache),
-          ),
-          sliderRef
-              .collection('items')
-              .orderBy('order')
-              .get(const fs.GetOptions(source: fs.Source.serverAndCache)),
-        ]);
-
-        final metaSnapshot =
-            results[0] as fs.DocumentSnapshot<Map<String, dynamic>>;
-        final itemsSnapshot =
-            results[1] as fs.QuerySnapshot<Map<String, dynamic>>;
-
-        final hiddenDefaults =
-            ((metaSnapshot.data()?['hiddenDefaults'] as List<dynamic>?) ??
-                    const <dynamic>[])
-                .map((e) => e is num ? e.toInt() : -1)
-                .where((e) => e >= 0)
-                .toSet();
-
-        final defaults = SliderCatalog.defaultImagesFor(sliderId);
-        final resolved = <String>[];
-        final remoteByOrder = <int, String>{};
-        final extras = <String>[];
-
-        for (final doc in itemsSnapshot.docs) {
-          final order = (doc.data()['order'] as num?)?.toInt() ?? 0;
-          final url = (doc.data()['imageUrl'] ?? '').toString().trim();
-          if (url.isEmpty) continue;
-          if (order < defaults.length) {
-            remoteByOrder[order] = url;
-          } else {
-            extras.add(url);
-          }
-        }
-
-        for (var i = 0; i < defaults.length; i++) {
-          if (hiddenDefaults.contains(i) && !remoteByOrder.containsKey(i)) {
-            continue;
-          }
-          final remote = remoteByOrder[i];
-          if (remote != null && remote.isNotEmpty) {
-            resolved.add(remote);
-            continue;
-          }
-          final fallback = defaults[i];
-          if (fallback.isNotEmpty) {
-            resolved.add(fallback);
-          }
-        }
-        resolved.addAll(extras);
-
+        final resolved = await cache.refreshAndCacheSources(
+          sliderId,
+          warmRemoteLimit: onWiFi ? 8 : 4,
+        );
         if (resolved.isEmpty) continue;
-        await cache.writeResolvedSources(sliderId, resolved);
-        for (final url in resolved
-            .where((e) => e.startsWith('http'))
-            .take(onWiFi ? 8 : 4)) {
-          try {
-            await TurqImageCacheManager.instance.getSingleFile(url);
-          } catch (_) {}
-        }
       }
     } catch (_) {}
   }

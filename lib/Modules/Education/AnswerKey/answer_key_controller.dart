@@ -4,10 +4,12 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class AnswerKeyController extends GetxController {
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
   var isLoading = false.obs;
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
@@ -103,26 +105,15 @@ class AnswerKeyController extends GetxController {
     Icons.design_services,
   ];
 
-  BookletModel _fromDoc(QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return BookletModel.fromMap(data, doc.id);
-  }
-
   Future<void> refreshData() async {
     isLoading.value = true;
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .orderBy("timeStamp", descending: true)
-          .limit(_pageSize)
-          .get();
-
-      bookList.assignAll(snapshots.docs.map(_fromDoc).toList());
-
-      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
-      if (snapshots.docs.length < _pageSize) hasMore.value = false;
+      final page = await _bookletRepository.fetchPage(limit: _pageSize);
+      bookList.assignAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
 
       log("Çekilen kitapçık sayısı: ${bookList.length}");
     } catch (e) {
@@ -137,17 +128,13 @@ class AnswerKeyController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .orderBy("timeStamp", descending: true)
-          .startAfterDocument(_lastDocument!)
-          .limit(_pageSize)
-          .get();
-
-      bookList.addAll(snapshots.docs.map(_fromDoc).toList());
-
-      if (snapshots.docs.isNotEmpty) _lastDocument = snapshots.docs.last;
-      if (snapshots.docs.length < _pageSize) hasMore.value = false;
+      final page = await _bookletRepository.fetchPage(
+        startAfter: _lastDocument,
+        limit: _pageSize,
+      );
+      bookList.addAll(page.items);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
     } catch (e) {
       log("AnswerKeyController.loadMore error: $e");
     } finally {
@@ -201,25 +188,7 @@ class AnswerKeyController extends GetxController {
   }
 
   Future<List<BookletModel>> _fetchByDocIds(List<String> docIds) async {
-    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
-    if (orderedIds.isEmpty) return const [];
-
-    final byId = <String, BookletModel>{};
-    const chunkSize = 10;
-    for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end = (i + chunkSize > orderedIds.length)
-          ? orderedIds.length
-          : i + chunkSize;
-      final chunk = orderedIds.sublist(i, end);
-      final snapshot = await FirebaseFirestore.instance
-          .collection("books")
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snapshot.docs) {
-        byId[doc.id] = _fromDoc(doc);
-      }
-    }
-    return orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    return _bookletRepository.fetchByIds(docIds);
   }
 
   @override

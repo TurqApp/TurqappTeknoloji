@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
@@ -75,6 +76,7 @@ class _ProfileViewState extends State<ProfileView> {
           ? Get.find<SocialMediaController>()
           : Get.put(SocialMediaController());
   final userService = CurrentUserService.instance;
+  final PostRepository _postRepository = PostRepository.ensure();
 
   String get _myUserId =>
       userService.currentUserRx.value?.userID ??
@@ -478,14 +480,7 @@ class _ProfileViewState extends State<ProfileView> {
                   try {
                     final uid = FirebaseAuth.instance.currentUser?.uid;
                     if (uid != null) {
-                      await FirebaseFirestore.instance
-                          .collection('Posts')
-                          .doc(model.docID)
-                          .collection('viewers')
-                          .doc(uid)
-                          .set({
-                        'timeStamp': DateTime.now().millisecondsSinceEpoch
-                      });
+                      await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
                   if (model.floodCount > 1 && model.flood == false) {
@@ -641,14 +636,7 @@ class _ProfileViewState extends State<ProfileView> {
                   try {
                     final uid = FirebaseAuth.instance.currentUser?.uid;
                     if (uid != null) {
-                      await FirebaseFirestore.instance
-                          .collection('Posts')
-                          .doc(model.docID)
-                          .collection('viewers')
-                          .doc(uid)
-                          .set({
-                        'timeStamp': DateTime.now().millisecondsSinceEpoch
-                      });
+                      await _postRepository.ensureViewerSeen(model.docID, uid);
                     }
                   } catch (_) {}
                   if (model.floodCount > 1 && model.flood == false) {

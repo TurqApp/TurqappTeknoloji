@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
@@ -16,6 +16,8 @@ class SinavSonuclariPreviewController extends GetxController {
   var isInitialized = false.obs;
 
   final SinavModel model;
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
 
   SinavSonuclariPreviewController({required this.model});
 
@@ -28,16 +30,20 @@ class SinavSonuclariPreviewController extends GetxController {
   Future<void> getYanitlar() async {
     isLoading.value = true;
     try {
-      QuerySnapshot snapshot = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .get();
+      final snapshot = await _practiceExamRepository.fetchAnswers(
+        model.docID,
+        preferCache: true,
+      );
 
-      if (snapshot.docs.isNotEmpty) {
-        final yanitlarData = List<String>.from(snapshot.docs.last['yanitlar']);
-        num timeStampData = snapshot.docs.last["timeStamp"];
-        String yanitIDData = snapshot.docs.last.id;
+      if (snapshot.isNotEmpty) {
+        snapshot.sort(
+          (a, b) => ((a['timeStamp'] ?? 0) as num)
+              .compareTo((b['timeStamp'] ?? 0) as num),
+        );
+        final latest = snapshot.last;
+        final yanitlarData = List<String>.from(latest['yanitlar'] ?? const []);
+        final timeStampData = (latest["timeStamp"] ?? 0) as num;
+        final yanitIDData = (latest["_docId"] ?? latest["id"] ?? "").toString();
 
         yanitlar.assignAll(yanitlarData);
         timeStamp.value = timeStampData;
@@ -57,38 +63,18 @@ class SinavSonuclariPreviewController extends GetxController {
 
   Future<void> getSorular() async {
     try {
-      QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Sorular")
-          .get();
+      final questions = await _practiceExamRepository.fetchQuestions(
+        model.docID,
+        preferCache: true,
+      );
 
-      if (snap.docs.isNotEmpty) {
-        List<SoruModel> tempList = [];
-        for (var doc in snap.docs) {
-          String ders = doc.get("ders");
-          String dogruCevap = doc.get("dogruCevap");
-          num id = doc.get("id");
-          String konu = doc.get("konu");
-          String soru = doc.get("soru");
-
-          tempList.add(
-            SoruModel(
-              id: id.toInt(),
-              soru: soru,
-              ders: ders,
-              konu: konu,
-              dogruCevap: dogruCevap,
-              docID: doc.id,
-            ),
-          );
-
-          if (!expandedCategories.containsKey(ders)) {
-            expandedCategories[ders] = false;
+      if (questions.isNotEmpty) {
+        for (final question in questions) {
+          if (!expandedCategories.containsKey(question.ders)) {
+            expandedCategories[question.ders] = false;
           }
         }
-
-        soruList.assignAll(tempList);
+        soruList.assignAll(questions);
         await getDersVeSonuclar(yanitID.value);
       }
     } catch (error) {
@@ -101,28 +87,12 @@ class SinavSonuclariPreviewController extends GetxController {
 
   Future<void> getDersVeSonuclar(String docID) async {
     try {
-      for (var item in model.dersler) {
-        DocumentSnapshot doc = await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(model.docID)
-            .collection("Yanitlar")
-            .doc(docID)
-            .collection(item)
-            .doc(docID)
-            .get();
-
-        if (doc.exists) {
-          dersVeSonuclar.add(
-            DersVeSonuclarDB(
-              ders: doc.get("ders"),
-              dogru: doc.get("dogru"),
-              yanlis: doc.get("yanlis"),
-              bos: doc.get("bos"),
-              net: doc.get("net"),
-            ),
-          );
-        }
-      }
+      final results = await _practiceExamRepository.fetchLessonResults(
+        model.docID,
+        docID,
+        model.dersler,
+      );
+      dersVeSonuclar.assignAll(results);
     } catch (error) {
       AppSnackbar("Hata", "Ders sonuçları yüklenemedi.");
     }

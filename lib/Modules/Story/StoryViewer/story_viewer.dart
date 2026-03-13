@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import '../StoryRow/story_user_model.dart';
 import 'user_story_content.dart';
@@ -330,15 +332,10 @@ class _StoryViewerState extends State<StoryViewer>
       // Firestore'a screenshot kaydi yaz
       if (storyOwner.stories.isNotEmpty) {
         final currentStoryId = storyOwner.stories.first.id;
-        FirebaseFirestore.instance
-            .collection('stories')
-            .doc(currentStoryId)
-            .collection('screenshots')
-            .doc(uid)
-            .set({
-          'userId': uid,
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-        });
+        StoryRepository.ensure().addScreenshotEvent(
+          currentStoryId,
+          userId: uid,
+        );
         print('📸 Screenshot detected - notified story owner');
       }
     } catch (e) {
@@ -387,7 +384,9 @@ class _StoryViewerState extends State<StoryViewer>
         );
         if (firstImage.type == StoryElementType.image ||
             firstImage.type == StoryElementType.gif) {
-          final provider = NetworkImage(firstImage.content);
+          final file = await TurqImageCacheManager.instance
+              .getSingleFile(firstImage.content);
+          final provider = FileImage(File(file.path));
           precacheImage(provider, context).catchError((_) {});
         }
       }
@@ -414,17 +413,11 @@ class _StoryViewerState extends State<StoryViewer>
             latestStoryTime,
           );
 
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .collection('readStories')
-              .doc(targetUserId)
-              .set({
-            "storyId": targetUserId,
-            "readDate": latestStoryTime,
-            "lastSeenAt": latestStoryTime,
-            "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          }, SetOptions(merge: true));
+          await StoryRepository.ensure().markUserStoriesFullyViewed(
+            currentUid: uid,
+            targetUserId: targetUserId,
+            latestStoryTime: latestStoryTime,
+          );
 
           print(
               "✅ User ${user.nickname} fully viewed - Latest story time: $latestStoryTime");

@@ -1,24 +1,24 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class PhotoShortsController extends GetxController {
   var list = <PostsModel>[].obs;
+  final PostRepository _postRepository = PostRepository.ensure();
 
   Future<void> addToList(List<PostsModel> photoList) async {
     list.assignAll(photoList);
   }
 
   Future<void> updatePost(String docID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(docID).get();
-    if (doc.exists) {
-      final updatedPost = PostsModel.fromMap(doc.data()!, doc.id);
-      final idx = list.indexWhere((e) => e.docID == docID);
-      if (idx != -1) {
-        list[idx] = updatedPost;
-        list.refresh();
-      }
+    final posts = await _postRepository.fetchPostsByIds([docID]);
+    final updatedPost = posts[docID];
+    if (updatedPost == null) return;
+
+    final idx = list.indexWhere((e) => e.docID == docID);
+    if (idx != -1) {
+      list[idx] = updatedPost;
+      list.refresh();
     }
   }
 }

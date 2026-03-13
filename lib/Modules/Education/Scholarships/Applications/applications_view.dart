@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -180,31 +181,25 @@ class ApplicationsView extends StatelessWidget {
                                                       children: [
                                                         application['img']
                                                                 .isNotEmpty
-                                                            ? Image.network(
-                                                                application[
-                                                                    'img'],
+                                                            ? CachedNetworkImage(
+                                                                imageUrl:
+                                                                    application[
+                                                                        'img'],
                                                                 width:
                                                                     thumbnailWidth,
                                                                 height:
                                                                     thumbnailHeight,
                                                                 fit: BoxFit
                                                                     .cover,
-                                                                loadingBuilder:
-                                                                    (
+                                                                placeholder: (
                                                                   context,
-                                                                  child,
-                                                                  loadingProgress,
-                                                                ) {
-                                                                  if (loadingProgress ==
-                                                                      null) {
-                                                                    return child;
-                                                                  }
-                                                                  return CupertinoActivityIndicator();
-                                                                },
-                                                                errorBuilder: (
+                                                                  url,
+                                                                ) =>
+                                                                    CupertinoActivityIndicator(),
+                                                                errorWidget: (
                                                                   context,
+                                                                  url,
                                                                   error,
-                                                                  stackTrace,
                                                                 ) {
                                                                   return Image
                                                                       .asset(

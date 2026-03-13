@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -50,9 +52,9 @@ class DeepLinkService extends GetxService {
       return cached;
     }
     final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(postId).get();
+        (await PostRepository.ensure().fetchPostsByIds([postId]))[postId];
     final lookup = _PostLookupCache(
-      model: doc.exists ? PostsModel.fromFirestore(doc) : null,
+      model: doc,
       cachedAt: DateTime.now(),
     );
     _postLookupCache[postId] = lookup;
@@ -66,14 +68,11 @@ class DeepLinkService extends GetxService {
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
       return cached;
     }
-    final doc = await FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(jobId)
-        .get();
     final lookup = _JobLookupCache(
-      model: (doc.exists && doc.data() != null)
-          ? JobModel.fromMap(doc.data()!, doc.id)
-          : null,
+      model: await JobRepository.ensure().fetchById(
+        jobId,
+        preferCache: true,
+      ),
       cachedAt: DateTime.now(),
     );
     _jobLookupCache[jobId] = lookup;
@@ -87,10 +86,9 @@ class DeepLinkService extends GetxService {
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
       return cached;
     }
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final data = await UserRepository.ensure().getUserRaw(userId);
     final lookup = _UserLookupCache(
-      data: doc.exists ? doc.data() : null,
+      data: data,
       cachedAt: DateTime.now(),
     );
     _userLookupCache[userId] = lookup;
@@ -104,10 +102,10 @@ class DeepLinkService extends GetxService {
         DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
       return cached;
     }
-    final storyRef = FirebaseFirestore.instance.collection('stories').doc(storyId);
-    final storyDoc = await storyRef.get();
+    final storyDoc =
+        await StoryRepository.ensure().getStoryRaw(storyId, preferCache: true);
     final lookup = _StoryDocLookupCache(
-      data: storyDoc.exists ? storyDoc.data() : null,
+      data: storyDoc,
       cachedAt: DateTime.now(),
     );
     _storyDocLookupCache[storyId] = lookup;
@@ -391,26 +389,11 @@ class DeepLinkService extends GetxService {
       return List<StoryModel>.from(cached.stories);
     }
 
-    QuerySnapshot<Map<String, dynamic>> storiesSnap;
-    try {
-      storiesSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdDate', descending: true)
-          .get();
-    } catch (_) {
-      // Composite index yoksa fallback: sadece userId ile çek, client-side sırala.
-      storiesSnap = await FirebaseFirestore.instance
-          .collection('stories')
-          .where('userId', isEqualTo: userId)
-          .get();
-    }
-
-    final stories = storiesSnap.docs
-        .where((d) => (d.data()['deleted'] ?? false) != true)
-        .map(StoryModel.fromDoc)
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final stories = await StoryRepository.ensure().getStoriesForUser(
+      userId,
+      preferCache: true,
+      includeDeleted: false,
+    );
     _storyListLookupCache[userId] = _StoryListLookupCache(
       stories: List<StoryModel>.from(stories),
       cachedAt: DateTime.now(),

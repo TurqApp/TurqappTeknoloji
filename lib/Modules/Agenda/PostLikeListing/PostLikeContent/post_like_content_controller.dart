@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class PostLikeContentController extends GetxController {
   var fullName = "".obs;
@@ -7,19 +7,14 @@ class PostLikeContentController extends GetxController {
   var nickname = "".obs;
 
   Future<void> getUserData(String userID) async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(userID)
-        .get()
-        .then((doc) {
-      final data = doc.data() ?? const <String, dynamic>{};
-      fullName.value =
-          "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
-              .trim();
-      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-    });
+    final summary = await UserRepository.ensure().getUser(
+      userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (summary == null) return;
+    fullName.value = summary.displayName;
+    avatarUrl.value = summary.avatarUrl;
+    nickname.value = summary.preferredName;
   }
 }

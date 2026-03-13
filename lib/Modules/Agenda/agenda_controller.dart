@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -24,6 +27,8 @@ class AgendaController extends GetxController {
       Get.isRegistered<UserProfileCacheService>()
           ? Get.find<UserProfileCacheService>()
           : Get.put(UserProfileCacheService(), permanent: true);
+  UserRepository get _userRepository => UserRepository.ensure();
+  PostRepository get _postRepository => PostRepository.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
@@ -386,33 +391,26 @@ class AgendaController extends GetxController {
 
   /// Pull-based following + reshares fetch (realtime listener yerine).
   /// Dışarıdan da çağrılabilir (ör. follow/unfollow sonrası).
-  Future<void> _fetchFollowingAndReshares(String uid) async {
+  Future<void> _fetchFollowingAndReshares(
+    String uid, {
+    bool refreshFollowings = false,
+  }) async {
     try {
-      final followSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('followings')
-          .get();
-      followingIDs.assignAll(followSnap.docs.map((d) => d.id).toSet());
+      final followings = await FollowRepository.ensure().getFollowingIds(
+        uid,
+        preferCache: true,
+        forceRefresh: refreshFollowings,
+      );
+      followingIDs.assignAll(followings);
     } catch (_) {}
 
     try {
-      final reshareSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('reshared_posts')
-          .orderBy('timeStamp', descending: true)
-          .limit(200)
-          .get();
-      final map = <String, int>{};
-      for (final doc in reshareSnap.docs) {
-        final data = doc.data();
-        final postId = data['post_docID'] as String?;
-        if (postId == null || postId.isEmpty) continue;
-        final ts = (data['timeStamp'] ?? 0) as int;
-        map[postId] = ts;
-      }
-      myReshares.value = map;
+      myReshares.value = await _postRepository.fetchUserResharedPosts(
+        uid,
+        preferCache: true,
+        forceRefresh: refreshFollowings,
+        limit: 200,
+      );
     } catch (_) {}
   }
 
@@ -420,7 +418,7 @@ class AgendaController extends GetxController {
   Future<void> refreshFollowingData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    await _fetchFollowingAndReshares(uid);
+    await _fetchFollowingAndReshares(uid, refreshFollowings: true);
   }
 
   // Fetch a few recent reshares for these posts from followers and public users
@@ -439,25 +437,24 @@ class AgendaController extends GetxController {
 
       for (final p in targetPosts) {
         try {
-          final qs = await FirebaseFirestore.instance
-              .collection('Posts')
-              .doc(p.docID)
-              .collection('reshares')
-              .orderBy('timeStamp', descending: true)
-              .limit(perPostLimit)
-              .get();
-          for (final d in qs.docs) {
-            final rid = d.id;
+          final entries = await _postRepository.fetchAllReshareEntries(
+            p.docID,
+            limit: perPostLimit,
+          );
+          for (final entry in entries) {
+            final rid = entry.userId;
             if (uid != null && rid == uid) {
               continue; // my own handled via myReshares
             }
             final key = '${p.docID}::$rid';
             if (existingKeys.contains(key)) continue;
-
-            final data = d.data();
-            final ts = (data['timeStamp'] ?? 0) as int;
-            final originalUserID = data['originalUserID'] as String?;
-            final originalPostID = data['originalPostID'] as String?;
+            final ts = entry.timeStamp;
+            final originalUserID = p.originalUserID.trim().isNotEmpty
+                ? p.originalUserID
+                : p.userID;
+            final originalPostID = p.originalPostID.trim().isNotEmpty
+                ? p.originalPostID
+                : p.docID;
             if (!followingIDs.contains(rid) &&
                 !_userPrivacyCache.containsKey(rid)) {
               maybeUnknownUsers.add(rid);
@@ -472,9 +469,9 @@ class AgendaController extends GetxController {
             };
 
             // Orijinal post bilgilerini de ekle
-            if (originalUserID != null && originalUserID.isNotEmpty) {
+            if (originalUserID.isNotEmpty) {
               reshareEvent['originalUserID'] = originalUserID;
-              reshareEvent['originalPostID'] = originalPostID ?? p.docID;
+              reshareEvent['originalPostID'] = originalPostID;
             } else {
               reshareEvent['originalUserID'] = p.userID;
               reshareEvent['originalPostID'] = p.docID;
@@ -579,26 +576,20 @@ class AgendaController extends GetxController {
         .toSet()
         .toList();
     if (unresolved.isEmpty) return;
-
-    for (final chunk in _chunkList(unresolved, 10)) {
-      try {
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: chunk)
-            .get();
-        final found = <String>{};
-        for (final d in snap.docs) {
-          found.add(d.id);
-          final data = d.data();
-          _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
-          _userDeactivatedCache[d.id] = _isUserMarkedDeactivated(data);
-        }
-        for (final id in chunk) {
-          if (found.contains(id)) continue;
-          _userPrivacyCache[id] = false;
-          _userDeactivatedCache[id] = false;
-        }
-      } catch (_) {}
+    final profiles = await _userRepository.getUsersRaw(
+      unresolved,
+      preferCache: true,
+      cacheOnly: !ContentPolicy.isConnected,
+    );
+    for (final id in unresolved) {
+      final data = profiles[id];
+      if (data == null) {
+        _userPrivacyCache[id] = false;
+        _userDeactivatedCache[id] = false;
+        continue;
+      }
+      _userPrivacyCache[id] = (data['isPrivate'] ?? false) == true;
+      _userDeactivatedCache[id] = _isUserMarkedDeactivated(data);
     }
   }
 
@@ -727,25 +718,14 @@ class AgendaController extends GetxController {
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      Query query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("arsiv", isEqualTo: false)
-          .where("flood", isEqualTo: false)
-          .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-          .where('timeStamp', isLessThanOrEqualTo: nowMs)
-          .orderBy("timeStamp", descending: true)
-          .limit(fetchLimit);
+      final page = await _postRepository.fetchAgendaWindowPage(
+        cutoffMs: cutoffMs,
+        nowMs: nowMs,
+        limit: fetchLimit,
+        startAfter: lastDoc,
+      );
 
-      if (lastDoc != null) {
-        query =
-            (query as Query<Map<String, dynamic>>).startAfterDocument(lastDoc!);
-      }
-
-      final snap = await query.get();
-
-      final items = snap.docs
-          .map((doc) =>
-              PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+      final items = page.items
           // Son 24 saat penceresi
           .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
           .where((p) => p.deletedPost != true)
@@ -757,20 +737,20 @@ class AgendaController extends GetxController {
       Map<String, bool> userDeactivated = {};
       Map<String, Map<String, dynamic>> userMeta = {};
       if (uniqueUserIDs.isNotEmpty) {
-        // whereIn 10 eleman sınırı — fetchLimit zaten 10
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: uniqueUserIDs)
-            .get();
-        for (final d in usersSnap.docs) {
-          final data = d.data();
+        final profiles = await _userRepository.getUsersRaw(
+          uniqueUserIDs,
+          preferCache: true,
+          cacheOnly: !ContentPolicy.isConnected,
+        );
+        for (final entry in profiles.entries) {
+          final data = entry.value;
           final gizli = (data['isPrivate'] ?? false) == true;
           final deactivated = _isUserMarkedDeactivated(data);
-          userPrivacy[d.id] = gizli;
-          userDeactivated[d.id] = deactivated;
-          _userPrivacyCache[d.id] = gizli;
-          _userDeactivatedCache[d.id] = deactivated;
-          userMeta[d.id] = data;
+          userPrivacy[entry.key] = gizli;
+          userDeactivated[entry.key] = deactivated;
+          _userPrivacyCache[entry.key] = gizli;
+          _userDeactivatedCache[entry.key] = deactivated;
+          userMeta[entry.key] = data;
         }
       }
 
@@ -788,7 +768,7 @@ class AgendaController extends GetxController {
         return isMine || follows;
       }).toList();
 
-      lastDoc = snap.docs.isNotEmpty ? snap.docs.last : null;
+      lastDoc = page.lastDoc;
 
       if (visibleItems.isNotEmpty) {
         unawaited(_saveFeedPostsToPool(visibleItems, userMeta));
@@ -869,21 +849,16 @@ class AgendaController extends GetxController {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
-    Query query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("arsiv", isEqualTo: false)
-        .where("flood", isEqualTo: false)
-        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
-        .orderBy("timeStamp", descending: true)
-        .limit(fetchLimit);
+    final page = await _postRepository.fetchAgendaWindowPage(
+      cutoffMs: cutoffMs,
+      nowMs: nowMs,
+      limit: fetchLimit,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (page.items.isEmpty) return;
 
-    final snap = await query.get(const GetOptions(source: Source.cache));
-    if (snap.docs.isEmpty) return;
-
-    final items = snap.docs
-        .map((doc) =>
-            PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+    final items = page.items
         .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
@@ -1014,22 +989,19 @@ class AgendaController extends GetxController {
       final uniqueUserIDs = valid.map((e) => e.userID).toSet().toList();
       final Map<String, bool> userPrivacy = {};
       final Map<String, bool> userDeactivated = {};
-      for (final chunk in _chunkList(uniqueUserIDs, 10)) {
-        try {
-          final usersSnap = await FirebaseFirestore.instance
-              .collection('users')
-              .where(FieldPath.documentId, whereIn: chunk)
-              .get();
-          for (final d in usersSnap.docs) {
-            final data = d.data();
-            final gizli = (data['isPrivate'] ?? false) == true;
-            final deactivated = _isUserMarkedDeactivated(data);
-            userPrivacy[d.id] = gizli;
-            userDeactivated[d.id] = deactivated;
-            _userPrivacyCache[d.id] = gizli;
-            _userDeactivatedCache[d.id] = deactivated;
-          }
-        } catch (_) {}
+      final profiles = await _userRepository.getUsersRaw(
+        uniqueUserIDs,
+        preferCache: true,
+        cacheOnly: !ContentPolicy.isConnected,
+      );
+      for (final entry in profiles.entries) {
+        final data = entry.value;
+        final gizli = (data['isPrivate'] ?? false) == true;
+        final deactivated = _isUserMarkedDeactivated(data);
+        userPrivacy[entry.key] = gizli;
+        userDeactivated[entry.key] = deactivated;
+        _userPrivacyCache[entry.key] = gizli;
+        _userDeactivatedCache[entry.key] = deactivated;
       }
 
       final String? me = FirebaseAuth.instance.currentUser?.uid;
@@ -1077,36 +1049,35 @@ class AgendaController extends GetxController {
 
     final validPostIds = <String>{};
     for (final chunk in _chunkList(postIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
+      final postsById = await _postRepository.fetchPostsByIds(
+        chunk,
+        preferCache: true,
+      );
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      for (final d in snap.docs) {
-        final data = d.data();
-        final deleted = (data['deletedPost'] ?? false) == true;
-        final archived = (data['arsiv'] ?? false) == true;
-        final timeStamp =
-            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
+      for (final entry in postsById.entries) {
+        final post = entry.value;
+        final deleted = post.deletedPost == true;
+        final archived = post.arsiv == true;
+        final timeStamp = post.timeStamp.toInt();
         if (!deleted && !archived && _isInAgendaWindow(timeStamp, nowMs)) {
-          validPostIds.add(d.id);
+          validPostIds.add(entry.key);
         }
       }
     }
 
     final validUserIds = <String>{};
-    for (final chunk in _chunkList(userIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final d in snap.docs) {
-        final data = d.data();
+    for (final chunk in _chunkList(userIds.toList(), 20)) {
+      final users = await _userRepository.getUsersRaw(
+        chunk,
+        preferCache: true,
+      );
+      for (final entry in users.entries) {
+        final data = entry.value;
         final deactivated = _isUserMarkedDeactivated(data);
-        _userDeactivatedCache[d.id] = deactivated;
-        _userPrivacyCache[d.id] = (data['isPrivate'] ?? false) == true;
+        _userDeactivatedCache[entry.key] = deactivated;
+        _userPrivacyCache[entry.key] = (data['isPrivate'] ?? false) == true;
         if (!deactivated) {
-          validUserIds.add(d.id);
+          validUserIds.add(entry.key);
         }
       }
     }
@@ -1274,21 +1245,13 @@ class AgendaController extends GetxController {
   Future<void> _fetchInitialShuffledBatch() async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
-    Query query = FirebaseFirestore.instance
-        .collection("Posts")
-        .where("arsiv", isEqualTo: false)
-        .where("flood", isEqualTo: false)
-        .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-        .where('timeStamp', isLessThanOrEqualTo: nowMs)
-        .orderBy("timeStamp", descending: true)
-        .limit(_initialShuffleSize); // 100 gönderi
+    final page = await _postRepository.fetchAgendaWindowPage(
+      cutoffMs: cutoffMs,
+      nowMs: nowMs,
+      limit: _initialShuffleSize,
+    );
 
-    final snap = await query.get();
-    // nowMs already computed above
-
-    final items = snap.docs
-        .map((doc) =>
-            PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+    final items = page.items
         .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
         .where((p) => p.deletedPost != true)
         .toList();
@@ -1332,21 +1295,13 @@ class AgendaController extends GetxController {
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      Query query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("arsiv", isEqualTo: false)
-          .where("flood", isEqualTo: false)
-          .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
-          .where('timeStamp', isLessThanOrEqualTo: nowMs)
-          .orderBy("timeStamp", descending: true)
-          .limit(_backgroundShuffleFetchSize);
+      final page = await _postRepository.fetchAgendaWindowPage(
+        cutoffMs: cutoffMs,
+        nowMs: nowMs,
+        limit: _backgroundShuffleFetchSize,
+      );
 
-      final snap = await query.get();
-      // nowMs already computed above
-
-      final items = snap.docs
-          .map((doc) =>
-              PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+      final items = page.items
           .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
@@ -1403,18 +1358,19 @@ class AgendaController extends GetxController {
       }
 
       for (final batch in batches) {
-        final usersSnap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (final d in usersSnap.docs) {
-          final data = d.data();
+        final profiles = await _userRepository.getUsersRaw(
+          batch,
+          preferCache: true,
+          cacheOnly: !ContentPolicy.isConnected,
+        );
+        for (final entry in profiles.entries) {
+          final data = entry.value;
           final gizli = (data['isPrivate'] ?? false) == true;
           final deactivated = _isUserMarkedDeactivated(data);
-          userPrivacy[d.id] = gizli;
-          userDeactivated[d.id] = deactivated;
-          _userPrivacyCache[d.id] = gizli;
-          _userDeactivatedCache[d.id] = deactivated;
+          userPrivacy[entry.key] = gizli;
+          userDeactivated[entry.key] = deactivated;
+          _userPrivacyCache[entry.key] = gizli;
+          _userDeactivatedCache[entry.key] = deactivated;
         }
       }
     }
@@ -1484,21 +1440,18 @@ class AgendaController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      final rawSnap =
-          await FirebaseFirestore.instance.collectionGroup('reshares').get();
-
       final allReshareEvents = <Map<String, dynamic>>[];
       final resharedPostIds = <String>{};
       final reshareUserIds = <String>{};
 
-      for (final doc in rawSnap.docs) {
-        final postRef = doc.reference.parent.parent;
-        final postId = postRef?.id ?? '';
+      final rawEvents =
+          await _postRepository.fetchCollectionGroupReshares(limit: 500);
+      for (final data in rawEvents) {
+        final postId = (data['postID'] ?? '').toString();
         if (postId.isEmpty) continue;
-
-        final data = doc.data();
-        final reshareUserId = doc.id;
-        final timestamp = (data['timeStamp'] ?? 0) as int;
+        final reshareUserId = (data['userID'] ?? '').toString();
+        if (reshareUserId.isEmpty) continue;
+        final timestamp = (data['timeStamp'] as num?)?.toInt() ?? 0;
         final originalUserID = (data['originalUserID'] ?? '').toString();
         final originalPostID = (data['originalPostID'] ?? '').toString();
 
@@ -1528,8 +1481,8 @@ class AgendaController extends GetxController {
         final isDeactivated = _userDeactivatedCache[reshareUserId] ?? false;
         return !isPrivate && !isDeactivated;
       }).toList()
-        ..sort((a, b) =>
-            ((b['timeStamp'] ?? 0) as int).compareTo((a['timeStamp'] ?? 0) as int));
+        ..sort((a, b) => ((b['timeStamp'] ?? 0) as int)
+            .compareTo((a['timeStamp'] ?? 0) as int));
 
       if (visibleEvents.length > 120) {
         visibleEvents.removeRange(120, visibleEvents.length);
@@ -1540,12 +1493,11 @@ class AgendaController extends GetxController {
       final postsById = <String, PostsModel>{};
       for (final batch in _chunkList(resharedPostIds.toList(), 10)) {
         try {
-          final postsSnap = await FirebaseFirestore.instance
-              .collection('Posts')
-              .where(FieldPath.documentId, whereIn: batch)
-              .get();
-          for (final postDoc in postsSnap.docs) {
-            final post = PostsModel.fromMap(postDoc.data(), postDoc.id);
+          final batchPosts = await _postRepository.fetchPostsByIds(
+            batch,
+            preferCache: true,
+          );
+          for (final post in batchPosts.values) {
             if (!await _canViewerSeePost(post)) continue;
             postsById[post.docID] = post;
           }
@@ -1610,14 +1562,11 @@ class AgendaController extends GetxController {
       final post = agendaList.firstWhereOrNull((p) => p.docID == postId);
       if (post == null) {
         // Post bulunamadıysa Firebase'den çek
-        final postDoc = await FirebaseFirestore.instance
-            .collection('Posts')
-            .doc(postId)
-            .get();
-
-        if (!postDoc.exists) return;
-
-        final fetchedPost = PostsModel.fromMap(postDoc.data()!, postDoc.id);
+        final fetchedPost = await _postRepository.fetchPostById(
+          postId,
+          preferCache: true,
+        );
+        if (fetchedPost == null) return;
         if (!await _canViewerSeePost(fetchedPost)) return;
 
         // Yeni reshare entry'si oluştur
@@ -1670,14 +1619,11 @@ class AgendaController extends GetxController {
       final post = agendaList.firstWhereOrNull((p) => p.docID == postId);
       if (post == null) {
         // Post bulunamadıysa Firebase'den çek
-        final postDoc = await FirebaseFirestore.instance
-            .collection('Posts')
-            .doc(postId)
-            .get();
-
-        if (!postDoc.exists) return;
-
-        final fetchedPost = PostsModel.fromMap(postDoc.data()!, postDoc.id);
+        final fetchedPost = await _postRepository.fetchPostById(
+          postId,
+          preferCache: true,
+        );
+        if (fetchedPost == null) return;
         if (!await _canViewerSeePost(fetchedPost)) return;
 
         // Yeni reshare entry'si oluştur

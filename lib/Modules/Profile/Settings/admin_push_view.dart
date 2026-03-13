@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Repositories/admin_push_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 
@@ -14,7 +15,7 @@ class AdminPushView extends StatefulWidget {
 }
 
 class _AdminPushViewState extends State<AdminPushView> {
-  static const int _pushTargetCutoffMs = 1772409600000;
+  final AdminPushRepository _adminPushRepository = AdminPushRepository.ensure();
   final _uidController = TextEditingController();
   final _konumController = TextEditingController();
   final _genderController = TextEditingController();
@@ -37,13 +38,6 @@ class _AdminPushViewState extends State<AdminPushView> {
   bool _checkingAccess = true;
   bool _canManagePush = false;
   String _lastReport = "";
-
-  CollectionReference<Map<String, dynamic>> _reportsRef() {
-    return FirebaseFirestore.instance
-        .collection("adminConfig")
-        .doc("admin")
-        .collection("pushReports");
-  }
 
   @override
   void initState() {
@@ -94,62 +88,6 @@ class _AdminPushViewState extends State<AdminPushView> {
     );
   }
 
-  List<String> _collectLocationValues(Map<String, dynamic> data) {
-    final values = <String>[];
-    for (final key in const [
-      "city",
-      "il",
-      "ilce",
-      "locationSehir",
-      "ikametSehir"
-    ]) {
-      final value = (data[key] ?? "").toString().trim().toLowerCase();
-      if (value.isNotEmpty) values.add(value);
-    }
-    return values;
-  }
-
-  int? _extractAge(Map<String, dynamic> data) {
-    final raw = (data["dogumTarihi"] ?? "").toString().trim();
-    if (raw.isEmpty) return null;
-
-    DateTime? birthDate;
-    final asInt = int.tryParse(raw);
-    if (asInt != null) {
-      final ms = raw.length >= 13 ? asInt : asInt * 1000;
-      birthDate = DateTime.fromMillisecondsSinceEpoch(ms);
-    } else {
-      birthDate = DateTime.tryParse(raw);
-      if (birthDate == null && raw.contains("/")) {
-        final parts = raw.split("/");
-        if (parts.length == 3) {
-          final d = int.tryParse(parts[0]);
-          final m = int.tryParse(parts[1]);
-          final y = int.tryParse(parts[2]);
-          if (d != null && m != null && y != null) {
-            birthDate = DateTime(y, m, d);
-          }
-        }
-      }
-    }
-    if (birthDate == null) return null;
-
-    final now = DateTime.now();
-    var age = now.year - birthDate.year;
-    final hadBirthday = (now.month > birthDate.month) ||
-        (now.month == birthDate.month && now.day >= birthDate.day);
-    if (!hadBirthday) age--;
-    return age < 0 ? null : age;
-  }
-
-  bool _isEligiblePushTarget(String userId, Map<String, dynamic> data) {
-    final rawCreatedDate = data['createdDate'];
-    final createdAtMs = rawCreatedDate is num
-        ? rawCreatedDate.toInt()
-        : int.tryParse(rawCreatedDate?.toString() ?? '') ?? 0;
-    return createdAtMs >= _pushTargetCutoffMs;
-  }
-
   Future<List<String>> _resolveTargetUids({
     required String uid,
     required String meslek,
@@ -158,67 +96,16 @@ class _AdminPushViewState extends State<AdminPushView> {
     required int? minAge,
     required int? maxAge,
   }) async {
-    if (uid.isNotEmpty) {
-      final userDoc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
-      if (!userDoc.exists) return <String>[];
-      final data = userDoc.data() ?? const <String, dynamic>{};
-      return _isEligiblePushTarget(uid, data) ? [uid] : <String>[];
-    }
-
-    final meslekLc = meslek.toLowerCase();
-    final konumLc = konum.toLowerCase();
-    final genderLc = gender.toLowerCase();
-    final targets = <String>[];
-    final seen = <String>{};
-
-    bool matchesFilters(String userId, Map<String, dynamic> data) {
-      if (seen.contains(userId)) return false;
-      if (!_isEligiblePushTarget(userId, data)) return false;
-      final userMeslek =
-          (data["meslekKategori"] ?? "").toString().trim().toLowerCase();
-      final userGender =
-          (data["cinsiyet"] ?? "").toString().trim().toLowerCase();
-      final locations = _collectLocationValues(data);
-      final age = _extractAge(data);
-      final meslekOk = meslekLc.isEmpty || userMeslek == meslekLc;
-      final konumOk = konumLc.isEmpty || locations.any((v) => v == konumLc);
-      final genderOk = genderLc.isEmpty || userGender == genderLc;
-      final minAgeOk = minAge == null || (age != null && age >= minAge);
-      final maxAgeOk = maxAge == null || (age != null && age <= maxAge);
-      final ok = meslekOk && konumOk && genderOk && minAgeOk && maxAgeOk;
-      if (ok) seen.add(userId);
-      return ok;
-    }
-
-    const pageSize = 350;
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection("users")
-        .where("createdDate", isGreaterThanOrEqualTo: _pushTargetCutoffMs)
-        .orderBy("createdDate")
-        .limit(pageSize);
-
-    while (true) {
-      final users = await query.get();
-      if (users.docs.isEmpty) break;
-
-      for (final doc in users.docs) {
-        final data = doc.data();
-        if (matchesFilters(doc.id, data)) {
-          targets.add(doc.id);
-        }
-      }
-
-      if (users.docs.length < pageSize) break;
-      query = FirebaseFirestore.instance
-          .collection("users")
-          .where("createdDate", isGreaterThanOrEqualTo: _pushTargetCutoffMs)
-          .orderBy("createdDate")
-          .startAfterDocument(users.docs.last)
-          .limit(pageSize);
-    }
-
-    return targets;
+    return _adminPushRepository.resolveTargetUids(
+      filters: AdminPushTargetFilters(
+        uid: uid,
+        meslek: meslek,
+        konum: konum,
+        gender: gender,
+        minAge: minAge,
+        maxAge: maxAge,
+      ),
+    );
   }
 
   Future<void> _sendPush() async {
@@ -272,11 +159,8 @@ class _AdminPushViewState extends State<AdminPushView> {
         maxAge: maxAge,
       );
       final senderUid = FirebaseAuth.instance.currentUser?.uid ?? "admin";
-      final filteredTargetUids = targetUids
-          .where((targetUid) => targetUid != senderUid)
-          .toList(growable: false);
 
-      if (filteredTargetUids.isEmpty) {
+      if (targetUids.isEmpty) {
         Get.snackbar(
           "Sonuç Yok",
           "Bu filtreye uyan (kendi hesabın hariç) kullanıcı bulunamadı.",
@@ -285,39 +169,19 @@ class _AdminPushViewState extends State<AdminPushView> {
         return;
       }
 
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      const batchSize = 400;
-
-      for (var i = 0; i < filteredTargetUids.length; i += batchSize) {
-        final batch = FirebaseFirestore.instance.batch();
-        final chunk = filteredTargetUids.skip(i).take(batchSize);
-        for (final targetUid in chunk) {
-          final docRef = FirebaseFirestore.instance
-              .collection("users")
-              .doc(targetUid)
-              .collection("notifications")
-              .doc();
-          batch.set(docRef, {
-            "type": type,
-            "title": title,
-            "body": body,
-            "fromUserID": senderUid,
-            "postID": "admin-manual-push",
-            "adminPush": true,
-            "hideInAppInbox": true,
-            "timeStamp": nowMs,
-            "read": false,
-          });
-        }
-        await batch.commit();
-      }
+      await _adminPushRepository.sendPush(
+        title: title,
+        body: body,
+        type: type,
+        targetUids: targetUids,
+      );
 
       if (!mounted) return;
       setState(() {
         final now = DateTime.now();
         _lastReport =
             "Saat ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}\n"
-            "Hedef: ${filteredTargetUids.length} kullanıcı\n"
+            "Hedef: ${targetUids.length} kullanıcı\n"
             "Tür: $type\n"
             "UID: ${uid.isEmpty ? '-' : uid}\n"
             "Meslek: ${meslek.isEmpty ? '-' : meslek}\n"
@@ -326,28 +190,27 @@ class _AdminPushViewState extends State<AdminPushView> {
             "Yaş: ${minAge?.toString() ?? '-'} - ${maxAge?.toString() ?? '-'}";
       });
       try {
-        await _reportsRef().add({
-          "senderUid": senderUid,
-          "title": title,
-          "body": body,
-          "type": type,
-          "targetCount": filteredTargetUids.length,
-          "filters": {
-            "uid": uid,
-            "meslek": meslek,
-            "konum": konum,
-            "cinsiyet": gender,
-            "minAge": minAge,
-            "maxAge": maxAge,
-          },
-          "createdDate": DateTime.now().millisecondsSinceEpoch,
-        });
+        await _adminPushRepository.addReport(
+          senderUid: senderUid,
+          title: title,
+          body: body,
+          type: type,
+          targetCount: targetUids.length,
+          filters: AdminPushTargetFilters(
+            uid: uid,
+            meslek: meslek,
+            konum: konum,
+            gender: gender,
+            minAge: minAge,
+            maxAge: maxAge,
+          ),
+        );
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
       }
       Get.snackbar(
         "Gönderildi",
-        "${filteredTargetUids.length} kullanıcı için bildirim kuyruğa alındı.",
+        "${targetUids.length} kullanıcı için bildirim kuyruğa alındı.",
         snackPosition: SnackPosition.BOTTOM,
       );
       _bodyController.clear();
@@ -576,11 +439,8 @@ class _AdminPushViewState extends State<AdminPushView> {
               ),
               childrenPadding: const EdgeInsets.only(bottom: 8),
               children: [
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _reportsRef()
-                      .orderBy("createdDate", descending: true)
-                      .limit(20)
-                      .snapshots(),
+                StreamBuilder<List<AdminPushReport>>(
+                  stream: _adminPushRepository.watchReports(limit: 20),
                   builder: (context, snap) {
                     if (!snap.hasData) {
                       return const Padding(
@@ -588,7 +448,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    final docs = snap.data!.docs;
+                    final docs = snap.data!;
                     if (docs.isEmpty) {
                       return Container(
                         width: double.infinity,
@@ -608,8 +468,8 @@ class _AdminPushViewState extends State<AdminPushView> {
                       );
                     }
                     return Column(
-                      children: docs.map((d) {
-                        final data = d.data();
+                      children: docs.map((report) {
+                        final data = report.data;
                         final filters =
                             (data["filters"] as Map<String, dynamic>? ??
                                 <String, dynamic>{});
@@ -649,7 +509,8 @@ class _AdminPushViewState extends State<AdminPushView> {
                               ),
                               IconButton(
                                 onPressed: () async {
-                                  await d.reference.delete();
+                                  await _adminPushRepository
+                                      .deleteReport(report.id);
                                 },
                                 icon: const Icon(
                                   Icons.delete_outline,

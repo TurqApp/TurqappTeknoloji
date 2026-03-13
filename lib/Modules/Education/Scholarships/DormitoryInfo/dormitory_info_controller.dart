@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 
 class DormitoryInfoController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
   final isLoading = true.obs;
   final sehir = "Şehir Seç".obs;
   final ilce = "İlçe Seç".obs;
@@ -79,13 +80,12 @@ class DormitoryInfoController extends GetxController {
 
   Future<void> fetchFirestoreData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      if (doc.exists) {
+      final data = await _userRepository.getUserRaw(
+        FirebaseAuth.instance.currentUser!.uid,
+      );
+      if (data != null) {
         yurt.value = userString(
-          doc.data() ?? const <String, dynamic>{},
+          data,
           key: "yurt",
           scope: "family",
         );
@@ -201,15 +201,13 @@ class DormitoryInfoController extends GetxController {
       try {
         final String savedYurt =
             listedeYok.value ? yurtInputText.value : yurt.value;
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .update(
-              scopedUserUpdate(
-                scope: 'family',
-                values: {"yurt": savedYurt},
-              ),
-            );
+        await _userRepository.updateUserFields(
+          FirebaseAuth.instance.currentUser!.uid,
+          scopedUserUpdate(
+            scope: 'family',
+            values: {"yurt": savedYurt},
+          ),
+        );
         yurt.value = savedYurt;
         Get.back();
         AppSnackbar("Başarılı", "Yurt Bilgileriniz Kaydedildi.");

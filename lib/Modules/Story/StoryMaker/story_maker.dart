@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/icon_buttons.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'story_maker_controller.dart';
 import 'story_sticker_sheet.dart';
 import 'story_video.dart';
@@ -213,20 +215,19 @@ class StoryMaker extends StatelessWidget {
       case StoryElementType.image:
         return Image.file(File(e.content), fit: BoxFit.cover);
       case StoryElementType.gif:
-        return Image.network(
-          e.content,
+        return CachedNetworkImage(
+          imageUrl: e.content,
+          cacheManager: TurqImageCacheManager.instance,
           fit: BoxFit.contain,
-          gaplessPlayback: true,
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              color: Colors.white12,
-              child: const Center(
-                child: CupertinoActivityIndicator(color: Colors.white),
-              ),
-            );
-          },
-          errorBuilder: (_, __, ___) => Container(
+          fadeInDuration: Duration.zero,
+          fadeOutDuration: Duration.zero,
+          placeholder: (_, __) => Container(
+            color: Colors.white12,
+            child: const Center(
+              child: CupertinoActivityIndicator(color: Colors.white),
+            ),
+          ),
+          errorWidget: (_, __, ___) => Container(
             color: Colors.white12,
             child: const Center(
               child: Icon(Icons.broken_image, color: Colors.white70),

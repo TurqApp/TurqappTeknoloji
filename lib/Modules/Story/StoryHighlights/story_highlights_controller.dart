@@ -1,11 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
   final String userId;
   StoryHighlightsController({required this.userId});
+  final StoryHighlightsRepository _repository =
+      StoryHighlightsRepository.ensure();
+  final StoryRepository _storyRepository = StoryRepository.ensure();
 
   RxList<StoryHighlightModel> highlights = <StoryHighlightModel>[].obs;
   RxBool isLoading = false.obs;
@@ -19,14 +23,11 @@ class StoryHighlightsController extends GetxController {
   Future<void> loadHighlights() async {
     try {
       isLoading.value = true;
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('highlights')
-          .orderBy('order')
-          .get();
-      highlights.value =
-          snap.docs.map((d) => StoryHighlightModel.fromDoc(d)).toList();
+      highlights.value = await _repository.getHighlights(
+        userId,
+        preferCache: true,
+        forceRefresh: false,
+      );
       await _hydrateMissingCoverUrls();
     } catch (e) {
       print('loadHighlights error: $e');
@@ -44,11 +45,7 @@ class StoryHighlightsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return null;
 
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('highlights')
-          .doc();
+      final docRefId = DateTime.now().microsecondsSinceEpoch.toString();
 
       var resolvedCoverUrl = coverUrl.trim();
       if (resolvedCoverUrl.isEmpty && storyIds.isNotEmpty) {
@@ -56,7 +53,7 @@ class StoryHighlightsController extends GetxController {
       }
 
       final model = StoryHighlightModel(
-        id: docRef.id,
+        id: docRefId,
         userId: uid,
         title: title,
         coverUrl: resolvedCoverUrl,
@@ -65,8 +62,12 @@ class StoryHighlightsController extends GetxController {
         order: highlights.length,
       );
 
-      await docRef.set(model.toMap());
+      await _repository.createHighlight(uid, model);
       highlights.add(model);
+      await _repository.setHighlights(
+        uid,
+        List<StoryHighlightModel>.from(highlights),
+      );
       return model;
     } catch (e) {
       print('createHighlight error: $e');
@@ -79,19 +80,20 @@ class StoryHighlightsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('highlights')
-          .doc(highlightId)
-          .update({
-        'storyIds': FieldValue.arrayUnion([storyId]),
-      });
+      await _repository.addStoryToHighlight(
+        uid,
+        highlightId: highlightId,
+        storyId: storyId,
+      );
 
       final idx = highlights.indexWhere((h) => h.id == highlightId);
       if (idx != -1) {
         highlights[idx].storyIds.add(storyId);
         highlights.refresh();
+        await _repository.setHighlights(
+          uid,
+          List<StoryHighlightModel>.from(highlights),
+        );
       }
     } catch (e) {
       print('addStoryToHighlight error: $e');
@@ -103,14 +105,16 @@ class StoryHighlightsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('highlights')
-          .doc(highlightId)
-          .delete();
+      await _repository.deleteHighlight(
+        uid,
+        highlightId: highlightId,
+      );
 
       highlights.removeWhere((h) => h.id == highlightId);
+      await _repository.setHighlights(
+        uid,
+        List<StoryHighlightModel>.from(highlights),
+      );
     } catch (e) {
       print('deleteHighlight error: $e');
     }
@@ -122,18 +126,22 @@ class StoryHighlightsController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('highlights')
-          .doc(highlightId)
-          .update({'title': title, 'coverUrl': coverUrl});
+      await _repository.updateHighlight(
+        uid,
+        highlightId: highlightId,
+        title: title,
+        coverUrl: coverUrl,
+      );
 
       final idx = highlights.indexWhere((h) => h.id == highlightId);
       if (idx != -1) {
         highlights[idx].title = title;
         highlights[idx].coverUrl = coverUrl;
         highlights.refresh();
+        await _repository.setHighlights(
+          uid,
+          List<StoryHighlightModel>.from(highlights),
+        );
       }
     } catch (e) {
       print('updateHighlight error: $e');
@@ -159,29 +167,30 @@ class StoryHighlightsController extends GetxController {
 
       if (canPersist) {
         try {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('highlights')
-              .doc(item.id)
-              .update({'coverUrl': cover});
+          await _repository.updateCoverUrl(
+            userId,
+            highlightId: item.id,
+            coverUrl: cover,
+          );
         } catch (_) {}
       }
     }
 
     if (anyLocalUpdate) {
       highlights.refresh();
+      await _repository.setHighlights(
+        userId,
+        List<StoryHighlightModel>.from(highlights),
+      );
     }
   }
 
   Future<String> _resolveCoverUrlFromStoryIds(List<String> storyIds) async {
     for (final storyId in storyIds) {
-      final doc = await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .get();
-      if (!doc.exists) continue;
-      final data = doc.data();
+      final data = await _storyRepository.getStoryRaw(
+        storyId,
+        preferCache: true,
+      );
       if (data == null) continue;
       if ((data['deleted'] ?? false) == true) continue;
       final extracted = _extractPreviewUrlFromStoryData(data);

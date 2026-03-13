@@ -1,9 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeGridController extends GetxController {
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var avatarUrl = ''.obs;
   var nickname = ''.obs;
   var toplamBasvuru = 0.obs;
@@ -30,20 +33,13 @@ class DenemeGridController extends GetxController {
   Future<void> fetchProfileData(String userID) async {
     isLoadingProfile.value = true;
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-      final data = doc.data() ?? const <String, dynamic>{};
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
+      final user = await UserRepository.ensure().getUser(
+        userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      avatarUrl.value = user?.avatarUrl ?? '';
+      nickname.value = user?.preferredName ?? '';
     } catch (e) {
       debugPrint('[DenemeGrid] profile fetch failed for $userID: $e');
       avatarUrl.value = '';
@@ -56,23 +52,10 @@ class DenemeGridController extends GetxController {
   Future<void> fetchApplicantCount(String docID) async {
     isLoadingApplicants.value = true;
     try {
-      final examDoc = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID)
-          .get();
-      final data = examDoc.data() ?? const <String, dynamic>{};
-      final participantCount = data['participantCount'];
-      if (participantCount is num) {
-        toplamBasvuru.value = participantCount.toInt();
-      } else {
-        final aggregate = await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(docID)
-            .collection("Basvurular")
-            .count()
-            .get();
-        toplamBasvuru.value = aggregate.count ?? 0;
-      }
+      toplamBasvuru.value = await _practiceExamRepository.fetchParticipantCount(
+        docID,
+        preferCache: true,
+      );
     } catch (e) {
       debugPrint('[DenemeGrid] applicant count fetch failed for $docID: $e');
       toplamBasvuru.value = 0;

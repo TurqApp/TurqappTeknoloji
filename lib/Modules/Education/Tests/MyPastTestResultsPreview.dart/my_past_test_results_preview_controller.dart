@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
@@ -14,6 +14,7 @@ class MyPastTestResultsPreviewController extends GetxController {
   final bosSayisi = 0.obs;
   final totalPuan = 0.0.obs;
   final isLoading = true.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   MyPastTestResultsPreviewController(this.model);
 
@@ -26,43 +27,21 @@ class MyPastTestResultsPreviewController extends GetxController {
   Future<void> getData() async {
     isLoading.value = true;
     try {
-      // Fetch answers
-      final yanitSnapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .get();
-
-      for (var doc in yanitSnapshot.docs) {
-        yanitlar.assignAll(List<String>.from(doc['cevaplar']));
-        timeStamp.value = doc.get("timeStamp");
+      final yanitSnapshot = await _testRepository.fetchAnswers(
+        model.docID,
+        preferCache: true,
+      );
+      for (final doc in yanitSnapshot) {
+        yanitlar.assignAll(List<String>.from(doc['cevaplar'] ?? const []));
+        timeStamp.value = ((doc["timeStamp"] ?? 0) as num).toInt();
       }
 
-      // Fetch questions
-      final soruSnapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(model.docID)
-          .collection("Sorular")
-          .orderBy("id", descending: false)
-          .get();
-
+      final soruSnapshot = await _testRepository.fetchQuestions(
+        model.docID,
+        preferCache: true,
+      );
       soruList.clear();
-      for (var doc in soruSnapshot.docs) {
-        final img = doc.get("img") as String;
-        final id = doc.get("id") as num;
-        final dogruCevap = doc.get("dogruCevap") as String;
-        final max = doc.get("max") as num;
-
-        soruList.add(
-          TestReadinessModel(
-            id: id.toInt(),
-            img: img,
-            max: max.toInt(),
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
+      soruList.assignAll(soruSnapshot);
 
       updateStats();
     } catch (e) {

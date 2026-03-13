@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
@@ -25,6 +26,7 @@ class EditorNicknameController extends GetxController {
   String _originalNickname = '';
   final RxBool hasUserTyped = false.obs;
   Timer? _debounce;
+  final UserRepository _userRepository = UserRepository.ensure();
   static const Map<String, String> _trMap = {
     'ç': 'c',
     'ğ': 'g',
@@ -51,20 +53,15 @@ class EditorNicknameController extends GetxController {
   }
 
   Future<void> fetchAndSetUserData() async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(uid).get();
-
-    if (doc.exists) {
-      final data = doc.data();
-      if (data != null) {
-        final nickname = data["nickname"] ?? "";
-        nicknameController.text = nickname;
-        // Orijinal değeri sakla
-        _originalNickname = nickname;
-        _updateCooldownState(data);
-        // İlk yüklemede uygunluk durumunu hesapla
-        _triggerDebouncedCheck();
-      }
+    final data = await _userRepository.getUserRaw(uid);
+    if (data != null) {
+      final nickname = data["nickname"] ?? "";
+      nicknameController.text = nickname;
+      // Orijinal değeri sakla
+      _originalNickname = nickname;
+      _updateCooldownState(data);
+      // İlk yüklemede uygunluk durumunu hesapla
+      _triggerDebouncedCheck();
     }
   }
 
@@ -241,12 +238,11 @@ class EditorNicknameController extends GetxController {
       statusText.value = 'Kontrol ediliyor…';
 
       // Global benzersizlik kontrolü
-      final q = await FirebaseFirestore.instance
-          .collection('users')
-          .where('nickname', isEqualTo: name)
-          .limit(1)
-          .get();
-      if (q.docs.isNotEmpty && q.docs.first.id != uid) {
+      final existing = await _userRepository.findUserByNickname(
+        name,
+        preferCache: true,
+      );
+      if (existing != null && (existing['id'] ?? '').toString() != uid) {
         isAvailable.value = false;
         statusText.value = 'Bu kullanıcı adı alınmış';
       } else {
@@ -279,8 +275,8 @@ class EditorNicknameController extends GetxController {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
 
       Future<Map<String, dynamic>> buildPatch(
-          DocumentSnapshot<Map<String, dynamic>> snap) async {
-        final userData = snap.data() ?? <String, dynamic>{};
+        Map<String, dynamic> userData,
+      ) async {
         final lastChangeMs = _extractLastChangeAt(userData);
         final graceStartMs = _extractGraceWindowStartAt(userData);
         final graceCount = _extractGraceCount(userData);
@@ -344,12 +340,11 @@ class EditorNicknameController extends GetxController {
       }
 
       // 1) Uniqueness check (users koleksiyonu)
-      final q = await FirebaseFirestore.instance
-          .collection('users')
-          .where('nickname', isEqualTo: normalized)
-          .limit(1)
-          .get();
-      if (q.docs.isNotEmpty && q.docs.first.id != uid) {
+      final existing = await _userRepository.findUserByNickname(
+        normalized,
+        preferCache: true,
+      );
+      if (existing != null && (existing['id'] ?? '').toString() != uid) {
         throw Exception('taken');
       }
 
@@ -357,14 +352,21 @@ class EditorNicknameController extends GetxController {
       try {
         await FirebaseFirestore.instance.runTransaction((tx) async {
           final userSnap = await tx.get(userDoc);
-          final patch = await buildPatch(userSnap);
+          final patch = await buildPatch(
+            userSnap.data() ?? const <String, dynamic>{},
+          );
           tx.update(userDoc, patch);
         });
       } catch (txError) {
         // 3) Fallback: direct update (bazı rule/registry uyumsuzlukları için)
         debugPrint('Nickname tx fallback: $txError');
-        final freshSnap = await userDoc.get();
-        final patch = await buildPatch(freshSnap);
+        final freshData = await _userRepository.getUserRaw(
+          uid,
+          preferCache: false,
+          cacheOnly: false,
+          forceServer: true,
+        );
+        final patch = await buildPatch(freshData ?? const <String, dynamic>{});
         await userDoc.update(patch);
       }
 

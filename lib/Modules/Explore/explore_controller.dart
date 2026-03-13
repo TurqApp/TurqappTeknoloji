@@ -7,6 +7,9 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/explore_repository.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -15,8 +18,8 @@ import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
-import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 
 import '../../Models/posts_model.dart';
 
@@ -77,6 +80,10 @@ class ExploreController extends GetxController {
   int _floodsEmptyScans = 0;
   // ... diğer kodlar
   UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
+  UserSubcollectionRepository get _subcollectionRepository =>
+      UserSubcollectionRepository.ensure();
+  TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
+  ExploreRepository get _exploreRepository => ExploreRepository.ensure();
   Worker? _currentUserWorker;
 
   @override
@@ -228,16 +235,16 @@ class ExploreController extends GetxController {
 
   Future<List<String>> _fetchRecentSearchIds(String currentUserID) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserID)
-          .collection('lastSearches')
-          .limit(200)
-          .get(const GetOptions(source: Source.serverAndCache));
-      final docs = snap.docs.toList()
+      final entries = await _subcollectionRepository.getEntries(
+        currentUserID,
+        subcollection: 'lastSearches',
+        preferCache: true,
+        forceRefresh: false,
+      );
+      final docs = entries.toList()
         ..sort((a, b) {
-          final aData = a.data();
-          final bData = b.data();
+          final aData = a.data;
+          final bData = b.data;
           final aTs = (aData['updatedDate'] is num)
               ? (aData['updatedDate'] as num).toInt()
               : ((aData['timeStamp'] is num)
@@ -337,16 +344,37 @@ class ExploreController extends GetxController {
     }
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .collection("lastSearches")
-          .doc(cleanTarget)
-          .set({
+      await _subcollectionRepository.upsertEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: cleanTarget,
+        data: {
         "userID": cleanTarget,
         "updatedDate": now,
         "timeStamp": now,
-      }, SetOptions(merge: true));
+        },
+      );
+      final existing = await _subcollectionRepository.getEntries(
+        currentUserID,
+        subcollection: 'lastSearches',
+        preferCache: true,
+      );
+      final next = <UserSubcollectionEntry>[
+        UserSubcollectionEntry(
+          id: cleanTarget,
+          data: {
+            'userID': cleanTarget,
+            'updatedDate': now,
+            'timeStamp': now,
+          },
+        ),
+        ...existing.where((e) => e.id != cleanTarget),
+      ];
+      await _subcollectionRepository.setEntries(
+        currentUserID,
+        subcollection: 'lastSearches',
+        items: next.take(200).toList(growable: false),
+      );
     } catch (e) {
       print('Explore recent search save error: $e');
     } finally {
@@ -368,12 +396,21 @@ class ExploreController extends GetxController {
     await _saveRecentSearchUsersCache();
 
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserID)
-          .collection("lastSearches")
-          .doc(cleanTarget)
-          .delete();
+      await _subcollectionRepository.deleteEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: cleanTarget,
+      );
+      final existing = await _subcollectionRepository.getEntries(
+        currentUserID,
+        subcollection: 'lastSearches',
+        preferCache: true,
+      );
+      await _subcollectionRepository.setEntries(
+        currentUserID,
+        subcollection: 'lastSearches',
+        items: existing.where((e) => e.id != cleanTarget).toList(growable: false),
+      );
     } catch (e) {
       // Yazma başarısızsa eski listeyi geri yükle.
       recentSearchUsers.value = before;
@@ -398,13 +435,11 @@ class ExploreController extends GetxController {
 
   Future<void> _fetchFollowingIDs(String uid) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('followings')
-          .get(); // ✅ get() instead of snapshots()
-
-      followingIDs.assignAll(snap.docs.map((d) => d.id).toSet());
+      final ids = await FollowRepository.ensure().getFollowingIds(
+        uid,
+        preferCache: true,
+      );
+      followingIDs.assignAll(ids);
     } catch (e) {
       print('Error fetching following IDs: $e');
     }
@@ -422,37 +457,20 @@ class ExploreController extends GetxController {
       const int targetBatch = 24;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && exploreHasMore.value) {
-        // Sadece kök flood gönderileri (flood == false) listelensin
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        Query query = FirebaseFirestore.instance
-            .collection('Posts')
-            .where("arsiv", isEqualTo: false)
-            .where("flood", isEqualTo: false)
-            .where('timeStamp', isLessThanOrEqualTo: nowMs)
-            .orderBy("timeStamp", descending: true)
-            .limit(pageLimit); // ✅ Optimized: 60 → 20
-
-        if (lastExploreDoc != null) {
-          query = query.startAfterDocument(lastExploreDoc!);
-        }
-
-        final snap = await PerformanceService.traceFeedLoad(
-          () => query.get(),
-          postCount: explorePosts.length,
-          feedMode: 'explore_posts',
+        final page = await _exploreRepository.fetchExplorePostsPage(
+          startAfter: lastExploreDoc,
+          pageLimit: pageLimit,
+          nowMs: nowMs,
         );
-        if (snap.docs.isEmpty) {
+        if (page.items.isEmpty) {
           exploreHasMore.value = false;
           break;
         }
-        if (snap.docs.length < pageLimit) exploreHasMore.value = false;
-        lastExploreDoc = snap.docs.last;
+        if (!page.hasMore) exploreHasMore.value = false;
+        lastExploreDoc = page.lastDoc;
 
-        // 1. Al, filtrele
-        var newPosts = snap.docs
-            .map((doc) =>
-                PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList();
+        var newPosts = page.items;
         // Sana Özel ekranı: sadece dikey oranli oynatilabilir videolar
         newPosts = newPosts.where(_isEligibleExplorePost).toList();
         // nowMs already computed above in this loop
@@ -605,26 +623,21 @@ class ExploreController extends GetxController {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final postIds =
-        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet();
+        posts.map((e) => e.docID).where((e) => e.isNotEmpty).toSet().toList();
     final userIds =
         posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
 
     final validPostIds = <String>{};
-    for (final chunk in _chunkList(postIds.toList(), 10)) {
-      final snap = await FirebaseFirestore.instance
-          .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final d in snap.docs) {
-        final data = d.data();
-        final deleted = (data['deletedPost'] ?? false) == true;
-        final archived = (data['arsiv'] ?? false) == true;
-        final ts =
-            (data['timeStamp'] is num) ? (data['timeStamp'] as num).toInt() : 0;
-        if (!deleted && !archived && ts <= nowMs) {
-          validPostIds.add(d.id);
-        }
-      }
+    final postMap = await _exploreRepository.fetchPostsByIds(
+      postIds,
+      preferCache: true,
+    );
+    for (final entry in postMap.entries) {
+      final post = entry.value;
+      if (post.deletedPost == true) continue;
+      if (post.arsiv == true) continue;
+      if (post.timeStamp > nowMs) continue;
+      validPostIds.add(entry.key);
     }
 
     final profiles = await _userCache.getProfiles(
@@ -654,69 +667,13 @@ class ExploreController extends GetxController {
     return valid;
   }
 
-  List<List<T>> _chunkList<T>(List<T> input, int size) {
-    if (input.isEmpty) return <List<T>>[];
-    final chunks = <List<T>>[];
-    for (int i = 0; i < input.length; i += size) {
-      final end = (i + size > input.length) ? input.length : i + size;
-      chunks.add(input.sublist(i, end));
-    }
-    return chunks;
-  }
-
   Future<void> fetchTrendingTags() async {
     try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final snap = await FirebaseFirestore.instance
-          .collection('tags')
-          .orderBy('count', descending: true)
-          .limit(200)
-          .get();
-
-      final list = <HashtagModel>[];
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final raw = doc.id.trim();
-        final hashtag = raw.replaceFirst('#', '');
-        if (hashtag.isEmpty) continue;
-
-        final count = ((data['count'] ?? data['counter'] ?? 0) as num).toInt();
-        final trendThreshold = ((data['trendThreshold'] ?? 1) as num).toInt();
-        if (count <= 0 || count < trendThreshold) continue;
-
-        final trendWindowHours =
-            ((data['trendWindowHours'] ?? 24) as num).toInt();
-        final safeWindowHours = trendWindowHours <= 0 ? 24 : trendWindowHours;
-        final windowMs = Duration(hours: safeWindowHours).inMilliseconds;
-
-        final rawLastSeen =
-            ((data['lastSeenTs'] ?? data['lastSeenAt'] ?? 0) as num).toInt();
-        if (rawLastSeen <= 0) continue;
-
-        // Backward compatibility: eski data'da lastSeenAt expiry olarak tutulmuş olabilir.
-        final effectiveLastSeen =
-            rawLastSeen > nowMs ? (rawLastSeen - windowMs) : rawLastSeen;
-        if (effectiveLastSeen <= 0) continue;
-        if ((nowMs - effectiveLastSeen) > windowMs) continue;
-
-        list.add(
-          HashtagModel(
-            hashtag: hashtag,
-            count: count,
-            hasHashtag: raw.startsWith('#') ||
-                (((data['hashtagCount'] ?? 0) as num) > 0),
-            lastSeenTs: effectiveLastSeen,
-          ),
-        );
-      }
-
-      list.sort((a, b) {
-        final byCount = b.count.compareTo(a.count);
-        if (byCount != 0) return byCount;
-        return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
-      });
-
-      trendingTags.assignAll(list.take(30));
+      final tags = await _topTagsRepository.fetchTrendingTags(
+        resultLimit: 30,
+        preferCache: true,
+      );
+      trendingTags.assignAll(tags);
     } catch (e) {
       print('fetchTrendingTags error: $e');
       trendingTags.clear();
@@ -737,23 +694,12 @@ class ExploreController extends GetxController {
       while (pagesFetched < maxPages && videoHasMore.value) {
         const int pageLimit = 30;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        Query query = FirebaseFirestore.instance
-            .collection('Posts')
-            .where("arsiv", isEqualTo: false)
-            .where("flood", isEqualTo: false)
-            .where("hlsStatus", isEqualTo: "ready")
-            .where('timeStamp', isLessThanOrEqualTo: nowMs)
-            .orderBy("timeStamp", descending: true)
-            .limit(pageLimit);
-        if (lastVideoDoc != null)
-          query = query.startAfterDocument(lastVideoDoc!);
-
-        QuerySnapshot snap;
+        ExploreQueryPage page;
         try {
-          snap = await PerformanceService.traceFeedLoad(
-            () => query.get(),
-            postCount: exploreVideos.length,
-            feedMode: 'explore_video',
+          page = await _exploreRepository.fetchVideoReadyPage(
+            startAfter: lastVideoDoc,
+            pageLimit: pageLimit,
+            nowMs: nowMs,
           );
         } catch (e) {
           final isIndexError = e is FirebaseException
@@ -761,53 +707,30 @@ class ExploreController extends GetxController {
               : e.toString().contains('requires an index');
           if (!isIndexError) rethrow;
 
-          Query fallback = FirebaseFirestore.instance
-              .collection('Posts')
-              .where("arsiv", isEqualTo: false)
-              .where("flood", isEqualTo: false)
-              .where('timeStamp', isLessThanOrEqualTo: nowMs)
-              .orderBy("timeStamp", descending: true)
-              .limit(pageLimit);
-          if (lastVideoDoc != null) {
-            fallback = fallback.startAfterDocument(lastVideoDoc!);
-          }
-
           try {
-            snap = await PerformanceService.traceFeedLoad(
-              () => fallback.get(),
-              postCount: exploreVideos.length,
-              feedMode: 'explore_video_fallback',
+            page = await _exploreRepository.fetchVideoFallbackPage(
+              startAfter: lastVideoDoc,
+              pageLimit: pageLimit,
+              nowMs: nowMs,
             );
           } catch (_) {
-            Query broad = FirebaseFirestore.instance
-                .collection('Posts')
-                .where("arsiv", isEqualTo: false)
-                .where('timeStamp', isLessThanOrEqualTo: nowMs)
-                .orderBy("timeStamp", descending: true)
-                .limit(pageLimit);
-            if (lastVideoDoc != null) {
-              broad = broad.startAfterDocument(lastVideoDoc!);
-            }
-            snap = await PerformanceService.traceFeedLoad(
-              () => broad.get(),
-              postCount: exploreVideos.length,
-              feedMode: 'explore_video_broad',
+            page = await _exploreRepository.fetchVideoBroadPage(
+              startAfter: lastVideoDoc,
+              pageLimit: pageLimit,
+              nowMs: nowMs,
             );
           }
         }
         print(
-            "[Explore] fetchVideo:page=${pagesFetched + 1} serverDocs=${snap.docs.length}");
-        if (snap.docs.isEmpty) {
+            "[Explore] fetchVideo:page=${pagesFetched + 1} serverDocs=${page.items.length}");
+        if (page.items.isEmpty) {
           videoHasMore.value = false;
           break;
         }
-        if (snap.docs.length < pageLimit) videoHasMore.value = false;
-        lastVideoDoc = snap.docs.last;
+        if (!page.hasMore) videoHasMore.value = false;
+        lastVideoDoc = page.lastDoc;
 
-        var newVideos = snap.docs
-            .map((doc) =>
-                PostsModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-            .toList();
+        var newVideos = page.items;
         // İstemci tarafında video içerenleri seç ve sadece kök flood videolarını göster
         final beforeType = newVideos.length;
         newVideos = newVideos
@@ -877,36 +800,22 @@ class ExploreController extends GetxController {
       print("[Explore] fetchPhoto:start lastDoc=${lastPhotoDoc != null}");
       while (pagesFetched < maxPages && photoHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        Query query = FirebaseFirestore.instance
-            .collection('Posts')
-            .where("arsiv", isEqualTo: false)
-            .where("flood", isEqualTo: false)
-            .where("video", isEqualTo: "")
-            .where('timeStamp', isLessThanOrEqualTo: nowMs)
-            .orderBy('timeStamp', descending: true)
-            .limit(pageLimit); // ✅ Optimized: 30 → 20
-
-        if (lastPhotoDoc != null) {
-          query = query.startAfterDocument(lastPhotoDoc!);
-        }
-
-        final snap = await PerformanceService.traceFeedLoad(
-          () => query.get(),
-          postCount: explorePhotos.length,
-          feedMode: 'explore_photo',
+        final page = await _exploreRepository.fetchPhotoPage(
+          startAfter: lastPhotoDoc,
+          pageLimit: pageLimit,
+          nowMs: nowMs,
         );
         print(
-            "[Explore] fetchPhoto:page=${pagesFetched + 1} serverDocs=${snap.docs.length}");
-        if (snap.docs.isEmpty) {
+            "[Explore] fetchPhoto:page=${pagesFetched + 1} serverDocs=${page.items.length}");
+        if (page.items.isEmpty) {
           photoHasMore.value = false;
           break;
         }
-        if (snap.docs.length < pageLimit) photoHasMore.value = false;
-        lastPhotoDoc = snap.docs.last;
+        if (!page.hasMore) photoHasMore.value = false;
+        lastPhotoDoc = page.lastDoc;
 
         List<PostsModel> newPhotos = [];
-        for (var doc in snap.docs) {
-          final model = PostsModel.fromFirestore(doc);
+        for (final model in page.items) {
           if (model.metin != "" && model.img.isNotEmpty) {
             newPhotos.add(model);
           }
@@ -974,53 +883,31 @@ class ExploreController extends GetxController {
       final existingIDs = exploreFloods.map((e) => e.docID).toSet();
 
       while (pagesFetched < maxPages && !noMoreServerPages) {
-        QuerySnapshot snap;
+        ExploreQueryPage page;
         try {
-          Query serverQuery = FirebaseFirestore.instance
-              .collection('Posts')
-              .where('arsiv', isEqualTo: false)
-              .where('flood', isEqualTo: false)
-              .where('floodCount', isGreaterThan: 1)
-              .orderBy('floodCount')
-              .orderBy('timeStamp', descending: true)
-              .limit(pageLimit);
-          if (lastFloodsDoc != null) {
-            serverQuery = serverQuery.startAfterDocument(lastFloodsDoc!);
-          }
-          snap = await PerformanceService.traceFeedLoad(
-            () => serverQuery.get(),
-            postCount: exploreFloods.length,
-            feedMode: 'explore_flood',
+          page = await _exploreRepository.fetchFloodServerPage(
+            startAfter: lastFloodsDoc,
+            pageLimit: pageLimit,
           );
           print(
-              '[FLOODS] serverQuery page=${pagesFetched + 1} fetched=${snap.docs.length}');
+              '[FLOODS] serverQuery page=${pagesFetched + 1} fetched=${page.items.length}');
         } catch (e) {
           // Fallback: client-side filtre
           print('[FLOODS] server filter failed; fallback. err=$e');
-          Query fallbackQuery = FirebaseFirestore.instance
-              .collection('Posts')
-              .where('arsiv', isEqualTo: false)
-              .where('flood', isEqualTo: false)
-              .where('timeStamp', isLessThanOrEqualTo: nowMs)
-              .orderBy('timeStamp', descending: true)
-              .limit(pageLimit);
-          if (lastFloodsDoc != null) {
-            fallbackQuery = fallbackQuery.startAfterDocument(lastFloodsDoc!);
-          }
-          snap = await PerformanceService.traceFeedLoad(
-            () => fallbackQuery.get(),
-            postCount: exploreFloods.length,
-            feedMode: 'explore_flood_fallback',
+          page = await _exploreRepository.fetchFloodFallbackPage(
+            startAfter: lastFloodsDoc,
+            pageLimit: pageLimit,
+            nowMs: nowMs,
           );
           print(
-              '[FLOODS] fallback page=${pagesFetched + 1} fetched=${snap.docs.length}');
+              '[FLOODS] fallback page=${pagesFetched + 1} fetched=${page.items.length}');
         }
-        if (snap.docs.isEmpty) {
+        if (page.items.isEmpty) {
           noMoreServerPages = true;
           break;
         }
-        if (snap.docs.length < pageLimit) noMoreServerPages = true;
-        lastFloodsDoc = snap.docs.last;
+        if (!page.hasMore) noMoreServerPages = true;
+        lastFloodsDoc = page.lastDoc;
 
         int notRoot = 0;
         int noMedia = 0;
@@ -1028,8 +915,7 @@ class ExploreController extends GetxController {
         int duplicates = 0;
         int keptPreTimeDel = 0;
         List<PostsModel> batch = [];
-        for (var doc in snap.docs) {
-          final model = PostsModel.fromFirestore(doc);
+        for (final model in page.items) {
           // Kök flood ve video içeren gönderiler
           final hasMedia = model.hasPlayableVideo;
           if (model.flood == true) {

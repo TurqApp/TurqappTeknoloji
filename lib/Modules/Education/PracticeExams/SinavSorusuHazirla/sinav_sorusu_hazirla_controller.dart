@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/soru_model.dart';
 
 class SinavSorusuHazirlaController extends GetxController {
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var list = <SoruModel>[].obs;
   var isLoading = false.obs;
   var isInitialized = false.obs;
@@ -31,32 +34,12 @@ class SinavSorusuHazirlaController extends GetxController {
   Future<void> getSorular() async {
     isLoading.value = true;
     try {
-      QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID)
-          .collection("Sorular")
-          .get();
-
-      if (snap.docs.isNotEmpty) {
-        list.clear();
-        for (var doc in snap.docs) {
-          String ders = doc.get("ders");
-          String dogruCevap = doc.get("dogruCevap");
-          num id = doc.get("id");
-          String konu = doc.get("konu");
-          String soru = doc.get("soru");
-
-          list.add(
-            SoruModel(
-              id: id.toInt(),
-              soru: soru,
-              ders: ders,
-              konu: konu,
-              dogruCevap: dogruCevap,
-              docID: doc.id,
-            ),
-          );
-        }
+      final questions = await _practiceExamRepository.fetchQuestions(
+        docID,
+        preferCache: true,
+      );
+      if (questions.isNotEmpty) {
+        list.assignAll(questions);
       } else {
         await setList();
       }

@@ -5,7 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
-import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_repository.dart';
+import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -20,8 +23,12 @@ class ProfileController extends GetxController {
   // Aktif oturum kullanıcısını izleyip veri setlerini dinamik yenilemek için
   String? _activeUid;
   StreamSubscription<User?>? _authSub;
-  StreamSubscription<DocumentSnapshot>? _counterSub;
-  final ProfilePostsCacheService _postsCache = ProfilePostsCacheService();
+  StreamSubscription<Map<String, dynamic>?>? _counterSub;
+  final ProfileRepository _profileRepository = ProfileRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
+  final SocialMediaLinksRepository _socialLinksRepository =
+      SocialMediaLinksRepository.ensure();
   Timer? _persistCacheTimer;
   Worker? _allPostsWorker;
   Worker? _photosWorker;
@@ -42,6 +49,9 @@ class ProfileController extends GetxController {
   bool hasMorePosts = true;
   final int postLimit = 10;
   bool isLoadingMore = false;
+  DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
+  bool _hasMorePrimary = true;
+  bool _isLoadingPrimary = false;
 
   // İz Bırak (gelecek tarihli) gönderiler
   final RxList<PostsModel> scheduledPosts = <PostsModel>[].obs;
@@ -72,12 +82,6 @@ class ProfileController extends GetxController {
   final RxBool showScrollToTop = false.obs;
   final ScrollController scrollController = ScrollController();
   var showPfImage = false.obs;
-  static const String _bucketAll = 'all';
-  static const String _bucketPhotos = 'photos';
-  static const String _bucketVideos = 'videos';
-  static const String _bucketReshares = 'reshares';
-  static const String _bucketScheduled = 'scheduled';
-
   @override
   void onInit() {
     super.onInit();
@@ -117,11 +121,8 @@ class ProfileController extends GetxController {
     getCounters();
     _listenToCounterChanges();
     _bindResharesRealtime();
-    fetchPosts(isInitial: true);
-    fetchPhotos(isInitial: true);
-    fetchVideos(isInitial: true);
+    await _fetchPrimaryBuckets(initial: true);
     getReshares();
-    fetchScheduledPosts(isInitial: true);
   }
 
   void _bindCacheWorkers() {
@@ -143,39 +144,29 @@ class ProfileController extends GetxController {
   }
 
   Future<void> _persistPostCaches(String uid) async {
-    await Future.wait([
-      _postsCache.writeBucket(uid: uid, bucket: _bucketAll, posts: allPosts),
-      _postsCache.writeBucket(uid: uid, bucket: _bucketPhotos, posts: photos),
-      _postsCache.writeBucket(uid: uid, bucket: _bucketVideos, posts: videos),
-      _postsCache.writeBucket(
-          uid: uid, bucket: _bucketReshares, posts: reshares),
-      _postsCache.writeBucket(
-          uid: uid, bucket: _bucketScheduled, posts: scheduledPosts),
-    ]);
+    await _profileRepository.writeBuckets(
+      uid,
+      ProfileBuckets(
+        all: allPosts,
+        photos: photos,
+        videos: videos,
+        scheduled: scheduledPosts,
+      ),
+    );
   }
 
   Future<void> _restoreCachedListsForActiveUser() async {
     final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) return;
-    final loaded = await Future.wait([
-      _postsCache.readBucket(uid: uid, bucket: _bucketAll),
-      _postsCache.readBucket(uid: uid, bucket: _bucketPhotos),
-      _postsCache.readBucket(uid: uid, bucket: _bucketVideos),
-      _postsCache.readBucket(uid: uid, bucket: _bucketReshares),
-      _postsCache.readBucket(uid: uid, bucket: _bucketScheduled),
-    ]);
-
-    final loadedAll = loaded[0];
-    final loadedPhotos = loaded[1];
-    final loadedVideos = loaded[2];
-    final loadedReshares = loaded[3];
-    final loadedScheduled = loaded[4];
-
-    if (loadedAll.isNotEmpty) allPosts.assignAll(loadedAll);
-    if (loadedPhotos.isNotEmpty) photos.assignAll(loadedPhotos);
-    if (loadedVideos.isNotEmpty) videos.assignAll(loadedVideos);
-    if (loadedReshares.isNotEmpty) reshares.assignAll(loadedReshares);
-    if (loadedScheduled.isNotEmpty) scheduledPosts.assignAll(loadedScheduled);
+    final buckets = await _profileRepository.readCachedBuckets(uid);
+    if (buckets != null) {
+      if (buckets.all.isNotEmpty) allPosts.assignAll(buckets.all);
+      if (buckets.photos.isNotEmpty) photos.assignAll(buckets.photos);
+      if (buckets.videos.isNotEmpty) videos.assignAll(buckets.videos);
+      if (buckets.scheduled.isNotEmpty) {
+        scheduledPosts.assignAll(buckets.scheduled);
+      }
+    }
     unawaited(_warmProfileSurfaceCache());
   }
 
@@ -219,6 +210,8 @@ class ProfileController extends GetxController {
     videos.clear();
     reshares.clear();
     scheduledPosts.clear();
+    _lastPrimaryDoc = null;
+    _hasMorePrimary = true;
   }
 
   void _listenToCounterChanges() {
@@ -228,26 +221,21 @@ class ProfileController extends GetxController {
     _counterSub?.cancel();
 
     // ⚠️ REAL-TIME FIX: Listen to user document changes for instant counter updates
-    _counterSub = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .snapshots()
+    _counterSub = _userRepository
+        .watchUserRaw(uid)
         .listen((snapshot) {
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        if (data != null) {
-          followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
-              (data['followersCount'] as num?)?.toInt() ??
-              (data['takipci'] as num?)?.toInt() ??
-              (data['followerCount'] as num?)?.toInt() ??
-              0;
-          followingCount.value =
-              (data['counterOfFollowings'] as num?)?.toInt() ??
-                  (data['followingCount'] as num?)?.toInt() ??
-                  (data['takip'] as num?)?.toInt() ??
-                  (data['followCount'] as num?)?.toInt() ??
-                  0;
-        }
+      final data = snapshot;
+      if (data != null) {
+        followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
+            (data['followersCount'] as num?)?.toInt() ??
+            (data['takipci'] as num?)?.toInt() ??
+            (data['followerCount'] as num?)?.toInt() ??
+            0;
+        followingCount.value = (data['counterOfFollowings'] as num?)?.toInt() ??
+            (data['followingCount'] as num?)?.toInt() ??
+            (data['takip'] as num?)?.toInt() ??
+            (data['followCount'] as num?)?.toInt() ??
+            0;
       }
     });
   }
@@ -346,44 +334,35 @@ class ProfileController extends GetxController {
     if (uid == null) return;
 
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .get(const GetOptions(source: Source.serverAndCache));
-
-      if (userDoc.exists) {
-        final data = userDoc.data();
-        followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
-            (data?['followersCount'] as num?)?.toInt() ??
-            (data?['takipci'] as num?)?.toInt() ??
-            (data?['followerCount'] as num?)?.toInt() ??
-            0;
-        followingCount.value =
-            (data?['counterOfFollowings'] as num?)?.toInt() ??
-                (data?['followingCount'] as num?)?.toInt() ??
-                (data?['takip'] as num?)?.toInt() ??
-                (data?['followCount'] as num?)?.toInt() ??
-                0;
-      }
+      final data = await _userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+      );
+      followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
+          (data?['followersCount'] as num?)?.toInt() ??
+          (data?['takipci'] as num?)?.toInt() ??
+          (data?['followerCount'] as num?)?.toInt() ??
+          0;
+      followingCount.value =
+          (data?['counterOfFollowings'] as num?)?.toInt() ??
+              (data?['followingCount'] as num?)?.toInt() ??
+              (data?['takip'] as num?)?.toInt() ??
+              (data?['followCount'] as num?)?.toInt() ??
+              0;
 
       if (followerCount.value == 0 || followingCount.value == 0) {
-        final followersAgg = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(uid)
-            .collection("followers")
-            .count()
-            .get();
-        final followingAgg = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(uid)
-            .collection("followings")
-            .count()
-            .get();
-
-        final followers = followersAgg.count ?? 0;
-        final followings = followingAgg.count ?? 0;
-        followerCount.value = followers;
-        followingCount.value = followings;
+        final followers = await _followRepository.getFollowerIds(
+          uid,
+          preferCache: true,
+          forceRefresh: false,
+        );
+        final followings = await _followRepository.getFollowingIds(
+          uid,
+          preferCache: true,
+          forceRefresh: false,
+        );
+        followerCount.value = followers.length;
+        followingCount.value = followings.length;
       }
     } catch (e) {
       print("⚠️ getCounters error: $e");
@@ -412,294 +391,20 @@ class ProfileController extends GetxController {
   }
 
   Future<void> fetchPosts({bool isInitial = false, bool force = false}) async {
-    if (isLoadingMore && !force) return;
-    if (!isInitial && (!hasMorePosts || lastPostDoc == null)) return;
-
-    isLoadingMore = true;
-    try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      var query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-          .where("arsiv", isEqualTo: false)
-          .where("flood", isEqualTo: false)
-          .where('timeStamp', isLessThanOrEqualTo: nowMs)
-          .orderBy("timeStamp", descending: true)
-          .limit(postLimit);
-
-      if (!isInitial && lastPostDoc != null) {
-        query = query.startAfterDocument(lastPostDoc!);
-      }
-
-      final snapshot =
-          await query.get(const GetOptions(source: Source.serverAndCache));
-      final newPosts = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final model = PostsModel.fromMap(data, doc.id);
-        // Gelecek tarihli gönderileri normal akıştan çıkar (timeStamp'a göre)
-        if (model.timeStamp > nowMs) {
-          return null;
-        }
-        return model;
-      }).toList();
-
-      final filtered = newPosts
-          .whereType<PostsModel>()
-          .where((p) => p.deletedPost != true)
-          .toList();
-      if (isInitial) {
-        if (force && filtered.isEmpty && allPosts.isNotEmpty) {
-          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
-        } else {
-          allPosts.assignAll(filtered);
-          unawaited(_warmProfileSurfaceCache());
-        }
-      } else {
-        allPosts.addAll(filtered);
-        unawaited(_warmProfileSurfaceCache());
-      }
-
-      if (snapshot.docs.isNotEmpty) {
-        lastPostDoc = snapshot.docs.last;
-      }
-      if (snapshot.docs.length < postLimit) {
-        hasMorePosts = false;
-      }
-    } catch (e) {
-      print("fetchPosts error: $e");
-    }
-    isLoadingMore = false;
+    await _fetchPrimaryBuckets(initial: isInitial, force: force);
   }
 
   Future<void> fetchPhotos({bool isInitial = false, bool force = false}) async {
-    if (isLoadingMorePhotos && !force) return;
-    if (!isInitial && (!hasMorePostsPhotos || lastPostDocPhotos == null)) {
-      return;
-    }
-
-    isLoadingMorePhotos = true;
-    try {
-      final nowMsPhotos = DateTime.now().millisecondsSinceEpoch;
-      var query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-          .where("arsiv", isEqualTo: false)
-          .where("video", isEqualTo: "")
-          .where("flood", isEqualTo: false)
-          .where('timeStamp', isLessThanOrEqualTo: nowMsPhotos)
-          .orderBy("timeStamp", descending: true)
-          .limit(postLimitPhotos);
-
-      if (!isInitial && lastPostDocPhotos != null) {
-        query = query.startAfterDocument(lastPostDocPhotos!);
-      }
-
-      final snapshot =
-          await query.get(const GetOptions(source: Source.serverAndCache));
-      final newPosts = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final model = PostsModel.fromMap(data, doc.id);
-        if (model.timeStamp > nowMsPhotos) {
-          return null;
-        }
-        return model;
-      }).toList();
-
-      final filtered = newPosts
-          .whereType<PostsModel>()
-          .where((p) => p.deletedPost != true)
-          .toList();
-      if (isInitial) {
-        if (force && filtered.isEmpty && photos.isNotEmpty) {
-          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
-        } else {
-          photos.assignAll(filtered);
-          unawaited(_warmProfileSurfaceCache());
-        }
-      } else {
-        photos.addAll(filtered);
-        unawaited(_warmProfileSurfaceCache());
-      }
-
-      if (snapshot.docs.isNotEmpty) {
-        lastPostDocPhotos = snapshot.docs.last;
-      }
-      if (snapshot.docs.length < postLimitPhotos) {
-        hasMorePostsPhotos = false;
-      }
-    } catch (e) {
-      print("fetchphotos error: $e");
-    }
-    isLoadingMorePhotos = false;
+    await _fetchPrimaryBuckets(initial: isInitial, force: force);
   }
 
   Future<void> fetchVideos({bool isInitial = false, bool force = false}) async {
-    if (isLoadingMoreVideos && !force) return;
-    if (!isInitial && (!hasMorePostsVideos || lastPostDocVideos == null)) {
-      return;
-    }
-
-    isLoadingMoreVideos = true;
-    try {
-      final nowMsVideos = DateTime.now().millisecondsSinceEpoch;
-      var query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-          .where("arsiv", isEqualTo: false)
-          .where("flood", isEqualTo: false)
-          .where("hlsStatus", isEqualTo: "ready")
-          .where('timeStamp', isLessThanOrEqualTo: nowMsVideos)
-          .orderBy("timeStamp", descending: true)
-          .limit(postLimitVideos);
-
-      if (!isInitial && lastPostDocVideos != null) {
-        query = query.startAfterDocument(lastPostDocVideos!);
-      }
-
-      QuerySnapshot<Map<String, dynamic>> snapshot;
-      try {
-        snapshot =
-            await query.get(const GetOptions(source: Source.serverAndCache));
-      } catch (e) {
-        final isIndexError = e is FirebaseException
-            ? e.code == 'failed-precondition'
-            : e.toString().contains('requires an index');
-        if (!isIndexError) rethrow;
-
-        var fallback = FirebaseFirestore.instance
-            .collection("Posts")
-            .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-            .where("arsiv", isEqualTo: false)
-            .where("flood", isEqualTo: false)
-            .where('timeStamp', isLessThanOrEqualTo: nowMsVideos)
-            .orderBy("timeStamp", descending: true)
-            .limit(postLimitVideos);
-
-        if (!isInitial && lastPostDocVideos != null) {
-          fallback = fallback.startAfterDocument(lastPostDocVideos!);
-        }
-        snapshot = await fallback.get(
-          const GetOptions(source: Source.serverAndCache),
-        );
-      }
-
-      final newPosts = snapshot.docs.map((doc) {
-        final data = doc.data();
-        final model = PostsModel.fromMap(data, doc.id);
-        return model;
-      }).toList();
-
-      final filtered = newPosts
-          .whereType<PostsModel>()
-          .where((p) => p.deletedPost != true)
-          .where((p) => p.hasPlayableVideo)
-          .toList();
-      if (isInitial) {
-        if (force && filtered.isEmpty && videos.isNotEmpty) {
-          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
-        } else {
-          videos.assignAll(filtered);
-          unawaited(_warmProfileSurfaceCache());
-        }
-      } else {
-        videos.addAll(filtered);
-        unawaited(_warmProfileSurfaceCache());
-      }
-
-      if (snapshot.docs.isNotEmpty) {
-        lastPostDocVideos = snapshot.docs.last;
-      }
-      if (snapshot.docs.length < postLimitVideos) {
-        hasMorePostsVideos = false;
-      }
-    } catch (e) {
-      print("fetchvideis error: $e");
-    }
-    isLoadingMoreVideos = false;
+    await _fetchPrimaryBuckets(initial: isInitial, force: force);
   }
 
   Future<void> fetchScheduledPosts(
       {bool isInitial = false, bool force = false}) async {
-    if (isLoadingScheduled && !force) return;
-    if (!isInitial && (!hasMoreScheduled || lastScheduledDoc == null)) return;
-
-    isLoadingScheduled = true;
-    try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      var query = FirebaseFirestore.instance
-          .collection("Posts")
-          .where("userID", isEqualTo: uid)
-          .where("arsiv", isEqualTo: false)
-          .where("flood", isEqualTo: false)
-          .where('timeStamp', isGreaterThan: nowMs)
-          .orderBy('timeStamp')
-          .limit(scheduledLimit);
-
-      if (!isInitial && lastScheduledDoc != null) {
-        query = query.startAfterDocument(lastScheduledDoc!);
-      }
-
-      final snapshot =
-          await query.get(const GetOptions(source: Source.serverAndCache));
-      final newPosts = snapshot.docs
-          .map((d) => PostsModel.fromMap(d.data(), d.id))
-          .where((p) => p.deletedPost != true)
-          .toList();
-
-      if (isInitial) {
-        if (force && newPosts.isEmpty && scheduledPosts.isNotEmpty) {
-          // Refresh sırasında boş sonuç gelirse mevcut görünür listeyi koru.
-        } else {
-          scheduledPosts.assignAll(newPosts);
-          unawaited(_warmProfileSurfaceCache());
-        }
-      } else {
-        scheduledPosts.addAll(newPosts);
-        unawaited(_warmProfileSurfaceCache());
-      }
-
-      if (snapshot.docs.isNotEmpty) {
-        lastScheduledDoc = snapshot.docs.last;
-      }
-      if (snapshot.docs.length < scheduledLimit) {
-        hasMoreScheduled = false;
-      }
-    } catch (e) {
-      print('fetchScheduledPosts error (primary query): $e');
-      // Fallback: tekrar dene (aynı query). Firestore index sorunlarında
-      // kullanıcıya işlevsellik sağlamak adına asgari alanlarla çekildi.
-      try {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        final uid = FirebaseAuth.instance.currentUser!.uid;
-        final snapshot = await FirebaseFirestore.instance
-            .collection('Posts')
-            .where('timeStamp', isGreaterThan: nowMs)
-            .orderBy('timeStamp')
-            .limit(scheduledLimit)
-            .get(const GetOptions(source: Source.serverAndCache));
-
-        final newPosts = snapshot.docs
-            .map((d) => PostsModel.fromMap(d.data(), d.id))
-            .where((p) => p.userID == uid && !p.arsiv && !p.flood)
-            .toList();
-
-        if (isInitial) {
-          scheduledPosts.assignAll(newPosts);
-        } else {
-          scheduledPosts.addAll(newPosts);
-        }
-        if (snapshot.docs.isNotEmpty) {
-          lastScheduledDoc = snapshot.docs.last;
-        }
-        if (snapshot.docs.length < scheduledLimit) {
-          hasMoreScheduled = false;
-        }
-      } catch (e2) {
-        print('fetchScheduledPosts fallback error: $e2');
-      }
-    }
-    isLoadingScheduled = false;
+    await _fetchPrimaryBuckets(initial: isInitial, force: force);
   }
 
   Future<void> showSocialMediaLinkDelete(String docID) async {
@@ -709,13 +414,8 @@ class ProfileController extends GetxController {
       cancelText: "Vazgeç",
       yesText: "Kaldır",
       onYesPressed: () async {
-        await FirebaseFirestore.instance
-            .collection("users")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .collection("SosyalMedyaLinkleri")
-            .doc(docID)
-            .delete();
-
+        final uid = FirebaseAuth.instance.currentUser!.uid;
+        await _socialLinksRepository.deleteLink(uid, docID);
         final links = Get.find<SocialMediaController>();
         links.getData();
       },
@@ -723,39 +423,30 @@ class ProfileController extends GetxController {
   }
 
   Future<void> getLastPostAndAddToAllPosts() async {
-    final snap = await FirebaseFirestore.instance
-        .collection("Posts")
-        .where("userID", isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-        .where("arsiv", isEqualTo: false)
-        .where("flood", isEqualTo: false)
-        .orderBy("timeStamp", descending: true)
-        .limit(1) // Sadece son post
-        .get(const GetOptions(source: Source.serverAndCache));
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    if (snap.docs.isNotEmpty) {
-      final lastPost =
-          PostsModel.fromMap(snap.docs.first.data(), snap.docs.first.id);
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      if (lastPost.timeStamp > nowMs || lastPost.deletedPost == true) {
-        return; // ileri tarihli ise normal listeye ekleme
-      }
-      if (lastPost.video.trim().isNotEmpty && !lastPost.hasPlayableVideo) {
-        return; // video post HLS hazır değilse profile düşürme
-      }
-      // Duplicate guard: avoid inserting if already exists
-      final existsIndex = allPosts.indexWhere((p) => p.docID == lastPost.docID);
-      if (existsIndex == -1) {
-        final List<PostsModel> currentPosts =
-            List<PostsModel>.from(allPosts); // copy
-        currentPosts.insert(0, lastPost); // prepend
-        allPosts.value = currentPosts;
-      } else if (existsIndex > 0) {
-        // If exists but not at top, move it to top to reflect recency
-        final List<PostsModel> currentPosts = List<PostsModel>.from(allPosts);
-        final existing = currentPosts.removeAt(existsIndex);
-        currentPosts.insert(0, existing);
-        allPosts.value = currentPosts;
-      }
+    final lastPost = await _profileRepository.fetchLatestProfilePost(uid);
+    if (lastPost == null) return;
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (lastPost.timeStamp > nowMs || lastPost.deletedPost == true) {
+      return;
+    }
+    if (lastPost.video.trim().isNotEmpty && !lastPost.hasPlayableVideo) {
+      return;
+    }
+
+    final existsIndex = allPosts.indexWhere((p) => p.docID == lastPost.docID);
+    if (existsIndex == -1) {
+      final List<PostsModel> currentPosts = List<PostsModel>.from(allPosts);
+      currentPosts.insert(0, lastPost);
+      allPosts.value = currentPosts;
+    } else if (existsIndex > 0) {
+      final List<PostsModel> currentPosts = List<PostsModel>.from(allPosts);
+      final existing = currentPosts.removeAt(existsIndex);
+      currentPosts.insert(0, existing);
+      allPosts.value = currentPosts;
     }
   }
 
@@ -769,29 +460,12 @@ class ProfileController extends GetxController {
     final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snap = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('reshared_posts')
-        .orderBy('timeStamp', descending: true)
-        .limit(1)
-        .get(const GetOptions(source: Source.serverAndCache));
-
-    if (snap.docs.isEmpty) {
+    final post = await _profileRepository.fetchLatestResharePost(uid);
+    if (post == null) {
       reshares.clear();
       return;
     }
 
-    final data = snap.docs.first.data();
-    final postId = data['post_docID'] as String?;
-    if (postId == null || postId.isEmpty) return;
-
-    final doc =
-        await FirebaseFirestore.instance.collection('Posts').doc(postId).get();
-    final postData = doc.data();
-    if (postData == null) return;
-
-    final post = PostsModel.fromMap(postData, doc.id);
     if (post.timeStamp > DateTime.now().millisecondsSinceEpoch ||
         post.deletedPost == true) {
       return;
@@ -812,35 +486,81 @@ class ProfileController extends GetxController {
       // Sayaçlar
       await getCounters();
 
-      // Gönderiler
-      lastPostDoc = null;
-      hasMorePosts = true;
-
-      // Fotoğraflar
-      lastPostDocPhotos = null;
-      hasMorePostsPhotos = true;
-
-      // Videolar
-      lastPostDocVideos = null;
-      hasMorePostsVideos = true;
-
-      // Reshare
-      // Listeyi anlık boşaltma, fetch sonrası güncellenecek.
-
-      // Scheduled (İz Bırak)
-      lastScheduledDoc = null;
-      hasMoreScheduled = true;
-      // Listeyi anlık boşaltma, fetch sonrası güncellenecek.
-
       await Future.wait([
-        fetchPosts(isInitial: true, force: true),
-        fetchPhotos(isInitial: true, force: true),
-        fetchVideos(isInitial: true, force: true),
+        _fetchPrimaryBuckets(initial: true, force: true),
         getReshares(),
-        fetchScheduledPosts(isInitial: true, force: true),
       ]);
     } catch (e) {
       print('refreshAll error: $e');
     }
+  }
+
+  Future<void> _fetchPrimaryBuckets({
+    required bool initial,
+    bool force = false,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    if (_isLoadingPrimary && !force) return;
+    if (!initial && !_hasMorePrimary) return;
+
+    _isLoadingPrimary = true;
+    isLoadingMore = true;
+    isLoadingMorePhotos = true;
+    isLoadingMoreVideos = true;
+    isLoadingScheduled = true;
+
+    try {
+      if (initial) {
+        _lastPrimaryDoc = null;
+        _hasMorePrimary = true;
+      }
+
+      final page = await _profileRepository.fetchPrimaryPage(
+        uid: uid,
+        startAfter: initial ? null : _lastPrimaryDoc,
+        limit: postLimit,
+      );
+
+      if (initial) {
+        allPosts.assignAll(page.all);
+        photos.assignAll(page.photos);
+        videos.assignAll(page.videos);
+        scheduledPosts.assignAll(page.scheduled);
+      } else {
+        allPosts.addAll(_dedupePosts(allPosts, page.all));
+        photos.addAll(_dedupePosts(photos, page.photos));
+        videos.addAll(_dedupePosts(videos, page.videos));
+        scheduledPosts.addAll(_dedupePosts(scheduledPosts, page.scheduled));
+      }
+
+      _lastPrimaryDoc = page.lastDoc;
+      _hasMorePrimary = page.hasMore;
+      lastPostDoc = _lastPrimaryDoc;
+      lastPostDocPhotos = _lastPrimaryDoc;
+      lastPostDocVideos = _lastPrimaryDoc;
+      lastScheduledDoc = _lastPrimaryDoc;
+      hasMorePosts = _hasMorePrimary;
+      hasMorePostsPhotos = _hasMorePrimary;
+      hasMorePostsVideos = _hasMorePrimary;
+      hasMoreScheduled = _hasMorePrimary;
+      unawaited(_warmProfileSurfaceCache());
+    } catch (e) {
+      print('_fetchPrimaryBuckets error: $e');
+    } finally {
+      _isLoadingPrimary = false;
+      isLoadingMore = false;
+      isLoadingMorePhotos = false;
+      isLoadingMoreVideos = false;
+      isLoadingScheduled = false;
+    }
+  }
+
+  List<PostsModel> _dedupePosts(
+    List<PostsModel> existing,
+    List<PostsModel> incoming,
+  ) {
+    final known = existing.map((e) => e.docID).toSet();
+    return incoming.where((post) => known.add(post.docID)).toList();
   }
 }

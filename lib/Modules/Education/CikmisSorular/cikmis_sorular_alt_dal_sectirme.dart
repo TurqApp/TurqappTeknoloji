@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_yil_sectirme.dart';
 import 'cikmis_sorular_brans_sectirme.dart';
 
@@ -20,26 +20,20 @@ class CikmisSorularAltDalSectirme extends StatefulWidget {
 
 class _CikmisSorularAltDalSectirmeState
     extends State<CikmisSorularAltDalSectirme> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> dallar = [];
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .where("sinavTuru", isEqualTo: widget.sinavTuru)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      List<String> dallarList = [];
-
-      for (var doc in snapshot.docs) {
-        String baslik2 = doc.get("baslik2");
-
-        if (!dallarList.contains(baslik2)) {
-          dallarList.add(baslik2);
-        }
-      }
+    _repository
+        .distinctValues(
+          where: (doc) =>
+              (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik &&
+              (doc['sinavTuru'] ?? '').toString() == widget.sinavTuru,
+          field: 'baslik2',
+        )
+        .then((dallarList) {
 
       // Özel sıralama: GK - GY, A Grubu, Eğitim Bilimleri, Alan Bilgisi
       List<String> baslik2Order = [

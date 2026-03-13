@@ -2,12 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import '../../../Models/ogrenci_model.dart';
 
 class BlockedUsersController extends GetxController {
   RxList<String> blockedUsers = <String>[].obs;
   RxList<OgrenciModel> blockedUserDetails = <OgrenciModel>[].obs;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   @override
   void onInit() {
@@ -17,22 +22,21 @@ class BlockedUsersController extends GetxController {
 
   Future<void> fetchBlockedUserIDsAndDetails() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final subSnap = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("blockedUsers")
-        .get();
-    if (subSnap.docs.isNotEmpty) {
-      blockedUsers.value = subSnap.docs.map((d) => d.id).toList();
+    final entries = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'blockedUsers',
+      preferCache: true,
+    );
+    if (entries.isNotEmpty) {
+      blockedUsers.value = entries.map((d) => d.id).toList();
       await fetchBlockedUserDetails();
       return;
     }
 
     // Legacy fallback
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(uid).get();
-    if (doc.exists && doc.data()!.containsKey("blockedUsers")) {
-      blockedUsers.value = List<String>.from(doc.get("blockedUsers"));
+    final data = await _userRepository.getUserRaw(uid);
+    if (data != null && data.containsKey("blockedUsers")) {
+      blockedUsers.value = List<String>.from(data["blockedUsers"] ?? const []);
       await fetchBlockedUserDetails();
     }
   }
@@ -40,13 +44,10 @@ class BlockedUsersController extends GetxController {
   Future<void> fetchBlockedUserDetails() async {
     blockedUserDetails.clear();
 
-    for (var userID in blockedUsers) {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get();
-      if (doc.exists) {
-        final data = doc.data()!;
+    final profiles = await _userRepository.getUsersRaw(blockedUsers.toList());
+    for (final userID in blockedUsers) {
+      final data = profiles[userID];
+      if (data != null) {
         blockedUserDetails.add(OgrenciModel.fromMap(userID, data));
       }
     }
@@ -113,13 +114,11 @@ class BlockedUsersController extends GetxController {
                     onTap: () async {
                       try {
                         final uid = FirebaseAuth.instance.currentUser!.uid;
-                        final userRef = FirebaseFirestore.instance
-                            .collection("users")
-                            .doc(uid);
-                        await userRef
-                            .collection("blockedUsers")
-                            .doc(userID)
-                            .delete();
+                        await _subcollectionRepository.deleteEntry(
+                          uid,
+                          subcollection: 'blockedUsers',
+                          docId: userID,
+                        );
 
                         blockedUsers.remove(userID);
                         blockedUserDetails

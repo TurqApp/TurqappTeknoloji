@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 
@@ -20,6 +21,8 @@ class InAppNotificationsController extends GetxController {
   final List<NotificationModel> _allNotifications = <NotificationModel>[];
   Map<String, dynamic> _preferences = NotificationPreferencesService.defaults();
   final RxInt unreadTotal = 0.obs;
+  final NotificationsRepository _notificationsRepository =
+      NotificationsRepository.ensure();
 
   @override
   void onInit() {
@@ -32,12 +35,8 @@ class InAppNotificationsController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     _settingsSub?.cancel();
-    _settingsSub = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('settings')
-        .doc('notifications')
-        .snapshots()
+    _settingsSub = _notificationsRepository
+        .watchSettings(uid)
         .listen((snapshot) {
       _preferences =
           NotificationPreferencesService.mergeWithDefaults(snapshot.data());
@@ -71,13 +70,8 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> _loadInitialNotificationsFromCache(String uid) async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("notifications")
-          .orderBy("timeStamp", descending: true)
-          .limit(300)
-          .get(const GetOptions(source: Source.cache));
+      final snapshot =
+          await _notificationsRepository.fetchCachedNotifications(uid);
       _applyNotificationDocs(snapshot.docs, replace: true);
     } catch (_) {
       complatedDataFetch.value = true;
@@ -85,13 +79,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   void _bindNotificationsCacheStream(String uid) {
-    _notificationSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("notifications")
-        .orderBy("timeStamp", descending: true)
-        .limit(300)
-        .snapshots(source: ListenSource.cache)
+    _notificationSub = _notificationsRepository
+        .watchCachedNotifications(uid)
         .listen((snapshot) {
       _applyNotificationDocs(snapshot.docs, replace: true);
     }, onError: (error) {
@@ -101,13 +90,8 @@ class InAppNotificationsController extends GetxController {
   }
 
   void _bindNewNotificationHeadStream(String uid) {
-    _newNotificationHeadSub = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("notifications")
-        .orderBy("timeStamp", descending: true)
-        .limit(1)
-        .snapshots()
+    _newNotificationHeadSub = _notificationsRepository
+        .watchNotificationHead(uid)
         .listen((snapshot) {
       if (snapshot.docs.isEmpty) return;
       final headData = snapshot.docs.first.data();
@@ -121,16 +105,10 @@ class InAppNotificationsController extends GetxController {
   Future<void> _fetchOnlyNewNotifications(String uid) async {
     try {
       final latestTs = _latestLoadedNotificationTs();
-      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("notifications")
-          .orderBy("timeStamp", descending: false)
-          .limit(120);
-      if (latestTs > 0) {
-        query = query.where("timeStamp", isGreaterThan: latestTs);
-      }
-      final snapshot = await query.get(const GetOptions(source: Source.server));
+      final snapshot = await _notificationsRepository.fetchOnlyNewNotifications(
+        uid,
+        latestTs: latestTs,
+      );
       _applyNotificationDocs(snapshot.docs, replace: false);
     } catch (_) {}
   }
@@ -229,13 +207,9 @@ class InAppNotificationsController extends GetxController {
   }
 
   Future<void> delete(String docID) async {
-    // Firestore’dan sil
-    await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("notifications")
-        .doc(docID)
-        .delete();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await _notificationsRepository.delete(uid, docID);
 
     // Arayüz listesinden de kaldır
     list.removeWhere((n) => n.docID == docID);
@@ -247,20 +221,7 @@ class InAppNotificationsController extends GetxController {
     if (uid == null) return;
     final uniqueIds = docIDs.toSet().toList(growable: false);
 
-    for (var i = 0; i < uniqueIds.length; i += 450) {
-      final batch = FirebaseFirestore.instance.batch();
-      final chunk = uniqueIds.skip(i).take(450);
-      for (final docID in chunk) {
-        batch.delete(
-          FirebaseFirestore.instance
-              .collection("users")
-              .doc(uid)
-              .collection("notifications")
-              .doc(docID),
-        );
-      }
-      await batch.commit();
-    }
+    await _notificationsRepository.deleteMany(uid, uniqueIds);
     list.removeWhere((n) => uniqueIds.contains(n.docID));
   }
 
@@ -274,12 +235,7 @@ class InAppNotificationsController extends GetxController {
     list.refresh();
 
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(uid)
-          .collection("notifications")
-          .doc(docID)
-          .set({"read": true}, SetOptions(merge: true));
+      await _notificationsRepository.markRead(uid, docID);
       _refreshUnreadTotal();
     } catch (_) {
       list[idx].isRead = false;
@@ -306,22 +262,7 @@ class InAppNotificationsController extends GetxController {
     }
 
     try {
-      for (var i = 0; i < uniqueIds.length; i += 450) {
-        final batch = FirebaseFirestore.instance.batch();
-        final chunk = uniqueIds.skip(i).take(450);
-        for (final docID in chunk) {
-          batch.set(
-            FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
-                .collection("notifications")
-                .doc(docID),
-            {"read": true},
-            SetOptions(merge: true),
-          );
-        }
-        await batch.commit();
-      }
+      await _notificationsRepository.markManyRead(uid, uniqueIds);
     } catch (_) {
       for (final idx in changed) {
         list[idx].isRead = false;
@@ -372,22 +313,7 @@ class InAppNotificationsController extends GetxController {
     }
 
     try {
-      for (var i = 0; i < unread.length; i += 450) {
-        final batch = FirebaseFirestore.instance.batch();
-        final chunk = unread.skip(i).take(450);
-        for (final docID in chunk) {
-          batch.set(
-            FirebaseFirestore.instance
-                .collection("users")
-                .doc(uid)
-                .collection("notifications")
-                .doc(docID),
-            {"read": true},
-            SetOptions(merge: true),
-          );
-        }
-        await batch.commit();
-      }
+      await _notificationsRepository.markManyRead(uid, unread);
       for (final item in list) {
         item.isRead = true;
       }
@@ -402,24 +328,7 @@ class InAppNotificationsController extends GetxController {
 
   Future<void> bildirimleriTopluSil() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final bildirimlerRef = FirebaseFirestore.instance
-        .collection("users")
-        .doc(uid)
-        .collection("notifications");
-
-    while (true) {
-      final snapshot = await bildirimlerRef.limit(500).get();
-      if (snapshot.docs.isEmpty) {
-        break; // Silinecek doküman kalmadı
-      }
-      WriteBatch batch = FirebaseFirestore.instance.batch();
-      for (var doc in snapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      await batch.commit();
-      // Firestore batch işlemi sonrası kısa bir bekleme, overload'u önler
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
+    await _notificationsRepository.deleteAll(uid);
     print("Tüm bildirimler toplu olarak silindi!");
   }
 

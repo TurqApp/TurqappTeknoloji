@@ -4,11 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
   var isLoading = true.obs;
   var isSearchLoading = false.obs;
@@ -20,7 +24,6 @@ class TutoringController extends GetxController {
   var users = <String, Map<String, dynamic>>{}.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
-  StreamSubscription<QuerySnapshot>? _tutoringSubscription;
   DocumentSnapshot? _lastDocument;
   Timer? _searchDebounce;
   int _searchToken = 0;
@@ -37,7 +40,6 @@ class TutoringController extends GetxController {
 
   @override
   void onClose() {
-    _tutoringSubscription?.cancel();
     _searchDebounce?.cancel();
     focusNode.dispose();
     scrollController.dispose();
@@ -62,67 +64,31 @@ class TutoringController extends GetxController {
     if (toFetch.isEmpty) return;
 
     try {
-      for (var i = 0; i < toFetch.length; i += 30) {
-        final batch = toFetch.skip(i).take(30).toList();
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batch)
-            .get();
-        for (var doc in snap.docs) {
-          users[doc.id] = doc.data();
-        }
-      }
+      final fetched = await _userRepository.getUsersRaw(toFetch);
+      users.addAll(fetched);
     } catch (e) {
       log("Error batch fetching users: $e");
     }
   }
 
-  void listenToTutoringData() {
+  Future<void> listenToTutoringData() async {
     isLoading.value = true;
     hasMore.value = true;
     _lastDocument = null;
-    _tutoringSubscription?.cancel();
-    _tutoringSubscription = FirebaseFirestore.instance
-        .collection('educators')
-        .orderBy('timeStamp', descending: true)
-        .limit(_pageSize)
-        .snapshots()
-        .listen((QuerySnapshot querySnapshot) async {
-      try {
-        List<TutoringModel> tempList = querySnapshot.docs
-            .map(
-              (doc) => TutoringModel.fromJson(
-                doc.data() as Map<String, dynamic>,
-                doc.id,
-              ),
-            )
-            .where((t) => t.ended != true)
-            .toList();
-
-        log("Fetched ${tempList.length} tutoring items");
-
-        if (querySnapshot.docs.isNotEmpty) {
-          _lastDocument = querySnapshot.docs.last;
-        }
-        if (querySnapshot.docs.length < _pageSize) {
-          hasMore.value = false;
-        }
-
-        // Batch fetch all users at once
-        final userIds = tempList.map((t) => t.userID).toSet();
-        await _batchFetchUsers(userIds);
-
-        tutoringList.value = _applyPersonalization(tempList);
-      } catch (e) {
-        log("Error processing tutoring stream: $e");
-        tutoringList.value = [];
-      } finally {
-        isLoading.value = false;
-      }
-    }, onError: (e) {
-      log("Error listening to tutoring data: $e");
+    try {
+      final page = await _tutoringRepository.fetchPage(limit: _pageSize);
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
+      final userIds = page.items.map((t) => t.userID).toSet();
+      await _batchFetchUsers(userIds);
+      tutoringList.value = _applyPersonalization(page.items);
+      log("Fetched ${page.items.length} tutoring items");
+    } catch (e) {
+      log("Error loading tutoring data: $e");
+      tutoringList.value = [];
+    } finally {
       isLoading.value = false;
-    });
+    }
   }
 
   Future<void> loadMore() async {
@@ -130,29 +96,13 @@ class TutoringController extends GetxController {
 
     isLoadingMore.value = true;
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .orderBy('timeStamp', descending: true)
-          .startAfterDocument(_lastDocument!)
-          .limit(_pageSize)
-          .get();
-
-      final newItems = querySnapshot.docs
-          .map(
-            (doc) => TutoringModel.fromJson(
-              doc.data(),
-              doc.id,
-            ),
-          )
-          .where((t) => t.ended != true)
-          .toList();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        _lastDocument = querySnapshot.docs.last;
-      }
-      if (querySnapshot.docs.length < _pageSize) {
-        hasMore.value = false;
-      }
+      final page = await _tutoringRepository.fetchPage(
+        startAfter: _lastDocument,
+        limit: _pageSize,
+      );
+      final newItems = page.items;
+      _lastDocument = page.lastDocument;
+      hasMore.value = page.hasMore;
 
       // Batch fetch users for new items
       final userIds = newItems.map((t) => t.userID).toSet();
@@ -212,29 +162,7 @@ class TutoringController extends GetxController {
   }
 
   Future<List<TutoringModel>> _fetchByDocIds(List<String> docIds) async {
-    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
-    if (orderedIds.isEmpty) return const [];
-
-    final byId = <String, TutoringModel>{};
-    const chunkSize = 10;
-    for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end = (i + chunkSize > orderedIds.length)
-          ? orderedIds.length
-          : i + chunkSize;
-      final chunk = orderedIds.sublist(i, end);
-      final snapshot = await FirebaseFirestore.instance
-          .collection('educators')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snapshot.docs) {
-        final model = TutoringModel.fromJson(doc.data(), doc.id);
-        if (model.ended == true) continue;
-        byId[doc.id] = model;
-      }
-    }
-
-    final results =
-        orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    final results = await _tutoringRepository.fetchByIds(docIds);
     await _batchFetchUsers(results.map((t) => t.userID).toSet());
     return results;
   }
@@ -295,19 +223,11 @@ class TutoringController extends GetxController {
     }
 
     try {
-      final savedRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('educators')
-          .doc(docId);
-
-      if (isFavorite) {
-        await savedRef.delete();
-      } else {
-        await savedRef.set({
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
+      await _tutoringRepository.toggleFavorite(
+        docId: docId,
+        userId: userId,
+        isFavorite: isFavorite,
+      );
       return true;
     } catch (e) {
       // Rollback on error

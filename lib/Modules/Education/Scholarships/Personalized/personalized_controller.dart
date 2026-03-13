@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -8,11 +7,15 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 
 class PersonalizedController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
   // Observable lists
   final RxList<IndividualScholarshipsModel> list =
       <IndividualScholarshipsModel>[].obs;
@@ -116,11 +119,8 @@ class PersonalizedController extends GetxController {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      final doc =
-          await FirebaseFirestore.instance.collection("users").doc(uid).get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
+      final data = await _userRepository.getUserRaw(uid);
+      if (data != null) {
         _updateUserData(data);
         isUserDataLoaded.value = true;
       }
@@ -158,16 +158,11 @@ class PersonalizedController extends GetxController {
 
   // Load vitrin data
   void _loadVitrinData() {
-    ScholarshipFirestorePath.collection()
-        .orderBy("timeStamp", descending: true)
-        .limit(10)
-        .get()
-        .then((QuerySnapshot snap) {
-      if (snap.docs.isNotEmpty) {
-        final tempList = snap.docs
-            .map((doc) => IndividualScholarshipsModel.fromJson(
-                doc.data() as Map<String, dynamic>))
-            .toList();
+    _scholarshipRepository.fetchLatestRaw(limit: 10).then((items) {
+      if (items.isNotEmpty) {
+        final tempList = items
+            .map((item) => IndividualScholarshipsModel.fromJson(item))
+            .toList(growable: false);
         vitrin.value = tempList;
       }
     }).catchError((error) {
@@ -180,11 +175,8 @@ class PersonalizedController extends GetxController {
     if (!isUserDataLoaded.value) return;
 
     try {
-      final snapshot = await ScholarshipFirestorePath.collection()
-          .orderBy("timeStamp", descending: true)
-          .limit(50)
-          .get();
-      _processScholarshipsData(snapshot.docs);
+      final items = await _scholarshipRepository.fetchLatestRaw(limit: 50);
+      _processScholarshipsData(items);
     } catch (error) {
       print('Error loading scholarships data: $error');
       isLoading.value = false;
@@ -192,14 +184,16 @@ class PersonalizedController extends GetxController {
   }
 
   // Process scholarships data
-  void _processScholarshipsData(List<QueryDocumentSnapshot> docs) {
+  void _processScholarshipsData(List<Map<String, dynamic>> docs) {
     try {
       final allItems = <IndividualScholarshipsModel>[];
       for (final doc in docs) {
-        final model = IndividualScholarshipsModel.fromJson(
-            doc.data() as Map<String, dynamic>);
+        final model = IndividualScholarshipsModel.fromJson(doc);
         allItems.add(model);
-        docIdByTimestamp[model.timeStamp] = doc.id;
+        final docId = (doc['docId'] ?? '').toString().trim();
+        if (docId.isNotEmpty) {
+          docIdByTimestamp[model.timeStamp] = docId;
+        }
       }
 
       final scored = allItems
@@ -353,7 +347,7 @@ class PersonalizedController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
-        await FirebaseFirestore.instance.collection("users").doc(uid).set({
+        await _userRepository.updateUserFields(uid, {
           ...scopedUserUpdate(
             scope: 'profile',
             values: {
@@ -364,7 +358,7 @@ class PersonalizedController extends GetxController {
               "nufusIlce": newIkametIlce,
             },
           ),
-        }, SetOptions(merge: true));
+        });
       }
     } catch (e) {
       print('Error updating location in Firestore: $e');

@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
 import 'package:turqappv2/Core/external.dart';
+import 'package:turqappv2/Core/Repositories/test_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
@@ -35,6 +37,7 @@ class CreateTestController extends GetxController {
     TestReadinessModel(id: 0, img: "", max: 5, dogruCevap: "", docID: "0"),
   ].obs;
   final isLoading = true.obs;
+  final TestRepository _testRepository = TestRepository.ensure();
 
   CreateTestController(this.model);
 
@@ -62,12 +65,13 @@ class CreateTestController extends GetxController {
 
   Future<void> getUygulamaLinks() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("Yönetim")
-          .doc("Genel")
-          .get();
-      appStore.value = doc.get("appStore") as String;
-      googlePlay.value = doc.get("googlePlay") as String;
+      final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+        collection: 'Yönetim',
+        docId: 'Genel',
+        preferCache: true,
+      );
+      appStore.value = (doc?["appStore"] ?? "").toString();
+      googlePlay.value = (doc?["googlePlay"] ?? "").toString();
     } catch (e) {
       print("Error fetching app links: $e");
     }
@@ -77,12 +81,11 @@ class CreateTestController extends GetxController {
     if (model == null) return;
     sorularList.clear();
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(model!.docID)
-          .collection("Sorular")
-          .get();
-      if (snapshot.docs.isEmpty) {
+      final questions = await _testRepository.fetchQuestions(
+        model!.docID,
+        preferCache: true,
+      );
+      if (questions.isEmpty) {
         sorularList.add(
           TestReadinessModel(
             id: 0,
@@ -93,18 +96,14 @@ class CreateTestController extends GetxController {
           ),
         );
       } else {
-        for (var doc in snapshot.docs) {
-          final img = doc.get("img") as String;
-          final id = doc.get("id") as num;
-          final dogruCevap = doc.get("dogruCevap") as String;
-          final max = doc.get("max") as num;
+        for (final question in questions) {
           sorularList.add(
             TestReadinessModel(
-              id: id.toInt(),
-              img: img,
-              max: max.toInt(),
-              dogruCevap: dogruCevap,
-              docID: doc.id,
+              id: question.id.toInt(),
+              img: question.img,
+              max: question.max.toInt(),
+              dogruCevap: question.dogruCevap,
+              docID: question.docID,
             ),
           );
         }

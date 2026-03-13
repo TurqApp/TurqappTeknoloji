@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/interests_list.dart';
@@ -9,6 +9,7 @@ class InterestsController extends GetxController {
   final RxList<String> selecteds = <String>[].obs;
   final RxString searchText = "".obs;
   final RxBool isReady = false.obs;
+  final UserRepository _userRepository = UserRepository.ensure();
   static const int minSelection = 3;
   static const int maxSelection = 15;
   bool _userInteracted = false;
@@ -47,14 +48,12 @@ class InterestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
-      final data = doc.data() ?? const <String, dynamic>{};
+    _userRepository
+        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
+        .then((data) {
+      final safeData = data ?? const <String, dynamic>{};
       final raw = userField(
-        data,
+        safeData,
         key: "ilgialanlari",
         scope: "preferences",
       );
@@ -108,15 +107,13 @@ class InterestsController extends GetxController {
       return;
     }
 
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update(
-          scopedUserUpdate(
-            scope: 'preferences',
-            values: {"ilgialanlari": selecteds},
-          ),
-        );
+    await _userRepository.updateUserFields(
+      FirebaseAuth.instance.currentUser!.uid,
+      scopedUserUpdate(
+        scope: 'preferences',
+        values: {"ilgialanlari": selecteds},
+      ),
+    );
 
     Get.back();
   }

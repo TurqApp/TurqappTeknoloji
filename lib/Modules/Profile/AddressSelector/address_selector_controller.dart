@@ -1,11 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class AddressSelectorController extends GetxController {
   final TextEditingController addressController = TextEditingController();
   final currentLength = 0.obs;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   void onInit() {
@@ -14,20 +15,18 @@ class AddressSelectorController extends GetxController {
       currentLength.value = addressController.text.length;
     });
 
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .get()
-        .then((doc) {
-      addressController.text = doc.get("adres");
+    _userRepository
+        .getUserRaw(FirebaseAuth.instance.currentUser!.uid)
+        .then((data) {
+      addressController.text = ((data ?? const {})["adres"] ?? "").toString();
     });
   }
 
   Future<void> setData() async {
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .update({"adres": addressController.text});
+    await _userRepository.updateUserFields(
+      FirebaseAuth.instance.currentUser!.uid,
+      {"adres": addressController.text},
+    );
 
     Get.back();
   }

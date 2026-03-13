@@ -1,6 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/cupertino.dart';
@@ -9,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/redirection_link.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -17,6 +17,7 @@ import 'package:turqappv2/Modules/Chat/chat_controller.dart';
 import 'package:turqappv2/Modules/Chat/MessageContent/message_content_controller.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import '../../../Core/Helpers/ImagePreview/image_preview.dart';
 import '../../Agenda/TagPosts/tag_posts.dart';
 import '../../Explore/explore_controller.dart';
@@ -341,7 +342,8 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[1],
-                                      cacheManager: TurqImageCacheManager.instance,
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -377,7 +379,8 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[2],
-                                      cacheManager: TurqImageCacheManager.instance,
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -416,7 +419,8 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: model.imgs[0],
-                                      cacheManager: TurqImageCacheManager.instance,
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -500,7 +504,8 @@ class MessageContent extends StatelessWidget {
                                     height: mediaSize,
                                     child: CachedNetworkImage(
                                       imageUrl: img,
-                                      cacheManager: TurqImageCacheManager.instance,
+                                      cacheManager:
+                                          TurqImageCacheManager.instance,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -905,39 +910,9 @@ class MessageContent extends StatelessWidget {
   Future<void> _openMentionProfile(String mention) async {
     final nick = mention.trim().replaceFirst('@', '');
     if (nick.isEmpty) return;
-    try {
-      final handle = nick.toLowerCase();
-      final usernameDoc = await FirebaseFirestore.instance
-          .collection('usernames')
-          .doc(handle)
-          .get();
-      final mappedUid = (usernameDoc.data()?['uid'] ?? '').toString().trim();
-      if (mappedUid.isNotEmpty) {
-        Get.to(() => SocialProfile(userID: mappedUid));
-        return;
-      }
-    } catch (_) {}
-    try {
-      final byUsername = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: nick.toLowerCase())
-          .limit(1)
-          .get();
-      if (byUsername.docs.isNotEmpty) {
-        Get.to(() => SocialProfile(userID: byUsername.docs.first.id));
-        return;
-      }
-    } catch (_) {}
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('nickname', isEqualTo: nick)
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) {
-        Get.to(() => SocialProfile(userID: snap.docs.first.id));
-      }
-    } catch (_) {}
+    final uid = await UsernameLookupRepository.ensure().findUidForHandle(nick);
+    if (uid == null || uid.isEmpty) return;
+    Get.to(() => SocialProfile(userID: uid));
   }
 
   List<InlineSpan> _buildInteractiveSpans(String text, TextStyle baseStyle) {

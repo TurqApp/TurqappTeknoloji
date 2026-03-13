@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -201,9 +202,20 @@ class MyPastTestResultsPreview extends StatelessWidget {
                                             vertical: 10,
                                             horizontal: 20,
                                           ),
-                                          child: Image.network(
-                                            controller.soruList[index].img,
+                                          child: CachedNetworkImage(
+                                            imageUrl:
+                                                controller.soruList[index].img,
                                             fit: BoxFit.cover,
+                                            placeholder: (context, url) =>
+                                                const Center(
+                                              child:
+                                                  CupertinoActivityIndicator(),
+                                            ),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    const Icon(
+                                              Icons.broken_image,
+                                            ),
                                           ),
                                         ),
                                         buildChoices(controller, index),

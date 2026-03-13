@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 
@@ -387,9 +389,22 @@ class CreateTest extends StatelessWidget {
                               borderRadius: const BorderRadius.all(
                                 Radius.circular(12),
                               ),
-                              child: Image.network(
-                                controller.foundImage.value,
+                              child: CachedNetworkImage(
+                                imageUrl: controller.foundImage.value,
+                                cacheManager: TurqImageCacheManager.instance,
                                 fit: BoxFit.cover,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                placeholder: (_, __) => Container(
+                                  color: Colors.grey[200],
+                                ),
+                                errorWidget: (_, __, ___) => Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ),
                             )
                           : Container(

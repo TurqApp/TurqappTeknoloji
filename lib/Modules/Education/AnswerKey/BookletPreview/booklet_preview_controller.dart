@@ -3,11 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/answer_key_sub_model.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletAnswer/booklet_answer.dart';
 
 class BookletPreviewController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final UserSubcollectionRepository _subcollectionRepository =
+      UserSubcollectionRepository.ensure();
   final BookletModel model;
 
   final isBookmarked = false.obs;
@@ -35,13 +42,13 @@ class BookletPreviewController extends GetxController {
     if (currentUserId == null) return;
 
     try {
-      final savedDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserId)
-          .collection("books")
-          .doc(model.docID)
-          .get();
-      isBookmarked.value = savedDoc.exists;
+      final savedDoc = await _subcollectionRepository.getEntry(
+        currentUserId,
+        subcollection: "books",
+        docId: model.docID,
+        preferCache: true,
+      );
+      isBookmarked.value = savedDoc != null;
     } catch (e) {
       log("Kaydet durumu okunamadı: $e");
     }
@@ -49,15 +56,15 @@ class BookletPreviewController extends GetxController {
 
   Future<void> fetchAnswerKeys() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection("books")
-          .doc(model.docID)
-          .collection("CevapAnahtarlari")
-          .get();
-
+      final rawItems = await _bookletRepository.fetchAnswerKeys(
+        model.docID,
+        preferCache: true,
+      );
       final newList = <AnswerKeySubModel>[];
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
+      for (final item in rawItems) {
+        final data = Map<String, dynamic>.from(
+          (item['data'] as Map?) ?? const <String, dynamic>{},
+        );
         final baslik = (data["baslik"] ?? "").toString();
         final rawCevaplar = data["dogruCevaplar"];
         final cevaplar = rawCevaplar is List
@@ -70,7 +77,7 @@ class BookletPreviewController extends GetxController {
         newList.add(
           AnswerKeySubModel(
             baslik: baslik,
-            docID: doc.id,
+            docID: (item['id'] ?? '').toString(),
             dogruCevaplar: cevaplar,
             sira: sira,
           ),
@@ -88,11 +95,8 @@ class BookletPreviewController extends GetxController {
 
   Future<void> fetchUserData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(model.userID)
-          .get();
-      final data = doc.data() ?? const <String, dynamic>{};
+      final data = await _userRepository.getUserRaw(model.userID) ??
+          const <String, dynamic>{};
       nickname.value =
           (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
@@ -121,23 +125,31 @@ class BookletPreviewController extends GetxController {
     if (userId == null) return;
 
     try {
-      final savedRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('books')
-          .doc(model.docID);
+      final savedDoc = await _subcollectionRepository.getEntry(
+        userId,
+        subcollection: 'books',
+        docId: model.docID,
+        preferCache: true,
+      );
 
-      final savedDoc = await savedRef.get();
-
-      if (savedDoc.exists) {
-        await savedRef.delete();
+      if (savedDoc != null) {
+        await _subcollectionRepository.deleteEntry(
+          userId,
+          subcollection: 'books',
+          docId: model.docID,
+        );
         isBookmarked.value = false;
         return;
       }
 
-      await savedRef.set({
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
+      await _subcollectionRepository.upsertEntry(
+        userId,
+        subcollection: 'books',
+        docId: model.docID,
+        data: <String, dynamic>{
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
       isBookmarked.value = true;
     } catch (e) {
       log("Yer işareti değiştirme hatası: $e");

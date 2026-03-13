@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
@@ -1196,18 +1195,10 @@ class _UserStoryContentState extends State<UserStoryContent>
       {required String userId, required String storyId}) async {
     String musicId = '';
     try {
-      final storyDoc = await FirebaseFirestore.instance
-          .collection("stories")
-          .doc(storyId)
-          .get();
-      musicId = (storyDoc.data()?['musicId'] ?? '').toString().trim();
-      // Silmek yerine işaretle: deleted = true
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseFirestore.instance
-          .collection("stories")
-          .doc(storyId)
-          .update(
-              {'deleted': true, 'deletedAt': nowMs, 'deleteReason': 'manual'});
+      musicId = await StoryRepository.ensure().softDeleteStory(
+        storyId,
+        reason: 'manual',
+      );
       if (musicId.isNotEmpty) {
         unawaited(
           StoryMusicLibraryService.instance.removeStoryUsage(

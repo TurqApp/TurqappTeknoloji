@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 
 class MandatoryFollowService {
   MandatoryFollowService._();
@@ -49,10 +50,11 @@ class MandatoryFollowService {
   }
 
   Future<List<String>> _loadRequiredUids() async {
-    final db = FirebaseFirestore.instance;
-    final primary = await db.collection('adminConfig').doc(_primaryDocId).get();
-    final data =
-        primary.exists ? (primary.data() ?? const <String, dynamic>{}) : null;
+    final data = await ConfigRepository.ensure().getAdminConfigDoc(
+      _primaryDocId,
+      preferCache: true,
+      ttl: const Duration(hours: 1),
+    );
     final parsed = _parseRequiredFrom(data);
     return parsed;
   }

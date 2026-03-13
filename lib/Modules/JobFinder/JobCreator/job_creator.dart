@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -219,8 +220,8 @@ class JobCreator extends StatelessWidget {
                       child: SizedBox(
                         width: (Get.width * 0.31).clamp(96.0, 120.0),
                         height: (Get.width * 0.31).clamp(96.0, 120.0),
-                        child: Image.network(
-                          controller.existingJob!.logo,
+                        child: CachedNetworkImage(
+                          imageUrl: controller.existingJob!.logo,
                           fit: BoxFit.cover,
                           key: ValueKey("existingLogo"), // force rebuild
                         ),

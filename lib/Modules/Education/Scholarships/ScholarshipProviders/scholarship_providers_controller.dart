@@ -1,9 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class ScholarshipProvidersController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final ScholarshipRepository _scholarshipRepository =
+      ScholarshipRepository.ensure();
   final isLoading = true.obs;
   final providers = <Map<String, dynamic>>[].obs;
 
@@ -18,14 +21,11 @@ class ScholarshipProvidersController extends GetxController {
       isLoading.value = true;
 
       // Sadece son 200 burstan unique provider'ları çek
-      final bursSnapshot = await ScholarshipFirestorePath.collection()
-          .orderBy('timeStamp', descending: true)
-          .limit(200)
-          .get();
+      final scholarships = await _scholarshipRepository.fetchLatestRaw(limit: 200);
 
       final seenUserIDs = <String>{};
-      for (var bursDoc in bursSnapshot.docs) {
-        final userID = bursDoc.data()['userID'] as String?;
+      for (final bursDoc in scholarships) {
+        final userID = bursDoc['userID'] as String?;
         if (userID != null && userID.isNotEmpty) {
           seenUserIDs.add(userID);
         }
@@ -43,12 +43,10 @@ class ScholarshipProvidersController extends GetxController {
         final end =
             (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
         final batchIds = userIdsList.sublist(i, end);
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: batchIds)
-            .get();
-        for (final userDoc in snap.docs) {
-          final user = userDoc.data();
+        final users = await _userRepository.getUsers(batchIds);
+        for (final entry in users.entries) {
+          final userDocId = entry.key;
+          final user = entry.value.toMap();
           final profileImage = (user['avatarUrl'] ??
                   user['avatarUrl'] ??
                   user['avatarUrl'] ??
@@ -60,7 +58,7 @@ class ScholarshipProvidersController extends GetxController {
                   'Bilinmeyen')
               .toString();
           providerList.add({
-            'userID': userDoc.id,
+            'userID': userDocId,
             'avatarUrl': profileImage,
             'nickname': profileName,
             'displayName': profileName,

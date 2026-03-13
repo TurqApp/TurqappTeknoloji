@@ -1,12 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview.dart';
 
 class OpticalFormEntryController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
   final search = TextEditingController();
   final focusNode = FocusNode();
   final searchText = ''.obs; // Reactive search text
@@ -31,32 +35,24 @@ class OpticalFormEntryController extends GetxController {
   }
 
   Future<void> searchDocID() async {
-    final doc = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(search.text)
-        .get();
+    final opticalForm = await _opticalFormRepository.fetchById(search.text);
+    if (opticalForm == null) return;
 
-    if (!doc.exists) return;
-
-    final cevaplar = List<String>.from(doc.get("cevaplar") ?? []);
-    final max = doc.get("max") as num;
-    final bitis = doc.get("bitis") as num;
-    final baslangic = doc.get("baslangic") as num;
-    final name = doc.get("name") as String;
-    final userID = doc.get("userID") as String;
-    final kisitlama = doc.get("kisitlama") as bool;
+    final bitis = opticalForm.bitis;
+    final baslangic = opticalForm.baslangic;
+    final userID = opticalForm.userID;
 
     if (bitis.toInt() > DateTime.now().millisecondsSinceEpoch) {
       focusNode.unfocus();
       model.value = OpticalFormModel(
-        docID: doc.id,
-        name: name,
-        cevaplar: cevaplar,
-        max: max,
-        userID: userID,
+        docID: opticalForm.docID,
+        name: opticalForm.name,
+        cevaplar: opticalForm.cevaplar,
+        max: opticalForm.max,
+        userID: opticalForm.userID,
         baslangic: baslangic,
         bitis: bitis,
-        kisitlama: kisitlama,
+        kisitlama: opticalForm.kisitlama,
       );
       getUserData(userID);
     } else {
@@ -70,9 +66,8 @@ class OpticalFormEntryController extends GetxController {
   }
 
   Future<void> getUserData(String userID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
-    final data = doc.data() ?? const <String, dynamic>{};
+    final data = await _userRepository.getUserRaw(userID) ??
+        const <String, dynamic>{};
     final firstName = (data["firstName"] ?? "").toString();
     final lastName = (data["lastName"] ?? "").toString();
     final avatarUrl = (data["avatarUrl"] ??
@@ -90,14 +85,11 @@ class OpticalFormEntryController extends GetxController {
     final currentModel = model.value;
     if (currentModel != null) {
       try {
-        final yanitDoc = await FirebaseFirestore.instance
-            .collection("optikForm")
-            .doc(currentModel.docID)
-            .collection("Yanitlar")
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .get();
-
-        final userAnswers = List<String>.from(yanitDoc.get("cevaplar") ?? []);
+        final userAnswers = await _opticalFormRepository.fetchUserAnswers(
+          currentModel.docID,
+          FirebaseAuth.instance.currentUser!.uid,
+          forceRefresh: true,
+        );
         final answerKey = currentModel.cevaplar;
 
         int dogru = 0;

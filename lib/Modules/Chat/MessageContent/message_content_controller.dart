@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contact_add/contact.dart';
 import 'package:contact_add/contact_add.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/BottomSheets/show_action_sheet.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -32,6 +35,8 @@ class MessageContentController extends GetxController {
 
   var postNickname = "".obs;
   var postPfImage = "".obs;
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
 
   @override
   void onInit() {
@@ -41,21 +46,24 @@ class MessageContentController extends GetxController {
     imageUrls.assignAll(model.imgs);
 
     // kullanıcı verisini al
-    FirebaseFirestore.instance
-        .collection("users")
-        .doc(model.userID)
-        .get()
-        .then((doc) {
-      final data = doc.data() ?? const <String, dynamic>{};
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
-      avatarUrl.value = (data["avatarUrl"] ?? "").toString();
-    });
+    unawaited(_loadMessageUser());
 
     if (model.postID != "") {
       getPost();
     }
+  }
+
+  Future<void> _loadMessageUser() async {
+    final user = await UserRepository.ensure().getUser(
+      model.userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (user == null) return;
+    nickname.value = user.nickname.isNotEmpty
+        ? user.nickname
+        : (user.username.isNotEmpty ? user.username : user.displayName);
+    avatarUrl.value = user.avatarUrl;
   }
 
   Future<void> showMapsSheet() async {
@@ -329,11 +337,6 @@ class MessageContentController extends GetxController {
     if (model.source == "preview") return;
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null || currentUid.isEmpty) return;
-    final messageRef = FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(mainID)
-        .collection("messages")
-        .doc(model.rawDocID);
 
     await showActionSheet(
       title: "Mesajı Sil",
@@ -348,9 +351,11 @@ class MessageContentController extends GetxController {
           'isDestructive': true,
           'color': Colors.red,
           'onPressed': () async {
-            await messageRef.set({
-              "deletedFor": FieldValue.arrayUnion([currentUid]),
-            }, SetOptions(merge: true));
+            await _conversationRepository.deleteMessageForUser(
+              chatId: mainID,
+              messageId: model.rawDocID,
+              currentUid: currentUid,
+            );
           },
         },
         {
@@ -358,19 +363,10 @@ class MessageContentController extends GetxController {
           'isDestructive': false,
           'color': Colors.red,
           'onPressed': () async {
-            await messageRef.update({
-              "unsent": true,
-              "text": "",
-              "mediaUrls": <String>[],
-              "videoUrl": "",
-              "videoThumbnail": "",
-              "audioUrl": "",
-              "audioDurationMs": 0,
-              "location": FieldValue.delete(),
-              "contact": FieldValue.delete(),
-              "postRef": FieldValue.delete(),
-              "replyTo": FieldValue.delete(),
-            });
+            await _conversationRepository.unsendMessage(
+              chatId: mainID,
+              messageId: model.rawDocID,
+            );
           },
         },
       ],
@@ -378,29 +374,14 @@ class MessageContentController extends GetxController {
   }
 
   Future<void> likeImage() async {
-    final docRef = FirebaseFirestore.instance
-        .collection("conversations")
-        .doc(mainID)
-        .collection("messages")
-        .doc(model.rawDocID);
-
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      const fieldName = "likes";
-      final currentLikes = List<String>.from(docSnapshot.get(fieldName) ?? []);
-      final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-
-      if (currentLikes.contains(currentUserID)) {
-        await docRef.update({
-          fieldName: FieldValue.arrayRemove([currentUserID])
-        });
-      } else {
-        await docRef.update({
-          fieldName: FieldValue.arrayUnion([currentUserID])
-        });
-      }
-    }
+    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserID == null || currentUserID.isEmpty) return;
+    await _conversationRepository.toggleMessageLike(
+      chatId: mainID,
+      messageId: model.rawDocID,
+      currentUid: currentUserID,
+      isLiked: model.begeniler.contains(currentUserID),
+    );
   }
 
   Future<void> deleteSingleImage(String imgUrl) async {
@@ -412,45 +393,30 @@ class MessageContentController extends GetxController {
       yesText: "Fotoğrafı Sil",
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
-        await FirebaseFirestore.instance
-            .collection("conversations")
-            .doc(mainID)
-            .collection("messages")
-            .doc(model.rawDocID)
-            .update({
-          "mediaUrls": FieldValue.arrayRemove([imgUrl])
-        });
+        await _conversationRepository.removeMessageImage(
+          chatId: mainID,
+          messageId: model.rawDocID,
+          imgUrl: imgUrl,
+        );
       },
     );
   }
 
   Future<void> getPost() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.postID)
-        .get()
-        .then((doc) {
-      if (doc.exists) {
-        postModel.value = PostsModel.fromFirestore(doc);
-      } else {
-        postModel.value = PostsModel.empty();
-      }
-
-      if (postModel.value != null) {
-        FirebaseFirestore.instance
-            .collection("users")
-            .doc(postModel.value!.userID)
-            .get()
-            .then((doc) {
-          final data = doc.data() ?? const <String, dynamic>{};
-          postNickname.value = (data["displayName"] ??
-                  data["username"] ??
-                  data["nickname"] ??
-                  "")
-              .toString();
-          postPfImage.value = (data["avatarUrl"] ?? "").toString();
-        });
-      }
-    });
+    final lookup =
+        await NotifyLookupRepository.ensure().getPostLookup(model.postID);
+    if (!lookup.exists || lookup.model == null) {
+      postModel.value = PostsModel.empty();
+      return;
+    }
+    postModel.value = lookup.model;
+    final user = await UserRepository.ensure().getUser(
+      lookup.model!.userID,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    if (user == null) return;
+    postNickname.value = user.preferredName;
+    postPfImage.value = user.avatarUrl;
   }
 }

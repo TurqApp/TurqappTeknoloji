@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
@@ -23,6 +24,8 @@ class FollowerController extends GetxController {
       <String, _FollowerUserCacheEntry>{};
   static final Map<String, _FollowStateCacheEntry> _followStateCacheByUser =
       <String, _FollowStateCacheEntry>{};
+  final UserRepository _userRepository = UserRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   String _resolveAvatar(Map<String, dynamic> data) {
     final profile = (data['profile'] is Map)
@@ -71,25 +74,7 @@ class FollowerController extends GetxController {
       return;
     }
 
-    DocumentSnapshot<Map<String, dynamic>> userDoc;
-    try {
-      userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.cache));
-    } catch (_) {
-      userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.server));
-    }
-    if (!userDoc.exists) {
-      userDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.server));
-    }
-    final data = Map<String, dynamic>.from(userDoc.data() ?? const {});
+    final data = await _userRepository.getUserRaw(userID) ?? const {};
     if (data.isNotEmpty) {
       final resolvedAvatar = _resolveAvatar(data);
       final resolvedNickname = _resolveNickname(data);
@@ -135,31 +120,11 @@ class FollowerController extends GetxController {
       return;
     }
 
-    DocumentSnapshot<Map<String, dynamic>> doc;
-    try {
-      doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(myUid)
-          .collection("followings")
-          .doc(userID)
-          .get(const GetOptions(source: Source.cache));
-    } catch (_) {
-      doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(myUid)
-          .collection("followings")
-          .doc(userID)
-          .get(const GetOptions(source: Source.server));
-    }
-    if (!doc.exists) {
-      doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(myUid)
-          .collection("followings")
-          .doc(userID)
-          .get(const GetOptions(source: Source.server));
-    }
-    final exists = doc.exists;
+    final exists = await _followRepository.isFollowing(
+      userID,
+      currentUid: myUid,
+      preferCache: true,
+    );
     isFollowed.value = exists;
     _followStateCacheByUser[cacheKey] = _FollowStateCacheEntry(
       isFollowed: exists,

@@ -1,14 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -22,6 +23,7 @@ class AntremanView2 extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final AntremanController controller = Get.put(AntremanController());
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
 
   BoxDecoration _sectionCardDecoration({
     required Color color,
@@ -596,46 +598,28 @@ class AntremanView2 extends StatelessWidget {
           },
           child: Row(
             children: [
-              StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('questionBankSkor')
-                    .doc(
-                      '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-                    )
-                    .collection('items')
-                    .doc(controller.userID)
-                    .snapshots(),
+              StreamBuilder<int?>(
+                stream: _antremanRepository.scoreStream(
+                  controller.userID,
+                ),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Text("0");
                   } else if (snapshot.hasError) {
                     return const Text("0");
-                  } else if (!snapshot.hasData || !snapshot.data!.exists) {
-                    return StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(controller.userID)
-                          .snapshots(),
-                      builder: (context, userSnapshot) {
-                        if (!userSnapshot.hasData ||
-                            !userSnapshot.data!.exists) {
-                          return const Text("0");
-                        }
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>?;
-                        final antPoint =
-                            (userData?['antPoint'] as num?)?.toInt() ?? 100;
-                        return Text(
-                          antPoint.toString(),
-                          style: TextStyles.bold20Black,
-                        );
-                      },
-                    );
+                  } else if (!snapshot.hasData || snapshot.data == null) {
+                    return Obx(() {
+                      final current = CurrentUserService.instance.currentUser;
+                      final antPoint = current?.userID == controller.userID
+                          ? current?.antPoint ?? 100
+                          : 100;
+                      return Text(
+                        antPoint.toString(),
+                        style: TextStyles.bold20Black,
+                      );
+                    });
                   } else {
-                    final scoreData =
-                        snapshot.data!.data() as Map<String, dynamic>?;
-                    final antPoint =
-                        (scoreData?['antPoint'] as num?)?.toInt() ?? 100;
+                    final antPoint = snapshot.data ?? 100;
                     return Text(
                       antPoint.toString(),
                       style: TextStyles.bold20Black,

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -9,54 +8,34 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 
 import 'chat_listing_controller.dart';
 
 class ChatListing extends StatelessWidget {
   ChatListing({super.key});
   final controller = Get.put(ChatListingController());
+  final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
   Future<void> _archiveChat(ChatListingModel item) async {
-    final db = FirebaseFirestore.instance;
-    await db
-        .collection("users")
-        .doc(_uid)
-        .collection("chatArchives")
-        .doc(item.userID)
-        .set({
-      "userID": item.userID,
-      "chatID": item.chatID,
-      "archived": true,
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-    try {
-      await db.collection("conversations").doc(item.chatID).set({
-        "archived.$_uid": true,
-      }, SetOptions(merge: true));
-    } catch (_) {}
+    await _conversationRepository.setArchived(
+      currentUid: _uid,
+      otherUserId: item.userID,
+      chatId: item.chatID,
+      archived: true,
+    );
   }
 
   Future<void> _unarchiveChat(ChatListingModel item) async {
-    final db = FirebaseFirestore.instance;
-
-    await db
-        .collection("users")
-        .doc(_uid)
-        .collection("chatArchives")
-        .doc(item.userID)
-        .set({
-      "userID": item.userID,
-      "chatID": item.chatID,
-      "archived": false,
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-    try {
-      await db.collection("conversations").doc(item.chatID).set({
-        "archived.$_uid": false,
-      }, SetOptions(merge: true));
-    } catch (_) {}
+    await _conversationRepository.setArchived(
+      currentUid: _uid,
+      otherUserId: item.userID,
+      chatId: item.chatID,
+      archived: false,
+    );
   }
 
   @override

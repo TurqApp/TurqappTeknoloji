@@ -1,10 +1,13 @@
 import 'dart:developer';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -23,6 +26,8 @@ class AnswerKeyContentController extends GetxController {
   final secim = ''.obs;
 
   AnswerKeyContentController(this.model, this.onUpdate);
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
 
   bool get isOwner => model.userID == FirebaseAuth.instance.currentUser?.uid;
 
@@ -47,13 +52,14 @@ class AnswerKeyContentController extends GetxController {
     if (currentUserId == null) return;
 
     try {
-      final savedDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(currentUserId)
-          .collection("books")
-          .doc(model.docID)
-          .get();
-      isBookmarked.value = savedDoc.exists;
+      final savedEntry = await _userSubcollectionRepository.getEntry(
+        currentUserId,
+        subcollection: 'books',
+        docId: model.docID,
+        preferCache: true,
+        forceRefresh: false,
+      );
+      isBookmarked.value = savedEntry != null;
     } catch (e) {
       log("Kaydet durumu okunamadı: $e");
     }
@@ -61,20 +67,13 @@ class AnswerKeyContentController extends GetxController {
 
   Future<void> _fetchUserData() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(model.userID)
-          .get();
-      final data = doc.data() ?? const <String, dynamic>{};
-      avatarUrl.value = (data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              data["avatarUrl"] ??
-              "")
-          .toString();
-      nickname.value =
-          (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
-              .toString();
+      final user = await UserRepository.ensure().getUser(
+        model.userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      avatarUrl.value = user?.avatarUrl ?? '';
+      nickname.value = user?.preferredName ?? '';
       log(
         "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
       );
@@ -102,21 +101,24 @@ class AnswerKeyContentController extends GetxController {
     if (userId == null) return;
 
     try {
-      final savedRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('books')
-          .doc(model.docID);
-
       if (isBookmarked.value) {
-        await savedRef.delete();
+        await _userSubcollectionRepository.deleteEntry(
+          userId,
+          subcollection: 'books',
+          docId: model.docID,
+        );
         isBookmarked.value = false;
         return;
       }
 
-      await savedRef.set({
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
+      await _userSubcollectionRepository.upsertEntry(
+        userId,
+        subcollection: 'books',
+        docId: model.docID,
+        data: {
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
       isBookmarked.value = true;
     } catch (e) {
       log("Yer işareti değiştirme hatası: $e");
@@ -161,7 +163,12 @@ class AnswerKeyContentController extends GetxController {
         ),
         content: ClipRRect(
           borderRadius: const BorderRadius.all(Radius.circular(12)),
-          child: Image.network(model.cover),
+          child: CachedNetworkImage(
+            imageUrl: model.cover,
+            fit: BoxFit.cover,
+            errorWidget: (context, url, error) =>
+                const Icon(Icons.broken_image),
+          ),
         ),
         backgroundColor: Colors.white,
         actions: [

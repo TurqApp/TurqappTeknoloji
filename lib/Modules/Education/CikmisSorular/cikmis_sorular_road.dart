@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_alt_dal_sectirme.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_dil_sectirme_y_d_t.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_yil_sectirme.dart';
@@ -14,42 +14,39 @@ class CikmisSorularRoad extends StatefulWidget {
 }
 
 class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<String> sinavTurleri = [];
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseFirestore.instance
-        .collection("questions")
-        .where("anaBaslik", isEqualTo: widget.anaBaslik)
-        .get()
-        .then((QuerySnapshot snapshot) {
-      List<String> sinavTurleriList = [];
-
-      for (var doc in snapshot.docs) {
-        String sinavTuru = doc.get("sinavTuru");
-
-        // Sadece daha önce eklenmemiş sinavTuru'yu listeye ekle
-        if (!sinavTurleriList.contains(sinavTuru)) {
-          if (sinavTuru != "İngilizce") {
-            sinavTurleriList.add(sinavTuru);
-          } else {
-            sinavTurleriList.insert(0, sinavTuru);
-          }
+    _repository
+        .distinctValues(
+          where: (doc) => (doc['anaBaslik'] ?? '').toString() == widget.anaBaslik,
+          field: 'sinavTuru',
+        )
+        .then((sinavTurleriList) {
+      final normalized = <String>[];
+      for (final sinavTuru in sinavTurleriList) {
+        if (normalized.contains(sinavTuru)) continue;
+        if (sinavTuru != "İngilizce") {
+          normalized.add(sinavTuru);
+        } else {
+          normalized.insert(0, sinavTuru);
         }
       }
 
       // Eğer widget.anaBaslik YKS ise, özel sıralama yap
       if (widget.anaBaslik == "YKS") {
-        sinavTurleriList.sort((a, b) {
+        normalized.sort((a, b) {
           // Özel sıralama için TYT, AYT, YDT sırasını kullan
           List<String> tytAytdytOrder = ["TYT", "AYT", "YDT"];
           return tytAytdytOrder.indexOf(a).compareTo(tytAytdytOrder.indexOf(b));
         });
       } else if (widget.anaBaslik == "KPSS") {
         // KPSS için özel sıralama: Lisans, Ön Lisans, Orta Öğretim
-        sinavTurleriList.sort((a, b) {
+        normalized.sort((a, b) {
           List<String> kpssOrder = ["Lisans", "Ön Lisans", "Orta Öğretim"];
           return kpssOrder.indexOf(a).compareTo(kpssOrder.indexOf(b));
         });
@@ -58,7 +55,7 @@ class _CikmisSorularRoadState extends State<CikmisSorularRoad> {
       // Listeyi UI'ye yansıtmak için setState kullan
       if (mounted) {
         setState(() {
-          sinavTurleri = sinavTurleriList;
+          sinavTurleri = normalized;
         });
       }
     });

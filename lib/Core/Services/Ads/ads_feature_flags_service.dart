@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Models/Ads/ad_feature_flags.dart';
 
@@ -34,9 +35,12 @@ class AdsFeatureFlagsService extends GetxService {
 
   Future<void> refreshOnce() async {
     try {
-      final primaryDoc = await _primaryRef.get();
-      if (primaryDoc.exists) {
-        flags.value = AdFeatureFlags.fromMap(primaryDoc.data());
+      final primaryDoc = await ConfigRepository.ensure().getAdminConfigDoc(
+        AdsCollections.adsFlagsDoc,
+        preferCache: true,
+      );
+      if (primaryDoc != null) {
+        flags.value = AdFeatureFlags.fromMap(primaryDoc);
         return;
       }
 
@@ -51,6 +55,10 @@ class AdsFeatureFlagsService extends GetxService {
       await _primaryRef.set(
         AdFeatureFlags.defaults.toMap(),
         SetOptions(merge: true),
+      );
+      await ConfigRepository.ensure().putAdminConfigDoc(
+        AdsCollections.adsFlagsDoc,
+        AdFeatureFlags.defaults.toMap(),
       );
       flags.value = AdFeatureFlags.defaults;
     } catch (_) {
@@ -72,6 +80,10 @@ class AdsFeatureFlagsService extends GetxService {
     batch.set(_primaryRef, next.toMap(), SetOptions(merge: true));
     batch.delete(_legacyRef);
     await batch.commit();
+    await ConfigRepository.ensure().putAdminConfigDoc(
+      AdsCollections.adsFlagsDoc,
+      next.toMap(),
+    );
     flags.value = next;
   }
 

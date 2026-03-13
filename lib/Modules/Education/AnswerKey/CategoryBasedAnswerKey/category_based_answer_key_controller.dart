@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class CategoryBasedAnswerKeyController extends GetxController {
@@ -9,6 +9,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
   final filteredList = <BookletModel>[].obs;
   final search = TextEditingController();
   final isLoading = true.obs;
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
 
   CategoryBasedAnswerKeyController(this.sinavTuru);
 
@@ -29,14 +30,11 @@ class CategoryBasedAnswerKeyController extends GetxController {
     list.clear();
     filteredList.clear();
     try {
-      final snapshots = await FirebaseFirestore.instance
-          .collection("books")
-          .where("sinavTuru", isEqualTo: sinavTuru)
-          .get();
-
-      for (var doc in snapshots.docs) {
-        list.add(BookletModel.fromMap(doc.data(), doc.id));
-      }
+      final items = await _bookletRepository.fetchByExamType(
+        sinavTuru,
+        preferCache: true,
+      );
+      list.assignAll(items);
       filteredList.assignAll(list);
     } catch (e) {
       print("Error fetching booklets: $e");

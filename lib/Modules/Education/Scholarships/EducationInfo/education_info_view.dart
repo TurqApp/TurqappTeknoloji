@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +8,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/container_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -17,6 +17,7 @@ class EducationInfoView extends StatelessWidget {
   EducationInfoView({super.key});
 
   final EducationInfoController controller = Get.put(EducationInfoController());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +46,9 @@ class EducationInfoView extends StatelessWidget {
                           yesText: "Sıfırla",
                           onYesPressed: () async {
                             controller.clearFields();
-                            await FirebaseFirestore.instance
-                                .collection("users")
-                                .doc(FirebaseAuth.instance.currentUser?.uid)
-                                .update({
+                            await _userRepository.updateUserFields(
+                              FirebaseAuth.instance.currentUser?.uid ?? '',
+                              {
                               ...scopedUserUpdate(
                                 scope: 'education',
                                 values: {
@@ -69,7 +69,8 @@ class EducationInfoView extends StatelessWidget {
                                   'ilce': '',
                                 },
                               ),
-                            });
+                            },
+                            );
                             await controller.loadSavedData();
                             controller.hasMiddleSchoolData.value = false;
                             controller.hasHighSchoolData.value = false;

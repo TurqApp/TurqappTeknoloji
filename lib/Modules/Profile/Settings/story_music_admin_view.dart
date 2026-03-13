@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -28,9 +29,13 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   late final Future<bool> _canAccessFuture;
+  final StoryMusicLibraryService _libraryService =
+      StoryMusicLibraryService.instance;
+  final List<MusicModel> _tracks = <MusicModel>[];
   String _editingDocId = '';
   bool _isActive = true;
   bool _isBusy = false;
+  bool _isLoadingTracks = true;
   String _currentPreviewUrl = '';
 
   CollectionReference<Map<String, dynamic>> get _collection =>
@@ -40,6 +45,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   void initState() {
     super.initState();
     _canAccessFuture = AdminAccessService.canManageSliders();
+    _loadTracks();
   }
 
   @override
@@ -81,9 +87,28 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   }
 
   Future<int> _resolveNextOrder() async {
-    final snap = await _collection.orderBy('order', descending: true).limit(1).get();
-    if (snap.docs.isEmpty) return 1;
-    return ((snap.docs.first.data()['order'] as num?)?.toInt() ?? 0) + 1;
+    return _libraryService.fetchNextOrder();
+  }
+
+  Future<void> _loadTracks({bool forceRemote = false}) async {
+    if (!mounted) return;
+    setState(() => _isLoadingTracks = true);
+    try {
+      final tracks = await _libraryService.fetchAdminTracks(
+        preferCache: !forceRemote,
+        forceRemote: forceRemote,
+      );
+      if (!mounted) return;
+      setState(() {
+        _tracks
+          ..clear()
+          ..addAll(tracks);
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingTracks = false);
+      }
+    }
   }
 
   Future<void> _pickCover() async {
@@ -131,19 +156,21 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
           (_editingDocId.isNotEmpty ? 0 : await _resolveNextOrder());
       final now = DateTime.now().millisecondsSinceEpoch;
 
-      final current = _editingDocId.isNotEmpty ? await _collection.doc(docId).get() : null;
-      final existingUseCount = (current?.data()?['useCount'] as num?)?.toInt() ?? 0;
-      final existingShareCount = (current?.data()?['shareCount'] as num?)?.toInt() ?? 0;
-      final existingStoryCount = (current?.data()?['storyCount'] as num?)?.toInt() ?? 0;
-      final existingLastUsedAt = (current?.data()?['lastUsedAt'] as num?)?.toInt() ?? 0;
-      final existingCreatedAt = (current?.data()?['createdAt'] as num?)?.toInt() ?? now;
+      final current = _editingDocId.isNotEmpty
+          ? await _libraryService.fetchTrackById(docId, preferCache: true)
+          : null;
+      final existingUseCount = current?.useCount ?? 0;
+      final existingShareCount = current?.shareCount ?? 0;
+      final existingStoryCount = current?.storyCount ?? 0;
+      final existingLastUsedAt = current?.lastUsedAt ?? 0;
+      final existingCreatedAt = current?.createdAt ?? now;
 
       await _collection.doc(docId).set({
         'title': title,
         'artist': artist,
         'audioUrl': audioUrl,
         'coverUrl': coverUrl,
-        'durationMs': (current?.data()?['durationMs'] as num?)?.toInt() ?? 0,
+        'durationMs': current?.durationMs ?? 0,
         'useCount': existingUseCount,
         'shareCount': existingShareCount,
         'storyCount': existingStoryCount,
@@ -157,6 +184,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
 
       AppSnackbar('Tamam', _editingDocId.isEmpty ? 'Parça eklendi' : 'Parça güncellendi');
       _resetForm();
+      await _loadTracks(forceRemote: true);
     } catch (e) {
       AppSnackbar('Hata', 'Parça kaydedilemedi: $e');
     } finally {
@@ -173,6 +201,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
       if (_editingDocId == track.docID) {
         _resetForm();
       }
+      await _loadTracks(forceRemote: true);
       AppSnackbar('Tamam', 'Parça silindi');
     } catch (e) {
       AppSnackbar('Hata', 'Parça silinemedi: $e');
@@ -418,105 +447,98 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   }
 
   Widget _buildLibraryList() {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _collection.orderBy('order').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final docs = snapshot.data?.docs ?? const [];
-        if (docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Text(
-              'Henüz parça yok',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 15,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          );
-        }
+    if (_isLoadingTracks) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Text(
+          'Henüz parça yok',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 15,
+            fontFamily: 'MontserratMedium',
+          ),
+        ),
+      );
+    }
 
-        return Column(
-          children: docs.map((doc) {
-            final model = MusicModel.fromMap(doc.data(), doc.id);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE7EAEE)),
-              ),
-              child: Row(
-                children: [
-                  _trackCover(model),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          model.title.isNotEmpty ? model.title : 'İsimsiz Parça',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'MontserratSemiBold',
-                            fontSize: 14,
-                            color: Colors.black,
-                          ),
-                        ),
-                        if (model.artist.trim().isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            model.artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'MontserratMedium',
-                              fontSize: 12,
-                              color: Color(0xFF6F7A85),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 4),
-                        Text(
-                          'Sıra ${model.order} • Kullanım ${model.useCount}',
-                          style: const TextStyle(
-                            fontFamily: 'MontserratMedium',
-                            fontSize: 11,
-                            color: Color(0xFF7E8790),
-                          ),
-                        ),
-                      ],
+    return Column(
+      children: _tracks.map((model) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE7EAEE)),
+          ),
+          child: Row(
+            children: [
+              _trackCover(model),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      model.title.isNotEmpty ? model.title : 'İsimsiz Parça',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'MontserratSemiBold',
+                        fontSize: 14,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: _isBusy ? null : () => _togglePreview(model),
-                    icon: Icon(
-                      _currentPreviewUrl == model.audioUrl
-                          ? Icons.pause_circle
-                          : Icons.play_circle_fill,
-                      size: 30,
-                      color: Colors.black,
+                    if (model.artist.trim().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        model.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'MontserratMedium',
+                          fontSize: 12,
+                          color: Color(0xFF6F7A85),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sıra ${model.order} • Kullanım ${model.useCount}',
+                      style: const TextStyle(
+                        fontFamily: 'MontserratMedium',
+                        fontSize: 11,
+                        color: Color(0xFF7E8790),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: _isBusy ? null : () => _loadTrack(model),
-                    icon: const Icon(Icons.edit_outlined, color: Colors.black54),
-                  ),
-                  IconButton(
-                    onPressed: _isBusy ? null : () => _deleteTrack(model),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            );
-          }).toList(growable: false),
+              IconButton(
+                onPressed: _isBusy ? null : () => _togglePreview(model),
+                icon: Icon(
+                  _currentPreviewUrl == model.audioUrl
+                      ? Icons.pause_circle
+                      : Icons.play_circle_fill,
+                  size: 30,
+                  color: Colors.black,
+                ),
+              ),
+              IconButton(
+                onPressed: _isBusy ? null : () => _loadTrack(model),
+                icon: const Icon(Icons.edit_outlined, color: Colors.black54),
+              ),
+              IconButton(
+                onPressed: _isBusy ? null : () => _deleteTrack(model),
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+              ),
+            ],
+          ),
         );
-      },
+      }).toList(growable: false),
     );
   }
 

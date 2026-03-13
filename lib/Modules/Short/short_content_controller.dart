@@ -13,6 +13,9 @@ import '../ShareGrid/share_grid.dart';
 import '../../Services/post_delete_service.dart';
 import 'short_controller.dart';
 import '../../Services/post_interaction_service.dart';
+import '../../Core/Repositories/post_repository.dart';
+import '../../Core/Repositories/user_repository.dart';
+import '../../Core/Repositories/follow_repository.dart';
 
 class ShortContentController extends GetxController {
   String postID;
@@ -33,6 +36,7 @@ class ShortContentController extends GetxController {
   var pageCounter = 0.obs;
   // Yeni interaction service
   late PostInteractionService _interactionService;
+  final UserRepository _userRepository = UserRepository.ensure();
 
   // Stats observables - PostsModel.stats'tan alinacak
   RxInt likeCount = 0.obs;
@@ -60,6 +64,10 @@ class ShortContentController extends GetxController {
   // countManager -> PostInteractionService
   // retryCount, statsCount -> lokal RxInt'ler
   StreamSubscription<DocumentSnapshot>? _postDocSub;
+  late final PostRepository _postRepository;
+  PostRepositoryState? _postState;
+  Worker? _interactionWorker;
+  Worker? _postDataWorker;
 
   @override
   void onInit() {
@@ -67,6 +75,7 @@ class ShortContentController extends GetxController {
 
     // Initialize interaction service
     _interactionService = Get.put(PostInteractionService());
+    _postRepository = PostRepository.ensure();
 
     // Initialize stats from model
     _initializeStats();
@@ -89,6 +98,9 @@ class ShortContentController extends GetxController {
 
   @override
   void onClose() {
+    _interactionWorker?.dispose();
+    _postDataWorker?.dispose();
+    _postRepository.releasePost(model.docID);
     _postDocSub?.cancel();
     super.onClose();
   }
@@ -106,12 +118,8 @@ class ShortContentController extends GetxController {
   // Load user's interaction status for this post
   Future<void> _loadUserInteractionStatus() async {
     try {
-      final status =
-          await _interactionService.getUserInteractionStatus(model.docID);
-      isLiked.value = status['liked'] ?? false;
-      isSaved.value = status['saved'] ?? false;
-      isReshared.value = status['reshared'] ?? false;
-      isReported.value = status['reported'] ?? false;
+      _postState ??= _postRepository.attachPost(model);
+      _syncSharedInteractionState();
     } catch (e) {
       print('Load user interaction status error: $e');
     }
@@ -119,17 +127,12 @@ class ShortContentController extends GetxController {
 
   // Bind to real-time stats updates
   void _bindPostStatsListener() {
-    _postDocSub = FirebaseFirestore.instance
-        .collection('Posts')
-        .doc(model.docID)
-        .snapshots()
-        .listen((doc) {
-      final data = doc.data();
+    _postState ??= _postRepository.attachPost(model);
+    _postDataWorker?.dispose();
+    _postDataWorker =
+        ever<Map<String, dynamic>?>(_postState!.latestPostData, (data) {
       if (data == null) return;
-
-      final stats = data['stats'] as Map<String, dynamic>? ?? {};
-
-      // Update observable values with max(0, value) to prevent negative display
+      final stats = data['stats'] as Map<String, dynamic>? ?? const {};
       likeCount.value = ((stats['likeCount'] ?? 0) as num)
           .toInt()
           .clamp(0, double.infinity)
@@ -155,6 +158,23 @@ class ShortContentController extends GetxController {
           .clamp(0, double.infinity)
           .toInt();
     });
+    _interactionWorker?.dispose();
+    _interactionWorker = everAll([
+      _postState!.liked,
+      _postState!.saved,
+      _postState!.reshared,
+      _postState!.reported,
+    ], (_) {
+      _syncSharedInteractionState();
+    });
+  }
+
+  void _syncSharedInteractionState() {
+    if (_postState == null) return;
+    isLiked.value = _postState!.liked.value;
+    isSaved.value = _postState!.saved.value;
+    isReshared.value = _postState!.reshared.value;
+    isReported.value = _postState!.reported.value;
   }
 
   // ========== POST INTERACTION METHODS ==========
@@ -162,8 +182,7 @@ class ShortContentController extends GetxController {
   /// Toggle like for the post
   Future<void> toggleLike() async {
     try {
-      final newLikeStatus = await _interactionService.toggleLike(model.docID);
-      isLiked.value = newLikeStatus;
+      await _postRepository.toggleLike(model);
     } catch (e) {
       AppSnackbar('Hata', 'Beğeni işlemi başarısız: $e');
     }
@@ -174,8 +193,7 @@ class ShortContentController extends GetxController {
   /// Toggle save for the post
   Future<void> toggleSave() async {
     try {
-      final newSaveStatus = await _interactionService.toggleSave(model.docID);
-      isSaved.value = newSaveStatus;
+      await _postRepository.toggleSave(model);
     } catch (e) {
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız: $e');
     }
@@ -186,9 +204,7 @@ class ShortContentController extends GetxController {
   /// Toggle reshare for the post
   Future<void> toggleReshare() async {
     try {
-      final newReshareStatus =
-          await _interactionService.toggleReshare(model.docID);
-      isReshared.value = newReshareStatus;
+      final newReshareStatus = await _postRepository.toggleReshare(model);
       if (newReshareStatus) {
         try {
           Get.find<ProfileController>().getResharesSingle();
@@ -419,65 +435,25 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> getYenidenPaylasBilgisi() async {
-    try {
-      final countSnap = await FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("reshares")
-          .count()
-          .get();
-
-      // retryCount değerini güncelle (merkezi yöneticide)
-      retryCount.value = countSnap.count ?? 0;
-    } catch (e) {
-      print('[ShortContent] ⚠️ Aggregate query failed for ${model.docID}: $e');
-      // Fallback: stats'tan al veya varsayılan değer kullan
-      retryCount.value = model.stats.retryCount.toInt();
-    }
-
-    // Kaldırıldı: yenidenPaylasildiMi -> isReshared değişkeni artık PostInteractionService'den geliyor
+    retryCount.value = _postState?.latestPostData.value == null
+        ? model.stats.retryCount.toInt()
+        : (((_postState!.latestPostData.value!['stats']
+                    as Map<String, dynamic>?)?['retryCount'] ??
+                model.stats.retryCount) as num)
+            .toInt();
   }
 
-  Future<void> getSeens() async {
-    FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .collection("viewers")
-        .get()
-        .then((snap) {
-      // Her dokümanda userID bulunduğu için doküman sayısını al
-      // Kaldırıldı: goruntuleme -> viewCount artık real-time güncelleniyor
-    });
-  }
+  Future<void> getSeens() async {}
 
   Future<void> saveSeeing() async {
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final viewersRef = FirebaseFirestore.instance
-          .collection("Posts")
-          .doc(model.docID)
-          .collection("viewers");
-
-      // Önce bu kullanıcının daha önce görüntüleyip görüntülemediğini kontrol et
-      final existingQuery =
-          await viewersRef.where("userID", isEqualTo: uid).limit(1).get();
-
-      if (existingQuery.docs.isEmpty) {
-        // Auto-generated docID ile yeni görüntüleme kaydı oluştur
-        await viewersRef.doc().set({
-          "userID": uid,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        });
-        // Kaldırıldı: countManager -> PostInteractionService.recordView() kullanılıyor
-      }
-      // Zaten görüntülemiş, tekrar kayıt yapmaya gerek yok
+      await _interactionService.recordView(model.docID);
     } catch (_) {}
   }
 
   Future<void> fetchUserData(String userID) async {
-    final doc =
-        await FirebaseFirestore.instance.collection("users").doc(userID).get();
-    final data = doc.data() ?? const <String, dynamic>{};
+    final data = await _userRepository.getUserRaw(userID) ??
+        const <String, dynamic>{};
     avatarUrl.value = (data["avatarUrl"] ??
             data["avatarUrl"] ??
             data["avatarUrl"] ??
@@ -492,14 +468,11 @@ class ShortContentController extends GetxController {
         "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
             .trim();
 
-    final takipDoc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection("followings")
-        .doc(userID)
-        .get();
-
-    takipEdiyorum.value = takipDoc.exists;
+    takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+      userID,
+      currentUid: FirebaseAuth.instance.currentUser!.uid,
+      preferCache: true,
+    );
   }
 
   Future<void> sendPost() async {
@@ -515,16 +488,17 @@ class ShortContentController extends GetxController {
 
   Future<void> onlyFollowUserOneTime() async {
     if (followLoading.value) return;
-    final myRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(FirebaseAuth.instance.currentUser!.uid)
-        .collection('followings')
-        .doc(model.userID);
 
     try {
-      final snap = await myRef.get();
-      if (snap.exists) {
+      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      final alreadyFollowing = await FollowRepository.ensure().isFollowing(
+        model.userID,
+        currentUid: currentUid,
+        preferCache: true,
+      );
+      if (alreadyFollowing) {
         // Zaten takip ediyor, işlem yok
+        takipEdiyorum.value = true;
         return;
       }
       followLoading.value = true;

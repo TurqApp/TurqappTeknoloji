@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -287,17 +287,18 @@ class NavBarController extends GetxController
       String currentVersion = packageInfo.version;
       print("📱 Cihaz versiyonu: $currentVersion");
 
-      // Firebase'den minimum version bilgilerini al
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("Yönetim")
-          .doc("Genel")
-          .get();
+      // Merkezi config cache üzerinden minimum version bilgilerini al
+      final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
+        collection: 'Yönetim',
+        docId: 'Genel',
+        preferCache: true,
+      );
 
       String requiredVersion = "";
       if (Platform.isAndroid) {
-        requiredVersion = doc.get("androidMinVersion") ?? "";
+        requiredVersion = (doc?["androidMinVersion"] ?? "").toString();
       } else if (Platform.isIOS) {
-        requiredVersion = doc.get("iosMinVersion") ?? "";
+        requiredVersion = (doc?["iosMinVersion"] ?? "").toString();
       }
 
       print("🔥 Firebase minimum versiyon: $requiredVersion");

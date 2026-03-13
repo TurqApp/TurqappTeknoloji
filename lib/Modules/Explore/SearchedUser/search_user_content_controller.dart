@@ -1,10 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContentController extends GetxController {
+  final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
   final String userID;
   var isNavigated = false.obs;
   SearchUserContentController({required this.userID});
@@ -20,19 +22,16 @@ class SearchUserContentController extends GetxController {
       );
 
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-      final userRef =
-          FirebaseFirestore.instance.collection("users").doc(currentUserID);
-      final batch = FirebaseFirestore.instance.batch();
-      batch.set(
-        userRef.collection("lastSearches").doc(userID),
-        {
-          "userID": userID,
-          "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+      await _userSubcollectionRepository.upsertEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: userID,
+        data: {
+          'userID': userID,
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
         },
-        SetOptions(merge: true),
       );
-      await batch.commit();
 
       await CurrentUserService.instance.forceRefresh();
     } catch (_) {
@@ -43,11 +42,11 @@ class SearchUserContentController extends GetxController {
 
   Future<void> removeFromLastSearch() async {
     final currentUserID = FirebaseAuth.instance.currentUser!.uid;
-    final userRef =
-        FirebaseFirestore.instance.collection("users").doc(currentUserID);
-    final batch = FirebaseFirestore.instance.batch();
-    batch.delete(userRef.collection("lastSearches").doc(userID));
-    await batch.commit();
+    await _userSubcollectionRepository.deleteEntry(
+      currentUserID,
+      subcollection: 'lastSearches',
+      docId: userID,
+    );
     await CurrentUserService.instance.forceRefresh();
   }
 }

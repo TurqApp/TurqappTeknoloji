@@ -1,10 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class OpticsAndBooksPublishedController extends GetxController {
+  final BookletRepository _bookletRepository = BookletRepository.ensure();
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
   final list = <BookletModel>[].obs;
   final optikler = <OpticalFormModel>[].obs;
   final selection = 0.obs;
@@ -37,40 +41,19 @@ class OpticsAndBooksPublishedController extends GetxController {
   }
 
   Future<void> getData() async {
-    final snapshots = await FirebaseFirestore.instance
-        .collection("books")
-        .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final tempList = <BookletModel>[];
-    for (var doc in snapshots.docs) {
-      tempList.add(BookletModel.fromMap(doc.data(), doc.id));
-    }
+    final tempList = await _bookletRepository.fetchByOwner(
+      FirebaseAuth.instance.currentUser!.uid,
+      preferCache: true,
+    );
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     list.assignAll(tempList);
   }
 
   Future<void> getOptikler() async {
-    final snap = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .where("userID", isEqualTo: FirebaseAuth.instance.currentUser!.uid)
-        .get();
-
-    final tempList = <OpticalFormModel>[];
-    for (var doc in snap.docs) {
-      tempList.add(
-        OpticalFormModel(
-          docID: doc.id,
-          name: doc.get("name"),
-          cevaplar: List.from(doc.get("cevaplar")),
-          max: doc.get("max"),
-          userID: doc.get("userID"),
-          baslangic: doc.get("baslangic"),
-          bitis: doc.get("bitis"),
-          kisitlama: doc.get("kisitlama"),
-        ),
-      );
-    }
+    final tempList = await _opticalFormRepository.fetchByOwner(
+      FirebaseAuth.instance.currentUser!.uid,
+      preferCache: true,
+    );
     tempList.sort((a, b) => b.docID.compareTo(a.docID));
     optikler.assignAll(tempList);
   }

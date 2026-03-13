@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 Color mapRozetToColor(String rozetRaw) {
   final key = rozetRaw.trim().toLowerCase();
@@ -85,27 +85,16 @@ class RozetController extends GetxController {
 
   Future<void> _fetchRozetOnce() async {
     try {
-      DocumentSnapshot<Map<String, dynamic>>? doc;
-      try {
-        doc = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(userID)
-            .get(const GetOptions(source: Source.cache));
-      } catch (_) {}
-      doc ??= await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userID)
-          .get(const GetOptions(source: Source.serverAndCache));
-      if (!doc.exists) {
+      final summary = await UserRepository.ensure().getUser(
+        userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary == null) {
         color.value = Colors.transparent;
         return;
       }
-      final data = doc.data() ?? const <String, dynamic>{};
-      final profile = (data["profile"] is Map)
-          ? Map<String, dynamic>.from(data["profile"] as Map)
-          : const <String, dynamic>{};
-      final rozet = (data["rozet"] ?? profile["rozet"] ?? "").toString();
-      final mapped = mapRozetToColor(rozet);
+      final mapped = mapRozetToColor(summary.rozet);
       color.value = mapped;
       if (mapped == Colors.transparent) {
         _badgeCache.remove(userID);

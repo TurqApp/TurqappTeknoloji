@@ -3,10 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinaviPreviewController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
   var nickname = "".obs;
   var avatarUrl = "".obs;
   var dahaOnceBasvurdu = false.obs;
@@ -36,11 +41,8 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> fetchUserData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(model.userID)
-          .get();
-      final data = doc.data() as Map<String, dynamic>? ?? {};
+      final data = await _userRepository.getUserRaw(model.userID) ??
+          const <String, dynamic>{};
       nickname.value =
           (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
               .toString();
@@ -60,11 +62,10 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> getGecersizlikDurumu() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .get();
-      final data = doc.data();
+      final data = await _practiceExamRepository.fetchRawById(
+        model.docID,
+        preferCache: true,
+      );
 
       if (data == null || !data.containsKey('gecersizSayilanlar')) {
         sinavaGirebilir.value = true;
@@ -86,45 +87,43 @@ class DenemeSinaviPreviewController extends GetxController {
   Future<Map<String, num>?> _getLatestExamSummary() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final yanitlar = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Yanitlar")
-          .where("userID", isEqualTo: uid)
-          .get();
+      final answers = await _practiceExamRepository.fetchAnswers(
+        model.docID,
+        preferCache: true,
+      );
+      final userAnswers = answers
+          .where((doc) => (doc["userID"] ?? "").toString() == uid)
+          .toList(growable: false);
 
-      if (yanitlar.docs.isEmpty) return null;
+      if (userAnswers.isEmpty) return null;
 
-      QueryDocumentSnapshot<Map<String, dynamic>> latest = yanitlar.docs.first;
-      for (final doc in yanitlar.docs) {
-        final currentTs = (doc.data()["timeStamp"] ?? 0) as num;
-        final latestTs = (latest.data()["timeStamp"] ?? 0) as num;
+      Map<String, dynamic> latest = userAnswers.first;
+      for (final doc in userAnswers) {
+        final currentTs = (doc["timeStamp"] ?? 0) as num;
+        final latestTs = (latest["timeStamp"] ?? 0) as num;
         if (currentTs > latestTs) {
           latest = doc;
         }
       }
+
+      final latestId = (latest["_docId"] ?? latest["id"] ?? "").toString();
+      if (latestId.isEmpty) return null;
 
       num dogru = 0;
       num yanlis = 0;
       num bos = 0;
       num net = 0;
 
-      for (final ders in model.dersler) {
-        final sonucDoc = await FirebaseFirestore.instance
-            .collection("practiceExams")
-            .doc(model.docID)
-            .collection("Yanitlar")
-            .doc(latest.id)
-            .collection(ders)
-            .doc(latest.id)
-            .get();
-
-        if (!sonucDoc.exists) continue;
-        final data = sonucDoc.data() ?? {};
-        dogru += (data["dogru"] ?? 0) as num;
-        yanlis += (data["yanlis"] ?? 0) as num;
-        bos += (data["bos"] ?? 0) as num;
-        net += (data["net"] ?? 0) as num;
+      final results = await _practiceExamRepository.fetchLessonResults(
+        model.docID,
+        latestId,
+        model.dersler,
+      );
+      for (final result in results) {
+        dogru += result.dogru;
+        yanlis += result.yanlis;
+        bos += result.bos;
+        net += result.net;
       }
 
       return {
@@ -283,25 +282,14 @@ class DenemeSinaviPreviewController extends GetxController {
 
   Future<void> basvuruKontrol() async {
     try {
-      final examRef =
-          FirebaseFirestore.instance.collection("practiceExams").doc(model.docID);
-      final examDoc = await examRef.get();
-      final data = examDoc.data() ?? const <String, dynamic>{};
-      final participantCount = data['participantCount'];
-
-      if (participantCount is num) {
-        basvuranSayisi.value = participantCount.toInt();
-      } else {
-        final aggregate = await examRef.collection("Basvurular").count().get();
-        basvuranSayisi.value = aggregate.count ?? 0;
-      }
-
-      DocumentSnapshot doc = await examRef
-          .collection("Basvurular")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-
-      dahaOnceBasvurdu.value = doc.exists;
+      basvuranSayisi.value = await _practiceExamRepository.fetchParticipantCount(
+        model.docID,
+        preferCache: true,
+      );
+      dahaOnceBasvurdu.value = await _practiceExamRepository.hasApplication(
+        model.docID,
+        FirebaseAuth.instance.currentUser!.uid,
+      );
     } catch (error) {
       AppSnackbar("Hata", "Başvuru kontrolü başarısız.");
     }

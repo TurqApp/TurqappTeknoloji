@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class FollowingFollowersController extends GetxController {
   static const Duration _nicknameCacheTtl = Duration(minutes: 5);
@@ -41,8 +42,6 @@ class FollowingFollowersController extends GetxController {
   static const int _selfInitialLimit = 40;
   static const int _selfRefreshLimit = 30;
   static const int _otherUserLimit = 50;
-  DocumentSnapshot? lastFollowerDoc;
-  DocumentSnapshot? lastFollowingDoc;
   bool isLoadingFollowers = false;
   bool isLoadingFollowing = false;
   bool hasMoreFollowers = true;
@@ -61,6 +60,8 @@ class FollowingFollowersController extends GetxController {
       <String, _SearchResultCacheEntry>{};
 
   var nickname = "".obs;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final FollowRepository _followRepository = FollowRepository.ensure();
 
   FollowingFollowersController(
       {required this.userId, required int initialPage}) {
@@ -102,13 +103,15 @@ class FollowingFollowersController extends GetxController {
     }
 
     try {
-      final refs = FirebaseFirestore.instance.collection("users").doc(userId);
-      final results = await Future.wait([
-        refs.collection("followers").count().get(),
-        refs.collection("followings").count().get(),
-      ]);
-      final followers = results[0].count ?? 0;
-      final followings = results[1].count ?? 0;
+      final data = await _userRepository.getUserRaw(userId);
+      final followers =
+          ((data?['followerCount'] ?? data?['followersCount']) as num?)
+                  ?.toInt() ??
+              0;
+      final followings =
+          ((data?['followingCount'] ?? data?['followingsCount']) as num?)
+                  ?.toInt() ??
+              0;
       takipciCounter.value = followers;
       takipedilenCounter.value = followings;
       _counterCacheByUserId[userId] = _CounterCacheEntry(
@@ -128,11 +131,10 @@ class FollowingFollowersController extends GetxController {
       return;
     }
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userId)
-          .get();
-      final name = (doc.data()?['nickname'] ?? '').toString().trim();
+      final data = await _userRepository.getUserRaw(userId);
+      final name = ((data?['nickname'] ?? data?['username'] ?? '')
+              .toString()
+              .trim());
       nickname.value = name;
       _nicknameCacheByUserId[userId] = _NicknameCacheEntry(
         nickname: name,
@@ -171,46 +173,17 @@ class FollowingFollowersController extends GetxController {
     isLoadingFollowers = true;
     if (initial) {
       takipciler.clear();
-      lastFollowerDoc = null;
       hasMoreFollowers = true;
     }
 
     final fetchLimit = _resolveLimit(initial: initial);
-
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followers")
-        .orderBy("timeStamp", descending: true)
-        .limit(fetchLimit);
-
-    if (isSelf && lastFollowerDoc != null) {
-      query = query.startAfterDocument(lastFollowerDoc!);
-    }
-
-    QuerySnapshot<Map<String, dynamic>> snap;
-    try {
-      snap = await query
-          .get(GetOptions(source: forceServer ? Source.server : Source.cache));
-    } catch (_) {
-      snap = await query.get(const GetOptions(source: Source.server));
-    }
-    if (!forceServer && snap.docs.isEmpty && initial) {
-      snap = await query.get(const GetOptions(source: Source.server));
-    }
-
-    if (snap.docs.isNotEmpty) {
-      lastFollowerDoc = snap.docs.last;
-      for (var doc in snap.docs) {
-        final id = doc.id;
-        if (!takipciler.contains(id)) takipciler.add(id);
-      }
-    }
-
-    if (!isSelf || snap.docs.length < fetchLimit) {
-      // başkasında her zaman kapat; kendinde bittiğinde kapat
-      hasMoreFollowers = false;
-    }
+    final ids = await _followRepository.getFollowerIds(
+      userId,
+      preferCache: !forceServer,
+      forceRefresh: forceServer,
+    );
+    takipciler.value = ids.take(fetchLimit).toList(growable: false);
+    hasMoreFollowers = false;
 
     _saveRelationListCache(isFollowers: true);
     isLoadingFollowers = false;
@@ -231,45 +204,17 @@ class FollowingFollowersController extends GetxController {
     isLoadingFollowing = true;
     if (initial) {
       takipEdilenler.clear();
-      lastFollowingDoc = null;
       hasMoreFollowing = true;
     }
 
     final fetchLimit = _resolveLimit(initial: initial);
-
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection("users")
-        .doc(userId)
-        .collection("followings")
-        .orderBy("timeStamp", descending: true)
-        .limit(fetchLimit);
-
-    if (isSelf && lastFollowingDoc != null) {
-      query = query.startAfterDocument(lastFollowingDoc!);
-    }
-
-    QuerySnapshot<Map<String, dynamic>> snap;
-    try {
-      snap = await query
-          .get(GetOptions(source: forceServer ? Source.server : Source.cache));
-    } catch (_) {
-      snap = await query.get(const GetOptions(source: Source.server));
-    }
-    if (!forceServer && snap.docs.isEmpty && initial) {
-      snap = await query.get(const GetOptions(source: Source.server));
-    }
-
-    if (snap.docs.isNotEmpty) {
-      lastFollowingDoc = snap.docs.last;
-      for (var doc in snap.docs) {
-        final id = doc.id;
-        if (!takipEdilenler.contains(id)) takipEdilenler.add(id);
-      }
-    }
-
-    if (!isSelf || snap.docs.length < fetchLimit) {
-      hasMoreFollowing = false;
-    }
+    final ids = await _followRepository.getFollowingIds(
+      userId,
+      preferCache: !forceServer,
+      forceRefresh: forceServer,
+    );
+    takipEdilenler.value = ids.take(fetchLimit).toList(growable: false);
+    hasMoreFollowing = false;
 
     _saveRelationListCache(isFollowers: false);
     isLoadingFollowing = false;
@@ -459,24 +404,8 @@ class FollowingFollowersController extends GetxController {
       return;
     }
 
-    final next = q.substring(0, q.length - 1) +
-        String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
-
     final followerIDs = await _getRelationIdsCached('followers');
-
-    // 2. Nickname'e göre filtrele
-    final querySnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where('nickname', isGreaterThanOrEqualTo: q)
-        .where('nickname', isLessThan: next)
-        .get();
-
-    final results = <String>[];
-    for (var doc in querySnap.docs) {
-      if (followerIDs.contains(doc.id)) {
-        results.add(doc.id);
-      }
-    }
+    final results = await _filterRelationIdsByQuery(followerIDs, q);
     _searchResultCache['followers:$q'] = _SearchResultCacheEntry(
       ids: List<String>.from(results),
       cachedAt: DateTime.now(),
@@ -496,24 +425,8 @@ class FollowingFollowersController extends GetxController {
       return;
     }
 
-    final next = q.substring(0, q.length - 1) +
-        String.fromCharCode(q.codeUnitAt(q.length - 1) + 1);
-
     final followingIDs = await _getRelationIdsCached('followings');
-
-    // 2. Nickname'e göre filtrele
-    final querySnap = await FirebaseFirestore.instance
-        .collection("users")
-        .where('nickname', isGreaterThanOrEqualTo: q)
-        .where('nickname', isLessThan: next)
-        .get();
-
-    final results = <String>[];
-    for (var doc in querySnap.docs) {
-      if (followingIDs.contains(doc.id)) {
-        results.add(doc.id);
-      }
-    }
+    final results = await _filterRelationIdsByQuery(followingIDs, q);
     _searchResultCache['followings:$q'] = _SearchResultCacheEntry(
       ids: List<String>.from(results),
       cachedAt: DateTime.now(),
@@ -529,33 +442,46 @@ class FollowingFollowersController extends GetxController {
       return cached.ids;
     }
 
-    QuerySnapshot<Map<String, dynamic>> snap;
-    try {
-      snap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userId)
-          .collection(relation)
-          .get(const GetOptions(source: Source.cache));
-      if (snap.docs.isEmpty) {
-        snap = await FirebaseFirestore.instance
-            .collection("users")
-            .doc(userId)
-            .collection(relation)
-            .get(const GetOptions(source: Source.server));
-      }
-    } catch (_) {
-      snap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(userId)
-          .collection(relation)
-          .get(const GetOptions(source: Source.server));
-    }
-    final ids = snap.docs.map((doc) => doc.id).toSet();
+    final ids = relation == 'followers'
+        ? await _followRepository.getFollowerIds(
+            userId,
+            preferCache: true,
+            forceRefresh: false,
+          )
+        : await _followRepository.getFollowingIds(
+            userId,
+            preferCache: true,
+            forceRefresh: false,
+          );
     _relationIdSetCache[relation] = _RelationIdSetCacheEntry(
       ids: ids,
       cachedAt: now,
     );
     return ids;
+  }
+
+  Future<List<String>> _filterRelationIdsByQuery(
+      Set<String> relationIds, String q) async {
+    if (relationIds.isEmpty) return const <String>[];
+    final normalizedQuery = q.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return relationIds.toList(growable: false);
+    final rawUsers = await _userRepository.getUsersRaw(
+      relationIds.toList(growable: false),
+    );
+    final results = <String>[];
+    for (final id in relationIds) {
+      final data = rawUsers[id] ?? const <String, dynamic>{};
+      final nickname =
+          (data['nickname'] ?? data['username'] ?? '').toString().toLowerCase();
+      final firstName = (data['firstName'] ?? '').toString().toLowerCase();
+      final lastName = (data['lastName'] ?? '').toString().toLowerCase();
+      final fullName = '$firstName $lastName'.trim();
+      if (nickname.contains(normalizedQuery) ||
+          fullName.contains(normalizedQuery)) {
+        results.add(id);
+      }
+    }
+    return results;
   }
 
   void _pruneSearchResultCache() {

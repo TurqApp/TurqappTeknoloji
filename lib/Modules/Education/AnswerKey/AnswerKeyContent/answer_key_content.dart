@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/formatters.dart';
@@ -75,8 +76,8 @@ class AnswerKeyContent extends StatelessWidget {
                 width: 23,
                 height: 23,
                 child: controller.avatarUrl.value.isNotEmpty
-                    ? Image.network(
-                        controller.avatarUrl.value,
+                    ? CachedNetworkImage(
+                        imageUrl: controller.avatarUrl.value,
                         fit: BoxFit.cover,
                       )
                     : Center(child: CupertinoActivityIndicator()),
@@ -137,8 +138,8 @@ class AnswerKeyContent extends StatelessWidget {
         aspectRatio: 1 / 1.3,
         child: ClipRRect(
           borderRadius: BorderRadius.all(Radius.circular(8)),
-          child: Image.network(
-            controller.model.cover,
+          child: CachedNetworkImage(
+            imageUrl: controller.model.cover,
             key: ValueKey(controller.model.cover),
             fit: BoxFit.cover,
           ),

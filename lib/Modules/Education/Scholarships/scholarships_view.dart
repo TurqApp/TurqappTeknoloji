@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -11,6 +10,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -52,6 +52,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipDetailController detailController = Get.put(
     ScholarshipDetailController(),
   );
+  final FollowRepository _followRepository = FollowRepository.ensure();
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 
@@ -579,13 +580,10 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     if (uid != FirebaseAuth.instance.currentUser?.uid) {
       return () {
         Get.to(() => SocialProfile(userID: uid))?.then((_) async {
-          final isNowFollowing = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .collection('followers')
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .get()
-              .then((d) => d.exists);
+          final isNowFollowing = await _followRepository.isFollowing(
+            uid,
+            preferCache: true,
+          );
           controller.followedUsers[uid] = isNowFollowing;
           controller.allScholarships.refresh();
         });

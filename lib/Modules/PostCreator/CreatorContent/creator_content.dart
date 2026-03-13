@@ -1,14 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
@@ -427,6 +428,7 @@ class CreatorContent extends StatelessWidget {
     final profileCache = Get.isRegistered<UserProfileCacheService>()
         ? Get.find<UserProfileCacheService>()
         : Get.put(UserProfileCacheService(), permanent: true);
+    final postRepository = PostRepository.ensure();
 
     return FutureBuilder<List<dynamic>>(
       future: Future.wait<dynamic>([
@@ -436,7 +438,7 @@ class CreatorContent extends StatelessWidget {
           cacheOnly: false,
         ),
         if (sourcePostId.isNotEmpty)
-          FirebaseFirestore.instance.collection('Posts').doc(sourcePostId).get()
+          postRepository.fetchPostsByIds([sourcePostId])
         else
           Future.value(null),
       ]),
@@ -445,11 +447,12 @@ class CreatorContent extends StatelessWidget {
                 ? snapshot.data!.first
                 : null) as Map<String, dynamic>? ??
             const <String, dynamic>{};
-        final sourcePostSnapshot =
+        final sourcePostMap =
             snapshot.data != null && snapshot.data!.length > 1
-                ? snapshot.data![1] as DocumentSnapshot<Map<String, dynamic>>?
+                ? snapshot.data![1] as Map<String, PostsModel>?
                 : null;
-        final sourcePostData = sourcePostSnapshot?.data() ?? const {};
+        final sourcePostData =
+            sourcePostMap?[sourcePostId]?.toMap() ?? const <String, dynamic>{};
         final displayName = (profile['fullName'] ??
                 profile['nickname'] ??
                 profile['displayName'] ??

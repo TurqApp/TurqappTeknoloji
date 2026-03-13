@@ -1,12 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
 class OpticalFormContentController extends GetxController {
   final OpticalFormModel model;
   final total = 0.obs;
+  final OpticalFormRepository _opticalFormRepository =
+      OpticalFormRepository.ensure();
 
   OpticalFormContentController(this.model) {
     fetchTotal();
@@ -14,13 +16,7 @@ class OpticalFormContentController extends GetxController {
 
   Future<void> fetchTotal() async {
     total.value = 0;
-    final snapshot = await FirebaseFirestore.instance
-        .collection("optikForm")
-        .doc(model.docID)
-        .collection("Yanitlar")
-        .get();
-
-    total.value = snapshot.docs.length;
+    total.value = await _opticalFormRepository.fetchAnswerCount(model.docID);
   }
 
   void copyDocID() {
@@ -145,10 +141,7 @@ class OpticalFormContentController extends GetxController {
 
   Future<void> deleteOpticalForm() async {
     try {
-      await FirebaseFirestore.instance
-          .collection("optikForm")
-          .doc(model.docID)
-          .delete();
+      await _opticalFormRepository.deleteForm(model.docID);
     } catch (e) {
       print("Error deleting optical form: $e");
     }

@@ -1,11 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/notification_preferences_repository.dart';
 
 class NotificationPreferencesService {
   NotificationPreferencesService._();
-
-  static const String _collection = 'settings';
-  static const String _docId = 'notifications';
 
   static Map<String, dynamic> defaults() {
     return {
@@ -30,35 +28,39 @@ class NotificationPreferencesService {
     };
   }
 
-  static DocumentReference<Map<String, dynamic>> _docRef(String uid) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection(_collection)
-        .doc(_docId);
-  }
+  static NotificationPreferencesRepository get _repository =>
+      NotificationPreferencesRepository.ensure();
 
   static Stream<Map<String, dynamic>> currentUserPreferencesStream() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       return Stream.value(defaults());
     }
-    return _docRef(uid).snapshots().map((snap) {
-      return mergeWithDefaults(snap.data());
-    });
+    return _repository.watchPreferences(uid).map(mergeWithDefaults);
   }
 
   static Future<Map<String, dynamic>> getCurrentUserPreferences() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return defaults();
-    final snap = await _docRef(uid).get();
-    return mergeWithDefaults(snap.data());
+    final data = await _repository.getPreferences(uid, preferCache: true);
+    return mergeWithDefaults(data);
   }
 
   static Future<void> setValue(String path, dynamic value) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    await _docRef(uid).set(_pathMap(path, value), SetOptions(merge: true));
+    final current = mergeWithDefaults(
+      await _repository.getPreferences(uid, preferCache: true),
+    );
+    final next = mergeWithDefaults(current);
+    _writePath(next, path, value);
+    await _repository.putPreferences(uid, next);
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('notifications')
+        .set(_pathMap(path, value), SetOptions(merge: true));
   }
 
   static Map<String, dynamic> mergeWithDefaults(Map<String, dynamic>? raw) {
@@ -141,5 +143,26 @@ class NotificationPreferencesService {
       result = <String, dynamic>{segments[i]: result};
     }
     return result;
+  }
+
+  static void _writePath(Map<String, dynamic> source, String path, dynamic value) {
+    final segments = path.split('.');
+    Map<String, dynamic> current = source;
+    for (var i = 0; i < segments.length - 1; i++) {
+      final key = segments[i];
+      final next = current[key];
+      if (next is Map<String, dynamic>) {
+        current = next;
+      } else if (next is Map) {
+        final mapped = Map<String, dynamic>.from(next);
+        current[key] = mapped;
+        current = mapped;
+      } else {
+        final created = <String, dynamic>{};
+        current[key] = created;
+        current = created;
+      }
+    }
+    current[segments.last] = value;
   }
 }

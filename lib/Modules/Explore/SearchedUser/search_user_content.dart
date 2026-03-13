@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -12,6 +15,11 @@ import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 class SearchUserContent extends StatelessWidget {
   final OgrenciModel model;
   final bool isSearch;
+  static final UserRepository _userRepository = UserRepository.ensure();
+  static final UserSubcollectionRepository _userSubcollectionRepository =
+      UserSubcollectionRepository.ensure();
+  static final UsernameLookupRepository _usernameLookupRepository =
+      UsernameLookupRepository.ensure();
 
   const SearchUserContent(
       {super.key, required this.model, required this.isSearch});
@@ -21,23 +29,7 @@ class SearchUserContent extends StatelessWidget {
     if (targetUid.isNotEmpty) return targetUid;
     final handle = model.nickname.trim().toLowerCase();
     if (handle.isEmpty) return "";
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("username", isEqualTo: handle)
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) return snap.docs.first.id;
-    } catch (_) {}
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .where("nickname", isEqualTo: model.nickname.trim())
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) return snap.docs.first.id;
-    } catch (_) {}
-    return "";
+    return await _usernameLookupRepository.findUidForHandle(handle) ?? "";
   }
 
   Future<void> _saveRecentIfNeeded(String targetUid) async {
@@ -48,19 +40,16 @@ class SearchUserContent extends StatelessWidget {
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID == null || currentUserID.isEmpty) return;
-      final userRef =
-          FirebaseFirestore.instance.collection("users").doc(currentUserID);
-      final batch = FirebaseFirestore.instance.batch();
-      batch.set(
-        userRef.collection("lastSearches").doc(targetUid),
-        {
-          "userID": targetUid,
-          "updatedDate": DateTime.now().millisecondsSinceEpoch,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
+      await _userSubcollectionRepository.upsertEntry(
+        currentUserID,
+        subcollection: 'lastSearches',
+        docId: targetUid,
+        data: {
+          'userID': targetUid,
+          'updatedDate': DateTime.now().millisecondsSinceEpoch,
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
         },
-        SetOptions(merge: true),
       );
-      await batch.commit();
       if (Get.isRegistered<ExploreController>()) {
         await Get.find<ExploreController>().refreshRecentSearchUsers();
       }
@@ -69,11 +58,7 @@ class SearchUserContent extends StatelessWidget {
 
   Future<bool> _isTargetAccountActive(String targetUid) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(targetUid)
-          .get(const GetOptions(source: Source.serverAndCache));
-      final data = snap.data();
+      final data = await _userRepository.getUserRaw(targetUid);
       if (data == null) return false;
       final deletedAccount = (data['isDeleted'] ?? false) == true;
       final status = (data['accountStatus'] ?? '').toString().toLowerCase();
@@ -100,11 +85,11 @@ class SearchUserContent extends StatelessWidget {
     try {
       final currentUserID = FirebaseAuth.instance.currentUser?.uid;
       if (currentUserID != null && currentUserID.isNotEmpty) {
-        final userRef =
-            FirebaseFirestore.instance.collection("users").doc(currentUserID);
-        final batch = FirebaseFirestore.instance.batch();
-        batch.delete(userRef.collection("lastSearches").doc(targetUid));
-        await batch.commit();
+        await _userSubcollectionRepository.deleteEntry(
+          currentUserID,
+          subcollection: 'lastSearches',
+          docId: targetUid,
+        );
       }
     } catch (_) {}
   }
@@ -155,7 +140,9 @@ class SearchUserContent extends StatelessWidget {
                                   width: 40,
                                   height: 40,
                                   child: CachedNetworkImage(
-                                    imageUrl: model.avatarUrl,
+                                    imageUrl: resolveAvatarUrl({
+                                      'avatarUrl': model.avatarUrl,
+                                    }),
                                     fit: BoxFit.cover,
                                   ),
                                 )

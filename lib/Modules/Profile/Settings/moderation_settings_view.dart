@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Repositories/moderation_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/moderation_config_service.dart';
@@ -106,15 +107,12 @@ class _ModerationThresholdList extends StatelessWidget {
   final ModerationConfigModel config;
   final bool provisioning;
   final Future<void> Function() onEnsureConfig;
+  static final ModerationRepository _moderationRepository =
+      ModerationRepository.ensure();
 
   @override
   Widget build(BuildContext context) {
     final threshold = config.blackBadgeFlagThreshold.clamp(1, 1000);
-    final query = FirebaseFirestore.instance
-        .collection('Posts')
-        .where('moderation.flagCount', isGreaterThanOrEqualTo: threshold)
-        .orderBy('moderation.flagCount', descending: true)
-        .limit(200);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -137,8 +135,10 @@ class _ModerationThresholdList extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: query.snapshots(),
+            child: StreamBuilder<List<ModerationFlaggedPost>>(
+              stream: _moderationRepository.watchFlaggedPosts(
+                threshold: threshold,
+              ),
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -151,7 +151,7 @@ class _ModerationThresholdList extends StatelessWidget {
                     ),
                   );
                 }
-                final docs = snap.data?.docs ?? const [];
+                final docs = snap.data ?? const <ModerationFlaggedPost>[];
                 if (docs.isEmpty) {
                   return const Center(
                     child: Text(
@@ -164,7 +164,8 @@ class _ModerationThresholdList extends StatelessWidget {
                   itemCount: docs.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final data = docs[index].data();
+                    final item = docs[index];
+                    final data = item.data;
                     final moderation = _asMap(data['moderation']);
                     final flagCount = _asInt(moderation['flagCount']);
                     final status =
@@ -192,7 +193,7 @@ class _ModerationThresholdList extends StatelessWidget {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          'post: ${docs[index].id}\nuser: $userId\nstatus: $status • flag: $flagCount'
+                          'post: ${item.id}\nuser: $userId\nstatus: $status • flag: $flagCount'
                           '${lastFlagAt == null ? '' : ' • son: ${_formatDate(lastFlagAt)}'}',
                           style: const TextStyle(
                             fontFamily: 'MontserratMedium',

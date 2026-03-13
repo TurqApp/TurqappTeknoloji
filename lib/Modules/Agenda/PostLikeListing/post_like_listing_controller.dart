@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 
 class LikeUserItem {
   const LikeUserItem({
@@ -23,6 +25,7 @@ class PostLikeListingController extends GetxController {
   static const int _pageSize = 20;
 
   final String postID;
+  final PostRepository _postRepository = PostRepository.ensure();
   final RxList<LikeUserItem> users = <LikeUserItem>[].obs;
   final RxList<LikeUserItem> filteredUsers = <LikeUserItem>[].obs;
   final RxString query = ''.obs;
@@ -68,31 +71,20 @@ class PostLikeListingController extends GetxController {
     _isFetching = true;
     isLoadingMore.value = users.isNotEmpty;
 
-    Query<Map<String, dynamic>> queryRef = FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(postID)
-        .collection("likes")
-        .orderBy("timeStamp", descending: true)
-        .limit(_pageSize);
-
-    if (_lastLikeDoc != null) {
-      queryRef = queryRef.startAfterDocument(_lastLikeDoc!);
-    }
-
     try {
-      final snap = await queryRef.get();
-      if (snap.docs.isEmpty) {
+      final page = await _postRepository.fetchLikeUserIdsPage(
+        postID,
+        lastDoc: _lastLikeDoc,
+        limit: _pageSize,
+      );
+      if (page.userIds.isEmpty) {
         hasMore.value = false;
         return;
       }
 
-      _lastLikeDoc = snap.docs.last;
-      if (snap.docs.length < _pageSize) {
-        hasMore.value = false;
-      }
-
-      final ids = snap.docs.map((v) => v.id).toList();
-      final fetched = await Future.wait(ids.map(_fetchUserItem));
+      _lastLikeDoc = page.lastDoc;
+      hasMore.value = page.hasMore;
+      final fetched = await Future.wait(page.userIds.map(_fetchUserItem));
       users.addAll(fetched.whereType<LikeUserItem>());
       _applyFilter();
     } finally {
@@ -103,21 +95,16 @@ class PostLikeListingController extends GetxController {
 
   Future<LikeUserItem?> _fetchUserItem(String userID) async {
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(userID).get();
-      final data = doc.data() ?? const <String, dynamic>{};
-      final nickname =
-          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
-              .toString()
-              .trim();
-      final username =
-          (data['username'] ?? data['usernameLower'] ?? data['displayName'] ?? '')
-              .toString()
-              .trim();
-      final fullName =
-          '${(data['firstName'] ?? '').toString()} ${(data['lastName'] ?? '').toString()}'
-              .trim();
-      final avatarUrl = (data['avatarUrl'] ?? '').toString().trim();
+      final summary = await UserRepository.ensure().getUser(
+        userID,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (summary == null) return null;
+      final nickname = summary.nickname.trim();
+      final username = summary.username.trim();
+      final fullName = summary.displayName.trim();
+      final avatarUrl = summary.avatarUrl.trim();
       final searchText = _normalize([
         nickname,
         username,

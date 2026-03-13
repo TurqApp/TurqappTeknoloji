@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/ders_ve_sonuclar_model.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
@@ -25,6 +27,9 @@ class DenemeSinaviYapController extends GetxController
   final Function sinaviBitir;
   final Function showGecersizAlert;
   final bool uyariAtla;
+  final UserRepository _userRepository = UserRepository.ensure();
+  final PracticeExamRepository _practiceExamRepository =
+      PracticeExamRepository.ensure();
 
   DenemeSinaviYapController({
     required this.model,
@@ -73,12 +78,13 @@ class DenemeSinaviYapController extends GetxController
 
   Future<void> fetchUserData() async {
     try {
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .get();
-      String firstName = doc.get("firstName");
-      String lastName = doc.get("lastName");
+      final data = await _userRepository.getUserRaw(
+            FirebaseAuth.instance.currentUser!.uid,
+            preferCache: true,
+          ) ??
+          const <String, dynamic>{};
+      final firstName = (data["firstName"] ?? "").toString();
+      final lastName = (data["lastName"] ?? "").toString();
       fullName.value = "$firstName $lastName";
     } catch (error) {
       AppSnackbar("Hata", "Kullanıcı bilgileri yüklenemedi.");
@@ -90,34 +96,12 @@ class DenemeSinaviYapController extends GetxController
 
   Future<void> getSorular() async {
     try {
-      QuerySnapshot snap = await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID)
-          .collection("Sorular")
-          .get();
-
-      List<SoruModel> tempList = [];
-      for (var doc in snap.docs) {
-        String ders = doc.get("ders");
-        String dogruCevap = doc.get("dogruCevap");
-        num id = doc.get("id");
-        String konu = doc.get("konu");
-        String soru = doc.get("soru");
-
-        tempList.add(
-          SoruModel(
-            id: id.toInt(),
-            soru: soru,
-            ders: ders,
-            konu: konu,
-            dogruCevap: dogruCevap,
-            docID: doc.id,
-          ),
-        );
-      }
-
-      list.value = tempList;
-      selectedAnswers.value = List<String>.filled(tempList.length, "");
+      final questions = await _practiceExamRepository.fetchQuestions(
+        model.docID,
+        preferCache: true,
+      );
+      list.value = questions;
+      selectedAnswers.value = List<String>.filled(questions.length, "");
     } catch (error) {
       AppSnackbar("Hata", "Sorular yüklenemedi.");
     } finally {

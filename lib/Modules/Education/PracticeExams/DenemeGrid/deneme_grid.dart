@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -77,7 +78,10 @@ class DenemeGrid extends StatelessWidget {
               ),
               content: ClipRRect(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
-                child: Image.network(model.cover),
+                child: CachedNetworkImage(
+                  imageUrl: model.cover,
+                  fit: BoxFit.cover,
+                ),
               ),
               backgroundColor: Colors.white,
               actions: [
@@ -226,9 +230,22 @@ class DenemeGrid extends StatelessWidget {
                                     radius: 8,
                                   )
                                 : controller.avatarUrl.value.isNotEmpty
-                                    ? Image.network(
-                                        controller.avatarUrl.value,
+                                    ? CachedNetworkImage(
+                                        imageUrl: controller.avatarUrl.value,
                                         fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            CupertinoActivityIndicator(
+                                          color: Colors.indigo,
+                                          radius: 8,
+                                        ),
+                                        errorWidget:
+                                            (context, url, error) => Center(
+                                          child: Icon(
+                                            Icons.person,
+                                            color: Colors.grey,
+                                            size: 20,
+                                          ),
+                                        ),
                                       )
                                     : Center(
                                         child: Icon(
@@ -281,11 +298,18 @@ class DenemeGrid extends StatelessWidget {
               child: Stack(
                 children: [
                   if (model.cover.isNotEmpty)
-                    Image.network(
-                      model.cover,
+                    CachedNetworkImage(
+                      imageUrl: model.cover,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
+                      placeholder: (context, url) => Center(
+                        child: CupertinoActivityIndicator(
+                          color: Colors.black,
+                          radius: 10,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => const SizedBox(),
                     )
                   else
                     Center(

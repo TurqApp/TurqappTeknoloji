@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
 class FollowToggleOutcome {
@@ -102,6 +103,11 @@ class FollowService {
         agenda.followingIDs.remove(otherUserID);
       }
     }
+    await FollowRepository.ensure().applyToggle(
+      currentUserID,
+      otherUserID,
+      nowFollowing: result.nowFollowing,
+    );
 
     return result;
   }
@@ -172,6 +178,13 @@ class FollowService {
     if (created && Get.isRegistered<AgendaController>()) {
       final agenda = Get.find<AgendaController>();
       agenda.followingIDs.add(otherUserID);
+    }
+    if (created) {
+      await FollowRepository.ensure().applyToggle(
+        currentUserID,
+        otherUserID,
+        nowFollowing: true,
+      );
     }
 
     return created;

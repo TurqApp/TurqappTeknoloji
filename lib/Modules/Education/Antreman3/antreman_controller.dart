@@ -8,10 +8,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -20,13 +21,14 @@ import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/question_content.dart';
 
 class AntremanController extends GetxController {
-  static const String _scoreCollection = 'questionBankSkor';
   static const String _mainCategoryPrefKey = 'antreman_main_category';
   static const String _categoryCachePrefix = 'antreman_category_cache_';
   static const String _categoryCacheTimePrefix =
       'antreman_category_cache_time_';
   static const Duration _categoryCacheTtl = Duration(hours: 12);
   static const int _mainCategoryWarmupLimit = 10;
+  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
+  final UserRepository _userRepository = UserRepository.ensure();
   final Map<String, Map<String, List<String>>> subjects = {
     "LGS": {
       "LGS": [
@@ -161,19 +163,6 @@ class AntremanController extends GetxController {
   final Set<String> _loadedQuestionIds = <String>{};
   final RxString _activeCategoryKey = ''.obs;
   bool _mainCategoryPromptShown = false;
-
-  String get _monthKey {
-    final now = DateTime.now();
-    final month = now.month.toString().padLeft(2, '0');
-    return '${now.year}-$month';
-  }
-
-  DocumentReference<Map<String, dynamic>> get _monthlyScoreRef =>
-      FirebaseFirestore.instance
-          .collection(_scoreCollection)
-          .doc(_monthKey)
-          .collection('items')
-          .doc(userID);
 
   List<String> get mainCategories => const <String>[
         'LGS',
@@ -380,16 +369,16 @@ class AntremanController extends GetxController {
 
   Future<int> getAntPoint() async {
     try {
-      final monthlyDoc = await _monthlyScoreRef.get();
-      if (monthlyDoc.exists) {
-        return ((monthlyDoc.data()?['antPoint'] ?? 100) as num).toInt();
+      final monthlyScore = await _antremanRepository.getMonthlyScore(userID);
+      if (monthlyScore != null) {
+        return monthlyScore;
       }
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .get();
-      return ((userDoc.data()?['antPoint'] ?? 100) as num).toInt();
+      final userData = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+      );
+      return ((userData?['antPoint'] ?? 100) as num).toInt();
     } catch (e) {
       log("AntPoint alınırken hata: $e");
       return 100;
@@ -486,15 +475,9 @@ class AntremanController extends GetxController {
     try {
       loadingProgress.value = 0.0;
       savedQuestionsList.clear();
-      final savedSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .collection('qSaved')
-          .orderBy('savedAt', descending: true)
-          .limit(200)
-          .get();
-
-      final savedIds = savedSnapshot.docs.map((d) => d.id).toList();
+      final savedIds = await _antremanRepository.fetchSavedQuestionIds(
+        userID,
+      );
       if (savedIds.isEmpty) {
         loadingProgress.value = 1.0;
         return;
@@ -518,26 +501,11 @@ class AntremanController extends GetxController {
 
   Future<void> addToviewers(QuestionBankModel question) async {
     if (question.docID.isEmpty) return;
-    final viewRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userID)
-        .collection('qViews')
-        .doc(question.docID);
     try {
-      final existing = await viewRef.get();
-      if (existing.exists) return;
-      final batch = FirebaseFirestore.instance.batch();
-      batch.set(viewRef, {
-        'questionId': question.docID,
-        'viewedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-      batch.update(
-        FirebaseFirestore.instance
-            .collection('questionBank')
-            .doc(question.docID),
-        {'viewCount': FieldValue.increment(1)},
+      await _antremanRepository.recordQuestionView(
+        userId: userID,
+        questionId: question.docID,
       );
-      await batch.commit();
     } catch (e) {
       AppSnackbar("Hata", "Görüntüleme güncellenirken hata");
     }
@@ -547,20 +515,12 @@ class AntremanController extends GetxController {
     if (question.docID.isEmpty) return;
     final key = question.docID;
     final isSaved = savedQuestions[key] ?? false;
-    final savedRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userID)
-        .collection('qSaved')
-        .doc(question.docID);
     try {
-      if (isSaved) {
-        await savedRef.delete();
-      } else {
-        await savedRef.set({
-          'questionId': question.docID,
-          'savedAt': DateTime.now().millisecondsSinceEpoch,
-        });
-      }
+      await _antremanRepository.toggleSavedQuestion(
+        userId: userID,
+        questionId: question.docID,
+        currentlySaved: isSaved,
+      );
       savedQuestions[key] = !isSaved;
       AppSnackbar(
         "Başarılı",
@@ -583,14 +543,11 @@ class AntremanController extends GetxController {
     final key = question.docID;
     final isLiked = likedQuestions[key] ?? false;
     try {
-      await FirebaseFirestore.instance
-          .collection('questionBank')
-          .doc(question.docID)
-          .update({
-        'begeniler': isLiked
-            ? FieldValue.arrayRemove([userID])
-            : FieldValue.arrayUnion([userID]),
-      });
+      await _antremanRepository.toggleLikedQuestion(
+        userId: userID,
+        questionId: question.docID,
+        currentlyLiked: isLiked,
+      );
 
       if (isLiked) {
         question.begeniler.remove(userID);
@@ -651,12 +608,10 @@ class AntremanController extends GetxController {
 
         // İstatistik için en iyi gayretle yaz; başarısız olursa paylaşımı bozma.
         unawaited(
-          FirebaseFirestore.instance
-              .collection('questionBank')
-              .doc(question.docID)
-              .update({
-            'paylasanlar': FieldValue.arrayUnion([userID]),
-          }).catchError((_) {}),
+          _antremanRepository.recordSharedQuestion(
+            userId: userID,
+            questionId: question.docID,
+          ).catchError((_) {}),
         );
       });
     } catch (_) {
@@ -683,82 +638,22 @@ class AntremanController extends GetxController {
     justAnswered.value =
         isCorrect ? 'correct' : 'incorrect'; // Set answer status
 
-    final answerRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userID)
-        .collection('qAnswers')
-        .doc(question.docID);
-    final questionRef = FirebaseFirestore.instance
-        .collection('questionBank')
-        .doc(question.docID);
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userID);
-    final scoreRef = _monthlyScoreRef;
-
     try {
-      final existingAnswer = await answerRef.get();
-      if (existingAnswer.exists) {
-        throw Exception('already_answered');
-      }
-
-      final userSnap = await userRef.get();
-      final currentAntPoint =
-          ((userSnap.data()?['antPoint'] ?? 100) as num).toInt();
-      int newAntPoint = isCorrect ? currentAntPoint + 10 : currentAntPoint - 3;
-      if (newAntPoint < 0) newAntPoint = 0;
-
-      final batch = FirebaseFirestore.instance.batch();
-      batch.set(answerRef, {
-        'questionId': question.docID,
-        'answer': selectedAnswer,
-        'isCorrect': isCorrect,
-        'categoryKey': question.categoryKey.isNotEmpty
+      final Map<String, dynamic> userData =
+          await _userRepository.getUserRaw(
+                userID,
+                preferCache: true,
+              ) ??
+              const <String, dynamic>{};
+      await _antremanRepository.submitAnswer(
+        userId: userID,
+        question: question,
+        selectedAnswer: selectedAnswer,
+        categoryKey: question.categoryKey.isNotEmpty
             ? question.categoryKey
             : _activeCategoryKey.value,
-        'answeredAt': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      batch.set(
-        questionRef,
-        {
-          isCorrect ? 'correctCount' : 'wrongCount': FieldValue.increment(1),
-        },
-        SetOptions(merge: true),
+        userData: userData,
       );
-
-      batch.set(
-        userRef,
-        {'antPoint': newAntPoint},
-        SetOptions(merge: true),
-      );
-      final userData = userSnap.data() ?? const <String, dynamic>{};
-      final profileName = (userData['displayName'] ??
-              userData['username'] ??
-              userData['nickname'] ??
-              '')
-          .toString();
-      final profileImage = (userData['avatarUrl'] ??
-              userData['avatarUrl'] ??
-              userData['avatarUrl'] ??
-              '')
-          .toString();
-      batch.set(
-        scoreRef,
-        {
-          'userID': userID,
-          'displayName': profileName,
-          'nickname': profileName,
-          'firstName': (userData['firstName'] ?? '').toString(),
-          'lastName': (userData['lastName'] ?? '').toString(),
-          'avatarUrl': profileImage,
-          'rozet': (userData['rozet'] ?? '').toString(),
-          'antPoint': newAntPoint,
-          'updatedDate': DateTime.now().millisecondsSinceEpoch,
-        },
-        SetOptions(merge: true),
-      );
-
-      await batch.commit();
-
       nextQuestion();
     } catch (e) {
       log('submitAnswer error for ${question.docID}: $e');
@@ -813,30 +708,13 @@ class AntremanController extends GetxController {
   }
 
   Future<void> fetchUniqueFields() async {
-    Set<String> anaBaslikSet = {};
-    Set<String> dersSet = {};
-    Set<String> sinavTuruSet = {};
-
-    final querySnapshot =
-        await FirebaseFirestore.instance.collection('questionBank').get();
-
-    for (var doc in querySnapshot.docs) {
-      var data = doc.data();
-
-      if (data['anaBaslik'] != null) {
-        anaBaslikSet.add(data['anaBaslik']);
-      }
-      if (data['ders'] != null) {
-        dersSet.add(data['ders']);
-      }
-      if (data['sinavTuru'] != null) {
-        sinavTuruSet.add(data['sinavTuru']);
-      }
-    }
-
-    log('Ana Başlıklar: ${anaBaslikSet.toList()}');
-    log('Dersler: ${dersSet.toList()}');
-    log('Sınav Türleri: ${sinavTuruSet.toList()}');
+    final payload = await _antremanRepository.fetchUniqueFields(
+      preferCache: true,
+      forceRefresh: false,
+    );
+    log('Ana Başlıklar: ${payload['anaBaslik'] ?? const <String>[]}');
+    log('Dersler: ${payload['ders'] ?? const <String>[]}');
+    log('Sınav Türleri: ${payload['sinavTuru'] ?? const <String>[]}');
   }
 
   Future<void> fetchMoreQuestions() async {
@@ -854,14 +732,6 @@ class AntremanController extends GetxController {
 
   String _buildCategoryKey(String anaBaslik, String sinavTuru, String ders) {
     return '$anaBaslik|$sinavTuru|$ders';
-  }
-
-  DocumentReference<Map<String, dynamic>> _progressRef(String categoryKey) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userID)
-        .collection('qProgress')
-        .doc(categoryKey);
   }
 
   int _gcd(int a, int b) {
@@ -899,31 +769,12 @@ class AntremanController extends GetxController {
   Future<List<QuestionBankModel>> _fetchCategoryPoolDocs(
       String anaBaslik, String sinavTuru, String ders,
       {int? limit}) async {
-    Query<Map<String, dynamic>> q = FirebaseFirestore.instance
-        .collection('questionBank')
-        .where('anaBaslik', isEqualTo: anaBaslik)
-        .where('sinavTuru', isEqualTo: sinavTuru)
-        .where('ders', isEqualTo: ders);
-    if (limit != null) {
-      q = q.limit(limit);
-    }
-    final snapshot = await q.get();
-
-    final models = <QuestionBankModel>[];
-    for (final doc in snapshot.docs) {
-      final data = Map<String, dynamic>.from(doc.data());
-      data['docID'] = doc.id;
-      data['categoryKey'] =
-          data['categoryKey'] ?? _buildCategoryKey(anaBaslik, sinavTuru, ders);
-      data['active'] = data['active'] ?? true;
-      if (data['active'] == false) continue;
-      models.add(QuestionBankModel.fromJson(data));
-    }
-    models.sort((a, b) {
-      if (a.seq != b.seq) return a.seq.compareTo(b.seq);
-      return a.soruNo.compareTo(b.soruNo);
-    });
-    return models;
+    return _antremanRepository.fetchCategoryQuestions(
+      anaBaslik,
+      sinavTuru,
+      ders,
+      limit: limit,
+    );
   }
 
   Future<void> _fillCategoryPoolInBackground(
@@ -954,20 +805,22 @@ class AntremanController extends GetxController {
       String categoryKey, int count) async {
     if (_categoryPool.isEmpty || count <= 0) return;
 
-    final ref = _progressRef(categoryKey);
-    final snap = await ref.get();
+    final progressData = await _antremanRepository.getProgress(
+      userID,
+      categoryKey,
+    );
     final n = _categoryPool.length;
     Map<String, dynamic> progress;
-    if (!snap.exists) {
+    if (progressData == null) {
       progress = _newProgressState(n);
-      await ref.set(progress);
+      await _antremanRepository.setProgress(userID, categoryKey, progress, merge: false);
     } else {
-      progress = Map<String, dynamic>.from(snap.data() ?? <String, dynamic>{});
+      progress = Map<String, dynamic>.from(progressData);
       final int prevN = (progress['n'] as num?)?.toInt() ?? 0;
       if (prevN != n || n == 0) {
         progress = _newProgressState(n,
             cycle: (progress['cycle'] as num?)?.toInt() ?? 0);
-        await ref.set(progress, SetOptions(merge: true));
+        await _antremanRepository.setProgress(userID, categoryKey, progress);
       }
     }
 
@@ -999,14 +852,14 @@ class AntremanController extends GetxController {
 
     if (appended.isEmpty) return;
 
-    await ref.set({
+    await _antremanRepository.setProgress(userID, categoryKey, {
       'cursor': cursor,
       'n': n,
       'a': a,
       'b': b,
       'cycle': cycle,
       'updatedDate': DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
+    });
 
     questions.addAll(appended);
     await _hydrateAnswerAndSavedState(appended);
@@ -1032,56 +885,16 @@ class AntremanController extends GetxController {
   }
 
   Future<Map<String, String>> _fetchUserAnswers(List<String> docIds) async {
-    final out = <String, String>{};
-    for (int i = 0; i < docIds.length; i += 10) {
-      final chunk = docIds.sublist(i, math.min(i + 10, docIds.length));
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .collection('qAnswers')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        final answer = doc.data()['answer'] as String?;
-        if (answer != null && answer.isNotEmpty) {
-          out[doc.id] = answer;
-        }
-      }
-    }
-    return out;
+    return _antremanRepository.fetchUserAnswers(userID, docIds);
   }
 
   Future<Set<String>> _fetchSavedIds(List<String> docIds) async {
-    final out = <String>{};
-    for (int i = 0; i < docIds.length; i += 10) {
-      final chunk = docIds.sublist(i, math.min(i + 10, docIds.length));
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userID)
-          .collection('qSaved')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      out.addAll(snap.docs.map((d) => d.id));
-    }
-    return out;
+    return _antremanRepository.fetchSavedIds(userID, docIds);
   }
 
   Future<List<QuestionBankModel>> _fetchQuestionModelsByIds(
       List<String> ids) async {
-    final byId = <String, QuestionBankModel>{};
-    for (int i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, math.min(i + 10, ids.length));
-      final snap = await FirebaseFirestore.instance
-          .collection('questionBank')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data['docID'] = doc.id;
-        byId[doc.id] = QuestionBankModel.fromJson(data);
-      }
-    }
-    return ids.where(byId.containsKey).map((id) => byId[id]!).toList();
+    return _antremanRepository.fetchQuestionModelsByIds(ids);
   }
 
   Future<void> _prefetchAspectRatios(List<QuestionBankModel> models) async {

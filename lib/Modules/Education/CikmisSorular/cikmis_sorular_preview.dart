@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'cikmis_sorular_cover_model.dart';
 
@@ -28,6 +28,7 @@ class CikmisSorularPreview extends StatefulWidget {
 }
 
 class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
+  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
   List<CikmisSorularinModeli> list = [];
   List<String> selectedAnswers = [];
   List<String> dogruCevaplarList = [];
@@ -108,74 +109,39 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
     });
   }
 
-  void _fetchData() {
-    FirebaseFirestore.instance.collection("questions").get().then((
-      QuerySnapshot snapshot,
-    ) {
-      for (var doc in snapshot.docs) {
-        String anaBaslik = doc.get("anaBaslik");
-        String sinavTuru = doc.get("sinavTuru");
-        String baslik2 = doc.get("baslik2");
-        String baslik3 = doc.get("baslik3");
-        String yil = doc.get("yil");
-
-        if (anaBaslik == widget.anaBaslik &&
-            sinavTuru == widget.sinavTuru &&
-            baslik3 == widget.baslik3 &&
-            baslik2 == widget.baslik2 &&
-            yil == widget.yil) {
-          _getData(doc.id);
-        }
-      }
-    });
-  }
-
-  void _getData(String docID) {
-    _loadQuestions(docID).then((questionDocs) {
-      for (var doc in questionDocs) {
-        final question = CikmisSorularinModeli(
-          ders: doc.get("ders"),
-          dogruCevap: doc.get("dogruCevap"),
-          soru: doc.get("soru"),
-          kacCevap: doc.get("kacCevap"),
-          docID: doc.id,
-          soruNo: doc.get("soruNo"),
-        );
-
-        if (mounted) {
-          setState(() {
-            list.add(question);
-            dogruCevaplarList.add(question.dogruCevap);
-            selectedAnswers.add("");
-
-            if (!dersler.contains(question.ders)) {
-              dersler.add(question.ders);
-            }
-          });
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          docIDCopy = docID;
-        });
-      }
-    });
-  }
-
-  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _loadQuestions(
-    String docID,
-  ) async {
-    final baseDoc =
-        FirebaseFirestore.instance.collection("questions").doc(docID);
-
-    final questionsSnap = await baseDoc.collection("questions").get();
-    if (questionsSnap.docs.isNotEmpty) {
-      return questionsSnap.docs;
+  Future<void> _fetchData() async {
+    final docId = await _repository.findQuestionDocId(
+      anaBaslik: widget.anaBaslik,
+      sinavTuru: widget.sinavTuru,
+      yil: widget.yil,
+      baslik2: widget.baslik2,
+      baslik3: widget.baslik3,
+    );
+    if (docId != null && docId.isNotEmpty) {
+      await _getData(docId);
     }
+  }
 
-    final sorularSnap = await baseDoc.collection("Sorular").get();
-    return sorularSnap.docs;
+  Future<void> _getData(String docID) async {
+    final questions = await _repository.fetchQuestionItems(docID);
+    if (!mounted) return;
+    final localDersler = <String>[];
+    final answers = <String>[];
+    final selected = <String>[];
+    for (final question in questions) {
+      answers.add(question.dogruCevap);
+      selected.add("");
+      if (!localDersler.contains(question.ders)) {
+        localDersler.add(question.ders);
+      }
+    }
+    setState(() {
+      list = questions;
+      dogruCevaplarList = answers;
+      selectedAnswers = selected;
+      dersler = localDersler;
+      docIDCopy = docID;
+    });
   }
 
   @override
@@ -443,18 +409,17 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
             ),
             GestureDetector(
               onTap: () {
-                FirebaseFirestore.instance.collection("questionsAnswers").add({
-                  "cevaplar": selectedAnswers,
-                  "dogruCevaplar": dogruCevaplarList,
-                  "timeStamp": DateTime.now().millisecondsSinceEpoch,
-                  "anaBaslik": widget.anaBaslik,
-                  "sinavTuru": widget.sinavTuru,
-                  "yil": widget.yil,
-                  "baslik2": widget.baslik2,
-                  "baslik3": widget.baslik3,
-                  "cikmisSoruID": docIDCopy,
-                  "userID": FirebaseAuth.instance.currentUser!.uid,
-                });
+                _repository.saveResult(
+                  uid: FirebaseAuth.instance.currentUser!.uid,
+                  anaBaslik: widget.anaBaslik,
+                  sinavTuru: widget.sinavTuru,
+                  yil: widget.yil,
+                  baslik2: widget.baslik2,
+                  baslik3: widget.baslik3,
+                  cikmisSoruID: docIDCopy,
+                  cevaplar: selectedAnswers,
+                  dogruCevaplar: dogruCevaplarList,
+                );
 
                 if (mounted) {
                   setState(() {

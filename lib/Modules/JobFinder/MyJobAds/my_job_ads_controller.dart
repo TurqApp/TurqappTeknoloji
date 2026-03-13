@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
 
 import '../../../Models/job_model.dart';
 
 class MyJobAdsController extends GetxController {
+  final JobRepository _jobRepository = JobRepository.ensure();
   final pageController = PageController();
   RxList<JobModel> active = <JobModel>[].obs;
   RxList<JobModel> deactive = <JobModel>[].obs;
@@ -32,21 +34,18 @@ class MyJobAdsController extends GetxController {
       final now = DateTime.now().millisecondsSinceEpoch;
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where("userID", isEqualTo: uid)
-          .where("ended", isEqualTo: false)
-          .get();
+      final jobs = await _jobRepository.fetchByOwnerAndEnded(
+        uid,
+        ended: false,
+      );
 
       List<JobModel> validJobs = [];
 
-      for (var doc in snapshot.docs) {
-        final job = JobModel.fromMap(doc.data(), doc.id);
-
+      for (final job in jobs) {
         if (job.timeStamp < thirtyDaysAgo) {
           await FirebaseFirestore.instance
               .collection(JobCollection.name)
-              .doc(doc.id)
+              .doc(job.docID)
               .update({"ended": true});
         } else {
           validJobs.add(job);
@@ -64,15 +63,10 @@ class MyJobAdsController extends GetxController {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where("userID", isEqualTo: uid)
-          .where("ended", isEqualTo: true)
-          .get();
-
-      deactive.value = snapshot.docs
-          .map((doc) => JobModel.fromMap(doc.data(), doc.id))
-          .toList();
+      deactive.value = await _jobRepository.fetchByOwnerAndEnded(
+        uid,
+        ended: true,
+      );
     } catch (e) {
       print("getDeactive() hatası: $e");
     }

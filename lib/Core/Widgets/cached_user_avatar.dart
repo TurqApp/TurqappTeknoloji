@@ -3,10 +3,9 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -76,16 +75,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       return;
     }
 
-    if (!Get.isRegistered<UserProfileCacheService>()) return;
-    final cache = Get.find<UserProfileCacheService>();
+    final users = UserRepository.ensure();
 
     try {
-      final cached = await cache.getProfile(
+      final cached = await users.getUser(
         uid,
         preferCache: true,
         cacheOnly: true,
       );
-      final cachedUrl = _normalizeUrl(cached?['avatarUrl']?.toString());
+      final cachedUrl = _normalizeUrl(cached?.avatarUrl);
       if (cachedUrl.isNotEmpty && cachedUrl != _resolvedUrl && mounted) {
         setState(() {
           _resolvedUrl = cachedUrl;
@@ -99,12 +97,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     if (_resolvedUrl.isNotEmpty) return;
 
     try {
-      final fetched = await cache.getProfile(
+      final fetched = await users.getUser(
         uid,
         preferCache: true,
         cacheOnly: false,
       );
-      final fetchedUrl = _normalizeUrl(fetched?['avatarUrl']?.toString());
+      final fetchedUrl = _normalizeUrl(fetched?.avatarUrl);
       if (fetchedUrl.isNotEmpty && fetchedUrl != _resolvedUrl && mounted) {
         setState(() {
           _resolvedUrl = fetchedUrl;
@@ -163,7 +161,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             _didBootstrap = false;
             unawaited(_bootstrap());
           }
-          return _buildAvatar(currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl);
+          return _buildAvatar(
+              currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl);
         },
       );
     }

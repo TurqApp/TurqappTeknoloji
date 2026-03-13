@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
 
 class CvController extends GetxController {
+  final CvRepository _cvRepository = CvRepository.ensure();
   var selection = 0.obs;
   TextEditingController firstName = TextEditingController(text: "");
   TextEditingController lastName = TextEditingController(text: "");
@@ -1123,7 +1125,7 @@ class CvController extends GetxController {
     if (isSaving.value) return;
     isSaving.value = true;
     try {
-      await FirebaseFirestore.instance.collection("CV").doc(uid).set({
+      final payload = {
         "firstName": firstName.text.trim(),
         "lastName": lastName.text.trim(),
         "mail": mail.text.trim(),
@@ -1136,7 +1138,9 @@ class CvController extends GetxController {
         "referans": referanslar.map((e) => e.toMap()).toList(),
         "skills": skills.toList(),
         "findingJob": false,
-      });
+      };
+      await FirebaseFirestore.instance.collection("CV").doc(uid).set(payload);
+      await _cvRepository.setCv(uid, payload);
       selection.value = 0;
       Get.back();
       AppSnackbar("CV Oluşturuldu!",
@@ -1152,11 +1156,8 @@ class CvController extends GetxController {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection("CV").doc(uid).get();
-
-      if (doc.exists) {
-        final data = doc.data() ?? {};
+      final data = await _cvRepository.getCv(uid, preferCache: true);
+      if (data != null) {
         firstName.text = data["firstName"] ?? "";
         lastName.text = data["lastName"] ?? "";
         mail.text = data["mail"] ?? "";

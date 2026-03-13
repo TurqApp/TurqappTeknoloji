@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import '../../Services/current_user_service.dart';
@@ -37,6 +38,7 @@ class PostController extends GetxController {
   var ilkPaylasanPfImage = "".obs;
   var ilkPaylasanNickname = "".obs;
   var ilkPaylasanUserID = "".obs;
+  final PostRepository _postRepository = PostRepository.ensure();
 
   @override
   void onInit() {
@@ -54,14 +56,8 @@ class PostController extends GetxController {
   }
 
   Future<void> getYorumCount(String postID) async {
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(postID)
-        .collection("Yorumlar")
-        .get()
-        .then((snap) {
-      yorumCount.value = snap.docs.length.toInt();
-    });
+    final cached = await _postRepository.fetchPostById(postID);
+    yorumCount.value = cached?.stats.commentCount.toInt() ?? yorumCount.value;
   }
 
   Future<void> getIlkPaylasan() async {
@@ -81,36 +77,11 @@ class PostController extends GetxController {
   Future<void> begen(String postID) async {
     final userID = CurrentUserService.instance.userId;
     if (userID.isEmpty) return;
-
-    final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentLikes = data["begeniler"] ?? [];
-      final List<dynamic> currentDislikes = data["begenmeme"] ?? [];
-
-      // Eğer kullanıcı beğenmişse beğeniyi kaldır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "begeniler": FieldValue.arrayRemove([userID])
-        });
-        begeniler.remove(userID);
-      } else {
-        // Daha önce beğenmeme yaptıysa onu kaldır
-        if (currentDislikes.contains(userID)) {
-          await docRef.update({
-            "begenmeme": FieldValue.arrayRemove([userID])
-          });
-          begenmeme.remove(userID);
-        }
-
-        // Beğeni ekle
-        await docRef.update({
-          "begeniler": FieldValue.arrayUnion([userID])
-        });
-        begeniler.add(userID);
-      }
+    final nextLiked = await _postRepository.toggleLike(model);
+    if (nextLiked) {
+      if (!begeniler.contains(userID)) begeniler.add(userID);
+    } else {
+      begeniler.remove(userID);
     }
   }
 
@@ -118,60 +89,45 @@ class PostController extends GetxController {
     final userID = CurrentUserService.instance.userId;
     if (userID.isEmpty) return;
 
+    final cached = await _postRepository.fetchPostRawById(postID);
+    if (cached == null) return;
     final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
 
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentDislikes = data["begenmeme"] ?? [];
-      final List<dynamic> currentLikes = data["begeniler"] ?? [];
+    final currentDislikes =
+        List<String>.from((cached["begenmeme"] as List?) ?? const []);
+    final currentLikes =
+        List<String>.from((cached["begeniler"] as List?) ?? const []);
 
-      // Eğer daha önce beğenmişse beğeni kaldırılır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "begeniler": FieldValue.arrayRemove([userID])
-        });
-        begeniler.remove(userID);
-      }
+    // Eğer daha önce beğenmişse beğeni kaldırılır
+    if (currentLikes.contains(userID)) {
+      await docRef.update({
+        "begeniler": FieldValue.arrayRemove([userID])
+      });
+      begeniler.remove(userID);
+    }
 
-      // Beğenmeme kontrolü
-      if (currentDislikes.contains(userID)) {
-        await docRef.update({
-          "begenmeme": FieldValue.arrayRemove([userID])
-        });
-        begenmeme.remove(userID);
-      } else {
-        await docRef.update({
-          "begenmeme": FieldValue.arrayUnion([userID])
-        });
-        begenmeme.add(userID);
-      }
+    // Beğenmeme kontrolü
+    if (currentDislikes.contains(userID)) {
+      await docRef.update({
+        "begenmeme": FieldValue.arrayRemove([userID])
+      });
+      begenmeme.remove(userID);
+    } else {
+      await docRef.update({
+        "begenmeme": FieldValue.arrayUnion([userID])
+      });
+      begenmeme.add(userID);
     }
   }
 
   Future<void> kayitEt(String postID) async {
     final userID = CurrentUserService.instance.userId;
     if (userID.isEmpty) return;
-
-    final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data() as Map<String, dynamic>;
-      final List<dynamic> currentLikes = data["kayitEdenler"] ?? [];
-
-      // Eğer kullanıcı beğenmişse beğeniyi kaldır
-      if (currentLikes.contains(userID)) {
-        await docRef.update({
-          "kayitEdenler": FieldValue.arrayRemove([userID])
-        });
-        kaydedilenler.remove(userID);
-      } else {
-        await docRef.update({
-          "kayitEdenler": FieldValue.arrayUnion([userID])
-        });
-        kaydedilenler.add(userID);
-      }
+    final nextSaved = await _postRepository.toggleSave(model);
+    if (nextSaved) {
+      if (!kaydedilenler.contains(userID)) kaydedilenler.add(userID);
+    } else {
+      kaydedilenler.remove(userID);
     }
   }
 

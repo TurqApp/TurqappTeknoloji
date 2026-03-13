@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -14,6 +15,7 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 class JobFinderController extends GetxController {
+  final JobRepository _jobRepository = JobRepository.ensure();
   final List<String> imgList = [
     AppAssets.practice1,
     AppAssets.practice2,
@@ -73,13 +75,9 @@ class JobFinderController extends GetxController {
 
   Future<void> refreshJob(String docID) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .doc(docID)
-          .get();
-
-      if (doc.exists) {
-        final updatedJob = JobModel.fromMap(doc.data()!, doc.id);
+      final updatedJob =
+          await _jobRepository.fetchById(docID, preferCache: false, forceRefresh: true);
+      if (updatedJob != null) {
         final index = list.indexWhere((e) => e.docID == docID);
         if (index != -1) {
           list[index] = updatedJob;
@@ -134,21 +132,14 @@ class JobFinderController extends GetxController {
       final now = DateTime.now().millisecondsSinceEpoch;
       final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .orderBy("timeStamp", descending: true)
-          .limit(150)
-          .get();
+      final fetchedJobs = await _jobRepository.fetchLatestJobs(limit: 150);
 
       final jobs = <JobModel>[];
       final expiredJobIds = <String>[];
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final job = JobModel.fromMap(data, doc.id);
-
+      for (final job in fetchedJobs) {
         if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          expiredJobIds.add(doc.id);
+          expiredJobIds.add(job.docID);
           continue;
         }
 
@@ -237,27 +228,11 @@ class JobFinderController extends GetxController {
   Future<List<JobModel>> _fetchJobsByDocIds(List<String> docIds) async {
     final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
     if (orderedIds.isEmpty) return const [];
-
-    final byId = <String, JobModel>{};
-    const chunkSize = 10;
-
-    for (var i = 0; i < orderedIds.length; i += chunkSize) {
-      final end = (i + chunkSize > orderedIds.length)
-          ? orderedIds.length
-          : i + chunkSize;
-      final chunk = orderedIds.sublist(i, end);
-      final snapshot = await FirebaseFirestore.instance
-          .collection(JobCollection.name)
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-
-      for (final doc in snapshot.docs) {
-        final model = JobModel.fromMap(doc.data(), doc.id);
-        if (model.ended) continue;
-        byId[doc.id] = _attachDistance(model);
-      }
-    }
-
+    final fetched = await _jobRepository.fetchByIds(orderedIds);
+    final byId = <String, JobModel>{
+      for (final job in fetched.where((job) => !job.ended))
+        job.docID: _attachDistance(job),
+    };
     return orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
   }
 

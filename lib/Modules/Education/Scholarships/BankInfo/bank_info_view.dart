@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/BankInfo/bank_info_controller.dart';
@@ -16,6 +16,7 @@ class BankInfoView extends StatelessWidget {
   BankInfoView({super.key});
 
   final BankInfoController controller = Get.put(BankInfoController());
+  final UserRepository _userRepository = UserRepository.ensure();
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +50,9 @@ class BankInfoView extends StatelessWidget {
                               controller.selectedBank.value = "Banka Seç";
                               controller.kolayAdres.value = "E-Posta";
                               controller.iban.clear();
-                              await FirebaseFirestore.instance
-                                  .collection("users")
-                                  .doc(FirebaseAuth.instance.currentUser?.uid)
-                                  .update({
+                              await _userRepository.updateUserFields(
+                                FirebaseAuth.instance.currentUser?.uid ?? '',
+                                {
                                 ...scopedUserUpdate(
                                   scope: 'finance',
                                   values: {
@@ -66,7 +66,8 @@ class BankInfoView extends StatelessWidget {
                                     "kolayAdresSelection": "",
                                   },
                                 ),
-                              });
+                              },
+                              );
                               AppSnackbar(
                                 "Başarılı",
                                 "Banka Bilgileriniz sıfırlandı.",
