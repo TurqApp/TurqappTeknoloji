@@ -68,7 +68,12 @@ class CreatorContent extends StatelessWidget {
           controller.focus.requestFocus();
         },
         child: Obx(() {
-          final currentUser = CurrentUserService.instance.currentUserRx.value;
+          final userService = CurrentUserService.instance;
+          final currentUser = userService.currentUserRx.value;
+          final composerUserId =
+              (currentUser?.userID ?? userService.userId).trim();
+          final composerAvatarUrl =
+              (currentUser?.avatarUrl ?? userService.avatarUrl).trim();
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,8 +86,11 @@ class CreatorContent extends StatelessWidget {
                       width: 38,
                       height: 38,
                       child: CachedUserAvatar(
-                        userId: currentUser?.userID,
-                        imageUrl: currentUser?.avatarUrl,
+                        userId:
+                            composerUserId.isNotEmpty ? composerUserId : null,
+                        imageUrl: composerAvatarUrl.isNotEmpty
+                            ? composerAvatarUrl
+                            : null,
                         radius: 19,
                       ),
                     ),
@@ -438,10 +446,9 @@ class CreatorContent extends StatelessWidget {
                 ? snapshot.data!.first
                 : null) as Map<String, dynamic>? ??
             const <String, dynamic>{};
-        final sourcePostMap =
-            snapshot.data != null && snapshot.data!.length > 1
-                ? snapshot.data![1] as Map<String, PostsModel>?
-                : null;
+        final sourcePostMap = snapshot.data != null && snapshot.data!.length > 1
+            ? snapshot.data![1] as Map<String, PostsModel>?
+            : null;
         final sourcePostData =
             sourcePostMap?[sourcePostId]?.toMap() ?? const <String, dynamic>{};
         final displayName = (profile['fullName'] ??

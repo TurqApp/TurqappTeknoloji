@@ -218,6 +218,10 @@ class PostCreator extends StatelessWidget {
 
   Widget toolbar() {
     return Obx(() {
+      final mediaQuery = MediaQueryData.fromView(
+        WidgetsBinding.instance.platformDispatcher.views.first,
+      );
+      final keyboardInset = mediaQuery.viewInsets.bottom;
       final tag = controller.selectedIndex.value.toString();
 
       // Make sure a CreatorContentController exists for the selected index
@@ -244,9 +248,17 @@ class PostCreator extends StatelessWidget {
       final disableFirstThree = controller.isEditMode.value;
       final disableFlood = controller.isEditMode.value;
 
-      const double toolbarIconSize = 23.3; // ~3% smaller than 24
-      return Padding(
-        padding: const EdgeInsets.only(left: 15, right: 15, bottom: 20),
+      const double toolbarIconSize = 20.5;
+      const double compactButtonSize = 38;
+      final bottomPadding = keyboardInset > 0 ? 8.0 : 16.0;
+      return AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(
+          left: 12,
+          right: 12,
+          bottom: bottomPadding,
+        ),
         child: Align(
           alignment: Alignment.centerLeft,
           child: Row(
@@ -268,6 +280,11 @@ class PostCreator extends StatelessWidget {
                                   ? null
                                   : selectedController.pickImage,
                               iconSize: toolbarIconSize,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: compactButtonSize,
+                                height: compactButtonSize,
+                              ),
                               icon: Icon(
                                 CupertinoIcons.photo_on_rectangle,
                                 color: disableFirstThree
@@ -285,6 +302,11 @@ class PostCreator extends StatelessWidget {
                                           source: ImageSource.gallery);
                                     },
                               iconSize: toolbarIconSize,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: compactButtonSize,
+                                height: compactButtonSize,
+                              ),
                               icon: Icon(
                                 CupertinoIcons.play_circle,
                                 color: disableFirstThree
@@ -299,6 +321,11 @@ class PostCreator extends StatelessWidget {
                                   ? null
                                   : selectedController.openCustomCameraCapture,
                               iconSize: toolbarIconSize,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: compactButtonSize,
+                                height: compactButtonSize,
+                              ),
                               icon: Icon(
                                 CupertinoIcons.camera,
                                 color: disableFirstThree
@@ -309,6 +336,11 @@ class PostCreator extends StatelessWidget {
                             IconButton(
                               onPressed: selectedController.openPollComposer,
                               iconSize: toolbarIconSize,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: compactButtonSize,
+                                height: compactButtonSize,
+                              ),
                               icon: Icon(
                                 CupertinoIcons.chart_bar,
                                 color: pollActive
@@ -319,6 +351,11 @@ class PostCreator extends StatelessWidget {
                             IconButton(
                               onPressed: selectedController.goToLocationMap,
                               iconSize: toolbarIconSize,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: compactButtonSize,
+                                height: compactButtonSize,
+                              ),
                               icon: Icon(
                                 CupertinoIcons.map_pin_ellipse,
                                 color: hasLocation
@@ -373,6 +410,10 @@ class PostCreator extends StatelessWidget {
                                   CupertinoButton(
                                 onPressed: showMenu,
                                 padding: EdgeInsets.zero,
+                                minimumSize: const Size(
+                                  compactButtonSize,
+                                  compactButtonSize,
+                                ),
                                 child: Icon(
                                   CupertinoIcons.bubble_right,
                                   color: commentActive
@@ -425,6 +466,10 @@ class PostCreator extends StatelessWidget {
                                   CupertinoButton(
                                 onPressed: showMenu,
                                 padding: EdgeInsets.zero,
+                                minimumSize: const Size(
+                                  compactButtonSize,
+                                  compactButtonSize,
+                                ),
                                 child: Icon(
                                   Icons.repeat,
                                   color: reshareActive
@@ -455,6 +500,11 @@ class PostCreator extends StatelessWidget {
                                   }
                                 },
                                 iconSize: toolbarIconSize,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints.tightFor(
+                                  width: compactButtonSize,
+                                  height: compactButtonSize,
+                                ),
                                 icon: Icon(
                                   scheduled
                                       ? CupertinoIcons.clock_fill
@@ -485,8 +535,8 @@ class PostCreator extends StatelessWidget {
                             tag: newIndex.toString());
                       },
                 child: Container(
-                  width: 28,
-                  height: 28,
+                  width: 27,
+                  height: 27,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: disableFlood
@@ -505,7 +555,7 @@ class PostCreator extends StatelessWidget {
                   child: const Icon(
                     CupertinoIcons.add,
                     color: Colors.white,
-                    size: 15,
+                    size: 14,
                   ),
                 ),
               ),
