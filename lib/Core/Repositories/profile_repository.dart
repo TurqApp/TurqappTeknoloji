@@ -216,8 +216,12 @@ class ProfileRepository extends GetxService {
     final scheduled = <PostsModel>[];
 
     for (final post in posts) {
-      if (post.timeStamp > nowMs) {
+      final isIzBirakPost =
+          post.scheduledAt.toInt() > 0 || post.izBirakYayinTarihi.toInt() > 0;
+      if (isIzBirakPost) {
         scheduled.add(post);
+      }
+      if (post.timeStamp > nowMs) {
         continue;
       }
       all.add(post);

@@ -632,6 +632,112 @@ export const processScheduledAccountDeletions = functions.pubsub
     }
   });
 
+export const publishScheduledIzBirakPosts = functions.pubsub
+  .schedule("every 5 minutes")
+  .timeZone("UTC")
+  .onRun(async () => {
+    const now = Date.now();
+    console.log("publishScheduledIzBirakPosts:start", { now });
+
+    const dueSnap = await db
+      .collection("Posts")
+      .where("scheduledAt", ">", 0)
+      .where("scheduledAt", "<=", now)
+      .limit(100)
+      .get();
+
+    if (dueSnap.empty) {
+      console.log("publishScheduledIzBirakPosts:none_due");
+      return null;
+    }
+
+    for (const postDoc of dueSnap.docs) {
+      const data = postDoc.data() as Record<string, unknown>;
+      const ownerId = String(data.userID || "");
+      const publishAt = Number(data.scheduledAt || 0);
+      const alreadyNotified = Number(data.izBirakNotificationSentAt || 0);
+      if (!ownerId || !publishAt || alreadyNotified > 0) {
+        continue;
+      }
+
+      try {
+        const subscribersSnap = await postDoc.ref
+          .collection("izBirakSubscribers")
+          .get();
+
+        const imageUrl = String(
+          data.thumbnail ||
+            ((Array.isArray(data.img) && data.img.length > 0
+              ? data.img[0]
+              : "") as string) ||
+            "",
+        );
+        const caption = String(data.metin || "").trim();
+        const body = caption.length > 0
+          ? caption.slice(0, 120)
+          : "İz bıraktığın içerik yayına girdi.";
+
+        let batch = db.batch();
+        let opCount = 0;
+        for (const subscriberDoc of subscribersSnap.docs) {
+          const subscriberId = subscriberDoc.id;
+          if (!subscriberId || subscriberId === ownerId) {
+            continue;
+          }
+
+          batch.set(
+            db
+              .collection("users")
+              .doc(subscriberId)
+              .collection("notifications")
+              .doc(),
+            {
+              type: "Posts",
+              fromUserID: ownerId,
+              postID: postDoc.id,
+              timeStamp: now,
+              read: false,
+              title: "İz Bırak yayında",
+              body,
+              imageUrl,
+            },
+          );
+          opCount++;
+
+          if (opCount >= 400) {
+            await batch.commit();
+            batch = db.batch();
+            opCount = 0;
+          }
+        }
+
+        batch.set(
+          postDoc.ref,
+          {
+            timeStamp: now,
+            updatedAt: now,
+            izBirakPublishedAt: now,
+            izBirakNotificationSentAt: now,
+          },
+          { merge: true },
+        );
+        await batch.commit();
+
+        console.log("publishScheduledIzBirakPosts:published", {
+          postId: postDoc.id,
+          subscriberCount: subscribersSnap.size,
+        });
+      } catch (e) {
+        console.error("publishScheduledIzBirakPosts:error", {
+          postId: postDoc.id,
+          error: e,
+        });
+      }
+    }
+
+    return null;
+  });
+
 // MONTHLY RESET: Set antPoint to 100 for all users on the 1st day of each month
 export const resetMonthlyAntPoint = functions.pubsub
   .schedule("0 0 1 * *")

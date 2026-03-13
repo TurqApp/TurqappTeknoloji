@@ -21,6 +21,7 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
@@ -1921,6 +1922,8 @@ class _SocialProfileState extends State<SocialProfile> {
               final hedef = DateTime.fromMillisecondsSinceEpoch(
                   model.izBirakYayinTarihi.toInt());
               final kalanText = kacGunKaldiFormatter(hedef);
+              final isPublished = DateTime.now().millisecondsSinceEpoch >=
+                  hedef.millisecondsSinceEpoch;
 
               return Stack(
                 children: [
@@ -1949,70 +1952,74 @@ class _SocialProfileState extends State<SocialProfile> {
                       size: 20,
                     ),
                   ),
-                  Positioned.fill(
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.15),
+                  if (!isPublished)
+                    Positioned.fill(
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.15),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 6,
-                    right: 6,
-                    bottom: 6,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 6, horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.62),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              kalanText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontFamily: "MontserratBold",
+                  if (!isPublished)
+                    Positioned(
+                      left: 6,
+                      right: 6,
+                      bottom: 6,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.62),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                kalanText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontFamily: "MontserratBold",
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            AppSnackbar(
-                              'İz Bırak',
-                              'Yayın tarihinde bildirim alacaksınız.',
-                            );
-                          },
-                          child: Container(
-                            width: 22,
-                            height: 22,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.green,
-                            ),
-                            child: const Icon(
-                              CupertinoIcons.add,
-                              color: Colors.white,
-                              size: 13,
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              await IzBirakSubscriptionService.ensure()
+                                  .subscribe(model.docID);
+                              AppSnackbar(
+                                'İz Bırak',
+                                'Yayın tarihinde bildirim alacaksınız.',
+                              );
+                            },
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.green,
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.add,
+                                color: Colors.white,
+                                size: 13,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               );
             }, childCount: controller.scheduledPosts.length),

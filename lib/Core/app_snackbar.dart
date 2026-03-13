@@ -15,6 +15,9 @@ void AppSnackbar(
   TextStyle? titleStyle,
   TextStyle? messageStyle,
 }) {
+  if (Get.isSnackbarOpen) {
+    Get.closeCurrentSnackbar();
+  }
   Get.snackbar(
     '',
     '',

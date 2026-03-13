@@ -395,7 +395,8 @@ class _AgendaContentState extends State<AgendaContent>
                   const SizedBox(width: 45),
                   Expanded(
                     child: Builder(builder: (_) {
-                      const double displayAspect = 0.80;
+                      final double displayAspect =
+                          _isIzBirakPost ? 16 / 9 : 0.80;
                       return VisibilityDetector(
                         key: Key('agenda-media-${widget.model.docID}'),
                         onVisibilityChanged: (info) {
@@ -715,70 +716,78 @@ class _AgendaContentState extends State<AgendaContent>
                                       ],
                                     ),
                                   ),
-                                Positioned(
-                                  bottom: 8,
-                                  right: 8,
-                                  child: Row(
-                                    children: [
-                                      ValueListenableBuilder<HLSVideoValue>(
-                                        valueListenable: videoValueNotifier,
-                                        builder: (context, value, _) {
-                                          final isPlaying =
-                                              value.isInitialized &&
-                                                  value.isPlaying;
-                                          return GestureDetector(
-                                            onTap: () {
-                                              final vc = videoController;
-                                              if (vc == null) return;
-                                              if (isPlaying) {
-                                                vc.pause();
-                                              } else {
-                                                vc.play();
-                                                videoStateManager.playOnlyThis(
-                                                    playbackHandleKey);
-                                              }
-                                            },
-                                            child: Container(
-                                              margin: const EdgeInsets.only(
-                                                  right: 6),
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: const BoxDecoration(
-                                                color: Colors.black54,
-                                                shape: BoxShape.circle,
+                                _buildIzBirakBlurOverlay(),
+                                _buildIzBirakBottomBar(),
+                                if (!_isIzBirakPost)
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Row(
+                                      children: [
+                                        ValueListenableBuilder<HLSVideoValue>(
+                                          valueListenable: videoValueNotifier,
+                                          builder: (context, value, _) {
+                                            final isPlaying =
+                                                value.isInitialized &&
+                                                    value.isPlaying;
+                                            return GestureDetector(
+                                              onTap: () {
+                                                final vc = videoController;
+                                                if (vc == null) return;
+                                                if (isPlaying) {
+                                                  vc.pause();
+                                                } else {
+                                                  vc.play();
+                                                  videoStateManager
+                                                      .playOnlyThis(
+                                                          playbackHandleKey);
+                                                }
+                                              },
+                                              child: Container(
+                                                margin: const EdgeInsets.only(
+                                                    right: 6),
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.black54,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  isPlaying
+                                                      ? CupertinoIcons
+                                                          .pause_fill
+                                                      : CupertinoIcons
+                                                          .play_fill,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
                                               ),
-                                              child: Icon(
-                                                isPlaying
-                                                    ? CupertinoIcons.pause_fill
-                                                    : CupertinoIcons.play_fill,
+                                            );
+                                          },
+                                        ),
+                                        GestureDetector(
+                                          onTap:
+                                              agendaController.isMuted.toggle,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Obx(() {
+                                              return Icon(
+                                                agendaController.isMuted.value
+                                                    ? CupertinoIcons.volume_off
+                                                    : CupertinoIcons.volume_up,
                                                 color: Colors.white,
                                                 size: 16,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      GestureDetector(
-                                        onTap: agendaController.isMuted.toggle,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.black54,
-                                            shape: BoxShape.circle,
+                                              );
+                                            }),
                                           ),
-                                          child: Obx(() {
-                                            return Icon(
-                                              agendaController.isMuted.value
-                                                  ? CupertinoIcons.volume_off
-                                                  : CupertinoIcons.volume_up,
-                                              color: Colors.white,
-                                              size: 16,
-                                            );
-                                          }),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -2709,8 +2718,7 @@ class _AgendaContentState extends State<AgendaContent>
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
-      final bool isCurrentUsersReshareCard =
-          currentUserId.isNotEmpty &&
+      final bool isCurrentUsersReshareCard = currentUserId.isNotEmpty &&
           widget.reshareUserID?.trim() == currentUserId;
       final bool isReshared =
           controller.yenidenPaylasildiMi.value || isCurrentUsersReshareCard;

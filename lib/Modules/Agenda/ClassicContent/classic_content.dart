@@ -2482,8 +2482,7 @@ class _ClassicContentState extends State<ClassicContent>
           visibility == 0 ||
           (visibility == 1 && controller.userService.isVerified) ||
           (visibility == 2 && controller.isFollowing.value);
-      final bool isCurrentUsersReshareCard =
-          currentUserId.isNotEmpty &&
+      final bool isCurrentUsersReshareCard = currentUserId.isNotEmpty &&
           widget.reshareUserID?.trim() == currentUserId;
       final bool isReshared =
           controller.yenidenPaylasildiMi.value || isCurrentUsersReshareCard;
