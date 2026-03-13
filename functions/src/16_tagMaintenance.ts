@@ -9,6 +9,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { generateTagDetails, getTagSettings, writeTagIndex } from "./04_tagSettings";
+import { RateLimits } from "./rateLimiter";
 
 function getEnv(name: string): string {
   return String(process.env[name] || "").trim();
@@ -287,6 +288,7 @@ function validateAuth(request: CallableRequest) {
   if (request.auth?.token?.admin !== true) {
     throw new HttpsError("permission-denied", "admin_required");
   }
+  RateLimits.admin(uid);
 }
 
 async function fetchPosts(limit: number, cursor?: string) {

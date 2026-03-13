@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { RateLimits } from "./rateLimiter";
 
 const db = admin.firestore();
 
@@ -39,7 +40,10 @@ async function ensureAdmin(context: functions.https.CallableContext) {
   ensureAuth(context);
   const uid = context.auth!.uid;
   const claims = context.auth?.token as { admin?: unknown } | undefined;
-  if (claims?.admin === true) return;
+  if (claims?.admin === true) {
+    RateLimits.admin(uid);
+    return;
+  }
 
   const allowSnap = await db.doc("adminConfig/admin").get();
   const allowedRaw = allowSnap.data()?.allowedUserIds;
@@ -47,7 +51,10 @@ async function ensureAdmin(context: functions.https.CallableContext) {
     const allowed = allowedRaw
       .map((v: unknown) => String(v ?? "").trim())
       .filter((v: string) => v.length > 0);
-    if (allowed.includes(uid)) return;
+    if (allowed.includes(uid)) {
+      RateLimits.admin(uid);
+      return;
+    }
   }
 
   throw new functions.https.HttpsError("permission-denied", "admin_required");
@@ -65,7 +72,10 @@ async function ensureAdminByUid(uid: string) {
     const allowed = allowedRaw
       .map((v: unknown) => String(v ?? "").trim())
       .filter((v: string) => v.length > 0);
-    if (allowed.includes(normalizedUid)) return;
+    if (allowed.includes(normalizedUid)) {
+      RateLimits.admin(normalizedUid);
+      return;
+    }
   }
 
   throw new functions.https.HttpsError("permission-denied", "admin_required");
