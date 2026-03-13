@@ -1939,8 +1939,8 @@ class _SocialProfileState extends State<SocialProfile> {
                     ),
                   ),
                   Positioned(
-                    bottom: 4,
-                    right: 4,
+                    top: 6,
+                    right: 6,
                     child: Icon(
                       model.hasPlayableVideo
                           ? CupertinoIcons.play_circle_fill
@@ -1959,24 +1959,58 @@ class _SocialProfileState extends State<SocialProfile> {
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          kalanText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontFamily: "MontserratBold",
+                  Positioned(
+                    left: 6,
+                    right: 6,
+                    bottom: 6,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.62),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              kalanText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontFamily: "MontserratBold",
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            AppSnackbar(
+                              'İz Bırak',
+                              'Yayın tarihinde bildirim alacaksınız.',
+                            );
+                          },
+                          child: Container(
+                            width: 22,
+                            height: 22,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.green,
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.add,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
