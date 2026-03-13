@@ -256,3 +256,14 @@ test("phoneAccounts blocks phone mutation on update", async () => {
     }),
   );
 });
+
+test("users_usernames legacy reservation path is disabled", async () => {
+  const uid = "legacy-username-user";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "users_usernames/testuser"), {
+      uid,
+    }),
+  );
+});

@@ -388,16 +388,7 @@ service cloud.firestore {
 
     // Username reservation (uniqueness lock)
     match /users_usernames/{usernameLower} {
-      allow read: if isAuth();
-      allow create: if isAuth()
-        && isValidUsernameLower(usernameLower)
-        && request.resource.data.uid == request.auth.uid
-        && !exists(/databases/$(database)/documents/users_usernames/$(usernameLower));
-      allow update: if isAuth()
-        && isValidUsernameLower(usernameLower)
-        && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == request.auth.uid;
-      allow delete: if isAuth() && resource.data.uid == request.auth.uid;
+      allow read, create, update, delete: if false; // Deprecated legacy path disabled
     }
 
     // Ad center (owner + admin). Reports write-side is server only.
