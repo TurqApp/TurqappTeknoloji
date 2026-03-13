@@ -26,14 +26,18 @@ class StoryCircle extends StatefulWidget {
 
 class _StoryCircleState extends State<StoryCircle> {
   final userService = CurrentUserService.instance;
+  static const double _storyCircleSize = 74;
+  static const double _storyAvatarRadius = 37;
+  static const double _labelWidth = 78;
+  static const double _addBadgeSize = 18;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SizedBox(
-          width: 85,
-          height: 85,
+          width: _storyCircleSize,
+          height: _storyCircleSize,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -125,7 +129,7 @@ class _StoryCircleState extends State<StoryCircle> {
 
                     if (imageUrl.isEmpty) {
                       return const DefaultAvatar(
-                        radius: 42,
+                        radius: _storyAvatarRadius,
                         backgroundColor: Colors.transparent,
                       );
                     }
@@ -134,7 +138,7 @@ class _StoryCircleState extends State<StoryCircle> {
                       child: CachedUserAvatar(
                         userId: widget.model.userID,
                         imageUrl: imageUrl,
-                        radius: 42,
+                        radius: _storyAvatarRadius,
                       ),
                     );
                   }
@@ -214,15 +218,15 @@ class _StoryCircleState extends State<StoryCircle> {
                             });
                           },
                           child: Container(
-                            width: 20,
-                            height: 20,
+                            width: _addBadgeSize,
+                            height: _addBadgeSize,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                                 shape: BoxShape.circle, color: Colors.green),
                             child: Icon(
                               CupertinoIcons.add,
                               color: Colors.white,
-                              size: 15,
+                              size: 13,
                             ),
                           ),
                         )
@@ -230,9 +234,9 @@ class _StoryCircleState extends State<StoryCircle> {
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         SizedBox(
-          width: 85,
+          width: _labelWidth,
           child: Text(
             widget.model.nickname,
             maxLines: 1,
@@ -240,8 +244,8 @@ class _StoryCircleState extends State<StoryCircle> {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.black,
-              fontSize: 11,
-              height: 1.2,
+              fontSize: 10,
+              height: 1,
               fontFamily: "MontserratMedium",
             ),
           ),

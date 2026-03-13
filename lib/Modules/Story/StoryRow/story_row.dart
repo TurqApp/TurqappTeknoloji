@@ -6,6 +6,9 @@ import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 
 class StoryRow extends StatelessWidget {
   StoryRow({super.key});
+  static const double _storyRowHeight = 90;
+  static const double _storyRowLeadingPadding = 10;
+  static const double _storyRowItemSpacing = 10;
   final controller = Get.isRegistered<StoryRowController>()
       ? Get.find<StoryRowController>()
       : Get.put(StoryRowController());
@@ -25,7 +28,7 @@ class StoryRow extends StatelessWidget {
         alignment: Alignment.topCenter,
         child: hasData
             ? SizedBox(
-                height: 107,
+                height: _storyRowHeight,
                 width: double.infinity,
                 child: ListView.builder(
                   key: const ValueKey('story_real'),
@@ -35,8 +38,8 @@ class StoryRow extends StatelessWidget {
                     final user = controller.users[index];
                     return Padding(
                       padding: EdgeInsets.only(
-                        left: index == 0 ? 15 : 0,
-                        right: 15,
+                        left: index == 0 ? _storyRowLeadingPadding : 0,
+                        right: _storyRowItemSpacing,
                       ),
                       child: StoryCircle(
                         key: ValueKey('circle_${user.userID}'),
@@ -48,7 +51,7 @@ class StoryRow extends StatelessWidget {
                 ),
               )
             : SizedBox(
-                height: 107,
+                height: _storyRowHeight,
                 width: double.infinity,
                 child: Builder(
                   builder: (context) {
@@ -100,7 +103,10 @@ class _StoryRowPlaceholderState extends State<StoryRowPlaceholder>
           itemCount: items.length,
           itemBuilder: (context, index) {
             return Padding(
-              padding: EdgeInsets.only(left: index == 0 ? 15 : 0, right: 15),
+              padding: EdgeInsets.only(
+                left: index == 0 ? StoryRow._storyRowLeadingPadding : 0,
+                right: StoryRow._storyRowItemSpacing,
+              ),
               child: _ShimmerCircle(progress: t, index: index),
             );
           },

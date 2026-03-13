@@ -509,7 +509,7 @@ class _ClassicContentState extends State<ClassicContent>
 
   static const double _reelPortraitFrameAspectRatio = 5 / 8;
   static const double _feedPortraitFrameAspectRatio = 4 / 5;
-  static const double _squareFrameAspectRatio = 1;
+  static const double _squareFrameAspectRatio = 0.92;
   static const Color _classicMediaFallbackColor = Color(0xFF15181C);
 
   bool get _shouldPreserveScholarshipShareFrame {

@@ -788,7 +788,7 @@ class AgendaView extends StatelessWidget {
           ),
         ),
         StoryRow(),
-        10.ph,
+        1.ph,
       ],
     );
   }
