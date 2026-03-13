@@ -41,7 +41,7 @@ class DenemeGridController extends GetxController {
       avatarUrl.value = user?.avatarUrl ?? '';
       nickname.value = user?.preferredName ?? '';
     } catch (e) {
-      debugPrint('[DenemeGrid] profile fetch failed for $userID: $e');
+      debugPrint('[DenemeGrid] profile fetch failed: $e');
       avatarUrl.value = '';
       nickname.value = '';
     } finally {
@@ -57,7 +57,7 @@ class DenemeGridController extends GetxController {
         preferCache: true,
       );
     } catch (e) {
-      debugPrint('[DenemeGrid] applicant count fetch failed for $docID: $e');
+      debugPrint('[DenemeGrid] applicant count fetch failed: $e');
       toplamBasvuru.value = 0;
     } finally {
       isLoadingApplicants.value = false;

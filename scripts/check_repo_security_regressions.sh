@@ -51,6 +51,10 @@ check_literal "Auth akisinda UID logu geri gelmedi" 'print("Giriş başarılı! 
 check_literal "Auth akisinda hata mesaji dump'i geri gelmedi" 'print("Giriş hatası oluştu: ${e.code} - ${e.message}")' || failures=$((failures + 1))
 check_literal "Sifre guncelleme akisinda hata mesaji dump'i geri gelmedi" 'print("Hata: ${e.code} - ${e.message}")' || failures=$((failures + 1))
 check_literal "Notification loglarinda uid dump'i geri gelmedi" 'console.log("onUserNotificationCreate sent", { uid, type, tokenPresent: true });' || failures=$((failures + 1))
+check_literal "Current user init logunda uid dump'i geri gelmedi" "print('🔄 Initializing CurrentUserService for user: \${firebaseUser.uid}');" || failures=$((failures + 1))
+check_literal "Scholarship detail logunda uid dump'i geri gelmedi" "print('Başvuru durumu kontrol ediliyor: \${currentUser.uid}');" || failures=$((failures + 1))
+check_literal "DenemeGrid logunda userID dump'i geri gelmedi" "debugPrint('[DenemeGrid] profile fetch failed for \$userID: \$e');" || failures=$((failures + 1))
+check_literal "DenemeGrid logunda docID dump'i geri gelmedi" "debugPrint('[DenemeGrid] applicant count fetch failed for \$docID: \$e');" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

@@ -175,12 +175,12 @@ class ScholarshipDetailController extends GetxController {
     }
 
     try {
-      print('Başvuru durumu kontrol ediliyor: ${currentUser.uid}');
+      print('Başvuru durumu kontrol ediliyor');
       final String scholarshipId =
           scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '';
       final String type = 'bireysel';
 
-      print('Burs ID: $scholarshipId, Tür: $type');
+      print('Burs başvuru tipi: $type');
 
       if (scholarshipId.isNotEmpty) {
         allreadyApplied.value = await _scholarshipRepository.hasUserApplied(

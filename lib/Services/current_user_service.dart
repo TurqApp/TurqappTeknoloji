@@ -191,7 +191,7 @@ class CurrentUserService extends GetxController {
           await Get.find<UserProfileCacheService>().clearAll();
         }
       }
-      print('🔄 Initializing CurrentUserService for user: ${firebaseUser.uid}');
+      print('🔄 Initializing CurrentUserService');
 
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
       final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
