@@ -9,6 +9,16 @@ on:
   pull_request:
 
 jobs:
+  security-guards:
+    name: Security Guards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Security Regression Scan
+        run: bash scripts/check_repo_security_regressions.sh
+
   flutter-quality:
     name: Flutter Analyze + Test
     runs-on: ubuntu-latest
