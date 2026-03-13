@@ -1,10 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Models/report_model.dart';
 
 class ReportUserController extends GetxController {
   String userID;
@@ -20,10 +21,13 @@ class ReportUserController extends GetxController {
   var nickname = "".obs;
   var avatarUrl = "".obs;
   var fullName = "".obs;
+  var selectedKey = "".obs;
   var selectedTitle = "".obs;
   var selectedDesc = "".obs;
   var blockedUser = false.obs;
+  var isSubmitting = false.obs;
   final UserRepository _userRepository = UserRepository.ensure();
+  final ReportRepository _reportRepository = ReportRepository.ensure();
   final UserSubcollectionRepository _userSubcollectionRepository =
       UserSubcollectionRepository.ensure();
 
@@ -46,19 +50,35 @@ class ReportUserController extends GetxController {
   }
 
   Future<void> report() async {
-    FirebaseFirestore.instance.collection("reports").add({
-      "userID": userID,
-      "postID": postID,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-      "sikayetTitle": selectedTitle.value,
-      "sikayetDesc": selectedDesc.value,
-      "yorumID": commentID
-    });
+    if (isSubmitting.value) return;
+    if (selectedKey.value.trim().isEmpty ||
+        selectedTitle.value.trim().isEmpty ||
+        selectedDesc.value.trim().isEmpty) {
+      AppSnackbar(
+          "Şikayet Nedeni Seç", "Devam etmek için bir neden seçmelisin.");
+      return;
+    }
 
-    Get.back();
+    isSubmitting.value = true;
+    try {
+      await _reportRepository.submitReport(
+        targetUserId: userID,
+        postId: postID,
+        commentId: commentID,
+        selection: ReportModel(
+          key: selectedKey.value,
+          title: selectedTitle.value,
+          description: selectedDesc.value,
+        ),
+      );
 
-    AppSnackbar("Talebiniz Bize Ulaştı!",
-        "${nickname.value} kullanıcısını inceleme altına alacağız. Talebinizden dolayı teşekkür ederiz");
+      Get.back();
+
+      AppSnackbar("Talebiniz Bize Ulaştı!",
+          "${nickname.value} kullanıcısını inceleme altına alacağız. Talebinizden dolayı teşekkür ederiz");
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   Future<void> block() async {

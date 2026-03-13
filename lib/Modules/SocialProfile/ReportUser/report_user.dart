@@ -174,6 +174,7 @@ class ReportUser extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
+                  controller.selectedKey.value = item.key;
                   controller.selectedTitle.value = item.title;
                   controller.selectedDesc.value = item.description;
                 },
@@ -255,6 +256,9 @@ class ReportUser extends StatelessWidget {
           child: TurqAppButton(
             bgColor: Colors.black,
             onTap: () {
+              if (controller.selectedKey.value.isEmpty) {
+                return;
+              }
               controller.step.value = 1.0;
             },
             text: "Devam Et",
@@ -400,12 +404,16 @@ class ReportUser extends StatelessWidget {
               SizedBox(
                 height: 12,
               ),
-              TurqAppButton(
-                onTap: () {
-                  controller.report();
-                },
-                text: "Bitti",
-              ),
+              Obx(() {
+                return TurqAppButton(
+                  onTap: () {
+                    controller.report();
+                  },
+                  text: controller.isSubmitting.value
+                      ? "Gönderiliyor..."
+                      : "Bitti",
+                );
+              }),
               SizedBox(
                 height: 12,
               ),
