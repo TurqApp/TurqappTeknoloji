@@ -1009,7 +1009,8 @@ export const f21_searchEducationCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest<SearchEducationInput>) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }

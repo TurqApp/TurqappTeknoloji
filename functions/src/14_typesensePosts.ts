@@ -894,7 +894,8 @@ export const f14_searchPostsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
@@ -925,7 +926,8 @@ const f14_searchUsersCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
@@ -956,7 +958,8 @@ const f14_searchTagsCallable = onCall(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    RateLimits.general(uid);
 
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
