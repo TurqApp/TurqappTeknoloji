@@ -80,6 +80,8 @@ exports.RateLimits = {
     like: (uid) => enforceRateLimit(uid, "like", 120, 60),
     /** Yorum: 30/dk */
     comment: (uid) => enforceRateLimit(uid, "comment", 30, 60),
+    /** Report: 20 / 10dk */
+    report: (uid) => enforceRateLimit(uid, "report", 20, 600),
     /** Takip: 60/dk */
     follow: (uid) => enforceRateLimit(uid, "follow", 60, 60),
     /** Gönderi oluşturma: 10/dk */

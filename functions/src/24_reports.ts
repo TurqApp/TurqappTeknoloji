@@ -133,6 +133,7 @@ export const submitReport = functions
     ensureAuth(context);
     await db.doc("adminConfig/reports").set(DEFAULT_REPORTS_CONFIG, { merge: true });
     const authUid = asString(context.auth?.uid);
+    RateLimits.report(authUid);
     const reporterUserId = asString(data?.reporterUserId) || authUid;
     if (!reporterUserId || reporterUserId != authUid) {
       throw new functions.https.HttpsError("permission-denied", "reporter_mismatch");
