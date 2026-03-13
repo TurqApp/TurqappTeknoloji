@@ -13,9 +13,26 @@ import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart'
     show StoryModel;
 
-class DeletedStoriesView extends StatelessWidget {
-  DeletedStoriesView({super.key});
-  final controller = Get.put(DeletedStoriesController());
+class DeletedStoriesView extends StatefulWidget {
+  const DeletedStoriesView({super.key});
+
+  @override
+  State<DeletedStoriesView> createState() => _DeletedStoriesViewState();
+}
+
+class _DeletedStoriesViewState extends State<DeletedStoriesView> {
+  late final DeletedStoriesController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<DeletedStoriesController>()
+        ? Get.find<DeletedStoriesController>()
+        : Get.put(DeletedStoriesController());
+    Future<void>.delayed(Duration.zero, () {
+      controller.fetch(initial: false, forceRemote: true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

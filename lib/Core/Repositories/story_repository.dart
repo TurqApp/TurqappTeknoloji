@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -377,6 +378,7 @@ class StoryRepository extends GetxService {
           .collection('stories')
           .where('userId', isEqualTo: uid)
           .get();
+      var didMutate = false;
 
       for (final doc in expiredSnap.docs) {
         try {
@@ -390,7 +392,11 @@ class StoryRepository extends GetxService {
             'deletedAt': DateTime.now().millisecondsSinceEpoch,
             'deleteReason': 'expired',
           });
+          didMutate = true;
         } catch (_) {}
+      }
+      if (didMutate) {
+        await clearDeletedStoriesCache(uid);
       }
     } catch (_) {}
   }
@@ -402,21 +408,30 @@ class StoryRepository extends GetxService {
     if (storyId.isEmpty) return '';
     final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
     final musicId = (raw['musicId'] ?? '').toString().trim();
+    final uid = (raw['userId'] ?? '').toString().trim();
     await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
       'deleted': true,
       'deletedAt': DateTime.now().millisecondsSinceEpoch,
       'deleteReason': reason,
     });
+    if (uid.isNotEmpty) {
+      await clearDeletedStoriesCache(uid);
+    }
     return musicId;
   }
 
   Future<void> restoreDeletedStory(String storyId) async {
     if (storyId.isEmpty) return;
+    final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
     await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
       'deleted': false,
       'deletedAt': 0,
       'deleteReason': FieldValue.delete(),
     });
+    final uid = (raw['userId'] ?? '').toString().trim();
+    if (uid.isNotEmpty) {
+      await clearDeletedStoriesCache(uid);
+    }
   }
 
   Future<DeletedStoryCachePayload?> restoreDeletedStoriesCache(
@@ -486,28 +501,100 @@ class StoryRepository extends GetxService {
     } catch (_) {}
   }
 
+  Future<void> clearDeletedStoriesCache(String uid) async {
+    if (uid.isEmpty) return;
+    await _ensureInitialized();
+    try {
+      await _prefs?.remove(_deletedStoriesCacheKey(uid));
+    } catch (_) {}
+  }
+
   Future<DeletedStoryCachePayload> fetchDeletedStories(String uid) async {
+    final items = <StoryModel>[];
+    final deletedAtById = <String, int>{};
+    final deleteReasonById = <String, String>{};
+    final seenStoryIds = <String>{};
+    var deletedDocCount = 0;
+    var parseErrorCount = 0;
+
+    try {
+      final archiveSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('DeletedStories')
+          .get();
+
+      for (final d in archiveSnap.docs) {
+        try {
+          final data = d.data();
+          final storyId = (data['storyId'] ?? d.id).toString().trim();
+          if (storyId.isEmpty || !seenStoryIds.add(storyId)) continue;
+          deletedDocCount++;
+
+          final model = StoryModel.fromCacheMap(<String, dynamic>{
+            'id': storyId,
+            'userId': (data['userId'] ?? uid).toString(),
+            'createdDate':
+                (data['createdAtOriginal'] as num?)?.toInt() ??
+                    (data['createdDate'] as num?)?.toInt() ??
+                    DateTime.now().millisecondsSinceEpoch,
+            'backgroundColor':
+                (data['backgroundColor'] as num?)?.toInt() ?? 0xFF000000,
+            'musicId': (data['musicId'] ?? '').toString(),
+            'musicUrl': (data['musicUrl'] ?? '').toString(),
+            'musicTitle': (data['musicTitle'] ?? '').toString(),
+            'musicArtist': (data['musicArtist'] ?? '').toString(),
+            'musicCoverUrl': (data['musicCoverUrl'] ?? '').toString(),
+            'elements': (data['elements'] as List?) ?? const [],
+          });
+          items.add(model);
+          deletedAtById[model.id] = (data['deletedAt'] as num?)?.toInt() ?? 0;
+          final reason = (data['reason'] ?? data['deleteReason'] ?? '')
+              .toString()
+              .trim();
+          if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
+        } catch (e) {
+          parseErrorCount++;
+          debugPrint('Deleted archive parse skipped: ${d.id} error=$e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Deleted stories archive fetch error: $e');
+    }
+
     final snap = await FirebaseFirestore.instance
         .collection('stories')
         .where('userId', isEqualTo: uid)
         .get();
 
-    final items = <StoryModel>[];
-    final deletedAtById = <String, int>{};
-    final deleteReasonById = <String, String>{};
-
     for (final d in snap.docs) {
-      final data = d.data();
-      if ((data['deleted'] ?? false) != true) continue;
-      final model = StoryModel.fromDoc(d);
-      items.add(model);
-      final delAt = (data['deletedAt'] ?? 0) is num
-          ? ((data['deletedAt'] ?? 0) as num).toInt()
-          : 0;
-      deletedAtById[model.id] = delAt;
-      final reason = (data['deleteReason'] ?? '').toString();
-      if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
+      try {
+        final data = d.data();
+        if ((data['deleted'] ?? false) != true) continue;
+        if (!seenStoryIds.add(d.id)) continue;
+        deletedDocCount++;
+        final model = StoryModel.fromCacheMap(<String, dynamic>{
+          'id': d.id,
+          ...data,
+        });
+        items.add(model);
+        final delAt = (data['deletedAt'] ?? 0) is num
+            ? ((data['deletedAt'] ?? 0) as num).toInt()
+            : 0;
+        deletedAtById[model.id] = delAt;
+        final reason = (data['deleteReason'] ?? '').toString();
+        if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
+      } catch (e) {
+        parseErrorCount++;
+        debugPrint('Deleted story parse skipped: ${d.id} error=$e');
+      }
     }
+
+    debugPrint(
+      'Deleted stories fetch: uid=$uid liveDocs=${snap.docs.length} '
+      'deletedDocs=$deletedDocCount parsed=${items.length} parseErrors=$parseErrorCount '
+      'reasons=${deleteReasonById.values.toList()}',
+    );
 
     items.sort((a, b) {
       final aDeletedAt = deletedAtById[a.id] ?? 0;

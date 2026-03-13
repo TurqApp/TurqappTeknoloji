@@ -12,6 +12,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories.dart';
+import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 
 class StoryCircle extends StatefulWidget {
@@ -98,7 +99,10 @@ class _StoryCircleState extends State<StoryCircle> {
                       agenda.centeredIndex.value = -1;
                       agenda.pauseAll.value = true;
                     }
-                    Get.to(() => DeletedStoriesView())?.then((_) {
+                    if (Get.isRegistered<DeletedStoriesController>()) {
+                      Get.delete<DeletedStoriesController>(force: true);
+                    }
+                    Get.to(() => const DeletedStoriesView())?.then((_) {
                       if (agenda != null) {
                         agenda.pauseAll.value = false;
                         agenda.centeredIndex.value = prevIndex ?? 0;

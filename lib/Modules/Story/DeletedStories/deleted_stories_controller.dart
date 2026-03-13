@@ -59,6 +59,7 @@ class DeletedStoriesController extends GetxController {
       if (initial) {
         final restored = await _restoreFromCache(uid);
         if (restored && !forceRemote) {
+          Future<void>.delayed(Duration.zero, () => fetch(forceRemote: true));
           return;
         }
       }
@@ -67,6 +68,10 @@ class DeletedStoriesController extends GetxController {
       deletedAtById.clear();
       deleteReasonById.clear();
       final payload = await _storyRepository.fetchDeletedStories(uid);
+      debugPrint(
+        'DeletedStoriesController.fetch: uid=$uid items=${payload.stories.length} '
+        'reasons=${payload.deleteReasonById}',
+      );
       list.assignAll(payload.stories);
       deletedAtById.assignAll(payload.deletedAtById);
       deleteReasonById.assignAll(payload.deleteReasonById);

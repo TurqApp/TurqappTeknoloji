@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -148,6 +149,11 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
+  if (kDebugMode && defaultTargetPlatform == TargetPlatform.iOS) {
+    debugPrint('[AppCheck] iOS debug mode: activation skipped.');
+    return;
+  }
+
   try {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
