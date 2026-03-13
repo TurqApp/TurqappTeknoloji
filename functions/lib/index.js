@@ -772,6 +772,9 @@ exports.backfillPhoneAccounts = functions.https.onCall(async (data, context) => 
         throw new functions.https.HttpsError('unauthenticated', 'Auth required');
     }
     const isAdmin = context.auth.token?.admin === true;
+    if (isAdmin) {
+        rateLimiter_1.RateLimits.admin(context.auth.uid);
+    }
     const providedSecret = typeof data?.secret === 'string' ? data.secret : '';
     const configuredSecret = (process.env.PHONE_BACKFILL_SECRET || '').toString();
     if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
@@ -834,6 +837,9 @@ exports.backfillUserAvatarUrls = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError("unauthenticated", "Auth required");
     }
     const isAdmin = context.auth.token?.admin === true;
+    if (isAdmin) {
+        rateLimiter_1.RateLimits.admin(context.auth.uid);
+    }
     const providedSecret = typeof data?.secret === "string" ? data.secret : "";
     const configuredSecret = (process.env.USER_AVATAR_BACKFILL_SECRET || "").toString();
     if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
@@ -888,6 +894,9 @@ exports.backfillPostsOriginalFields = functions.https.onCall(async (data, contex
         throw new functions.https.HttpsError('unauthenticated', 'Auth required');
     }
     const isAdmin = context.auth.token?.admin === true;
+    if (isAdmin) {
+        rateLimiter_1.RateLimits.admin(context.auth.uid);
+    }
     const providedSecret = typeof data?.secret === 'string' ? data.secret : '';
     const configuredSecret = (process.env.POSTS_BACKFILL_SECRET || '').toString();
     if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
