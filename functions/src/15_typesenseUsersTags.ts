@@ -4,7 +4,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
-import { RateLimits } from "./rateLimiter";
+import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
@@ -902,6 +902,9 @@ const f14_searchPosts = onRequest(
       res.status(405).json({ error: "method_not_allowed" });
       return;
     }
+
+    const rateKey = String(req.headers["cf-connecting-ip"] || req.ip || "unknown");
+    enforceRateLimitForKey(rateKey, "typesense_http_search", 240, 60);
 
     if (!typesenseReady()) {
       res.status(503).json({ error: "typesense_not_configured" });
