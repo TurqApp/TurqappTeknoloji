@@ -69,6 +69,12 @@ check_literal "Copy link debug print docID geri gelmedi" "print(widget.model.doc
 check_literal "Flood listing init docID debug print geri gelmedi" "print(widget.mainModel.docID);" || failures=$((failures + 1))
 check_literal "Antreman yorumlarinda ham user data dump'i geri gelmedi" 'log("User data for $userID: $data");' || failures=$((failures + 1))
 check_literal "Test soru upload logunda signed URL dump'i geri gelmedi" 'print("Download URL: $downloadUrl");' || failures=$((failures + 1))
+check_literal "Cikmis soru sonucunda cevap dump'i geri gelmedi" "print(cevaplar[index]);" || failures=$((failures + 1))
+check_literal "Cikmis soru sonucunda secim dump'i geri gelmedi" "print(secim.value);" || failures=$((failures + 1))
+check_literal "Solve test basari logunda testID dump'i geri gelmedi" 'print("Yanitlar başarıyla eklendi: $testID");' || failures=$((failures + 1))
+check_literal "Past result sayim logunda snapshot uzunlugu dump'i geri gelmedi" 'print("Snapshot docs: ${filtered.length}");' || failures=$((failures + 1))
+check_literal "Past result logunda timestamp dump'i geri gelmedi" 'print("Fetched timeStamp: ${timeStamp.value}");' || failures=$((failures + 1))
+check_literal "Past result logunda docID dump'i geri gelmedi" 'print("Hiç veri bulunamadı: ${model.docID}");' || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

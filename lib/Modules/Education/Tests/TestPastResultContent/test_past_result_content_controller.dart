@@ -39,13 +39,9 @@ class TestPastResultContentController extends GetxController {
               .compareTo((a["timeStamp"] ?? 0) as num),
         );
 
-      print("Snapshot docs: ${filtered.length}");
       if (filtered.isNotEmpty) {
         count.value = filtered.length;
         timeStamp.value = ((filtered.first["timeStamp"] ?? 0) as num).toInt();
-        print("Fetched timeStamp: ${timeStamp.value}");
-      } else {
-        print("Hiç veri bulunamadı: ${model.docID}");
       }
     } catch (e) {
       print("Error fetching answer count: $e");

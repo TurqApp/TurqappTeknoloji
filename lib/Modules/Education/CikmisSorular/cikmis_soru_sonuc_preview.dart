@@ -116,10 +116,7 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
                                         .asMap()
                                         .entries)
                                   GestureDetector(
-                                    onTap: () {
-                                      print(cevaplar[index]);
-                                      print(secim.value);
-                                    },
+                                    onTap: () {},
                                     child: Container(
                                       width: 45,
                                       height: 45,

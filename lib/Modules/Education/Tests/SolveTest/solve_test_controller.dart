@@ -96,9 +96,7 @@ class SolveTestController extends GetxController {
       userId: FirebaseAuth.instance.currentUser!.uid,
       answers: cevaplar.toList(growable: false),
     )
-        .then((_) {
-      print("Yanitlar başarıyla eklendi: $testID");
-    }).catchError((error) {
+        .catchError((error) {
       print("Yanitlar eklenirken hata: $error");
     });
     Get.back();
