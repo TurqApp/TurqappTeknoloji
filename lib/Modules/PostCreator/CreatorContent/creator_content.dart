@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
 import '../post_creator_controller.dart';
@@ -67,6 +68,7 @@ class CreatorContent extends StatelessWidget {
           controller.focus.requestFocus();
         },
         child: Obx(() {
+          final currentUser = CurrentUserService.instance;
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,10 +77,12 @@ class CreatorContent extends StatelessWidget {
                 Column(
                   children: [
                     // Profil fotoğrafı
-                    const SizedBox(
+                    SizedBox(
                       width: 38,
                       height: 38,
                       child: CachedUserAvatar(
+                        userId: currentUser.userId,
+                        imageUrl: currentUser.avatarUrl,
                         radius: 19,
                       ),
                     ),
