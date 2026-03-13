@@ -32,8 +32,6 @@ class MyStatisticController extends GetxController {
   final profileVisitsApprox = 0.obs;
 
   // Controls
-  final int postBatchSize = 20; // progressive aggregation
-
   @override
   void onInit() {
     super.onInit();
@@ -171,10 +169,7 @@ class MyStatisticController extends GetxController {
 
   Future<void> _loadPostCountsAndViews(String uid) async {
     try {
-      final result = await _statsRepository.fetchPostStats(
-        uid,
-        postBatchSize: postBatchSize,
-      );
+      final result = await _statsRepository.fetchPostStats(uid);
       totalPosts.value = result['totalPosts'] ?? 0;
       posts30d.value = result['posts30d'] ?? 0;
       totalPostViews.value = result['totalPostViews'] ?? 0;

@@ -1047,7 +1047,8 @@ service cloud.firestore {
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
       match /{sub=**} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow write: if isAuth()
+          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
       }
     }
 

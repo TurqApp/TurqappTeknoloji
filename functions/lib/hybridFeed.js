@@ -31,6 +31,18 @@ const FAN_OUT_THRESHOLD = 10000;
 const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+async function resolveFollowerCollection(authorId) {
+    const followersSnap = await db
+        .collection("users")
+        .doc(authorId)
+        .collection("followers")
+        .limit(1)
+        .get();
+    if (!followersSnap.empty) {
+        return "followers";
+    }
+    return "TakipciLer";
+}
 // ─────────────────────────────────────────────────────────
 // 📤 TRIGGER: Post oluşturulduğunda fan-out başlat
 // ─────────────────────────────────────────────────────────
@@ -65,11 +77,12 @@ exports.onPostCreate = functions
         // 2. Küçük hesap: fan-out — tüm takipçilere yaz
         let lastDoc = null;
         let totalFannedOut = 0;
+        const followerCollection = await resolveFollowerCollection(authorId);
         while (true) {
             let q = db
                 .collection("users")
                 .doc(authorId)
-                .collection("TakipciLer") // Takipçiler subcollection
+                .collection(followerCollection)
                 .limit(FAN_OUT_BATCH_SIZE);
             if (lastDoc)
                 q = q.startAfter(lastDoc);
@@ -169,10 +182,14 @@ exports.onPostDelete = functions
 // ─────────────────────────────────────────────────────────
 exports.onNewFollower = functions
     .region("europe-west1")
-    .firestore.document("users/{authorId}/TakipciLer/{followerId}")
+    .firestore.document("users/{authorId}/{relation}/{followerId}")
     .onCreate(async (snap, context) => {
     const authorId = context.params.authorId;
+    const relation = context.params.relation;
     const followerId = context.params.followerId;
+    if (relation !== "followers" && relation !== "TakipciLer") {
+        return;
+    }
     try {
         // Author'ın son 20 postunu yeni takipçinin feed'ine ekle
         const postsSnap = await db

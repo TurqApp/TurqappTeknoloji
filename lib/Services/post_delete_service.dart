@@ -82,22 +82,20 @@ class PostDeleteService {
     final snap = await mappingCol.get();
     if (snap.docs.isEmpty) return;
 
-    for (final d in snap.docs) {
-      final uid = d.id;
-      // 1) Kullanıcının reshared_posts koleksiyonundan kaldır
-      try {
-        await firestore
-            .collection('users')
-            .doc(uid)
-            .collection('reshared_posts')
-            .doc(originalPostID)
-            .delete();
-      } catch (_) {}
-
-      // 2) Mapping dokümanını sil
-      try {
-        await mappingCol.doc(uid).delete();
-      } catch (_) {}
+    for (var i = 0; i < snap.docs.length; i += 400) {
+      final batch = firestore.batch();
+      for (final d in snap.docs.skip(i).take(400)) {
+        final uid = d.id;
+        batch.delete(
+          firestore
+              .collection('users')
+              .doc(uid)
+              .collection('reshared_posts')
+              .doc(originalPostID),
+        );
+        batch.delete(mappingCol.doc(uid));
+      }
+      await batch.commit();
     }
   }
 
@@ -118,41 +116,44 @@ class PostDeleteService {
         .get();
 
     final Set<String> sharedPostIds = {
-      ...sharedSnap.docs.map((doc) => doc.id),
+      ...sharedSnap.docs.where((doc) {
+        final data = doc.data();
+        return (data['quotedPost'] ?? false) != true;
+      }).map((doc) => doc.id),
       ...postSharersSnap.docs
+          .where((doc) => (doc.data()['quotedPost'] ?? false) != true)
           .map((doc) => (doc.data()['sharedPostID'] ?? '').toString().trim())
           .where((id) => id.isNotEmpty),
     };
 
-    for (final sharedPostId in sharedPostIds) {
-      final doc = await firestore.collection('Posts').doc(sharedPostId).get();
-      if (!doc.exists) {
-        continue;
+    final refs = sharedPostIds
+        .map((sharedPostId) => firestore.collection('Posts').doc(sharedPostId))
+        .toList(growable: false);
+    for (var i = 0; i < refs.length; i += 400) {
+      final batch = firestore.batch();
+      for (final ref in refs.skip(i).take(400)) {
+        batch.set(
+            ref,
+            {
+              'deletedPost': true,
+              'deletedPostTime': nowMs,
+            },
+            SetOptions(merge: true));
       }
-
-      final data = doc.data() ?? const <String, dynamic>{};
-      if ((data['quotedPost'] ?? false) == true) {
-        continue;
-      }
-      if ((data['deletedPost'] ?? false) == true) {
-        continue;
-      }
-
-      try {
-        await doc.reference.update({
-          'deletedPost': true,
-          'deletedPostTime': nowMs,
-        });
-      } catch (_) {}
-
-      _updateStores(doc.id);
+      await batch.commit();
     }
 
-    try {
-      for (final doc in postSharersSnap.docs) {
-        await doc.reference.delete();
+    for (final sharedPostId in sharedPostIds) {
+      _updateStores(sharedPostId);
+    }
+
+    for (var i = 0; i < postSharersSnap.docs.length; i += 400) {
+      final batch = firestore.batch();
+      for (final doc in postSharersSnap.docs.skip(i).take(400)) {
+        batch.delete(doc.reference);
       }
-    } catch (_) {}
+      await batch.commit();
+    }
   }
 
   void _updateStores(String docID) {

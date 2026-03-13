@@ -36,6 +36,7 @@ exports.cascadeDeleteSharedPosts = (0, firestore_1.onDocumentUpdated)({
     const sharedPostsSnap = await db
         .collection("Posts")
         .where("originalPostID", "==", postId)
+        .where("sharedAsPost", "==", true)
         .get();
     const postSharersSnap = await db
         .collection("Posts")
@@ -52,7 +53,13 @@ exports.cascadeDeleteSharedPosts = (0, firestore_1.onDocumentUpdated)({
     const sharedPostDocs = uniqueById([
         ...sharedPostsSnap.docs,
         ...sharedPostRefs.filter((snap) => snap != null && snap.exists),
-    ]).filter((doc) => doc.get("deletedPost") !== true);
+    ]).filter((doc) => {
+        if (doc.get("deletedPost") === true)
+            return false;
+        if (doc.get("quotedPost") === true)
+            return false;
+        return doc.get("sharedAsPost") === true;
+    });
     for (let i = 0; i < sharedPostDocs.length; i += CASCADE_BATCH_SIZE) {
         const batch = db.batch();
         for (const doc of sharedPostDocs.slice(i, i + CASCADE_BATCH_SIZE)) {

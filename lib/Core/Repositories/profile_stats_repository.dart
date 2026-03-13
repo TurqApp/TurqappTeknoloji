@@ -149,10 +149,7 @@ class ProfileStatsRepository extends GetxService {
     };
   }
 
-  Future<Map<String, int>> fetchPostStats(
-    String uid, {
-    int postBatchSize = 20,
-  }) async {
+  Future<Map<String, int>> fetchPostStats(String uid) async {
     if (uid.isEmpty) {
       return const <String, int>{
         'totalPosts': 0,
@@ -187,51 +184,15 @@ class ProfileStatsRepository extends GetxService {
 
     var totalPostViews = 0;
     var postViews30d = 0;
-    for (int i = 0; i < postDocs.length; i += postBatchSize) {
-      final batch =
-          postDocs.sublist(i, (i + postBatchSize).clamp(0, postDocs.length));
-      final partial = await Future.wait<int>(
-        batch.map((d) async {
-          try {
-            final agg = await d.reference.collection('viewers').count().get();
-            return agg.count ?? 0;
-          } catch (_) {
-            try {
-              final snap =
-                  await d.reference.collection('viewers').limit(10000).get();
-              return snap.size;
-            } catch (_) {
-              return 0;
-            }
-          }
-        }),
-      );
-      totalPostViews += partial.fold<int>(0, (a, b) => a + b);
+    for (final d in postDocs) {
+      final data = d.data();
+      final viewCount = _extractPostViewCount(data);
+      totalPostViews += viewCount;
 
-      final partial30 = await Future.wait<int>(
-        batch.map((d) async {
-          try {
-            final agg = await d.reference
-                .collection('viewers')
-                .where('timeStamp', isGreaterThanOrEqualTo: ts30)
-                .count()
-                .get();
-            return agg.count ?? 0;
-          } catch (_) {
-            try {
-              final snap = await d.reference
-                  .collection('viewers')
-                  .where('timeStamp', isGreaterThanOrEqualTo: ts30)
-                  .limit(10000)
-                  .get();
-              return snap.size;
-            } catch (_) {
-              return 0;
-            }
-          }
-        }),
-      );
-      postViews30d += partial30.fold<int>(0, (a, b) => a + b);
+      final ts = data['timeStamp'];
+      if (ts is int && ts >= ts30 && ts <= nowMs) {
+        postViews30d += viewCount;
+      }
     }
 
     return <String, int>{
@@ -303,5 +264,18 @@ class ProfileStatsRepository extends GetxService {
       'profileVisitsApprox': visits,
       'totalStoryViews': totalStoryViews,
     };
+  }
+
+  int _extractPostViewCount(Map<String, dynamic> data) {
+    final stats = data['stats'];
+    if (stats is Map) {
+      final raw = stats['statsCount'];
+      if (raw is num) return raw.toInt();
+      if (raw is String) return int.tryParse(raw) ?? 0;
+    }
+    final direct = data['viewCount'];
+    if (direct is num) return direct.toInt();
+    if (direct is String) return int.tryParse(direct) ?? 0;
+    return 0;
   }
 }

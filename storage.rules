@@ -93,7 +93,7 @@ service firebase.storage {
 
     // Chat HLS segments - public read for CDN
     match /ChatAssets/{chatId}/messages/{msgId}/hls/{allPaths=**} {
-      allow read;
+      allow read: if isConversationParticipant(chatId);
       allow write: if false; // Cloud Function only
     }
 

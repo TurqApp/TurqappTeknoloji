@@ -1,4 +1,5 @@
 import { getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import * as functions from "firebase-functions";
@@ -80,6 +81,14 @@ function ensureAdmin() {
   if (getApps().length === 0) initializeApp();
 }
 
+function ensureAuth(req: CallableRequest<unknown>): string {
+  const uid = req.auth?.uid || "";
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Giriş gerekli.");
+  }
+  return uid;
+}
+
 function getEnv(name: string): string {
   const fromProcess = String(process.env[name] || "").trim();
   if (fromProcess) return fromProcess;
@@ -129,6 +138,62 @@ function normalizeSlug(v: unknown): string {
     .replace(/[^a-z0-9._-]/g, "")
     .slice(0, 40);
   return slug;
+}
+
+function pickOwnerUid(data: Record<string, unknown>): string {
+  const candidates = [
+    data.userID,
+    data.userId,
+    data.uid,
+    data.ownerId,
+    data.createdBy,
+    data.authorId,
+  ];
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function resolveCanonicalUserSlug(
+  data: Record<string, unknown>,
+  fallbackId: string
+): string {
+  const candidates = [
+    data.profileSlug,
+    data.usernameLower,
+    data.username,
+    data.nickname,
+    data.userNickname,
+    data.name,
+    fallbackId,
+  ];
+  for (const candidate of candidates) {
+    const slug = normalizeSlug(candidate);
+    if (slug) return slug;
+  }
+  return normalizeSlug(fallbackId);
+}
+
+async function isAdminUid(
+  db: FirebaseFirestore.Firestore,
+  uid: string
+): Promise<boolean> {
+  if (!uid) return false;
+  const claims = await getAuth().getUser(uid).then(
+    (user) => (user.customClaims || {}) as Record<string, unknown>,
+    () => ({}) as Record<string, unknown>
+  );
+  if (claims["admin"] === true) return true;
+
+  const allowSnap = await db.doc("adminConfig/admin").get();
+  const allowedRaw = allowSnap.data()?.allowedUserIds;
+  if (!Array.isArray(allowedRaw)) return false;
+  return allowedRaw
+    .map((value: unknown) => String(value ?? "").trim())
+    .filter((value: string) => value.length > 0)
+    .includes(uid);
 }
 
 function validateSlug(slug: string) {
@@ -544,12 +609,22 @@ export const upsertShortLink = onCall(
     const db = getFirestore();
 
     const type = normalizeType(req.data?.type);
-    const callerUid = req.auth?.uid || "anonymous";
-    if (!req.auth?.uid && type !== "edu") {
-      throw new HttpsError("unauthenticated", "Giriş gerekli.");
-    }
+    const callerUid = ensureAuth(req);
     const entityId = normalizeText(req.data?.entityId, 128);
     if (!entityId) throw new HttpsError("invalid-argument", "entityId zorunlu.");
+    const entityTarget = parseEntityTarget(db, type, entityId);
+    if (!entityTarget) {
+      throw new HttpsError("not-found", "Entity bulunamadı.");
+    }
+    const entitySnap = await entityTarget.ref.get();
+    if (!entitySnap.exists) {
+      throw new HttpsError("not-found", "Entity bulunamadı.");
+    }
+    const entityData = (entitySnap.data() || {}) as Record<string, unknown>;
+    const ownerUid = pickOwnerUid(entityData);
+    const isAdmin = await isAdminUid(db, callerUid);
+    const canPersistToEntity = isAdmin || ownerUid === callerUid;
+    const canCustomizeRoute = canPersistToEntity;
 
     let title = normalizeText(req.data?.title, 140);
     let desc = normalizeText(req.data?.desc, 280);
@@ -600,20 +675,28 @@ export const upsertShortLink = onCall(
 
     let shortId = "";
     let slug = "";
-    const entityTarget = parseEntityTarget(db, type, entityId);
-    const existingEntityShortLinkSnap = entityTarget
-      ? await entityTarget.ref.collection("shortLinks").doc("public").get()
-      : null;
+    const existingEntityShortLinkSnap = await entityTarget.ref
+      .collection("shortLinks")
+      .doc("public")
+      .get();
     const existingEntityShortLink = existingEntityShortLinkSnap?.exists
       ? (existingEntityShortLinkSnap.data() as Record<string, unknown>)
       : null;
 
     if (type === "user") {
-      slug = normalizeSlug(req.data?.slug);
+      const requestedSlug = normalizeSlug(req.data?.slug);
+      const existingSlug = normalizeSlug(existingEntityShortLink?.shortId);
+      const canonicalSlug = resolveCanonicalUserSlug(entityData, entityId);
+      slug = canCustomizeRoute
+        ? (requestedSlug || existingSlug || canonicalSlug)
+        : (existingSlug || canonicalSlug);
       validateSlug(slug);
       shortId = slug;
     } else {
       shortId = normalizeText(req.data?.shortId, 24);
+      if (!canCustomizeRoute) {
+        shortId = "";
+      }
       if (!shortId) {
         const existingShortId = String(existingEntityShortLink?.shortId || "").trim();
         if (isPreferredShortId(existingShortId)) {
@@ -660,7 +743,7 @@ export const upsertShortLink = onCall(
       }
     }
 
-    if (type === "post") {
+    if (type === "post" && canPersistToEntity) {
       await db.collection("Posts").doc(entityId).set(
         {
           shortId,
@@ -670,7 +753,7 @@ export const upsertShortLink = onCall(
         },
         { merge: true }
       );
-    } else if (type === "job") {
+    } else if (type === "job" && canPersistToEntity) {
       await db.collection("isBul").doc(entityId.replace(/^job:/, "")).set(
         {
           shortId,
@@ -680,7 +763,7 @@ export const upsertShortLink = onCall(
         },
         { merge: true }
       );
-    } else if (type === "story") {
+    } else if (type === "story" && canPersistToEntity) {
       await db.collection("stories").doc(entityId).set(
         {
           shortId,
@@ -691,7 +774,7 @@ export const upsertShortLink = onCall(
         },
         { merge: true }
       );
-    } else if (type === "user") {
+    } else if (type === "user" && canPersistToEntity) {
       await db.collection("users").doc(entityId).set(
         {
           profileSlug: slug,
@@ -702,27 +785,25 @@ export const upsertShortLink = onCall(
       );
     }
 
-    if (entityTarget) {
-      await entityTarget.ref.collection("shortLinks").doc("public").set(
-        entityShortLinkDoc,
-        { merge: true }
-      );
-      await routeRef.set(
-        {
-          routeKind,
-          key: idForUrl,
-          type,
-          entityId,
-          entityPath: `${entityTarget.path}/shortLinks/public`,
-          shortId,
-          shortUrl: publicUrl,
-          status: "active",
-          expiresAt,
-          updatedAt: now,
-        } satisfies ShortRouteDoc,
-        { merge: true }
-      );
-    }
+    await entityTarget.ref.collection("shortLinks").doc("public").set(
+      entityShortLinkDoc,
+      { merge: true }
+    );
+    await routeRef.set(
+      {
+        routeKind,
+        key: idForUrl,
+        type,
+        entityId,
+        entityPath: `${entityTarget.path}/shortLinks/public`,
+        shortId,
+        shortUrl: publicUrl,
+        status: "active",
+        expiresAt,
+        updatedAt: now,
+      } satisfies ShortRouteDoc,
+      { merge: true }
+    );
 
     try {
       await syncToCloudflareKV(type, entityId, idForUrl, {

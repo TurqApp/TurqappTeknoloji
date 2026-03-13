@@ -610,21 +610,21 @@ class _SplashViewState extends State<SplashView> {
     required bool isFirstLaunch,
     required bool onWiFi,
   }) async {
-    // Paralel: cache proxy + warm start aynı anda başlasın
-    await Future.wait([
+    // Cache proxy navigasyonu bloklamasın; warm start öncelikli kalsın.
+    unawaited(
       _initCacheProxy()
           .timeout(
             onWiFi ? const Duration(seconds: 3) : const Duration(seconds: 2),
             onTimeout: () {},
           )
           .catchError((_) {}),
-      _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch)
-          .timeout(
-            onWiFi ? const Duration(seconds: 2) : const Duration(seconds: 1),
-            onTimeout: () {},
-          )
-          .catchError((_) {}),
-    ]);
+    );
+    await _runCriticalWarmStartLoads(isFirstLaunch: isFirstLaunch)
+        .timeout(
+          onWiFi ? const Duration(seconds: 2) : const Duration(seconds: 1),
+          onTimeout: () {},
+        )
+        .catchError((_) {});
   }
 
   Future<void> _ensureMinimumFeedPosts(
