@@ -65,3 +65,18 @@ test("HLS path is publicly readable but not writable by clients", async () => {
   await assertSucceeds(getBytes(ref(unauthCtx.storage(), objectPath)));
   await assertFails(uploadString(ref(authCtx.storage(), objectPath), "blocked"));
 });
+
+test("story HLS path is publicly readable but not writable by story owner", async () => {
+  const uid = "story-owner";
+  const objectPath = `stories/${uid}/story123/hls/master.m3u8`;
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadString(ref(context.storage(), objectPath), "#EXTM3U");
+  });
+
+  const unauthCtx = testEnv.unauthenticatedContext();
+  const ownerCtx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(getBytes(ref(unauthCtx.storage(), objectPath)));
+  await assertFails(uploadString(ref(ownerCtx.storage(), objectPath), "blocked"));
+});

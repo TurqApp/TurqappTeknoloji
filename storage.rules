@@ -50,14 +50,22 @@ service firebase.storage {
     }
 
     // Post media (images, videos)
-    match /Posts/{postId}/{allPaths=**} {
+    match /Posts/{postId}/{fileName} {
       allow read: if isAuth();
-      // Strict owner enforcement: only post owner or first media write
-      // (before post shell exists) can upload.
-      allow write: if (canWritePostMedia(postId)
+      allow write: if fileName != "thumbnail.jpg"
+                   && fileName != "hls"
+                   && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata()
                        || isStorageUploaderBypass())
                    && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
+    }
+    match /Posts/{postId}/{folder}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if folder != "hls"
+                   && (canWritePostMedia(postId)
+                       || hasMatchingUploaderMetadata()
+                       || isStorageUploaderBypass())
+                   && request.resource.size < 35 * 1024 * 1024;
     }
 
     // Story media (legacy uppercase + current lowercase)
@@ -66,10 +74,25 @@ service firebase.storage {
       allow write: if isAuth() && request.auth.uid == uid
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
     }
-    match /stories/{uid}/{allPaths=**} {
+    match /stories/{uid}/{storyId} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == uid
+      allow write: if isAuth()
+                   && request.auth.uid == uid
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+    match /stories/{uid}/{storyId}/{fileName} {
+      allow read: if isAuth();
+      allow write: if fileName != "hls"
+                   && isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024;
+    }
+    match /stories/{uid}/{storyId}/{folder}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if folder != "hls"
+                   && isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 50 * 1024 * 1024;
     }
 
     // Chat media
@@ -85,10 +108,28 @@ service firebase.storage {
     }
 
     // ChatAssets medya (fotoğraf, video, ses)
-    match /ChatAssets/{chatId}/{allPaths=**} {
+    match /ChatAssets/{chatId}/{fileName} {
       allow read: if isConversationParticipant(chatId);
       allow write: if isConversationParticipant(chatId)
                    && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+    match /ChatAssets/{chatId}/{folder}/{allPaths=**} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if folder != "messages"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024; // 50MB
+    }
+    match /ChatAssets/{chatId}/messages/{msgId}/{fileName} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if fileName != "hls"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024;
+    }
+    match /ChatAssets/{chatId}/messages/{msgId}/{folder}/{allPaths=**} {
+      allow read: if isConversationParticipant(chatId);
+      allow write: if folder != "hls"
+                   && isConversationParticipant(chatId)
+                   && request.resource.size < 50 * 1024 * 1024;
     }
 
     // Chat HLS segments - public read for CDN
