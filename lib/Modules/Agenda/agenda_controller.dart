@@ -21,6 +21,18 @@ import '../../Services/current_user_service.dart';
 
 enum FeedViewMode { forYou, following, city }
 
+class _AgendaSourcePage {
+  const _AgendaSourcePage({
+    required this.items,
+    required this.lastDoc,
+    required this.usesPrimaryFeed,
+  });
+
+  final List<PostsModel> items;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+  final bool usesPrimaryFeed;
+}
+
 class AgendaController extends GetxController {
   final scrollController = ScrollController();
   UserProfileCacheService get _profileCache =>
@@ -40,6 +52,7 @@ class AgendaController extends GetxController {
   int? lastCenteredIndex;
   var isMuted = false.obs;
   DocumentSnapshot? lastDoc;
+  bool _usePrimaryFeedPaging = true;
   final RxBool hasMore = true.obs;
   final RxBool isLoading = false.obs;
   final int fetchLimit = 50;
@@ -452,9 +465,8 @@ class AgendaController extends GetxController {
             final originalUserID = p.originalUserID.trim().isNotEmpty
                 ? p.originalUserID
                 : p.userID;
-            final originalPostID = p.originalPostID.trim().isNotEmpty
-                ? p.originalPostID
-                : p.docID;
+            final originalPostID =
+                p.originalPostID.trim().isNotEmpty ? p.originalPostID : p.docID;
             if (!followingIDs.contains(rid) &&
                 !_userPrivacyCache.containsKey(rid)) {
               maybeUnknownUsers.add(rid);
@@ -665,6 +677,7 @@ class AgendaController extends GetxController {
   Future<void> fetchAgendaBigData({bool initial = false}) async {
     if (initial) {
       lastDoc = null;
+      _usePrimaryFeedPaging = true;
       hasMore.value = true;
       agendaList.clear();
       _shuffledPosts.clear(); // Shuffle cache'ini temizle
@@ -718,15 +731,13 @@ class AgendaController extends GetxController {
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      final page = await _postRepository.fetchAgendaWindowPage(
-        cutoffMs: cutoffMs,
+      final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
+        cutoffMs: cutoffMs,
         limit: fetchLimit,
-        startAfter: lastDoc,
       );
 
       final items = page.items
-          // Son 24 saat penceresi
           .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
           .where((p) => p.deletedPost != true)
           .toList();
@@ -768,6 +779,7 @@ class AgendaController extends GetxController {
         return isMine || follows;
       }).toList();
 
+      _usePrimaryFeedPaging = page.usesPrimaryFeed;
       lastDoc = page.lastDoc;
 
       if (visibleItems.isNotEmpty) {
@@ -799,7 +811,7 @@ class AgendaController extends GetxController {
         }
       }
 
-      if (items.length < fetchLimit) {
+      if (page.lastDoc == null || items.length < fetchLimit) {
         hasMore.value = false;
       }
     } catch (e) {
@@ -849,13 +861,15 @@ class AgendaController extends GetxController {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final cutoffMs = _agendaCutoffMs(nowMs);
-    final page = await _postRepository.fetchAgendaWindowPage(
-      cutoffMs: cutoffMs,
+    final page = await _loadAgendaSourcePage(
       nowMs: nowMs,
+      cutoffMs: cutoffMs,
       limit: fetchLimit,
       preferCache: true,
       cacheOnly: true,
     );
+    _usePrimaryFeedPaging = page.usesPrimaryFeed;
+    lastDoc = page.lastDoc;
     if (page.items.isEmpty) return;
 
     final items = page.items
@@ -1143,6 +1157,133 @@ class AgendaController extends GetxController {
 
       await _saveFeedPostsToPool(posts, userMeta);
     } catch (_) {}
+  }
+
+  Future<_AgendaSourcePage> _loadAgendaSourcePage({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    if (!_usePrimaryFeedPaging) {
+      return _loadLegacyAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return _loadLegacyAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+    }
+
+    final page = await _postRepository.fetchUserFeedReferences(
+      uid: uid,
+      limit: limit,
+      startAfter: lastDoc is DocumentSnapshot<Map<String, dynamic>>
+          ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
+          : null,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+
+    final refs = page.items
+        .where(
+          (item) =>
+              item.timeStamp > 0 &&
+              _isInAgendaWindow(item.timeStamp, nowMs) &&
+              (item.expiresAt <= 0 || item.expiresAt >= nowMs),
+        )
+        .toList(growable: false);
+
+    final postIds = refs.map((item) => item.postId).toList(growable: false);
+    final postsById = postIds.isEmpty
+        ? const <String, PostsModel>{}
+        : await _postRepository.fetchPostsByIds(
+            postIds,
+            preferCache: preferCache,
+            cacheOnly: cacheOnly,
+          );
+
+    final merged = <String, PostsModel>{};
+    for (final ref in refs) {
+      final post = postsById[ref.postId];
+      if (post == null) continue;
+      merged[post.docID] = post;
+    }
+
+    final celebIds = await _postRepository.fetchCelebrityAuthorIds(
+      <String>{uid, ...followingIDs}.toList(growable: false),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (celebIds.isNotEmpty) {
+      final celebPosts = await _postRepository.fetchRecentPostsForAuthors(
+        celebIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        perAuthorLimit: max(2, (limit / max(1, celebIds.length)).ceil()),
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      for (final post in celebPosts) {
+        merged.putIfAbsent(post.docID, () => post);
+      }
+    }
+
+    if (merged.isEmpty && page.lastDoc == null && lastDoc == null) {
+      return _loadLegacyAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+    }
+
+    final items = merged.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+
+    return _AgendaSourcePage(
+      items: items,
+      lastDoc: page.lastDoc,
+      usesPrimaryFeed: true,
+    );
+  }
+
+  Future<_AgendaSourcePage> _loadLegacyAgendaSourcePage({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final page = await _postRepository.fetchAgendaWindowPage(
+      cutoffMs: cutoffMs,
+      nowMs: nowMs,
+      limit: limit,
+      startAfter: lastDoc,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    return _AgendaSourcePage(
+      items: page.items
+          .where((p) => _isInAgendaWindow(p.timeStamp, nowMs))
+          .where((p) => p.deletedPost != true)
+          .toList(growable: false),
+      lastDoc: page.lastDoc,
+      usesPrimaryFeed: false,
+    );
   }
 
   List<List<T>> _chunkList<T>(List<T> input, int size) {

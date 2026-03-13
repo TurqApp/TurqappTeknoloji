@@ -60,6 +60,32 @@ class PostQueryPage {
   final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
 }
 
+class UserFeedReference {
+  const UserFeedReference({
+    required this.postId,
+    required this.authorId,
+    required this.timeStamp,
+    required this.isCelebrity,
+    required this.expiresAt,
+  });
+
+  final String postId;
+  final String authorId;
+  final int timeStamp;
+  final bool isCelebrity;
+  final int expiresAt;
+}
+
+class UserFeedReferencePage {
+  const UserFeedReferencePage({
+    required this.items,
+    required this.lastDoc,
+  });
+
+  final List<UserFeedReference> items;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+}
+
 class PostRepository extends GetxService {
   PostRepository({
     FirebaseFirestore? firestore,
@@ -285,6 +311,7 @@ class PostRepository extends GetxService {
   Future<Map<String, PostsModel>> fetchPostsByIds(
     List<String> postIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final cleaned = postIds
         .map((id) => id.trim())
@@ -311,10 +338,14 @@ class PostRepository extends GetxService {
         i,
         i + 10 > missing.length ? missing.length : i + 10,
       );
-      final snap = await _firestore
+      final query = _firestore
           .collection('Posts')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
+          .where(FieldPath.documentId, whereIn: chunk);
+      final snap = await _getQueryWithSource(
+        query,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
       for (final doc in snap.docs) {
         final data = doc.data();
         final model = PostsModel.fromMap(data, doc.id);
@@ -350,21 +381,11 @@ class PostRepository extends GetxService {
         startAfter as DocumentSnapshot<Map<String, dynamic>>,
       );
     }
-    QuerySnapshot<Map<String, dynamic>> snap;
-    if (preferCache) {
-      try {
-        snap = await query.get(const GetOptions(source: Source.cache));
-      } catch (_) {
-        if (cacheOnly) {
-          rethrow;
-        }
-        snap = await query.get(const GetOptions(source: Source.server));
-      }
-    } else if (cacheOnly) {
-      snap = await query.get(const GetOptions(source: Source.cache));
-    } else {
-      snap = await query.get(const GetOptions(source: Source.server));
-    }
+    final snap = await _getQueryWithSource(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
     final items = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
         .toList(growable: false);
@@ -372,6 +393,130 @@ class PostRepository extends GetxService {
       items: items,
       lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
     );
+  }
+
+  Future<UserFeedReferencePage> fetchUserFeedReferences({
+    required String uid,
+    required int limit,
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty) {
+      return const UserFeedReferencePage(
+          items: <UserFeedReference>[], lastDoc: null);
+    }
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('userFeeds')
+        .doc(normalizedUid)
+        .collection('items')
+        .orderBy('timeStamp', descending: true)
+        .limit(limit);
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    final snap = await _getQueryWithSource(
+      query,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    final items = snap.docs
+        .map((doc) {
+          final data = doc.data();
+          return UserFeedReference(
+            postId: (data['postId'] ?? doc.id).toString().trim(),
+            authorId: (data['authorId'] ?? '').toString().trim(),
+            timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
+            isCelebrity: data['isCelebrity'] == true,
+            expiresAt: (data['expiresAt'] as num?)?.toInt() ?? 0,
+          );
+        })
+        .where((item) => item.postId.isNotEmpty)
+        .toList(growable: false);
+
+    return UserFeedReferencePage(
+      items: items,
+      lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
+    );
+  }
+
+  Future<List<String>> fetchCelebrityAuthorIds(
+    List<String> authorIds, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final cleaned = authorIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (cleaned.isEmpty) return const <String>[];
+
+    final celebIds = <String>{};
+    for (int i = 0; i < cleaned.length; i += 10) {
+      final chunk = cleaned.sublist(
+        i,
+        i + 10 > cleaned.length ? cleaned.length : i + 10,
+      );
+      final snap = await _getQueryWithSource(
+        _firestore
+            .collection('celebAccounts')
+            .where(FieldPath.documentId, whereIn: chunk),
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      celebIds.addAll(snap.docs.map((doc) => doc.id));
+    }
+    return celebIds.toList(growable: false);
+  }
+
+  Future<List<PostsModel>> fetchRecentPostsForAuthors(
+    List<String> authorIds, {
+    required int nowMs,
+    required int cutoffMs,
+    int perAuthorLimit = 3,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final cleaned = authorIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (cleaned.isEmpty) return const <PostsModel>[];
+
+    final futures = cleaned.map((authorId) async {
+      final snap = await _getQueryWithSource(
+        _firestore
+            .collection('Posts')
+            .where('userID', isEqualTo: authorId)
+            .where('arsiv', isEqualTo: false)
+            .where('deletedPost', isEqualTo: false)
+            .orderBy('timeStamp', descending: true)
+            .limit(perAuthorLimit),
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      return snap.docs
+          .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+          .where(
+              (post) => post.timeStamp >= cutoffMs && post.timeStamp <= nowMs)
+          .toList(growable: false);
+    });
+
+    final nested = await Future.wait(futures);
+    final merged = <String, PostsModel>{};
+    for (final posts in nested) {
+      for (final post in posts) {
+        merged.putIfAbsent(post.docID, () => post);
+      }
+    }
+    final sorted = merged.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return sorted;
   }
 
   Future<PostsModel?> fetchPostById(
@@ -407,6 +552,25 @@ class PostRepository extends GetxService {
         _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
     nextState.latestPostData.value = Map<String, dynamic>.from(data);
     return Map<String, dynamic>.from(data);
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _getQueryWithSource(
+    Query<Map<String, dynamic>> query, {
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    if (preferCache) {
+      try {
+        return await query.get(const GetOptions(source: Source.cache));
+      } catch (_) {
+        if (cacheOnly) rethrow;
+        return query.get(const GetOptions(source: Source.server));
+      }
+    }
+    if (cacheOnly) {
+      return query.get(const GetOptions(source: Source.cache));
+    }
+    return query.get(const GetOptions(source: Source.server));
   }
 
   Future<String?> resolveDocumentIdByLegacyId(
@@ -490,7 +654,8 @@ class PostRepository extends GetxService {
   Future<List<Map<String, dynamic>>> fetchCollectionGroupReshares({
     int limit = 500,
   }) async {
-    final snap = await _firestore.collectionGroup('reshares').limit(limit).get();
+    final snap =
+        await _firestore.collectionGroup('reshares').limit(limit).get();
     return snap.docs
         .map((doc) {
           final postRef = doc.reference.parent.parent;
@@ -797,8 +962,10 @@ class PostRepository extends GetxService {
         .collection('Posts')
         .doc(normalizedPostId)
         .collection('viewers');
-    final existing =
-        await viewersRef.where('userID', isEqualTo: normalizedUserId).limit(1).get();
+    final existing = await viewersRef
+        .where('userID', isEqualTo: normalizedUserId)
+        .limit(1)
+        .get();
     if (existing.docs.isNotEmpty) {
       return false;
     }

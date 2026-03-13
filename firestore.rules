@@ -371,6 +371,21 @@ service cloud.firestore {
       }
     }
 
+    match /userFeeds/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /items/{itemId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    match /celebAccounts/{uid} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Username reservation (uniqueness lock)
     match /users_usernames/{usernameLower} {
       allow read: if isAuth();

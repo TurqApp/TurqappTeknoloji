@@ -37,6 +37,8 @@ import '../../Core/Widgets/progress_indicators.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
 import '../../Core/Services/webp_upload_service.dart';
 
+part 'post_creator_controller_upload_support.dart';
+
 class PreparedPostModel {
   final String text;
   final List<Uint8List> images;
@@ -123,136 +125,38 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   String get sharedOriginalUserID => _sharedOriginalUserID;
   String get sharedOriginalPostID => _sharedOriginalPostID;
 
-  String _resolvePostLocationCity() {
-    final user = CurrentUserService.instance.currentUserRx.value;
-    final candidates = [
-      user?.locationSehir,
-      user?.city,
-      user?.ikametSehir,
-      user?.il,
-      user?.ulke,
-    ];
-    for (final raw in candidates) {
-      final value = (raw ?? '').trim();
-      if (value.isNotEmpty) return value;
-    }
-    return 'Türkiye';
-  }
+  String _resolvePostLocationCity() =>
+      _PostCreatorControllerUploadSupportX(this)._resolvePostLocationCity();
 
-  bool _isAuthRetryableStorageError(FirebaseException e) {
-    final code = e.code.toLowerCase();
-    return code == 'unauthenticated' || code == 'unauthorized';
-  }
-
-  Future<String?> _ensureStorageUploadAuthReady() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      try {
-        user = await FirebaseAuth.instance.authStateChanges().firstWhere(
-              (candidate) => candidate != null,
-            );
-      } catch (_) {
-        user = FirebaseAuth.instance.currentUser;
-      }
-    }
-    if (user == null) return null;
-    try {
-      await user.getIdToken(true);
-    } catch (_) {
-      // Best effort refresh only.
-    }
-    return user.uid;
-  }
-
-  Future<void> _refreshAuthTokenIfNeeded() async {
-    try {
-      await _ensureStorageUploadAuthReady();
-    } catch (_) {
-      // Best effort refresh only.
-    }
-  }
+  Future<String?> _ensureStorageUploadAuthReady() =>
+      _PostCreatorControllerUploadSupportX(this)
+          ._ensureStorageUploadAuthReady();
 
   Future<void> _preparePostShellForStorageUpload({
     required String docID,
     required String uid,
     required int nowMs,
-  }) async {
-    final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
-    await ref.set({
-      "userID": uid,
-      "timeStamp": nowMs,
-      "isUploading": true,
-      "hlsStatus": "none",
-    }, SetOptions(merge: true));
-    await FirebaseFirestore.instance.waitForPendingWrites();
-
-    const retryDelays = <Duration>[
-      Duration(milliseconds: 250),
-      Duration(milliseconds: 700),
-      Duration(milliseconds: 1400),
-    ];
-
-    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
-      try {
-        final snap = await ref.get(const GetOptions(source: Source.server));
-        final shellUserId = (snap.data()?["userID"] ?? '').toString();
-        if (kDebugMode) {
-          debugPrint('[UploadPreflight][PostShell] '
-              'docID=$docID '
-              'uid=$uid '
-              'serverExists=${snap.exists} '
-              'serverUserID=$shellUserId '
-              'attempt=$attempt');
-        }
-        if (snap.exists && shellUserId == uid) {
-          return;
-        }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('[UploadPreflight][PostShell] '
-              'docID=$docID '
-              'uid=$uid '
-              'serverReadFailed=$e '
-              'attempt=$attempt');
-        }
-      }
-
-      if (attempt < retryDelays.length) {
-        await Future<void>.delayed(retryDelays[attempt]);
-      }
-    }
-  }
+  }) =>
+      _PostCreatorControllerUploadSupportX(this)
+          ._preparePostShellForStorageUpload(
+        docID: docID,
+        uid: uid,
+        nowMs: nowMs,
+      );
 
   Future<TaskSnapshot> _putFileWithAuthRetry({
     required Reference ref,
     required File file,
     required SettableMetadata metadata,
-  }) async {
-    const retryDelays = <Duration>[
-      Duration(milliseconds: 250),
-      Duration(milliseconds: 700),
-      Duration(milliseconds: 1400),
-    ];
+  }) =>
+      _PostCreatorControllerUploadSupportX(this)._putFileWithAuthRetry(
+        ref: ref,
+        file: file,
+        metadata: metadata,
+      );
 
-    FirebaseException? lastError;
-    for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
-      try {
-        return await ref.putFile(file, metadata);
-      } on FirebaseException catch (e) {
-        if (!_isAuthRetryableStorageError(e)) rethrow;
-        lastError = e;
-        if (attempt == retryDelays.length) break;
-        await _refreshAuthTokenIfNeeded();
-        await Future<void>.delayed(retryDelays[attempt]);
-      }
-    }
-    throw lastError!;
-  }
-
-  NavBarController? _maybeNavBarController() {
-    if (!Get.isRegistered<NavBarController>()) return null;
-    return Get.find<NavBarController>();
-  }
+  NavBarController? _maybeNavBarController() =>
+      _PostCreatorControllerUploadSupportX(this)._maybeNavBarController();
 
   @override
   void onInit() {
@@ -991,13 +895,12 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       } else {
         for (int j = 0; j < post.images.length; j++) {
           if (kDebugMode) {
-                final postDoc =
-                    await _postRepository.fetchPostRawById(docID);
-                debugPrint('[UploadPreflight][PostCreator][Image] '
-                    'path=Posts/$docID/image_$j.webp '
-                    'uid=$uid '
-                    'postExists=${postDoc != null} '
-                    'postUserID=${postDoc?["userID"]}');
+            final postDoc = await _postRepository.fetchPostRawById(docID);
+            debugPrint('[UploadPreflight][PostCreator][Image] '
+                'path=Posts/$docID/image_$j.webp '
+                'uid=$uid '
+                'postExists=${postDoc != null} '
+                'postUserID=${postDoc?["userID"]}');
           }
           final url = await WebpUploadService.uploadBytesAsWebp(
             storage: FirebaseStorage.instance,
