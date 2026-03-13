@@ -44,6 +44,7 @@ check_literal "Runner scheme icinde App Check debug env geri gelmedi" "FIRAAppCh
 check_literal "Genis iOS ATS acilimi geri gelmedi" "NSAllowsArbitraryLoads" || failures=$((failures + 1))
 check_literal "App Check gevsetme flag'i geri gelmedi" "enforceAppCheck: false" || failures=$((failures + 1))
 check_literal "Current user cache tekrar ham toJson ile yazilmiyor" "jsonEncode(user.toJson())" || failures=$((failures + 1))
+check_literal "Legacy cache sifresi tekrar hydrate edilmiyor" "sifre: json['sifre'] ?? ''" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo
