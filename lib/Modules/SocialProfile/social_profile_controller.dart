@@ -321,7 +321,7 @@ class SocialProfileController extends GetxController {
   Future<void> disposeAgendaContentController(String docID) async {
     if (Get.isRegistered<AgendaContentController>(tag: docID)) {
       Get.delete<AgendaContentController>(tag: docID, force: true);
-      print("Disposed AgendaContentController for $docID");
+      print("Disposed AgendaContentController");
     }
   }
 

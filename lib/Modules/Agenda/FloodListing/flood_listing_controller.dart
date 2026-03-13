@@ -79,7 +79,7 @@ class FloodListingController extends GetxController {
   void disposeAgendaContentController(String docID) {
     if (Get.isRegistered<AgendaContentController>(tag: docID)) {
       Get.delete<AgendaContentController>(tag: docID, force: true);
-      print("🎯 Disposed AgendaContentController for $docID");
+      print("🎯 Disposed AgendaContentController");
     }
   }
 
@@ -101,7 +101,7 @@ class FloodListingController extends GetxController {
         if (m.deletedPost != true) floods.add(m);
       }
     } catch (e) {
-      print('🔥 Kök flood alınamadı: $rootID – $e');
+      print('🔥 Kök flood alınamadı: $e');
     }
 
     // 2️⃣ Geri kalanları (suffix 1..floodCount-1) sırayla ekle
@@ -114,7 +114,7 @@ class FloodListingController extends GetxController {
           if (m.deletedPost != true) floods.add(m);
         }
       } catch (e) {
-        print('🔥 Flood verisi alınamadı: $docID – $e');
+        print('🔥 Flood verisi alınamadı: $e');
       }
     }
   }

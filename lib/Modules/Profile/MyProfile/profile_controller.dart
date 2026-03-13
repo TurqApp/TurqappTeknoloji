@@ -386,7 +386,7 @@ class ProfileController extends GetxController {
   void disposeAgendaContentController(String docID) {
     if (Get.isRegistered<AgendaContentController>(tag: docID)) {
       Get.delete<AgendaContentController>(tag: docID, force: true);
-      print("Disposed AgendaContentController for $docID");
+      print("Disposed AgendaContentController");
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +14,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -101,6 +104,86 @@ class _AgendaContentState extends State<AgendaContent>
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
 
+  bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
+
+  DateTime get _izBirakPublishDate => DateTime.fromMillisecondsSinceEpoch(
+        widget.model.scheduledAt.toInt() > 0
+            ? widget.model.scheduledAt.toInt()
+            : widget.model.izBirakYayinTarihi.toInt(),
+      );
+
+  Future<void> _subscribeToIzBirak() async {
+    await IzBirakSubscriptionService.ensure().subscribe(widget.model.docID);
+    AppSnackbar(
+      'İz Bırak',
+      'Yayın tarihinde bildirim alacaksınız.',
+    );
+  }
+
+  Widget _buildIzBirakBlurOverlay() {
+    if (!_isIzBirakPost) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIzBirakBottomBar() {
+    if (!_isIzBirakPost) return const SizedBox.shrink();
+    return Positioned(
+      left: 10,
+      right: 10,
+      bottom: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                formatIzBirakLong(_izBirakPublishDate),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _subscribeToIzBirak,
+              child: Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green,
+                ),
+                child: const Icon(
+                  CupertinoIcons.add,
+                  color: Colors.white,
+                  size: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   bool get _isBlackBadgeUser {
     final raw = (controller.userService.currentUser?.rozet ?? '')
         .trim()
@@ -177,6 +260,43 @@ class _AgendaContentState extends State<AgendaContent>
       ..shuffle();
 
     return [tapped, ...rest];
+  }
+
+  bool _hasEducationFeedCta() {
+    final resolved = _ctaNavigationService.resolveMeta(widget.model.reshareMap);
+    return resolved.type.isNotEmpty && resolved.docId.isNotEmpty;
+  }
+
+  Future<void> _openImageMediaOrFeedCta() async {
+    if (_hasEducationFeedCta()) {
+      await _ctaNavigationService.openFromPostMeta(widget.model.reshareMap);
+      return;
+    }
+
+    _pauseFeedBeforeFullscreen();
+    final visibleList = agendaController.agendaList
+        .where((val) =>
+            val.deletedPost == false &&
+            val.arsiv == false &&
+            val.gizlendi == false &&
+            val.img.isNotEmpty)
+        .toList();
+
+    if (widget.isPreview) {
+      Get.to(() => PhotoShorts(
+            fetchedList: visibleList,
+            startModel: widget.model,
+          ));
+    } else {
+      if (widget.model.floodCount > 1) {
+        Get.to(FloodListing(mainModel: widget.model));
+      } else {
+        Get.to(() => PhotoShorts(
+              fetchedList: visibleList,
+              startModel: widget.model,
+            ));
+      }
+    }
   }
 
   @override
@@ -1920,32 +2040,7 @@ class _AgendaContentState extends State<AgendaContent>
       alignment: Alignment.bottomLeft,
       children: [
         GestureDetector(
-          onTap: () {
-            _pauseFeedBeforeFullscreen();
-            final visibleList = agendaController.agendaList
-                .where((val) =>
-                    val.deletedPost == false &&
-                    val.arsiv == false &&
-                    val.gizlendi == false &&
-                    val.img.isNotEmpty)
-                .toList();
-
-            if (widget.isPreview) {
-              Get.to(() => PhotoShorts(
-                    fetchedList: visibleList,
-                    startModel: widget.model,
-                  ));
-            } else {
-              if (widget.model.floodCount > 1) {
-                Get.to(FloodListing(mainModel: widget.model));
-              } else {
-                Get.to(() => PhotoShorts(
-                      fetchedList: visibleList,
-                      startModel: widget.model,
-                    ));
-              }
-            }
-          },
+          onTap: _openImageMediaOrFeedCta,
           onDoubleTap: () {
             controller.like();
           },
@@ -1958,6 +2053,8 @@ class _AgendaContentState extends State<AgendaContent>
             child: _buildImageContent(images),
           ),
         ),
+        _buildIzBirakBlurOverlay(),
+        _buildIzBirakBottomBar(),
         if (widget.model.floodCount > 1 && widget.model.flood == false)
           GestureDetector(
             onTap: () {
@@ -2027,6 +2124,16 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildImageContent(List<String> images) {
+    if (_isIzBirakPost) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: _buildImage(
+          images.first,
+          radius: BorderRadius.circular(12),
+          showShareCta: false,
+        ),
+      );
+    }
     final type =
         _ctaNavigationService.resolveMeta(widget.model.reshareMap).type;
     final preserveScholarshipFrame =
@@ -2221,6 +2328,9 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildFeedShareCta() {
+    if (_isIzBirakPost) {
+      return const SizedBox.shrink();
+    }
     final resolvedCta =
         _ctaNavigationService.resolveMeta(widget.model.reshareMap);
     final label = resolvedCta.label;
@@ -2230,6 +2340,8 @@ class _AgendaContentState extends State<AgendaContent>
       return const SizedBox.shrink();
     }
 
+    final palette = _feedCtaPaletteFor(type: type, docId: docId);
+
     return Positioned(
       right: 10,
       bottom: 10,
@@ -2237,23 +2349,51 @@ class _AgendaContentState extends State<AgendaContent>
         onTap: () =>
             _ctaNavigationService.openFromPostMeta(widget.model.reshareMap),
         child: Container(
+          width: 132,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.72),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palette,
+            ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+            boxShadow: [
+              BoxShadow(
+                color: palette.last.withValues(alpha: 0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 16,
               fontFamily: 'MontserratBold',
             ),
           ),
         ),
       ),
     );
+  }
+
+  List<Color> _feedCtaPaletteFor({
+    required String type,
+    required String docId,
+  }) {
+    const palettes = <List<Color>>[
+      <Color>[Color(0xFF20D67B), Color(0xFF119D57)],
+      <Color>[Color(0xFFFF5CA8), Color(0xFFD81B60)],
+      <Color>[Color(0xFFFFB238), Color(0xFFF26B1D)],
+      <Color>[Color(0xFF2EC5FF), Color(0xFF0077D9)],
+      <Color>[Color(0xFFB56CFF), Color(0xFF7B2CFF)],
+    ];
+    final seed = '$type:$docId'.codeUnits.fold<int>(0, (a, b) => a + b);
+    return palettes[seed % palettes.length];
   }
 
   Future<void> _handleFeedUrlTap(String url) async {
@@ -2389,7 +2529,6 @@ class _AgendaContentState extends State<AgendaContent>
             await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
-            print(widget.model.docID);
           },
           title: 'Linki Kopyala',
           icon: CupertinoIcons.doc_on_doc,

@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Helpers/clickable_text_content.dart';
@@ -110,6 +111,86 @@ class _ClassicContentState extends State<ClassicContent>
   bool _isCaptionExpanded = false;
   bool _isQuoteExpanded = false;
 
+  bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
+
+  DateTime get _izBirakPublishDate => DateTime.fromMillisecondsSinceEpoch(
+        widget.model.scheduledAt.toInt() > 0
+            ? widget.model.scheduledAt.toInt()
+            : widget.model.izBirakYayinTarihi.toInt(),
+      );
+
+  Future<void> _subscribeToIzBirak() async {
+    await IzBirakSubscriptionService.ensure().subscribe(widget.model.docID);
+    AppSnackbar(
+      'İz Bırak',
+      'Yayın tarihinde bildirim alacaksınız.',
+    );
+  }
+
+  Widget _buildIzBirakBlurOverlay() {
+    if (!_isIzBirakPost) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            color: Colors.black.withValues(alpha: 0.16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIzBirakBottomBar() {
+    if (!_isIzBirakPost) return const SizedBox.shrink();
+    return Positioned(
+      left: 10,
+      right: 10,
+      bottom: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                formatIzBirakLong(_izBirakPublishDate),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _subscribeToIzBirak,
+              child: Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.green,
+                ),
+                child: const Icon(
+                  CupertinoIcons.add,
+                  color: Colors.white,
+                  size: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   ShortController get shortsController => Get.isRegistered<ShortController>()
       ? Get.find<ShortController>()
       : Get.put(ShortController());
@@ -166,6 +247,19 @@ class _ClassicContentState extends State<ClassicContent>
             startModel: widget.model,
           ));
     }
+  }
+
+  bool _hasEducationFeedCta() {
+    final resolved = _ctaNavigationService.resolveMeta(widget.model.reshareMap);
+    return resolved.type.isNotEmpty && resolved.docId.isNotEmpty;
+  }
+
+  Future<void> _openImageMediaOrFeedCta() async {
+    if (_hasEducationFeedCta()) {
+      await _ctaNavigationService.openFromPostMeta(widget.model.reshareMap);
+      return;
+    }
+    _openImageMedia();
   }
 
   void _prepareVideoFullscreenTransition() {
@@ -1029,7 +1123,35 @@ class _ClassicContentState extends State<ClassicContent>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.model.img.length == 1)
+        if (_isIzBirakPost)
+          Transform.translate(
+            offset: Offset(0, mediaVisualLift),
+            child: Padding(
+              padding: EdgeInsets.only(top: mediaTopSpacing),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Stack(
+                  alignment: Alignment.bottomLeft,
+                  children: [
+                    SizedBox.expand(
+                      child: CachedNetworkImage(
+                        imageUrl: widget.model.img.first,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    _buildIzBirakBlurOverlay(),
+                    _buildIzBirakBottomBar(),
+                    _buildMediaTapOverlay(
+                      onTap: _openImageMediaOrFeedCta,
+                      onDoubleTap: controller.like,
+                    ),
+                    _buildClassicMediaHeader(),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else if (widget.model.img.length == 1)
           Transform.translate(
             offset: Offset(0, mediaVisualLift),
             child: Padding(
@@ -1080,7 +1202,7 @@ class _ClassicContentState extends State<ClassicContent>
                     ),
                     _buildFeedShareCta(),
                     _buildMediaTapOverlay(
-                      onTap: _openImageMedia,
+                      onTap: _openImageMediaOrFeedCta,
                       onDoubleTap: controller.like,
                     ),
                     _buildClassicMediaHeader(),
@@ -1161,7 +1283,7 @@ class _ClassicContentState extends State<ClassicContent>
                     ),
                     _buildFeedShareCta(),
                     _buildMediaTapOverlay(
-                      onTap: _openImageMedia,
+                      onTap: _openImageMediaOrFeedCta,
                       onDoubleTap: controller.like,
                     ),
                     _buildClassicMediaHeader(),
@@ -1382,7 +1504,8 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget videoBody(BuildContext context) {
-    final frameAspectRatio = _resolvedClassicFrameAspectRatio;
+    final frameAspectRatio =
+        _isIzBirakPost ? 1.0 : _resolvedClassicFrameAspectRatio;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1526,34 +1649,37 @@ class _ClassicContentState extends State<ClassicContent>
                   onTap: _openVideoMedia,
                   onDoubleTap: controller.like,
                 ),
-                Positioned(
-                  bottom: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      agendaController.isMuted.toggle();
-                      final vc = videoController;
-                      if (vc != null && vc.value.isInitialized) {
-                        vc.setVolume(agendaController.isMuted.value ? 0 : 1);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
+                _buildIzBirakBlurOverlay(),
+                _buildIzBirakBottomBar(),
+                if (!_isIzBirakPost)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        agendaController.isMuted.toggle();
+                        final vc = videoController;
+                        if (vc != null && vc.value.isInitialized) {
+                          vc.setVolume(agendaController.isMuted.value ? 0 : 1);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Obx(() => Icon(
+                              agendaController.isMuted.value
+                                  ? CupertinoIcons.volume_off
+                                  : CupertinoIcons.volume_up,
+                              color: Colors.white,
+                              size: 16,
+                            )),
                       ),
-                      child: Obx(() => Icon(
-                            agendaController.isMuted.value
-                                ? CupertinoIcons.volume_off
-                                : CupertinoIcons.volume_up,
-                            color: Colors.white,
-                            size: 16,
-                          )),
                     ),
                   ),
-                ),
                 _buildClassicMediaHeader(),
               ],
             ),
@@ -1566,6 +1692,9 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget _buildFeedShareCta() {
+    if (_isIzBirakPost) {
+      return const SizedBox.shrink();
+    }
     final resolvedCta =
         _ctaNavigationService.resolveMeta(widget.model.reshareMap);
     final label = resolvedCta.label;
@@ -1575,6 +1704,8 @@ class _ClassicContentState extends State<ClassicContent>
       return const SizedBox.shrink();
     }
 
+    final palette = _feedCtaPaletteFor(type: type, docId: docId);
+
     return Positioned(
       right: 10,
       bottom: 10,
@@ -1582,23 +1713,51 @@ class _ClassicContentState extends State<ClassicContent>
         onTap: () =>
             _ctaNavigationService.openFromPostMeta(widget.model.reshareMap),
         child: Container(
+          width: 132,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.72),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palette,
+            ),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+            boxShadow: [
+              BoxShadow(
+                color: palette.last.withValues(alpha: 0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 16,
               fontFamily: 'MontserratBold',
             ),
           ),
         ),
       ),
     );
+  }
+
+  List<Color> _feedCtaPaletteFor({
+    required String type,
+    required String docId,
+  }) {
+    const palettes = <List<Color>>[
+      <Color>[Color(0xFF20D67B), Color(0xFF119D57)],
+      <Color>[Color(0xFFFF5CA8), Color(0xFFD81B60)],
+      <Color>[Color(0xFFFFB238), Color(0xFFF26B1D)],
+      <Color>[Color(0xFF2EC5FF), Color(0xFF0077D9)],
+      <Color>[Color(0xFFB56CFF), Color(0xFF7B2CFF)],
+    ];
+    final seed = '$type:$docId'.codeUnits.fold<int>(0, (a, b) => a + b);
+    return palettes[seed % palettes.length];
   }
 
   Widget headerUserInfoBar() {
@@ -2062,7 +2221,6 @@ class _ClassicContentState extends State<ClassicContent>
             await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
-            print(widget.model.docID);
           },
           title: 'Linki Kopyala',
           icon: CupertinoIcons.doc_on_doc,

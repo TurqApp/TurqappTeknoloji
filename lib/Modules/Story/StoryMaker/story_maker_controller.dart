@@ -960,7 +960,7 @@ class StoryMakerController extends GetxController {
 
       // 7) Başarılı mesajı (arka planda)
       // AppSnackbar("Başarılı", "Hikaye kaydedildi");
-      print("Story kaydedildi: $storyId (${serialized.length} element)");
+      print("Story kaydedildi (${serialized.length} element)");
 
       // 8) UI'ı güncelle - global refresh çağır
       try {

@@ -27,8 +27,6 @@ class _FloodListingState extends State<FloodListing> {
     super.initState();
     controller.getFloods(widget.mainModel.floodCount.toInt(),
         widget.mainModel.docID); // floodCount: 10 örnek
-    print(widget.mainModel.floodCount.toInt());
-    print(widget.mainModel.docID);
   }
 
   @override

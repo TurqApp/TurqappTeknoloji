@@ -59,6 +59,14 @@ check_literal "Hybrid feed logunda authorId dump'i geri gelmedi" 'console.log(`[
 check_literal "Author denorm logunda postId dump'i geri gelmedi" 'console.log(`[AuthorDenorm] Post ${context.params.postId} author alanları güncellendi`);' || failures=$((failures + 1))
 check_literal "Author denorm logunda uid dump'i geri gelmedi" '`${uid} profil değişikliği' || failures=$((failures + 1))
 check_literal "Email verify warning logunda uid dump'i geri gelmedi" "uid: caller.uid," || failures=$((failures + 1))
+check_literal "Current user cache logunda nickname dump'i geri gelmedi" "print('✅ User loaded from cache: \${user.nickname}');" || failures=$((failures + 1))
+check_literal "Current user persist logunda nickname dump'i geri gelmedi" "print('💾 User cached: \${user.nickname}');" || failures=$((failures + 1))
+check_literal "Story save logunda storyId dump'i geri gelmedi" 'print("Story kaydedildi: $storyId (${serialized.length} element)");' || failures=$((failures + 1))
+check_literal "Dispose loglarinda docID dump'i geri gelmedi" 'print("Disposed AgendaContentController for $docID");' || failures=$((failures + 1))
+check_literal "Flood error logunda rootID dump'i geri gelmedi" "print('🔥 Kök flood alınamadı: \$rootID – \$e');" || failures=$((failures + 1))
+check_literal "Flood error logunda docID dump'i geri gelmedi" "print('🔥 Flood verisi alınamadı: \$docID – \$e');" || failures=$((failures + 1))
+check_literal "Copy link debug print docID geri gelmedi" "print(widget.model.docID);" || failures=$((failures + 1))
+check_literal "Flood listing init docID debug print geri gelmedi" "print(widget.mainModel.docID);" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

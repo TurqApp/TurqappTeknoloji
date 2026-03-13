@@ -373,7 +373,7 @@ class CurrentUserService extends GetxController {
       _emitUserEvent(user);
       unawaited(_warmAvatar(user));
 
-      print('✅ User loaded from cache: ${user.nickname}');
+      print('✅ User loaded from cache');
       return true;
     } catch (e) {
       print('❌ Cache load error: $e');
@@ -405,7 +405,7 @@ class CurrentUserService extends GetxController {
               _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
           await _persistViewSelection(user.userID, user.viewSelection);
           _lastCacheSignature = cacheSignature;
-          print('💾 User cached: ${user.nickname}');
+          print('💾 User cached');
         } catch (e) {
           print('❌ Cache save error: $e');
         }

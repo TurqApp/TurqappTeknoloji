@@ -753,7 +753,6 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
             await Clipboard.setData(ClipboardData(text: url));
 
             AppSnackbar("Kopyalandı", "Bağlantı linki panoya kopyalandı");
-            print(widget.model.docID);
           },
           title: 'Linki Kopyala',
           icon: CupertinoIcons.doc_on_doc,
