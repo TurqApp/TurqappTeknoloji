@@ -20,12 +20,14 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
     this.maxPagesPerFling = 1,
     this.baseMinFlingVelocity = 220.0,
     this.fastSwipeFraction = 0.10,
+    this.snapPageFraction = 0.35,
     super.parent,
   });
 
   final int maxPagesPerFling;
   final double baseMinFlingVelocity;
   final double fastSwipeFraction;
+  final double snapPageFraction;
 
   @override
   MomentumPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
@@ -33,6 +35,7 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
       maxPagesPerFling: maxPagesPerFling,
       baseMinFlingVelocity: baseMinFlingVelocity,
       fastSwipeFraction: fastSwipeFraction,
+      snapPageFraction: snapPageFraction,
       parent: buildParent(ancestor),
     );
   }
@@ -68,7 +71,8 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
     final progressFromFloor = page - floorPage;
     final progressFromCeil = ceilPage - page;
 
-    double targetPage = page.roundToDouble();
+    double targetPage =
+        progressFromFloor >= snapPageFraction ? floorPage + 1 : floorPage;
     if (velocity.abs() >= baseMinFlingVelocity) {
       int pagesToAdvance = 1;
       if (velocity.abs() > baseMinFlingVelocity * 2.0) pagesToAdvance = 2;
@@ -125,7 +129,8 @@ class _ShortViewState extends State<ShortView> {
   List<PostsModel> _cachedShorts = [];
   double? _dragStartPage;
   double _lastDragDeltaY = 0.0;
-  static const double _manualPageSnapThreshold = 0.08;
+  double _maxObservedDragDistance = 0.0;
+  static const double _manualPageSnapThreshold = 0.35;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -417,10 +422,19 @@ class _ShortViewState extends State<ShortView> {
     if (notification is ScrollStartNotification) {
       _dragStartPage = pageController.page ?? currentPage.toDouble();
       _lastDragDeltaY = 0.0;
+      _maxObservedDragDistance = 0.0;
     } else if (notification is ScrollUpdateNotification) {
       final deltaY = notification.dragDetails?.delta.dy;
       if (deltaY != null && deltaY.abs() > 0) {
         _lastDragDeltaY = deltaY;
+      }
+      final startPage = _dragStartPage;
+      final livePage = pageController.page;
+      if (startPage != null && livePage != null) {
+        final moved = (livePage - startPage).abs();
+        if (moved > _maxObservedDragDistance) {
+          _maxObservedDragDistance = moved;
+        }
       }
     } else if (notification is ScrollEndNotification) {
       unawaited(_maybeForcePageSnap());
@@ -435,6 +449,7 @@ class _ShortViewState extends State<ShortView> {
         _manualSnapInProgress ||
         _isTransitioning) {
       _dragStartPage = null;
+      _maxObservedDragDistance = 0.0;
       return;
     }
 
@@ -447,7 +462,9 @@ class _ShortViewState extends State<ShortView> {
 
     final currentVisualPage = pageController.page ?? startPage;
     final moved = currentVisualPage - startPage;
-    if (moved.abs() < _manualPageSnapThreshold) return;
+    final maxMoved = _maxObservedDragDistance;
+    _maxObservedDragDistance = 0.0;
+    if (maxMoved < _manualPageSnapThreshold) return;
 
     final movingForward = _lastDragDeltaY < 0 || moved > 0;
     final maxIndex = _cachedShorts.length - 1;
