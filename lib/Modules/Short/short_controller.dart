@@ -40,7 +40,7 @@ class ShortController extends GetxController {
   static final int _warmBehind =
       defaultTargetPlatform == TargetPlatform.android ? 4 : 5;
   static final int _maxPlayers =
-      defaultTargetPlatform == TargetPlatform.android ? 5 : 10;
+      defaultTargetPlatform == TargetPlatform.android ? 5 : 11;
   static final double _activeBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
   static final double _neighborBufferSeconds =
@@ -627,14 +627,9 @@ class ShortController extends GetxController {
     if (activeKeys.length > _maxPlayers) {
       for (int i = _maxPlayers; i < activeKeys.length; i++) {
         final k = activeKeys[i];
-        if (defaultTargetPlatform == TargetPlatform.android) {
-          cache[k]?.dispose();
-          cache.remove(k);
-          _tiers.remove(k);
-        } else {
-          cache[k]?.stopPlayback();
-          _tiers[k] = _CacheTier.warm;
-        }
+        cache[k]?.dispose();
+        cache.remove(k);
+        _tiers.remove(k);
       }
     }
   }
