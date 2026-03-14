@@ -441,6 +441,8 @@ class _ShortViewState extends State<ShortView> {
 
       if (progress >= 0.98) {
         _isTransitioning = true;
+        VideoTelemetryService.instance
+            .onCompleted(_cachedShorts[currentPage].docID);
         vc.removeListener(_videoEndListener);
         _goToNextVideo();
       }
