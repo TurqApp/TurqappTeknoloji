@@ -6,7 +6,9 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/video_state_manager.dart';
+import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../Agenda/agenda_controller.dart';
@@ -54,6 +56,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
   Timer? _lazyInitTimer;
+  bool _playbackIntentTracked = false;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
   /// setState yerine ValueNotifier kullanarak tüm post'u rebuild etmekten kaçınıyoruz.
@@ -164,6 +167,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       autoPlay: widget.shouldPlay,
       loop: true,
     );
+    _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
     videoStateManager.registerPlaybackHandle(
       playbackHandleKey,
@@ -178,9 +182,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!isStandalonePostInstance) {
       _muteWorker = ever<bool>(agendaController.isMuted, (muted) {
         _videoAdapter?.setVolume(muted ? 0.0 : 1.0);
+        _syncRuntimeHints(isAudible: !muted);
       });
     } else {
       _videoAdapter?.setVolume(1.0);
+      _syncRuntimeHints(isAudible: true);
     }
 
     if (!isStandalonePostInstance) {
@@ -317,6 +323,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (v != null) {
       v.pause();
       _hasAutoPlayed = false;
+      _playbackIntentTracked = false;
+      _syncRuntimeHints(hasStableFocus: false);
     }
   }
 
@@ -328,6 +336,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           ? 1.0
           : (agendaController.isMuted.value ? 0.0 : 1.0),
     );
+    _syncRuntimeHints(isAudible: _currentIsAudible());
   }
 
   void _startPlayback() {
@@ -337,6 +346,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _hasAutoPlayed = true;
     unawaited(adapter.play());
     videoStateManager.playOnlyThis(playbackHandleKey);
+    _syncRuntimeHints(
+      isAudible: _currentIsAudible(),
+      hasStableFocus: true,
+    );
+    _trackPlaybackIntent();
     try {
       Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
     } catch (_) {}
@@ -370,4 +384,35 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   void onPostInitialized() {}
+
+  bool _currentIsAudible() {
+    if (isStandalonePostInstance) return true;
+    return !agendaController.isMuted.value;
+  }
+
+  void _syncRuntimeHints({
+    bool? isAudible,
+    bool? hasStableFocus,
+  }) {
+    VideoTelemetryService.instance.updateRuntimeHints(
+      widget.model.docID,
+      isAudible: isAudible,
+      hasStableFocus: hasStableFocus,
+    );
+  }
+
+  void _trackPlaybackIntent() {
+    if (_playbackIntentTracked) return;
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    _playbackIntentTracked = true;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.playbackIntent,
+      {
+        'surface': isStandalonePostInstance ? 'single_post' : 'feed_post',
+        'videoId': widget.model.docID,
+        'audible': _currentIsAudible(),
+        'stableFocus': true,
+      },
+    );
+  }
 }
