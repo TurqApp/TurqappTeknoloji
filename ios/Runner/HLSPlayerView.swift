@@ -1,13 +1,29 @@
 import UIKit
 import AVFoundation
+import CoreImage
 import Flutter
 
 private final class PlayerContainerView: UIView {
     weak var linkedPlayerLayer: AVPlayerLayer?
+    let snapshotView = UIImageView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        snapshotView.contentMode = .scaleAspectFill
+        snapshotView.clipsToBounds = true
+        snapshotView.backgroundColor = .black
+        snapshotView.isHidden = true
+        addSubview(snapshotView)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         linkedPlayerLayer?.frame = bounds
+        snapshotView.frame = bounds
     }
 }
 
@@ -18,6 +34,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var playerItem: AVPlayerItem?
+    private var videoOutput: AVPlayerItemVideoOutput?
     private var eventSink: FlutterEventSink?
     private var timeObserver: Any?
     private var isLooping: Bool = false
@@ -25,6 +42,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var didRequestInitialPlay: Bool = false
     private var didStabilizeVisualLayer: Bool = false
     private var didRenderFirstFrame: Bool = false
+    private var currentUrl: String?
+    private let ciContext = CIContext(options: nil)
 
     // MARK: - Observers
     private var statusObserver: NSKeyValueObservation?
@@ -86,10 +105,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             return
         }
 
-        cleanup()
+        let shouldPreserveSnapshot = currentUrl == url && currentUrl != nil
+        if !shouldPreserveSnapshot {
+            clearFrameSnapshot()
+        }
+        cleanup(preserveFrameSnapshot: shouldPreserveSnapshot)
         didRequestInitialPlay = false
         didStabilizeVisualLayer = false
         didRenderFirstFrame = false
+        currentUrl = url
 
         // Create AVURLAsset for HLS
         // A7: AVURLAssetPreferPreciseDurationAndTimingKey kaldırıldı — HLS'de tüm içeriği
@@ -100,6 +124,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Create player item
         playerItem = AVPlayerItem(asset: asset)
+        setupVideoOutput()
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
@@ -141,6 +166,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     func pause() {
+        captureCurrentFrameSnapshot(showOverlay: false)
         player?.pause()
         sendEvent(["event": "pause"])
     }
@@ -191,6 +217,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     /// Oynatmayı durdur ve network/decoder kaynaklarını serbest bırak.
     /// Player instance hayatta kalır, tekrar loadVideo ile yüklenebilir.
     func stopPlayback() {
+        captureCurrentFrameSnapshot(showOverlay: true)
+
         // Time observer kaldır
         if let timeObserver = timeObserver {
             player?.removeTimeObserver(timeObserver)
@@ -434,9 +462,58 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
                 self.didRenderFirstFrame = true
+                self.hideFrameSnapshot()
                 self.sendEvent(["event": "firstFrame"])
             }
         }
+    }
+
+    private func setupVideoOutput() {
+        videoOutput = nil
+        guard let playerItem = playerItem else { return }
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
+        ])
+        playerItem.add(output)
+        videoOutput = output
+    }
+
+    private func captureCurrentFrameSnapshot(showOverlay: Bool) {
+        guard let image = currentFrameSnapshot() else { return }
+        _view.snapshotView.image = image
+        if showOverlay {
+            _view.snapshotView.isHidden = false
+        }
+    }
+
+    private func currentFrameSnapshot() -> UIImage? {
+        guard let output = videoOutput else { return nil }
+
+        let candidateTimes: [CMTime] = [
+            player?.currentTime() ?? .invalid,
+            output.itemTime(forHostTime: CACurrentMediaTime()),
+        ]
+
+        for time in candidateTimes where time.isValid && !time.isIndefinite {
+            var displayTime = CMTime.invalid
+            if let pixelBuffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: &displayTime) {
+                let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+                if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
+                    return UIImage(cgImage: cgImage)
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private func clearFrameSnapshot() {
+        _view.snapshotView.image = nil
+        _view.snapshotView.isHidden = true
+    }
+
+    private func hideFrameSnapshot() {
+        _view.snapshotView.isHidden = true
     }
 
     private func scheduleVisualLayerStabilization(forceReattach: Bool) {
@@ -451,7 +528,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     // MARK: - Cleanup
-    private func cleanup() {
+    private func cleanup(preserveFrameSnapshot: Bool = false) {
+        if preserveFrameSnapshot {
+            captureCurrentFrameSnapshot(showOverlay: true)
+        }
+
         // Remove time observer
         if let timeObserver = timeObserver {
             player?.removeTimeObserver(timeObserver)
@@ -498,10 +579,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer?.removeFromSuperlayer()
 
         // Nullify references
+        videoOutput = nil
         playerLayer = nil
         playerItem = nil
         player = nil
         didRenderFirstFrame = false
+        if !preserveFrameSnapshot {
+            currentUrl = nil
+        }
     }
 
     func dispose() {
