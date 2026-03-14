@@ -294,6 +294,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       );
       if (widget.shouldPlay) {
         _hasAutoPlayed = true;
+        unawaited(_videoAdapter!.play());
+        videoStateManager.playOnlyThis(playbackHandleKey);
       }
     }
 
