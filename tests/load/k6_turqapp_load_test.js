@@ -37,6 +37,8 @@ const cfLikeLatency = new Trend("turq_cf_like_latency_ms", true);
 const cfFollowLatency = new Trend("turq_cf_follow_latency_ms", true);
 const errorRate = new Rate("turq_error_rate");
 const requestCount = new Counter("turq_request_count");
+const PROFILE = __ENV.K6_PROFILE || "full";
+const MODE = __ENV.K6_MODE || "mixed";
 
 // ─────────────────────────────────────────────────────────────────
 // LOAD PROFILE — 100K DAU simülasyonu
@@ -47,14 +49,34 @@ const requestCount = new Counter("turq_request_count");
 // CF invocations = 500 → ~10 VU
 // Total: ~144 VU peak
 
-export const options = {
-  stages: [
+function resolveStages() {
+  if (PROFILE === "smoke") {
+    return [
+      { duration: "15s", target: 1 },
+      { duration: "30s", target: 3 },
+      { duration: "15s", target: 0 },
+    ];
+  }
+
+  if (PROFILE === "feed_only") {
+    return [
+      { duration: "30s", target: 5 },
+      { duration: "60s", target: 10 },
+      { duration: "30s", target: 0 },
+    ];
+  }
+
+  return [
     { duration: "2m", target: 20 },   // Warm-up
     { duration: "5m", target: 100 },  // Normal traffic
     { duration: "5m", target: 150 },  // Peak traffic (100K DAU)
     { duration: "3m", target: 50 },   // Scale down
     { duration: "2m", target: 0 },    // Cool down
-  ],
+  ];
+}
+
+export const options = {
+  stages: resolveStages(),
   thresholds: {
     // SLO eşikleri — bu aşılırsa test FAIL olur
     turq_feed_warm_latency_ms: ["p(95) < 500"], // feed_ttfc_warm p95 < 500ms
@@ -252,6 +274,22 @@ function scenarioRecordView() {
 // ─────────────────────────────────────────────────────────────────
 
 export default function () {
+  if (MODE === "search_only") {
+    scenarioSearch();
+    return;
+  }
+
+  if (MODE === "feed_only") {
+    scenarioFeedRead();
+    return;
+  }
+
+  if (MODE === "interaction_only") {
+    scenarioRecordView();
+    scenarioLike();
+    return;
+  }
+
   const roll = Math.random();
 
   if (roll < 0.55) {
@@ -293,6 +331,8 @@ export function handleSummary(data) {
   const coldText = p95FeedCold >= 0 ? `${p95FeedCold.toFixed(0)}ms` : "N/A";
   const warmText = p95FeedWarm >= 0 ? `${p95FeedWarm.toFixed(0)}ms` : "N/A";
   const allText = p95FeedAll >= 0 ? `${p95FeedAll.toFixed(0)}ms` : "N/A";
+  console.log(`Profile          : ${PROFILE}`);
+  console.log(`Mode             : ${MODE}`);
   console.log(`Feed cold p95    : ${coldText}`);
   console.log(`Feed warm p95    : ${warmText}  ${sloStatus.feed_ttfc_p95}`);
   console.log(`Feed overall p95 : ${allText}`);
@@ -304,5 +344,7 @@ export function handleSummary(data) {
   return {
     stdout: JSON.stringify(data, null, 2),
     "tests/load/k6_results.json": JSON.stringify(data),
+    [`tests/load/k6_summary_${PROFILE}_${MODE}_latest.json`]:
+      JSON.stringify(data, null, 2),
   };
 }

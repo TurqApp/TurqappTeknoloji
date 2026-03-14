@@ -76,7 +76,7 @@ check_literal "Hardcoded App Check debug token setenv geri gelmedi" 'setenv("FIR
 check_literal "Runner scheme icinde App Check debug env geri gelmedi" "FIRAAppCheckDebugToken" || failures=$((failures + 1))
 check_literal "Genis iOS ATS acilimi geri gelmedi" "NSAllowsArbitraryLoads" || failures=$((failures + 1))
 check_literal "App Check gevsetme flag'i geri gelmedi" "enforceAppCheck: false" || failures=$((failures + 1))
-check_literal "Current user cache tekrar ham toJson ile yazilmiyor" "jsonEncode(user.toJson())" || failures=$((failures + 1))
+check_context_literal_in_file "Current user cache tekrar ham toJson ile yazilmiyor" "_saveToCache(CurrentUserModel user)" "jsonEncode(user.toJson())" "lib/Services/current_user_service.dart" || failures=$((failures + 1))
 check_literal "Legacy cache sifresi tekrar hydrate edilmiyor" "sifre: json['sifre'] ?? ''" || failures=$((failures + 1))
 check_literal "Auth akisinda ham email logu geri gelmedi" 'print("Email: ${signInEmail.value}")' || failures=$((failures + 1))
 check_literal "Auth akisinda parola uzunlugu logu geri gelmedi" 'print("Şifre: ${'"'"'*'"'"' * password.value.length}")' || failures=$((failures + 1))
