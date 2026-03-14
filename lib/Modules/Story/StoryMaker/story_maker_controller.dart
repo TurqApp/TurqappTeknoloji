@@ -118,6 +118,9 @@ class StoryMakerController extends GetxController {
     'cinema',
     'vibe',
   ];
+  static const double _topBarHeight = 60.0;
+  static const double _bottomToolsHeight = 80.0;
+  static const double _mediaLookToolsHeight = 88.0;
 
   // Arka plan varsayılanı: şeffaf
   final Rx<Color> color = Colors.transparent.obs;
@@ -223,6 +226,17 @@ class StoryMakerController extends GetxController {
     elements.refresh();
   }
 
+  double _availablePlaygroundHeight({bool includeMediaLookTools = true}) {
+    final screenH = Get.height;
+    final topSafeArea = Get.mediaQuery.padding.top;
+    final reservedMediaLook = includeMediaLookTools ? _mediaLookToolsHeight : 0;
+    return screenH -
+        topSafeArea -
+        _topBarHeight -
+        _bottomToolsHeight -
+        reservedMediaLook;
+  }
+
   void applySharedPostSeedIfNeeded({
     required String mediaUrl,
     required bool isVideo,
@@ -289,12 +303,7 @@ class StoryMakerController extends GetxController {
         ? rawAspectRatio
         : (9 / 16);
     final screenW = Get.width;
-    final screenH = Get.height;
-    final topSafeArea = Get.mediaQuery.padding.top;
-    const topBarHeight = 60.0;
-    const bottomToolsHeight = 80.0;
-    final playgroundHeight =
-        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+    final playgroundHeight = _availablePlaygroundHeight();
     final screenAspectRatio = screenW / playgroundHeight;
 
     double width;
@@ -318,12 +327,7 @@ class StoryMakerController extends GetxController {
   }) {
     const height = 36.0;
     final width = (Get.width * 0.62).clamp(170.0, 260.0).toDouble();
-    final screenH = Get.height;
-    final topSafeArea = Get.mediaQuery.padding.top;
-    const topBarHeight = 60.0;
-    const bottomToolsHeight = 80.0;
-    final playgroundHeight =
-        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+    final playgroundHeight = _availablePlaygroundHeight();
 
     elements.add(
       StoryElement(
@@ -400,11 +404,7 @@ class StoryMakerController extends GetxController {
     // 5) Pozisyonlama - X ortala, Y üstten başla
     final dx = (screenW - width) / 2;
     // SafeArea, topBar ve bottomTools yüksekliklerini çıkar
-    final topSafeArea = Get.mediaQuery.padding.top;
-    final topBarHeight = 60.0;
-    final bottomToolsHeight = 80.0;
-    final playgroundHeight =
-        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+    final playgroundHeight = _availablePlaygroundHeight();
     final dy = (playgroundHeight - height) / 2; // Playground içinde ortala
 
     // 6) StoryElement ekle
@@ -473,11 +473,7 @@ class StoryMakerController extends GetxController {
     // Playground alanı içinde ortalayarak pozisyonla
     final dx = (screenW - width) / 2;
     // SafeArea, topBar ve bottomTools yüksekliklerini çıkar
-    final topSafeArea = Get.mediaQuery.padding.top;
-    final topBarHeight = 60.0;
-    final bottomToolsHeight = 80.0;
-    final playgroundHeight =
-        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+    final playgroundHeight = _availablePlaygroundHeight();
     final dy = (playgroundHeight - height) / 2; // Playground içinde ortala
 
     // Controller'ı dispose et
@@ -748,12 +744,9 @@ class StoryMakerController extends GetxController {
     // Playground merkezine konumla (Stack'in 0,0'ı playground'ın üstü)
     final screenW = Get.width;
     final screenH = Get.height;
-    final topSafeArea = Get.mediaQuery.padding.top;
-    const topBarHeight = 60.0;
-    const bottomToolsHeight = 80.0;
     final keyboardInset = Get.mediaQuery.viewInsets.bottom;
     final playgroundHeight =
-        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+        _availablePlaygroundHeight(includeMediaLookTools: false);
     final dx = (screenW - width) / 2;
     double dy = (playgroundHeight - height) / 2;
     // Eğer klavye açıksa, metni görünür alana (klavyenin üstüne) yaklaştır
