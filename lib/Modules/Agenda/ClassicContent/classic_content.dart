@@ -116,6 +116,15 @@ class _ClassicContentState extends State<ClassicContent>
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
 
+  int get _feedCacheWidth {
+    final media = MediaQuery.of(context);
+    return (media.size.width * media.devicePixelRatio).round();
+  }
+
+  int _feedCacheHeightForAspectRatio(double aspectRatio) {
+    return (_feedCacheWidth / aspectRatio).round();
+  }
+
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
   bool get _shouldBlurIzBirakPost =>
@@ -239,10 +248,15 @@ class _ClassicContentState extends State<ClassicContent>
   Widget _buildVideoThumbnail({double? aspectRatio}) {
     final thumb = widget.model.thumbnail.trim();
     final fallback = const ColoredBox(color: _classicMediaFallbackColor);
+    final cacheHeight = aspectRatio != null
+        ? _feedCacheHeightForAspectRatio(aspectRatio)
+        : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
         ? CachedNetworkImage(
             imageUrl: thumb,
             fit: BoxFit.cover,
+            memCacheWidth: _feedCacheWidth,
+            memCacheHeight: cacheHeight,
             placeholder: (_, __) => fallback,
             errorWidget: (_, __, ___) => fallback,
           )
@@ -1249,6 +1263,8 @@ class _ClassicContentState extends State<ClassicContent>
                         child: CachedNetworkImage(
                           imageUrl: widget.model.img.first,
                           fit: BoxFit.cover,
+                          memCacheWidth: _feedCacheWidth,
+                          memCacheHeight: _feedCacheHeightForAspectRatio(0.92),
                         ),
                       ),
                       _buildMediaTapOverlay(
@@ -1278,6 +1294,10 @@ class _ClassicContentState extends State<ClassicContent>
                       child: CachedNetworkImage(
                         imageUrl: widget.model.img.first,
                         fit: BoxFit.cover,
+                        memCacheWidth: _feedCacheWidth,
+                        memCacheHeight: _feedCacheHeightForAspectRatio(
+                          _resolvedClassicFrameAspectRatio,
+                        ),
                       ),
                     ),
                     Row(
@@ -1341,6 +1361,10 @@ class _ClassicContentState extends State<ClassicContent>
                         return CachedNetworkImage(
                           imageUrl: img,
                           fit: BoxFit.cover,
+                          memCacheWidth: _feedCacheWidth,
+                          memCacheHeight: _feedCacheHeightForAspectRatio(
+                            1 / 1.2,
+                          ),
                         );
                       },
                     ),

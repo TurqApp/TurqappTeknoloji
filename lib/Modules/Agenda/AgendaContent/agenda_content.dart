@@ -111,6 +111,15 @@ class _AgendaContentState extends State<AgendaContent>
   String _quotedSourceFutureUserId = '';
   String _quotedSourceFuturePostId = '';
 
+  int get _feedCacheWidth {
+    final media = MediaQuery.of(context);
+    return (media.size.width * media.devicePixelRatio).round();
+  }
+
+  int _feedCacheHeightForAspectRatio(double aspectRatio) {
+    return (_feedCacheWidth / aspectRatio).round();
+  }
+
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
   bool get _shouldBlurIzBirakPost =>
@@ -282,10 +291,15 @@ class _AgendaContentState extends State<AgendaContent>
   Widget _buildVideoThumbnail({double? aspectRatio}) {
     final thumb = widget.model.thumbnail.trim();
     final fallback = Container(color: const Color(0xFFE8E8E8));
+    final cacheHeight = aspectRatio != null
+        ? _feedCacheHeightForAspectRatio(aspectRatio)
+        : (_feedCacheWidth * 1.4).round();
     final image = thumb.isNotEmpty
         ? CachedNetworkImage(
             imageUrl: thumb,
             fit: BoxFit.cover,
+            memCacheWidth: _feedCacheWidth,
+            memCacheHeight: cacheHeight,
             placeholder: (_, __) => fallback,
             errorWidget: (_, __, ___) => fallback,
           )
@@ -709,6 +723,12 @@ class _AgendaContentState extends State<AgendaContent>
                                                 ? CachedNetworkImage(
                                                     imageUrl: thumb,
                                                     fit: BoxFit.cover,
+                                                    memCacheWidth:
+                                                        _feedCacheWidth,
+                                                    memCacheHeight:
+                                                        _feedCacheHeightForAspectRatio(
+                                                      displayAspect,
+                                                    ),
                                                     placeholder: (_, __) =>
                                                         Container(
                                                       color: const Color(
@@ -2445,6 +2465,8 @@ class _AgendaContentState extends State<AgendaContent>
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
+              memCacheWidth: _feedCacheWidth,
+              memCacheHeight: (_feedCacheWidth * 1.4).round(),
               placeholder: (_, __) => const SizedBox.shrink(),
             ),
           ),
