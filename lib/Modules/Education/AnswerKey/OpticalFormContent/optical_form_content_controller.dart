@@ -142,8 +142,7 @@ class OpticalFormContentController extends GetxController {
   Future<void> deleteOpticalForm() async {
     try {
       await _opticalFormRepository.deleteForm(model.docID);
-    } catch (e) {
-      print("Error deleting optical form: $e");
+    } catch (_) {
     }
   }
 }

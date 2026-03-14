@@ -24,8 +24,7 @@ class MyTestResultsController extends GetxController {
         preferCache: true,
       );
       list.assignAll(items);
-    } catch (e) {
-      print("Error fetching test results: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

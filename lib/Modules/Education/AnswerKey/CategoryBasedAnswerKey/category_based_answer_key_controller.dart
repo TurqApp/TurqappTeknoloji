@@ -36,8 +36,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
       );
       list.assignAll(items);
       filteredList.assignAll(list);
-    } catch (e) {
-      print("Error fetching booklets: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false; // End loading
     }

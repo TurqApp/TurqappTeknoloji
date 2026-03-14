@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -115,9 +114,7 @@ class AnswerKeyController extends GetxController {
       _lastDocument = page.lastDocument;
       hasMore.value = page.hasMore;
 
-      log("Çekilen kitapçık sayısı: ${bookList.length}");
-    } catch (e) {
-      log("Veri çekme hatası: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -135,8 +132,7 @@ class AnswerKeyController extends GetxController {
       bookList.addAll(page.items);
       _lastDocument = page.lastDocument;
       hasMore.value = page.hasMore;
-    } catch (e) {
-      log("AnswerKeyController.loadMore error: $e");
+    } catch (_) {
     } finally {
       isLoadingMore.value = false;
     }
@@ -175,8 +171,7 @@ class AnswerKeyController extends GetxController {
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(results);
-    } catch (e) {
-      log("Answer key typesense search error: $e");
+    } catch (_) {
       if (token == _searchToken) {
         searchResults.clear();
       }

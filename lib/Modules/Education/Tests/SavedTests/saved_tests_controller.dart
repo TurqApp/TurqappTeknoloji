@@ -24,8 +24,7 @@ class SavedTestsController extends GetxController {
           preferCache: true,
         ),
       );
-    } catch (e) {
-      print("Error fetching saved tests: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
