@@ -859,26 +859,20 @@ class _SplashViewState extends State<SplashView> {
       // If Firebase Auth has a user BUT SharedPreferences says first launch,
       // this means the app was reinstalled → clear Firebase Auth session
       if (!hasLaunchedBefore && firebaseUser != null) {
-        print('🔐 First launch detected with existing Firebase Auth session');
-        print('🧹 Clearing Firebase Auth to force login screen...');
-
         // Sign out from Firebase Auth
         await FirebaseAuth.instance.signOut();
 
         // Clear CurrentUserService cache
         await CurrentUserService.instance.logout();
 
-        print('✅ Auth cleared - User will see login screen');
       }
 
       // Mark that app has launched before
       if (!hasLaunchedBefore) {
         await prefs.setBool(firstLaunchKey, true);
-        print('📝 First launch flag set');
       }
       return isFirstLaunch;
-    } catch (e) {
-      print('❌ First launch auth cleanup error: $e');
+    } catch (_) {
       // If error occurs, fail safe by signing out
       try {
         await FirebaseAuth.instance.signOut();

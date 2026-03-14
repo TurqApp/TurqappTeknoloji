@@ -907,8 +907,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                         ),
                       );
                     }
-                  } catch (e) {
-                    print('Story download error: $e');
+                  } catch (_) {
                   } finally {
                     _startProgress();
                   }

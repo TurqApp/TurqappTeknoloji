@@ -69,8 +69,7 @@ class _StoryViewerState extends State<StoryViewer>
         final idx = currentPageIndex >= 0 ? currentPageIndex : 0;
         if (widget.storyOwnerUsers.isEmpty) return;
         _prefetchNext(idx);
-      } catch (e) {
-        print("story viewer init prefetch error: $e");
+      } catch (_) {
       }
     });
 
@@ -133,8 +132,7 @@ class _StoryViewerState extends State<StoryViewer>
       // Story Row'ı yenile
       await StoryRowController.refreshStoriesGlobally();
       print("🔄 Story row refreshed after viewing stories");
-    } catch (e) {
-      print("🚨 Story row refresh error: $e");
+    } catch (_) {
     } finally {
       Get.back();
     }
@@ -270,10 +268,6 @@ class _StoryViewerState extends State<StoryViewer>
                     setState(() {
                       currentPageIndex = index;
                     });
-                    // Her user değişiminde print et
-                    print(
-                        "🔄 Story user changed - UserID: ${widget.storyOwnerUsers[index].userID}, Index: $index");
-
                     // Sonraki kullanıcıyı prefetch et
                     _prefetchNext(index);
                   },
@@ -336,10 +330,8 @@ class _StoryViewerState extends State<StoryViewer>
           currentStoryId,
           userId: uid,
         );
-        print('📸 Screenshot detected - notified story owner');
       }
-    } catch (e) {
-      print('Screenshot alert error: $e');
+    } catch (_) {
     }
   }
 
@@ -419,15 +411,11 @@ class _StoryViewerState extends State<StoryViewer>
             latestStoryTime: latestStoryTime,
           );
 
-          print(
-              "✅ User ${user.nickname} fully viewed - Latest story time: $latestStoryTime");
-
           // Story Row'ı yenile (reactive güncelleme için)
           await Future.delayed(const Duration(milliseconds: 100));
         }
       }
-    } catch (e) {
-      print("🚨 markUserAsFullyViewed error: $e");
+    } catch (_) {
     }
   }
 
