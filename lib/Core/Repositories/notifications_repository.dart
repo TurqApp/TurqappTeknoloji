@@ -85,7 +85,7 @@ class NotificationsRepository extends GetxService {
   Future<void> markRead(String uid, String docId) {
     return _notificationsRef(uid)
         .doc(docId)
-        .set({'read': true}, SetOptions(merge: true));
+        .set({'read': true, 'isRead': true}, SetOptions(merge: true));
   }
 
   Future<void> markManyRead(String uid, List<String> docIds) async {
@@ -97,7 +97,7 @@ class NotificationsRepository extends GetxService {
       for (final docID in chunk) {
         batch.set(
           _notificationsRef(uid).doc(docID),
-          {'read': true},
+          {'read': true, 'isRead': true},
           SetOptions(merge: true),
         );
       }

@@ -147,7 +147,7 @@ class InAppNotificationsController extends GetxController {
 
         return NotificationModel(
           docID: doc.id,
-          isRead: (data["read"] ?? false) == true,
+          isRead: (data["isRead"] ?? data["read"] ?? false) == true,
           type: type,
           postID: (data["postID"] ?? "").toString(),
           postType: postType,

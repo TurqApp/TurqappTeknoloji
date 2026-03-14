@@ -27,7 +27,7 @@ class NotificationModel {
   factory NotificationModel.fromJson(Map<String, dynamic> json, String docID) {
     return NotificationModel(
       docID: docID,
-      isRead: json['isRead'] ?? false,
+      isRead: (json['isRead'] ?? json['read'] ?? false) == true,
       type: json['type'] ?? '',
       postID: json['postID'] ?? '',
       postType: json['postType'] ?? '',
@@ -43,6 +43,7 @@ class NotificationModel {
   Map<String, dynamic> toJson() {
     return {
       'isRead': isRead,
+      'read': isRead,
       'type': type,
       'postID': postID,
       'postType': postType,
