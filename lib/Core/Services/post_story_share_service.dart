@@ -109,6 +109,15 @@ class PostStoryShareService {
   static ({String url, bool isVideo, double aspectRatio})? _resolveMedia(
     PostsModel model,
   ) {
+    final playbackUrl = model.playbackUrl.trim();
+    if (playbackUrl.isNotEmpty) {
+      return (
+        url: CdnUrlBuilder.toCdnUrl(playbackUrl),
+        isVideo: true,
+        aspectRatio: _normalizeAspectRatio(model.aspectRatio),
+      );
+    }
+
     final imageUrl = model.img
         .map((e) => e.trim())
         .firstWhere((e) => e.isNotEmpty, orElse: () => '');
