@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 class _PermissionItem {
   final String title;
@@ -113,11 +114,13 @@ class _PermissionsViewState extends State<PermissionsView> {
   final Map<String, PermissionStatus> _statuses = {};
   bool _loading = true;
   int _selectedQuota = 3;
+  NetworkSettings _networkSettings = NetworkSettings();
 
   @override
   void initState() {
     super.initState();
     _loadQuota();
+    _loadNetworkSettings();
     _refreshStatuses();
   }
 
@@ -144,6 +147,46 @@ class _PermissionsViewState extends State<PermissionsView> {
     } catch (_) {}
     if (!mounted) return;
     setState(() => _selectedQuota = gb);
+  }
+
+  Future<void> _loadNetworkSettings() async {
+    if (!Get.isRegistered<NetworkAwarenessService>()) return;
+    final settings = Get.find<NetworkAwarenessService>().settings;
+    if (!mounted) return;
+    setState(() {
+      _networkSettings = NetworkSettings(
+        autoUploadOnWiFi: settings.autoUploadOnWiFi,
+        pauseOnCellular: settings.pauseOnCellular,
+        cellularDataMode: settings.cellularDataMode,
+        wifiDataMode: settings.wifiDataMode,
+        showDataWarnings: settings.showDataWarnings,
+        monthlyDataLimitMB: settings.monthlyDataLimitMB,
+        mobileTargetMbps: settings.mobileTargetMbps,
+      );
+    });
+  }
+
+  Future<void> _updateNetworkSettings({
+    bool? pauseOnCellular,
+    DataUsageMode? cellularDataMode,
+    DataUsageMode? wifiDataMode,
+  }) async {
+    final next = NetworkSettings(
+      autoUploadOnWiFi: _networkSettings.autoUploadOnWiFi,
+      pauseOnCellular: pauseOnCellular ?? _networkSettings.pauseOnCellular,
+      cellularDataMode: cellularDataMode ?? _networkSettings.cellularDataMode,
+      wifiDataMode: wifiDataMode ?? _networkSettings.wifiDataMode,
+      showDataWarnings: _networkSettings.showDataWarnings,
+      monthlyDataLimitMB: _networkSettings.monthlyDataLimitMB,
+      mobileTargetMbps: _networkSettings.mobileTargetMbps,
+    );
+
+    if (Get.isRegistered<NetworkAwarenessService>()) {
+      await Get.find<NetworkAwarenessService>().updateSettings(next);
+    }
+
+    if (!mounted) return;
+    setState(() => _networkSettings = next);
   }
 
   Future<void> _refreshStatuses() async {
@@ -316,6 +359,182 @@ class _PermissionsViewState extends State<PermissionsView> {
     );
   }
 
+  Widget _buildModeButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          height: 38,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? Colors.black : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? Colors.black : Colors.black26,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataModeSelector({
+    required String title,
+    required String description,
+    required DataUsageMode value,
+    required ValueChanged<DataUsageMode> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontFamily: 'MontserratSemiBold',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildModeButton(
+                label: DataUsageMode.low.label,
+                selected: value == DataUsageMode.low,
+                onTap: () => onChanged(DataUsageMode.low),
+              ),
+              const SizedBox(width: 8),
+              _buildModeButton(
+                label: DataUsageMode.normal.label,
+                selected: value == DataUsageMode.normal,
+                onTap: () => onChanged(DataUsageMode.normal),
+              ),
+              const SizedBox(width: 8),
+              _buildModeButton(
+                label: DataUsageMode.high.label,
+                selected: value == DataUsageMode.high,
+                onTap: () => onChanged(DataUsageMode.high),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaybackPolicyCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Veri ve Playback Tercihleri',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontFamily: 'MontserratSemiBold',
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Sistem cache planina gore calisir; burada sadece Wi-Fi ve mobil veri davranisinin ne kadar korumaci olacagini secersin.',
+            style: TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Mobil veride cache ile sinirla',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: 'MontserratSemiBold',
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Aciksa mobil veride yeni segment cekmek yerine once eldeki cache kullanilir.',
+                      style: TextStyle(
+                        color: Colors.black45,
+                        fontSize: 12,
+                        fontFamily: 'MontserratMedium',
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Switch.adaptive(
+                value: _networkSettings.pauseOnCellular,
+                onChanged: (value) =>
+                    _updateNetworkSettings(pauseOnCellular: value),
+              ),
+            ],
+          ),
+          _buildDataModeSelector(
+            title: 'Mobil veri playback modu',
+            description:
+                'Cellular guard altinda ne kadar agresif prefetch ve kalite kullanilacagini belirler.',
+            value: _networkSettings.cellularDataMode,
+            onChanged: (value) =>
+                _updateNetworkSettings(cellularDataMode: value),
+          ),
+          _buildDataModeSelector(
+            title: 'Wi-Fi playback modu',
+            description:
+                'Wi-Fi fill sirasinda startup ve ahead window davranisinin ne kadar genis olacagini belirler.',
+            value: _networkSettings.wifiDataMode,
+            onChanged: (value) => _updateNetworkSettings(wifiDataMode: value),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -417,6 +636,7 @@ class _PermissionsViewState extends State<PermissionsView> {
                             ),
                           ),
                           _buildQuotaBreakdown(),
+                          _buildPlaybackPolicyCard(),
                         ],
                       ),
                     ),
