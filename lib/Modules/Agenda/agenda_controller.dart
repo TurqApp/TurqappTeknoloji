@@ -43,6 +43,8 @@ class AgendaController extends GetxController {
   PostRepository get _postRepository => PostRepository.ensure();
 
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
+  final RxList<Map<String, dynamic>> mergedFeedEntries =
+      <Map<String, dynamic>>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
 
   /// FAB gösterimi için kullanılır. Her frame'de reactive güncelleme yapmak yerine
@@ -61,6 +63,7 @@ class AgendaController extends GetxController {
   final RxSet<String> highlightDocIDs = <String>{}.obs;
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
+  Worker? _mergedFeedWorker;
   final Map<int, double> _visibleFractions = <int, double>{};
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
 
@@ -231,6 +234,7 @@ class AgendaController extends GetxController {
         : Get.put(NavBarController());
     _bindFollowingListener();
     _bindCenteredIndexListener();
+    _bindMergedFeedEntries();
   }
 
   @override
@@ -410,6 +414,7 @@ class AgendaController extends GetxController {
 
   @override
   void onClose() {
+    _mergedFeedWorker?.dispose();
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
     unawaited(persistWarmLaunchCache());
@@ -464,6 +469,68 @@ class AgendaController extends GetxController {
     if (uid == null) return;
     // İlk yükleme: pull-based (SWR pattern)
     _fetchFollowingAndReshares(uid);
+  }
+
+  void _bindMergedFeedEntries() {
+    _mergedFeedWorker?.dispose();
+    _mergedFeedWorker = everAll(
+      [agendaList, feedReshareEntries],
+      (_) => _rebuildMergedFeedEntries(),
+    );
+    _rebuildMergedFeedEntries();
+  }
+
+  void _rebuildMergedFeedEntries() {
+    if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
+      mergedFeedEntries.clear();
+      return;
+    }
+
+    final agendaIndexByDoc = <String, int>{
+      for (int i = 0; i < agendaList.length; i++) agendaList[i].docID: i,
+    };
+
+    final displayByDoc = <String, Map<String, dynamic>>{};
+
+    for (int i = 0; i < agendaList.length; i++) {
+      final post = agendaList[i];
+      displayByDoc[post.docID] = {
+        'type': 'normal',
+        'model': post,
+        'reshare': false,
+        'reshareUserID': null,
+        'timestamp': post.timeStamp,
+        'agendaIndex': i,
+      };
+    }
+
+    for (final reshareEntry in feedReshareEntries) {
+      final post = reshareEntry['post'] as PostsModel;
+      final idx = agendaIndexByDoc[post.docID] ?? -1;
+      final modelRef = idx >= 0 ? agendaList[idx] : post;
+      final reshareTimestamp = (reshareEntry['reshareTimestamp'] ?? 0) as int;
+      final reshareUserID = reshareEntry['reshareUserID'] as String?;
+
+      final existing = displayByDoc[post.docID];
+      final existingTs = (existing?['timestamp'] ?? 0) as int;
+      if (existing == null || reshareTimestamp >= existingTs) {
+        displayByDoc[post.docID] = {
+          'type': 'reshare',
+          'model': modelRef,
+          'reshare': true,
+          'reshareUserID': reshareUserID,
+          'timestamp': reshareTimestamp,
+          'agendaIndex': idx,
+        };
+      }
+    }
+
+    final merged = displayByDoc.values.toList(growable: false)
+      ..sort(
+        (a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int),
+      );
+
+    mergedFeedEntries.assignAll(merged);
   }
 
   /// Pull-based following + reshares fetch (realtime listener yerine).

@@ -118,64 +118,11 @@ class AgendaView extends StatelessWidget {
                       } catch (_) {}
                     },
                     child: Obx(() {
-                      // Sadece liste değişimlerini dinle (centeredIndex DEĞİL)
-                      final _ = controller.agendaList.length;
-                      final __ = controller.feedReshareEntries.length;
+                      final _ = controller.mergedFeedEntries.length;
                       controller.feedViewMode.value;
                       controller.followingIDs.length;
-
-                      final Map<String, int> agendaIndexByDoc = {
-                        for (int i = 0; i < controller.agendaList.length; i++)
-                          controller.agendaList[i].docID: i,
-                      };
-
-                      // Tekilleştirilmiş görüntü listesi: aynı post için tek satır.
-                      // Reshare varsa normal satırı override eder.
-                      final Map<String, Map<String, dynamic>> displayByDoc = {};
-
-                      for (int i = 0; i < controller.agendaList.length; i++) {
-                        final m = controller.agendaList[i];
-                        displayByDoc[m.docID] = {
-                          'type': 'normal',
-                          'model': m,
-                          'reshare': false,
-                          'reshareUserID': null,
-                          'timestamp': m.timeStamp,
-                          'agendaIndex': i,
-                        };
-                      }
-
-                      for (final reshareEntry
-                          in controller.feedReshareEntries) {
-                        final post = reshareEntry['post'] as PostsModel;
-                        final idx = agendaIndexByDoc[post.docID] ?? -1;
-                        final modelRef =
-                            idx >= 0 ? controller.agendaList[idx] : post;
-                        final reshareTimestamp =
-                            (reshareEntry['reshareTimestamp'] ?? 0) as int;
-                        final reshareUserID =
-                            reshareEntry['reshareUserID'] as String?;
-
-                        final existing = displayByDoc[post.docID];
-                        final existingTs = (existing?['timestamp'] ?? 0) as int;
-                        if (existing == null ||
-                            reshareTimestamp >= existingTs) {
-                          displayByDoc[post.docID] = {
-                            'type': 'reshare',
-                            'model': modelRef,
-                            'reshare': true,
-                            'reshareUserID': reshareUserID,
-                            'timestamp': reshareTimestamp,
-                            'agendaIndex': idx,
-                          };
-                        }
-                      }
-
-                      final List<Map<String, dynamic>> display = displayByDoc
-                          .values
-                          .toList()
-                        ..sort((a, b) => (b['timestamp'] as int)
-                            .compareTo(a['timestamp'] as int));
+                      final List<Map<String, dynamic>> display =
+                          controller.mergedFeedEntries.toList(growable: false);
 
                       List<Map<String, dynamic>> filteredDisplay = display;
                       if (controller.isFollowingMode &&
