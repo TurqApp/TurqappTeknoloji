@@ -311,7 +311,6 @@ class AgendaView extends StatelessWidget {
                           Widget buildPostContent() {
                             if (!model.hasPlayableVideo) {
                               return Obx(() {
-                                CurrentUserService.instance.currentUserRx.value;
                                 final viewSelection = CurrentUserService
                                     .instance.effectiveViewSelection;
                                 if (viewSelection == 1) {
@@ -339,7 +338,6 @@ class AgendaView extends StatelessWidget {
                             return Obx(() {
                               final isCentered =
                                   controller.centeredIndex.value == agendaIndex;
-                              CurrentUserService.instance.currentUserRx.value;
                               final viewSelection = CurrentUserService
                                   .instance.effectiveViewSelection;
                               if (viewSelection == 1) {

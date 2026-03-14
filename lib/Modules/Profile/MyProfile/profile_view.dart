@@ -331,15 +331,16 @@ class _ProfileViewState extends State<ProfileView> {
                                               item['isReshare'] as bool;
                                           final itemKey = controller
                                               .getPostKey(actualIndex);
-                                          final isCentered =
-                                              controller.centeredIndex.value ==
-                                                  actualIndex;
 
                                           return Padding(
                                             padding: EdgeInsets.only(bottom: 5),
                                             child: Column(
                                               children: [
                                                 Obx(() {
+                                                  final isCentered =
+                                                      controller.centeredIndex
+                                                              .value ==
+                                                          actualIndex;
                                                   return Padding(
                                                     padding: EdgeInsets.only(
                                                         top: actualIndex == 0
