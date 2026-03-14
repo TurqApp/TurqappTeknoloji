@@ -658,7 +658,7 @@ class StoryRepository extends GetxService {
           if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
         } catch (e) {
           parseErrorCount++;
-          debugPrint('Deleted archive parse skipped: ${d.id} error=$e');
+          debugPrint('Deleted archive parse skipped');
         }
       }
     } catch (e) {
@@ -694,7 +694,7 @@ class StoryRepository extends GetxService {
         if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
       } catch (e) {
         parseErrorCount++;
-        debugPrint('Deleted story parse skipped: ${d.id} error=$e');
+        debugPrint('Deleted story parse skipped');
       }
     }
 

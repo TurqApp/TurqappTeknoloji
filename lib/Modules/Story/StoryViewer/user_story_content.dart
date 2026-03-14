@@ -170,7 +170,7 @@ class _UserStoryContentState extends State<UserStoryContent>
 
     // İndex doğrulaması
     if (storyIndex >= widget.user.stories.length || storyIndex < 0) {
-      print("⚠️ Invalid story index: $storyIndex");
+      debugPrint("Invalid story index");
       return;
     }
 
@@ -180,7 +180,6 @@ class _UserStoryContentState extends State<UserStoryContent>
     });
 
     final currentStory = widget.user.stories[storyIndex];
-    print("🎥 Starting story: ${currentStory.id} (Index: $storyIndex)");
 
     controller.getLikes(currentStory.id);
     controller.setSeen(currentStory.id);
@@ -233,7 +232,7 @@ class _UserStoryContentState extends State<UserStoryContent>
             coverUrl: currentStory.musicCoverUrl,
           ));
         } catch (e) {
-          print("Müzik yüklenemedi: $e");
+          debugPrint("Story music load error: $e");
           _waitingForMusic = false;
           _startProgress(); // fallback
         }
@@ -294,7 +293,6 @@ class _UserStoryContentState extends State<UserStoryContent>
           if (progress >= 1.0) {
             progress = 1.0;
             _timer?.cancel();
-            print("⏱️ Story progress completed - Auto next");
             _nextStory(auto: true);
           }
         });
@@ -310,8 +308,6 @@ class _UserStoryContentState extends State<UserStoryContent>
 
     if (storyIndex < widget.user.stories.length - 1) {
       final newIndex = storyIndex + 1;
-      print(
-          "➡️ Next Story: $storyIndex -> $newIndex (${widget.user.stories[newIndex].id})");
 
       // Mevcut hikayeyi izlendi olarak işaretle (ara güncelleme)
       _markCurrentStoryAsSeen();
@@ -337,8 +333,6 @@ class _UserStoryContentState extends State<UserStoryContent>
 
     if (storyIndex > 0) {
       final newIndex = storyIndex - 1;
-      print(
-          "⬅️ Prev Story: $storyIndex -> $newIndex (${widget.user.stories[newIndex].id})");
 
       setState(() {
         storyIndex = newIndex;
@@ -402,17 +396,10 @@ class _UserStoryContentState extends State<UserStoryContent>
       return const SizedBox.shrink(); // veya bir loading gösterebilirsin
     }
 
-    // Debug: Hangi hikayenin gösterildiğini kontrol et
-    print(
-        "📺 Building story content - User: ${widget.user.nickname}, Story Index: $storyIndex/${widget.user.stories.length - 1}, Story ID: ${widget.user.stories[storyIndex].id}");
-
     final totalStories = widget.user.stories.length;
     final currentStory = widget.user.stories[storyIndex];
     final sortedElements = [...currentStory.elements]
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
-
-    print(
-        "🎨 Rendering story elements: ${sortedElements.length} elements for story ${currentStory.id}");
 
     return Column(
       key: ValueKey('story_column_${currentStory.id}'),
@@ -462,15 +449,12 @@ class _UserStoryContentState extends State<UserStoryContent>
 
                   // Ekran genisliginin ortasına göre karar ver
                   if (details.localPosition.dx > screenWidth / 2) {
-                    print("➡️ Right tap - Next story");
                     _nextStory();
                   } else {
-                    print("⬅️ Left tap - Previous story");
                     _prevStory();
                   }
                 },
                 onLongPressStart: (_) {
-                  print("⏸️ Story paused - Long press started");
                   setState(() {
                     _isHoldPaused = true;
                   });
@@ -478,7 +462,6 @@ class _UserStoryContentState extends State<UserStoryContent>
                   _audioPlayer.pause();
                 },
                 onLongPressEnd: (_) {
-                  print("▶️ Story resumed - Long press ended");
                   setState(() {
                     _isHoldPaused = false;
                   });
@@ -1208,15 +1191,14 @@ class _UserStoryContentState extends State<UserStoryContent>
         );
       }
     } catch (e) {
-      print('deleteStory update error: $e');
+      debugPrint('deleteStory update error: $e');
     }
 
     // Story refresh
     try {
       await Get.find<StoryRowController>().loadStories();
-      print("🗑️ Story deleted and refreshed");
     } catch (e) {
-      print("🗑️ Story delete refresh error: $e");
+      debugPrint("Story delete refresh error: $e");
     }
   }
 }

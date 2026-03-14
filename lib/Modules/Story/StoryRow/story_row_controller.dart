@@ -66,9 +66,8 @@ class StoryRowController extends GetxController {
     try {
       final controller = Get.find<StoryRowController>();
       await controller.loadStories();
-      print("🔄 Stories refreshed globally");
     } catch (e) {
-      print("🔄 Global story refresh error: $e");
+      debugPrint("Story refresh error: $e");
     }
   }
 
@@ -107,7 +106,7 @@ class StoryRowController extends GetxController {
         }
       }
     } catch (e) {
-      print("📚 AddMyUserImmediately error: $e");
+      debugPrint("AddMyUserImmediately error: $e");
     }
   }
 
@@ -136,7 +135,7 @@ class StoryRowController extends GetxController {
     try {
       await _storyRepository.clearStoryRowCacheForCurrentUser();
     } catch (e) {
-      print('Story mini cache clear error: $e');
+      debugPrint('Story mini cache clear error: $e');
     }
   }
 
@@ -251,7 +250,7 @@ class StoryRowController extends GetxController {
         );
       }
     } catch (e) {
-      print("📚 LoadStories error: $e");
+      debugPrint("LoadStories error: $e");
       if (users.isEmpty) {
         await _loadStoriesFromMiniCache();
       }
@@ -283,7 +282,7 @@ class StoryRowController extends GetxController {
       }
       _ensureMyUserPlaceholder();
     } catch (e) {
-      print('Story mini cache load error: $e');
+      debugPrint('Story mini cache load error: $e');
     }
   }
 

@@ -520,10 +520,9 @@ class StoryMakerController extends GetxController {
           selectedMusic.value = track;
           music.value = track.audioUrl;
           elements.refresh();
-          print("🎵 MÜZİK ÇALIYOR: ${track.audioUrl}");
         }
       } catch (e) {
-        print("selectMusic play error: $e");
+        debugPrint("selectMusic play error: $e");
         isMusicPlaying.value = false;
       }
     }
@@ -853,14 +852,14 @@ class StoryMakerController extends GetxController {
       final List<Map<String, dynamic>> serialized = [];
       for (final e in elementsCopy) {
         String url = e.content;
-        if (e.type == StoryElementType.image ||
-            e.type == StoryElementType.video ||
-            e.type == StoryElementType.drawing) {
-          final file = File(e.content);
-          if (!file.existsSync()) {
-            print("File not found: ${e.content}");
-            continue; // Skip missing files
-          }
+      if (e.type == StoryElementType.image ||
+          e.type == StoryElementType.video ||
+          e.type == StoryElementType.drawing) {
+        final file = File(e.content);
+        if (!file.existsSync()) {
+          debugPrint("Story media source missing");
+          continue; // Skip missing files
+        }
           final ts = DateTime.now().millisecondsSinceEpoch;
           final uid = user.uid;
           if (e.type == StoryElementType.video) {
@@ -955,23 +954,22 @@ class StoryMakerController extends GetxController {
           await _audioPlayer.stop();
         }
       } catch (e) {
-        print("AudioPlayer stop error (ignored): $e");
+        debugPrint("AudioPlayer stop error (ignored): $e");
       }
 
       // 7) Başarılı mesajı (arka planda)
       // AppSnackbar("Başarılı", "Hikaye kaydedildi");
-      print("Story kaydedildi (${serialized.length} element)");
 
       // 8) UI'ı güncelle - global refresh çağır
       try {
         await Get.find<StoryRowController>().loadStories();
       } catch (e) {
-        print("UI update error: $e");
+        debugPrint("Story UI refresh error: $e");
         // UI güncelleme hatası önemli değil, story zaten kaydedildi
       }
     } catch (err) {
       AppSnackbar("Hata", "Hikaye kaydedilemedi: ${err.toString()}");
-      print("saveStory error: $err");
+      debugPrint("saveStory error: $err");
     } finally {
       // Her durumda upload state'i temizle
       isUploadingStory.value = false;
