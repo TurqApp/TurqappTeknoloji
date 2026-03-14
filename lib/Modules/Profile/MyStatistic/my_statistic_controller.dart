@@ -85,9 +85,8 @@ class MyStatisticController extends GetxController {
       ]);
       _computeDerived();
       await _statsRepository.setStats(uid, _buildStatsSnapshot());
-    } catch (e) {
-      // Keep partial results; just log
-      print('MyStatisticController load error: $e');
+    } catch (_) {
+      // Keep partial results.
     } finally {
       isLoading.value = false;
     }
@@ -161,8 +160,7 @@ class MyStatisticController extends GetxController {
       final result = await _statsRepository.fetchFollowerGrowth(uid);
       followerGrowth30d.value = result['followerGrowth30d'] ?? 0;
       followerGrowthPrev30d.value = result['followerGrowthPrev30d'] ?? 0;
-    } catch (e) {
-      print('Follower counts error: $e');
+    } catch (_) {
       // still show what we have
     }
   }
@@ -174,8 +172,7 @@ class MyStatisticController extends GetxController {
       posts30d.value = result['posts30d'] ?? 0;
       totalPostViews.value = result['totalPostViews'] ?? 0;
       postViews30d.value = result['postViews30d'] ?? 0;
-    } catch (e) {
-      print('Post counts/views error: $e');
+    } catch (_) {
     }
   }
 
@@ -185,8 +182,7 @@ class MyStatisticController extends GetxController {
       stories30d.value = result['stories30d'] ?? 0;
       profileVisitsApprox.value = result['profileVisitsApprox'] ?? 0;
       totalStoryViews.value = result['totalStoryViews'] ?? 0;
-    } catch (e) {
-      print('Story views error: $e');
+    } catch (_) {
     }
   }
 

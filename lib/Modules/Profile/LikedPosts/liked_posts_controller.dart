@@ -56,8 +56,7 @@ class LikedPostControllers extends GetxController {
       final posts = await _linkService.fetchLikedPosts(userId, refs);
       final visiblePosts = posts.where((p) => p.deletedPost != true).toList();
       all.assignAll(visiblePosts);
-    } catch (e) {
-      print('❌ LikedPostControllers hydrate error: $e');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

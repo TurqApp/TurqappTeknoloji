@@ -33,13 +33,10 @@ class PostSharersController extends GetxController {
       }
 
       postSharers.value = sharers;
-      print(
-          'PostSharers: Found ${sharers.length} sharers with userIDs: $userIDs');
 
       // Load user data for all sharers
       await loadUsersData(userIDs.toList());
-    } catch (e) {
-      print('Error loading post sharers: $e');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -76,8 +73,7 @@ class PostSharersController extends GetxController {
       }
 
       usersData.value = userData;
-    } catch (e) {
-      print('Error loading users data: $e');
+    } catch (_) {
     }
   }
 

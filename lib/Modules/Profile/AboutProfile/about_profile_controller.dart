@@ -43,8 +43,7 @@ class AboutProfileController extends GetxController {
           data.containsKey("createdDate") ? data["createdDate"] ?? "" : "";
       fullName.value =
           "${data["firstName"] ?? ""} ${data["lastName"] ?? ""}".trim();
-    } catch (e) {
-      print("Profil verisi alınamadı: $e");
+    } catch (_) {
     }
   }
 }
