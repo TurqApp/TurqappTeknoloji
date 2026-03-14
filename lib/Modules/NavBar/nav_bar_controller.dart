@@ -119,17 +119,23 @@ class NavBarController extends GetxController
 
       try {
         if (Get.isRegistered<ShortController>()) {
-          shortCtrl.warmStart(targetCount: 8, maxPages: 2);
+          final shortsController = shortCtrl;
+          if (shortsController.shorts.length < 8) {
+            shortsController.warmStart(targetCount: 8, maxPages: 2);
+          }
         }
       } catch (_) {}
 
       try {
         if (Get.isRegistered<StoryRowController>()) {
-          await Get.find<StoryRowController>().loadStories(
-            limit: 30,
-            cacheFirst: true,
-            silentLoad: true,
-          );
+          final storyController = Get.find<StoryRowController>();
+          if (storyController.users.length < 30) {
+            await storyController.loadStories(
+              limit: 30,
+              cacheFirst: true,
+              silentLoad: true,
+            );
+          }
         }
       } catch (_) {}
     });
@@ -185,18 +191,15 @@ class NavBarController extends GetxController
     // Dispose animation controllers safely
     try {
       typingController.value.dispose();
-    } catch (_) {
-    }
+    } catch (_) {}
 
     try {
       deletingController.value.dispose();
-    } catch (_) {
-    }
+    } catch (_) {}
 
     try {
       animationController.value.dispose();
-    } catch (_) {
-    }
+    } catch (_) {}
 
     super.onClose();
   }
