@@ -11,6 +11,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
+import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
@@ -221,6 +222,17 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         isAudible: volume,
         hasStableFocus: true,
       );
+      if (Get.isRegistered<PlaybackKpiService>()) {
+        Get.find<PlaybackKpiService>().track(
+          PlaybackKpiEventType.playbackIntent,
+          {
+            'source': 'single_short_view',
+            'docId': shorts[page].docID,
+            'audible': volume,
+            'stableFocus': true,
+          },
+        );
+      }
       if (Get.isRegistered<PrefetchScheduler>()) {
         try {
           Get.find<PrefetchScheduler>().updateQueue(

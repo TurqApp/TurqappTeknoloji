@@ -16,4 +16,22 @@ void main() {
     expect(service.recentEvents.last.type, PlaybackKpiEventType.prefetchHealth);
     expect(service.recentEvents.last.payload['queueSize'], 204);
   });
+
+  test('tracks playback intent events', () {
+    final service = PlaybackKpiService();
+
+    service.track(
+      PlaybackKpiEventType.playbackIntent,
+      const {
+        'source': 'short_view',
+        'docId': 'video_1',
+        'audible': true,
+        'stableFocus': true,
+      },
+    );
+
+    expect(service.recentEvents.last.type, PlaybackKpiEventType.playbackIntent);
+    expect(service.recentEvents.last.payload['source'], 'short_view');
+    expect(service.recentEvents.last.payload['stableFocus'], isTrue);
+  });
 }

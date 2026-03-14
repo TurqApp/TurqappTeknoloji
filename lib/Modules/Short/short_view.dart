@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
@@ -358,6 +359,17 @@ class _ShortViewState extends State<ShortView> {
         isAudible: volume,
         hasStableFocus: true,
       );
+      if (Get.isRegistered<PlaybackKpiService>()) {
+        Get.find<PlaybackKpiService>().track(
+          PlaybackKpiEventType.playbackIntent,
+          {
+            'source': 'short_view',
+            'docId': docId,
+            'audible': volume,
+            'stableFocus': true,
+          },
+        );
+      }
       try {
         Get.find<PrefetchScheduler>().updateQueue(
           _cachedShorts.map((s) => s.docID).toList(growable: false),
