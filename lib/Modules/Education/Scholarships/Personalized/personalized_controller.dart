@@ -84,8 +84,7 @@ class PersonalizedController extends GetxController {
 
       // Load scholarships data
       await _loadScholarshipsData();
-    } catch (e) {
-      print('Error initializing data: $e');
+    } catch (_) {
     } finally {
       isInitialLoading.value = false;
     }
@@ -124,8 +123,7 @@ class PersonalizedController extends GetxController {
         _updateUserData(data);
         isUserDataLoaded.value = true;
       }
-    } catch (e) {
-      print('Error loading user data: $e');
+    } catch (_) {
     }
   }
 
@@ -165,9 +163,7 @@ class PersonalizedController extends GetxController {
             .toList(growable: false);
         vitrin.value = tempList;
       }
-    }).catchError((error) {
-      print('Error loading vitrin data: $error');
-    });
+    }).catchError((_) {});
   }
 
   // Load scholarships data (pull-based)
@@ -177,8 +173,7 @@ class PersonalizedController extends GetxController {
     try {
       final items = await _scholarshipRepository.fetchLatestRaw(limit: 50);
       _processScholarshipsData(items);
-    } catch (error) {
-      print('Error loading scholarships data: $error');
+    } catch (_) {
       isLoading.value = false;
     }
   }
@@ -215,8 +210,7 @@ class PersonalizedController extends GetxController {
       _saveCachedList(allItems);
       count.value = list.length;
       isLoading.value = false;
-    } catch (e) {
-      print('Error processing scholarships data: $e');
+    } catch (_) {
       isLoading.value = false;
     }
   }
@@ -305,7 +299,6 @@ class PersonalizedController extends GetxController {
       final permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        print("Konum izni verilmedi.");
         return;
       }
 
@@ -325,8 +318,7 @@ class PersonalizedController extends GetxController {
         final place = placemarks[0];
         await _updateLocationData(place);
       }
-    } catch (e) {
-      print("Konum bilgisi alınırken hata oluştu: $e");
+    } catch (_) {
     }
   }
 
@@ -360,8 +352,7 @@ class PersonalizedController extends GetxController {
           ),
         });
       }
-    } catch (e) {
-      print('Error updating location in Firestore: $e');
+    } catch (_) {
     }
   }
 
@@ -372,7 +363,6 @@ class PersonalizedController extends GetxController {
     isInitialLoading.value = true;
 
     await _initializeData();
-    print("List refreshed!");
   }
 
   Future<void> _loadCachedList() async {
