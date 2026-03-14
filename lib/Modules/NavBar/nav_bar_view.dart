@@ -308,9 +308,11 @@ class NavBarView extends StatelessWidget {
                                               ? Get.find<ShortController>()
                                               : Get.put(ShortController());
 
-                                      shortController
-                                          .backgroundPreload()
-                                          .catchError((_) {});
+                                      if (shortController.shorts.isEmpty) {
+                                        shortController
+                                            .backgroundPreload()
+                                            .catchError((_) {});
+                                      }
 
                                       await Get.to(() => const ShortView());
                                     }
