@@ -264,9 +264,11 @@ class _ShortViewState extends State<ShortView> {
 
   void _scheduleTierUpdate(int page) {
     _tierDebounce?.cancel();
-    _tierDebounce = Timer(_tierDebounceDelay, () {
+    _tierDebounce = Timer(_tierDebounceDelay, () async {
+      await controller.updateCacheTiers(page);
       if (!mounted || page != currentPage) return;
-      unawaited(controller.updateCacheTiers(page));
+      setState(() {});
+      _schedulePlayForPage(page);
     });
   }
 
@@ -277,6 +279,8 @@ class _ShortViewState extends State<ShortView> {
 
     // Cache tier'larını güncelle (ilk 5 preload dahil)
     await controller.updateCacheTiers(currentPage);
+    if (!mounted) return;
+    setState(() {});
 
     _schedulePlayForPage(currentPage);
   }
@@ -637,115 +641,115 @@ class _ShortViewState extends State<ShortView> {
                 itemCount: list.length,
                 onPageChanged: _onPageChanged,
                 itemBuilder: (_, idx) {
-                final vp = controller.cache[idx];
+                  final vp = controller.cache[idx];
 
-                if (vp == null) {
-                  return const Center(
-                    child: CupertinoActivityIndicator(color: Colors.white),
-                  );
-                }
+                  if (vp == null) {
+                    return const Center(
+                      child: CupertinoActivityIndicator(color: Colors.white),
+                    );
+                  }
 
-                // PURE BUILD — side effect yok, sadece widget döndür
-                final modelAr = list[idx].aspectRatio > 0
-                    ? list[idx].aspectRatio.toDouble()
-                    : (9 / 16);
+                  // PURE BUILD — side effect yok, sadece widget döndür
+                  final modelAr = list[idx].aspectRatio > 0
+                      ? list[idx].aspectRatio.toDouble()
+                      : (9 / 16);
 
-                // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
-                Widget videoWidget;
-                if (modelAr > 1.2) {
-                  // Yatay dikdörtgen
-                  videoWidget = Center(
-                    child: AspectRatio(
-                      aspectRatio: modelAr,
-                      child: vp.buildPlayer(useAspectRatio: false),
-                    ),
-                  );
-                } else if (modelAr >= 0.8) {
-                  // Kare frame
-                  videoWidget = Center(
-                    child: AspectRatio(
-                      aspectRatio: 1.0,
-                      child: vp.buildPlayer(useAspectRatio: false),
-                    ),
-                  );
-                } else {
-                  // Dikey — ekranı doldur
-                  videoWidget = SizedBox.expand(
-                    child: vp.buildPlayer(),
-                  );
-                }
-
-                return RepaintBoundary(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Video layer
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onDoubleTap: () {
-                          // Çift dokunma: ses aç/kapa
-                          setState(() => volume = !volume);
-                          vp.setVolume(volume ? 1 : 0);
-                        },
-                        child: videoWidget,
+                  // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
+                  Widget videoWidget;
+                  if (modelAr > 1.2) {
+                    // Yatay dikdörtgen
+                    videoWidget = Center(
+                      child: AspectRatio(
+                        aspectRatio: modelAr,
+                        child: vp.buildPlayer(useAspectRatio: false),
                       ),
-                      ShortsContent(
-                        model: list[idx],
-                        volumeOff: (v) {
-                          if (v) {
-                            vp.play();
-                            isManuallyPaused = false;
-                          } else {
-                            vp.pause();
-                            isManuallyPaused = true;
-                          }
-                        },
-                        videoPlayerController: vp,
-                        onEdited: (updatedDocId) async {
-                          await controller.updateShort(updatedDocId);
-                          await controller.refreshVideoController(idx);
-                          setState(() {});
-                        },
+                    );
+                  } else if (modelAr >= 0.8) {
+                    // Kare frame
+                    videoWidget = Center(
+                      child: AspectRatio(
+                        aspectRatio: 1.0,
+                        child: vp.buildPlayer(useAspectRatio: false),
                       ),
-                      // İnce progress bar — altta
-                      if (idx == currentPage)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _ShortProgressBar(adapter: vp),
+                    );
+                  } else {
+                    // Dikey — ekranı doldur
+                    videoWidget = SizedBox.expand(
+                      child: vp.buildPlayer(),
+                    );
+                  }
+
+                  return RepaintBoundary(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Video layer
+                        GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onDoubleTap: () {
+                            // Çift dokunma: ses aç/kapa
+                            setState(() => volume = !volume);
+                            vp.setVolume(volume ? 1 : 0);
+                          },
+                          child: videoWidget,
                         ),
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildCircleButton(
-                                    icon: CupertinoIcons.arrow_left,
-                                    onTap: () => Get.back(),
-                                  ),
-                                  _buildCircleButton(
-                                    icon: volume
-                                        ? CupertinoIcons.volume_up
-                                        : CupertinoIcons.volume_off,
-                                    onTap: () {
-                                      setState(() => volume = !volume);
-                                      vp.setVolume(volume ? 1 : 0);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
+                        ShortsContent(
+                          model: list[idx],
+                          volumeOff: (v) {
+                            if (v) {
+                              vp.play();
+                              isManuallyPaused = false;
+                            } else {
+                              vp.pause();
+                              isManuallyPaused = true;
+                            }
+                          },
+                          videoPlayerController: vp,
+                          onEdited: (updatedDocId) async {
+                            await controller.updateShort(updatedDocId);
+                            await controller.refreshVideoController(idx);
+                            setState(() {});
+                          },
+                        ),
+                        // İnce progress bar — altta
+                        if (idx == currentPage)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _ShortProgressBar(adapter: vp),
+                          ),
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildCircleButton(
+                                      icon: CupertinoIcons.arrow_left,
+                                      onTap: () => Get.back(),
+                                    ),
+                                    _buildCircleButton(
+                                      icon: volume
+                                          ? CupertinoIcons.volume_up
+                                          : CupertinoIcons.volume_off,
+                                      onTap: () {
+                                        setState(() => volume = !volume);
+                                        vp.setVolume(volume ? 1 : 0);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
+                      ],
+                    ),
+                  );
                 },
               ),
             ),
