@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -138,8 +137,7 @@ class CreateScholarshipController extends GetxController {
         format: CompressFormat.webp,
         quality: quality,
       );
-    } catch (e) {
-      log('WebP sıkıştırma hatası (file): $e');
+    } catch (_) {
       return null;
     }
   }
@@ -152,8 +150,7 @@ class CreateScholarshipController extends GetxController {
         format: CompressFormat.webp,
         quality: quality,
       );
-    } catch (e) {
-      log('WebP sıkıştırma hatası (bytes): $e');
+    } catch (_) {
       return null;
     }
   }
@@ -405,20 +402,17 @@ class CreateScholarshipController extends GetxController {
 
   Future<String?> _uploadImage(String localPath, {bool isLogo = false}) async {
     if (localPath.isEmpty) {
-      log('Hata: Dosya yolu boş.');
       return null;
     }
 
     // URL ise yükleme yapma, mevcut URL'yi döndür
     if (localPath.startsWith('http')) {
-      log('Bu bir Firebase URL\'si, yükleme yapılmayacak: $localPath');
       return localPath;
     }
 
     try {
       final file = File(localPath);
       if (!await file.exists()) {
-        log('Hata: Dosya bulunamadı: $localPath');
         AppSnackbar('Hata', 'Seçilen dosya bulunamadı.');
         return null;
       }
@@ -450,10 +444,8 @@ class CreateScholarshipController extends GetxController {
         ),
       );
       final downloadUrl = await ref.getDownloadURL();
-      log('Görsel başarıyla yüklendi: $downloadUrl');
       return downloadUrl;
-    } catch (e) {
-      log('Görsel yüklenirken bir hata oluştu: $e');
+    } catch (_) {
       AppSnackbar('Hata', 'Görsel yüklenirken bir hata oluştu.');
       return null;
     }
@@ -462,14 +454,12 @@ class CreateScholarshipController extends GetxController {
   Future<String?> _captureAndUploadTemplate() async {
     try {
       if (selectedTemplateIndex.value == -1) {
-        log('Hata: Şablon seçilmedi.');
         return null;
       }
 
       RenderRepaintBoundary? boundary = templateKey.currentContext
           ?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) {
-        log('Hata: RenderRepaintBoundary bulunamadı.');
         return null;
       }
 
@@ -477,7 +467,6 @@ class CreateScholarshipController extends GetxController {
       ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) {
-        log('Hata: ByteData oluşturulamadı.');
         return null;
       }
 
@@ -495,7 +484,6 @@ class CreateScholarshipController extends GetxController {
 
       // Dosyanın yazıldığını doğrulayın
       if (!await file.exists()) {
-        log('Hata: Dosya oluşturulamadı: $tempPath');
         return null;
       }
       final nsfw = await OptimizedNSFWService.checkImage(file);
@@ -527,14 +515,9 @@ class CreateScholarshipController extends GetxController {
       templateUrl.value = downloadUrl;
       template.value =
           'template${selectedTemplateIndex.value + 1}'; // Şablon adını güncelle
-      log('Şablon görüntüsü başarıyla yüklendi: $downloadUrl');
       return downloadUrl;
-    } catch (e, stackTrace) {
-      log('Şablon görüntüsü yakalanırken/yüklenirken hata oluştu: $e',
-          stackTrace: stackTrace);
+    } catch (_) {
       AppSnackbar('Hata', 'Şablon görüntüsü yakalanamadı.');
-      log('Şablon görüntüsü yakalanamadı: $e');
-
       return null;
     }
   }
@@ -703,9 +686,8 @@ class CreateScholarshipController extends GetxController {
         AppSnackbar('Başarılı', 'Burs başarıyla paylaşıldı!');
 
         resetForm();
-      } catch (e) {
+      } catch (_) {
         AppSnackbar('Hata', 'Burs paylaşılırken bir hata oluştu.');
-        log('Burs paylaşılırken bir hata oluştu: $e');
       } finally {
         isLoading.value = false;
       }
