@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/eviction_scoring_engine.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
@@ -345,45 +346,17 @@ class SegmentCacheManager extends GetxController {
   }
 
   double _evictionScore(VideoCacheEntry entry) {
-    // playing durumundaki videoyu asla silme
-    if (entry.state == VideoCacheState.playing) return 1000.0;
-
-    double score = 0;
-    switch (entry.state) {
-      case VideoCacheState.evictable:
-        score = 0;
-        break;
-      case VideoCacheState.watched:
-        score = 10;
-        break;
-      case VideoCacheState.partial:
-        score = 20;
-        break;
-      case VideoCacheState.ready:
-        score = 30;
-        break;
-      case VideoCacheState.fetching:
-        score = 25;
-        break;
-      default:
-        score = 5;
-    }
-
-    // Zamana dayalı bonus
-    final ageMs =
-        DateTime.now().difference(entry.lastAccessedAt).inMilliseconds;
-    if (ageMs < 60000) {
-      score += 50; // son 1 dk
-    } else if (ageMs < 300000) {
-      score += 30; // son 5 dk
-    }
-
-    // Son N video koruma bonusu (-5 kuralı: izlenen son 5 video korunsun)
-    if (_recentlyPlayed.contains(entry.docID)) {
-      score += 200;
-    }
-
-    return score;
+    return EvictionScoringEngine.score(
+      EvictionScoreContext(
+        state: entry.state,
+        lastAccessedAt: entry.lastAccessedAt,
+        isRecentlyPlayed: _recentlyPlayed.contains(entry.docID),
+        watchProgress: entry.watchProgress,
+        cachedSegmentCount: entry.cachedSegmentCount,
+        totalSegmentCount: entry.totalSegmentCount,
+        totalSizeBytes: entry.totalSizeBytes,
+      ),
+    );
   }
 
   bool _isLowQualityEntry(VideoCacheEntry entry) {
