@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
@@ -13,6 +14,13 @@ import 'package:turqappv2/Models/job_model.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
+
+List<Map<String, dynamic>> _decodeJobCityDistrictList(String response) {
+  final List<dynamic> data = json.decode(response) as List<dynamic>;
+  return data
+      .map((item) => Map<String, dynamic>.from(item as Map))
+      .toList();
+}
 
 class JobFinderController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
@@ -573,7 +581,7 @@ class JobFinderController extends GetxController {
     try {
       final String response =
           await rootBundle.loadString('assets/data/CityDistrict.json');
-      final List<dynamic> data = json.decode(response);
+      final data = await compute(_decodeJobCityDistrictList, response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
