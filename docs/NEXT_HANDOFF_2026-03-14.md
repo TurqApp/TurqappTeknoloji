@@ -4,6 +4,7 @@
 
 - Branch: `codex/final-perf-firebase-baseline`
 - Son güvenli kaynak commit'i: `0f523b77`
+- Handoff commit'i: `5620ce66`
 - Bu commit'e kadar source dosyaları commit'li ve doğrulanmış durumda.
 
 ## Son Alınan Kaynak Commit'leri
@@ -39,7 +40,9 @@
 - `npm run test:rules` daha once yesildi.
 - Son full gate turunda `@firebase/rules-unit-testing` paketi bozuk/eksik gorundugu icin fail oldu.
 - Ardindan `npm ci` calistirildi ve paket yapisi geri geldi.
-- Rules test yeniden tetiklendi ama kullanici tarafindan tur kesildi; son sonuc tamamlanmadi.
+- Rules test yeniden tetiklendi; import/paket hatasi kayboldu ve suite derin bir noktaya kadar gecti.
+- Ancak bu son rerun'un final exit durumu bu oturumda kesin olarak kaydedilmedi.
+- Bu nedenle ilk is olarak tek bir temiz `npm run test:rules` rerun'u alinmali.
 
 ## Devam Icin Ilk Isler
 
@@ -74,4 +77,3 @@
 - Kullanici beklentisi: uygulama ahengi degismeyecek.
 - Bu nedenle bu hatta agir refactor degil, kucuk ve izole commit'lerle ilerleniyor.
 - Kirli local `node_modules` veya kullaniciya ait unrelated dosyalar asla commit'e alinmamali.
-
