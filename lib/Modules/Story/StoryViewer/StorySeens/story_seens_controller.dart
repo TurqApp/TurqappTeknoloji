@@ -9,15 +9,13 @@ class StorySeensController extends GetxController {
   Future<void> getData(String storyID) async {
     try {
       list.assignAll(await _storyRepository.fetchStoryViewerIds(storyID));
-    } catch (e) {
-      print("Görüntüleme listesi alınamadı: $e");
+    } catch (_) {
       list.clear();
     }
 
     try {
       totalSeen.value = await _storyRepository.fetchStoryViewerCount(storyID);
-    } catch (e) {
-      print("Toplam görülme alınamadı: $e");
+    } catch (_) {
       totalSeen.value = 0;
     }
   }

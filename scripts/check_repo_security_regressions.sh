@@ -18,6 +18,8 @@ COMMON_EXCLUDES=(
   --glob
   '!**/*.md'
   --glob
+  '!firebase-debug.log'
+  --glob
   '!scripts/check_repo_security_regressions.sh'
 )
 
@@ -106,6 +108,17 @@ check_literal_in_file "Draft media cleanup hata dump'i geri gelmedi" "print('Err
 check_literal_in_file "Media enhancement filter hata dump'i geri gelmedi" "print('Error applying filter: \$e');" "lib/Core/Services/media_enhancement_service.dart" || failures=$((failures + 1))
 check_literal_in_file "Media enhancement adjustments hata dump'i geri gelmedi" "print('Error applying adjustments: \$e');" "lib/Core/Services/media_enhancement_service.dart" || failures=$((failures + 1))
 check_literal_in_file "Media enhancement full processing hata dump'i geri gelmedi" "print('Error in full processing: \$e');" "lib/Core/Services/media_enhancement_service.dart" || failures=$((failures + 1))
+check_literal_in_file "Recommended users follow list hata dump'i geri gelmedi" "print('Error loading following list: \$e');" "lib/Modules/RecommendedUserList/recommended_user_list_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Recommended users liste hata dump'i geri gelmedi" "print('Error loading recommended users: \$e');" "lib/Modules/RecommendedUserList/recommended_user_list_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Recommended user follow toggle hata dump'i geri gelmedi" 'print("Bir hata oluştu: $e");' "lib/Modules/RecommendedUserList/RecommendedUserContent/recommended_user_content_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "In-app notification toplu silme print'i geri gelmedi" 'print("Tüm bildirimler toplu olarak silindi!");' "lib/Modules/InAppNotifications/in_app_notifications_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story seens viewer hata dump'i geri gelmedi" 'print("Görüntüleme listesi alınamadı: $e");' "lib/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story seens count hata dump'i geri gelmedi" 'print("Toplam görülme alınamadı: $e");' "lib/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story highlights load hata dump'i geri gelmedi" "print('loadHighlights error: \$e');" "lib/Modules/Story/StoryHighlights/story_highlights_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story highlights create hata dump'i geri gelmedi" "print('createHighlight error: \$e');" "lib/Modules/Story/StoryHighlights/story_highlights_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story highlights add hata dump'i geri gelmedi" "print('addStoryToHighlight error: \$e');" "lib/Modules/Story/StoryHighlights/story_highlights_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story highlights delete hata dump'i geri gelmedi" "print('deleteHighlight error: \$e');" "lib/Modules/Story/StoryHighlights/story_highlights_controller.dart" || failures=$((failures + 1))
+check_literal_in_file "Story highlights update hata dump'i geri gelmedi" "print('updateHighlight error: \$e');" "lib/Modules/Story/StoryHighlights/story_highlights_controller.dart" || failures=$((failures + 1))
 check_literal "Story save logunda storyId dump'i geri gelmedi" 'print("Story kaydedildi: $storyId (${serialized.length} element)");' || failures=$((failures + 1))
 check_literal "Dispose loglarinda docID dump'i geri gelmedi" 'print("Disposed AgendaContentController for $docID");' || failures=$((failures + 1))
 check_literal "Flood error logunda rootID dump'i geri gelmedi" "print('🔥 Kök flood alınamadı: \$rootID – \$e');" || failures=$((failures + 1))

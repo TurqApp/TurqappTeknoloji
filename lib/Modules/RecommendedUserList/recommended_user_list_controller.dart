@@ -99,7 +99,6 @@ class RecommendedUserListController extends GetxController {
       hasMoreFollowing = false;
       _lastFollowingLoadTime = DateTime.now();
     } catch (e) {
-      print('Error loading following list: $e');
       // Takip listesi yüklenemezse boş devam et
       hasError.value = true;
     } finally {
@@ -151,12 +150,8 @@ class RecommendedUserListController extends GetxController {
       // Listeye ata
       list.assignAll(filtered);
       _lastLoadTime = DateTime.now();
-    } catch (e) {
+    } catch (_) {
       hasError.value = true;
-      // Hata olsa bile cache'te varsa göster
-      if (list.isEmpty) {
-        print('Error loading recommended users: $e');
-      }
     } finally {
       isLoading.value = false;
     }

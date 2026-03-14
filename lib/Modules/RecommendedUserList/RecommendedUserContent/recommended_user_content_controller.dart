@@ -41,7 +41,6 @@ class RecommendedUserContentController extends GetxController {
       }
     } catch (e) {
       isFollowing.value = wasFollowing; // revert
-      print("Bir hata oluştu: $e");
     } finally {
       followLoading.value = false;
     }

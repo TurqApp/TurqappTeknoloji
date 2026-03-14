@@ -29,8 +29,7 @@ class StoryHighlightsController extends GetxController {
         forceRefresh: false,
       );
       await _hydrateMissingCoverUrls();
-    } catch (e) {
-      print('loadHighlights error: $e');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -69,8 +68,7 @@ class StoryHighlightsController extends GetxController {
         List<StoryHighlightModel>.from(highlights),
       );
       return model;
-    } catch (e) {
-      print('createHighlight error: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -95,8 +93,7 @@ class StoryHighlightsController extends GetxController {
           List<StoryHighlightModel>.from(highlights),
         );
       }
-    } catch (e) {
-      print('addStoryToHighlight error: $e');
+    } catch (_) {
     }
   }
 
@@ -115,8 +112,7 @@ class StoryHighlightsController extends GetxController {
         uid,
         List<StoryHighlightModel>.from(highlights),
       );
-    } catch (e) {
-      print('deleteHighlight error: $e');
+    } catch (_) {
     }
   }
 
@@ -143,8 +139,7 @@ class StoryHighlightsController extends GetxController {
           List<StoryHighlightModel>.from(highlights),
         );
       }
-    } catch (e) {
-      print('updateHighlight error: $e');
+    } catch (_) {
     }
   }
 

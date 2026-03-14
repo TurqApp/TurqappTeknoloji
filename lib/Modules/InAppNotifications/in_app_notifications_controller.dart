@@ -329,7 +329,6 @@ class InAppNotificationsController extends GetxController {
   Future<void> bildirimleriTopluSil() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     await _notificationsRepository.deleteAll(uid);
-    print("Tüm bildirimler toplu olarak silindi!");
   }
 
   String _postTypeFromType(String type) {
