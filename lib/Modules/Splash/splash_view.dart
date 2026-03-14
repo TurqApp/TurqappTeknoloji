@@ -451,16 +451,18 @@ class _SplashViewState extends State<SplashView> {
         Duration(milliseconds: onWiFi ? 900 : 500),
         onTimeout: () {},
       );
-      await Future.wait([
+      unawaited(
         _warmProfileCacheSurfaces(onWiFi: onWiFi).timeout(
           Duration(milliseconds: onWiFi ? 900 : 500),
           onTimeout: () {},
         ),
+      );
+      unawaited(
         _warmSliderCaches(onWiFi: onWiFi).timeout(
           Duration(milliseconds: onWiFi ? 1200 : 650),
           onTimeout: () {},
         ),
-      ]);
+      );
     } catch (_) {}
   }
 
