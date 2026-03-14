@@ -51,13 +51,6 @@ class NavBarView extends StatelessWidget {
     if (!isIOS && !Get.isRegistered<StoryRowController>()) {
       Get.put(StoryRowController());
     }
-    if (!isIOS) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!Get.isRegistered<ShortController>()) {
-          Get.put(ShortController());
-        }
-      });
-    }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
     // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
@@ -74,11 +67,6 @@ class NavBarView extends StatelessWidget {
     if (!isIOS && Get.isRegistered<UnreadMessagesController>()) {
       final unreadController = Get.find<UnreadMessagesController>();
       unreadController.startListeners();
-    }
-
-    // Short preload sadece bir kez tetiklensin (rebuild spam'i engelle)
-    if (!isIOS && Get.isRegistered<ShortController>()) {
-      controller.ensureProactiveShortPreloadStarted();
     }
 
     _controllersPrepared = true;
