@@ -214,6 +214,24 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
+  Widget _buildVideoThumbnail({double? aspectRatio}) {
+    final thumb = widget.model.thumbnail.trim();
+    final fallback = const ColoredBox(color: _classicMediaFallbackColor);
+    final image = thumb.isNotEmpty
+        ? CachedNetworkImage(
+            imageUrl: thumb,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => fallback,
+            errorWidget: (_, __, ___) => fallback,
+          )
+        : fallback;
+    if (aspectRatio == null) return image;
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: image,
+    );
+  }
+
   ShortController get shortsController => Get.isRegistered<ShortController>()
       ? Get.find<ShortController>()
       : Get.put(ShortController());
@@ -1552,7 +1570,14 @@ class _ClassicContentState extends State<ClassicContent>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (videoController != null) ...[
+                if (_shouldBlurIzBirakPost) ...[
+                  _buildVideoThumbnail(aspectRatio: frameAspectRatio),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: buildUploadIndicator(),
+                  ),
+                ] else if (videoController != null) ...[
                   IgnorePointer(
                     ignoring: true,
                     child: _isFullscreen
@@ -1575,18 +1600,7 @@ class _ClassicContentState extends State<ClassicContent>
                     },
                     child: AspectRatio(
                       aspectRatio: frameAspectRatio,
-                      child: widget.model.thumbnail.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: widget.model.thumbnail,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => const ColoredBox(
-                                color: _classicMediaFallbackColor,
-                              ),
-                              errorWidget: (_, __, ___) => const ColoredBox(
-                                color: _classicMediaFallbackColor,
-                              ),
-                            )
-                          : const ColoredBox(color: _classicMediaFallbackColor),
+                      child: _buildVideoThumbnail(),
                     ),
                   ),
                   Positioned(
@@ -1599,16 +1613,7 @@ class _ClassicContentState extends State<ClassicContent>
                     color: _classicMediaFallbackColor,
                     child: widget.model.thumbnail.isEmpty
                         ? null
-                        : CachedNetworkImage(
-                            imageUrl: widget.model.thumbnail,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => const ColoredBox(
-                              color: _classicMediaFallbackColor,
-                            ),
-                            errorWidget: (_, __, ___) => const ColoredBox(
-                              color: _classicMediaFallbackColor,
-                            ),
-                          ),
+                        : _buildVideoThumbnail(),
                   ),
                 if (videoController == null)
                   Positioned(
@@ -1618,7 +1623,7 @@ class _ClassicContentState extends State<ClassicContent>
                   ),
 
                 // Süre göstergesi + Replay — sadece video state değiştiğinde rebuild
-                if (videoController != null)
+                if (videoController != null && !_shouldBlurIzBirakPost)
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, __) {
@@ -1651,7 +1656,9 @@ class _ClassicContentState extends State<ClassicContent>
                     },
                   ),
 
-                if (videoController != null && widget.model.floodCount > 1)
+                if (videoController != null &&
+                    !_shouldBlurIzBirakPost &&
+                    widget.model.floodCount > 1)
                   Positioned(
                     bottom: 0,
                     left: 0,

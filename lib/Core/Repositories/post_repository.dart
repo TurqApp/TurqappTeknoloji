@@ -534,9 +534,9 @@ class PostRepository extends GetxService {
           .where('arsiv', isEqualTo: false)
           .where('deletedPost', isEqualTo: false)
           .where('flood', isEqualTo: false)
-          .where('scheduledAt', isGreaterThan: 0)
-          .orderBy('scheduledAt')
-          .limit(limit),
+          .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+          .orderBy('timeStamp', descending: true)
+          .limit(limit * 3),
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
@@ -545,9 +545,13 @@ class PostRepository extends GetxService {
     for (final doc in snap.docs) {
       final model = PostsModel.fromMap(doc.data(), doc.id);
       final ts = model.timeStamp.toInt();
+      final publishAt = model.izBirakYayinTarihi.toInt();
+      final scheduledAt = model.scheduledAt.toInt();
       if (ts < cutoffMs) continue;
-      if (ts > nowMs && model.scheduledAt.toInt() <= 0) continue;
+      if (scheduledAt <= 0 && publishAt <= 0) continue;
+      if (publishAt <= nowMs) continue;
       merged[model.docID] = model;
+      if (merged.length >= limit) break;
     }
 
     final sorted = merged.values.toList()

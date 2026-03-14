@@ -10,6 +10,7 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'CreatorContent/creator_content.dart';
 import 'post_creator_controller.dart';
 import '../../Core/BottomSheets/no_yes_alert.dart';
+import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 
 class PostCreator extends StatelessWidget {
@@ -247,9 +248,9 @@ class PostCreator extends StatelessWidget {
           (selectedController.pollData.value!['options'] as List).isNotEmpty;
       final disableFirstThree = controller.isEditMode.value;
       final disableFlood = controller.isEditMode.value;
-
-      const double toolbarIconSize = 18.5;
-      const double compactButtonSize = 34;
+      final iconGap = AppIconSurface.kGap;
+      final toolbarIconSize = AppIconSurface.kIconSize;
+      final compactButtonSize = GetPlatform.isIOS ? 31.0 : 30.0;
       final bottomPadding = keyboardInset > 0 ? 6.0 : 14.0;
       return AnimatedPadding(
         duration: const Duration(milliseconds: 180),
@@ -264,109 +265,89 @@ class PostCreator extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            IconButton(
-                              onPressed: disableFirstThree
-                                  ? null
-                                  : selectedController.pickImage,
-                              iconSize: toolbarIconSize,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(
-                                width: compactButtonSize,
-                                height: compactButtonSize,
-                              ),
-                              icon: Icon(
-                                CupertinoIcons.photo_on_rectangle,
-                                color: disableFirstThree
-                                    ? Colors.black38
-                                    : (hasImages
-                                        ? Colors.blueAccent
-                                        : Colors.black),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            IconButton(
-                              onPressed: disableFirstThree
-                                  ? null
-                                  : () {
-                                      selectedController.pickVideo(
-                                          source: ImageSource.gallery);
-                                    },
-                              iconSize: toolbarIconSize,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(
-                                width: compactButtonSize,
-                                height: compactButtonSize,
-                              ),
-                              icon: Icon(
-                                CupertinoIcons.play_circle,
-                                color: disableFirstThree
-                                    ? Colors.black38
-                                    : (hasVideo
-                                        ? Colors.blueAccent
-                                        : Colors.black),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            IconButton(
-                              onPressed: disableFirstThree
-                                  ? null
-                                  : selectedController.openCustomCameraCapture,
-                              iconSize: toolbarIconSize,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(
-                                width: compactButtonSize,
-                                height: compactButtonSize,
-                              ),
-                              icon: Icon(
-                                CupertinoIcons.camera,
-                                color: disableFirstThree
-                                    ? Colors.black38
-                                    : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            IconButton(
-                              onPressed: selectedController.openPollComposer,
-                              iconSize: toolbarIconSize,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(
-                                width: compactButtonSize,
-                                height: compactButtonSize,
-                              ),
-                              icon: Icon(
-                                CupertinoIcons.chart_bar,
-                                color: pollActive
-                                    ? Colors.blueAccent
-                                    : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            IconButton(
-                              onPressed: selectedController.goToLocationMap,
-                              iconSize: toolbarIconSize,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints.tightFor(
-                                width: compactButtonSize,
-                                height: compactButtonSize,
-                              ),
-                              icon: Icon(
-                                CupertinoIcons.map_pin_ellipse,
-                                color: hasLocation
-                                    ? Colors.blueAccent
-                                    : Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            PullDownButton(
-                              itemBuilder: (context) => [
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _toolbarSlot(
+                      child: _toolbarSurfaceButton(
+                        onPressed: disableFirstThree
+                            ? null
+                            : selectedController.pickImage,
+                        size: compactButtonSize,
+                        icon: Icon(
+                          CupertinoIcons.photo_on_rectangle,
+                          size: toolbarIconSize,
+                          color: disableFirstThree
+                              ? Colors.black38
+                              : (hasImages
+                                  ? Colors.blueAccent
+                                  : Colors.black),
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: _toolbarSurfaceButton(
+                        onPressed: disableFirstThree
+                            ? null
+                            : () {
+                                selectedController.pickVideo(
+                                  source: ImageSource.gallery,
+                                );
+                              },
+                        size: compactButtonSize,
+                        icon: Icon(
+                          CupertinoIcons.play_circle,
+                          size: toolbarIconSize,
+                          color: disableFirstThree
+                              ? Colors.black38
+                              : (hasVideo
+                                  ? Colors.blueAccent
+                                  : Colors.black),
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: _toolbarSurfaceButton(
+                        onPressed: disableFirstThree
+                            ? null
+                            : selectedController.openCustomCameraCapture,
+                        size: compactButtonSize,
+                        icon: Icon(
+                          CupertinoIcons.camera,
+                          size: toolbarIconSize,
+                          color: disableFirstThree
+                              ? Colors.black38
+                              : Colors.black,
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: _toolbarSurfaceButton(
+                        onPressed: selectedController.openPollComposer,
+                        size: compactButtonSize,
+                        icon: Icon(
+                          CupertinoIcons.chart_bar,
+                          size: toolbarIconSize,
+                          color:
+                              pollActive ? Colors.blueAccent : Colors.black,
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: _toolbarSurfaceButton(
+                        onPressed: selectedController.goToLocationMap,
+                        size: compactButtonSize,
+                        icon: Icon(
+                          CupertinoIcons.map_pin_ellipse,
+                          size: toolbarIconSize,
+                          color:
+                              hasLocation ? Colors.blueAccent : Colors.black,
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: PullDownButton(
+                        itemBuilder: (context) => [
                                 PullDownMenuItem(
                                   onTap: () {
                                     controller.commentVisibility.value = 0;
@@ -408,26 +389,23 @@ class PostCreator extends StatelessWidget {
                                       : CupertinoIcons.circle,
                                 ),
                               ],
-                              buttonBuilder: (context, showMenu) =>
-                                  CupertinoButton(
-                                onPressed: showMenu,
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(
-                                  compactButtonSize,
-                                  compactButtonSize,
-                                ),
-                                child: Icon(
-                                  CupertinoIcons.bubble_right,
-                                  color: commentActive
-                                      ? Colors.blueAccent
-                                      : Colors.black,
-                                  size: toolbarIconSize,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            PullDownButton(
-                              itemBuilder: (context) => [
+                        buttonBuilder: (context, showMenu) =>
+                            _toolbarSurfaceButton(
+                          onPressed: showMenu,
+                          size: compactButtonSize,
+                          icon: Icon(
+                            CupertinoIcons.bubble_right,
+                            size: toolbarIconSize,
+                            color: commentActive
+                                ? Colors.blueAccent
+                                : Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: PullDownButton(
+                        itemBuilder: (context) => [
                                 PullDownMenuItem(
                                   onTap: () {
                                     controller.paylasimSelection.value = 0;
@@ -465,66 +443,56 @@ class PostCreator extends StatelessWidget {
                                       : CupertinoIcons.circle,
                                 ),
                               ],
-                              buttonBuilder: (context, showMenu) =>
-                                  CupertinoButton(
-                                onPressed: showMenu,
-                                padding: EdgeInsets.zero,
-                                minimumSize: const Size(
-                                  compactButtonSize,
-                                  compactButtonSize,
-                                ),
-                                child: Icon(
-                                  Icons.repeat,
-                                  color: reshareActive
-                                      ? Colors.blueAccent
-                                      : Colors.black,
-                                  size: toolbarIconSize,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            Obx(() {
-                              final scheduled =
-                                  controller.publishMode.value == 1;
-                              return IconButton(
-                                onPressed: () {
-                                  if (scheduled) {
-                                    noYesAlert(
-                                      title: 'Planlamayı Kaldır',
-                                      message:
-                                          'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
-                                      yesText: 'Kaldır',
-                                      onYesPressed: () {
-                                        controller.publishMode.value = 0;
-                                        controller.izBirakDateTime.value = null;
-                                      },
-                                    );
-                                  } else {
-                                    controller.showPublishModePicker();
-                                  }
-                                },
-                                iconSize: toolbarIconSize,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints.tightFor(
-                                  width: compactButtonSize,
-                                  height: compactButtonSize,
-                                ),
-                                icon: Icon(
-                                  scheduled
-                                      ? CupertinoIcons.clock_fill
-                                      : CupertinoIcons.clock,
-                                  color: scheduled
-                                      ? Colors.blueAccent
-                                      : Colors.black,
-                                ),
-                              );
-                            }),
-                          ],
+                        buttonBuilder: (context, showMenu) =>
+                            _toolbarSurfaceButton(
+                          onPressed: showMenu,
+                          size: compactButtonSize,
+                          icon: Icon(
+                            Icons.repeat,
+                            size: toolbarIconSize,
+                            color: reshareActive
+                                ? Colors.blueAccent
+                                : Colors.black,
+                          ),
                         ),
-                    );
-                  },
+                      ),
+                    ),
+                    _toolbarSlot(
+                      child: Obx(() {
+                        final scheduled = controller.publishMode.value == 1;
+                        return _toolbarSurfaceButton(
+                          onPressed: () {
+                            if (scheduled) {
+                              noYesAlert(
+                                title: 'Planlamayı Kaldır',
+                                message:
+                                    'Zamanlanmış paylaşımı kaldırmak istiyor musun? Gönderi hemen paylaşılacak.',
+                                yesText: 'Kaldır',
+                                onYesPressed: () {
+                                  controller.publishMode.value = 0;
+                                  controller.izBirakDateTime.value = null;
+                                },
+                              );
+                            } else {
+                              controller.showPublishModePicker();
+                            }
+                          },
+                          size: compactButtonSize,
+                          icon: Icon(
+                            scheduled
+                                ? CupertinoIcons.clock_fill
+                                : CupertinoIcons.clock,
+                            size: toolbarIconSize,
+                            color:
+                                scheduled ? Colors.blueAccent : Colors.black,
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
                 ),
               ),
+              SizedBox(width: iconGap),
               TextButton(
                 onPressed: disableFlood
                     ? null
@@ -537,6 +505,11 @@ class PostCreator extends StatelessWidget {
                         Get.put(CreatorContentController(),
                             tag: newIndex.toString());
                       },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  minimumSize: const Size(30, 30),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
                 child: Container(
                   width: 27,
                   height: 27,
@@ -567,5 +540,34 @@ class PostCreator extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _toolbarSurfaceButton({
+    required VoidCallback? onPressed,
+    required Widget icon,
+    required double size,
+  }) {
+    final isDisabled = onPressed == null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onPressed,
+      child: Opacity(
+        opacity: isDisabled ? 0.6 : 1,
+        child: AppIconSurface(
+          size: size,
+          radius: AppIconSurface.kRadius,
+          child: icon,
+        ),
+      ),
+    );
+  }
+
+  Widget _toolbarSlot({required Widget child}) {
+    return Expanded(
+      child: Align(
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
   }
 }

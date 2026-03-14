@@ -207,6 +207,24 @@ class _AgendaContentState extends State<AgendaContent>
     );
   }
 
+  Widget _buildVideoThumbnail({double? aspectRatio}) {
+    final thumb = widget.model.thumbnail.trim();
+    final fallback = Container(color: const Color(0xFFE8E8E8));
+    final image = thumb.isNotEmpty
+        ? CachedNetworkImage(
+            imageUrl: thumb,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => fallback,
+            errorWidget: (_, __, ___) => fallback,
+          )
+        : fallback;
+    if (aspectRatio == null) return image;
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: image,
+    );
+  }
+
   bool get _isBlackBadgeUser {
     final raw = (controller.userService.currentUser?.rozet ?? '')
         .trim()
@@ -583,22 +601,11 @@ class _AgendaContentState extends State<AgendaContent>
                                     },
                                     child: Builder(builder: (_) {
                                       final thumb = widget.model.thumbnail;
+                                      if (_shouldBlurIzBirakPost) {
+                                        return _buildVideoThumbnail();
+                                      }
                                       if (videoController == null) {
-                                        if (thumb.isEmpty) {
-                                          return Container(
-                                              color: const Color(0xFFE8E8E8));
-                                        }
-                                        return CachedNetworkImage(
-                                          imageUrl: thumb,
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => Container(
-                                            color: const Color(0xFFE8E8E8),
-                                          ),
-                                          errorWidget: (_, __, ___) =>
-                                              Container(
-                                            color: const Color(0xFFE8E8E8),
-                                          ),
-                                        );
+                                        return _buildVideoThumbnail();
                                       }
                                       return Stack(
                                         fit: StackFit.expand,
@@ -656,7 +663,8 @@ class _AgendaContentState extends State<AgendaContent>
                                     }),
                                   ),
                                 ),
-                                if (videoController != null)
+                                if (videoController != null &&
+                                    !_shouldBlurIzBirakPost)
                                   ValueListenableBuilder<HLSVideoValue>(
                                     valueListenable: videoValueNotifier,
                                     builder: (_, v, __) {
