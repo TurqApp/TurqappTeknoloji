@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -66,8 +65,7 @@ class TutoringDetailController extends GetxController {
       if (summary != null) {
         users[userID] = summary.toMap();
       }
-    } catch (e) {
-      log("Error fetching user data: $e");
+    } catch (_) {
     }
   }
 
@@ -77,11 +75,8 @@ class TutoringDetailController extends GetxController {
       final document = await _tutoringRepository.fetchById(docID);
       if (document != null) {
         tutoring.value = document;
-      } else {
-        log("Tutoring document does not exist");
       }
-    } catch (e) {
-      log("Error fetching tutoring detail: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -94,8 +89,7 @@ class TutoringDetailController extends GetxController {
       final uid = _uid;
       if (uid == null) return;
       basvuruldu.value = await _tutoringRepository.hasApplication(docID, uid);
-    } catch (e) {
-      log("checkBasvuru error: $e");
+    } catch (_) {
       basvuruldu.value = false;
     }
   }
@@ -134,8 +128,7 @@ class TutoringDetailController extends GetxController {
       if (isApplied) {
         AppSnackbar('Başarılı', 'Başvurun gönderildi.');
       }
-    } catch (e) {
-      log("toggleBasvuru error: $e");
+    } catch (_) {
       AppSnackbar('Hata', 'Başvuru sırasında bir sorun oluştu.');
     }
   }
@@ -157,8 +150,7 @@ class TutoringDetailController extends GetxController {
     final docId = tutoring.value.docID;
     try {
       await _tutoringRepository.unpublish(docId);
-    } catch (e) {
-      log("unpublishTutoring error: $e");
+    } catch (_) {
     }
   }
 
@@ -186,8 +178,7 @@ class TutoringDetailController extends GetxController {
       }
 
       similarList.assignAll(items);
-    } catch (e) {
-      log("getSimilar error: $e");
+    } catch (_) {
     }
   }
 
@@ -212,8 +203,7 @@ class TutoringDetailController extends GetxController {
       }
 
       reviews.assignAll(items);
-    } catch (e) {
-      log("fetchReviews error: $e");
+    } catch (_) {
     }
   }
 
@@ -229,8 +219,7 @@ class TutoringDetailController extends GetxController {
         comment: comment,
       );
       await fetchReviews(docID);
-    } catch (e) {
-      log("submitReview error: $e");
+    } catch (_) {
     }
   }
 
@@ -241,8 +230,7 @@ class TutoringDetailController extends GetxController {
         reviewId: reviewID,
       );
       await fetchReviews(docID);
-    } catch (e) {
-      log("deleteReview error: $e");
+    } catch (_) {
     }
   }
 }

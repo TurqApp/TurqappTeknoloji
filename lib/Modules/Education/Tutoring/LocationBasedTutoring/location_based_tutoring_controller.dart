@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -26,8 +25,7 @@ class LocationBasedTutoringController extends GetxController {
     try {
       final fetched = await _userRepository.getUsersRaw(toFetch);
       users.addAll(fetched);
-    } catch (e) {
-      log("Error batch fetching users: $e");
+    } catch (_) {
     }
   }
 
@@ -71,8 +69,7 @@ class LocationBasedTutoringController extends GetxController {
       });
 
       tutoringList.value = tempList;
-    } catch (e) {
-      log("Error fetching location-based tutoring data: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -91,8 +88,7 @@ class LocationBasedTutoringController extends GetxController {
         return placemarks.first.administrativeArea ?? 'Unknown';
       }
       return 'Unknown';
-    } catch (e) {
-      log("Error getting city from coordinates: $e");
+    } catch (_) {
       return 'Unknown';
     }
   }

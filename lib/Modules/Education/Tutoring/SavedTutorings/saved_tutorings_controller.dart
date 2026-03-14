@@ -24,8 +24,7 @@ class SavedTutoringsController extends GetxController {
         forceRefresh: false,
       );
       savedTutoringIds.value = entries.map((doc) => doc.id).toList();
-    } catch (e) {
-      print("Error loading saved tutorings: $e");
+    } catch (_) {
     }
   }
 

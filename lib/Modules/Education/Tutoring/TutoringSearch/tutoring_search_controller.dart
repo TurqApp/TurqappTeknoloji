@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -35,8 +34,7 @@ class TutoringSearchController extends GetxController {
     try {
       final fetched = await _userRepository.getUsersRaw(toFetch);
       users.addAll(fetched);
-    } catch (e) {
-      log("Error batch fetching users: $e");
+    } catch (_) {
     }
   }
 
@@ -50,8 +48,7 @@ class TutoringSearchController extends GetxController {
       await _batchFetchUsers(userIds);
 
       searchResults.value = _allTutorings;
-    } catch (e) {
-      log("Error fetching initial data: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

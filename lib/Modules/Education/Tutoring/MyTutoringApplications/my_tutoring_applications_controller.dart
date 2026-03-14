@@ -35,8 +35,7 @@ class MyTutoringApplicationsController extends GetxController {
       applications.value = items
           .map((doc) => TutoringApplicationModel.fromMap(doc.data, doc.id))
           .toList();
-    } catch (e) {
-      print("Özel ders başvuruları yüklenirken hata: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -65,8 +64,7 @@ class MyTutoringApplicationsController extends GetxController {
             )
             .toList(growable: false),
       );
-    } catch (e) {
-      print("Özel ders başvuru iptal hatası: $e");
+    } catch (_) {
     }
   }
 }

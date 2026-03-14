@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -66,8 +65,7 @@ class TutoringController extends GetxController {
     try {
       final fetched = await _userRepository.getUsersRaw(toFetch);
       users.addAll(fetched);
-    } catch (e) {
-      log("Error batch fetching users: $e");
+    } catch (_) {
     }
   }
 
@@ -82,9 +80,7 @@ class TutoringController extends GetxController {
       final userIds = page.items.map((t) => t.userID).toSet();
       await _batchFetchUsers(userIds);
       tutoringList.value = _applyPersonalization(page.items);
-      log("Fetched ${page.items.length} tutoring items");
-    } catch (e) {
-      log("Error loading tutoring data: $e");
+    } catch (_) {
       tutoringList.value = [];
     } finally {
       isLoading.value = false;
@@ -109,8 +105,7 @@ class TutoringController extends GetxController {
       await _batchFetchUsers(userIds);
 
       tutoringList.addAll(newItems);
-    } catch (e) {
-      log("Error loading more tutoring data: $e");
+    } catch (_) {
     } finally {
       isLoadingMore.value = false;
     }
@@ -149,8 +144,7 @@ class TutoringController extends GetxController {
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(_applyPersonalization(results));
-    } catch (e) {
-      log("Tutoring typesense search error: $e");
+    } catch (_) {
       if (token == _searchToken) {
         searchResults.clear();
       }
@@ -229,7 +223,7 @@ class TutoringController extends GetxController {
         isFavorite: isFavorite,
       );
       return true;
-    } catch (e) {
+    } catch (_) {
       // Rollback on error
       if (currentTutoring != null) {
         tutoringList[tutoringIndex] = currentTutoring.copyWith(
@@ -237,7 +231,6 @@ class TutoringController extends GetxController {
         );
         tutoringList.refresh();
       }
-      log("Error toggling favorite: $e");
       return false;
     }
   }

@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
@@ -37,7 +35,6 @@ class TutoringFilterController extends GetxController {
         title: "Şehir Seç",
         startSelection: city.value,
         onBackData: (v) {
-          log("SELECTED $v");
           city.value = v;
           selectedCity.value = v;
           town.value = "";
@@ -64,7 +61,6 @@ class TutoringFilterController extends GetxController {
         title: "İlçe Seç",
         startSelection: town.value,
         onBackData: (v) {
-          log("SELECTED $v");
           town.value = v;
           selectedDistrict.value = v;
         },
@@ -87,8 +83,7 @@ class TutoringFilterController extends GetxController {
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      log("Error loading cities: $e");
+    } catch (_) {
       sehirler.value = []; // Hata durumunda boş liste ile devam et
     } finally {
       isLoading.value = false;

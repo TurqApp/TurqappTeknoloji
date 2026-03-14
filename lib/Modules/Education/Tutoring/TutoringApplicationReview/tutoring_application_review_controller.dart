@@ -31,8 +31,7 @@ class TutoringApplicationReviewController extends GetxController {
         tutoringDocID,
         preferCache: true,
       );
-    } catch (e) {
-      print("Özel ders başvuranları yüklenirken hata: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -52,8 +51,7 @@ class TutoringApplicationReviewController extends GetxController {
         cvCache[userID] = data;
         return data;
       }
-    } catch (e) {
-      print("CV yükleme hatası: $e");
+    } catch (_) {
     }
     return null;
   }
@@ -61,8 +59,7 @@ class TutoringApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
       return await _userRepository.getUserRaw(userID);
-    } catch (e) {
-      print("Profil yükleme hatası: $e");
+    } catch (_) {
     }
     return null;
   }
@@ -92,8 +89,7 @@ class TutoringApplicationReviewController extends GetxController {
         );
         applicants.refresh();
       }
-    } catch (e) {
-      print("Durum güncelleme hatası: $e");
+    } catch (_) {
     }
   }
 }
