@@ -125,9 +125,7 @@ class SignInController extends GetxController
         agenda.agendaList.clear();
         await agenda.refreshAgenda();
       }
-    } catch (e) {
-      print('⚠️ Session cache clear error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _restoreAccountIfPendingDeletion() async {
@@ -262,9 +260,6 @@ class SignInController extends GetxController
         );
       } on FirebaseException catch (e) {
         if (e.code == 'permission-denied') {
-          print(
-            '⚠️ phoneAccounts permission-denied, users fallback create uygulanıyor',
-          );
           await _userRepository.upsertUserFields(uid, userDoc);
         } else {
           rethrow;
@@ -302,32 +297,24 @@ class SignInController extends GetxController
 
       // 🔥 CRITICAL: Initialize CurrentUserService with new user data
       try {
-        print("🔄 CurrentUserService yeni kullanıcı için başlatılıyor...");
         await CurrentUserService.instance.initialize();
         await NotificationService.instance.initialize();
         await _clearSessionCachesAfterAccountSwitch();
 
         // Force refresh to load newly created user document
         await CurrentUserService.instance.forceRefresh();
-        print("✅ Yeni kullanıcı verisi yüklendi");
-      } catch (e) {
+      } catch (_) {
         // Kullanıcı oluşturulduysa bu adım hatası onboarding'i bloklamasın.
-        print("⚠️ Yeni kullanıcı servis init hatası: $e");
       }
 
       // 🔥 CRITICAL: Load stories and posts after registration
       try {
         final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
+      } catch (_) {}
 
       // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized
       late AgendaController agendaController;
@@ -341,23 +328,16 @@ class SignInController extends GetxController
 
         await agendaController.refreshAgenda();
 
-        print("📝 Postlar yükleniyor...");
-
         // Try loading with retry logic
         int retries = 0;
         while (agendaController.agendaList.isEmpty && retries < 3) {
           await agendaController.fetchAgendaBigData(initial: true);
           if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
             await Future.delayed(const Duration(milliseconds: 500));
           }
           retries++;
         }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
+      } catch (_) {
         // If error, still create controller
         agendaController = Get.put(AgendaController());
       }
@@ -367,11 +347,8 @@ class SignInController extends GetxController
         if (Get.isRegistered<UnreadMessagesController>()) {
           final unreadController = Get.find<UnreadMessagesController>();
           unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
         }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
+      } catch (_) {}
 
       wait.value = false;
 
@@ -404,8 +381,7 @@ class SignInController extends GetxController
             : 'Lütfen farklı bir kullanıcı adı seç.',
       );
       wait.value = false;
-    } catch (e) {
-      print('Hata: $e');
+    } catch (_) {
       wait.value = false;
       if (accountProvisioned) {
         // Hesap oluştuysa OTP ekranında kalmasın; uygulamaya devam etsin.
@@ -821,29 +797,20 @@ class SignInController extends GetxController
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
 
-      print("Şifre Firebase Auth üzerinde güncellendi.");
-
       // 🔥 CRITICAL: Re-initialize CurrentUserService after password reset login
-      print("🔄 CurrentUserService yeniden başlatılıyor...");
       await CurrentUserService.instance.initialize();
       await NotificationService.instance.initialize();
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
-      print("✅ CurrentUserService başarıyla yüklendi");
 
       // 🔥 CRITICAL: Load stories and posts after password reset login
       try {
         final storyController = Get.find<StoryRowController>();
-        print("📚 Hikayeler yükleniyor...");
         await storyController.loadStories(limit: 100, cacheFirst: false);
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }
-        print(
-            "✅ Hikayeler yüklendi: ${storyController.users.length} kullanıcı");
-      } catch (e) {
-        print("⚠️ Hikaye yükleme hatası: $e");
-      }
+      } catch (_) {}
 
       // ⚠️ CRITICAL FIX: Ensure AgendaController is created and initialized
       late AgendaController agendaController;
@@ -857,23 +824,16 @@ class SignInController extends GetxController
 
         await agendaController.refreshAgenda();
 
-        print("📝 Postlar yükleniyor...");
-
         // Try loading with retry logic
         int retries = 0;
         while (agendaController.agendaList.isEmpty && retries < 3) {
           await agendaController.fetchAgendaBigData(initial: true);
           if (agendaController.agendaList.isEmpty && retries < 2) {
-            print("⚠️ Postlar boş, yeniden deneniyor... (${retries + 1}/3)");
             await Future.delayed(const Duration(milliseconds: 500));
           }
           retries++;
         }
-
-        print(
-            "✅ Postlar yüklendi: ${agendaController.agendaList.length} gönderi");
-      } catch (e) {
-        print("⚠️ Post yükleme hatası: $e");
+      } catch (_) {
         // If error, still create controller
         agendaController = Get.put(AgendaController());
       }
@@ -883,11 +843,8 @@ class SignInController extends GetxController
         if (Get.isRegistered<UnreadMessagesController>()) {
           final unreadController = Get.find<UnreadMessagesController>();
           unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
         }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
+      } catch (_) {}
 
       wait.value = false;
 
@@ -904,22 +861,17 @@ class SignInController extends GetxController
         "Şifreniz Değiştirildi",
         "Şifreniz başarılı bir şekilde değiştirildi ve giriş yapıldı",
       );
-    } on FirebaseAuthException catch (e) {
-      print("Şifre güncelleme/giriş akışında auth hatası: ${e.code}");
+    } on FirebaseAuthException catch (_) {
       AppSnackbar(
         "Bir şeyler ters gitti",
         "Bilinmeyen bir hata oluştu. Hata devam ederse bize ulaşın.",
       );
-    } catch (e) {
-      print("Beklenmeyen hata: $e");
-    }
+    } catch (_) {}
   }
 
   Future<bool> signIn() async {
-    print("Giriş işlemi başlatılıyor...");
     bool authSucceeded = false;
     try {
-      print("Email/şifre ile giriş deneniyor");
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailcontroller.text.contains("@")
             ? emailcontroller.text
@@ -930,7 +882,6 @@ class SignInController extends GetxController
       try {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
-      print("Giriş başarılı");
       await _restoreAccountIfPendingDeletion();
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
@@ -944,11 +895,8 @@ class SignInController extends GetxController
         if (Get.isRegistered<UnreadMessagesController>()) {
           final unreadController = Get.find<UnreadMessagesController>();
           unreadController.startListeners();
-          print("✅ UnreadMessagesController başlatıldı");
         }
-      } catch (e) {
-        print("⚠️ UnreadMessagesController başlatma hatası: $e");
-      }
+      } catch (_) {}
 
       wait.value = false;
 
@@ -963,7 +911,6 @@ class SignInController extends GetxController
       Get.offAll(() => NavBarView());
       return true;
     } on FirebaseAuthException catch (e) {
-      print("Giriş hatası oluştu: ${e.code}");
       wait.value = false;
       String message;
       switch (e.code) {
@@ -991,8 +938,7 @@ class SignInController extends GetxController
       }
       AppSnackbar("Giriş yapılamadı", message);
       return false;
-    } catch (e) {
-      print("Beklenmeyen bir hata oluştu: $e");
+    } catch (_) {
       wait.value = false;
       if (authSucceeded || FirebaseAuth.instance.currentUser != null) {
         // Giriş tamamlandıysa, sonraki hazırlık hataları kullanıcıyı login ekranında tutmasın.
@@ -1011,7 +957,6 @@ class SignInController extends GetxController
 
   Future<void> _postLoginWarmup() async {
     try {
-      print("🔄 Post-login warmup başladı...");
       await Future.any([
         CurrentUserService.instance.initialize(),
         Future.delayed(const Duration(seconds: 3)),
@@ -1029,9 +974,7 @@ class SignInController extends GetxController
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }
-      } catch (e) {
-        print("⚠️ Post-login story warmup hatası: $e");
-      }
+      } catch (_) {}
 
       try {
         final agendaController = Get.isRegistered<AgendaController>()
@@ -1044,17 +987,12 @@ class SignInController extends GetxController
         if (agendaController.agendaList.isEmpty) {
           unawaited(agendaController.fetchAgendaBigData(initial: true));
         }
-      } catch (e) {
-        print("⚠️ Post-login agenda warmup hatası: $e");
-      }
-    } catch (e) {
-      print("⚠️ Post-login warmup genel hata: $e");
-    }
+      } catch (_) {}
+    } catch (_) {}
   }
 
   Future<void> nicknameFinder() async {
     try {
-      print("yazildi");
       final search = emailcontroller.text.toLowerCase();
       if (search.length < 2) return; // gereksiz sorgu atmayı engelle
 
@@ -1072,14 +1010,10 @@ class SignInController extends GetxController
 
       if (found != null) {
         final email = (found["email"] ?? "").toString();
-        print("nickname bulundu");
         signInEmail.value = email;
       } else {
         signInEmail.value = "";
-        print("nickname bulunamadı");
       }
-    } catch (e) {
-      print("nicknameFinder hata: $e");
-    }
+    } catch (_) {}
   }
 }
