@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/prefetch_scoring_engine.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import '../network_awareness_service.dart';
@@ -149,6 +150,11 @@ class PrefetchScheduler extends GetxController {
         docID: docID,
         maxSegments: _targetReadySegments,
         priority: 0,
+        sortScore: _buildJobScore(
+          currentIndex: currentIndex,
+          targetIndex: idx,
+          priority: 0,
+        ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -162,6 +168,11 @@ class PrefetchScheduler extends GetxController {
           docID: docID,
           maxSegments: _targetReadySegments,
           priority: 1,
+          sortScore: _buildJobScore(
+            currentIndex: currentIndex,
+            targetIndex: currentIndex,
+            priority: 1,
+          ),
         ));
         _jobEnqueuedAt[docID] = DateTime.now();
       }
@@ -179,6 +190,11 @@ class PrefetchScheduler extends GetxController {
         docID: docID,
         maxSegments: _targetReadySegments,
         priority: 2,
+        sortScore: _buildJobScore(
+          currentIndex: currentIndex,
+          targetIndex: idx,
+          priority: 2,
+        ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -194,7 +210,7 @@ class PrefetchScheduler extends GetxController {
     }
 
     // Sıralama: düşük priority önce
-    _queue.sort((a, b) => a.priority.compareTo(b.priority));
+    _queue.sort(_compareJobs);
 
     _processQueue();
   }
@@ -241,6 +257,11 @@ class PrefetchScheduler extends GetxController {
         docID: docID,
         maxSegments: _targetReadySegments,
         priority: priority,
+        sortScore: _buildJobScore(
+          currentIndex: safeCurrent,
+          targetIndex: index,
+          priority: priority,
+        ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -269,9 +290,32 @@ class PrefetchScheduler extends GetxController {
       }
     }
 
-    _queue.sort((a, b) => a.priority.compareTo(b.priority));
+    _queue.sort(_compareJobs);
     _updateFeedReadyRatio();
     _processQueue();
+  }
+
+  int _compareJobs(_PrefetchJob a, _PrefetchJob b) {
+    final scoreCompare = b.sortScore.compareTo(a.sortScore);
+    if (scoreCompare != 0) return scoreCompare;
+    return a.priority.compareTo(b.priority);
+  }
+
+  double _buildJobScore({
+    required int currentIndex,
+    required int targetIndex,
+    required int priority,
+  }) {
+    return PrefetchScoringEngine.score(
+      PrefetchScoreContext(
+        basePriority: priority,
+        currentIndex: currentIndex,
+        targetIndex: targetIndex,
+        isOnWiFi: _isOnWiFi,
+        mobileSeedMode: _mobileSeedMode,
+        feedReadyRatio: _lastFeedReadyRatio,
+      ),
+    );
   }
 
   /// Mobil veriye geçildiğinde çağrılır.
@@ -711,10 +755,12 @@ class _PrefetchJob {
   final String docID;
   final int maxSegments; // Bu job için indirilecek maksimum segment.
   final int priority; // düşük = önce
+  final double sortScore;
 
   _PrefetchJob({
     required this.docID,
     required this.maxSegments,
     required this.priority,
+    required this.sortScore,
   });
 }
