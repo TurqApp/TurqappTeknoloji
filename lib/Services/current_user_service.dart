@@ -146,6 +146,7 @@ class CurrentUserService extends GetxController {
       _lastCacheSignature; // Track last saved snapshot to prevent duplicates
   String? _lastReactiveSignature;
   String? _lastRootSyncSignature;
+  String? _lastWarmedAvatarUrl;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -936,8 +937,10 @@ class CurrentUserService extends GetxController {
   Future<void> _warmAvatar(CurrentUserModel? user) async {
     final url = (user?.avatarUrl ?? '').trim();
     if (url.isEmpty) return;
+    if (_lastWarmedAvatarUrl == url) return;
     try {
       await TurqImageCacheManager.instance.getSingleFile(url);
+      _lastWarmedAvatarUrl = url;
     } catch (_) {}
   }
 
@@ -1463,6 +1466,7 @@ class CurrentUserService extends GetxController {
       _lastCacheSignature = null;
       _lastReactiveSignature = null;
       _lastRootSyncSignature = null;
+      _lastWarmedAvatarUrl = null;
 
       _currentUser = null;
       viewSelectionRx.value = 1;
