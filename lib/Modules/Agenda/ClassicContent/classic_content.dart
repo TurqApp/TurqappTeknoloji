@@ -11,6 +11,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Services/relative_time_tick_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -52,6 +53,7 @@ import '../../../Core/rozet_content.dart';
 import '../../../Core/texts.dart';
 import '../../../Core/Services/upload_queue_service.dart';
 import '../../Social/PostSharers/post_sharers.dart';
+import '../../Profile/MyProfile/profile_view.dart';
 import '../../SocialProfile/social_profile.dart';
 import '../../PostCreator/post_creator.dart';
 import '../TagPosts/tag_posts.dart';
@@ -110,17 +112,12 @@ class _ClassicContentState extends State<ClassicContent>
   bool _isFullscreen = false;
   bool _isCaptionExpanded = false;
   bool _isQuoteExpanded = false;
+  late final RelativeTimeTickService _relativeTimeTickService;
 
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
   bool get _shouldBlurIzBirakPost =>
       _isIzBirakPost && _izBirakPublishDate.isAfter(DateTime.now());
-
-  String get _izBirakFeedHandle {
-    final nickname = controller.nickname.value.trim();
-    final username = controller.username.value.trim();
-    return nickname.isNotEmpty ? nickname : username;
-  }
 
   DateTime get _izBirakPublishDate => DateTime.fromMillisecondsSinceEpoch(
         widget.model.scheduledAt.toInt() > 0
@@ -128,12 +125,26 @@ class _ClassicContentState extends State<ClassicContent>
             : widget.model.izBirakYayinTarihi.toInt(),
       );
 
+  @override
+  void initState() {
+    super.initState();
+    _relativeTimeTickService = RelativeTimeTickService.ensure();
+  }
+
   Future<void> _subscribeToIzBirak() async {
-    await IzBirakSubscriptionService.ensure().subscribe(widget.model.docID);
     AppSnackbar(
       'İz Bırak',
       'Yayın tarihinde bildirim alacaksınız.',
     );
+    final ok =
+        await IzBirakSubscriptionService.ensure().subscribe(widget.model.docID);
+    if (!ok) {
+      AppSnackbar(
+        'İz Bırak',
+        'Bildirim kaydı oluşturulamadı.',
+        backgroundColor: Colors.red.shade700.withValues(alpha: 0.92),
+      );
+    }
   }
 
   Widget _buildIzBirakBlurOverlay() {
@@ -152,10 +163,8 @@ class _ClassicContentState extends State<ClassicContent>
 
   Widget _buildIzBirakBottomBar() {
     if (!_isIzBirakPost) return const SizedBox.shrink();
-    final handle = _izBirakFeedHandle;
-    final text = handle.isNotEmpty
-        ? '${formatIzBirakLong(_izBirakPublishDate)} - @$handle İz Bıraktı'
-        : formatIzBirakLong(_izBirakPublishDate);
+    final text = 'Yayın Tarihi : ${formatIzBirakLong(_izBirakPublishDate)}';
+    final subscriptionService = IzBirakSubscriptionService.ensure();
     return Positioned(
       left: 10,
       right: 10,
@@ -163,10 +172,10 @@ class _ClassicContentState extends State<ClassicContent>
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 3),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.62),
-            borderRadius: BorderRadius.circular(10),
+            color: Colors.black.withValues(alpha: 0.54),
+            borderRadius: BorderRadius.circular(9),
           ),
           child: Row(
             children: [
@@ -177,35 +186,45 @@ class _ClassicContentState extends State<ClassicContent>
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontFamily: 'MontserratBold',
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _subscribeToIzBirak,
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Center(
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.green,
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.add,
-                        color: Colors.white,
-                        size: 14,
+              const SizedBox(width: 10),
+              Obx(
+                () {
+                  final subscribed =
+                      subscriptionService.isSubscribed(widget.model.docID);
+                  return SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(40, 40),
+                      borderRadius: BorderRadius.circular(20),
+                      onPressed: subscribed ? null : _subscribeToIzBirak,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: subscribed
+                              ? const Color(0xFF1F8F46)
+                              : Colors.green,
+                        ),
+                        child: Icon(
+                          subscribed
+                              ? CupertinoIcons.check_mark
+                              : CupertinoIcons.add,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ],
           ),
@@ -506,28 +525,39 @@ class _ClassicContentState extends State<ClassicContent>
             Color(0xFF0E5BFF),
           ];
 
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: ringColors,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 650),
+      curve: Curves.easeOutBack,
+      tween: Tween<double>(begin: 0, end: hasStory ? 0.018 : 0),
       child: Container(
-        padding: const EdgeInsets.all(1.5),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: ringColors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomRight,
+          ),
         ),
-        child: CachedUserAvatar(
-          userId: userId,
-          imageUrl: imageUrl,
-          radius: radius,
+        child: Container(
+          padding: const EdgeInsets.all(1.5),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: CachedUserAvatar(
+            userId: userId,
+            imageUrl: imageUrl,
+            radius: radius,
+          ),
         ),
       ),
+      builder: (context, turns, child) {
+        return Transform.rotate(
+          angle: turns * 2 * 3.141592653589793,
+          child: child,
+        );
+      },
     );
   }
 
@@ -562,12 +592,14 @@ class _ClassicContentState extends State<ClassicContent>
       return;
     }
 
-    if (widget.model.userID != FirebaseAuth.instance.currentUser!.uid) {
-      videoController?.pause();
-      Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
-        videoController?.play();
-      });
-    }
+    videoController?.pause();
+    final currentUid = FirebaseAuth.instance.currentUser!.uid;
+    final route = widget.model.userID == currentUid
+        ? Get.to(() => ProfileView())
+        : Get.to(() => SocialProfile(userID: widget.model.userID));
+    route?.then((_) {
+      videoController?.play();
+    });
   }
 
   Widget _buildClassicWhiteBadge(double size) {
@@ -1189,12 +1221,12 @@ class _ClassicContentState extends State<ClassicContent>
                           fit: BoxFit.cover,
                         ),
                       ),
-                      _buildIzBirakBlurOverlay(),
-                      _buildIzBirakBottomBar(),
                       _buildMediaTapOverlay(
                         onTap: _openImageMediaOrFeedCta,
                         onDoubleTap: controller.like,
                       ),
+                      _buildIzBirakBlurOverlay(),
+                      _buildIzBirakBottomBar(),
                       _buildClassicMediaHeader(),
                     ],
                   ),
@@ -1807,7 +1839,7 @@ class _ClassicContentState extends State<ClassicContent>
     final handle = controller.nickname.value.trim().isNotEmpty
         ? controller.nickname.value.trim()
         : controller.username.value.trim();
-    final displayTime = controller.editTime.value != 0
+    String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
@@ -1869,13 +1901,18 @@ class _ClassicContentState extends State<ClassicContent>
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           left: 6, right: 12),
-                                      child: Text(
-                                        displayTime,
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 13,
-                                          fontFamily: "MontserratMedium",
-                                        ),
+                                      child: Obx(
+                                        () {
+                                          _relativeTimeTickService.tick.value;
+                                          return Text(
+                                            buildDisplayTime(),
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 13,
+                                              fontFamily: "MontserratMedium",
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ],
@@ -1988,7 +2025,7 @@ class _ClassicContentState extends State<ClassicContent>
     final handle = controller.username.value.trim().isNotEmpty
         ? controller.username.value.trim()
         : controller.nickname.value.trim();
-    final displayTime = controller.editTime.value != 0
+    String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} düzenlendi"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
@@ -2061,15 +2098,20 @@ class _ClassicContentState extends State<ClassicContent>
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           left: 6, right: 12),
-                                      child: Text(
-                                        displayTime,
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.9),
-                                          fontSize: 12,
-                                          fontFamily: "MontserratMedium",
-                                          shadows: textShadow,
-                                        ),
+                                      child: Obx(
+                                        () {
+                                          _relativeTimeTickService.tick.value;
+                                          return Text(
+                                            buildDisplayTime(),
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.9),
+                                              fontSize: 12,
+                                              fontFamily: "MontserratMedium",
+                                              shadows: textShadow,
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ],
