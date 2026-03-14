@@ -1416,8 +1416,7 @@ service cloud.firestore {
     // Kitapçık Cevapları
     match /KitapcikCevaplari/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // Cevap Anahtarları — client doğrudan okuyamaz; Cloud Functions Admin SDK kullanır

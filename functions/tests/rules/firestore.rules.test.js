@@ -893,6 +893,27 @@ test("users KitapcikCevaplari blocks spoofed and malformed payload", async () =>
   );
 });
 
+test("KitapcikCevaplari legacy root path rejects client writes", async () => {
+  const uid = "booklet-answer-legacy";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "KitapcikCevaplari/legacy-result-1"), {
+      timeStamp: Date.now(),
+      kitapcikID: "legacy-booklet",
+      baslik: "Legacy Deneme",
+      cevaplar: ["A"],
+      dogruCevaplar: ["A"],
+      dogru: 1,
+      yanlis: 0,
+      bos: 0,
+      puan: 100,
+      net: 1,
+      userID: uid,
+    }),
+  );
+});
+
 test("optikForm allows owner-scoped canonical payload", async () => {
   const uid = "optik-owner";
   const ctx = testEnv.authenticatedContext(uid);
