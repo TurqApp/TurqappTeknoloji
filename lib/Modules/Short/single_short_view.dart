@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -21,9 +19,9 @@ import '../Agenda/FloodListing/flood_listing.dart';
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
     this.maxPagesPerFling = 1,
-    this.baseMinFlingVelocity = 220.0,
-    this.fastSwipeFraction = 0.10,
-    this.snapPageFraction = 0.35,
+    this.baseMinFlingVelocity = 110.0,
+    this.fastSwipeFraction = 0.05,
+    this.snapPageFraction = 0.05,
     super.parent,
   });
 
@@ -45,6 +43,9 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
 
   @override
   double get minFlingVelocity => baseMinFlingVelocity;
+
+  @override
+  double get minFlingDistance => 8.0;
 
   @override
   double get dragStartDistanceMotionThreshold => 2.0;
@@ -148,10 +149,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   bool showControls = true;
   DateTime _pageActivatedAt = DateTime.now();
   bool _manualSnapInProgress = false;
-  double? _dragStartPage;
-  double _lastDragDeltaY = 0.0;
-  double _maxObservedDragDistance = 0.0;
-  static const double _manualPageSnapThreshold = 0.35;
+  double _manualGestureDragDy = 0.0;
+  static const double _manualGestureTriggerDistance = 18.0;
+  static const double _manualGestureTriggerVelocity = 80.0;
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
@@ -530,62 +530,37 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     setState(() {});
   }
 
-  bool _handlePageScrollNotification(ScrollNotification notification) {
-    if (!mounted || !pageController.hasClients) return false;
-    if (notification.metrics.axis != Axis.vertical) return false;
-
-    if (notification is ScrollStartNotification) {
-      _dragStartPage = pageController.page ?? currentPage.toDouble();
-      _lastDragDeltaY = 0.0;
-      _maxObservedDragDistance = 0.0;
-    } else if (notification is ScrollUpdateNotification) {
-      final deltaY = notification.dragDetails?.delta.dy;
-      if (deltaY != null && deltaY.abs() > 0) {
-        _lastDragDeltaY = deltaY;
-      }
-      final startPage = _dragStartPage;
-      final livePage = pageController.page;
-      if (startPage != null && livePage != null) {
-        final moved = (livePage - startPage).abs();
-        if (moved > _maxObservedDragDistance) {
-          _maxObservedDragDistance = moved;
-        }
-      }
-    } else if (notification is ScrollEndNotification) {
-      unawaited(_maybeForcePageSnap());
-    }
-
-    return false;
+  void _handleManualVerticalDragStart(DragStartDetails details) {
+    _manualGestureDragDy = 0.0;
   }
 
-  Future<void> _maybeForcePageSnap() async {
-    if (!mounted || !pageController.hasClients || _manualSnapInProgress) {
-      _dragStartPage = null;
-      _maxObservedDragDistance = 0.0;
-      return;
-    }
+  void _handleManualVerticalDragUpdate(DragUpdateDetails details) {
+    _manualGestureDragDy += details.primaryDelta ?? 0.0;
+  }
 
-    final startPage = _dragStartPage;
-    _dragStartPage = null;
-    if (startPage == null) return;
+  void _handleManualVerticalDragEnd(DragEndDetails details) {
+    final delta = _manualGestureDragDy;
+    final velocity = details.primaryVelocity ?? 0.0;
+    _manualGestureDragDy = 0.0;
 
-    final startIndex = startPage.round();
-    if (currentPage != startIndex) return;
+    if (!mounted || _manualSnapInProgress || shorts.isEmpty) return;
 
-    final currentVisualPage = pageController.page ?? startPage;
-    final moved = currentVisualPage - startPage;
-    final maxMoved = _maxObservedDragDistance;
-    _maxObservedDragDistance = 0.0;
-    if (maxMoved < _manualPageSnapThreshold) return;
+    final goForward = velocity < -_manualGestureTriggerVelocity ||
+        delta < -_manualGestureTriggerDistance;
+    final goBackward = velocity > _manualGestureTriggerVelocity ||
+        delta > _manualGestureTriggerDistance;
+    if (goForward == goBackward) return;
 
-    final movingForward = _lastDragDeltaY < 0 || moved > 0;
-    final maxIndex = shorts.length - 1;
-    if (maxIndex < 0) return;
-
-    final targetPage =
-        (movingForward ? currentPage + 1 : currentPage - 1).clamp(0, maxIndex);
+    final targetPage = goForward
+        ? (currentPage + 1).clamp(0, shorts.length - 1)
+        : (currentPage - 1).clamp(0, shorts.length - 1);
     if (targetPage == currentPage) return;
 
+    unawaited(_animateManualPage(targetPage));
+  }
+
+  Future<void> _animateManualPage(int targetPage) async {
+    if (!mounted || _manualSnapInProgress || !pageController.hasClients) return;
     _manualSnapInProgress = true;
     try {
       await pageController.animateToPage(
@@ -881,20 +856,15 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             }
-            return NotificationListener<ScrollNotification>(
-              onNotification: _handlePageScrollNotification,
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragStart: _handleManualVerticalDragStart,
+              onVerticalDragUpdate: _handleManualVerticalDragUpdate,
+              onVerticalDragEnd: _handleManualVerticalDragEnd,
               child: PageView.builder(
                 controller: pageController,
                 scrollDirection: Axis.vertical,
-                dragStartBehavior: DragStartBehavior.down,
-                physics: MomentumPageScrollPhysics(
-                  maxPagesPerFling: 1,
-                  baseMinFlingVelocity:
-                      defaultTargetPlatform == TargetPlatform.android
-                          ? 180.0
-                          : 220.0,
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: shorts.length,
                 onPageChanged: _onPageChanged,
                 itemBuilder: (ctx, idx) {
