@@ -11,7 +11,9 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
+import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/video_state_manager.dart';
+import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Services/SegmentCache/cache_manager.dart';
 import 'short_content.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
@@ -152,16 +154,148 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   double _manualGestureDragDy = 0.0;
   static const double _manualGestureTriggerDistance = 18.0;
   static const double _manualGestureTriggerVelocity = 80.0;
+  static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
+  static const Duration _progressPersistInterval = Duration(seconds: 2);
+  static const double _progressPersistDelta = 0.10;
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
   final Map<int, VoidCallback> _completionListeners = <int, VoidCallback>{};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
+  Timer? _engagementRescoreTimer;
+  DateTime? _lastProgressPersistAt;
+  double _lastPersistedProgress = 0.0;
+  bool _telemetryFirstFrame = false;
+  HLSVideoAdapter? _telemetryAdapter;
+  String? _activeTelemetryVideoId;
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.pause();
+  }
+
+  void _updateTelemetryHintsForCurrentPage({
+    bool? isAudible,
+    bool? hasStableFocus,
+  }) {
+    final docId = _activeTelemetryVideoId;
+    if (docId == null) return;
+    VideoTelemetryService.instance.updateRuntimeHints(
+      docId,
+      isAudible: isAudible,
+      hasStableFocus: hasStableFocus,
+    );
+  }
+
+  Future<void> _endActiveTelemetrySession() async {
+    _engagementRescoreTimer?.cancel();
+    _engagementRescoreTimer = null;
+    final adapter = _telemetryAdapter;
+    if (adapter != null) {
+      adapter.removeListener(_telemetryListener);
+    }
+
+    final docId = _activeTelemetryVideoId;
+    _telemetryAdapter = null;
+    _activeTelemetryVideoId = null;
+    _telemetryFirstFrame = false;
+    _lastProgressPersistAt = null;
+    _lastPersistedProgress = 0.0;
+
+    if (docId != null) {
+      await VideoTelemetryService.instance.endSession(docId);
+    }
+  }
+
+  void _scheduleEngagementRescore(int page) {
+    _engagementRescoreTimer?.cancel();
+    _engagementRescoreTimer = Timer(_engagementRescoreDelay, () {
+      if (!mounted || page != currentPage) return;
+      if (page < 0 || page >= shorts.length) return;
+      final vp = _videoControllers[page];
+      if (vp == null || vp.isDisposed || !vp.value.hasRenderedFirstFrame) {
+        return;
+      }
+      _updateTelemetryHintsForCurrentPage(
+        isAudible: volume,
+        hasStableFocus: true,
+      );
+      if (Get.isRegistered<PrefetchScheduler>()) {
+        try {
+          Get.find<PrefetchScheduler>().updateQueue(
+            shorts.map((s) => s.docID).toList(growable: false),
+            currentPage,
+          );
+        } catch (_) {}
+      }
+    });
+  }
+
+  void _beginTelemetryForCurrentPage(HLSVideoAdapter ctrl) {
+    if (currentPage < 0 || currentPage >= shorts.length) return;
+    final post = shorts[currentPage];
+    if (_activeTelemetryVideoId == post.docID &&
+        identical(_telemetryAdapter, ctrl)) {
+      _updateTelemetryHintsForCurrentPage(isAudible: volume);
+      return;
+    }
+
+    unawaited(_endActiveTelemetrySession());
+    VideoTelemetryService.instance.startSession(post.docID, post.playbackUrl);
+    VideoTelemetryService.instance.updateRuntimeHints(
+      post.docID,
+      isAudible: volume,
+      hasStableFocus: false,
+    );
+    _telemetryFirstFrame = false;
+    _telemetryAdapter = ctrl;
+    _activeTelemetryVideoId = post.docID;
+    ctrl.addListener(_telemetryListener);
+    _scheduleEngagementRescore(currentPage);
+  }
+
+  void _telemetryListener() {
+    final adapter = _telemetryAdapter;
+    final docId = _activeTelemetryVideoId;
+    if (adapter == null || docId == null) return;
+    if (currentPage < 0 || currentPage >= shorts.length) return;
+    if (shorts[currentPage].docID != docId) return;
+
+    final value = adapter.value;
+
+    if (!_telemetryFirstFrame && value.isPlaying) {
+      _telemetryFirstFrame = true;
+      VideoTelemetryService.instance.onFirstFrame(docId);
+    }
+
+    if (value.isBuffering) {
+      VideoTelemetryService.instance.onBufferingStart(docId);
+    } else if (!value.isBuffering && value.isPlaying) {
+      VideoTelemetryService.instance.onBufferingEnd(docId);
+    }
+
+    final pos = value.position.inMilliseconds / 1000.0;
+    final dur = value.duration.inMilliseconds / 1000.0;
+    if (dur > 0) {
+      VideoTelemetryService.instance.onPositionUpdate(docId, pos, dur);
+      final progress = (pos / dur).clamp(0.0, 1.0);
+      final now = DateTime.now();
+      final shouldPersistByTime = _lastProgressPersistAt == null ||
+          now.difference(_lastProgressPersistAt!) >= _progressPersistInterval;
+      final shouldPersistByDelta =
+          (progress - _lastPersistedProgress).abs() >= _progressPersistDelta;
+      final shouldPersist =
+          shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
+
+      if (shouldPersist && Get.isRegistered<SegmentCacheManager>()) {
+        try {
+          Get.find<SegmentCacheManager>().updateWatchProgress(docId, progress);
+          _lastProgressPersistAt = now;
+          _lastPersistedProgress = progress;
+        } catch (_) {}
+      }
+    }
   }
 
   void _detachCompletionListener(int index, HLSVideoAdapter adapter) {
@@ -274,6 +408,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     try {
       VideoStateManager.instance.playOnlyThis(shorts[index].docID);
     } catch (_) {}
+    if (index == currentPage) {
+      _beginTelemetryForCurrentPage(ctrl);
+    }
   }
 
   /// Video frame tipi:
@@ -473,6 +610,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         _releasePlayback(prev);
       } catch (_) {}
     }
+    unawaited(_endActiveTelemetrySession());
 
     // 2) Yeni sayfayı ata
     currentPage = page;
@@ -592,6 +730,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     // Not: _onPageChanged, PageView.onPageChanged üzerinden kullanılıyor;
     // pageController.addListener ile eklenmediği için removeListener çağrısı gereksiz ve hataya yol açıyor.
     pageController.dispose();
+    unawaited(_endActiveTelemetrySession());
     _clearAllControllers();
     try {
       VideoStateManager.instance.exitExclusiveMode();
@@ -628,6 +767,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     } catch (_) {}
 
     // Tüm videoları durdur
+    unawaited(_endActiveTelemetrySession());
     _pauseAllControllers();
     try {
       VideoStateManager.instance.exitExclusiveMode();
@@ -648,6 +788,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         try {
           if (vp.isDisposed) return;
           vp.setVolume(volume ? 1 : 0);
+          _updateTelemetryHintsForCurrentPage(
+            isAudible: volume,
+            hasStableFocus: false,
+          );
           if (currentPage >= 0 && currentPage < shorts.length) {
             VideoStateManager.instance.playOnlyThis(shorts[currentPage].docID);
           }
@@ -773,6 +917,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           position >= duration - const Duration(milliseconds: 300) &&
           position.inMilliseconds > 0) {
         _completionTriggered[index] = true;
+        if (index >= 0 && index < shorts.length) {
+          VideoTelemetryService.instance.onCompleted(shorts[index].docID);
+        }
 
         // Sonraki videoya geç
         final nextIndex = currentPage + 1;
@@ -1071,6 +1218,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                 ctrl.setVolume(volume ? 1 : 0);
               }
             });
+            if (idx == currentPage) {
+              _updateTelemetryHintsForCurrentPage(isAudible: volume);
+            }
           },
           onTap: () async {
             final model = shorts[idx];
@@ -1106,9 +1256,19 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             volumeOff: (volume) {
               if (!volume) {
                 vp.pause();
+                if (idx == currentPage) {
+                  _updateTelemetryHintsForCurrentPage(
+                    isAudible: this.volume,
+                    hasStableFocus: false,
+                  );
+                }
                 return;
               }
               if (idx == currentPage && idx < shorts.length) {
+                _updateTelemetryHintsForCurrentPage(
+                  isAudible: this.volume,
+                  hasStableFocus: true,
+                );
                 VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
               }
             },
@@ -1173,6 +1333,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                                   .setVolume(volume ? 1 : 0);
                             }
                           }
+                          _updateTelemetryHintsForCurrentPage(
+                            isAudible: volume,
+                          );
                         }),
                       ),
                       if (shorts[idx].floodCount > 1)
@@ -1200,6 +1363,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                             if (idx == currentPage) {
                               try {
                                 vp.setVolume(volume ? 1 : 0);
+                                _updateTelemetryHintsForCurrentPage(
+                                  isAudible: volume,
+                                  hasStableFocus: false,
+                                );
                                 VideoStateManager.instance
                                     .playOnlyThis(shorts[idx].docID);
                               } catch (_) {}
