@@ -428,17 +428,17 @@ class _SplashViewState extends State<SplashView> {
             _primeFeedVideoSegments(agendaController);
           } catch (_) {}
         })(),
-        // Recommended users
-        (() async {
-          try {
-            await recommended.ensureLoaded(
-              limit: onWiFi
-                  ? (isFirstLaunch ? 140 : 220)
-                  : (isFirstLaunch ? 80 : 120),
-            );
-          } catch (_) {}
-        })(),
       ]);
+
+      unawaited(() async {
+        try {
+          await recommended.ensureLoaded(
+            limit: onWiFi
+                ? (isFirstLaunch ? 140 : 220)
+                : (isFirstLaunch ? 80 : 120),
+          );
+        } catch (_) {}
+      }());
 
       // Açılışta profil isim/avatar geç gelmesin: feed'e düşmeden önce
       // merkezi profile cache ve disk image cache'i ısıt.
@@ -831,7 +831,6 @@ class _SplashViewState extends State<SplashView> {
 
         // Clear CurrentUserService cache
         await CurrentUserService.instance.logout();
-
       }
 
       // Mark that app has launched before
