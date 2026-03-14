@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,6 +37,9 @@ class EditProfileController extends GetxController {
 
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
+  final RxString email = ''.obs;
+  final RxString phoneNumber = ''.obs;
+  StreamSubscription<Map<String, dynamic>?>? _userSub;
 
   final uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -51,14 +55,35 @@ class EditProfileController extends GetxController {
   void onInit() {
     super.onInit();
     fetchAndSetUserData();
+    _bindUserContactData();
     // NSFW detector OptimizedNSFWService ile lazy initialize edilir
   }
 
   @override
   void onClose() {
+    _userSub?.cancel();
     firstNameController.dispose();
     lastNameController.dispose();
     super.onClose();
+  }
+
+  void _bindUserContactData() {
+    _userSub?.cancel();
+    _userSub = _userRepository.watchUserRaw(uid).listen((data) {
+      if (data == null) return;
+      final profile = (data["profile"] is Map)
+          ? Map<String, dynamic>.from(data["profile"] as Map)
+          : const <String, dynamic>{};
+      final rawEmail =
+          (data["email"] ?? profile["email"] ?? FirebaseAuth.instance.currentUser?.email ?? "")
+              .toString()
+              .trim();
+      final rawPhone = (data["phoneNumber"] ?? profile["phoneNumber"] ?? "")
+          .toString()
+          .trim();
+      email.value = rawEmail;
+      phoneNumber.value = rawPhone;
+    });
   }
 
   Future<void> fetchAndSetUserData() async {

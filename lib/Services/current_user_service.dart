@@ -111,7 +111,8 @@ class CurrentUserService extends GetxController {
   /// Feed view selection with local fallback.
   /// 0: Classic, 1: Modern
   int get effectiveViewSelection =>
-      _currentUser?.viewSelection ?? _lastKnownViewSelection ?? 1;
+      viewSelectionRx.value;
+  final RxInt viewSelectionRx = 1.obs;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔧 Private Variables
@@ -166,6 +167,7 @@ class CurrentUserService extends GetxController {
       emailVerifiedRx.value = firebaseUser.emailVerified;
       _lastKnownViewSelection =
           _prefs?.getInt(_viewSelectionKey(firebaseUser.uid));
+      viewSelectionRx.value = _lastKnownViewSelection ?? 1;
 
       // If already initialized and user exists, just ensure sync is running
       if (_isInitialized &&
@@ -369,6 +371,7 @@ class CurrentUserService extends GetxController {
       }
 
       _currentUser = user;
+      viewSelectionRx.value = user.viewSelection;
       currentUserRx.value = user;
       _emitUserEvent(user);
       unawaited(_warmAvatar(user));
@@ -731,6 +734,14 @@ class CurrentUserService extends GetxController {
       }
     }
 
+    void preferCurrentString(String key) {
+      if (hasNonEmptyString(merged[key])) return;
+      final value = currentSnapshot[key];
+      if (hasNonEmptyString(value)) {
+        merged[key] = value;
+      }
+    }
+
     void preferRootScalar(String key) {
       if (!rootData.containsKey(key)) return;
       final value = rootData[key];
@@ -743,7 +754,9 @@ class CurrentUserService extends GetxController {
     for (final key in const [
       'avatarUrl',
       'nickname',
+      'nickName',
       'username',
+      'userName',
       'usernameLower',
       'displayName',
       'firstName',
@@ -752,10 +765,31 @@ class CurrentUserService extends GetxController {
       'phoneNumber',
       'bio',
       'rozet',
+      'badge',
       'meslekKategori',
       'token',
     ]) {
       preferRootString(key);
+    }
+    for (final key in const [
+      'avatarUrl',
+      'nickname',
+      'nickName',
+      'username',
+      'userName',
+      'usernameLower',
+      'displayName',
+      'firstName',
+      'lastName',
+      'email',
+      'phoneNumber',
+      'bio',
+      'rozet',
+      'badge',
+      'meslekKategori',
+      'token',
+    ]) {
+      preferCurrentString(key);
     }
     for (final key in const [
       'counterOfFollowers',
@@ -903,6 +937,7 @@ class CurrentUserService extends GetxController {
   Future<void> _updateUser(CurrentUserModel user) async {
     final resolvedUser = await _applyStoredViewSelection(user);
     _currentUser = resolvedUser;
+    viewSelectionRx.value = resolvedUser.viewSelection;
     currentUserRx.value = resolvedUser;
     _emitUserEvent(resolvedUser);
     await UserRepository.ensure().seedCurrentUser(resolvedUser);
@@ -940,6 +975,9 @@ class CurrentUserService extends GetxController {
           firebaseUser.uid,
           requestedViewSelection,
         );
+        await _applyOptimisticLocalPatch({
+          'viewSelection': requestedViewSelection,
+        });
       }
       // Update Firestore through the central user repository.
       await UserRepository.ensure().updateUserFields(
@@ -1012,7 +1050,10 @@ class CurrentUserService extends GetxController {
       email: stringValue('email', current.email),
       phoneNumber: stringValue('phoneNumber', current.phoneNumber),
       bio: stringValue('bio', current.bio),
-      rozet: stringValue('rozet', current.rozet),
+      rozet: stringValue(
+        'rozet',
+        stringValue('badge', current.rozet),
+      ),
       viewSelection: intValue('viewSelection', current.viewSelection),
       counterOfFollowers:
           intValue('counterOfFollowers', current.counterOfFollowers),
@@ -1041,6 +1082,7 @@ class CurrentUserService extends GetxController {
     if (uid.isEmpty) return;
     _prefs ??= await SharedPreferences.getInstance();
     _lastKnownViewSelection = selection;
+    viewSelectionRx.value = selection;
     await _prefs?.setInt(_viewSelectionKey(uid), selection);
   }
 
@@ -1436,6 +1478,7 @@ class CurrentUserService extends GetxController {
       _lastCacheSignature = null;
 
       _currentUser = null;
+      viewSelectionRx.value = 1;
       currentUserRx.value = null;
       _emitUserEvent(null);
 

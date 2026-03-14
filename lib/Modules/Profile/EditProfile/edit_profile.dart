@@ -44,9 +44,15 @@ class _EditProfileState extends State<EditProfile> {
       (currentUserService.currentUserRx.value?.avatarUrl ?? '').trim();
   String get _nickname =>
       currentUserService.currentUserRx.value?.nickname ?? '';
-  String get _email => currentUserService.currentUserRx.value?.email ?? '';
+  String get _email {
+    final primary = (currentUserService.currentUserRx.value?.email ?? '').trim();
+    if (primary.isNotEmpty) return primary;
+    return controller.email.value;
+  }
   String get _phoneNumber =>
-      currentUserService.currentUserRx.value?.phoneNumber ?? '';
+      (currentUserService.currentUserRx.value?.phoneNumber ?? '').trim().isNotEmpty
+          ? (currentUserService.currentUserRx.value?.phoneNumber ?? '').trim()
+          : controller.phoneNumber.value;
 
   @override
   Widget build(BuildContext context) {
