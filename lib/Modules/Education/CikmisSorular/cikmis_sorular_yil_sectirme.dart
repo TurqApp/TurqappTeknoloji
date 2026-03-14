@@ -33,10 +33,6 @@ class _CikmisSorularYilSectirmeState extends State<CikmisSorularYilSectirme> {
   @override
   void initState() {
     super.initState();
-    print("DEVELOPER ${widget.anaBaslik}");
-    print("DEVELOPER ${widget.baslik2}");
-    print("DEVELOPER ${widget.baslik3}");
-
     getData();
   }
 
