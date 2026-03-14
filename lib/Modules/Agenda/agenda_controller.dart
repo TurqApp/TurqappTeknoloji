@@ -1929,16 +1929,16 @@ class AgendaController extends GetxController {
         ..sort((a, b) => ((b['timeStamp'] ?? 0) as int)
             .compareTo((a['timeStamp'] ?? 0) as int));
 
+      if (visibleEvents.length > 120) {
+        visibleEvents.removeRange(120, visibleEvents.length);
+      }
+
       final visibleUserIds = visibleEvents
           .map((event) => (event['userID'] ?? '').toString())
           .where((id) => id.isNotEmpty)
           .toSet();
       for (final userId in visibleUserIds) {
         unawaited(ReshareHelper.getUserNickname(userId));
-      }
-
-      if (visibleEvents.length > 120) {
-        visibleEvents.removeRange(120, visibleEvents.length);
       }
 
       if (resharedPostIds.isEmpty) return;
