@@ -1429,8 +1429,7 @@ service cloud.firestore {
     // Sorular (ek koleksiyon)
     match /Sorular/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // Optik Kodlar
@@ -1474,8 +1473,7 @@ service cloud.firestore {
     // Sınavı Bitenler
     match /SinaviBitenler/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow write: if false;
     }
 
     // ──────────────────────────────────────────────

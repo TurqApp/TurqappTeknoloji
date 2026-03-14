@@ -1122,6 +1122,31 @@ test("books CevapAnahtarlari blocks spoofed payload", async () => {
   );
 });
 
+test("Sorular legacy root path rejects client writes", async () => {
+  const uid = "legacy-question-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "Sorular/legacy-question-1"), {
+      userID: uid,
+      soru: "Legacy soru",
+      dogruCevap: "A",
+    }),
+  );
+});
+
+test("SinaviBitenler legacy root path rejects client writes", async () => {
+  const uid = "legacy-exam-finisher";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "SinaviBitenler/legacy-finish-1"), {
+      userID: uid,
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
 test("practiceExams SinaviBitenler allows canonical owner payload", async () => {
   const ownerUid = "practice-exam-owner";
   const finisherUid = "practice-exam-finisher";
