@@ -21,8 +21,7 @@ class FindingJobApplyController extends GetxController {
       if (data != null) {
         isFinding.value = data["findingJob"] ?? false;
       }
-    } catch (e) {
-      print('CV kontrol hatası: $e');
+    } catch (_) {
     }
   }
 

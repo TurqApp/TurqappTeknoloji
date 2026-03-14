@@ -501,8 +501,7 @@ class JobCreatorController extends GetxController {
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      print("Error loading cities: $e");
+    } catch (_) {
     }
   }
 
@@ -556,7 +555,6 @@ class JobCreatorController extends GetxController {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        print("Konum servisleri kapalı.");
         return;
       }
 
@@ -565,7 +563,6 @@ class JobCreatorController extends GetxController {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
-          print("Konum izni reddedildi.");
           return;
         }
       }
@@ -605,14 +602,9 @@ class JobCreatorController extends GetxController {
             place.administrativeArea, // İl
             place.country // Ülke
           ].where((e) => e != null && e.isNotEmpty).join(', ');
-
-          print("Tam Adres: ${adres.value}");
         }
-      } else {
-        print("Adres bulunamadı.");
       }
-    } catch (e) {
-      print("Konum alma hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -634,8 +626,7 @@ class JobCreatorController extends GetxController {
           .collection("isBul")
           .doc(docID)
           .set({"logo": downloadUrl}, SetOptions(merge: true));
-    } catch (e) {
-      print("Yükleme hatası: $e");
+    } catch (_) {
     }
   }
 

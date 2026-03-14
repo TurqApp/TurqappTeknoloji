@@ -624,16 +624,10 @@ class JobCreator extends StatelessWidget {
                                             }
                                           }
 
-                                          print("Sehir: $sehir");
-                                          print("Ilce: $ilce");
-
                                           controller.sehir.value = sehir;
                                           controller.ilce.value = ilce;
-                                        } else {
-                                          print("Adres bulunamadı.");
                                         }
-                                      } catch (e) {
-                                        print("Ters geocode hatası: $e");
+                                      } catch (_) {
                                       }
                                     },
                                   ));

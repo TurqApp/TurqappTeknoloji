@@ -29,8 +29,7 @@ class ApplicationReviewController extends GetxController {
     isLoading.value = true;
     try {
       applicants.value = await _jobRepository.fetchApplications(jobDocID);
-    } catch (e) {
-      print("Başvuranlar yüklenirken hata: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -51,8 +50,7 @@ class ApplicationReviewController extends GetxController {
         cvCache[userID] = data;
         return data;
       }
-    } catch (e) {
-      print("CV yükleme hatası: $e");
+    } catch (_) {
     }
     return null;
   }
@@ -60,8 +58,7 @@ class ApplicationReviewController extends GetxController {
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
       return await _userRepository.getUserRaw(userID);
-    } catch (e) {
-      print("Profil yükleme hatası: $e");
+    } catch (_) {
     }
     return null;
   }
@@ -102,8 +99,7 @@ class ApplicationReviewController extends GetxController {
       }
       AppSnackbar('Başarılı', 'Başvuru durumu güncellendi.');
       await loadApplicants();
-    } catch (e) {
-      print("Durum güncelleme hatası: $e");
+    } catch (_) {
       AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
     }
   }

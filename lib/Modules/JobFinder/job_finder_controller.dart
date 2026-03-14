@@ -84,8 +84,7 @@ class JobFinderController extends GetxController {
           list.refresh();
         }
       }
-    } catch (e) {
-      print("İlan güncelleme hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -114,8 +113,7 @@ class JobFinderController extends GetxController {
       final results = await _fetchJobsByDocIds(docIds);
       if (requestId != _searchRequestId || search.text.trim() != query) return;
       aramaSonucu.assignAll(results);
-    } catch (e) {
-      print("Arama hatası: $e");
+    } catch (_) {
       if (requestId == _searchRequestId) {
         aramaSonucu.clear();
       }
@@ -158,8 +156,7 @@ class JobFinderController extends GetxController {
       }
 
       unawaited(_hydrateLocationAndResort(jobs));
-    } catch (e) {
-      print("Hata oluştu: $e");
+    } catch (_) {
     } finally {
       if (list.isEmpty) {
         isLoading.value = false;
@@ -205,8 +202,7 @@ class JobFinderController extends GetxController {
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
       list.assignAll(updatedJobs);
       allJobs.assignAll(updatedJobs);
-    } catch (e) {
-      print("Konum bazli is siralama hatasi: $e");
+    } catch (_) {
     }
   }
 
@@ -220,8 +216,7 @@ class JobFinderController extends GetxController {
         );
       }
       await batch.commit();
-    } catch (e) {
-      print("Eski ilanlar sessiz kapatilamadi: $e");
+    } catch (_) {
     }
   }
 
@@ -584,8 +579,7 @@ class JobFinderController extends GetxController {
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
       sehirler.insert(0, "Tüm Türkiye");
-    } catch (e) {
-      print("Error loading cities: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

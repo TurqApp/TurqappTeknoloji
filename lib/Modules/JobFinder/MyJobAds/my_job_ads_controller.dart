@@ -54,8 +54,7 @@ class MyJobAdsController extends GetxController {
 
       active.value = validJobs;
       getDeactive();
-    } catch (e) {
-      print("getActive() hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -67,8 +66,7 @@ class MyJobAdsController extends GetxController {
         uid,
         ended: true,
       );
-    } catch (e) {
-      print("getDeactive() hatası: $e");
+    } catch (_) {
     }
   }
 }
