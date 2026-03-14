@@ -49,6 +49,7 @@ class PreparedPostModel {
   final String reusedVideoUrl;
   final String reusedVideoThumbnail;
   final double reusedVideoAspectRatio;
+  final String videoLookPreset;
   final String location;
   final String gif;
   final Uint8List? customThumbnail;
@@ -63,6 +64,7 @@ class PreparedPostModel {
     required this.reusedVideoUrl,
     required this.reusedVideoThumbnail,
     required this.reusedVideoAspectRatio,
+    required this.videoLookPreset,
     required this.location,
     required this.gif,
     required this.customThumbnail,
@@ -202,7 +204,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
     final sourceUserId = _quotedSourceUserID.trim().isNotEmpty
         ? _quotedSourceUserID.trim()
-        : (sourcePost['userID'] ?? sourcePost['userId'] ?? '').toString().trim();
+        : (sourcePost['userID'] ?? sourcePost['userId'] ?? '')
+            .toString()
+            .trim();
     if (sourceUserId.isNotEmpty) {
       _quotedSourceUserID = sourceUserId;
     }
@@ -921,7 +925,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         withTime: true,
         onSelected: (v) {
           publishMode.value = 1;
-          izBirakDateTime.value = v.isAfter(maxIzBirakDate) ? maxIzBirakDate : v;
+          izBirakDateTime.value =
+              v.isAfter(maxIzBirakDate) ? maxIzBirakDate : v;
         },
         title: "İz Bırak Yayın Tarihi",
       ),
@@ -951,6 +956,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final reusedVideoThumbnail = contentController.reusedVideoThumbnail.value;
       final reusedVideoAspectRatio =
           contentController.reusedVideoAspectRatio.value;
+      final videoLookPreset = contentController.videoLookPreset.value.trim();
       final location = contentController.adres.value;
       final gif = contentController.gif.value;
       final customThumb = contentController.selectedThumbnail.value;
@@ -966,6 +972,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           reusedVideoUrl: reusedVideoUrl,
           reusedVideoThumbnail: reusedVideoThumbnail,
           reusedVideoAspectRatio: reusedVideoAspectRatio,
+          videoLookPreset:
+              videoLookPreset.isEmpty ? 'original' : videoLookPreset,
           location: location,
           gif: gif,
           customThumbnail: customThumb,
@@ -1250,57 +1258,17 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           index == 0) {
         try {
           final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-          final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-          final originalPostRef = FirebaseFirestore.instance
+          final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
+          await FirebaseFirestore.instance
               .collection("Posts")
-              .doc(_sharedOriginalPostID);
-          await originalPostRef.collection("reshares").doc(currentUserId).set({
+              .doc(_sharedOriginalPostID)
+              .collection("postSharers")
+              .doc(currentUserId)
+              .set({
             "userID": currentUserId,
-            "timeStamp": quoteTimestamp,
-            "originalUserID": _sharedOriginalUserID,
-            "originalPostID": _sharedOriginalPostID,
+            "timestamp": shareTimestamp,
             "sharedPostID": docID,
-            "quotedPost": _isQuotedPost,
           }, SetOptions(merge: true));
-          if (!_isQuotedPost) {
-            await FirebaseFirestore.instance
-                .collection("users")
-                .doc(currentUserId)
-                .collection("reshared_posts")
-                .doc(_sharedOriginalPostID)
-                .set({
-              "post_docID": _sharedOriginalPostID,
-              "timeStamp": quoteTimestamp,
-              "originalUserID": _sharedOriginalUserID,
-              "originalPostID": _sharedOriginalPostID,
-              "sharedPostID": docID,
-              "quotedPost": false,
-            }, SetOptions(merge: true));
-          }
-          if (_isQuotedPost) {
-            await originalPostRef.update({
-              "stats.retryCount": FieldValue.increment(1),
-            });
-          }
-          if (_sharedSourcePostID.isNotEmpty &&
-              _sharedSourcePostID != _sharedOriginalPostID) {
-            final sourcePostRef = FirebaseFirestore.instance
-                .collection("Posts")
-                .doc(_sharedSourcePostID);
-            await sourcePostRef.collection("reshares").doc(currentUserId).set({
-              "userID": currentUserId,
-              "timeStamp": quoteTimestamp,
-              "originalUserID": _sharedOriginalUserID,
-              "originalPostID": _sharedOriginalPostID,
-              "sharedPostID": docID,
-              "quotedPost": _isQuotedPost,
-            }, SetOptions(merge: true));
-            if (_isQuotedPost) {
-              await sourcePostRef.update({
-                "stats.retryCount": FieldValue.increment(1),
-              });
-            }
-          }
         } catch (_, __) {}
       }
 
@@ -1717,10 +1685,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               : '',
           'quotedSourceUsername':
               (_isSharedAsPost && _isQuotedPost) ? _quotedSourceUsername : '',
-          'quotedSourceAvatarUrl': (_isSharedAsPost && _isQuotedPost)
-              ? _quotedSourceAvatarUrl
-              : '',
-          'scheduledAt': _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0,
+          'quotedSourceAvatarUrl':
+              (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : '',
+          'scheduledAt':
+              _normalizedIzBirakDateTime()?.millisecondsSinceEpoch ?? 0,
         };
 
         // Persist compressed images to temp files for queue (use croppedImages if available)
@@ -1924,6 +1892,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             contentController.reusedVideoThumbnail.value;
         final reusedVideoAspectRatio =
             contentController.reusedVideoAspectRatio.value;
+        final videoLookPreset = contentController.videoLookPreset.value.trim();
         final location = contentController.adres.value;
         final gif = contentController.gif.value;
         final customThumb = contentController.selectedThumbnail.value;
@@ -1939,6 +1908,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             reusedVideoUrl: reusedVideoUrl,
             reusedVideoThumbnail: reusedVideoThumbnail,
             reusedVideoAspectRatio: reusedVideoAspectRatio,
+            videoLookPreset:
+                videoLookPreset.isEmpty ? 'original' : videoLookPreset,
             location: location,
             gif: gif,
             customThumbnail: customThumb,
@@ -2208,6 +2179,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "timeStamp": nowMs + index,
               "userID": FirebaseAuth.instance.currentUser!.uid,
               "video": videoUrl,
+              "videoLook": {
+                "preset": post.videoLookPreset,
+                "version": 1,
+                "intensity": 1.0,
+              },
               "hlsStatus": isReusedVideoPost ? "ready" : "none",
               "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
               "hlsUpdatedAt": isReusedVideoPost ? nowMs : 0,
@@ -2241,63 +2217,17 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 index == 0) {
               try {
                 final currentUserId = FirebaseAuth.instance.currentUser!.uid;
-                final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-                final originalPostRef = FirebaseFirestore.instance
+                final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
+                await FirebaseFirestore.instance
                     .collection("Posts")
-                    .doc(_sharedOriginalPostID);
-                await originalPostRef
-                    .collection("reshares")
+                    .doc(_sharedOriginalPostID)
+                    .collection("postSharers")
                     .doc(currentUserId)
                     .set({
                   "userID": currentUserId,
-                  "timeStamp": quoteTimestamp,
-                  "originalUserID": _sharedOriginalUserID,
-                  "originalPostID": _sharedOriginalPostID,
+                  "timestamp": shareTimestamp,
                   "sharedPostID": docID,
-                  "quotedPost": _isQuotedPost,
                 }, SetOptions(merge: true));
-                if (!_isQuotedPost) {
-                  await FirebaseFirestore.instance
-                      .collection("users")
-                      .doc(currentUserId)
-                      .collection("reshared_posts")
-                      .doc(_sharedOriginalPostID)
-                      .set({
-                    "post_docID": _sharedOriginalPostID,
-                    "timeStamp": quoteTimestamp,
-                    "originalUserID": _sharedOriginalUserID,
-                    "originalPostID": _sharedOriginalPostID,
-                    "sharedPostID": docID,
-                    "quotedPost": false,
-                  }, SetOptions(merge: true));
-                }
-                if (_isQuotedPost) {
-                  await originalPostRef.update({
-                    "stats.retryCount": FieldValue.increment(1),
-                  });
-                }
-                if (_sharedSourcePostID.isNotEmpty &&
-                    _sharedSourcePostID != _sharedOriginalPostID) {
-                  final sourcePostRef = FirebaseFirestore.instance
-                      .collection("Posts")
-                      .doc(_sharedSourcePostID);
-                  await sourcePostRef
-                      .collection("reshares")
-                      .doc(currentUserId)
-                      .set({
-                    "userID": currentUserId,
-                    "timeStamp": quoteTimestamp,
-                    "originalUserID": _sharedOriginalUserID,
-                    "originalPostID": _sharedOriginalPostID,
-                    "sharedPostID": docID,
-                    "quotedPost": _isQuotedPost,
-                  }, SetOptions(merge: true));
-                  if (_isQuotedPost) {
-                    await sourcePostRef.update({
-                      "stats.retryCount": FieldValue.increment(1),
-                    });
-                  }
-                }
               } catch (_, __) {}
             }
 
@@ -2336,6 +2266,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 timeStamp: nowMs + index,
                 userID: FirebaseAuth.instance.currentUser!.uid,
                 video: videoUrl,
+                videoLook: {
+                  "preset": post.videoLookPreset,
+                  "version": 1,
+                  "intensity": 1.0,
+                },
                 hlsStatus: isReusedVideoPost ? "ready" : "none",
                 hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
                 hlsUpdatedAt: isReusedVideoPost ? nowMs : 0,

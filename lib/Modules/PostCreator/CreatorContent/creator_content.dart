@@ -44,6 +44,12 @@ class CreatorContent extends StatelessWidget {
   CreatorContent({super.key, required this.model, required this.isSelected});
   late final CreatorContentController controller;
   final mainController = Get.find<PostCreatorController>();
+  static const Map<String, String> _videoLookLabels = <String, String>{
+    'original': 'Orijinal',
+    'clear': 'Temiz',
+    'cinema': 'Sinematik',
+    'vibe': 'Canlı',
+  };
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;
@@ -152,7 +158,15 @@ class CreatorContent extends StatelessWidget {
                                       controller.videoPlayerController != null)
                                     Padding(
                                       padding: const EdgeInsets.only(left: 7),
-                                      child: videoBody(),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          videoBody(),
+                                          const SizedBox(height: 10),
+                                          _buildVideoLookSelector(),
+                                        ],
+                                      ),
                                     ),
                                   if (controller.waitingVideo.value)
                                     AspectRatio(
@@ -830,6 +844,7 @@ class CreatorContent extends StatelessWidget {
                     controller.reusedVideoThumbnail.value = '';
                     controller.reusedVideoAspectRatio.value = 0.0;
                     controller.reusedImageUrls.clear();
+                    controller.videoLookPreset.value = 'original';
                     controller.isPlaying.value = false;
                     controller.hasVideo.value = false;
                     controller.hasVideo.refresh();
@@ -905,6 +920,46 @@ class CreatorContent extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildVideoLookSelector() {
+    return Obx(() {
+      final presets = CreatorContentController.supportedVideoLookPresets;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: presets.map((preset) {
+          final isSelected = controller.videoLookPreset.value == preset;
+          final label = _videoLookLabels[preset] ?? preset;
+          return GestureDetector(
+            onTap: () => controller.setVideoLookPreset(preset),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: isSelected ? Colors.black : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontSize: 12,
+                  fontFamily:
+                      isSelected ? "MontserratBold" : "MontserratMedium",
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    });
   }
 
   Widget _buildImageContentFromMemory(List<Uint8List?> images) {

@@ -101,6 +101,7 @@ class PostsModel {
   String authorNickname;
   String authorAvatarUrl;
   String video;
+  Map<String, dynamic> videoLook;
   String hlsMasterUrl;
   String hlsStatus;
   num hlsUpdatedAt;
@@ -148,6 +149,11 @@ class PostsModel {
     this.authorNickname = '',
     this.authorAvatarUrl = '',
     required this.video,
+    this.videoLook = const {
+      'preset': 'original',
+      'version': 1,
+      'intensity': 1.0,
+    },
     this.hlsMasterUrl = '',
     this.hlsStatus = 'none',
     this.hlsUpdatedAt = 0,
@@ -306,6 +312,15 @@ class PostsModel {
       authorNickname: resolvedAuthorNickname,
       authorAvatarUrl: resolvedAuthorAvatarUrl,
       video: data['video'] ?? '',
+      videoLook: data['videoLook'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
+          : (data['videoLook'] is Map
+              ? Map<String, dynamic>.from(data['videoLook'] as Map)
+              : const {
+                  'preset': 'original',
+                  'version': 1,
+                  'intensity': 1.0,
+                }),
       hlsMasterUrl: data['hlsMasterUrl'] ?? '',
       hlsStatus: data['hlsStatus'] ?? 'none',
       hlsUpdatedAt: parseNum(data['hlsUpdatedAt']),
@@ -355,6 +370,7 @@ class PostsModel {
       if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
       if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
       'video': video,
+      'videoLook': videoLook,
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': hlsStatus,
       'hlsUpdatedAt': hlsUpdatedAt,
@@ -400,6 +416,11 @@ class PostsModel {
       timeStamp: 0,
       userID: '',
       video: '',
+      videoLook: const {
+        'preset': 'original',
+        'version': 1,
+        'intensity': 1.0,
+      },
       hlsMasterUrl: '',
       hlsStatus: 'none',
       hlsUpdatedAt: 0,
@@ -447,6 +468,7 @@ class PostsModel {
     num? timeStamp,
     String? userID,
     String? video,
+    Map<String, dynamic>? videoLook,
     String? hlsMasterUrl,
     String? hlsStatus,
     num? hlsUpdatedAt,
@@ -481,8 +503,7 @@ class PostsModel {
       quotedSourceUserID: quotedSourceUserID ?? this.quotedSourceUserID,
       quotedSourceDisplayName:
           quotedSourceDisplayName ?? this.quotedSourceDisplayName,
-      quotedSourceUsername:
-          quotedSourceUsername ?? this.quotedSourceUsername,
+      quotedSourceUsername: quotedSourceUsername ?? this.quotedSourceUsername,
       quotedSourceAvatarUrl:
           quotedSourceAvatarUrl ?? this.quotedSourceAvatarUrl,
       paylasGizliligi: paylasGizliligi ?? this.paylasGizliligi,
@@ -495,6 +516,7 @@ class PostsModel {
       timeStamp: timeStamp ?? this.timeStamp,
       userID: userID ?? this.userID,
       video: video ?? this.video,
+      videoLook: videoLook ?? this.videoLook,
       hlsMasterUrl: hlsMasterUrl ?? this.hlsMasterUrl,
       hlsStatus: hlsStatus ?? this.hlsStatus,
       hlsUpdatedAt: hlsUpdatedAt ?? this.hlsUpdatedAt,

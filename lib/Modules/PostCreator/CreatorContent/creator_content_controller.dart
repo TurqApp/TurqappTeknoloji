@@ -22,6 +22,13 @@ import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
 
 class CreatorContentController extends GetxController {
+  static const List<String> supportedVideoLookPresets = <String>[
+    'original',
+    'clear',
+    'cinema',
+    'vibe',
+  ];
+
   TextEditingController textEdit = TextEditingController();
   final ImagePicker picker = ImagePicker();
   final CropController cropController = CropController();
@@ -43,6 +50,7 @@ class CreatorContentController extends GetxController {
   final RxDouble reusedVideoAspectRatio = 0.0.obs;
   final RxDouble reusedImageAspectRatio = 0.0.obs;
   final RxList<String> reusedImageUrls = <String>[].obs;
+  final RxString videoLookPreset = 'original'.obs;
 
   // User-selected custom thumbnail for video posts
   final Rx<Uint8List?> selectedThumbnail = Rx<Uint8List?>(null);
@@ -474,6 +482,7 @@ class CreatorContentController extends GetxController {
     reusedVideoThumbnail.value = '';
     reusedVideoAspectRatio.value = 0.0;
     reusedImageUrls.clear();
+    videoLookPreset.value = 'original';
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
@@ -616,6 +625,7 @@ class CreatorContentController extends GetxController {
     hasVideo.value = false;
     hasVideo.refresh();
     selectedThumbnail.value = null;
+    videoLookPreset.value = 'original';
 
     // 4) Setup video player immediately (no NSFW/compress here)
     final controller = VideoPlayerController.file(file);
@@ -665,6 +675,7 @@ class CreatorContentController extends GetxController {
     reusedVideoThumbnail.value = thumbnail.trim();
     reusedVideoAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
     reusedImageAspectRatio.value = 0.0;
+    videoLookPreset.value = 'original';
 
     final uri = Uri.tryParse(url);
     if (uri == null) {
@@ -704,11 +715,17 @@ class CreatorContentController extends GetxController {
     reusedVideoUrl.value = '';
     reusedVideoThumbnail.value = '';
     reusedVideoAspectRatio.value = 0.0;
+    videoLookPreset.value = 'original';
     reusedImageAspectRatio.value = aspectRatio > 0 ? aspectRatio : 0.0;
     selectedImages.clear();
     croppedImages.clear();
     reusedImageUrls.assignAll(uniqueUrls);
     isProcessing.value = false;
+  }
+
+  void setVideoLookPreset(String preset) {
+    if (!supportedVideoLookPresets.contains(preset)) return;
+    videoLookPreset.value = preset;
   }
 
   Future<void> openCustomCameraCapture() async {
