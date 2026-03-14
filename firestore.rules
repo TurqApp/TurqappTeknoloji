@@ -913,7 +913,8 @@ service cloud.firestore {
       match /Yorumlar/{commentId} {
         allow read: if isAuth();
         allow create: if isValidStoryCommentCreatePayload();
-        allow update, delete: if isAuth()
+        allow update: if false;
+        allow delete: if isAuth()
           && resource.data.userID == request.auth.uid;
       }
     }
