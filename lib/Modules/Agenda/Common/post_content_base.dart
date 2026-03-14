@@ -233,12 +233,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         if (isStandalonePostInstance) {
           videoStateManager.enterExclusiveMode(playbackHandleKey);
         }
-        _videoAdapter?.play();
-        videoStateManager.playOnlyThis(playbackHandleKey);
-        // Cache state machine: playing olarak işaretle
-        try {
-          Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
-        } catch (_) {}
+        if (_videoAdapter?.value.isInitialized == true) {
+          _startPlayback();
+        }
       } else {
         // Bekleyen lazy init varsa iptal et
         _lazyInitTimer?.cancel();
@@ -269,8 +266,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (isStandalonePostInstance) {
         videoStateManager.enterExclusiveMode(playbackHandleKey);
       }
-      _videoAdapter?.play();
-      videoStateManager.playOnlyThis(playbackHandleKey);
+      if (_videoAdapter!.value.isInitialized) {
+        _startPlayback();
+      }
     }
   }
 
@@ -286,15 +284,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     // İlk kez ready olduğunda ses ayarla
     if (v.isInitialized && !_hasAutoPlayed) {
-      _videoAdapter!.setVolume(
-        isStandalonePostInstance
-            ? 1.0
-            : (agendaController.isMuted.value ? 0.0 : 1.0),
-      );
       if (widget.shouldPlay) {
-        _hasAutoPlayed = true;
-        unawaited(_videoAdapter!.play());
-        videoStateManager.playOnlyThis(playbackHandleKey);
+        _startPlayback();
+      } else {
+        _applyPlaybackVolume();
       }
     }
 
@@ -322,6 +315,26 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   void pauseVideo() => _safePauseVideo();
+
+  void _applyPlaybackVolume() {
+    _videoAdapter?.setVolume(
+      isStandalonePostInstance
+          ? 1.0
+          : (agendaController.isMuted.value ? 0.0 : 1.0),
+    );
+  }
+
+  void _startPlayback() {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    _applyPlaybackVolume();
+    _hasAutoPlayed = true;
+    unawaited(adapter.play());
+    videoStateManager.playOnlyThis(playbackHandleKey);
+    try {
+      Get.find<SegmentCacheManager>().markPlaying(widget.model.docID);
+    } catch (_) {}
+  }
 
   /// Alt sınıflar route geçişinde bir sonraki otomatik pause'u atlamak istediğinde çağırır.
   void markSkipNextPause() {
