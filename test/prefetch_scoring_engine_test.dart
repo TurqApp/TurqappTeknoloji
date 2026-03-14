@@ -12,6 +12,8 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
       ),
     );
     final lower = PrefetchScoringEngine.score(
@@ -23,6 +25,8 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
       ),
     );
 
@@ -39,6 +43,8 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
       ),
     );
     final far = PrefetchScoringEngine.score(
@@ -50,6 +56,8 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
       ),
     );
 
@@ -66,6 +74,8 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.45,
+        cachedSegmentCount: 2,
+        totalSegmentCount: 10,
       ),
     );
     final consumed = PrefetchScoringEngine.score(
@@ -77,9 +87,42 @@ void main() {
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
         watchProgress: 0.95,
+        cachedSegmentCount: 9,
+        totalSegmentCount: 10,
       ),
     );
 
     expect(resume, greaterThan(consumed));
+  });
+
+  test('non-ready cache scores above already startup-ready cache', () {
+    final notReady = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 1,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.2,
+        watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
+      ),
+    );
+    final ready = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 1,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.2,
+        watchProgress: 0.0,
+        cachedSegmentCount: 3,
+        totalSegmentCount: 10,
+      ),
+    );
+
+    expect(notReady, greaterThan(ready));
   });
 }

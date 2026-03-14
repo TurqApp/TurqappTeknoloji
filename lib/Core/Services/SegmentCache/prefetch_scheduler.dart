@@ -155,6 +155,8 @@ class PrefetchScheduler extends GetxController {
           targetIndex: idx,
           priority: 0,
           watchProgress: entry?.watchProgress ?? 0.0,
+          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+          totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -174,6 +176,8 @@ class PrefetchScheduler extends GetxController {
             targetIndex: currentIndex,
             priority: 1,
             watchProgress: entry?.watchProgress ?? 0.0,
+            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+            totalSegmentCount: entry?.totalSegmentCount ?? 0,
           ),
         ));
         _jobEnqueuedAt[docID] = DateTime.now();
@@ -197,6 +201,8 @@ class PrefetchScheduler extends GetxController {
           targetIndex: idx,
           priority: 2,
           watchProgress: entry?.watchProgress ?? 0.0,
+          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+          totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -265,6 +271,8 @@ class PrefetchScheduler extends GetxController {
           targetIndex: index,
           priority: priority,
           watchProgress: entry?.watchProgress ?? 0.0,
+          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+          totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -310,6 +318,8 @@ class PrefetchScheduler extends GetxController {
     required int targetIndex,
     required int priority,
     required double watchProgress,
+    required int cachedSegmentCount,
+    required int totalSegmentCount,
   }) {
     return PrefetchScoringEngine.score(
       PrefetchScoreContext(
@@ -320,6 +330,8 @@ class PrefetchScheduler extends GetxController {
         mobileSeedMode: _mobileSeedMode,
         feedReadyRatio: _lastFeedReadyRatio,
         watchProgress: watchProgress,
+        cachedSegmentCount: cachedSegmentCount,
+        totalSegmentCount: totalSegmentCount,
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'cache_usefulness_engine.dart';
 import 'playback_signal_engine.dart';
 
 class PrefetchScoreContext {
@@ -8,6 +9,8 @@ class PrefetchScoreContext {
   final bool mobileSeedMode;
   final double feedReadyRatio;
   final double watchProgress;
+  final int cachedSegmentCount;
+  final int totalSegmentCount;
 
   const PrefetchScoreContext({
     required this.basePriority,
@@ -17,6 +20,8 @@ class PrefetchScoreContext {
     required this.mobileSeedMode,
     required this.feedReadyRatio,
     required this.watchProgress,
+    required this.cachedSegmentCount,
+    required this.totalSegmentCount,
   });
 }
 
@@ -24,6 +29,10 @@ class PrefetchScoringEngine {
   static double score(PrefetchScoreContext context) {
     final signal =
         PlaybackSignalEngine.fromWatchProgress(context.watchProgress);
+    final usefulness = CacheUsefulnessEngine.fromSegments(
+      cachedSegmentCount: context.cachedSegmentCount,
+      totalSegmentCount: context.totalSegmentCount,
+    );
     final distance = (context.targetIndex - context.currentIndex).abs();
 
     double score;
@@ -65,6 +74,12 @@ class PrefetchScoringEngine {
 
     if (signal.likelyConsumed) {
       score -= 10;
+    }
+
+    if (!usefulness.startupReady) {
+      score += 18;
+    } else if (usefulness.deepCached) {
+      score -= 6;
     }
 
     return score;

@@ -1,5 +1,6 @@
 import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
 
+import 'cache_usefulness_engine.dart';
 import 'playback_signal_engine.dart';
 
 class EvictionScoreContext {
@@ -26,6 +27,10 @@ class EvictionScoringEngine {
   static double score(EvictionScoreContext context) {
     final signal =
         PlaybackSignalEngine.fromWatchProgress(context.watchProgress);
+    final usefulness = CacheUsefulnessEngine.fromSegments(
+      cachedSegmentCount: context.cachedSegmentCount,
+      totalSegmentCount: context.totalSegmentCount,
+    );
     if (context.state == VideoCacheState.playing) return 1000.0;
 
     double score;
@@ -69,6 +74,13 @@ class EvictionScoringEngine {
     } else if (signal.likelyUnstarted &&
         context.state == VideoCacheState.partial) {
       score -= 5;
+    }
+
+    if (usefulness.startupReady && !signal.likelyConsumed) {
+      score += 8;
+    }
+    if (usefulness.deepCached && signal.likelyConsumed) {
+      score -= 6;
     }
 
     final sizeMb = context.totalSizeBytes / (1024 * 1024);
