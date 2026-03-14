@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -673,26 +674,14 @@ class ShortsContent extends StatelessWidget {
           onTap: () async {
             videoPlayerController.pause();
 
-            // Dinamik paylaşım zinciri: eğer bu post zaten bir paylaşım ise ana kaynağı koru
-            String finalOriginalUserID;
-            String finalOriginalPostID;
-
-            if (model.originalUserID.isNotEmpty) {
-              // Bu post zaten bir paylaşım, ana kaynağı koru
-              finalOriginalUserID = model.originalUserID;
-              finalOriginalPostID = model.originalPostID;
-            } else {
-              // İlk kez paylaşılıyor, bu postun sahibi ana kaynak olacak
-              finalOriginalUserID = model.userID;
-              finalOriginalPostID = model.docID;
-            }
-
             Get.to(() => PostCreator(
                   sharedVideoUrl: model.playbackUrl,
                   sharedAspectRatio: model.aspectRatio.toDouble(),
                   sharedThumbnail: model.thumbnail,
-                  originalUserID: finalOriginalUserID,
-                  originalPostID: finalOriginalPostID,
+                  originalUserID:
+                      PostStoryShareService.resolveOriginalUserId(model),
+                  originalPostID:
+                      PostStoryShareService.resolveOriginalPostId(model),
                   sharedAsPost: true,
                 ))?.then((_) {
               videoPlayerController.play();
@@ -700,6 +689,15 @@ class ShortsContent extends StatelessWidget {
           },
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
+        ),
+        PullDownMenuItem(
+          onTap: () async {
+            videoPlayerController.pause();
+            await PostStoryShareService.openStoryMakerForPost(model);
+            videoPlayerController.play();
+          },
+          title: 'Hikayene ekle',
+          icon: CupertinoIcons.sparkles,
         ),
         if (model.userID == FirebaseAuth.instance.currentUser!.uid ||
             AdminAccessService.isKnownAdminSync())

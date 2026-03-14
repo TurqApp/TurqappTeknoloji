@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/relative_time_tick_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -2255,27 +2256,15 @@ class _ClassicContentState extends State<ClassicContent>
           onTap: () async {
             videoController?.pause();
 
-            // Dinamik paylaşım zinciri: eğer bu post zaten bir paylaşım ise ana kaynağı koru
-            String finalOriginalUserID;
-            String finalOriginalPostID;
-
-            if (widget.model.originalUserID.isNotEmpty) {
-              // Bu post zaten bir paylaşım, ana kaynağı koru
-              finalOriginalUserID = widget.model.originalUserID;
-              finalOriginalPostID = widget.model.originalPostID;
-            } else {
-              // İlk kez paylaşılıyor, bu postun sahibi ana kaynak olacak
-              finalOriginalUserID = widget.model.userID;
-              finalOriginalPostID = widget.model.docID;
-            }
-
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
                   sharedImageUrls: widget.model.img,
                   sharedAspectRatio: widget.model.aspectRatio.toDouble(),
                   sharedThumbnail: widget.model.thumbnail,
-                  originalUserID: finalOriginalUserID,
-                  originalPostID: finalOriginalPostID,
+                  originalUserID:
+                      PostStoryShareService.resolveOriginalUserId(widget.model),
+                  originalPostID:
+                      PostStoryShareService.resolveOriginalPostId(widget.model),
                   sharedAsPost: true,
                 ))?.then((_) {
               videoController?.play();
@@ -2283,6 +2272,15 @@ class _ClassicContentState extends State<ClassicContent>
           },
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
+        ),
+        PullDownMenuItem(
+          onTap: () async {
+            videoController?.pause();
+            await PostStoryShareService.openStoryMakerForPost(widget.model);
+            videoController?.play();
+          },
+          title: 'Hikayene ekle',
+          icon: CupertinoIcons.sparkles,
         ),
         if (canManagePost)
           PullDownMenuItem(

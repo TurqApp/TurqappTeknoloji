@@ -19,10 +19,19 @@ class StoryVideo extends StatefulWidget {
 class _StoryVideoState extends State<StoryVideo> {
   late VideoPlayerController _vidCtrl;
 
+  bool get _isRemotePath {
+    final uri = Uri.tryParse(widget.path.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.hasAuthority;
+  }
+
   @override
   void initState() {
     super.initState();
-    _vidCtrl = VideoPlayerController.file(File(widget.path))
+    _vidCtrl = _isRemotePath
+        ? VideoPlayerController.networkUrl(Uri.parse(widget.path))
+        : VideoPlayerController.file(File(widget.path))
       ..initialize().then((_) {
         _vidCtrl.setLooping(true);
         _vidCtrl.setVolume(widget.isMuted ? 0 : 1);

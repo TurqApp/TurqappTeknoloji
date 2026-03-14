@@ -12,12 +12,32 @@ import 'story_video.dart';
 import 'text_editor_sheet.dart';
 
 class StoryMaker extends StatelessWidget {
+  final String initialMediaUrl;
+  final bool initialMediaIsVideo;
+  final double initialMediaAspectRatio;
+  final String initialSourceUserId;
+  final String initialSourceDisplayName;
   final controller = Get.put(StoryMakerController());
 
-  StoryMaker({super.key});
+  StoryMaker({
+    super.key,
+    this.initialMediaUrl = '',
+    this.initialMediaIsVideo = false,
+    this.initialMediaAspectRatio = 9 / 16,
+    this.initialSourceUserId = '',
+    this.initialSourceDisplayName = '',
+  });
 
   @override
   Widget build(BuildContext context) {
+    controller.applySharedPostSeedIfNeeded(
+      mediaUrl: initialMediaUrl,
+      isVideo: initialMediaIsVideo,
+      aspectRatio: initialMediaAspectRatio,
+      sourceUserId: initialSourceUserId,
+      sourceDisplayName: initialSourceDisplayName,
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -74,6 +94,13 @@ class StoryMaker extends StatelessWidget {
 
   bool _isBackgroundMedia(StoryElement e) {
     return e.type == StoryElementType.image || e.type == StoryElementType.video;
+  }
+
+  bool _isRemotePath(String value) {
+    final uri = Uri.tryParse(value.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.hasAuthority;
   }
 
   Widget _buildInteractiveElement(StoryElement e) {
@@ -213,6 +240,27 @@ class StoryMaker extends StatelessWidget {
   Widget _buildElement(StoryElement e) {
     switch (e.type) {
       case StoryElementType.image:
+        if (_isRemotePath(e.content)) {
+          return CachedNetworkImage(
+            imageUrl: e.content,
+            cacheManager: TurqImageCacheManager.instance,
+            fit: BoxFit.cover,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            placeholder: (_, __) => Container(
+              color: Colors.white12,
+              child: const Center(
+                child: CupertinoActivityIndicator(color: Colors.white),
+              ),
+            ),
+            errorWidget: (_, __, ___) => Container(
+              color: Colors.white12,
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.white70),
+              ),
+            ),
+          );
+        }
         return Image.file(File(e.content), fit: BoxFit.cover);
       case StoryElementType.gif:
         return CachedNetworkImage(
@@ -320,23 +368,32 @@ class StoryMaker extends StatelessWidget {
           fit: BoxFit.cover,
         );
       case StoryElementType.sticker:
+        final isSourceBadge = e.stickerType == 'source_profile';
         return Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          alignment: isSourceBadge ? Alignment.centerLeft : Alignment.center,
+          padding: EdgeInsets.symmetric(
+            horizontal: isSourceBadge ? 12 : 14,
+            vertical: isSourceBadge ? 7 : 8,
+          ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Colors.black12, width: 1),
+            color: isSourceBadge
+                ? Color(e.textBgColor)
+                : Colors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(isSourceBadge ? 10 : 999),
+            border: isSourceBadge
+                ? null
+                : Border.all(color: Colors.black12, width: 1),
           ),
           child: Text(
             e.content,
-            textAlign: TextAlign.center,
-            maxLines: 2,
+            textAlign: isSourceBadge ? TextAlign.left : TextAlign.center,
+            maxLines: isSourceBadge ? 1 : 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 15,
-              fontFamily: 'MontserratMedium',
+            style: TextStyle(
+              color: isSourceBadge ? Color(e.textColor) : Colors.black,
+              fontSize: isSourceBadge ? e.fontSize : 15,
+              fontFamily: isSourceBadge ? e.fontFamily : 'MontserratMedium',
+              fontWeight: FontWeight.w500,
             ),
           ),
         );

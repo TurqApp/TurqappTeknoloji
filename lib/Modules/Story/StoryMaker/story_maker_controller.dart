@@ -136,6 +136,7 @@ class StoryMakerController extends GetxController {
 
   int _colorIndex = 0;
   int _zIndexCounter = 0;
+  String _sharedPostSeedFingerprint = '';
 
   // Undo/Redo için history
   final List<List<StoryElement>> _history = [];
@@ -183,6 +184,7 @@ class StoryMakerController extends GetxController {
     color.value = Colors.transparent;
     _colorIndex = 0;
     _zIndexCounter = 0;
+    _sharedPostSeedFingerprint = '';
     _history.clear();
     _historyIndex = -1;
     canUndo.value = false;
@@ -193,6 +195,129 @@ class StoryMakerController extends GetxController {
   void changeCircleColor() {
     color.value = colorOptions[_colorIndex];
     _colorIndex = (_colorIndex + 1) % colorOptions.length;
+  }
+
+  void applySharedPostSeedIfNeeded({
+    required String mediaUrl,
+    required bool isVideo,
+    required double aspectRatio,
+    required String sourceUserId,
+    required String sourceDisplayName,
+  }) {
+    final cleanMediaUrl = mediaUrl.trim();
+    final cleanSourceUserId = sourceUserId.trim();
+    final cleanSourceDisplayName = sourceDisplayName.trim();
+    if (cleanMediaUrl.isEmpty) return;
+
+    final fingerprint = [
+      cleanMediaUrl,
+      isVideo,
+      aspectRatio.toStringAsFixed(6),
+      cleanSourceUserId,
+      cleanSourceDisplayName,
+    ].join('::');
+    if (_sharedPostSeedFingerprint == fingerprint) return;
+    _sharedPostSeedFingerprint = fingerprint;
+
+    elements.clear();
+    color.value = Colors.transparent;
+    music.value = '';
+    selectedMusic.value = null;
+    _zIndexCounter = 0;
+    _history.clear();
+    _historyIndex = -1;
+    canUndo.value = false;
+    canRedo.value = false;
+
+    final placement = _computeBackgroundPlacement(aspectRatio);
+    elements.add(
+      StoryElement(
+        type: isVideo ? StoryElementType.video : StoryElementType.image,
+        content: cleanMediaUrl,
+        width: placement.width,
+        height: placement.height,
+        position: placement.position,
+        rotation: 0,
+        zIndex: ++_zIndexCounter,
+        isMuted: false,
+        aspectRatio: placement.width / placement.height,
+      ),
+    );
+
+    if (cleanSourceUserId.isNotEmpty && cleanSourceDisplayName.isNotEmpty) {
+      _addSourceProfileBadge(
+        userId: cleanSourceUserId,
+        displayName: cleanSourceDisplayName,
+      );
+    }
+
+    elements.refresh();
+    _saveState();
+  }
+
+  ({double width, double height, Offset position}) _computeBackgroundPlacement(
+    double rawAspectRatio,
+  ) {
+    final safeAspectRatio = rawAspectRatio.isFinite && rawAspectRatio > 0
+        ? rawAspectRatio
+        : (9 / 16);
+    final screenW = Get.width;
+    final screenH = Get.height;
+    final topSafeArea = Get.mediaQuery.padding.top;
+    const topBarHeight = 60.0;
+    const bottomToolsHeight = 80.0;
+    final playgroundHeight =
+        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+    final screenAspectRatio = screenW / playgroundHeight;
+
+    double width;
+    double height;
+    if (safeAspectRatio > screenAspectRatio) {
+      width = screenW;
+      height = width / safeAspectRatio;
+    } else {
+      height = playgroundHeight;
+      width = height * safeAspectRatio;
+    }
+
+    final dx = (screenW - width) / 2;
+    final dy = (playgroundHeight - height) / 2;
+    return (width: width, height: height, position: Offset(dx, dy));
+  }
+
+  void _addSourceProfileBadge({
+    required String userId,
+    required String displayName,
+  }) {
+    const height = 36.0;
+    final width = (Get.width * 0.62).clamp(170.0, 260.0).toDouble();
+    final screenH = Get.height;
+    final topSafeArea = Get.mediaQuery.padding.top;
+    const topBarHeight = 60.0;
+    const bottomToolsHeight = 80.0;
+    final playgroundHeight =
+        screenH - topSafeArea - topBarHeight - bottomToolsHeight;
+
+    elements.add(
+      StoryElement(
+        type: StoryElementType.sticker,
+        content: 'Kimden: $displayName',
+        width: width,
+        height: height,
+        position: Offset(14, playgroundHeight - height - 14),
+        rotation: 0,
+        zIndex: ++_zIndexCounter,
+        aspectRatio: width / height,
+        stickerType: 'source_profile',
+        stickerData: userId,
+        textColor: 0xFFFFFFFF,
+        textBgColor: 0x5C000000,
+        hasTextBg: true,
+        textAlign: 'left',
+        fontSize: 14,
+        fontFamily: 'MontserratMedium',
+      ),
+    );
   }
 
   Future<void> pickImage() async {
@@ -852,14 +977,20 @@ class StoryMakerController extends GetxController {
       final List<Map<String, dynamic>> serialized = [];
       for (final e in elementsCopy) {
         String url = e.content;
-      if (e.type == StoryElementType.image ||
-          e.type == StoryElementType.video ||
-          e.type == StoryElementType.drawing) {
-        final file = File(e.content);
-        if (!file.existsSync()) {
-          debugPrint("Story media source missing");
-          continue; // Skip missing files
-        }
+        final uri = Uri.tryParse(e.content.trim());
+        final isRemoteSource = uri != null &&
+            (uri.scheme == 'http' || uri.scheme == 'https') &&
+            uri.hasAuthority;
+        if (isRemoteSource) {
+          url = CdnUrlBuilder.toCdnUrl(e.content.trim());
+        } else if (e.type == StoryElementType.image ||
+            e.type == StoryElementType.video ||
+            e.type == StoryElementType.drawing) {
+          final file = File(e.content);
+          if (!file.existsSync()) {
+            debugPrint("Story media source missing");
+            continue; // Skip missing files
+          }
           final ts = DateTime.now().millisecondsSinceEpoch;
           final uid = user.uid;
           if (e.type == StoryElementType.video) {

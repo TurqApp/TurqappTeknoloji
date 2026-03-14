@@ -9,6 +9,7 @@ import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
@@ -681,31 +682,26 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () async {
-            // Dinamik paylaşım zinciri: eğer bu post zaten bir paylaşım ise ana kaynağı koru
-            String finalOriginalUserID;
-            String finalOriginalPostID;
-
-            if (widget.model.originalUserID.isNotEmpty) {
-              // Bu post zaten bir paylaşım, ana kaynağı koru
-              finalOriginalUserID = widget.model.originalUserID;
-              finalOriginalPostID = widget.model.originalPostID;
-            } else {
-              // İlk kez paylaşılıyor, bu postun sahibi ana kaynak olacak
-              finalOriginalUserID = widget.model.userID;
-              finalOriginalPostID = widget.model.docID;
-            }
-
             Get.to(() => PostCreator(
                   sharedVideoUrl: widget.model.playbackUrl,
                   sharedAspectRatio: widget.model.aspectRatio.toDouble(),
                   sharedThumbnail: widget.model.thumbnail,
-                  originalUserID: finalOriginalUserID,
-                  originalPostID: finalOriginalPostID,
+                  originalUserID:
+                      PostStoryShareService.resolveOriginalUserId(widget.model),
+                  originalPostID:
+                      PostStoryShareService.resolveOriginalPostId(widget.model),
                   sharedAsPost: true,
                 ))?.then((_) {});
           },
           title: 'Gönderi olarak yayınla',
           icon: CupertinoIcons.add_circled,
+        ),
+        PullDownMenuItem(
+          onTap: () async {
+            await PostStoryShareService.openStoryMakerForPost(widget.model);
+          },
+          title: 'Hikayene ekle',
+          icon: CupertinoIcons.sparkles,
         ),
         if (widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
             controller.canSendAdminPush)

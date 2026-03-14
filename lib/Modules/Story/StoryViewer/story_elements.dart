@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -160,8 +161,9 @@ class StoryTextWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSourceBadge = element.stickerType == 'source_profile';
     final align = () {
-      switch (element.textAlign) {
+      switch (isSourceBadge ? 'left' : element.textAlign) {
         case 'left':
           return TextAlign.left;
         case 'right':
@@ -184,6 +186,16 @@ class StoryTextWidget extends StatelessWidget {
         angle: element.rotation,
         child: GestureDetector(
           onTap: () async {
+            if (isSourceBadge && element.stickerData.trim().isNotEmpty) {
+              final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+              if (element.stickerData.trim() != currentUserId) {
+                await Get.to(
+                  () => SocialProfile(userID: element.stickerData.trim()),
+                );
+              }
+              return;
+            }
+
             if (element.stickerType == 'link' &&
                 element.stickerData.isNotEmpty) {
               final uri = Uri.tryParse(element.stickerData.trim());
@@ -195,11 +207,11 @@ class StoryTextWidget extends StatelessWidget {
           child: Container(
             width: element.width,
             height: element.height,
-            alignment: Alignment.center,
-            decoration: element.hasTextBg
+            alignment: isSourceBadge ? Alignment.centerLeft : Alignment.center,
+            decoration: (element.hasTextBg || isSourceBadge)
                 ? BoxDecoration(
                     color: Color(element.textBgColor),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(isSourceBadge ? 10 : 10),
                   )
                 : null,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -277,8 +289,10 @@ class StoryTextWidget extends StatelessWidget {
                       element.content,
                       textAlign: align,
                       style: baseStyle,
-                      maxLines: null,
-                      overflow: TextOverflow.visible,
+                      maxLines: isSourceBadge ? 1 : null,
+                      overflow: isSourceBadge
+                          ? TextOverflow.ellipsis
+                          : TextOverflow.visible,
                     );
                   }(),
           ),
