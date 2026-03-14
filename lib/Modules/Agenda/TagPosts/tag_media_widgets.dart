@@ -133,7 +133,7 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
   Future<void> _softHoldController() async {
     if (_adapter != null) {
       _adapter?.removeListener(_onAdapterTick);
-      await _adapter?.pause();
+      await _adapter?.stopPlayback();
     }
   }
 
@@ -151,7 +151,7 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
       _adapter?.play();
     } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      _adapter?.pause();
+      _adapter?.stopPlayback();
     }
   }
 
