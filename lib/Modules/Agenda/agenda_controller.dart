@@ -981,10 +981,11 @@ class AgendaController extends GetxController {
     try {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
+      final loadLimit = initial ? 30 : fetchLimit;
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
-        limit: fetchLimit,
+        limit: loadLimit,
       );
 
       final items = page.items
@@ -1073,7 +1074,7 @@ class AgendaController extends GetxController {
         }
       }
 
-      if (page.lastDoc == null || items.length < fetchLimit) {
+      if (page.lastDoc == null || items.length < loadLimit) {
         hasMore.value = false;
       }
     } catch (e) {
