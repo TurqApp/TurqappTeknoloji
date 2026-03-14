@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_content.dart';
@@ -115,7 +114,6 @@ class TutoringCategoryWidget extends StatelessWidget {
         children: categories.map((category) {
           return GestureDetector(
             onTap: () {
-              log("Kategori seçildi: ${category.name}");
               Get.to(() => TutoringContent(categoryName: category.name));
             },
             child: Padding(

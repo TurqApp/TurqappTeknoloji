@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/cupertino.dart';
@@ -76,9 +75,8 @@ class TutoringDetail extends StatelessWidget {
             .delete();
         Get.back();
         AppSnackbar("Başarılı", "İlan silindi!");
-      } catch (e) {
+      } catch (_) {
         AppSnackbar("Hata", "İlan silinirken bir hata oluştu.");
-        log("Error deleting tutoring: $e");
       }
     }
 
@@ -125,8 +123,6 @@ class TutoringDetail extends StatelessWidget {
                                 controller.tutoring.value.docID,
                               );
                             }
-                          } else {
-                            log("User ID not found");
                           }
                         },
                         icon: isSaved

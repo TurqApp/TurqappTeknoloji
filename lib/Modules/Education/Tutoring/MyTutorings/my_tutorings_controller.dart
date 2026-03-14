@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
@@ -48,7 +47,6 @@ class MyTutoringsController extends GetxController {
       }
     } catch (e) {
       errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
-      log("Error fetching my tutorings: $e");
     }
   }
 
@@ -82,7 +80,6 @@ class MyTutoringsController extends GetxController {
       }
     } catch (e) {
       errorMessage.value = "Kullanıcı bilgileri yüklenirken hata oluştu: $e";
-      log("Error fetching users: $e");
     }
   }
 

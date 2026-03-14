@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -76,8 +75,7 @@ class CreateTutoringController extends GetxController {
         _lat = locations.first.latitude;
         _long = locations.first.longitude;
       }
-    } catch (e) {
-      log('Geocoding failed: $e');
+    } catch (_) {
       _lat = null;
       _long = null;
     }
@@ -105,8 +103,7 @@ class CreateTutoringController extends GetxController {
               'users/$userId/verification_${DateTime.now().millisecondsSinceEpoch}',
         );
         urls.add(downloadUrl);
-      } catch (e) {
-        log('Verification doc upload failed: $e');
+      } catch (_) {
       }
     }
     return urls;
@@ -231,8 +228,7 @@ class CreateTutoringController extends GetxController {
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      log("Error loading cities: $e");
+    } catch (_) {
     }
   }
 
@@ -433,9 +429,8 @@ class CreateTutoringController extends GetxController {
         Get.back();
         AppSnackbar("Bilgi", "Değişiklik yapılmadı!");
       }
-    } catch (e) {
+    } catch (_) {
       AppSnackbar("Hata", "İlan güncellenirken bir hata oluştu.");
-      log("İlan Güncellenirken Hata: $e");
     } finally {
       isLoading.value = false;
     }

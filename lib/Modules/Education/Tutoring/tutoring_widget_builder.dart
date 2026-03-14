@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -188,8 +187,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                             tutoring.docID,
                                           );
                                         }
-                                      } else {
-                                        log("User ID not found");
                                       }
                                     },
                                     icon: isSaved
@@ -354,8 +351,6 @@ class TutoringWidgetBuilder extends StatelessWidget {
                                                 tutoring.docID,
                                               );
                                             }
-                                          } else {
-                                            log("User ID not found");
                                           }
                                         },
                                         icon: isSaved
