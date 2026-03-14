@@ -388,7 +388,6 @@ class _SplashViewState extends State<SplashView> {
       final bool onWiFi = _isOnWiFiNow();
       final storyController = Get.find<StoryRowController>();
       final agendaController = Get.find<AgendaController>();
-      final recommended = Get.find<RecommendedUserListController>();
 
       // Paralel: shorts + story + feed + recommended aynı anda başlasın
       await Future.wait([
@@ -432,6 +431,7 @@ class _SplashViewState extends State<SplashView> {
 
       unawaited(() async {
         try {
+          final recommended = Get.find<RecommendedUserListController>();
           await recommended.ensureLoaded(
             limit: onWiFi
                 ? (isFirstLaunch ? 140 : 220)
@@ -446,7 +446,7 @@ class _SplashViewState extends State<SplashView> {
         _warmUserMetaAndAvatars(
           agendaController: agendaController,
           storyController: storyController,
-          recommendedController: recommended,
+          recommendedController: null,
           onWiFi: onWiFi,
         ).timeout(
           Duration(milliseconds: onWiFi ? 900 : 500),
@@ -646,7 +646,7 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _warmUserMetaAndAvatars({
     required AgendaController agendaController,
     required StoryRowController storyController,
-    required RecommendedUserListController recommendedController,
+    RecommendedUserListController? recommendedController,
     required bool onWiFi,
   }) async {
     try {
@@ -670,8 +670,10 @@ class _SplashViewState extends State<SplashView> {
       for (final user in storyController.users.take(storyTake)) {
         userIds.add(user.userID);
       }
-      for (final user in recommendedController.list.take(recommendedTake)) {
-        userIds.add(user.userID);
+      if (recommendedController != null) {
+        for (final user in recommendedController.list.take(recommendedTake)) {
+          userIds.add(user.userID);
+        }
       }
 
       if (userIds.isEmpty) return;
