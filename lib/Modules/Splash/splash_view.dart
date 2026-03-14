@@ -87,17 +87,6 @@ class _SplashViewState extends State<SplashView> {
     _remainingIntroBudget = Duration(milliseconds: remainingMs);
     _startTypewriter();
 
-    final splashInitDelta =
-        DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
-    debugPrint(
-        '[StartupTrace] launch->Splash.initState = ${splashInitDelta}ms');
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final splashFrameDelta =
-          DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
-      debugPrint(
-          '[StartupTrace] launch->Splash.firstFrame = ${splashFrameDelta}ms');
-    });
-
     // Firebase hazır olmadan FirebasePerformance çağrısı yapılmasın.
     unawaited(_initApp());
     final watchdogDuration = Platform.isIOS
@@ -105,7 +94,6 @@ class _SplashViewState extends State<SplashView> {
         : const Duration(seconds: 8);
     _startupWatchdogTimer = Timer(watchdogDuration, () {
       if (!mounted || _didNavigate) return;
-      debugPrint('[StartupTrace] watchdog fired -> fallback navigation');
       _navigateToPrimaryRoute();
 
       // Bazı iOS anlarında ilk yönlendirme UI thread yoğunluğunda kaçabiliyor.
@@ -113,8 +101,6 @@ class _SplashViewState extends State<SplashView> {
       for (final retryMs in <int>[900, 1800, 2800]) {
         Future.delayed(Duration(milliseconds: retryMs), () {
           if (!mounted || _didNavigate) return;
-          debugPrint(
-              '[StartupTrace] watchdog retry +${retryMs}ms -> fallback navigation');
           _navigateToPrimaryRoute();
         });
       }
@@ -131,15 +117,11 @@ class _SplashViewState extends State<SplashView> {
         (() async {
           await firebaseBootstrapFuture.timeout(
             const Duration(seconds: 3),
-            onTimeout: () {
-              debugPrint('[StartupTrace] firebase bootstrap timeout');
-            },
+            onTimeout: () {},
           );
           await FirestoreConfig.initialize().timeout(
             const Duration(seconds: 2),
-            onTimeout: () {
-              debugPrint('[StartupTrace] firestore config timeout');
-            },
+            onTimeout: () {},
           );
         })(),
         SharedPreferences.getInstance().then((v) => prefs = v),
@@ -195,14 +177,10 @@ class _SplashViewState extends State<SplashView> {
       } else {
         unawaited(_backgroundInit(isFirstLaunch: isFirstLaunch));
       }
-    } catch (e, stack) {
-      debugPrint('❌ SplashView _initApp HATA: $e');
-      debugPrint('$stack');
-    }
+    } catch (_, __) {}
 
     if (!mounted) return;
     startupStopwatch.stop();
-    debugPrint('⚡ App startup: ${startupStopwatch.elapsedMilliseconds}ms');
     _navigateToPrimaryRoute();
   }
 
@@ -225,9 +203,6 @@ class _SplashViewState extends State<SplashView> {
     } catch (_) {
       loggedIn = false;
     }
-    final navDelta = DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
-    debugPrint(
-        '[StartupTrace] launch->NavDecision(${loggedIn ? 'NavBar' : 'SignIn'}) = ${navDelta}ms');
     _didNavigate = true;
     if (loggedIn) {
       if (Get.isRegistered<NavBarController>()) {
@@ -323,8 +298,7 @@ class _SplashViewState extends State<SplashView> {
         Get.put(PrefetchScheduler(), permanent: true);
       }
       _globalCacheProxyReady = true;
-    } catch (e) {
-      debugPrint('[Splash] Cache proxy init error: $e');
+    } catch (_) {
       _globalCacheProxyReady = false;
     } finally {
       _globalCacheProxyInitFuture = null;
@@ -557,22 +531,15 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _prepareSynchronizedStartupBeforeNav(
       {required bool isFirstLaunch}) async {
-    final syncWatch = Stopwatch()..start();
-    debugPrint('[StartupSync] phase=begin');
-
     await Future.wait([
       _prepareMinimumStartupBeforeNav(isFirstLaunch: isFirstLaunch),
       _ensureMinSplashDuration(),
     ]);
-    debugPrint(
-        '[StartupSync] phase=minimum_ready elapsed=${syncWatch.elapsedMilliseconds}ms');
 
     // Kritik veriyi nav öncesi bekletme: feed ekranı erkenden açılsın.
     // Hazır olma kontrolü arka planda devam eder.
     unawaited(_waitForCriticalDataReadiness(timeout: _syncStartupMaxWait));
     await _ensureMinLaunchToNavDuration();
-    debugPrint(
-        '[StartupSync] phase=critical_ready elapsed=${syncWatch.elapsedMilliseconds}ms');
   }
 
   Future<void> _ensureMinSplashDuration() async {
@@ -603,8 +570,6 @@ class _SplashViewState extends State<SplashView> {
       }
       await Future.delayed(const Duration(milliseconds: 140));
     }
-    debugPrint(
-        '[StartupSync] phase=critical_timeout feed=${_isFeedReady()} story=${_isStoryReady()} shorts=${_isShortsReady()}');
   }
 
   bool _isFeedReady() {
