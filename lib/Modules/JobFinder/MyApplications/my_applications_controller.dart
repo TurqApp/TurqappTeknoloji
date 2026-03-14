@@ -36,8 +36,7 @@ class MyApplicationsController extends GetxController {
       applications.value = items
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList();
-    } catch (e) {
-      print("Başvurular yüklenirken hata: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -86,8 +85,7 @@ class MyApplicationsController extends GetxController {
             )
             .toList(growable: false),
       );
-    } catch (e) {
-      print("Başvuru iptal hatası: $e");
+    } catch (_) {
     }
   }
 }

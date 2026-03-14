@@ -74,8 +74,7 @@ class JobDetailsController extends GetxController {
       avatarUrl.value = summary.avatarUrl.isNotEmpty
           ? summary.avatarUrl
           : kDefaultAvatarUrl;
-    } catch (e) {
-      print('getUserData hatası: $e');
+    } catch (_) {
       avatarUrl.value = kDefaultAvatarUrl;
     }
   }
@@ -89,8 +88,7 @@ class JobDetailsController extends GetxController {
       }
       final cv = await _cvRepository.getCv(uid, preferCache: true);
       cvVar.value = cv != null;
-    } catch (e) {
-      print('cvCheck hatası: $e');
+    } catch (_) {
     }
   }
 
@@ -102,8 +100,7 @@ class JobDetailsController extends GetxController {
         return;
       }
       saved.value = await JobSavedStore.isSaved(uid, docId);
-    } catch (e) {
-      print('checkSaved hatası: $e');
+    } catch (_) {
       saved.value = false;
     }
   }
@@ -124,8 +121,7 @@ class JobDetailsController extends GetxController {
         await JobSavedStore.save(uid, docId);
         saved.value = true;
       }
-    } catch (e) {
-      print('toggleSave hatası: $e');
+    } catch (_) {
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
     }
   }
@@ -170,8 +166,7 @@ class JobDetailsController extends GetxController {
     try {
       final jobs = await _jobRepository.fetchSimilarByProfession(meslek);
       list.assignAll(jobs);
-    } catch (e) {
-      print('getSimilar hatası: $e');
+    } catch (_) {
     }
   }
 
@@ -183,8 +178,7 @@ class JobDetailsController extends GetxController {
       );
       reviews.assignAll(items);
       await _fetchReviewUsers(reviews.map((e) => e.userID));
-    } catch (e) {
-      print('fetchReviews hatası: $e');
+    } catch (_) {
       reviews.clear();
     }
   }
@@ -224,9 +218,8 @@ class JobDetailsController extends GetxController {
       await fetchReviews(model.value.docID);
       AppSnackbar('Başarılı', 'Değerlendirmeniz kaydedildi.');
       return true;
-    } catch (e) {
-      print('submitReview hatası: $e');
-      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi: $e');
+    } catch (_) {
+      AppSnackbar('Hata', 'Değerlendirme kaydedilemedi.');
       return false;
     }
   }
@@ -240,8 +233,7 @@ class JobDetailsController extends GetxController {
       await _jobRepository.refreshAverageRating(model.value.docID);
       await fetchReviews(model.value.docID);
       AppSnackbar('Bilgi', 'Değerlendirmeniz kaldırıldı.');
-    } catch (e) {
-      print('deleteReview hatası: $e');
+    } catch (_) {
       AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
     }
   }
@@ -361,8 +353,7 @@ class JobDetailsController extends GetxController {
         return;
       }
       basvuruldu.value = await _jobRepository.hasApplication(docID, uid);
-    } catch (e) {
-      print('checkBasvuru hatası: $e');
+    } catch (_) {
       basvuruldu.value = false;
     }
   }
@@ -402,8 +393,7 @@ class JobDetailsController extends GetxController {
       if (!wasApplied) {
         AppSnackbar('Başarılı', 'Başvurun gönderildi.');
       }
-    } catch (e) {
-      print('toggleBasvuru hatası: $e');
+    } catch (_) {
       AppSnackbar('Hata', 'Başvuru sırasında bir sorun oluştu.');
     }
   }
@@ -421,8 +411,7 @@ class JobDetailsController extends GetxController {
         if (refreshed != null) {
           model.value = refreshed;
         }
-      } catch (e) {
-        print('goToEdit hatası: $e');
+      } catch (_) {
       }
     }
   }

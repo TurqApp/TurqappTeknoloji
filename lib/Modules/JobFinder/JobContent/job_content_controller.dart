@@ -22,8 +22,7 @@ class JobContentController extends GetxController {
     if (uid == null) return;
     try {
       saved.value = await JobSavedStore.isSaved(uid, docId);
-    } catch (e) {
-      print("checkSaved hatası: $e");
+    } catch (_) {
       saved.value = false;
     }
   }
@@ -41,8 +40,7 @@ class JobContentController extends GetxController {
         await JobSavedStore.save(uid, docId);
         saved.value = true;
       }
-    } catch (e) {
-      print("toggleSave hatası: $e");
+    } catch (_) {
     }
   }
 

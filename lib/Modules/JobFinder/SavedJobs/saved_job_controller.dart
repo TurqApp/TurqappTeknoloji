@@ -131,8 +131,7 @@ class SavedJobsController extends GetxController {
 
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
       list.value = updatedJobs;
-    } catch (e) {
-      print("Kaydedilen ilanlar hatası: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

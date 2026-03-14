@@ -57,8 +57,7 @@ class CareerProfileController extends GetxController {
       } else {
         cvVar.value = false;
       }
-    } catch (e) {
-      print("CV yükleme hatası: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -80,8 +79,7 @@ class CareerProfileController extends GetxController {
       } else {
         await _cvRepository.invalidate(uid);
       }
-    } catch (e) {
-      print("findingJob toggle hatası: $e");
+    } catch (_) {
       isFindingJob.value = !isFindingJob.value;
     }
   }
