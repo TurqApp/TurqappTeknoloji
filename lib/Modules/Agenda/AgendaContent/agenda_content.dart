@@ -1504,7 +1504,7 @@ class _AgendaContentState extends State<AgendaContent>
       text: cleanedText,
       startWith7line: true,
       toggleExpandOnTextTap: true,
-      fontSize: 14,
+      fontSize: 13,
       fontColor: color,
       mentionColor: Colors.blue,
       hashtagColor: Colors.blue,
