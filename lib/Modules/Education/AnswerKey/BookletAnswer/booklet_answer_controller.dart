@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,8 +40,7 @@ class BookletAnswerController extends GetxController {
       iosList.value = (doc?["iosFullReklamlar"] ?? '').toString();
       androidList.value = (doc?["androidFullReklamlar"] ?? '').toString();
       runAds();
-    } catch (e) {
-      log("Reklam verisi çekme hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -96,8 +94,7 @@ class BookletAnswerController extends GetxController {
         "net": net,
       });
       completed.value = true;
-    } catch (e) {
-      log("Test sonucu kaydetme hatası: $e");
+    } catch (_) {
     }
   }
 }

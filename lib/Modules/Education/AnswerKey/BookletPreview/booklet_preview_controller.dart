@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -48,8 +47,7 @@ class BookletPreviewController extends GetxController {
         preferCache: true,
       );
       isBookmarked.value = savedDoc != null;
-    } catch (e) {
-      log("Kaydet durumu okunamadı: $e");
+    } catch (_) {
     }
   }
 
@@ -84,8 +82,7 @@ class BookletPreviewController extends GetxController {
       }
       newList.sort((a, b) => a.sira.compareTo(b.sira));
       answerKeys.assignAll(newList);
-    } catch (e) {
-      log("Cevap anahtarlarını çekme hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -108,8 +105,7 @@ class BookletPreviewController extends GetxController {
       if (fullName.value.isEmpty) {
         fullName.value = nickname.value;
       }
-    } catch (e) {
-      log("Kullanıcı verisi çekme hatası: $e");
+    } catch (_) {
     }
   }
 
@@ -144,8 +140,7 @@ class BookletPreviewController extends GetxController {
         },
       );
       isBookmarked.value = true;
-    } catch (e) {
-      log("Yer işareti değiştirme hatası: $e");
+    } catch (_) {
     }
   }
 
