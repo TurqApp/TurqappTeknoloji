@@ -1,3 +1,5 @@
+import 'playback_signal_engine.dart';
+
 class PrefetchScoreContext {
   final int basePriority;
   final int currentIndex;
@@ -5,6 +7,7 @@ class PrefetchScoreContext {
   final bool isOnWiFi;
   final bool mobileSeedMode;
   final double feedReadyRatio;
+  final double watchProgress;
 
   const PrefetchScoreContext({
     required this.basePriority,
@@ -13,11 +16,14 @@ class PrefetchScoreContext {
     required this.isOnWiFi,
     required this.mobileSeedMode,
     required this.feedReadyRatio,
+    required this.watchProgress,
   });
 }
 
 class PrefetchScoringEngine {
   static double score(PrefetchScoreContext context) {
+    final signal =
+        PlaybackSignalEngine.fromWatchProgress(context.watchProgress);
     final distance = (context.targetIndex - context.currentIndex).abs();
 
     double score;
@@ -53,6 +59,12 @@ class PrefetchScoringEngine {
 
     if (context.feedReadyRatio < 0.5) {
       score += 20;
+    }
+
+    score += signal.resumeProbability * 40;
+
+    if (signal.likelyConsumed) {
+      score -= 10;
     }
 
     return score;

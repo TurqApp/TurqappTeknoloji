@@ -154,6 +154,7 @@ class PrefetchScheduler extends GetxController {
           currentIndex: currentIndex,
           targetIndex: idx,
           priority: 0,
+          watchProgress: entry?.watchProgress ?? 0.0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -172,6 +173,7 @@ class PrefetchScheduler extends GetxController {
             currentIndex: currentIndex,
             targetIndex: currentIndex,
             priority: 1,
+            watchProgress: entry?.watchProgress ?? 0.0,
           ),
         ));
         _jobEnqueuedAt[docID] = DateTime.now();
@@ -194,6 +196,7 @@ class PrefetchScheduler extends GetxController {
           currentIndex: currentIndex,
           targetIndex: idx,
           priority: 2,
+          watchProgress: entry?.watchProgress ?? 0.0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -261,6 +264,7 @@ class PrefetchScheduler extends GetxController {
           currentIndex: safeCurrent,
           targetIndex: index,
           priority: priority,
+          watchProgress: entry?.watchProgress ?? 0.0,
         ),
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -305,6 +309,7 @@ class PrefetchScheduler extends GetxController {
     required int currentIndex,
     required int targetIndex,
     required int priority,
+    required double watchProgress,
   }) {
     return PrefetchScoringEngine.score(
       PrefetchScoreContext(
@@ -314,6 +319,7 @@ class PrefetchScheduler extends GetxController {
         isOnWiFi: _isOnWiFi,
         mobileSeedMode: _mobileSeedMode,
         feedReadyRatio: _lastFeedReadyRatio,
+        watchProgress: watchProgress,
       ),
     );
   }

@@ -11,6 +11,7 @@ void main() {
         isOnWiFi: true,
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
+        watchProgress: 0.0,
       ),
     );
     final lower = PrefetchScoringEngine.score(
@@ -21,6 +22,7 @@ void main() {
         isOnWiFi: true,
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
+        watchProgress: 0.0,
       ),
     );
 
@@ -36,6 +38,7 @@ void main() {
         isOnWiFi: true,
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
+        watchProgress: 0.0,
       ),
     );
     final far = PrefetchScoringEngine.score(
@@ -46,9 +49,37 @@ void main() {
         isOnWiFi: true,
         mobileSeedMode: false,
         feedReadyRatio: 0.2,
+        watchProgress: 0.0,
       ),
     );
 
     expect(near, greaterThan(far));
+  });
+
+  test('resume candidates score above already consumed items', () {
+    final resume = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 1,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.2,
+        watchProgress: 0.45,
+      ),
+    );
+    final consumed = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 1,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.2,
+        watchProgress: 0.95,
+      ),
+    );
+
+    expect(resume, greaterThan(consumed));
   });
 }

@@ -1,5 +1,7 @@
 import 'package:turqappv2/Core/Services/SegmentCache/models.dart';
 
+import 'playback_signal_engine.dart';
+
 class EvictionScoreContext {
   final VideoCacheState state;
   final DateTime lastAccessedAt;
@@ -22,6 +24,8 @@ class EvictionScoreContext {
 
 class EvictionScoringEngine {
   static double score(EvictionScoreContext context) {
+    final signal =
+        PlaybackSignalEngine.fromWatchProgress(context.watchProgress);
     if (context.state == VideoCacheState.playing) return 1000.0;
 
     double score;
@@ -58,9 +62,11 @@ class EvictionScoringEngine {
       score += 200;
     }
 
-    if (context.watchProgress >= 0.9) {
+    score += signal.resumeProbability * 25;
+
+    if (signal.likelyConsumed) {
       score -= 5;
-    } else if (context.watchProgress <= 0.1 &&
+    } else if (signal.likelyUnstarted &&
         context.state == VideoCacheState.partial) {
       score -= 5;
     }
