@@ -307,9 +307,7 @@ class ChatController extends GetxController {
       await msgRef.set({
         "isStarred": !model.isStarred,
       }, SetOptions(merge: true));
-    } catch (e) {
-      debugPrint("[Chat] toggleStarMessage error: $e");
-    }
+    } catch (_) {}
   }
 
   Future<void> deleteSelectedMessages() async {
@@ -769,14 +767,10 @@ class ChatController extends GetxController {
     String? replySenderIdOverride,
     String? replyMessageIdOverride,
   }) async {
-    print("🚀 sendMessage BAŞLADI");
-
     final text = (textOverride ?? textEditingController.text).trim();
-    print("✏️ Mesaj text: '$text'");
 
     // 1. Küfür kontrolü
     if (text.isNotEmpty && kufurKontrolEt(text)) {
-      print("⛔️ Küfür bulundu, return!");
       AppSnackbar(
         "Topluluk Kurallarına Aykırı",
         "Göndermeye çalıştığınız mesaj uygunsuz içerik içeriyor. Lütfen saygılı bir dil kullanın.",
@@ -784,7 +778,6 @@ class ChatController extends GetxController {
       );
       return;
     }
-    print("✅ Küfür yok, devam!");
 
     if (editingMessage.value != null) {
       final editing = editingMessage.value!;
@@ -805,8 +798,6 @@ class ChatController extends GetxController {
         (gif?.isNotEmpty ?? false) ||
         (videoUrl?.isNotEmpty ?? false) ||
         (audioUrl?.isNotEmpty ?? false)) {
-      print("📨 Mesaj gönderme koşulları sağlandı");
-
       // Notif body
       String notifBody;
       if (videoUrl != null && videoUrl.isNotEmpty) {
@@ -826,7 +817,6 @@ class ChatController extends GetxController {
       } else {
         notifBody = text;
       }
-      print("🔔 Notif body: $notifBody");
 
       final now = DateTime.now();
       final hasExternalReply = (replyTextOverride ?? "").trim().isNotEmpty;
@@ -937,8 +927,6 @@ class ChatController extends GetxController {
           },
       };
 
-      print("🗂 Mesaj data hazır, firestore'a ekleniyor...");
-
       final previewText = _buildLastMessageText(
         text: text,
         imageUrls: imageUrls,
@@ -963,8 +951,6 @@ class ChatController extends GetxController {
         );
         final addedRef =
             await convRef.collection("messages").add(conversationMessageData);
-
-        print("✅ Firestore yazımı başarılı");
 
         // Anında UI güncellemesi: sunucu sync beklemeden mesaj listesine düşür.
         try {
@@ -993,18 +979,12 @@ class ChatController extends GetxController {
               type: "Chat",
               targetUserID: resolvedTargetUid,
             );
-            print("🔔 Notification gönderildi");
           } catch (_) {}
-        } else {
-          print("🔕 Sohbet sessizde: bildirim gönderilmedi");
         }
-      } catch (e, s) {
-        print("🔥 HATA: conversation yazımı başarısız: $e");
-        print(s);
+      } catch (_) {
         AppSnackbar("Hata", "Mesaj gönderilemedi. Lütfen tekrar dene.");
       }
 
-      print("🧹 TextEditingController temizleniyor...");
       if (textOverride == null) {
         textEditingController.clear();
       }
@@ -1012,9 +992,6 @@ class ChatController extends GetxController {
       if (Get.isRegistered<ChatListingController>()) {
         Get.find<ChatListingController>().getList();
       }
-      print("🎉 MESAJ TAMAMEN GÖNDERİLDİ ve TEMİZLENDİ!");
-    } else {
-      print("❗️Hiçbir mesaj gönderme koşulu sağlanmadı, mesaj gönderilmiyor.");
     }
   }
 
@@ -1435,9 +1412,7 @@ class ChatController extends GetxController {
           if (compressed != null) {
             fileToUpload = File(compressed.path);
           }
-        } catch (e) {
-          print("Görsel sıkıştırma atlandı: $e");
-        }
+        } catch (_) {}
 
         final fileName = uuid.v4();
 
@@ -1472,7 +1447,6 @@ class ChatController extends GetxController {
 
       await sendMessage(imageUrls: downloadUrls);
     } catch (e) {
-      print("Resim upload error: $e");
       uploadPercent.value = 0;
       isUploading.value = false;
       images.clear();
@@ -1576,9 +1550,7 @@ class ChatController extends GetxController {
         if (compressed?.file != null) {
           fileToUpload = compressed!.file!;
         }
-      } catch (e) {
-        print("Video sıkıştırma atlandı: $e");
-      }
+      } catch (_) {}
 
       // 2. Generate thumbnail (skip if fails)
       Uint8List? thumbBytes;
@@ -1589,9 +1561,7 @@ class ChatController extends GetxController {
           maxWidth: 300,
           quality: 75,
         );
-      } catch (e) {
-        print("Thumbnail oluşturma atlandı: $e");
-      }
+      } catch (_) {}
 
       // 3. Upload video (chat akışı mp4 kalır)
       final videoFileName = uuid.v4();
@@ -1622,9 +1592,7 @@ class ChatController extends GetxController {
             storagePathWithoutExt:
                 'ChatAssets/$chatID/videos/${videoFileName}_thumb',
           );
-        } catch (e) {
-          print("Thumbnail yükleme atlandı: $e");
-        }
+        } catch (_) {}
       }
 
       uploadPercent.value = 0;
@@ -1635,8 +1603,7 @@ class ChatController extends GetxController {
         videoUrl: videoDownloadUrl,
         videoThumbnail: thumbUrl,
       );
-    } catch (e) {
-      print("Video upload error: $e");
+    } catch (_) {
       uploadPercent.value = 0;
       isUploading.value = false;
       AppSnackbar("Hata", "Video yüklenirken bir hata oluştu");
@@ -1661,8 +1628,7 @@ class ChatController extends GetxController {
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         recordingDuration.value++;
       });
-    } catch (e) {
-      print("Ses kaydı başlatma hatası: $e");
+    } catch (_) {
       isRecording.value = false;
       AppSnackbar("Hata", "Ses kaydı başlatılamadı");
     }
@@ -1702,8 +1668,7 @@ class ChatController extends GetxController {
 
       await sendMessage(audioUrl: downloadUrl, audioDurationMs: durationMs);
       _recordingPath = null;
-    } catch (e) {
-      print("Voice upload error: $e");
+    } catch (_) {
       uploadPercent.value = 0;
       isUploading.value = false;
       AppSnackbar("Hata", "Sesli mesaj yüklenirken bir hata oluştu");
@@ -1726,7 +1691,6 @@ class ChatController extends GetxController {
 
   Future<void> selectContact() async {
     if (!await FlutterContacts.requestPermission()) {
-      print("Rehber izni verilmedi.");
       return;
     }
     final contact = await FlutterContacts.openExternalPick();
@@ -1735,8 +1699,6 @@ class ChatController extends GetxController {
         kisiAdSoyad: contact.displayName,
         kisiTelefon: contact.phones.first.number,
       );
-    } else {
-      print("Kişi seçilmedi.");
     }
   }
 
