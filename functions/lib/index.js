@@ -19,6 +19,7 @@ exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purge
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
+const hybridFeed_1 = require("./hybridFeed");
 admin.initializeApp();
 const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -44,11 +45,11 @@ Object.defineProperty(exports, "initCounterShards", { enumerable: true, get: fun
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-var hybridFeed_1 = require("./hybridFeed");
-Object.defineProperty(exports, "onPostCreate", { enumerable: true, get: function () { return hybridFeed_1.onPostCreate; } });
-Object.defineProperty(exports, "onPostDelete", { enumerable: true, get: function () { return hybridFeed_1.onPostDelete; } });
-Object.defineProperty(exports, "onNewFollower", { enumerable: true, get: function () { return hybridFeed_1.onNewFollower; } });
-Object.defineProperty(exports, "cleanupExpiredFeedItems", { enumerable: true, get: function () { return hybridFeed_1.cleanupExpiredFeedItems; } });
+var hybridFeed_2 = require("./hybridFeed");
+Object.defineProperty(exports, "onPostCreate", { enumerable: true, get: function () { return hybridFeed_2.onPostCreate; } });
+Object.defineProperty(exports, "onPostDelete", { enumerable: true, get: function () { return hybridFeed_2.onPostDelete; } });
+Object.defineProperty(exports, "onNewFollower", { enumerable: true, get: function () { return hybridFeed_2.onNewFollower; } });
+Object.defineProperty(exports, "cleanupExpiredFeedItems", { enumerable: true, get: function () { return hybridFeed_2.cleanupExpiredFeedItems; } });
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 👤 AUTHOR FIELD DENORMALIZATION (B10)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -698,14 +699,18 @@ exports.publishScheduledIzBirakPosts = functions.pubsub
                 izBirakNotificationSentAt: now,
             }, { merge: true });
             await batch.commit();
-            console.log("publishScheduledIzBirakPosts:published", {
+            await (0, hybridFeed_1.upsertPostIntoHybridFeed)({
                 postId: postDoc.id,
+                authorId: ownerId,
+                timeStamp: now,
+                isVideo: !!(data.videoHLSMasterUrl || data.hlsMasterUrl || data.video),
+            });
+            console.log("publishScheduledIzBirakPosts:published", {
                 subscriberCount: subscribersSnap.size,
             });
         }
         catch (e) {
             console.error("publishScheduledIzBirakPosts:error", {
-                postId: postDoc.id,
                 error: e,
             });
         }

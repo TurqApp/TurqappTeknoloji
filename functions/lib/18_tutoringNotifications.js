@@ -43,7 +43,7 @@ exports.onTutoringApplicationCreate = functions.firestore
             timeStamp: Date.now(),
             read: false,
         });
-        console.log(`[TutoringNotif] Application notification sent to ${tutorUID} for ${docId}`);
+        console.log("[TutoringNotif] Application notification sent");
     }
     catch (e) {
         console.error("[TutoringNotif] onCreate error:", e);
@@ -87,7 +87,7 @@ exports.onTutoringApplicationUpdate = functions.firestore
             timeStamp: Date.now(),
             read: false,
         });
-        console.log(`[TutoringNotif] Status update notification sent to ${applicantId}: ${newStatus}`);
+        console.log("[TutoringNotif] Status update notification sent");
     }
     catch (e) {
         console.error("[TutoringNotif] onUpdate error:", e);

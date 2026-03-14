@@ -116,6 +116,21 @@ check_literal_in_file "Agenda ilk video trigger logunda docID dump'i geri gelmed
 check_literal "Deleted stories controller logunda uid dump'i geri gelmedi" 'DeletedStoriesController.fetch: uid=$uid' || failures=$((failures + 1))
 check_literal "Deleted stories repository logunda uid dump'i geri gelmedi" 'Deleted stories fetch: uid=$uid' || failures=$((failures + 1))
 check_literal "Mandatory follow logunda uid dump'i geri gelmedi" '[MandatoryFollow] follow failed uid=$uid' || failures=$((failures + 1))
+check_literal "User profile sync logunda userId dump'i geri gelmedi" '[User Profile Sync] Started for user: ${userId}' || failures=$((failures + 1))
+check_literal "User profile sync missing snapshot logunda userId dump'i geri gelmedi" '[User Profile Sync] Missing before/after snapshot for user: ${userId}' || failures=$((failures + 1))
+check_literal "User profile sync skip logunda userId dump'i geri gelmedi" '[User Profile Sync] No displayable fields changed. Skipping sync for user: ${userId}' || failures=$((failures + 1))
+check_literal "User profile sync no posts logunda userId dump'i geri gelmedi" '[User Profile Sync] No posts found for user: ${userId}' || failures=$((failures + 1))
+check_literal "User profile sync no posts responseunda userId dump'i geri gelmedi" 'No posts found for user: ${userId}' || failures=$((failures + 1))
+check_literal "User profile sync fail logunda userId dump'i geri gelmedi" '[User Profile Sync] Failed for user: ${userId}' || failures=$((failures + 1))
+check_literal "Manual sync fail logunda userId dump'i geri gelmedi" '[Manual Sync] Failed for user: ${userId}' || failures=$((failures + 1))
+check_literal "Hybrid feed create logunda postId dump'i geri gelmedi" '[HybridFeed] Fan-out complete: ${postId}' || failures=$((failures + 1))
+check_literal "Hybrid feed delete logunda postId dump'i geri gelmedi" '[HybridFeed] Post ${postId} feed items cleaned up' || failures=$((failures + 1))
+check_literal "Hybrid feed follower logunda followerId dump'i geri gelmedi" '[HybridFeed] Backfilled ${postsSnap.size} posts for new follower ${followerId}' || failures=$((failures + 1))
+check_literal "HLS processing logunda target id dump'i geri gelmedi" '[HLS] Processing video for ${target.type}: ${target.id}' || failures=$((failures + 1))
+check_literal "HLS complete logunda URL dump'i geri gelmedi" '[HLS] Complete for ${target.type}:${target.id}. HLS URL: ${hlsUrl}' || failures=$((failures + 1))
+check_literal "HLS story delete logunda path dump'i geri gelmedi" '[HLS] Story source deleted: ${filePath}' || failures=$((failures + 1))
+check_literal "Tutoring notification logunda tutor/doc dump'i geri gelmedi" '[TutoringNotif] Application notification sent to ${tutorUID} for ${docId}' || failures=$((failures + 1))
+check_literal "Tutoring notification status logunda applicant dump'i geri gelmedi" '[TutoringNotif] Status update notification sent to ${applicantId}: ${newStatus}' || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

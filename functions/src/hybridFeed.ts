@@ -176,9 +176,9 @@ export const onPostCreate = functions
         isVideo,
       });
 
-      console.log(`[HybridFeed] Fan-out complete: ${postId}`);
+      console.log("[HybridFeed] Fan-out complete");
     } catch (e) {
-      console.error(`[HybridFeed] onPostCreate error for ${postId}:`, e);
+      console.error("[HybridFeed] onPostCreate error:", e);
     }
   });
 
@@ -223,9 +223,9 @@ export const onPostDelete = functions
         if (snap.docs.length < 400) break;
       }
 
-      console.log(`[HybridFeed] Post ${postId} feed items cleaned up`);
+      console.log("[HybridFeed] Feed items cleaned up");
     } catch (e) {
-      console.error(`[HybridFeed] onPostDelete error for ${postId}:`, e);
+      console.error("[HybridFeed] onPostDelete error:", e);
     }
   });
 
@@ -278,7 +278,7 @@ export const onNewFollower = functions
       }
       await wb.commit();
 
-      console.log(`[HybridFeed] Backfilled ${postsSnap.size} posts for new follower ${followerId}`);
+      console.log(`[HybridFeed] Backfilled ${postsSnap.size} posts for new follower`);
     } catch (e) {
       console.error(`[HybridFeed] onNewFollower error:`, e);
     }

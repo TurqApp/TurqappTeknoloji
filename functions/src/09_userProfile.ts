@@ -39,11 +39,11 @@ export const syncUserProfileToPosts = onDocumentUpdated(
     const after = event.data?.after.data();
     const startTime = Date.now();
 
-    console.log(`[User Profile Sync] Started for user: ${userId}`);
+    console.log("[User Profile Sync] Started");
 
     try {
       if (!before || !after) {
-        console.log(`[User Profile Sync] Missing before/after snapshot for user: ${userId}`);
+        console.log("[User Profile Sync] Missing before/after snapshot");
         return null;
       }
 
@@ -51,7 +51,7 @@ export const syncUserProfileToPosts = onDocumentUpdated(
       const afterProfile = extractProfileFields(after);
       const needsSync = shouldSyncUserProfile(beforeProfile, afterProfile);
       if (!needsSync) {
-        console.log(`[User Profile Sync] No displayable fields changed. Skipping sync for user: ${userId}`);
+        console.log("[User Profile Sync] No displayable fields changed. Skipping sync");
         return null;
       }
 
@@ -63,7 +63,7 @@ export const syncUserProfileToPosts = onDocumentUpdated(
         .get();
 
       if (postsSnapshot.empty) {
-        console.log(`[User Profile Sync] No posts found for user: ${userId}`);
+        console.log("[User Profile Sync] No posts found");
         return null;
       }
 
@@ -78,11 +78,8 @@ export const syncUserProfileToPosts = onDocumentUpdated(
       await logSyncMetrics(userId, result);
       return result;
     } catch (error) {
-      console.error(`[User Profile Sync] Failed for user: ${userId}`, error);
-      throw new HttpsError("internal", `Failed to sync user profile: ${error}`, {
-        userId,
-        error: String(error),
-      });
+      console.error("[User Profile Sync] Failed", error);
+      throw new HttpsError("internal", `Failed to sync user profile: ${error}`);
     }
   }
 );
@@ -148,7 +145,7 @@ async function updatePostsInBatches(
       return { success: true, count: chunk.length, batchIndex: index };
     } catch (error) {
       console.error(
-        `[User Profile Sync] Batch ${index + 1}/${chunks.length} failed for user: ${userId}`,
+        `[User Profile Sync] Batch ${index + 1}/${chunks.length} failed`,
         error
       );
       return {
@@ -224,7 +221,7 @@ export const manualSyncUserProfile = onCall(
     try {
       const userDoc = await admin.firestore().collection("users").doc(userId).get();
       if (!userDoc.exists) {
-        throw new HttpsError("not-found", `User not found: ${userId}`);
+        throw new HttpsError("not-found", "User not found");
       }
 
       const userData = userDoc.data()!;
@@ -238,7 +235,7 @@ export const manualSyncUserProfile = onCall(
       if (postsSnapshot.empty) {
         return {
           success: true,
-          message: `No posts found for user: ${userId}`,
+          message: "No posts found for requested user",
           postsUpdated: 0,
         };
       }
@@ -260,11 +257,8 @@ export const manualSyncUserProfile = onCall(
         result,
       };
     } catch (error) {
-      console.error(`[Manual Sync] Failed for user: ${userId}`, error);
-      throw new HttpsError("internal", `Manual sync failed: ${error}`, {
-        userId,
-        error: String(error),
-      });
+      console.error("[Manual Sync] Failed", error);
+      throw new HttpsError("internal", `Manual sync failed: ${error}`);
     }
   }
 );

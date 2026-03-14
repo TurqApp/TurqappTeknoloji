@@ -22,9 +22,11 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = void 0;
+exports.resolveFollowerCollection = resolveFollowerCollection;
+exports.upsertPostIntoHybridFeed = upsertPostIntoHybridFeed;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const db = admin.firestore();
+const db = () => admin.firestore();
 /// Takipçi eşiği: üzerindeyse celebrity (fan-in), altındaysa fan-out
 const FAN_OUT_THRESHOLD = 10000;
 /// Tek bir fan-out batch'inde işlenecek max takipçi sayısı
@@ -32,7 +34,7 @@ const FAN_OUT_BATCH_SIZE = 450; // Firestore batch limiti 500, güvenli margin
 /// Feed item'ın geçerlilik süresi: 7 gün
 const FEED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 async function resolveFollowerCollection(authorId) {
-    const followersSnap = await db
+    const followersSnap = await db()
         .collection("users")
         .doc(authorId)
         .collection("followers")
@@ -42,6 +44,81 @@ async function resolveFollowerCollection(authorId) {
         return "followers";
     }
     return "TakipciLer";
+}
+async function upsertPostIntoHybridFeed(args) {
+    const { postId, authorId, timeStamp, isVideo } = args;
+    if (!postId || !authorId)
+        return;
+    const authorDoc = await db().collection("users").doc(authorId).get();
+    const followerCount = Number(authorDoc.data()?.followerCount) ||
+        Number(authorDoc.data()?.takipciSayisi) ||
+        Number(authorDoc.data()?.counterOfFollowers) ||
+        0;
+    if (followerCount > FAN_OUT_THRESHOLD) {
+        await db().collection("celebAccounts").doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
+        await db()
+            .collection("userFeeds")
+            .doc(authorId)
+            .collection("items")
+            .doc(postId)
+            .set({
+            postId,
+            authorId,
+            timeStamp,
+            isVideo,
+            expiresAt: timeStamp + FEED_TTL_MS,
+            isCelebrity: true,
+        }, { merge: true });
+        return;
+    }
+    let lastDoc = null;
+    const followerCollection = await resolveFollowerCollection(authorId);
+    while (true) {
+        let q = db()
+            .collection("users")
+            .doc(authorId)
+            .collection(followerCollection)
+            .limit(FAN_OUT_BATCH_SIZE);
+        if (lastDoc)
+            q = q.startAfter(lastDoc);
+        const followersSnap = await q.get();
+        if (followersSnap.empty)
+            break;
+        const wb = db().batch();
+        for (const followerDoc of followersSnap.docs) {
+            const followerUid = followerDoc.id;
+            const feedRef = db()
+                .collection("userFeeds")
+                .doc(followerUid)
+                .collection("items")
+                .doc(postId);
+            wb.set(feedRef, {
+                postId,
+                authorId,
+                timeStamp,
+                isVideo,
+                expiresAt: timeStamp + FEED_TTL_MS,
+                isCelebrity: false,
+            }, { merge: true });
+        }
+        await wb.commit();
+        lastDoc = followersSnap.docs[followersSnap.docs.length - 1];
+        if (followersSnap.docs.length < FAN_OUT_BATCH_SIZE)
+            break;
+    }
+    await db()
+        .collection("userFeeds")
+        .doc(authorId)
+        .collection("items")
+        .doc(postId)
+        .set({
+        postId,
+        authorId,
+        timeStamp,
+        isVideo,
+        expiresAt: timeStamp + FEED_TTL_MS,
+        isCelebrity: false,
+    }, { merge: true });
 }
 // ─────────────────────────────────────────────────────────
 // 📤 TRIGGER: Post oluşturulduğunda fan-out başlat
@@ -62,74 +139,16 @@ exports.onPostCreate = functions
     if (!authorId || arsiv || deletedPost)
         return;
     try {
-        // 1. Takipçi sayısını kontrol et
-        const authorDoc = await db.collection("users").doc(authorId).get();
-        const followerCount = Number(authorDoc.data()?.followerCount) ||
-            Number(authorDoc.data()?.takipciSayisi) ||
-            Number(authorDoc.data()?.counterOfFollowers) ||
-            0;
-        if (followerCount > FAN_OUT_THRESHOLD) {
-            // Celebrity: fan-in listesine ekle, fan-out yapma
-            await db.collection("celebAccounts").doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
-            console.log(`[HybridFeed] Celebrity fan-in enabled (${followerCount} followers)`);
-            return;
-        }
-        // 2. Küçük hesap: fan-out — tüm takipçilere yaz
-        let lastDoc = null;
-        let totalFannedOut = 0;
-        const followerCollection = await resolveFollowerCollection(authorId);
-        while (true) {
-            let q = db
-                .collection("users")
-                .doc(authorId)
-                .collection(followerCollection)
-                .limit(FAN_OUT_BATCH_SIZE);
-            if (lastDoc)
-                q = q.startAfter(lastDoc);
-            const followersSnap = await q.get();
-            if (followersSnap.empty)
-                break;
-            const wb = db.batch();
-            for (const followerDoc of followersSnap.docs) {
-                const followerUid = followerDoc.id;
-                const feedRef = db
-                    .collection("userFeeds")
-                    .doc(followerUid)
-                    .collection("items")
-                    .doc(postId);
-                wb.set(feedRef, {
-                    postId,
-                    authorId,
-                    timeStamp,
-                    isVideo,
-                    expiresAt: timeStamp + FEED_TTL_MS,
-                    isCelebrity: false,
-                });
-            }
-            await wb.commit();
-            totalFannedOut += followersSnap.docs.length;
-            lastDoc = followersSnap.docs[followersSnap.docs.length - 1];
-            if (followersSnap.docs.length < FAN_OUT_BATCH_SIZE)
-                break;
-        }
-        // Ayrıca author'ın kendi feed'ine de ekle
-        await db
-            .collection("userFeeds")
-            .doc(authorId)
-            .collection("items")
-            .doc(postId)
-            .set({
+        await upsertPostIntoHybridFeed({
             postId,
             authorId,
             timeStamp,
             isVideo,
-            expiresAt: timeStamp + FEED_TTL_MS,
-            isCelebrity: false,
         });
-        console.log(`[HybridFeed] Fan-out complete: ${postId} → ${totalFannedOut} followers`);
+        console.log("[HybridFeed] Fan-out complete");
     }
     catch (e) {
-        console.error(`[HybridFeed] onPostCreate error for ${postId}:`, e);
+        console.error("[HybridFeed] onPostCreate error:", e);
     }
 });
 // ─────────────────────────────────────────────────────────
@@ -145,7 +164,7 @@ exports.onPostDelete = functions
         return;
     try {
         // Author'ın kendi feed'inden sil
-        await db
+        await db()
             .collection("userFeeds")
             .doc(authorId)
             .collection("items")
@@ -154,7 +173,7 @@ exports.onPostDelete = functions
         // Takipçilerin feed'inden temizle (collectionGroup sorgusu)
         let lastDocRef = null;
         while (true) {
-            let q = db
+            let q = db()
                 .collectionGroup("items")
                 .where("postId", "==", postId)
                 .limit(400);
@@ -163,7 +182,7 @@ exports.onPostDelete = functions
             const snap = await q.get();
             if (snap.empty)
                 break;
-            const wb = db.batch();
+            const wb = db().batch();
             for (const d of snap.docs)
                 wb.delete(d.ref);
             await wb.commit();
@@ -171,10 +190,10 @@ exports.onPostDelete = functions
             if (snap.docs.length < 400)
                 break;
         }
-        console.log(`[HybridFeed] Post ${postId} feed items cleaned up`);
+        console.log("[HybridFeed] Feed items cleaned up");
     }
     catch (e) {
-        console.error(`[HybridFeed] onPostDelete error for ${postId}:`, e);
+        console.error("[HybridFeed] onPostDelete error:", e);
     }
 });
 // ─────────────────────────────────────────────────────────
@@ -192,7 +211,7 @@ exports.onNewFollower = functions
     }
     try {
         // Author'ın son 20 postunu yeni takipçinin feed'ine ekle
-        const postsSnap = await db
+        const postsSnap = await db()
             .collection("Posts")
             .where("userID", "==", authorId)
             .where("arsiv", "==", false)
@@ -202,11 +221,11 @@ exports.onNewFollower = functions
             .get();
         if (postsSnap.empty)
             return;
-        const wb = db.batch();
+        const wb = db().batch();
         const now = Date.now();
         for (const postDoc of postsSnap.docs) {
             const d = postDoc.data();
-            const feedRef = db
+            const feedRef = db()
                 .collection("userFeeds")
                 .doc(followerId)
                 .collection("items")
@@ -221,7 +240,7 @@ exports.onNewFollower = functions
             });
         }
         await wb.commit();
-        console.log(`[HybridFeed] Backfilled ${postsSnap.size} posts for new follower ${followerId}`);
+        console.log(`[HybridFeed] Backfilled ${postsSnap.size} posts for new follower`);
     }
     catch (e) {
         console.error(`[HybridFeed] onNewFollower error:`, e);
@@ -238,7 +257,7 @@ exports.cleanupExpiredFeedItems = functions
     let cleaned = 0;
     let lastDocRef = null;
     while (true) {
-        let q = db
+        let q = db()
             .collectionGroup("items")
             .where("expiresAt", "<", now)
             .limit(400);
@@ -247,7 +266,7 @@ exports.cleanupExpiredFeedItems = functions
         const snap = await q.get();
         if (snap.empty)
             break;
-        const wb = db.batch();
+        const wb = db().batch();
         for (const d of snap.docs)
             wb.delete(d.ref);
         await wb.commit();

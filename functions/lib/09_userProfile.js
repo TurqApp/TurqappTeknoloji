@@ -21,17 +21,17 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
     const before = event.data?.before.data();
     const after = event.data?.after.data();
     const startTime = Date.now();
-    console.log(`[User Profile Sync] Started for user: ${userId}`);
+    console.log("[User Profile Sync] Started");
     try {
         if (!before || !after) {
-            console.log(`[User Profile Sync] Missing before/after snapshot for user: ${userId}`);
+            console.log("[User Profile Sync] Missing before/after snapshot");
             return null;
         }
         const beforeProfile = extractProfileFields(before);
         const afterProfile = extractProfileFields(after);
         const needsSync = shouldSyncUserProfile(beforeProfile, afterProfile);
         if (!needsSync) {
-            console.log(`[User Profile Sync] No displayable fields changed. Skipping sync for user: ${userId}`);
+            console.log("[User Profile Sync] No displayable fields changed. Skipping sync");
             return null;
         }
         const postsSnapshot = await admin
@@ -41,7 +41,7 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
             .limit(MAX_POSTS_PER_EXECUTION)
             .get();
         if (postsSnapshot.empty) {
-            console.log(`[User Profile Sync] No posts found for user: ${userId}`);
+            console.log("[User Profile Sync] No posts found");
             return null;
         }
         const updateData = {};
@@ -59,11 +59,8 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
         return result;
     }
     catch (error) {
-        console.error(`[User Profile Sync] Failed for user: ${userId}`, error);
-        throw new https_1.HttpsError("internal", `Failed to sync user profile: ${error}`, {
-            userId,
-            error: String(error),
-        });
+        console.error("[User Profile Sync] Failed", error);
+        throw new https_1.HttpsError("internal", `Failed to sync user profile: ${error}`);
     }
 });
 function extractProfileFields(data) {
@@ -115,7 +112,7 @@ async function updatePostsInBatches(posts, updateData, userId) {
             return { success: true, count: chunk.length, batchIndex: index };
         }
         catch (error) {
-            console.error(`[User Profile Sync] Batch ${index + 1}/${chunks.length} failed for user: ${userId}`, error);
+            console.error(`[User Profile Sync] Batch ${index + 1}/${chunks.length} failed`, error);
             return {
                 success: false,
                 count: 0,
@@ -182,7 +179,7 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
     try {
         const userDoc = await admin.firestore().collection("users").doc(userId).get();
         if (!userDoc.exists) {
-            throw new https_1.HttpsError("not-found", `User not found: ${userId}`);
+            throw new https_1.HttpsError("not-found", "User not found");
         }
         const userData = userDoc.data();
         const postsSnapshot = await admin
@@ -194,7 +191,7 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
         if (postsSnapshot.empty) {
             return {
                 success: true,
-                message: `No posts found for user: ${userId}`,
+                message: "No posts found for requested user",
                 postsUpdated: 0,
             };
         }
@@ -214,11 +211,8 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
         };
     }
     catch (error) {
-        console.error(`[Manual Sync] Failed for user: ${userId}`, error);
-        throw new https_1.HttpsError("internal", `Manual sync failed: ${error}`, {
-            userId,
-            error: String(error),
-        });
+        console.error("[Manual Sync] Failed", error);
+        throw new https_1.HttpsError("internal", `Manual sync failed: ${error}`);
     }
 });
 //# sourceMappingURL=09_userProfile.js.map

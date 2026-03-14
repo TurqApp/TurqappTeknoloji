@@ -179,7 +179,7 @@ exports.onVideoUpload = functions
     if (!target)
         return;
     const bucket = storage.bucket(object.bucket);
-    console.log(`[HLS] Processing video for ${target.type}: ${target.id}`);
+    console.log(`[HLS] Processing video for ${target.type}`);
     // Firestore'da processing durumunu set et.
     await db.doc(target.firestoreDoc).set(target.buildProcessingData(), { merge: true });
     const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
@@ -391,12 +391,12 @@ exports.onVideoUpload = functions
                 console.warn(`[HLS] Story element URL patch failed (ignored): ${storyPatchErr}`);
             }
         }
-        console.log(`[HLS] Complete for ${target.type}:${target.id}. HLS URL: ${hlsUrl}`);
+        console.log(`[HLS] Complete for ${target.type}`);
         // Story için orijinal video dosyasını tutma: HLS hazır olduktan sonra sil.
         if (target.type === "story") {
             try {
                 await bucket.file(filePath).delete({ ignoreNotFound: true });
-                console.log(`[HLS] Story source deleted: ${filePath}`);
+                console.log("[HLS] Story source deleted");
             }
             catch (deleteErr) {
                 console.warn(`[HLS] Story source delete failed (ignored): ${deleteErr}`);

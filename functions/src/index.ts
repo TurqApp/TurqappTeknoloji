@@ -732,12 +732,10 @@ export const publishScheduledIzBirakPosts = functions.pubsub
         });
 
         console.log("publishScheduledIzBirakPosts:published", {
-          postId: postDoc.id,
           subscriberCount: subscribersSnap.size,
         });
       } catch (e) {
         console.error("publishScheduledIzBirakPosts:error", {
-          postId: postDoc.id,
           error: e,
         });
       }
