@@ -17,6 +17,7 @@ import '../../Themes/app_fonts.dart';
 import '../../Themes/app_colors.dart';
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import '../../Core/Widgets/app_icon_surface.dart';
 import '../../Core/Widgets/Ads/ad_placement_hooks.dart';
 import '../Chat/ChatListing/chat_listing.dart';
 import '../InAppNotifications/in_app_notifications.dart';
@@ -664,28 +665,27 @@ class AgendaView extends StatelessWidget {
                 );
               }),
               const Spacer(),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  final userService = CurrentUserService.instance;
-                  final currentSelection = userService.effectiveViewSelection;
-                  final nextSelection = currentSelection == 0 ? 1 : 0;
-                  await userService.updateFields({
-                    "viewSelection": nextSelection,
-                  });
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  color: Colors.white,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    CupertinoIcons.rectangle_grid_1x2,
-                    color: Colors.black,
-                    size: 20,
+              Obx(() {
+                final userService = CurrentUserService.instance;
+                final currentSelection = userService.viewSelectionRx.value;
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final nextSelection = currentSelection == 1 ? 0 : 1;
+                    await userService.updateFields({
+                      "viewSelection": nextSelection,
+                    });
+                  },
+                  child: const AppIconSurface(
+                    child: Icon(
+                      CupertinoIcons.rectangle_grid_1x2,
+                      color: Colors.black,
+                      size: 20,
+                    ),
                   ),
-                ),
-              ),
+                );
+              }),
               const SizedBox(width: 2),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -706,11 +706,7 @@ class AgendaView extends StatelessWidget {
                     } catch (_) {}
                   });
                 },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  color: Colors.white,
-                  alignment: Alignment.center,
+                child: AppIconSurface(
                   child: Obx(() {
                     final conversationUnreadCount =
                         unreadController.totalUnreadCount.value;
@@ -756,11 +752,7 @@ class AgendaView extends StatelessWidget {
                     } catch (_) {}
                   });
                 },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  color: Colors.white,
-                  alignment: Alignment.center,
+                child: AppIconSurface(
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [

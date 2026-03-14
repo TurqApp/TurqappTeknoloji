@@ -23,6 +23,7 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
@@ -923,13 +924,15 @@ class _SocialProfileState extends State<SocialProfile> {
                     icon: CupertinoIcons.shield,
                   ),
                 ],
-                buttonBuilder: (context, showMenu) => CupertinoButton(
-                  onPressed: showMenu,
-                  padding: EdgeInsets.zero,
-                  child: Icon(
-                    CupertinoIcons.ellipsis_vertical,
-                    color: Colors.black,
-                    size: 25,
+                buttonBuilder: (context, showMenu) => GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: showMenu,
+                  child: const AppIconSurface(
+                    child: Icon(
+                      CupertinoIcons.ellipsis_vertical,
+                      color: Colors.black,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),

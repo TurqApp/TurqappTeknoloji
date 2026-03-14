@@ -20,6 +20,7 @@ import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account.dart';
@@ -29,7 +30,7 @@ import 'package:turqappv2/Modules/Profile/EditProfile/edit_profile.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyQRCode/my_q_r_code.dart';
-import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_content.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
@@ -993,61 +994,55 @@ class _ProfileViewState extends State<ProfileView> {
                     ],
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => MyQRCode())?.then((_) {
                       controller.pausetheall.value = false;
                     });
                   },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Icon(
-                    CupertinoIcons.qrcode,
-                    color: AppColors.textBlack,
-                    size: 25,
+                  child: AppIconSurface(
+                    child: Icon(
+                      CupertinoIcons.qrcode,
+                      color: AppColors.textBlack,
+                      size: 21,
+                    ),
                   ),
                 ),
                 12.pw,
-                TextButton(
-                  onPressed: () {
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
                     controller.pausetheall.value = true;
-                    Get.to(() => SavedPosts())?.then((_) {
+                    Get.to(() => ChatListing())?.then((_) {
                       controller.pausetheall.value = false;
                     });
                   },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Icon(
-                    CupertinoIcons.bookmark,
-                    color: AppColors.textBlack,
-                    size: 23,
+                  child: AppIconSurface(
+                    child: Icon(
+                      CupertinoIcons.mail,
+                      color: AppColors.textBlack,
+                      size: 20,
+                    ),
                   ),
                 ),
                 12.pw,
-                TextButton(
-                  onPressed: () {
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => SettingsView())?.then((_) {
                       controller.pausetheall.value = false;
                       _refreshUserState();
-                    }); //burada videolari durdur
+                    });
                   },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Icon(
-                    CupertinoIcons.gear,
-                    color: AppColors.textBlack,
-                    size: 25,
+                  child: AppIconSurface(
+                    child: Icon(
+                      CupertinoIcons.gear,
+                      color: AppColors.textBlack,
+                      size: 21,
+                    ),
                   ),
                 ),
               ],
