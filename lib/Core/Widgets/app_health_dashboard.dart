@@ -11,6 +11,7 @@ import '../Services/PlaybackIntelligence/playback_policy_engine.dart';
 import '../Services/PlaybackIntelligence/storage_budget_manager.dart';
 import '../Services/SegmentCache/cache_manager.dart';
 import '../Services/SegmentCache/cache_metrics.dart';
+import '../Services/SegmentCache/prefetch_scheduler.dart';
 
 class AppHealthDashboard extends StatelessWidget {
   const AppHealthDashboard({super.key});
@@ -100,6 +101,18 @@ class AppHealthDashboard extends StatelessWidget {
         ? Get.find<PlaybackKpiService>().recentEvents
         : const <PlaybackKpiEvent>[];
     final lastEvent = recentEvents.isNotEmpty ? recentEvents.last : null;
+    final scheduler = Get.isRegistered<PrefetchScheduler>()
+        ? Get.find<PrefetchScheduler>()
+        : null;
+    final pressureLabel = usage == null
+        ? null
+        : usage.crossedHardStop
+            ? 'hard_stop'
+            : usage.crossedSoftStop
+                ? 'soft_stop'
+                : usage.softUsageRatio >= 0.75
+                    ? 'approaching_soft_stop'
+                    : 'healthy';
 
     return Card(
       elevation: 2,
@@ -149,6 +162,13 @@ class AppHealthDashboard extends StatelessWidget {
                   color: Colors.grey[700],
                 ),
               ),
+              Text(
+                'Budget durumu: $pressureLabel',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
             ],
             if (policy != null) ...[
               const SizedBox(height: 10),
@@ -165,6 +185,34 @@ class AppHealthDashboard extends StatelessWidget {
               ),
               Text(
                 'Startup/Ahead: ${policy.startupWindowSegments}/${policy.aheadWindowSegments}  •  Prefetch: ${policy.allowBackgroundPrefetch ? 'acik' : 'kapali'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+            if (scheduler != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Prefetch: ${scheduler.isMobileSeedMode ? 'mobile_seed' : 'standard'}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Queue/active/max: ${scheduler.queueSize}/${scheduler.activeDownloads}/${scheduler.maxConcurrentDownloads}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                'Feed ready: ${scheduler.feedReadyCount}/${scheduler.feedWindowCount} (${(scheduler.feedReadyRatio * 100).toStringAsFixed(1)}%)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                'Dispatch latency: ${scheduler.avgQueueDispatchLatencyMs.toStringAsFixed(0)} ms',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[700],

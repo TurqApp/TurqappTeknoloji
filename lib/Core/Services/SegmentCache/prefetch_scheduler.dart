@@ -60,10 +60,12 @@ class PrefetchScheduler extends GetxController {
   int get activeDownloads => _activeDownloads;
   int get queueSize => _queue.length;
   bool get isPaused => _paused;
+  bool get isMobileSeedMode => _mobileSeedMode;
   double get feedReadyRatio => _lastFeedReadyRatio;
   int get feedReadyCount => _lastFeedReadyCount;
   int get feedWindowCount => _lastFeedWindowCount;
   double get avgQueueDispatchLatencyMs => _avgQueueDispatchLatencyMs;
+  int get maxConcurrentDownloads => _maxConcurrent;
   bool get _isOnWiFi {
     try {
       if (Get.isRegistered<NetworkAwarenessService>()) {
