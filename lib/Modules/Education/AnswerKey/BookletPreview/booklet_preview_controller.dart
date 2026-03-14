@@ -84,9 +84,6 @@ class BookletPreviewController extends GetxController {
       }
       newList.sort((a, b) => a.sira.compareTo(b.sira));
       answerKeys.assignAll(newList);
-      log(
-        "Çekilen cevap anahtarları: ${newList.map((e) => e.baslik).toList()}",
-      );
     } catch (e) {
       log("Cevap anahtarlarını çekme hatası: $e");
     }
@@ -111,9 +108,6 @@ class BookletPreviewController extends GetxController {
       if (fullName.value.isEmpty) {
         fullName.value = nickname.value;
       }
-      log(
-        "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
-      );
     } catch (e) {
       log("Kullanıcı verisi çekme hatası: $e");
     }

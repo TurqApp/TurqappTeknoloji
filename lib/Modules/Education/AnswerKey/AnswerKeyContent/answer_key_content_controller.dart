@@ -74,9 +74,6 @@ class AnswerKeyContentController extends GetxController {
       );
       avatarUrl.value = user?.avatarUrl ?? '';
       nickname.value = user?.preferredName ?? '';
-      log(
-        "Kullanıcı verisi çekildi: ${model.docID} için nickname: ${nickname.value}",
-      );
     } catch (e) {
       log("Kullanıcı verisi çekme hatası: $e");
     }

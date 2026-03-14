@@ -48,7 +48,6 @@ class BookletAnswerController extends GetxController {
 
   void runAds() {
     final adUnitId = Platform.isIOS ? iosList.value : androidList.value;
-    log("GOOGLE ADMOB RANDOM ID: $adUnitId");
     if (adUnitId.isNotEmpty) {}
   }
 
@@ -78,8 +77,6 @@ class BookletAnswerController extends GetxController {
     emptyCount.value = empty;
     scorePercent.value = score;
     netScore.value = net;
-
-    log("Doğru: $correct, Yanlış: $wrong, Puan: $score");
 
     try {
       await FirebaseFirestore.instance
