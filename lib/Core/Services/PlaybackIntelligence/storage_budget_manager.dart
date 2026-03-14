@@ -65,6 +65,7 @@ class StorageBudgetUsageSnapshot {
 
 class StorageBudgetManager extends GetxService {
   static const int _mb = 1024 * 1024;
+  static const int _maxRecentProtectionWindow = 50;
   final RxInt _selectedPlanGb = 3.obs;
 
   int get selectedPlanGb => _selectedPlanGb.value;
@@ -83,6 +84,17 @@ class StorageBudgetManager extends GetxService {
     return usageSnapshotForProfile(
       currentProfile,
       streamUsageBytes: streamUsageBytes,
+    );
+  }
+
+  int recentProtectionWindow({
+    required int streamUsageBytes,
+    int remoteFloor = 3,
+  }) {
+    return recentProtectionWindowForUsage(
+      currentProfile,
+      streamUsageBytes: streamUsageBytes,
+      remoteFloor: remoteFloor,
     );
   }
 
@@ -116,6 +128,41 @@ class StorageBudgetManager extends GetxService {
     );
   }
 
+  static int recentProtectionWindowForUsage(
+    StorageBudgetProfile profile, {
+    required int streamUsageBytes,
+    int remoteFloor = 3,
+  }) {
+    final minWindow = remoteFloor.clamp(1, _maxRecentProtectionWindow);
+    final baseWindow = _baseRecentProtectionWindow(profile.planGb);
+    final snapshot = usageSnapshotForProfile(
+      profile,
+      streamUsageBytes: streamUsageBytes,
+    );
+
+    if (snapshot.crossedHardStop) {
+      return minWindow;
+    }
+
+    if (snapshot.crossedSoftStop) {
+      return _scaledWindow(baseWindow, 0.18, minWindow);
+    }
+
+    if (snapshot.softUsageRatio >= 0.92) {
+      return _scaledWindow(baseWindow, 0.32, minWindow);
+    }
+
+    if (snapshot.softUsageRatio >= 0.82) {
+      return _scaledWindow(baseWindow, 0.50, minWindow);
+    }
+
+    if (snapshot.softUsageRatio >= 0.70) {
+      return _scaledWindow(baseWindow, 0.72, minWindow);
+    }
+
+    return baseWindow.clamp(minWindow, _maxRecentProtectionWindow);
+  }
+
   static StorageBudgetProfile profileForPlanGb(int gb) {
     final normalized = gb.clamp(2, 5);
     final template = _templateFor(normalized);
@@ -134,6 +181,24 @@ class StorageBudgetManager extends GetxService {
       streamCacheSoftStopBytes: mediaSoftStopBytes,
       streamCacheHardStopBytes: mediaHardStopBytes,
     );
+  }
+
+  static int _baseRecentProtectionWindow(int planGb) {
+    switch (planGb.clamp(2, 5)) {
+      case 2:
+        return 8;
+      case 3:
+        return 16;
+      case 4:
+        return 32;
+      default:
+        return _maxRecentProtectionWindow;
+    }
+  }
+
+  static int _scaledWindow(int base, double factor, int minWindow) {
+    final scaled = (base * factor).round();
+    return scaled.clamp(minWindow, _maxRecentProtectionWindow);
   }
 
   static _BudgetTemplate _templateFor(int planGb) {

@@ -79,7 +79,18 @@ class SegmentCacheManager extends GetxController {
       _userHardLimitBytes ??
       _remote?.cacheHardLimitBytes ??
       CacheIndex.maxSizeBytes;
-  int get _recentPlayCount => _remote?.cacheRecentProtectCount ?? 5;
+  int get _recentPlayCount {
+    final remoteFloor = _remote?.cacheRecentProtectCount ?? 3;
+    if (!Get.isRegistered<StorageBudgetManager>()) {
+      return remoteFloor;
+    }
+
+    final budgetManager = Get.find<StorageBudgetManager>();
+    return budgetManager.recentProtectionWindow(
+      streamUsageBytes: _index.totalSizeBytes,
+      remoteFloor: remoteFloor,
+    );
+  }
 
   VideoRemoteConfigService? get _remote {
     if (Get.isRegistered<VideoRemoteConfigService>()) {
@@ -361,7 +372,7 @@ class SegmentCacheManager extends GetxController {
 
   bool _isLowQualityEntry(VideoCacheEntry entry) {
     if (entry.state == VideoCacheState.playing) return false;
-    // -5 kuralı: son N oynatılan video low-quality havuzuna düşmesin
+    // Son koruma penceresindeki videolar low-quality havuzuna düşmesin.
     if (_recentlyPlayed.contains(entry.docID)) return false;
     if (entry.cachedSegmentCount <= 2) return true;
     if (entry.totalSegmentCount <= 0) return entry.cachedSegmentCount <= 3;
