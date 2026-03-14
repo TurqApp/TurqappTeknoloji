@@ -801,6 +801,13 @@ class _SplashViewState extends State<SplashView> {
   Future<void> _forceLoadStoriesSync(StoryRowController storyController,
       {int limit = 30}) async {
     try {
+      if (storyController.users.length >= limit ||
+          storyController.isLoading.value) {
+        if (storyController.users.isEmpty) {
+          await storyController.addMyUserImmediately();
+        }
+        return;
+      }
       await storyController.loadStories(
           limit: limit, cacheFirst: true, silentLoad: false);
       if (storyController.users.isEmpty) {
