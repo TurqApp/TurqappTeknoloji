@@ -168,15 +168,6 @@ class VideoStateManager extends GetxController {
     }
 
     if (allowedDocID != null) {
-      try {
-        final allowed = _allVideoControllers[allowedDocID];
-        if (allowed != null && allowed.isInitialized) {
-          allowed.setVolume(1.0);
-        }
-      } catch (_) {}
-    }
-
-    if (allowedDocID != null) {
       _currentPlayingDocID = allowedDocID;
     } else {
       _currentPlayingDocID = null;
@@ -197,9 +188,6 @@ class VideoStateManager extends GetxController {
         current != null &&
         current.isInitialized &&
         current.isPlaying) {
-      try {
-        current.setVolume(1.0);
-      } catch (_) {}
       return;
     }
 

@@ -91,6 +91,7 @@ class _AgendaContentState extends State<AgendaContent>
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
+  static const Color _videoFallbackColor = Color(0xFF15181C);
   static const List<String> _flagReasons = <String>[
     'Uyuşturucu',
     'Kumar',
@@ -290,7 +291,7 @@ class _AgendaContentState extends State<AgendaContent>
 
   Widget _buildVideoThumbnail({double? aspectRatio}) {
     final thumb = widget.model.thumbnail.trim();
-    final fallback = Container(color: const Color(0xFFE8E8E8));
+    final fallback = const ColoredBox(color: _videoFallbackColor);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
@@ -695,6 +696,9 @@ class _AgendaContentState extends State<AgendaContent>
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
+                                          const ColoredBox(
+                                            color: _videoFallbackColor,
+                                          ),
                                           _isFullscreen
                                               ? const SizedBox.shrink()
                                               : videoController!.buildPlayer(
@@ -725,19 +729,18 @@ class _AgendaContentState extends State<AgendaContent>
                                                       displayAspect,
                                                     ),
                                                     placeholder: (_, __) =>
-                                                        Container(
-                                                      color: const Color(
-                                                          0xFFE8E8E8),
+                                                        const ColoredBox(
+                                                      color:
+                                                          _videoFallbackColor,
                                                     ),
                                                     errorWidget: (_, __, ___) =>
-                                                        Container(
-                                                      color: const Color(
-                                                          0xFFE8E8E8),
+                                                        const ColoredBox(
+                                                      color:
+                                                          _videoFallbackColor,
                                                     ),
                                                   )
-                                                : Container(
-                                                    color:
-                                                        const Color(0xFFE8E8E8),
+                                                : const ColoredBox(
+                                                    color: _videoFallbackColor,
                                                   ),
                                           ),
                                           Positioned(
@@ -1307,15 +1310,15 @@ class _AgendaContentState extends State<AgendaContent>
                 CachedNetworkImage(
                   imageUrl: thumb,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
-                    color: const Color(0xFFE8E8E8),
+                  placeholder: (_, __) => const ColoredBox(
+                    color: _videoFallbackColor,
                   ),
-                  errorWidget: (_, __, ___) => Container(
-                    color: const Color(0xFFE8E8E8),
+                  errorWidget: (_, __, ___) => const ColoredBox(
+                    color: _videoFallbackColor,
                   ),
                 )
               else
-                Container(color: const Color(0xFFE8E8E8)),
+                const ColoredBox(color: _videoFallbackColor),
               Positioned.fill(
                 child: Center(
                   child: Container(

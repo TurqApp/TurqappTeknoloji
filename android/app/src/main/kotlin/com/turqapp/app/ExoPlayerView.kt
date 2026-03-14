@@ -27,7 +27,9 @@ class ExoPlayerView(
     private val eventChannel: EventChannel
 ) : PlatformView, EventChannel.StreamHandler {
 
-    private val container = FrameLayout(context)
+    private val container = FrameLayout(context).apply {
+        setBackgroundColor(Color.BLACK)
+    }
     private val playerView: PlayerView
     private var player: ExoPlayer? = null
     private var eventSink: EventChannel.EventSink? = null
@@ -44,7 +46,7 @@ class ExoPlayerView(
         playerView = PlayerView(context).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            setShutterBackgroundColor(Color.TRANSPARENT)
+            setShutterBackgroundColor(Color.BLACK)
             setBackgroundColor(Color.BLACK)
             setKeepContentOnPlayerReset(true)
             layoutParams = FrameLayout.LayoutParams(

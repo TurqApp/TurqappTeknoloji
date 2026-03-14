@@ -1663,6 +1663,9 @@ class _ClassicContentState extends State<ClassicContent>
                     child: buildUploadIndicator(),
                   ),
                 ] else if (videoController != null) ...[
+                  const ColoredBox(
+                    color: _classicMediaFallbackColor,
+                  ),
                   IgnorePointer(
                     ignoring: true,
                     child: _isFullscreen
