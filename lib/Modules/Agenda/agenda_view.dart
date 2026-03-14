@@ -119,29 +119,12 @@ class AgendaView extends StatelessWidget {
                     },
                     child: Obx(() {
                       final _ = controller.mergedFeedEntries.length;
+                      final __ = controller.filteredFeedEntries.length;
                       controller.feedViewMode.value;
-                      controller.followingIDs.length;
                       final List<Map<String, dynamic>> display =
                           controller.mergedFeedEntries.toList(growable: false);
-
-                      List<Map<String, dynamic>> filteredDisplay = display;
-                      if (controller.isFollowingMode &&
-                          controller.followingIDs.isNotEmpty) {
-                        final followingSet = controller.followingIDs;
-                        filteredDisplay = display.where((item) {
-                          final model = item['model'] as PostsModel;
-                          return followingSet.contains(model.userID);
-                        }).toList(growable: false);
-                      } else if (controller.isCityMode) {
-                        final city = controller.currentUserLocationCity
-                            .trim()
-                            .toLowerCase();
-                        filteredDisplay = display.where((item) {
-                          final model = item['model'] as PostsModel;
-                          return model.locationCity.trim().toLowerCase() ==
-                              city;
-                        }).toList(growable: false);
-                      }
+                      List<Map<String, dynamic>> filteredDisplay =
+                          controller.filteredFeedEntries.toList(growable: false);
 
                       final bool shouldFallbackToForYou =
                           display.isNotEmpty &&

@@ -45,6 +45,8 @@ class AgendaController extends GetxController {
   final RxList<PostsModel> agendaList = <PostsModel>[].obs;
   final RxList<Map<String, dynamic>> mergedFeedEntries =
       <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> filteredFeedEntries =
+      <Map<String, dynamic>>[].obs;
   final Map<String, GlobalKey> _agendaKeys = {};
 
   /// FAB gösterimi için kullanılır. Her frame'de reactive güncelleme yapmak yerine
@@ -64,6 +66,7 @@ class AgendaController extends GetxController {
   Timer? _visibilityDebounce;
   Timer? _feedPrefetchDebounce;
   Worker? _mergedFeedWorker;
+  Worker? _filteredFeedWorker;
   final Map<int, double> _visibleFractions = <int, double>{};
   final Map<int, DateTime> _visibleUpdatedAt = <int, DateTime>{};
 
@@ -235,6 +238,7 @@ class AgendaController extends GetxController {
     _bindFollowingListener();
     _bindCenteredIndexListener();
     _bindMergedFeedEntries();
+    _bindFilteredFeedEntries();
   }
 
   @override
@@ -415,6 +419,7 @@ class AgendaController extends GetxController {
   @override
   void onClose() {
     _mergedFeedWorker?.dispose();
+    _filteredFeedWorker?.dispose();
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
     unawaited(persistWarmLaunchCache());
@@ -480,6 +485,20 @@ class AgendaController extends GetxController {
     _rebuildMergedFeedEntries();
   }
 
+  void _bindFilteredFeedEntries() {
+    _filteredFeedWorker?.dispose();
+    _filteredFeedWorker = everAll(
+      [
+        mergedFeedEntries,
+        feedViewMode,
+        followingIDs,
+        CurrentUserService.instance.currentUserRx,
+      ],
+      (_) => _rebuildFilteredFeedEntries(),
+    );
+    _rebuildFilteredFeedEntries();
+  }
+
   void _rebuildMergedFeedEntries() {
     if (agendaList.isEmpty && feedReshareEntries.isEmpty) {
       mergedFeedEntries.clear();
@@ -531,6 +550,31 @@ class AgendaController extends GetxController {
       );
 
     mergedFeedEntries.assignAll(merged);
+  }
+
+  void _rebuildFilteredFeedEntries() {
+    if (mergedFeedEntries.isEmpty) {
+      filteredFeedEntries.clear();
+      return;
+    }
+
+    List<Map<String, dynamic>> filtered = mergedFeedEntries.toList(growable: false);
+
+    if (isFollowingMode && followingIDs.isNotEmpty) {
+      final followingSet = followingIDs;
+      filtered = filtered.where((item) {
+        final model = item['model'] as PostsModel;
+        return followingSet.contains(model.userID);
+      }).toList(growable: false);
+    } else if (isCityMode) {
+      final city = currentUserLocationCity.trim().toLowerCase();
+      filtered = filtered.where((item) {
+        final model = item['model'] as PostsModel;
+        return model.locationCity.trim().toLowerCase() == city;
+      }).toList(growable: false);
+    }
+
+    filteredFeedEntries.assignAll(filtered);
   }
 
   /// Pull-based following + reshares fetch (realtime listener yerine).
