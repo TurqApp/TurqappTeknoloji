@@ -107,11 +107,7 @@ class ExploreController extends GetxController {
         fetchExplorePosts();
       }
 
-      if (exploreScroll.offset > 500) {
-        showScrollToTop.value = true;
-      } else {
-        showScrollToTop.value = false;
-      }
+      _syncScrollToTopVisibility(exploreScroll.offset);
     });
 
     videoScroll.addListener(() {
@@ -120,11 +116,7 @@ class ExploreController extends GetxController {
         fetchVideo();
       }
 
-      if (videoScroll.offset > 500) {
-        showScrollToTop.value = true;
-      } else {
-        showScrollToTop.value = false;
-      }
+      _syncScrollToTopVisibility(videoScroll.offset);
     });
 
     photoScroll.addListener(() {
@@ -133,11 +125,7 @@ class ExploreController extends GetxController {
         fetchPhoto();
       }
 
-      if (photoScroll.offset > 500) {
-        showScrollToTop.value = true;
-      } else {
-        showScrollToTop.value = false;
-      }
+      _syncScrollToTopVisibility(photoScroll.offset);
     });
 
     floodsScroll.addListener(() {
@@ -146,11 +134,7 @@ class ExploreController extends GetxController {
         fetchFloods();
       }
 
-      if (floodsScroll.offset > 500) {
-        showScrollToTop.value = true;
-      } else {
-        showScrollToTop.value = false;
-      }
+      _syncScrollToTopVisibility(floodsScroll.offset);
     });
 
     searchFocus.addListener(() {
@@ -170,6 +154,14 @@ class ExploreController extends GetxController {
         await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
       }
     } catch (_) {}
+  }
+
+  void _syncScrollToTopVisibility(double offset) {
+    final shouldShow = offset > 500;
+    if (showScrollToTop.value == shouldShow) {
+      return;
+    }
+    showScrollToTop.value = shouldShow;
   }
 
   void _bindRecentSearchUsers() {
