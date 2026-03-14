@@ -7,6 +7,7 @@ import '../Services/draft_service.dart';
 import '../Services/post_editing_service.dart';
 import '../Services/media_enhancement_service.dart';
 import '../Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../Services/PlaybackIntelligence/playback_policy_engine.dart';
 import '../Services/PlaybackIntelligence/storage_budget_manager.dart';
 import '../Services/SegmentCache/cache_manager.dart';
 import '../Services/SegmentCache/cache_metrics.dart';
@@ -76,12 +77,18 @@ class AppHealthDashboard extends StatelessWidget {
     if (!Get.isRegistered<PlaybackKpiService>()) {
       Get.put(PlaybackKpiService());
     }
+    if (!Get.isRegistered<PlaybackPolicyEngine>()) {
+      Get.put(PlaybackPolicyEngine());
+    }
   }
 
   Widget _buildPlaybackIntelligenceCard() {
     final profile = Get.isRegistered<StorageBudgetManager>()
         ? Get.find<StorageBudgetManager>().currentProfile
         : StorageBudgetManager.profileForPlanGb(3);
+    final policy = Get.isRegistered<PlaybackPolicyEngine>()
+        ? Get.find<PlaybackPolicyEngine>().snapshot()
+        : null;
     final recentEvents = Get.isRegistered<PlaybackKpiService>()
         ? Get.find<PlaybackKpiService>().recentEvents
         : const <PlaybackKpiEvent>[];
@@ -114,6 +121,27 @@ class AppHealthDashboard extends StatelessWidget {
               '${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)} / '
               '${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
             ),
+            if (policy != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Policy: ${policy.policyTag}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Mode: ${policy.mode.name}  •  Reason: ${policy.reason}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                'Startup/Ahead: ${policy.startupWindowSegments}/${policy.aheadWindowSegments}  •  Prefetch: ${policy.allowBackgroundPrefetch ? 'acik' : 'kapali'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Text(
               lastEvent == null

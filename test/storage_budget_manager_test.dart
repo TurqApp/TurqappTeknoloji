@@ -44,6 +44,7 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.wifiFill);
+    expect(snapshot.policyTag, 'wifi_fill');
     expect(snapshot.allowBackgroundPrefetch, isTrue);
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.startupWindowSegments, 2);
@@ -62,6 +63,7 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.cellularGuard);
+    expect(snapshot.policyTag, 'cellular_guard_low_data');
     expect(snapshot.allowBackgroundPrefetch, isFalse);
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.startupWindowSegments, 1);
@@ -81,6 +83,7 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.offlineGuard);
+    expect(snapshot.policyTag, 'offline_guard');
     expect(snapshot.allowBackgroundPrefetch, isFalse);
     expect(snapshot.allowOnDemandSegmentFetch, isFalse);
     expect(snapshot.cacheOnlyMode, isTrue);

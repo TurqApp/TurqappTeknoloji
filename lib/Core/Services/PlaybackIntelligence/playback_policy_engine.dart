@@ -36,6 +36,8 @@ class PlaybackPolicyContext {
 
 class PlaybackPolicySnapshot {
   final PlaybackMode mode;
+  final String policyTag;
+  final String reason;
   final bool allowBackgroundPrefetch;
   final bool allowOnDemandSegmentFetch;
   final bool allowPlaylistFetch;
@@ -48,6 +50,8 @@ class PlaybackPolicySnapshot {
 
   const PlaybackPolicySnapshot({
     required this.mode,
+    required this.policyTag,
+    required this.reason,
     required this.allowBackgroundPrefetch,
     required this.allowOnDemandSegmentFetch,
     required this.allowPlaylistFetch,
@@ -94,6 +98,8 @@ class PlaybackPolicyEngine extends GetxService {
     if (!context.isConnected) {
       return PlaybackPolicySnapshot(
         mode: PlaybackMode.offlineGuard,
+        policyTag: 'offline_guard',
+        reason: 'network_disconnected',
         allowBackgroundPrefetch: false,
         allowOnDemandSegmentFetch: false,
         allowPlaylistFetch: false,
@@ -111,6 +117,9 @@ class PlaybackPolicyEngine extends GetxService {
         mode: context.isBootstrap
             ? PlaybackMode.bootstrap
             : PlaybackMode.wifiFill,
+        policyTag: context.isBootstrap ? 'bootstrap_wifi' : 'wifi_fill',
+        reason:
+            context.isBootstrap ? 'startup_connected_wifi' : 'wifi_available',
         allowBackgroundPrefetch: true,
         allowOnDemandSegmentFetch: true,
         allowPlaylistFetch: true,
@@ -128,6 +137,12 @@ class PlaybackPolicyEngine extends GetxService {
 
     return PlaybackPolicySnapshot(
       mode: PlaybackMode.cellularGuard,
+      policyTag: lowData ? 'cellular_guard_low_data' : 'cellular_guard',
+      reason: context.pauseOnCellular
+          ? 'cellular_paused_by_user'
+          : lowData
+              ? 'cellular_low_data_mode'
+              : 'cellular_connected',
       allowBackgroundPrefetch: false,
       allowOnDemandSegmentFetch: !context.pauseOnCellular,
       allowPlaylistFetch: true,
