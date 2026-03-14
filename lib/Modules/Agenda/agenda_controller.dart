@@ -1806,39 +1806,20 @@ class AgendaController extends GetxController {
     Map<String, bool> userDeactivated = {};
 
     if (uniqueUserIDs.isNotEmpty) {
-      // Batch'leri 10'ar yerine 30'ar yap (daha az sorgu)
-      final batches = <List<String>>[];
-      for (int i = 0; i < uniqueUserIDs.length; i += 30) {
-        final endIndex =
-            (i + 30 > uniqueUserIDs.length) ? uniqueUserIDs.length : i + 30;
-        final batch = uniqueUserIDs.sublist(i, endIndex);
-        if (batch.length <= 10) {
-          // 10 ve altındaysa tek sorguda çek
-          batches.add(batch);
-        } else {
-          // 10'dan fazlaysa 10'ar böl
-          for (int j = 0; j < batch.length; j += 10) {
-            final subEndIndex = (j + 10 > batch.length) ? batch.length : j + 10;
-            batches.add(batch.sublist(j, subEndIndex));
-          }
-        }
-      }
-
-      for (final batch in batches) {
-        final profiles = await _userRepository.getUsersRaw(
-          batch,
-          preferCache: true,
-          cacheOnly: !ContentPolicy.isConnected,
+      final unresolved = _primeAgendaUserStateFromCaches(
+        uniqueUserIDs,
+        userPrivacy,
+        userDeactivated,
+        <String, Map<String, dynamic>>{},
+      );
+      if (unresolved.isNotEmpty) {
+        await _fillAgendaUserStateFromProfiles(
+          unresolved,
+          userPrivacy,
+          userDeactivated,
+          <String, Map<String, dynamic>>{},
+          includeMeta: false,
         );
-        for (final entry in profiles.entries) {
-          final data = entry.value;
-          final gizli = (data['isPrivate'] ?? false) == true;
-          final deactivated = _isUserMarkedDeactivated(data);
-          userPrivacy[entry.key] = gizli;
-          userDeactivated[entry.key] = deactivated;
-          _userPrivacyCache[entry.key] = gizli;
-          _userDeactivatedCache[entry.key] = deactivated;
-        }
       }
     }
 
