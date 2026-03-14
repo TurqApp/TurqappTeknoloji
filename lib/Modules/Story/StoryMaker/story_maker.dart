@@ -12,6 +12,19 @@ import 'story_video.dart';
 import 'text_editor_sheet.dart';
 
 class StoryMaker extends StatelessWidget {
+  static const Map<String, String> _mediaLookLabels = <String, String>{
+    'original': 'Orijinal',
+    'clear': 'Temiz',
+    'cinema': 'Sinematik',
+    'vibe': 'Canlı',
+  };
+  static const Map<String, IconData> _mediaLookIcons = <String, IconData>{
+    'original': CupertinoIcons.circle,
+    'clear': CupertinoIcons.sparkles,
+    'cinema': CupertinoIcons.film,
+    'vibe': CupertinoIcons.sun_max,
+  };
+
   final String initialMediaUrl;
   final bool initialMediaIsVideo;
   final double initialMediaAspectRatio;
@@ -45,11 +58,106 @@ class StoryMaker extends StatelessWidget {
           children: [
             topBar(),
             Expanded(child: playground()),
+            mediaLookTools(),
             bottomTools(context),
           ],
         ),
       ),
     );
+  }
+
+  Widget mediaLookTools() {
+    return Obx(() {
+      final media = controller.currentBackgroundMediaElement;
+      if (media == null) return const SizedBox.shrink();
+      final presets = StoryMakerController.supportedMediaLookPresets;
+      return Container(
+        margin: const EdgeInsets.fromLTRB(15, 0, 15, 8),
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(
+                  CupertinoIcons.slider_horizontal_3,
+                  size: 15,
+                  color: Colors.white70,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Görünüm',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: presets.map((preset) {
+                  final isSelected = media.mediaLookPreset == preset;
+                  final label = _mediaLookLabels[preset] ?? preset;
+                  final icon = _mediaLookIcons[preset] ?? CupertinoIcons.circle;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => controller.setCurrentMediaLookPreset(preset),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.white : Colors.white10,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 14,
+                              color: isSelected ? Colors.black : Colors.white,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: isSelected ? Colors.black : Colors.white,
+                                fontSize: 12,
+                                fontFamily: isSelected
+                                    ? "MontserratBold"
+                                    : "MontserratMedium",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget playground() {

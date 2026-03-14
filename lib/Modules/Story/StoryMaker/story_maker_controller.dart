@@ -57,6 +57,7 @@ class StoryElement {
   int outlineColor;
   String stickerType;
   String stickerData;
+  String mediaLookPreset;
   Offset? initialFocalPoint;
   Offset? initialPosition;
   double? initialWidth;
@@ -90,6 +91,7 @@ class StoryElement {
     this.outlineColor = 0xFF000000,
     this.stickerType = '',
     this.stickerData = '',
+    this.mediaLookPreset = 'original',
     this.initialFocalPoint,
     this.initialPosition,
     this.initialWidth,
@@ -110,6 +112,13 @@ class StoryElement {
 // 📁 lib/Modules/Story/StoryMaker/story_maker_controller.dart
 
 class StoryMakerController extends GetxController {
+  static const List<String> supportedMediaLookPresets = <String>[
+    'original',
+    'clear',
+    'cinema',
+    'vibe',
+  ];
+
   // Arka plan varsayılanı: şeffaf
   final Rx<Color> color = Colors.transparent.obs;
   RxList<StoryElement> elements = <StoryElement>[].obs;
@@ -197,6 +206,23 @@ class StoryMakerController extends GetxController {
     _colorIndex = (_colorIndex + 1) % colorOptions.length;
   }
 
+  StoryElement? get currentBackgroundMediaElement {
+    final media = elements.where((e) =>
+        e.type == StoryElementType.image || e.type == StoryElementType.video);
+    if (media.isEmpty) return null;
+    final sorted = media.toList()..sort((a, b) => b.zIndex.compareTo(a.zIndex));
+    return sorted.first;
+  }
+
+  void setCurrentMediaLookPreset(String preset) {
+    if (!supportedMediaLookPresets.contains(preset)) return;
+    final target = currentBackgroundMediaElement;
+    if (target == null || target.mediaLookPreset == preset) return;
+    _saveState();
+    target.mediaLookPreset = preset;
+    elements.refresh();
+  }
+
   void applySharedPostSeedIfNeeded({
     required String mediaUrl,
     required bool isVideo,
@@ -241,6 +267,7 @@ class StoryMakerController extends GetxController {
         zIndex: ++_zIndexCounter,
         isMuted: false,
         aspectRatio: placement.width / placement.height,
+        mediaLookPreset: 'original',
       ),
     );
 
@@ -316,6 +343,7 @@ class StoryMakerController extends GetxController {
         textAlign: 'left',
         fontSize: 14,
         fontFamily: 'MontserratMedium',
+        mediaLookPreset: 'original',
       ),
     );
   }
@@ -391,6 +419,7 @@ class StoryMakerController extends GetxController {
         zIndex: ++_zIndexCounter,
         aspectRatio:
             double.parse((imgW / imgH).toStringAsFixed(4)), // 4 hane precision
+        mediaLookPreset: 'original',
       ),
     );
 
@@ -467,6 +496,7 @@ class StoryMakerController extends GetxController {
         zIndex: ++_zIndexCounter,
         isMuted: false,
         aspectRatio: aspectRatio, // Video aspect ratio 4 hane
+        mediaLookPreset: 'original',
       ),
     );
 
@@ -521,6 +551,7 @@ class StoryMakerController extends GetxController {
               outlineColor: e.outlineColor,
               stickerType: e.stickerType,
               stickerData: e.stickerData,
+              mediaLookPreset: e.mediaLookPreset,
             ))
         .toList();
 
@@ -691,6 +722,7 @@ class StoryMakerController extends GetxController {
         fontSize: 20, // başlangıç fontsize
         aspectRatio: double.parse(
             (width / height).toStringAsFixed(4)), // Text container aspect ratio
+        mediaLookPreset: 'original',
       ),
     );
   }
@@ -753,6 +785,7 @@ class StoryMakerController extends GetxController {
         fontFamily: fontFamily,
         hasOutline: hasOutline,
         outlineColor: outlineColor,
+        mediaLookPreset: 'original',
       ),
     );
   }
@@ -773,6 +806,7 @@ class StoryMakerController extends GetxController {
         rotation: 0,
         zIndex: ++_zIndexCounter,
         aspectRatio: 1.0,
+        mediaLookPreset: 'original',
       ),
     );
     elements.refresh();
@@ -804,6 +838,7 @@ class StoryMakerController extends GetxController {
         textBgColor: 0xF5FFFFFF,
         hasTextBg: true,
         fontSize: 16,
+        mediaLookPreset: 'original',
       ),
     );
     elements.refresh();
@@ -857,6 +892,7 @@ class StoryMakerController extends GetxController {
             rotation: 0,
             zIndex: ++_zIndexCounter,
             aspectRatio: 1.0, // Drawing is square
+            mediaLookPreset: 'original',
           ),
         );
       }),
@@ -908,13 +944,8 @@ class StoryMakerController extends GetxController {
     isUploadingStory.value = true;
     Get.back();
 
-    _saveStoryBackground(
-        user,
-        elementsSnapshot,
-        colorSnapshot,
-        musicSnapshot,
-        selectedMusicSnapshot: selectedMusicSnapshot,
-        scheduledAt: scheduledAt);
+    _saveStoryBackground(user, elementsSnapshot, colorSnapshot, musicSnapshot,
+        selectedMusicSnapshot: selectedMusicSnapshot, scheduledAt: scheduledAt);
   }
 
   // Cagirildiginda ekrani hemen kapatir, ardindan arka planda kaydeder
@@ -1039,6 +1070,7 @@ class StoryMakerController extends GetxController {
           'outlineColor': e.outlineColor,
           'stickerType': e.stickerType,
           'stickerData': e.stickerData,
+          'mediaLookPreset': e.mediaLookPreset,
         });
       }
 

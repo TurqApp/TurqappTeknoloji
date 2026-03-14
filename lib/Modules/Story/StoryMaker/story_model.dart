@@ -70,6 +70,7 @@ class StoryModel {
         outlineColor: (m['outlineColor'] as int?) ?? 0xFF000000,
         stickerType: (m['stickerType'] as String?) ?? '',
         stickerData: (m['stickerData'] as String?) ?? '',
+        mediaLookPreset: (m['mediaLookPreset'] as String?) ?? 'original',
       );
     }).toList();
 
@@ -137,6 +138,7 @@ class StoryModel {
                 'outlineColor': e.outlineColor,
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
+                'mediaLookPreset': e.mediaLookPreset,
               },
             )
             .toList(),
@@ -180,6 +182,7 @@ class StoryModel {
                 'outlineColor': e.outlineColor,
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
+                'mediaLookPreset': e.mediaLookPreset,
               },
             )
             .toList(),
@@ -225,6 +228,7 @@ class StoryModel {
         outlineColor: (m['outlineColor'] as num?)?.toInt() ?? 0xFF000000,
         stickerType: (m['stickerType'] ?? '').toString(),
         stickerData: (m['stickerData'] ?? '').toString(),
+        mediaLookPreset: (m['mediaLookPreset'] ?? 'original').toString(),
       );
     }).toList();
 
