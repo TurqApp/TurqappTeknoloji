@@ -310,11 +310,7 @@ class ExploreView extends StatelessWidget {
 
                                 // ---- 1. Sekme: Sana Özel ----
                                 Obx(() {
-                                  final list = controller.explorePosts
-                                      .where((e) =>
-                                          e.hasPlayableVideo &&
-                                          e.aspectRatio.toDouble() < 0.7)
-                                      .toList();
+                                  final list = controller.explorePosts;
                                   return RefreshIndicator(
                                     backgroundColor: Colors.black,
                                     color: Colors.white,
