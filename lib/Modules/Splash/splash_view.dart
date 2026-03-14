@@ -442,14 +442,16 @@ class _SplashViewState extends State<SplashView> {
 
       // Açılışta profil isim/avatar geç gelmesin: feed'e düşmeden önce
       // merkezi profile cache ve disk image cache'i ısıt.
-      await _warmUserMetaAndAvatars(
-        agendaController: agendaController,
-        storyController: storyController,
-        recommendedController: recommended,
-        onWiFi: onWiFi,
-      ).timeout(
-        Duration(milliseconds: onWiFi ? 900 : 500),
-        onTimeout: () {},
+      unawaited(
+        _warmUserMetaAndAvatars(
+          agendaController: agendaController,
+          storyController: storyController,
+          recommendedController: recommended,
+          onWiFi: onWiFi,
+        ).timeout(
+          Duration(milliseconds: onWiFi ? 900 : 500),
+          onTimeout: () {},
+        ),
       );
       unawaited(
         _warmProfileCacheSurfaces(onWiFi: onWiFi).timeout(
