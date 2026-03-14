@@ -92,9 +92,10 @@ export const cascadeDeleteSharedPosts = onDocumentUpdated(
       await batch.commit();
     }
 
-    console.log(
-      `[cascadeDeleteSharedPosts] source=${postId} sharedPosts=${sharedPostDocs.length} postSharers=${postSharersSnap.docs.length}`
-    );
+    console.log("[cascadeDeleteSharedPosts] cleanup complete", {
+      sharedPosts: sharedPostDocs.length,
+      postSharers: postSharersSnap.docs.length,
+    });
 
     return null;
   }

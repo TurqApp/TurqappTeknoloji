@@ -527,9 +527,7 @@ export const onVideoUpload = functions
             );
           }
         } catch (storyPatchErr) {
-          console.warn(
-            `[HLS] Story element URL patch failed (ignored): ${storyPatchErr}`
-          );
+          console.warn("[HLS] Story element URL patch failed (ignored)", storyPatchErr);
         }
       }
 
@@ -541,19 +539,17 @@ export const onVideoUpload = functions
           await bucket.file(filePath).delete({ ignoreNotFound: true });
           console.log("[HLS] Story source deleted");
         } catch (deleteErr) {
-          console.warn(
-            `[HLS] Story source delete failed (ignored): ${deleteErr}`
-          );
+          console.warn("[HLS] Story source delete failed (ignored)", deleteErr);
         }
       }
 
       // Temp dosyaları temizle
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch (error) {
-      console.error(
-        `[HLS] Error processing ${target.type}:${target.id}:`,
-        error
-      );
+      console.error("[HLS] Error processing video", {
+        type: target.type,
+        error,
+      });
 
       await db.doc(target.firestoreDoc).set(
         target.buildFailData(),

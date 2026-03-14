@@ -77,7 +77,10 @@ exports.cascadeDeleteSharedPosts = (0, firestore_1.onDocumentUpdated)({
         }
         await batch.commit();
     }
-    console.log(`[cascadeDeleteSharedPosts] source=${postId} sharedPosts=${sharedPostDocs.length} postSharers=${postSharersSnap.docs.length}`);
+    console.log("[cascadeDeleteSharedPosts] cleanup complete", {
+        sharedPosts: sharedPostDocs.length,
+        postSharers: postSharersSnap.docs.length,
+    });
     return null;
 });
 //# sourceMappingURL=23_sharedPostCascade.js.map

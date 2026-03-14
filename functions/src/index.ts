@@ -638,7 +638,7 @@ export const publishScheduledIzBirakPosts = functions.pubsub
   .timeZone("UTC")
   .onRun(async () => {
     const now = Date.now();
-    console.log("publishScheduledIzBirakPosts:start", { now });
+    console.log("publishScheduledIzBirakPosts:start");
 
     const dueSnap = await db
       .collection("Posts")
