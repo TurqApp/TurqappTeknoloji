@@ -221,8 +221,7 @@ class ScholarshipsController extends GetxController {
         return;
       }
       _setVisibleScholarships(items);
-    } catch (e) {
-      print('typesense scholarship search error: $e');
+    } catch (_) {
       if (requestToken == _searchRequestToken) {
         _setVisibleScholarships(const []);
       }
@@ -322,34 +321,26 @@ class ScholarshipsController extends GetxController {
   Future<void> fetchScholarships() async {
     if (lastRefresh != null &&
         DateTime.now().difference(lastRefresh!).inSeconds < 2) {
-      print('Skipping fetch, too soon since last refresh');
       return;
     }
     lastRefresh = DateTime.now();
 
     try {
       isLoading.value = true;
-      print('Starting fetchScholarships at ${DateTime.now()}');
 
       // Önce local cache'ten son 30 bursu göster, sonra ağdan tazele
       if (allScholarships.isEmpty) {
         final cached = await _loadScholarshipsCache();
         if (cached.isNotEmpty) {
           _applyScholarshipStateFromCombined(cached);
-          print('Loaded scholarships from local cache: ${cached.length}');
         }
       }
 
-      final startQueryTime = DateTime.now();
       final snapshot = await _scholarshipRepository.fetchLatestPage(
         limit: initialBatchSize,
       );
-      print(
-        'Firestore queries took: ${DateTime.now().difference(startQueryTime).inMilliseconds}ms',
-      );
 
       final bireyselSnapshot = snapshot;
-      print('Bireysel docs: ${bireyselSnapshot.docs.length}');
 
       // Store last documents for pagination
       lastBireyselDoc =
@@ -374,11 +365,7 @@ class ScholarshipsController extends GetxController {
           .map((doc) => doc.data()['userID'] as String? ?? '')
           .where((id) => id.isNotEmpty)
           .toList();
-      final startUserFetch = DateTime.now();
       final userDocsById = await _fetchUsersByIds(bireyselUserIds);
-      print(
-        'users fetch (getAll) took: ${DateTime.now().difference(startUserFetch).inMilliseconds}ms',
-      );
 
       for (var doc in bireyselDocs) {
         final data = doc.data();
@@ -426,11 +413,7 @@ class ScholarshipsController extends GetxController {
       _prefetchShortLinksForList(allScholarships);
       // İlk partiden sonra devam var mı? (toplam sayıya göre)
       hasMoreData.value = allScholarships.length < totalCount.value;
-      print(
-        'Total scholarships: ${combined.length}, fetch completed at ${DateTime.now()}',
-      );
-    } catch (e) {
-      print('fetchScholarships error: $e');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -438,30 +421,22 @@ class ScholarshipsController extends GetxController {
 
   Future<void> loadMoreScholarships() async {
     if (isLoadingMore.value || !hasMoreData.value) {
-      print('Skipping loadMoreScholarships: already loading or no more data');
       return;
     }
     if (lastBireyselDoc == null) {
       hasMoreData.value = false;
-      print('Skipping loadMoreScholarships: pagination cursor is null');
       return;
     }
 
     try {
       isLoadingMore.value = true;
-      print('Starting loadMoreScholarships at ${DateTime.now()}');
 
-      final startQueryTime = DateTime.now();
       final snapshot = await _scholarshipRepository.fetchLatestPage(
         limit: batchSize,
         startAfter: lastBireyselDoc,
       );
-      print(
-        'Firestore queries for loadMore took: ${DateTime.now().difference(startQueryTime).inMilliseconds}ms',
-      );
 
       final bireyselSnapshot = snapshot;
-      print('Bireysel docs (more): ${bireyselSnapshot.docs.length}');
 
       // Update last documents for next pagination
       lastBireyselDoc = bireyselSnapshot.docs.isNotEmpty
@@ -498,11 +473,7 @@ class ScholarshipsController extends GetxController {
           .map((doc) => doc.data()['userID'] as String? ?? '')
           .where((id) => id.isNotEmpty)
           .toList();
-      final startUserFetch = DateTime.now();
       final userDocsById = await _fetchUsersByIds(bireyselUserIds);
-      print(
-        'users fetch (getAll) for loadMore took: ${DateTime.now().difference(startUserFetch).inMilliseconds}ms',
-      );
 
       for (var doc in bireyselDocs) {
         final data = doc.data();
@@ -551,12 +522,8 @@ class ScholarshipsController extends GetxController {
       _prefetchShortLinksForList(allScholarships);
       // Toplam sayıya göre devam kontrolü
       hasMoreData.value = allScholarships.length < totalCount.value;
-      print(
-        'Total scholarships after loadMore: ${allScholarships.length}, loadMore completed at ${DateTime.now()}',
-      );
-    } catch (e) {
+    } catch (_) {
       AppSnackbar('Hata', 'Daha fazla burs yüklenemedi.');
-      print('loadMoreScholarships error: $e');
     } finally {
       isLoadingMore.value = false;
     }
@@ -564,7 +531,6 @@ class ScholarshipsController extends GetxController {
 
   void updatePageIndex(int scholarshipIndex, int pageIndex) {
     pageIndices[scholarshipIndex]?.value = pageIndex;
-    print('Updated page index for scholarship $scholarshipIndex: $pageIndex');
   }
 
   Future<void> toggleLike(String docId, String type) async {
@@ -601,7 +567,7 @@ class ScholarshipsController extends GetxController {
       }
 
       await _scholarshipRepository.toggleLike(docId, userId: userId);
-    } catch (e) {
+    } catch (_) {
       likedScholarships[docId] = wasLiked;
       if (wasLiked) {
         _likedByCurrentUser.add(docId);
@@ -625,7 +591,6 @@ class ScholarshipsController extends GetxController {
         visibleScholarships.refresh();
       }
       AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
-      print('toggleLike error: $e');
     }
   }
 
@@ -663,7 +628,7 @@ class ScholarshipsController extends GetxController {
       }
 
       await _scholarshipRepository.toggleBookmark(docId, userId: userId);
-    } catch (e) {
+    } catch (_) {
       bookmarkedScholarships[docId] = wasBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.add(docId);
@@ -687,7 +652,6 @@ class ScholarshipsController extends GetxController {
         visibleScholarships.refresh();
       }
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
-      print('toggleBookmark error: $e');
     }
   }
 
@@ -773,9 +737,8 @@ class ScholarshipsController extends GetxController {
           subject: title,
         );
       });
-    } catch (e) {
+    } catch (_) {
       AppSnackbar('Hata', 'Paylaşım başarısız.');
-      print('Error downloading or sharing the image: $e');
     }
   }
 
@@ -873,9 +836,6 @@ class ScholarshipsController extends GetxController {
   void toggleExpanded(int index) {
     if (index >= 0 && index < isExpandedList.length) {
       isExpandedList[index].value = !isExpandedList[index].value;
-      print(
-        'Toggled expanded for index $index: ${isExpandedList[index].value}',
-      );
     }
   }
 
