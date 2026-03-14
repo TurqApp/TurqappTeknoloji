@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import 'cache_metrics.dart';
@@ -614,20 +615,22 @@ class SegmentCacheManager extends GetxController {
   }
 
   /// Kullanıcı cache kotasını (GB) runtime'da uygular.
-  /// 2-5 GB aralığına clamp edilir, soft limit hard limit'in %70'i olur.
+  /// Phase 1 budget manager ile stream cache için yapılandırılmış soft/hard stop üretir.
   Future<void> setUserLimitGB(int gb) async {
-    final normalized = gb.clamp(2, 5);
-    final hard = normalized * 1024 * 1024 * 1024;
-    final soft = (hard * 0.70).round();
+    final profile = StorageBudgetManager.profileForPlanGb(gb);
 
-    _userHardLimitBytes = hard;
-    _userSoftLimitBytes = soft;
+    _userHardLimitBytes = profile.streamCacheHardStopBytes;
+    _userSoftLimitBytes = profile.streamCacheSoftStopBytes;
 
-    if (_index.totalSizeBytes > soft) {
-      await evictIfNeeded(targetBytes: soft);
+    if (_index.totalSizeBytes > profile.streamCacheSoftStopBytes) {
+      await evictIfNeeded(targetBytes: profile.streamCacheSoftStopBytes);
     }
 
-    debugPrint('[CacheManager] User cache quota applied: ${normalized}GB');
+    debugPrint(
+      '[CacheManager] User cache quota applied: ${profile.planGb}GB '
+      '(soft=${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}, '
+      'hard=${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)})',
+    );
   }
 
   // ──────────────────────────── Cleanup ────────────────────────────

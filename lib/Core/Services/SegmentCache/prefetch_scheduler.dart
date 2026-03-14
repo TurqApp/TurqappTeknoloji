@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import '../network_awareness_service.dart';
@@ -458,9 +459,19 @@ class PrefetchScheduler extends GetxController {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    // Mobilde prefetch tamamen kapalı.
-    // Segmentler sadece oynatma anında HLS proxy on-demand yolundan gelir.
-    return false;
+    try {
+      if (!Get.isRegistered<PlaybackPolicyEngine>()) {
+        return false;
+      }
+      return Get.find<PlaybackPolicyEngine>()
+          .snapshot(
+            visibleReadyCount: _lastFeedReadyCount,
+            visibleWindowCount: _lastFeedWindowCount,
+          )
+          .enableMobileSeedMode;
+    } catch (_) {
+      return false;
+    }
   }
 
   Iterable<String> _pickMobileSeedSegments({

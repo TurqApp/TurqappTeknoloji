@@ -14,6 +14,9 @@ import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
@@ -380,6 +383,15 @@ class _SplashViewState extends State<SplashView> {
     }
     if (!Get.isRegistered<UserProfileCacheService>()) {
       Get.put(UserProfileCacheService(), permanent: true);
+    }
+    if (!Get.isRegistered<StorageBudgetManager>()) {
+      Get.put(StorageBudgetManager(), permanent: true);
+    }
+    if (!Get.isRegistered<PlaybackPolicyEngine>()) {
+      Get.put(PlaybackPolicyEngine(), permanent: true);
+    }
+    if (!Get.isRegistered<PlaybackKpiService>()) {
+      Get.put(PlaybackKpiService(), permanent: true);
     }
   }
 
