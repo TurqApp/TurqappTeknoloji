@@ -191,19 +191,20 @@ class AgendaController extends GetxController {
     bool preferCache = true,
     bool cacheOnly = false,
   }) async {
+    final effectivePreferCache = cacheOnly ? preferCache : false;
     final publicIzBirakPosts =
         await _postRepository.fetchPublicScheduledIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
-      preferCache: preferCache,
+      preferCache: effectivePreferCache,
       cacheOnly: cacheOnly,
     );
     if (publicIzBirakPosts.isEmpty) return const <PostsModel>[];
 
     final authorMeta = await _userRepository.getUsersRaw(
       publicIzBirakPosts.map((p) => p.userID).toSet().toList(),
-      preferCache: preferCache,
+      preferCache: effectivePreferCache,
       cacheOnly: cacheOnly,
     );
     return publicIzBirakPosts.where((post) {
@@ -981,6 +982,7 @@ class AgendaController extends GetxController {
         filtered.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
+      unawaited(_revalidateQuickFilledAgenda(toAdd));
       // Reshare'leri gecikmeli getir (açılışta bant genişliğini kritik sorgulara bırak)
       Future.delayed(const Duration(seconds: 2), () {
         fetchResharesForPosts(toAdd, perPostLimit: 1);
@@ -1067,6 +1069,23 @@ class AgendaController extends GetxController {
     }
   }
 
+  Future<void> _revalidateQuickFilledAgenda(List<PostsModel> shown) async {
+    if (shown.isEmpty || !ContentPolicy.isConnected) return;
+    try {
+      final valid = await _validatePoolPostsAndPrune(shown);
+      final validIds = valid.map((p) => p.docID).toSet();
+      if (validIds.length == shown.length) return;
+
+      final toRemove = shown
+          .where((post) => !validIds.contains(post.docID))
+          .map((post) => post.docID)
+          .toSet();
+      if (toRemove.isEmpty) return;
+
+      agendaList.removeWhere((post) => toRemove.contains(post.docID));
+    } catch (_) {}
+  }
+
   /// Pool fill sonrası arka planda: validasyon, gizlilik prune, reshare fetch
   Future<void> _postPoolFillCleanup(
       List<PostsModel> originalPool, List<PostsModel> shown) async {
@@ -1138,10 +1157,13 @@ class AgendaController extends GetxController {
         posts.map((e) => e.userID).where((e) => e.isNotEmpty).toSet();
 
     final validPostIds = <String>{};
+    final preferCache = !ContentPolicy.isConnected;
+    final cacheOnly = !ContentPolicy.isConnected;
     for (final chunk in _chunkList(postIds.toList(), 10)) {
       final postsById = await _postRepository.fetchPostsByIds(
         chunk,
-        preferCache: true,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
       );
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       for (final entry in postsById.entries) {
@@ -1159,7 +1181,8 @@ class AgendaController extends GetxController {
     for (final chunk in _chunkList(userIds.toList(), 20)) {
       final users = await _userRepository.getUsersRaw(
         chunk,
-        preferCache: true,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
       );
       for (final entry in users.entries) {
         final data = entry.value;

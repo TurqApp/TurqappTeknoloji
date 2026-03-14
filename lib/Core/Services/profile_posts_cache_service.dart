@@ -102,4 +102,46 @@ class ProfilePostsCacheService {
       }
     } catch (_) {}
   }
+
+  Future<void> removePost({
+    required String uid,
+    required String docId,
+  }) async {
+    if (uid.isEmpty || docId.isEmpty) return;
+    try {
+      final prefs = await _prefsInstance();
+      for (final bucket in const <String>[
+        'all',
+        'photos',
+        'videos',
+        'reshares',
+        'scheduled',
+        'archive',
+      ]) {
+        final key = _bucketKey(uid, bucket);
+        final raw = prefs.getString(key);
+        if (raw == null || raw.trim().isEmpty) continue;
+
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map<String, dynamic>) continue;
+        final items = decoded['items'];
+        if (items is! List) continue;
+
+        final filtered = items.where((item) {
+          if (item is! Map) return false;
+          return (item['docID'] ?? '').toString().trim() != docId;
+        }).toList(growable: false);
+
+        if (filtered.length == items.length) continue;
+
+        if (filtered.isEmpty) {
+          await prefs.remove(key);
+          continue;
+        }
+
+        decoded['items'] = filtered;
+        await prefs.setString(key, jsonEncode(decoded));
+      }
+    } catch (_) {}
+  }
 }

@@ -248,6 +248,39 @@ class ProfileRepository extends GetxService {
     await _cacheService.clearUser(uid);
   }
 
+  Future<void> removePostFromCaches({
+    required String uid,
+    required String docId,
+  }) async {
+    if (uid.isEmpty || docId.isEmpty) return;
+
+    final buckets = _memory[uid];
+    if (buckets != null) {
+      _memory[uid] = ProfileBuckets(
+        all: buckets.all.where((post) => post.docID != docId).toList(),
+        photos: buckets.photos.where((post) => post.docID != docId).toList(),
+        videos: buckets.videos.where((post) => post.docID != docId).toList(),
+        scheduled:
+            buckets.scheduled.where((post) => post.docID != docId).toList(),
+      );
+    }
+
+    final archive = _archiveMemory[uid];
+    if (archive != null) {
+      _archiveMemory[uid] =
+          archive.where((post) => post.docID != docId).toList();
+    }
+
+    if (_latestPostMemory[uid]?.docID == docId) {
+      _latestPostMemory.remove(uid);
+    }
+    if (_latestResharePostMemory[uid]?.docID == docId) {
+      _latestResharePostMemory.remove(uid);
+    }
+
+    await _cacheService.removePost(uid: uid, docId: docId);
+  }
+
   Future<List<PostsModel>> readCachedArchive(String uid) async {
     if (uid.isEmpty) return const <PostsModel>[];
     final fromMemory = _archiveMemory[uid];

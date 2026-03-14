@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 
 import '../Models/posts_model.dart';
+import '../Core/Repositories/profile_repository.dart';
 import '../Modules/Agenda/agenda_controller.dart';
 import '../Modules/Explore/explore_controller.dart';
 import '../Modules/Profile/MyProfile/profile_controller.dart';
@@ -51,6 +52,10 @@ class PostDeleteService {
 
     // 3) UI/Store tarafını güncelle
     _updateStores(model.docID);
+    await ProfileRepository.ensure().removePostFromCaches(
+      uid: model.userID,
+      docId: model.docID,
+    );
 
     // 3.5) Bu gönderi yeniden paylaşıldıysa, tüm yeniden paylaşılan kopyaları kaldır
     try {
