@@ -193,8 +193,6 @@ class CurrentUserService extends GetxController {
           await Get.find<UserProfileCacheService>().clearAll();
         }
       }
-      print('🔄 Initializing CurrentUserService');
-
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
       final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
 
@@ -213,8 +211,7 @@ class CurrentUserService extends GetxController {
 
       _isInitialized = true;
       return cacheLoaded || isLoggedIn;
-    } catch (e) {
-      print('❌ CurrentUserService initialization error: $e');
+    } catch (_) {
       _isInitialized = true;
       return false;
     }
@@ -293,9 +290,7 @@ class CurrentUserService extends GetxController {
       }
 
       await PostRepository.ensure().restoreDeletedPostsForUser(uid);
-    } catch (e) {
-      print('⚠️ pending_deletion restore skipped: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> restorePendingDeletionIfNeededForCurrentUser() async {
@@ -325,9 +320,7 @@ class CurrentUserService extends GetxController {
         await _updateUser(CurrentUserModel.fromJson(merged));
       }
       await refreshEmailVerificationStatus(reloadAuthUser: true);
-    } catch (e) {
-      print('❌ Force refresh error: $e');
-    }
+    } catch (_) {}
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -347,8 +340,6 @@ class CurrentUserService extends GetxController {
       // Check cache expiration
       final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
       if (cacheAge > _cacheExpiration.inMilliseconds) {
-        print(
-            '⏰ Cache expired (${Duration(milliseconds: cacheAge).inDays} days old)');
         return false;
       }
 
@@ -375,11 +366,8 @@ class CurrentUserService extends GetxController {
       currentUserRx.value = user;
       _emitUserEvent(user);
       unawaited(_warmAvatar(user));
-
-      print('✅ User loaded from cache');
       return true;
-    } catch (e) {
-      print('❌ Cache load error: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -408,14 +396,9 @@ class CurrentUserService extends GetxController {
               _cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
           await _persistViewSelection(user.userID, user.viewSelection);
           _lastCacheSignature = cacheSignature;
-          print('💾 User cached');
-        } catch (e) {
-          print('❌ Cache save error: $e');
-        }
+        } catch (_) {}
       });
-    } catch (e) {
-      print('❌ Cache save error: $e');
-    }
+    } catch (_) {}
   }
 
   /// Clear cache
@@ -423,10 +406,7 @@ class CurrentUserService extends GetxController {
     try {
       await _prefs?.remove(_cacheKey);
       await _prefs?.remove(_cacheTimestampKey);
-      print('🗑️ Cache cleared');
-    } catch (e) {
-      print('❌ Cache clear error: $e');
-    }
+    } catch (_) {}
   }
 
   String _listCacheKey(String uid, String key) => '$uid::$key';
@@ -550,7 +530,6 @@ class CurrentUserService extends GetxController {
           UserRepository.ensure().watchUserRaw(firebaseUser.uid).listen(
         (data) async {
           if (data == null || data.isEmpty) {
-            print('❌ User document not found in Firestore');
             return;
           }
           _storeRootUserData(firebaseUser.uid, data);
@@ -562,14 +541,9 @@ class CurrentUserService extends GetxController {
           final user = CurrentUserModel.fromJson(merged);
           await _updateUser(user);
         },
-        onError: (error) {
-          print('❌ Firebase sync error: $error');
-        },
+        onError: (_) {},
       );
-
-      print('🔥 Firebase sync started');
-    } catch (e) {
-      print('❌ Firebase sync start error: $e');
+    } catch (_) {
       _isSyncing = false;
     }
   }
@@ -926,7 +900,6 @@ class CurrentUserService extends GetxController {
     await _firestoreSubscription?.cancel();
     _firestoreSubscription = null;
     _isSyncing = false;
-    print('🔥 Firebase sync stopped');
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -994,9 +967,7 @@ class CurrentUserService extends GetxController {
         );
       }
 
-      print('✅ Fields updated: ${normalizedFields.keys.join(', ')}');
-    } catch (e) {
-      print('❌ Update fields error: $e');
+    } catch (_) {
       rethrow;
     }
   }
@@ -1488,10 +1459,7 @@ class CurrentUserService extends GetxController {
       emailVerifiedRx.value = true;
       _lastEmailPromptAt = null;
 
-      print('👋 User logged out - State cleared');
-    } catch (e) {
-      print('❌ Logout error: $e');
-    }
+    } catch (_) {}
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
