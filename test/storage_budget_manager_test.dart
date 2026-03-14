@@ -70,6 +70,25 @@ void main() {
     expect(snapshot.aheadWindowSegments, 0);
   });
 
+  test('playback policy enters cache-only cellular guard when paused by user',
+      () {
+    final snapshot = PlaybackPolicyEngine.resolve(
+      const PlaybackPolicyContext(
+        isConnected: true,
+        isOnWiFi: false,
+        isOnCellular: true,
+        pauseOnCellular: true,
+        cellularDataMode: DataUsageMode.low,
+        wifiDataMode: DataUsageMode.high,
+      ),
+    );
+
+    expect(snapshot.mode, PlaybackMode.cellularGuard);
+    expect(snapshot.reason, 'cellular_paused_by_user');
+    expect(snapshot.allowOnDemandSegmentFetch, isFalse);
+    expect(snapshot.cacheOnlyMode, isTrue);
+  });
+
   test('playback policy resolves offline guard with cache-only behavior', () {
     final snapshot = PlaybackPolicyEngine.resolve(
       const PlaybackPolicyContext(

@@ -31,6 +31,12 @@ class CacheNetworkPolicy {
     }
   }
 
+  static PlaybackPolicySnapshot? get currentSnapshot {
+    final engine = _engine;
+    if (engine == null) return null;
+    return engine.snapshot();
+  }
+
   /// On-demand CDN fetch izni.
   /// Wi-Fi'de her zaman true.
   /// Cellular'da sadece oynatma anındaki cache-miss segmentleri için true.
@@ -70,7 +76,7 @@ class CacheNetworkPolicy {
     }
   }
 
-  /// Cache-only mod: cellular veya offline ise segment CDN fetch yapma.
+  /// Cache-only mod: offline veya kullanici mobil veride durdurduysa segment CDN fetch yapma.
   static bool get cacheOnlyMode {
     final engine = _engine;
     if (engine != null) {
@@ -78,10 +84,45 @@ class CacheNetworkPolicy {
     }
     try {
       final net = Get.find<NetworkAwarenessService>();
-      return !net.isOnWiFi; // Wi-Fi değilse sadece cache'den serv et
+      if (!net.isConnected) return true;
+      if (net.isOnWiFi) return false;
+      if (net.isOnCellular) {
+        return net.settings.pauseOnCellular;
+      }
+      return false;
     } catch (_) {
       return true;
     }
+  }
+
+  static String get playlistFetchBlockedReason {
+    final snapshot = currentSnapshot;
+    if (snapshot != null) {
+      if (snapshot.mode == PlaybackMode.offlineGuard) {
+        return 'Offline - playlist not cached';
+      }
+      return 'Playback policy blocked playlist fetch';
+    }
+    return 'Offline - playlist not cached';
+  }
+
+  static String get segmentFetchBlockedReason {
+    final snapshot = currentSnapshot;
+    if (snapshot != null) {
+      if (snapshot.mode == PlaybackMode.offlineGuard) {
+        return 'Offline - segment not cached';
+      }
+      if (snapshot.cacheOnlyMode) {
+        return 'Cache-only mode - segment not cached';
+      }
+      if (snapshot.mode == PlaybackMode.cellularGuard) {
+        return 'Cellular guard blocked segment fetch';
+      }
+      return 'Playback policy blocked segment fetch';
+    }
+    return cacheOnlyMode
+        ? 'Cache-only mode - segment not cached'
+        : 'Segment fetch blocked by policy';
   }
 
   /// Mobil veri mi?

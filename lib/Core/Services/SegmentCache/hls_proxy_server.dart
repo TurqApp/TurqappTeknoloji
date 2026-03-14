@@ -120,11 +120,11 @@ class HLSProxyServer extends GetxController {
       }
     }
 
-    // CDN'den çek — playlist küçük, cellular'da da izin ver
+    // CDN'den cek — playlist'ler policy izin veriyorsa cellular'da da alinabilir.
     if (!CacheNetworkPolicy.canFetchPlaylist) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write('Offline — playlist not cached')
+        ..write(CacheNetworkPolicy.playlistFetchBlockedReason)
         ..close();
       return;
     }
@@ -207,11 +207,11 @@ class HLSProxyServer extends GetxController {
       }
     }
 
-    // Cache miss — Sadece Wi-Fi'de CDN'den çek, cellular/offline'da çekme
+    // Cache miss — aktif playback policy izin veriyorsa CDN'den cek.
     if (!CacheNetworkPolicy.canFetchOnDemand) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write('Not on Wi-Fi — segment not cached')
+        ..write(CacheNetworkPolicy.segmentFetchBlockedReason)
         ..close();
       return;
     }
