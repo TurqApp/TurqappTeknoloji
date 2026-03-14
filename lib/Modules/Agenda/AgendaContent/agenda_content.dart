@@ -2607,7 +2607,11 @@ class _AgendaContentState extends State<AgendaContent>
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
-              Get.to(() => PostSharers(postID: widget.model.docID))?.then((_) {
+              Get.to(() => PostSharers(
+                    postID: PostStoryShareService.resolveOriginalPostId(
+                      widget.model,
+                    ),
+                  ))?.then((_) {
                 videoController?.play();
               });
             },
