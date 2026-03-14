@@ -50,6 +50,12 @@ class CreatorContent extends StatelessWidget {
     'cinema': 'Sinematik',
     'vibe': 'Canlı',
   };
+  static const Map<String, IconData> _videoLookIcons = <String, IconData>{
+    'original': CupertinoIcons.circle,
+    'clear': CupertinoIcons.sparkles,
+    'cinema': CupertinoIcons.film,
+    'vibe': CupertinoIcons.sun_max,
+  };
 
   double get _singleImagePreviewAspect {
     final reused = controller.reusedImageAspectRatio.value;
@@ -158,15 +164,7 @@ class CreatorContent extends StatelessWidget {
                                       controller.videoPlayerController != null)
                                     Padding(
                                       padding: const EdgeInsets.only(left: 7),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          videoBody(),
-                                          const SizedBox(height: 10),
-                                          _buildVideoLookSelector(),
-                                        ],
-                                      ),
+                                      child: videoBody(),
                                     ),
                                   if (controller.waitingVideo.value)
                                     AspectRatio(
@@ -215,6 +213,29 @@ class CreatorContent extends StatelessWidget {
                               ),
                             ],
                           );
+                        }),
+                        Obx(() {
+                          final hasMedia =
+                              controller.croppedImages.isNotEmpty ||
+                                  controller.reusedImageUrls.isNotEmpty ||
+                                  controller.videoPlayerController != null ||
+                                  controller.waitingVideo.value;
+                          if (mainController.isQuotedPost) {
+                            return const SizedBox.shrink();
+                          }
+                          return hasMedia
+                              ? Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 10,
+                                    left: (controller.videoPlayerController !=
+                                                null ||
+                                            controller.waitingVideo.value)
+                                        ? 7
+                                        : 0,
+                                  ),
+                                  child: _buildMediaLookSelector(),
+                                )
+                              : const SizedBox.shrink();
                         }),
                         Obx(() {
                           final hasMedia =
@@ -922,42 +943,106 @@ class CreatorContent extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoLookSelector() {
+  Widget _buildMediaLookSelector() {
     return Obx(() {
       final presets = CreatorContentController.supportedVideoLookPresets;
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: presets.map((preset) {
-          final isSelected = controller.videoLookPreset.value == preset;
-          final label = _videoLookLabels[preset] ?? preset;
-          return GestureDetector(
-            onTap: () => controller.setVideoLookPreset(preset),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.black : Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: isSelected ? Colors.black : Colors.grey.shade300,
+      return Container(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE6E8EC)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(
+                  CupertinoIcons.slider_horizontal_3,
+                  size: 15,
+                  color: Color(0xFF5F6B7A),
                 ),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
-                  fontSize: 12,
-                  fontFamily:
-                      isSelected ? "MontserratBold" : "MontserratMedium",
+                SizedBox(width: 6),
+                Text(
+                  'Görünüm',
+                  style: TextStyle(
+                    color: Color(0xFF5F6B7A),
+                    fontSize: 12,
+                    fontFamily: "MontserratBold",
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: presets.map((preset) {
+                  final isSelected = controller.videoLookPreset.value == preset;
+                  final label = _videoLookLabels[preset] ?? preset;
+                  final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () => controller.setVideoLookPreset(preset),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.black : Colors.white,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.black
+                                : const Color(0xFFE2E5EA),
+                          ),
+                          boxShadow: isSelected
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(0x22000000),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 14,
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF4B5563),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF1F2937),
+                                fontSize: 12,
+                                fontFamily: isSelected
+                                    ? "MontserratBold"
+                                    : "MontserratMedium",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-          );
-        }).toList(),
+          ],
+        ),
       );
     });
   }

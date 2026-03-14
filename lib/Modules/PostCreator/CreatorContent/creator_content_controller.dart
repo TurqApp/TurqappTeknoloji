@@ -21,7 +21,8 @@ import '../../../Core/Camera/chat_camera_capture_view.dart';
 import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
 
-class CreatorContentController extends GetxController {
+class CreatorContentController extends GetxController
+    with WidgetsBindingObserver {
   static const List<String> supportedVideoLookPresets = <String>[
     'original',
     'clear',
@@ -66,6 +67,37 @@ class CreatorContentController extends GetxController {
 
   VideoPlayerController? get videoPlayerController =>
       rxVideoPlayerController.value;
+
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    final controller = videoPlayerController;
+    rxVideoPlayerController.value = null;
+    isPlaying.value = false;
+    if (controller != null) {
+      unawaited(controller.pause());
+      unawaited(controller.dispose());
+    }
+    focus.dispose();
+    textEdit.dispose();
+    super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(forcePauseVideo());
+    }
+  }
 
   Future<void> openPollComposer() async {
     final existing = pollData.value;
@@ -1183,6 +1215,13 @@ class CreatorContentController extends GetxController {
       await videoPlayerController!.pause();
       isPlaying.value = false;
     }
+  }
+
+  Future<void> forcePauseVideo() async {
+    final controller = videoPlayerController;
+    if (controller == null) return;
+    await controller.pause();
+    isPlaying.value = false;
   }
 
   Future<void> togglePlayPause() async {
