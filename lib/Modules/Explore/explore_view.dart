@@ -134,16 +134,7 @@ class ExploreView extends StatelessWidget {
                                 controller.isSearchMode.value = true;
                               },
                               onChanged: (v) {
-                                controller.searchText.value = v;
-                                if (v.isEmpty) {
-                                  controller.searchedList.clear();
-                                  controller.searchedHashtags.clear();
-                                  controller.searchedTags.clear();
-                                  controller.showAllRecent.value = false;
-                                } else {
-                                  controller.isSearchMode.value = true;
-                                  controller.search(v);
-                                }
+                                controller.onSearchChanged(v);
                               },
                             ),
                           ),

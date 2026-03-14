@@ -28,6 +28,8 @@ class ExploreController extends GetxController {
   static const String _recentSearchUsersCachePrefix =
       'explore_recent_search_users_v1_';
   static const int _recentSearchUsersLimit = 100;
+  static const Duration _searchDebounceDuration =
+      Duration(milliseconds: 300);
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
 
@@ -85,6 +87,8 @@ class ExploreController extends GetxController {
   TopTagsRepository get _topTagsRepository => TopTagsRepository.ensure();
   ExploreRepository get _exploreRepository => ExploreRepository.ensure();
   Worker? _currentUserWorker;
+  Timer? _searchDebounce;
+  int _searchRequestId = 0;
 
   @override
   void onInit() {
@@ -1029,14 +1033,36 @@ class ExploreController extends GetxController {
     return users.where((u) => !blocked.contains(u.userID)).toList();
   }
 
+  void onSearchChanged(String value) {
+    searchText.value = value;
+    _searchDebounce?.cancel();
+
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      _searchRequestId++;
+      _clearSearchResults();
+      return;
+    }
+
+    isSearchMode.value = true;
+    _searchDebounce = Timer(_searchDebounceDuration, () {
+      unawaited(search(normalized));
+    });
+  }
+
+  void _clearSearchResults() {
+    searchedList.clear();
+    searchedHashtags.clear();
+    searchedTags.clear();
+    showAllRecent.value = false;
+  }
+
   Future<void> search(String query) async {
     final nick = query.trim();
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final requestId = ++_searchRequestId;
     if (nick.isEmpty) {
-      searchedList.clear();
-      searchedHashtags.clear();
-      searchedTags.clear();
-      showAllRecent.value = false;
+      _clearSearchResults();
       return;
     }
 
@@ -1056,6 +1082,10 @@ class ExploreController extends GetxController {
         else
           Future.value({'hits': []}),
       ]);
+
+      if (requestId != _searchRequestId || searchText.value.trim() != nick) {
+        return;
+      }
 
       final tagData = (results[0] as Map?) ?? {};
       final userData = (results[1] as Map?) ?? {};
@@ -1102,22 +1132,27 @@ class ExploreController extends GetxController {
           avatarUrl: (row['avatarUrl'] ?? '').toString(),
         ));
       }
-      searchedList.value = await _filterPendingOrDeletedUsers(users);
+
+      final filteredUsers = await _filterPendingOrDeletedUsers(users);
+      if (requestId != _searchRequestId || searchText.value.trim() != nick) {
+        return;
+      }
+      searchedList.value = filteredUsers;
     } catch (_) {
-      searchedList.clear();
-      searchedHashtags.clear();
-      searchedTags.clear();
+      if (requestId != _searchRequestId || searchText.value.trim() != nick) {
+        return;
+      }
+      _clearSearchResults();
     }
   }
 
   void resetSearchToDefault() {
+    _searchDebounce?.cancel();
+    _searchRequestId++;
     searchFocus.unfocus();
     searchController.clear();
     searchText.value = "";
-    searchedList.clear();
-    searchedHashtags.clear();
-    searchedTags.clear();
-    showAllRecent.value = false;
+    _clearSearchResults();
     isKeyboardOpen.value = false;
     isSearchMode.value = false;
     selection.value = 0;
@@ -1130,6 +1165,7 @@ class ExploreController extends GetxController {
   void onClose() {
     _currentUserWorker?.dispose();
     _currentUserWorker = null;
+    _searchDebounce?.cancel();
     exploreScroll.dispose();
     videoScroll.dispose();
     photoScroll.dispose();
