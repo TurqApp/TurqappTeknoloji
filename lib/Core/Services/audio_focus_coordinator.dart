@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:video_player/video_player.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 /// Uygulama genelinde tek bir aktif ses kaynağı olmasını zorlar.
@@ -13,6 +14,7 @@ class AudioFocusCoordinator extends GetxService {
 
   final Set<HLSVideoAdapter> _players = <HLSVideoAdapter>{};
   final Set<AudioPlayer> _audioPlayers = <AudioPlayer>{};
+  final Set<VideoPlayerController> _previewPlayers = <VideoPlayerController>{};
   HLSVideoAdapter? _activePlayer;
   int _focusEpoch = 0;
 
@@ -31,20 +33,9 @@ class AudioFocusCoordinator extends GetxService {
     final int epoch = ++_focusEpoch;
     _activePlayer = player;
 
-    // HLS başlarken uygulamadaki diğer audio player kaynaklarını da sustur.
-    for (final audio in _audioPlayers.toList()) {
-      try {
-        await audio.pause();
-      } catch (_) {}
-    }
-
-    final others = _players.where((p) => !identical(p, player)).toList();
-    for (final p in others) {
-      try {
-        await p.pause();
-        await p.setVolume(0.0);
-      } catch (_) {}
-    }
+    await _pauseAudioPlayersExcept();
+    await _pausePreviewPlayersExcept();
+    await _pauseHlsPlayersExcept(player);
 
     // iOS'ta hızlı page geçişlerinde eski player kısa süre tekrar ses verebilir.
     // Kısa bir doğrulama turu ile sadece aktif player'ın sesini açık bırak.
@@ -52,13 +43,9 @@ class AudioFocusCoordinator extends GetxService {
       if (epoch != _focusEpoch) return;
       final active = _activePlayer;
       if (active == null) return;
-      for (final p in _players.toList()) {
-        if (identical(p, active)) continue;
-        try {
-          await p.pause();
-          await p.setVolume(0.0);
-        } catch (_) {}
-      }
+      await _pauseHlsPlayersExcept(active);
+      await _pausePreviewPlayersExcept();
+      await _pauseAudioPlayersExcept();
     });
   }
 
@@ -76,20 +63,70 @@ class AudioFocusCoordinator extends GetxService {
     _audioPlayers.remove(player);
   }
 
+  void registerPreviewPlayer(VideoPlayerController controller) {
+    _previewPlayers.add(controller);
+  }
+
+  void unregisterPreviewPlayer(VideoPlayerController controller) {
+    _previewPlayers.remove(controller);
+  }
+
+  Future<void> requestAudioPlayerPlay(AudioPlayer player) async {
+    _focusEpoch++;
+    _activePlayer = null;
+    await _pauseHlsPlayersExcept();
+    await _pausePreviewPlayersExcept();
+    await _pauseAudioPlayersExcept(player);
+  }
+
+  Future<void> requestPreviewPlay(
+    VideoPlayerController controller, {
+    bool exclusiveAudio = true,
+  }) async {
+    _focusEpoch++;
+    if (exclusiveAudio) {
+      _activePlayer = null;
+      await _pauseHlsPlayersExcept();
+      await _pauseAudioPlayersExcept();
+    }
+    await _pausePreviewPlayersExcept(controller);
+  }
+
   Future<void> pauseAllAudioPlayers() async {
     _focusEpoch++;
     _activePlayer = null;
 
-    for (final player in _players.toList()) {
+    await _pauseHlsPlayersExcept();
+    await _pausePreviewPlayersExcept();
+    await _pauseAudioPlayersExcept();
+  }
+
+  Future<void> _pauseHlsPlayersExcept([HLSVideoAdapter? except]) async {
+    final others = _players.where((p) => !identical(p, except)).toList();
+    for (final p in others) {
       try {
-        await player.pause();
-        await player.setVolume(0.0);
+        await p.pause();
+        await p.setVolume(0.0);
       } catch (_) {}
     }
+  }
 
+  Future<void> _pauseAudioPlayersExcept([AudioPlayer? except]) async {
     for (final player in _audioPlayers.toList()) {
+      if (identical(player, except)) continue;
       try {
         await player.pause();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _pausePreviewPlayersExcept([
+    VideoPlayerController? except,
+  ]) async {
+    for (final controller in _previewPlayers.toList()) {
+      if (identical(controller, except)) continue;
+      try {
+        await controller.pause();
       } catch (_) {}
     }
   }

@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -164,6 +165,40 @@ class _UserStoryContentState extends State<UserStoryContent>
     super.dispose();
   }
 
+  StoryElement? _sourceProfileBadgeForStory(StoryUserModel currentUser) {
+    if (storyIndex < 0 || storyIndex >= currentUser.stories.length) {
+      return null;
+    }
+
+    final currentStory = currentUser.stories[storyIndex];
+    for (final element in currentStory.elements.reversed) {
+      if (element.stickerType == 'source_profile') {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pauseStoryAudio() async {
+    try {
+      await _audioPlayer.pause();
+    } catch (_) {}
+  }
+
+  Future<void> _resumeStoryAudio() async {
+    try {
+      await AudioFocusCoordinator.instance.requestAudioPlayerPlay(_audioPlayer);
+      await _audioPlayer.setVolume(1);
+      await _audioPlayer.resume();
+    } catch (_) {}
+  }
+
+  Future<void> _playStoryAudioSource(Source source) async {
+    await AudioFocusCoordinator.instance.requestAudioPlayerPlay(_audioPlayer);
+    await _audioPlayer.setVolume(1);
+    await _audioPlayer.play(source);
+  }
+
   Future<void> _startOrWait() async {
     _timer?.cancel();
     _musicStateSubscription?.cancel();
@@ -219,13 +254,12 @@ class _UserStoryContentState extends State<UserStoryContent>
 
         // Play müzik ve state değişimini bekle
         try {
-          await _audioPlayer.setVolume(1);
           final playablePath = await StoryMusicLibraryService.instance
               .resolvePlayablePath(_currentMusicUrl!);
           if (playablePath.isNotEmpty) {
-            await _audioPlayer.play(DeviceFileSource(playablePath));
+            await _playStoryAudioSource(DeviceFileSource(playablePath));
           } else {
-            await _audioPlayer.play(UrlSource(_currentMusicUrl!));
+            await _playStoryAudioSource(UrlSource(_currentMusicUrl!));
           }
           unawaited(StoryMusicLibraryService.instance.warmTrackFromStory(
             audioUrl: currentStory.musicUrl,
@@ -238,8 +272,7 @@ class _UserStoryContentState extends State<UserStoryContent>
         }
       } else {
         // Aynı müzikse resume et ve bekle
-        await _audioPlayer.setVolume(1);
-        await _audioPlayer.resume();
+        await _resumeStoryAudio();
         setState(() {
           _waitingForMusic = true;
         });
@@ -366,7 +399,7 @@ class _UserStoryContentState extends State<UserStoryContent>
     final currentStory = widget.user.stories[storyIndex];
     try {
       FocusScope.of(context).unfocus();
-      _audioPlayer.pause();
+      await _pauseStoryAudio();
       _timer?.cancel();
       await controller.showPostCommentsBottomSheet(
         currentStory.id,
@@ -375,7 +408,7 @@ class _UserStoryContentState extends State<UserStoryContent>
         onClosed: (v) {
           if (!mounted) return;
           _startProgress();
-          _audioPlayer.resume();
+          unawaited(_resumeStoryAudio());
         },
       );
     } catch (_) {}
@@ -398,7 +431,9 @@ class _UserStoryContentState extends State<UserStoryContent>
 
     final totalStories = widget.user.stories.length;
     final currentStory = widget.user.stories[storyIndex];
+    final sourceBadge = _sourceProfileBadgeForStory(widget.user);
     final sortedElements = [...currentStory.elements]
+      ..removeWhere((element) => element.stickerType == 'source_profile')
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
     return Column(
@@ -422,7 +457,7 @@ class _UserStoryContentState extends State<UserStoryContent>
             }),
           ),
         ),
-        userInfo(widget.user),
+        userInfo(widget.user, sourceBadge: sourceBadge),
         Expanded(
           child: RepaintBoundary(
             key: _repaintKey,
@@ -459,14 +494,14 @@ class _UserStoryContentState extends State<UserStoryContent>
                     _isHoldPaused = true;
                   });
                   _timer?.cancel();
-                  _audioPlayer.pause();
+                  unawaited(_pauseStoryAudio());
                 },
                 onLongPressEnd: (_) {
                   setState(() {
                     _isHoldPaused = false;
                   });
                   _startProgress();
-                  _audioPlayer.resume();
+                  unawaited(_resumeStoryAudio());
                 },
                 child: _waitingForMusic
                     ? const Center(child: CupertinoActivityIndicator())
@@ -568,8 +603,12 @@ class _UserStoryContentState extends State<UserStoryContent>
     );
   }
 
-  Widget userInfo(StoryUserModel currentUser) {
+  Widget userInfo(
+    StoryUserModel currentUser, {
+    StoryElement? sourceBadge,
+  }) {
     final currentStory = currentUser.stories[storyIndex];
+    const nicknameFontSize = 12.0;
     final hasMusic = currentStory.musicUrl.isNotEmpty;
     final musicTitle = currentStory.musicTitle.trim();
     final rawMusicArtist = currentStory.musicArtist.trim();
@@ -590,10 +629,10 @@ class _UserStoryContentState extends State<UserStoryContent>
         children: [
           GestureDetector(
             onTap: () {
-              _audioPlayer.pause();
+              unawaited(_pauseStoryAudio());
               Get.to(() => SocialProfile(userID: currentUser.userID))
                   ?.then((_) {
-                _audioPlayer.resume();
+                unawaited(_resumeStoryAudio());
               });
             },
             child: CachedUserAvatar(
@@ -620,11 +659,11 @@ class _UserStoryContentState extends State<UserStoryContent>
                     children: [
                       GestureDetector(
                         onTap: () {
-                          _audioPlayer.pause();
+                          unawaited(_pauseStoryAudio());
                           Get.to(() =>
                                   SocialProfile(userID: currentUser.userID))
                               ?.then((_) {
-                            _audioPlayer.resume();
+                            unawaited(_resumeStoryAudio());
                           });
                         },
                         child: Text(
@@ -632,7 +671,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                           // Sadece burada maxLines yok!
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: nicknameFontSize,
                             fontFamily: "MontserratMedium",
                           ),
                         ),
@@ -649,6 +688,15 @@ class _UserStoryContentState extends State<UserStoryContent>
                           fontFamily: "MontserratMedium",
                         ),
                       ),
+                      if (sourceBadge != null) ...[
+                        const SizedBox(width: 6),
+                        SharedPostLabel(
+                          originalUserID: sourceBadge.stickerData,
+                          sourceUserID: sourceBadge.stickerData,
+                          textColor: Colors.white,
+                          fontSize: nicknameFontSize,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -660,14 +708,14 @@ class _UserStoryContentState extends State<UserStoryContent>
                       onTap: currentStory.musicId.trim().isEmpty
                           ? null
                           : () async {
-                              await _audioPlayer.pause();
+                              await _pauseStoryAudio();
                               await Get.to(
                                 () => StoryMusicProfileView(
                                   musicId: currentStory.musicId,
                                 ),
                               );
                               if (mounted) {
-                                await _audioPlayer.resume();
+                                await _resumeStoryAudio();
                               }
                             },
                       child: SingleChildScrollView(
@@ -751,7 +799,7 @@ class _UserStoryContentState extends State<UserStoryContent>
               Expanded(
                 child: GestureDetector(
                   onTap: () async {
-                    _audioPlayer.pause();
+                    await _pauseStoryAudio();
                     _timer?.cancel();
                     await controller.showPostCommentsBottomSheet(
                         currentStory.id,
@@ -760,7 +808,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                             FirebaseAuth.instance.currentUser!.uid,
                         onClosed: (v) {
                       _startProgress();
-                      _audioPlayer.resume();
+                      unawaited(_resumeStoryAudio());
                     });
                   },
                   child: Container(
@@ -788,12 +836,12 @@ class _UserStoryContentState extends State<UserStoryContent>
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    _audioPlayer.pause();
+                    unawaited(_pauseStoryAudio());
                     _timer?.cancel();
                     controller.showLikesBottomSheet(currentStory.id,
                         onClosed: (v) {
                       _startProgress();
-                      _audioPlayer.resume();
+                      unawaited(_resumeStoryAudio());
                     });
                   },
                   child: Container(
@@ -820,12 +868,12 @@ class _UserStoryContentState extends State<UserStoryContent>
               ),
               GestureDetector(
                 onTap: () {
-                  _audioPlayer.pause();
+                  unawaited(_pauseStoryAudio());
                   _timer?.cancel();
                   controller.showSeensBottomSheet(currentStory.id,
                       onClosed: (v) {
                     _startProgress();
-                    _audioPlayer.resume();
+                    unawaited(_resumeStoryAudio());
                   });
                 },
                 child: Container(
@@ -845,7 +893,7 @@ class _UserStoryContentState extends State<UserStoryContent>
               // One Cikar (Highlight) button
               GestureDetector(
                 onTap: () {
-                  _audioPlayer.pause();
+                  unawaited(_pauseStoryAudio());
                   _timer?.cancel();
                   Get.bottomSheet(
                     HighlightPickerSheet(storyId: currentStory.id),
@@ -860,7 +908,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                     backgroundColor: Colors.white,
                   ).then((_) {
                     _startProgress();
-                    _audioPlayer.resume();
+                    unawaited(_resumeStoryAudio());
                   });
                 },
                 child: Container(
@@ -1029,7 +1077,7 @@ class _UserStoryContentState extends State<UserStoryContent>
               Expanded(
                 child: GestureDetector(
                   onTap: () async {
-                    _audioPlayer.pause();
+                    await _pauseStoryAudio();
                     _timer?.cancel();
                     await controller.showPostCommentsBottomSheet(
                       currentStory.id,
@@ -1038,12 +1086,12 @@ class _UserStoryContentState extends State<UserStoryContent>
                       onClosed: (v) {
                         if (!mounted) return;
                         _startProgress();
-                        _audioPlayer.resume();
+                        unawaited(_resumeStoryAudio());
                       },
                     );
                     if (!mounted) return;
                     _startProgress();
-                    _audioPlayer.resume();
+                    await _resumeStoryAudio();
                   },
                   child: Container(
                     height: 50,
@@ -1072,12 +1120,12 @@ class _UserStoryContentState extends State<UserStoryContent>
                     controller.like(currentStory.id);
                   },
                   onLongPress: () {
-                    _audioPlayer.pause();
+                    unawaited(_pauseStoryAudio());
                     _timer?.cancel();
                     controller.showLikesBottomSheet(currentStory.id,
                         onClosed: (v) {
                       _startProgress();
-                      _audioPlayer.resume();
+                      unawaited(_resumeStoryAudio());
                     });
                   },
                   child: Container(
@@ -1119,7 +1167,7 @@ class _UserStoryContentState extends State<UserStoryContent>
               // Share button
               GestureDetector(
                 onTap: () async {
-                  _audioPlayer.pause();
+                  await _pauseStoryAudio();
                   _timer?.cancel();
                   await ShareActionGuard.run(() async {
                     try {
@@ -1149,7 +1197,7 @@ class _UserStoryContentState extends State<UserStoryContent>
                   });
                   if (!mounted) return;
                   _startProgress();
-                  _audioPlayer.resume();
+                  await _resumeStoryAudio();
                 },
                 child: Container(
                   height: 50,

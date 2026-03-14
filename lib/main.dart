@@ -170,7 +170,6 @@ Future<void> _activateAppCheck() async {
         '[AppCheck] $mode provider enabled for local development.',
       );
     }
-
   } catch (e, st) {
     debugPrint('[AppCheck] activation failed: $e');
     FirebaseCrashlytics.instance.recordError(e, st, fatal: false);
@@ -204,6 +203,13 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
         navigatorKey: navigatorKey,
         navigatorObservers: [routeObserver],
+        routingCallback: (routing) {
+          if (routing == null) return;
+          final current = routing.current ?? '';
+          final previous = routing.previous ?? '';
+          if (current == previous) return;
+          unawaited(AudioFocusCoordinator.instance.pauseAllAudioPlayers());
+        },
         defaultTransition: Transition.fade,
         locale: const Locale('tr', 'TR'),
         supportedLocales: const [Locale('tr', 'TR')],

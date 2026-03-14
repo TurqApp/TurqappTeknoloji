@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Models/music_model.dart';
 
@@ -21,8 +22,11 @@ class SpotifySelectorController extends GetxController {
 
   List<MusicModel> get forYouTracks {
     final filtered = _applyQuery(library);
-    final saved = filtered.where((e) => savedTrackIds.contains(e.docID)).toList();
-    final popular = filtered.where((e) => !savedTrackIds.contains(e.docID)).toList()
+    final saved =
+        filtered.where((e) => savedTrackIds.contains(e.docID)).toList();
+    final popular = filtered
+        .where((e) => !savedTrackIds.contains(e.docID))
+        .toList()
       ..sort(_byPopularity);
     return _sliceVisible([...saved, ...popular]);
   }
@@ -65,6 +69,7 @@ class SpotifySelectorController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
     _audioPlayer.onPlayerComplete.listen((_) {
       currentPlayingUrl.value = '';
     });
@@ -83,7 +88,8 @@ class SpotifySelectorController extends GetxController {
         limit: 100,
         forceRemote: true,
       );
-      final saved = await StoryMusicLibraryService.instance.fetchSavedMusicIds();
+      final saved =
+          await StoryMusicLibraryService.instance.fetchSavedMusicIds();
       library.assignAll(tracks);
       savedTrackIds
         ..clear()
@@ -103,6 +109,7 @@ class SpotifySelectorController extends GetxController {
     }
 
     await _audioPlayer.stop();
+    await AudioFocusCoordinator.instance.requestAudioPlayerPlay(_audioPlayer);
     final playablePath =
         await StoryMusicLibraryService.instance.resolvePlayablePath(url);
     if (playablePath.isNotEmpty) {
@@ -115,7 +122,8 @@ class SpotifySelectorController extends GetxController {
   }
 
   Future<void> toggleSaved(MusicModel track) async {
-    final saved = await StoryMusicLibraryService.instance.toggleSavedMusic(track);
+    final saved =
+        await StoryMusicLibraryService.instance.toggleSavedMusic(track);
     if (saved) {
       savedTrackIds.add(track.docID);
     } else {
@@ -179,9 +187,10 @@ class SpotifySelectorController extends GetxController {
         final filtered = _applyQuery(library);
         final saved =
             filtered.where((e) => savedTrackIds.contains(e.docID)).toList();
-        final popular =
-            filtered.where((e) => !savedTrackIds.contains(e.docID)).toList()
-              ..sort(_byPopularity);
+        final popular = filtered
+            .where((e) => !savedTrackIds.contains(e.docID))
+            .toList()
+          ..sort(_byPopularity);
         return [...saved, ...popular];
       case 1:
         return _applyQuery(library).toList(growable: true)..sort(_byPopularity);
@@ -234,6 +243,7 @@ class SpotifySelectorController extends GetxController {
   void onClose() {
     scrollController.dispose();
     searchController.dispose();
+    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     super.onClose();
   }

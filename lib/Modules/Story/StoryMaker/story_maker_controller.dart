@@ -13,6 +13,7 @@ import 'package:turqappv2/Models/music_model.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
@@ -165,12 +166,14 @@ class StoryMakerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
     // Initial state'i save et
     _saveState();
   }
 
   @override
   void onClose() {
+    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     // AudioPlayer'ı güvenli şekilde dispose et
     try {
       if (_audioPlayer.state != PlayerState.disposed) {
@@ -660,6 +663,9 @@ class StoryMakerController extends GetxController {
       // Yeni URL'i ayarla ve çalmaya başla
       try {
         if (_audioPlayer.state != PlayerState.disposed) {
+          await AudioFocusCoordinator.instance.requestAudioPlayerPlay(
+            _audioPlayer,
+          );
           final playablePath = await StoryMusicLibraryService.instance
               .resolvePlayablePath(track.audioUrl);
           if (playablePath.isNotEmpty) {

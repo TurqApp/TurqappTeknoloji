@@ -1976,6 +1976,9 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
               if (_isPlaying) {
                 await _player.pause();
               } else {
+                await AudioFocusCoordinator.instance.requestAudioPlayerPlay(
+                  _player,
+                );
                 await _player.play(UrlSource(widget.audioUrl));
               }
             },

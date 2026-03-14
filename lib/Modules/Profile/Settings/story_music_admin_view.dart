@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -44,6 +45,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
   @override
   void initState() {
     super.initState();
+    AudioFocusCoordinator.instance.registerAudioPlayer(_audioPlayer);
     _canAccessFuture = AdminAccessService.canManageSliders();
     _loadTracks();
   }
@@ -56,6 +58,7 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
     _coverUrlController.dispose();
     _categoryController.dispose();
     _orderController.dispose();
+    AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -117,8 +120,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
 
     setState(() => _isBusy = true);
     try {
-      final itemId =
-          _editingDocId.isNotEmpty ? _editingDocId : DateTime.now().millisecondsSinceEpoch.toString();
+      final itemId = _editingDocId.isNotEmpty
+          ? _editingDocId
+          : DateTime.now().millisecondsSinceEpoch.toString();
       final coverUrl = await WebpUploadService.uploadFileAsWebp(
         storage: FirebaseStorage.instance,
         file: file,
@@ -150,8 +154,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
 
     setState(() => _isBusy = true);
     try {
-      final docId =
-          _editingDocId.isNotEmpty ? _editingDocId : DateTime.now().millisecondsSinceEpoch.toString();
+      final docId = _editingDocId.isNotEmpty
+          ? _editingDocId
+          : DateTime.now().millisecondsSinceEpoch.toString();
       final order = int.tryParse(_orderController.text.trim()) ??
           (_editingDocId.isNotEmpty ? 0 : await _resolveNextOrder());
       final now = DateTime.now().millisecondsSinceEpoch;
@@ -182,7 +187,8 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
         'updatedAt': now,
       }, SetOptions(merge: true));
 
-      AppSnackbar('Tamam', _editingDocId.isEmpty ? 'Parça eklendi' : 'Parça güncellendi');
+      AppSnackbar('Tamam',
+          _editingDocId.isEmpty ? 'Parça eklendi' : 'Parça güncellendi');
       _resetForm();
       await _loadTracks(forceRemote: true);
     } catch (e) {
@@ -222,6 +228,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
     }
     try {
       await _audioPlayer.stop();
+      await AudioFocusCoordinator.instance.requestAudioPlayerPlay(
+        _audioPlayer,
+      );
       await _audioPlayer.play(UrlSource(url));
       setState(() => _currentPreviewUrl = url);
     } catch (e) {
@@ -407,8 +416,10 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                   cacheManager: TurqImageCacheManager.instance,
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  placeholder: (_, __) => Container(color: const Color(0xFFE9EDF0)),
-                  errorWidget: (_, __, ___) => Container(color: const Color(0xFFE9EDF0)),
+                  placeholder: (_, __) =>
+                      Container(color: const Color(0xFFE9EDF0)),
+                  errorWidget: (_, __, ___) =>
+                      Container(color: const Color(0xFFE9EDF0)),
                 ),
               ),
             ),
@@ -436,7 +447,9 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                     )
                   : const Icon(Icons.save_outlined),
               label: Text(
-                _editingDocId.isEmpty ? 'Parçayı Kaydet' : 'Güncellemeyi Kaydet',
+                _editingDocId.isEmpty
+                    ? 'Parçayı Kaydet'
+                    : 'Güncellemeyi Kaydet',
                 style: const TextStyle(fontFamily: 'MontserratBold'),
               ),
             ),
@@ -566,7 +579,8 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
           cacheManager: TurqImageCacheManager.instance,
           fit: BoxFit.cover,
           placeholder: (_, __) => Container(color: const Color(0xFFEDF1F4)),
-          errorWidget: (_, __, ___) => Container(color: const Color(0xFFEDF1F4)),
+          errorWidget: (_, __, ___) =>
+              Container(color: const Color(0xFFEDF1F4)),
         ),
       ),
     );

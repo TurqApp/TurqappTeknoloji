@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:video_player/video_player.dart';
@@ -77,13 +78,8 @@ class CreatorContentController extends GetxController
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
-    final controller = videoPlayerController;
-    rxVideoPlayerController.value = null;
+    unawaited(_releaseVideoController());
     isPlaying.value = false;
-    if (controller != null) {
-      unawaited(controller.pause());
-      unawaited(controller.dispose());
-    }
     focus.dispose();
     textEdit.dispose();
     super.onClose();
@@ -506,9 +502,7 @@ class CreatorContentController extends GetxController
 
     // Clear existing media
     gif.value = '';
-    await rxVideoPlayerController.value?.pause();
-    await rxVideoPlayerController.value?.dispose();
-    rxVideoPlayerController.value = null;
+    await _releaseVideoController();
     selectedVideo.value = null;
     reusedVideoUrl.value = '';
     reusedVideoThumbnail.value = '';
@@ -645,9 +639,7 @@ class CreatorContentController extends GetxController
     gif.value = '';
     selectedImages.clear();
     croppedImages.clear();
-    await rxVideoPlayerController.value?.pause();
-    await rxVideoPlayerController.value?.dispose();
-    rxVideoPlayerController.value = null;
+    await _releaseVideoController();
     selectedVideo.value = null;
     reusedVideoUrl.value = '';
     reusedVideoThumbnail.value = '';
@@ -662,7 +654,7 @@ class CreatorContentController extends GetxController
     // 4) Setup video player immediately (no NSFW/compress here)
     final controller = VideoPlayerController.file(file);
     await controller.initialize();
-    rxVideoPlayerController.value = controller;
+    _bindVideoController(controller);
 
     selectedVideo.value = file;
     hasVideo.value = true;
@@ -695,9 +687,7 @@ class CreatorContentController extends GetxController
     selectedImages.clear();
     croppedImages.clear();
     reusedImageUrls.clear();
-    await rxVideoPlayerController.value?.pause();
-    await rxVideoPlayerController.value?.dispose();
-    rxVideoPlayerController.value = null;
+    await _releaseVideoController();
     selectedVideo.value = null;
     isPlaying.value = false;
     hasVideo.value = false;
@@ -717,7 +707,7 @@ class CreatorContentController extends GetxController
 
     final controller = VideoPlayerController.networkUrl(uri);
     await controller.initialize();
-    rxVideoPlayerController.value = controller;
+    _bindVideoController(controller);
     hasVideo.value = true;
     isPlaying.value = false;
     _listenVideo();
@@ -737,9 +727,7 @@ class CreatorContentController extends GetxController
     isProcessing.value = true;
 
     gif.value = '';
-    await rxVideoPlayerController.value?.pause();
-    await rxVideoPlayerController.value?.dispose();
-    rxVideoPlayerController.value = null;
+    await _releaseVideoController();
     selectedVideo.value = null;
     isPlaying.value = false;
     hasVideo.value = false;
@@ -1205,6 +1193,9 @@ class CreatorContentController extends GetxController
 
   Future<void> playVideo() async {
     if (videoPlayerController != null && !isPlaying.value) {
+      await AudioFocusCoordinator.instance.requestPreviewPlay(
+        videoPlayerController!,
+      );
       await videoPlayerController!.play();
       isPlaying.value = true;
     }
@@ -1226,5 +1217,19 @@ class CreatorContentController extends GetxController
 
   Future<void> togglePlayPause() async {
     isPlaying.value ? pauseVideo() : playVideo();
+  }
+
+  void _bindVideoController(VideoPlayerController controller) {
+    AudioFocusCoordinator.instance.registerPreviewPlayer(controller);
+    rxVideoPlayerController.value = controller;
+  }
+
+  Future<void> _releaseVideoController() async {
+    final controller = rxVideoPlayerController.value;
+    if (controller == null) return;
+    AudioFocusCoordinator.instance.unregisterPreviewPlayer(controller);
+    await controller.pause();
+    await controller.dispose();
+    rxVideoPlayerController.value = null;
   }
 }
