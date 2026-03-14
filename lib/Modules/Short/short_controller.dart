@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/lru_cache.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -26,6 +27,7 @@ class ShortController extends GetxController {
   }
 
   final RxList<PostsModel> shorts = <PostsModel>[].obs;
+  final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
   final Map<int, HLSVideoAdapter> cache = {};
   final Map<int, _CacheTier> _tiers = {};
   final lastIndex = 0.obs;
@@ -284,7 +286,8 @@ class ShortController extends GetxController {
         return cacheTarget[index];
       }
 
-      final adapter = HLSVideoAdapter(
+      final adapter = _videoPool.acquire(
+        cacheKey: short.docID,
         url: videoUrl,
         autoPlay: false,
         loop: true,
@@ -352,7 +355,7 @@ class ShortController extends GetxController {
       // Eski adapter'ları serbest bırak
       for (final adapter in oldAdapters) {
         try {
-          adapter.dispose();
+          await _videoPool.release(adapter);
         } catch (_) {}
       }
 
@@ -601,9 +604,12 @@ class ShortController extends GetxController {
     final allCached = cache.keys.toList();
     for (final k in allCached) {
       if (!hotIndices.contains(k) && !warmIndices.contains(k)) {
-        cache[k]?.dispose();
+        final adapter = cache[k];
         cache.remove(k);
         _tiers.remove(k);
+        if (adapter != null) {
+          unawaited(_videoPool.release(adapter));
+        }
       }
     }
 
@@ -627,9 +633,12 @@ class ShortController extends GetxController {
     if (activeKeys.length > _maxPlayers) {
       for (int i = _maxPlayers; i < activeKeys.length; i++) {
         final k = activeKeys[i];
-        cache[k]?.dispose();
+        final adapter = cache[k];
         cache.remove(k);
         _tiers.remove(k);
+        if (adapter != null) {
+          unawaited(_videoPool.release(adapter));
+        }
       }
     }
   }
@@ -646,8 +655,8 @@ class ShortController extends GetxController {
 
   /// Tamamen temizler
   void clearCache() {
-    for (var adapter in cache.values) {
-      adapter.dispose();
+    for (final adapter in cache.values) {
+      unawaited(_videoPool.release(adapter));
     }
     cache.clear();
     _tiers.clear();
@@ -671,11 +680,12 @@ class ShortController extends GetxController {
   Future<void> refreshVideoController(int idx) async {
     final post = shorts[idx];
     if (cache[idx] != null) {
-      cache[idx]!.dispose();
+      await _videoPool.release(cache[idx]!);
       cache.remove(idx);
     }
     if (post.playbackUrl.isNotEmpty) {
-      cache[idx] = HLSVideoAdapter(
+      cache[idx] = _videoPool.acquire(
+        cacheKey: post.docID,
         url: post.playbackUrl,
         autoPlay: false,
         loop: true,

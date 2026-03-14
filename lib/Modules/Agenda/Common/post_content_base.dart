@@ -8,6 +8,7 @@ import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/SegmentCache/cache_manager.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../../../Core/Services/playback_handle.dart';
+import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../Agenda/agenda_controller.dart';
 import 'post_content_controller.dart';
 
@@ -42,6 +43,7 @@ abstract class PostContentBase extends StatefulWidget {
 mixin PostContentBaseState<T extends PostContentBase> on State<T>
     implements RouteAware {
   late final AgendaController agendaController = _resolveAgendaController();
+  late final GlobalVideoAdapterPool adapterPool = GlobalVideoAdapterPool.ensure();
   final videoStateManager = VideoStateManager.instance;
 
   late final PostContentController controller;
@@ -156,7 +158,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _initVideoController() {
     if (_videoAdapter != null) return;
-    _videoAdapter = HLSVideoAdapter(
+    _videoAdapter = adapterPool.acquire(
+      cacheKey: widget.model.docID,
       url: widget.model.playbackUrl,
       autoPlay: widget.shouldPlay,
       loop: true,
@@ -213,7 +216,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       videoStateManager.exitExclusiveMode();
     }
     videoStateManager.unregisterVideoController(playbackHandleKey);
-    _videoAdapter?.dispose();
+    final adapter = _videoAdapter;
+    if (adapter != null) {
+      unawaited(adapterPool.release(adapter));
+    }
     _muteWorker?.dispose();
     _pauseAllWorker?.dispose();
     videoValueNotifier.dispose();

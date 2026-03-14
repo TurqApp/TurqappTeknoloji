@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import '../../main.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import '../../Models/posts_model.dart';
+import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/SegmentCache/cache_manager.dart';
@@ -108,6 +111,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// Videoları tutan reaktif liste
   final shorts = <PostsModel>[].obs;
   final videoStateManager = VideoStateManager.instance;
+  final GlobalVideoAdapterPool _videoPool = GlobalVideoAdapterPool.ensure();
 
   final PageController pageController = PageController();
   int currentPage = 0;
@@ -117,12 +121,40 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
+  final Map<int, VoidCallback> _completionListeners = <int, VoidCallback>{};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.pause();
+  }
+
+  void _detachCompletionListener(int index, HLSVideoAdapter adapter) {
+    final listener = _completionListeners.remove(index);
+    if (listener != null) {
+      adapter.removeListener(listener);
+    }
+  }
+
+  Future<void> _releaseControllerAt(
+    int index, {
+    bool keepWarm = true,
+  }) async {
+    final adapter = _videoControllers[index];
+    if (adapter == null) return;
+    _detachCompletionListener(index, adapter);
+
+    final docId = (index >= 0 && index < shorts.length) ? shorts[index].docID : null;
+    if (docId != null) {
+      try {
+        videoStateManager.unregisterVideoController(docId);
+      } catch (_) {}
+    }
+
+    _videoControllers.remove(index);
+    if (adapter.isDisposed) return;
+    await _videoPool.release(adapter, keepWarm: keepWarm);
   }
 
   Widget _cachedThumb(String url) {
@@ -346,13 +378,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         // Bu controller dışarıya ait; dispose etmiyoruz
         continue;
       }
-      try {
-        c.pause();
-      } catch (_) {}
-      try {
-        c.dispose();
-      } catch (_) {}
-      _videoControllers.remove(e.key);
+      unawaited(_releaseControllerAt(e.key));
     }
     _externallyOwned.clear();
 
@@ -548,24 +574,16 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final keys = _videoControllers.keys.toList();
     for (final idx in keys) {
       final c = _videoControllers[idx]!;
-      final docId =
-          (idx >= 0 && idx < shorts.length) ? shorts[idx].docID : null;
       if (_externallyOwned.contains(idx)) {
         // bırak: görüntüleyen sayfa kullanmaya devam edecek
         continue;
       }
-      if (docId != null) {
-        try {
-          videoStateManager.unregisterVideoController(docId);
-        } catch (_) {}
-      }
       if (c.isDisposed) {
+        _detachCompletionListener(idx, c);
         _videoControllers.remove(idx);
         continue;
       }
-      c.pause();
-      c.dispose();
-      _videoControllers.remove(idx);
+      unawaited(_releaseControllerAt(idx));
     }
     // externals set'i koru; injected mapping kalır
   }
@@ -606,7 +624,12 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final url = shorts[index].playbackUrl;
     if (url.isEmpty) return;
 
-    final ctrl = HLSVideoAdapter(url: url, autoPlay: false, loop: false);
+    final ctrl = _videoPool.acquire(
+      cacheKey: shorts[index].docID,
+      url: url,
+      autoPlay: false,
+      loop: false,
+    );
     _videoControllers[index] = ctrl;
     try {
       videoStateManager.registerPlaybackHandle(
@@ -648,7 +671,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final Map<int, bool> _completionTriggered = {};
 
   void _addVideoCompletionListener(HLSVideoAdapter ctrl, int index) {
-    ctrl.addListener(() {
+    _detachCompletionListener(index, ctrl);
+    void listener() {
       if (!mounted) return;
       if (index != currentPage) return; // Sadece aktif video için kontrol et
 
@@ -694,20 +718,21 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           });
         }
       }
-    });
+    }
+    _completionListeners[index] = listener;
+    ctrl.addListener(listener);
   }
 
   // +5/-5 kuralı: ±7 dışındakileri temizle (5+2 marj)
   void _disposeOutsideRange(int center) {
     final len = shorts.length;
-    final start = (center - 7).clamp(0, len - 1);
-    final end = (center + 7).clamp(0, len - 1);
+    final start = (center - 10).clamp(0, len - 1);
+    final end = (center + 10).clamp(0, len - 1);
     final keys = _videoControllers.keys.toList();
     for (var idx in keys) {
       if (idx < start || idx > end) {
         if (!_externallyOwned.contains(idx)) {
-          _videoControllers[idx]?.dispose();
-          _videoControllers.remove(idx);
+          unawaited(_releaseControllerAt(idx));
         }
       }
     }
