@@ -53,14 +53,8 @@ class NavBarView extends StatelessWidget {
     }
     if (!isIOS) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!Get.isRegistered<ExploreController>()) {
-          Get.put(ExploreController());
-        }
         if (!Get.isRegistered<ShortController>()) {
           Get.put(ShortController());
-        }
-        if (!Get.isRegistered<EducationController>()) {
-          Get.put(EducationController());
         }
       });
     }
@@ -242,7 +236,8 @@ class NavBarView extends StatelessWidget {
                                   onPressed: () async {
                                     if (i == 0 &&
                                         controller.selectedIndex.value == 0) {
-                                      if (Get.isRegistered<AgendaController>()) {
+                                      if (Get.isRegistered<
+                                          AgendaController>()) {
                                         final agendaCtrl =
                                             Get.find<AgendaController>();
                                         if (agendaCtrl
@@ -259,7 +254,8 @@ class NavBarView extends StatelessWidget {
                                     }
                                     if (i == 1 &&
                                         controller.selectedIndex.value == 1) {
-                                      if (Get.isRegistered<ExploreController>()) {
+                                      if (Get.isRegistered<
+                                          ExploreController>()) {
                                         final explore =
                                             Get.find<ExploreController>();
                                         int tab = 0;
@@ -456,15 +452,17 @@ class _AvatarWithRingState extends State<_AvatarWithRing> {
       placeholder: DefaultAvatar(
         radius: widget.size / 2,
         backgroundColor: Colors.transparent,
-        iconColor:
-            widget.isSelected ? Colors.black : Colors.black.withValues(alpha: 0.5),
+        iconColor: widget.isSelected
+            ? Colors.black
+            : Colors.black.withValues(alpha: 0.5),
         padding: EdgeInsets.all(widget.size * 0.18),
       ),
       errorWidget: DefaultAvatar(
         radius: widget.size / 2,
         backgroundColor: Colors.transparent,
-        iconColor:
-            widget.isSelected ? Colors.black : Colors.black.withValues(alpha: 0.5),
+        iconColor: widget.isSelected
+            ? Colors.black
+            : Colors.black.withValues(alpha: 0.5),
         padding: EdgeInsets.all(widget.size * 0.18),
       ),
     );
