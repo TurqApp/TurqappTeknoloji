@@ -121,7 +121,6 @@ class AgendaView extends StatelessWidget {
                       // Sadece liste değişimlerini dinle (centeredIndex DEĞİL)
                       final _ = controller.agendaList.length;
                       final __ = controller.feedReshareEntries.length;
-                      final ___ = controller.highlightDocIDs.length;
                       controller.feedViewMode.value;
                       controller.followingIDs.length;
 
@@ -376,11 +375,15 @@ class AgendaView extends StatelessWidget {
                             child: buildPostContent(),
                           );
 
-                          // Yeni yüklenen gönderiler için kısa vurgulu fade overlay
-                          final isHighlighted =
-                              controller.highlightDocIDs.contains(model.docID);
-                          if (isHighlighted) {
-                            postWidget = TweenAnimationBuilder<double>(
+                          final basePostWidget = postWidget;
+                          postWidget = Obx(() {
+                            final isHighlighted =
+                                controller.highlightDocIDs.contains(model.docID);
+                            if (!isHighlighted) {
+                              return basePostWidget;
+                            }
+
+                            return TweenAnimationBuilder<double>(
                               key: ValueKey('hl-${model.docID}'),
                               tween: Tween(begin: 1.0, end: 0.0),
                               duration: const Duration(milliseconds: 700),
@@ -414,9 +417,9 @@ class AgendaView extends StatelessWidget {
                                   ],
                                 );
                               },
-                              child: postWidget,
+                              child: basePostWidget,
                             );
-                          }
+                          });
 
                           columnChildren.add(postWidget);
 
