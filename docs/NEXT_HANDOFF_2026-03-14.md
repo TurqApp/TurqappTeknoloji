@@ -3,12 +3,16 @@
 ## Güvenli Baz
 
 - Branch: `codex/final-perf-firebase-baseline`
-- Son güvenli kaynak commit'i: `0f523b77`
-- Handoff commit'i: `5620ce66`
+- Son güvenli kaynak commit'i: `d3140a50`
+- Son handoff commit'i: `29c0d481`
 - Bu commit'e kadar source dosyaları commit'li ve doğrulanmış durumda.
 
 ## Son Alınan Kaynak Commit'leri
 
+- `d3140a50` `privacy: trim current user service debug traces`
+- `c9886589` `privacy: trim sign in debug traces`
+- `b4dd8e7c` `privacy: trim chat debug traces`
+- `0480f068` `privacy: trim explore debug traces`
 - `0f523b77` `privacy: trim story viewer and splash debug traces`
 - `45057852` `privacy: trim short module debug traces`
 - `43680479` `privacy: trim job finder debug traces`
@@ -26,6 +30,7 @@
   - `lib/Core/Functions.dart`
   - `lib/Modules/Profile/Settings/Settings.dart`
 - `npm test`: gecti
+- `npm run test:rules`: gecti (`64/64`)
 - `bash scripts/check_repo_security_regressions.sh`: gecti
 
 ## Dikkat: Local Ortam Drift'i
@@ -35,42 +40,29 @@
 - Bu degisiklikler commit'lenmedi.
 - Source tree temiz; kir sadece `functions/node_modules` tarafinda.
 
-## Rules Test Notu
-
-- `npm run test:rules` daha once yesildi.
-- Son full gate turunda `@firebase/rules-unit-testing` paketi bozuk/eksik gorundugu icin fail oldu.
-- Ardindan `npm ci` calistirildi ve paket yapisi geri geldi.
-- Rules test yeniden tetiklendi; import/paket hatasi kayboldu ve suite derin bir noktaya kadar gecti.
-- Ancak bu son rerun'un final exit durumu bu oturumda kesin olarak kaydedilmedi.
-- Bu nedenle ilk is olarak tek bir temiz `npm run test:rules` rerun'u alinmali.
-
 ## Devam Icin Ilk Isler
 
-1. `functions` altinda `npm run test:rules` tekrar calistir.
-2. Rules test gecerliyse `functions/node_modules` degisikliklerini commit'leme.
-3. Rules test hala fail ise once local Node/runtime uyumunu kontrol et.
-   - mevcut shell: Node `v25.6.1`
-   - functions target engine: Node `22`
-4. Final gate olarak tekrar su komutlari kos:
+1. `functions/node_modules` ve `.idea` drift'ini commit'e alma.
+2. Yeni bir source degisikligi yapmadan once final gate'i tek sefer daha rerun etmek istenirse su komutlari kos:
    - `flutter test`
    - `flutter analyze --no-fatal-infos`
    - `npm test`
    - `npm run test:rules`
    - `bash scripts/check_repo_security_regressions.sh`
+3. Ham `flutter analyze` icin kalan 3 `file_names info` uyarisi istenirse kontrollu rename plani ile kapatilabilir.
 
 ## Kalan Teknik Isler
 
 ### P0/P1 disinda kalan son kalite isleri
 
-1. `rules` hattini tekrar yesile cekip stabilize etmek
-2. Geriye kalan son dusuk riskli debug/privacy yuzeylerini temizlemek
+1. Geriye kalan son dusuk riskli debug/privacy yuzeylerini temizlemek
    - oncelikli adaylar:
-     - `lib/Modules/Explore/explore_controller.dart`
-     - `lib/Modules/SignIn/sign_in_controller.dart`
-     - `lib/Modules/Chat/chat_controller.dart`
-   - not: bunlar daha hot dosyalar, bu yuzden dikkatli ve parcali ilerlemek gerekiyor
-3. Istenirse 3 adet dosya adi `info` uyarisi icin kontrollu rename plani
-4. Final release readiness ozeti cikarmak
+     - `lib/Modules/Short/short_controller.dart`
+     - `lib/Modules/Splash/splash_view.dart`
+     - `lib/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart`
+   - not: `explore`, `sign_in`, `chat`, `current_user_service` bloklari bu oturumda temizlendi
+2. Istenirse 3 adet dosya adi `info` uyarisi icin kontrollu rename plani
+3. Final release readiness ozeti cikarmak
 
 ## Onemli Notlar
 
