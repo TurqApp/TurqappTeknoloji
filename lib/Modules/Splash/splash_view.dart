@@ -416,7 +416,7 @@ class _SplashViewState extends State<SplashView> {
         (() async {
           try {
             await agendaController
-                .fetchAgendaBigData(initial: true)
+                .ensureInitialFeedLoaded()
                 .timeout(const Duration(seconds: 3));
             await _ensureMinimumFeedPosts(
               agendaController,
