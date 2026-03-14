@@ -31,6 +31,20 @@ void main() {
     );
   });
 
+  test('storage budget usage snapshot reports ratios and remaining budget', () {
+    final manager = StorageBudgetManager();
+    final profile = StorageBudgetManager.profileForPlanGb(3);
+    final snapshot = manager.usageSnapshot(
+      streamUsageBytes: profile.streamCacheSoftStopBytes ~/ 2,
+    );
+
+    expect(snapshot.streamUsageBytes, profile.streamCacheSoftStopBytes ~/ 2);
+    expect(snapshot.crossedSoftStop, isFalse);
+    expect(snapshot.crossedHardStop, isFalse);
+    expect(snapshot.remainingBeforeHardStopBytes, greaterThan(0));
+    expect(snapshot.softUsageRatio, greaterThan(0));
+  });
+
   test('playback policy resolves wifi fill mode with background prefetch', () {
     final snapshot = PlaybackPolicyEngine.resolve(
       const PlaybackPolicyContext(

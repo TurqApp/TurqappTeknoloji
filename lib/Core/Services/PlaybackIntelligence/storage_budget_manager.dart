@@ -41,6 +41,28 @@ class StorageBudgetProfile {
       };
 }
 
+class StorageBudgetUsageSnapshot {
+  final StorageBudgetProfile profile;
+  final int streamUsageBytes;
+  final int remainingBeforeSoftStopBytes;
+  final int remainingBeforeHardStopBytes;
+  final double softUsageRatio;
+  final double hardUsageRatio;
+  final bool crossedSoftStop;
+  final bool crossedHardStop;
+
+  const StorageBudgetUsageSnapshot({
+    required this.profile,
+    required this.streamUsageBytes,
+    required this.remainingBeforeSoftStopBytes,
+    required this.remainingBeforeHardStopBytes,
+    required this.softUsageRatio,
+    required this.hardUsageRatio,
+    required this.crossedSoftStop,
+    required this.crossedHardStop,
+  });
+}
+
 class StorageBudgetManager extends GetxService {
   static const int _mb = 1024 * 1024;
   final RxInt _selectedPlanGb = 3.obs;
@@ -53,6 +75,45 @@ class StorageBudgetManager extends GetxService {
     final normalized = gb.clamp(2, 5);
     _selectedPlanGb.value = normalized;
     return profileForPlanGb(normalized);
+  }
+
+  StorageBudgetUsageSnapshot usageSnapshot({
+    required int streamUsageBytes,
+  }) {
+    return usageSnapshotForProfile(
+      currentProfile,
+      streamUsageBytes: streamUsageBytes,
+    );
+  }
+
+  static StorageBudgetUsageSnapshot usageSnapshotForProfile(
+    StorageBudgetProfile profile, {
+    required int streamUsageBytes,
+  }) {
+    final normalizedUsage = streamUsageBytes < 0 ? 0 : streamUsageBytes;
+    final remainingSoft =
+        (profile.streamCacheSoftStopBytes - normalizedUsage).clamp(
+      0,
+      profile.streamCacheSoftStopBytes,
+    );
+    final remainingHard =
+        (profile.streamCacheHardStopBytes - normalizedUsage).clamp(
+      0,
+      profile.streamCacheHardStopBytes,
+    );
+
+    return StorageBudgetUsageSnapshot(
+      profile: profile,
+      streamUsageBytes: normalizedUsage,
+      remainingBeforeSoftStopBytes: remainingSoft,
+      remainingBeforeHardStopBytes: remainingHard,
+      softUsageRatio:
+          (normalizedUsage / profile.streamCacheSoftStopBytes).clamp(0.0, 1.0),
+      hardUsageRatio:
+          (normalizedUsage / profile.streamCacheHardStopBytes).clamp(0.0, 1.0),
+      crossedSoftStop: normalizedUsage >= profile.streamCacheSoftStopBytes,
+      crossedHardStop: normalizedUsage >= profile.streamCacheHardStopBytes,
+    );
   }
 
   static StorageBudgetProfile profileForPlanGb(int gb) {

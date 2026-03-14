@@ -206,6 +206,12 @@ class _PermissionsViewState extends State<PermissionsView> {
 
   Widget _buildQuotaBreakdown() {
     final profile = StorageBudgetManager.profileForPlanGb(_selectedQuota);
+    final usage = Get.isRegistered<SegmentCacheManager>()
+        ? StorageBudgetManager.usageSnapshotForProfile(
+            profile,
+            streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
+          )
+        : null;
     final rows = <MapEntry<String, int>>[
       MapEntry('Medya cache', profile.mediaQuotaBytes),
       MapEntry('Gorsel cache', profile.imageQuotaBytes),
@@ -278,6 +284,33 @@ class _PermissionsViewState extends State<PermissionsView> {
               fontFamily: 'MontserratMedium',
             ),
           ),
+          if (usage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Aktif stream kullanim: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 12,
+                fontFamily: 'MontserratSemiBold',
+              ),
+            ),
+            Text(
+              'Soft stop kalan: ${CacheMetrics.formatBytes(usage.remainingBeforeSoftStopBytes)}',
+              style: const TextStyle(
+                color: Colors.black45,
+                fontSize: 12,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+            Text(
+              'Hard stop kalan: ${CacheMetrics.formatBytes(usage.remainingBeforeHardStopBytes)}',
+              style: const TextStyle(
+                color: Colors.black45,
+                fontSize: 12,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ],
         ],
       ),
     );

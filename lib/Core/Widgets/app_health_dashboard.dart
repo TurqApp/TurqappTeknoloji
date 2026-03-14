@@ -83,9 +83,16 @@ class AppHealthDashboard extends StatelessWidget {
   }
 
   Widget _buildPlaybackIntelligenceCard() {
-    final profile = Get.isRegistered<StorageBudgetManager>()
-        ? Get.find<StorageBudgetManager>().currentProfile
-        : StorageBudgetManager.profileForPlanGb(3);
+    final budgetManager = Get.isRegistered<StorageBudgetManager>()
+        ? Get.find<StorageBudgetManager>()
+        : Get.put(StorageBudgetManager());
+    final profile = budgetManager.currentProfile;
+    final usage = Get.isRegistered<SegmentCacheManager>()
+        ? StorageBudgetManager.usageSnapshotForProfile(
+            profile,
+            streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
+          )
+        : null;
     final policy = Get.isRegistered<PlaybackPolicyEngine>()
         ? Get.find<PlaybackPolicyEngine>().snapshot()
         : null;
@@ -121,6 +128,28 @@ class AppHealthDashboard extends StatelessWidget {
               '${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)} / '
               '${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
             ),
+            if (usage != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Aktif stream kullanim: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
+              ),
+              Text(
+                'Soft oran: ${(usage.softUsageRatio * 100).toStringAsFixed(1)}%  •  Hard oran: ${(usage.hardUsageRatio * 100).toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                'Kalan soft/hard: '
+                '${CacheMetrics.formatBytes(usage.remainingBeforeSoftStopBytes)} / '
+                '${CacheMetrics.formatBytes(usage.remainingBeforeHardStopBytes)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
             if (policy != null) ...[
               const SizedBox(height: 10),
               Text(
