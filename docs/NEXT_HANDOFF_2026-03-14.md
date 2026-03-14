@@ -3,8 +3,8 @@
 ## Güvenli Baz
 
 - Branch: `codex/final-perf-firebase-baseline`
-- Son güvenli kaynak commit'i: `d3140a50`
-- Son handoff commit'i: `29c0d481`
+- Son güvenli kaynak commit'i: `befd6b68`
+- Son handoff commit'i: `6f9cb76a`
 - Bu commit'e kadar source dosyaları commit'li ve doğrulanmış durumda.
 
 ## Son Alınan Kaynak Commit'leri
@@ -13,6 +13,8 @@
 - `c9886589` `privacy: trim sign in debug traces`
 - `b4dd8e7c` `privacy: trim chat debug traces`
 - `0480f068` `privacy: trim explore debug traces`
+- `befd6b68` `privacy: trim splash startup traces`
+- `0746810e` `privacy: trim scholarship creation debug traces`
 - `0f523b77` `privacy: trim story viewer and splash debug traces`
 - `45057852` `privacy: trim short module debug traces`
 - `43680479` `privacy: trim job finder debug traces`
@@ -58,9 +60,9 @@
 1. Geriye kalan son dusuk riskli debug/privacy yuzeylerini temizlemek
    - oncelikli adaylar:
      - `lib/Modules/Short/short_controller.dart`
-     - `lib/Modules/Splash/splash_view.dart`
-     - `lib/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart`
-   - not: `explore`, `sign_in`, `chat`, `current_user_service` bloklari bu oturumda temizlendi
+     - `lib/Services/post_migration_helper.dart`
+     - `lib/Services/post_stats_cleanup.dart`
+   - not: `explore`, `sign_in`, `chat`, `current_user_service`, `splash`, `create_scholarship` bloklari bu oturumda temizlendi
 2. Istenirse 3 adet dosya adi `info` uyarisi icin kontrollu rename plani
 3. Final release readiness ozeti cikarmak
 
