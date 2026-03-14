@@ -145,6 +145,7 @@ class CurrentUserService extends GetxController {
   Timer? _cacheSaveTimer;
   String?
       _lastCacheSignature; // Track last saved snapshot to prevent duplicates
+  String? _lastReactiveSignature;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -362,9 +363,7 @@ class CurrentUserService extends GetxController {
       }
 
       _currentUser = user;
-      viewSelectionRx.value = user.viewSelection;
-      currentUserRx.value = user;
-      _emitUserEvent(user);
+      _publishResolvedUser(user);
       unawaited(_warmAvatar(user));
       return true;
     } catch (_) {
@@ -910,12 +909,24 @@ class CurrentUserService extends GetxController {
   Future<void> _updateUser(CurrentUserModel user) async {
     final resolvedUser = await _applyStoredViewSelection(user);
     _currentUser = resolvedUser;
-    viewSelectionRx.value = resolvedUser.viewSelection;
-    currentUserRx.value = resolvedUser;
-    _emitUserEvent(resolvedUser);
+    final didPublish = _publishResolvedUser(resolvedUser);
     await UserRepository.ensure().seedCurrentUser(resolvedUser);
     unawaited(_warmAvatar(resolvedUser));
-    await _saveToCache(resolvedUser);
+    if (didPublish) {
+      await _saveToCache(resolvedUser);
+    }
+  }
+
+  bool _publishResolvedUser(CurrentUserModel user) {
+    viewSelectionRx.value = user.viewSelection;
+    final nextSignature = jsonEncode(user.toJson());
+    if (_lastReactiveSignature == nextSignature) {
+      return false;
+    }
+    _lastReactiveSignature = nextSignature;
+    currentUserRx.value = user;
+    _emitUserEvent(user);
+    return true;
   }
 
   Future<void> _warmAvatar(CurrentUserModel? user) async {
@@ -1447,6 +1458,7 @@ class CurrentUserService extends GetxController {
       _cacheSaveTimer?.cancel();
       _cacheSaveTimer = null;
       _lastCacheSignature = null;
+      _lastReactiveSignature = null;
 
       _currentUser = null;
       viewSelectionRx.value = 1;
