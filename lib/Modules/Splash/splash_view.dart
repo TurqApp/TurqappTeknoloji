@@ -500,20 +500,26 @@ class _SplashViewState extends State<SplashView> {
     try {
       final bool onWiFi = _isOnWiFiNow();
       final storyController = Get.find<StoryRowController>();
+      final shortTarget =
+          onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6);
+      final storyTarget = onWiFi ? 30 : 18;
 
       // Shorts tarafında çok hafif ısınma yap.
       try {
         final shorts = Get.find<ShortController>();
-        shorts.warmStart(
-          targetCount:
-              onWiFi ? (isFirstLaunch ? 8 : 10) : (isFirstLaunch ? 4 : 6),
-          maxPages: onWiFi ? 2 : 1,
-        );
+        if (shorts.shorts.length < shortTarget) {
+          shorts.warmStart(
+            targetCount: shortTarget,
+            maxPages: onWiFi ? 2 : 1,
+          );
+        }
       } catch (_) {}
 
       // Post + toplu kullanıcı preload bu fazda kapalı.
       // Sadece story tarafını hafif şekilde hazırla.
-      await _forceLoadStoriesSync(storyController, limit: onWiFi ? 30 : 18);
+      if (storyController.users.length < storyTarget) {
+        await _forceLoadStoriesSync(storyController, limit: storyTarget);
+      }
     } catch (_) {}
   }
 
