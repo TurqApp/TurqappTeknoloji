@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/prefetch_scoring_engine.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
@@ -52,6 +53,7 @@ class PrefetchScheduler extends GetxController {
   double _lastFeedReadyRatio = 0.0;
   int _queueLatencySamples = 0;
   double _avgQueueDispatchLatencyMs = 0.0;
+  String? _lastPrefetchHealthSignature;
   DownloadWorker? _worker;
   StreamSubscription? _workerSub;
   Timer? _watchdogTimer;
@@ -229,6 +231,7 @@ class PrefetchScheduler extends GetxController {
 
     // Sıralama: düşük priority önce
     _queue.sort(_compareJobs);
+    _publishPrefetchHealthIfNeeded();
 
     _processQueue();
   }
@@ -314,6 +317,7 @@ class PrefetchScheduler extends GetxController {
 
     _queue.sort(_compareJobs);
     _updateFeedReadyRatio();
+    _publishPrefetchHealthIfNeeded();
     _processQueue();
   }
 
@@ -371,12 +375,14 @@ class PrefetchScheduler extends GetxController {
     }
 
     debugPrint('[Prefetch] Paused — active downloads cancelled');
+    _publishPrefetchHealthIfNeeded(force: true);
   }
 
   /// Wi-Fi'ye dönüldüğünde çağrılır.
   void resume() {
     _paused = false;
     debugPrint('[Prefetch] Resumed (Wi-Fi)');
+    _publishPrefetchHealthIfNeeded(force: true);
     _processQueue();
   }
 
@@ -662,6 +668,8 @@ class PrefetchScheduler extends GetxController {
           '[Prefetch] Download failed: ${result.docID}/${result.segmentKey} — ${result.error}');
     }
 
+    _publishPrefetchHealthIfNeeded();
+
     // Kuyrukta daha var mı?
     _processQueue();
   }
@@ -721,6 +729,7 @@ class PrefetchScheduler extends GetxController {
     _lastFeedWindowCount = targetIndices.length;
     _lastFeedReadyRatio =
         targetIndices.isEmpty ? 0.0 : (ready / targetIndices.length);
+    _publishPrefetchHealthIfNeeded();
   }
 
   /// Watchdog: 30sn boyunca hiç download result gelmezse _activeDownloads sıkışmıştır.
@@ -757,6 +766,44 @@ class PrefetchScheduler extends GetxController {
       final network = Get.find<NetworkAwarenessService>();
       unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
     } catch (_) {}
+  }
+
+  void _publishPrefetchHealthIfNeeded({bool force = false}) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+
+    final readyBucket = (_lastFeedReadyRatio * 10).floor().clamp(0, 10);
+    final latencyBucket = (_avgQueueDispatchLatencyMs / 250).floor().clamp(
+          0,
+          20,
+        );
+    final signature = [
+      _paused ? 'paused' : 'active',
+      _mobileSeedMode ? 'mobile_seed' : 'standard',
+      'q$_queue.length',
+      'a$_activeDownloads',
+      'r$readyBucket',
+      'l$latencyBucket',
+    ].join('|');
+
+    if (!force && signature == _lastPrefetchHealthSignature) {
+      return;
+    }
+    _lastPrefetchHealthSignature = signature;
+
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.prefetchHealth,
+      {
+        'paused': _paused,
+        'mobileSeedMode': _mobileSeedMode,
+        'queueSize': _queue.length,
+        'activeDownloads': _activeDownloads,
+        'maxConcurrent': _maxConcurrent,
+        'feedReadyRatio': _lastFeedReadyRatio,
+        'feedReadyCount': _lastFeedReadyCount,
+        'feedWindowCount': _lastFeedWindowCount,
+        'avgQueueDispatchLatencyMs': _avgQueueDispatchLatencyMs,
+      },
+    );
   }
 
   // ──────────────────────────── Helpers ────────────────────────────

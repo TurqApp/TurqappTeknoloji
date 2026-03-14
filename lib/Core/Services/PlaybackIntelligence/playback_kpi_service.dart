@@ -6,6 +6,7 @@ enum PlaybackKpiEventType {
   firstFrame,
   rebuffer,
   cacheHitRatio,
+  prefetchHealth,
   mobileBytesPerMinute,
   profileLocalHitRatio,
 }
