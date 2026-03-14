@@ -15,6 +15,8 @@ class PrefetchScoreContext {
   final double sessionCompletionRate;
   final double sessionRebufferRatio;
   final bool sessionHasFirstFrame;
+  final bool sessionIsAudible;
+  final bool sessionHasStableFocus;
 
   const PrefetchScoreContext({
     required this.basePriority,
@@ -30,6 +32,8 @@ class PrefetchScoreContext {
     required this.sessionCompletionRate,
     required this.sessionRebufferRatio,
     required this.sessionHasFirstFrame,
+    required this.sessionIsAudible,
+    required this.sessionHasStableFocus,
   });
 }
 
@@ -41,6 +45,8 @@ class PrefetchScoringEngine {
       sessionCompletionRate: context.sessionCompletionRate,
       sessionRebufferRatio: context.sessionRebufferRatio,
       sessionHasFirstFrame: context.sessionHasFirstFrame,
+      sessionIsAudible: context.sessionIsAudible,
+      sessionHasStableFocus: context.sessionHasStableFocus,
     );
     final usefulness = CacheUsefulnessEngine.fromSegments(
       cachedSegmentCount: context.cachedSegmentCount,
@@ -95,6 +101,30 @@ class PrefetchScoringEngine {
       } else if (distance <= 5) {
         score += 8;
       }
+    }
+
+    if (signal.stableFocusSession &&
+        context.targetIndex > context.currentIndex) {
+      if (distance <= 2) {
+        score += 14;
+      } else if (distance <= 4) {
+        score += 6;
+      }
+    }
+
+    if (signal.audibleSession && context.targetIndex > context.currentIndex) {
+      if (distance <= 2) {
+        score += 10;
+      } else if (distance <= 4) {
+        score += 4;
+      }
+    }
+
+    if (signal.audibleSession &&
+        signal.stableFocusSession &&
+        context.targetIndex > context.currentIndex &&
+        distance <= 2) {
+      score += 8;
     }
 
     if (signal.unstableSession && context.targetIndex > context.currentIndex) {

@@ -29,4 +29,19 @@ void main() {
     expect(signal.engagedSession, isTrue);
     expect(signal.unstableSession, isFalse);
   });
+
+  test('runtime signal keeps audible and stable focus hints', () {
+    final signal = PlaybackSignalEngine.fromRuntimeSignals(
+      rawProgress: 0.18,
+      sessionWatchTimeSeconds: 3.0,
+      sessionCompletionRate: 0.16,
+      sessionRebufferRatio: 0.02,
+      sessionHasFirstFrame: true,
+      sessionIsAudible: true,
+      sessionHasStableFocus: true,
+    );
+
+    expect(signal.audibleSession, isTrue);
+    expect(signal.stableFocusSession, isTrue);
+  });
 }

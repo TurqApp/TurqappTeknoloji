@@ -15,6 +15,8 @@ class VideoSessionMetrics {
   int seekCount = 0;
   String? errorMessage;
   bool completed = false;
+  bool isAudible = false;
+  bool hasStableFocus = false;
   DateTime? _lastBufferStart;
 
   VideoSessionMetrics({required this.videoId, required this.videoUrl})
@@ -85,12 +87,16 @@ class ActiveVideoSessionSnapshot {
   final double completionRate;
   final double rebufferRatio;
   final bool hasFirstFrame;
+  final bool isAudible;
+  final bool hasStableFocus;
 
   const ActiveVideoSessionSnapshot({
     required this.watchTimeSeconds,
     required this.completionRate,
     required this.rebufferRatio,
     required this.hasFirstFrame,
+    required this.isAudible,
+    required this.hasStableFocus,
   });
 }
 
@@ -149,6 +155,21 @@ class VideoTelemetryService {
     _activeSessions[videoId]?.onError(message);
   }
 
+  void updateRuntimeHints(
+    String videoId, {
+    bool? isAudible,
+    bool? hasStableFocus,
+  }) {
+    final session = _activeSessions[videoId];
+    if (session == null) return;
+    if (isAudible != null) {
+      session.isAudible = isAudible;
+    }
+    if (hasStableFocus != null) {
+      session.hasStableFocus = hasStableFocus;
+    }
+  }
+
   ActiveVideoSessionSnapshot? activeSessionSnapshot(String videoId) {
     final session = _activeSessions[videoId];
     if (session == null) return null;
@@ -157,6 +178,8 @@ class VideoTelemetryService {
       completionRate: session.completionRate,
       rebufferRatio: session.rebufferRatio,
       hasFirstFrame: session.firstFrameAt != null,
+      isAudible: session.isAudible,
+      hasStableFocus: session.hasStableFocus,
     );
   }
 

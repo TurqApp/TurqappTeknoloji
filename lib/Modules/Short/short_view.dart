@@ -311,6 +311,11 @@ class _ShortViewState extends State<ShortView> {
         final post = _cachedShorts[page];
         VideoTelemetryService.instance
             .startSession(post.docID, post.playbackUrl);
+        VideoTelemetryService.instance.updateRuntimeHints(
+          post.docID,
+          isAudible: volume,
+          hasStableFocus: false,
+        );
         _telemetryFirstFrame = false;
         _telemetryAdapter = vc;
         vc.addListener(_telemetryListener);
@@ -347,6 +352,12 @@ class _ShortViewState extends State<ShortView> {
       if (page < 0 || page >= _cachedShorts.length) return;
       final vc = controller.cache[page];
       if (vc == null || !vc.value.hasRenderedFirstFrame) return;
+      final docId = _cachedShorts[page].docID;
+      VideoTelemetryService.instance.updateRuntimeHints(
+        docId,
+        isAudible: volume,
+        hasStableFocus: true,
+      );
       try {
         Get.find<PrefetchScheduler>().updateQueue(
           _cachedShorts.map((s) => s.docID).toList(growable: false),
@@ -752,6 +763,12 @@ class _ShortViewState extends State<ShortView> {
                             // Çift dokunma: ses aç/kapa
                             setState(() => volume = !volume);
                             vp.setVolume(volume ? 1 : 0);
+                            if (idx == currentPage) {
+                              VideoTelemetryService.instance.updateRuntimeHints(
+                                list[idx].docID,
+                                isAudible: volume,
+                              );
+                            }
                           },
                           child: videoWidget,
                         ),
@@ -786,6 +803,13 @@ class _ShortViewState extends State<ShortView> {
                             } else {
                               vp.pause();
                               isManuallyPaused = true;
+                            }
+                            if (idx == currentPage) {
+                              VideoTelemetryService.instance.updateRuntimeHints(
+                                list[idx].docID,
+                                isAudible: volume,
+                                hasStableFocus: v,
+                              );
                             }
                           },
                           videoPlayerController: vp,
@@ -823,6 +847,13 @@ class _ShortViewState extends State<ShortView> {
                                       onTap: () {
                                         setState(() => volume = !volume);
                                         vp.setVolume(volume ? 1 : 0);
+                                        if (idx == currentPage) {
+                                          VideoTelemetryService.instance
+                                              .updateRuntimeHints(
+                                            list[idx].docID,
+                                            isAudible: volume,
+                                          );
+                                        }
                                       },
                                     ),
                                   ],

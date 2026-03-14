@@ -18,6 +18,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
     final lower = PrefetchScoringEngine.score(
@@ -35,6 +37,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
 
@@ -57,6 +61,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
     final far = PrefetchScoringEngine.score(
@@ -74,6 +80,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
 
@@ -96,6 +104,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
     final consumed = PrefetchScoringEngine.score(
@@ -113,6 +123,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
 
@@ -135,6 +147,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
     final ready = PrefetchScoringEngine.score(
@@ -152,6 +166,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
 
@@ -174,6 +190,8 @@ void main() {
         sessionCompletionRate: 0.0,
         sessionRebufferRatio: 0.0,
         sessionHasFirstFrame: false,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
     final engaged = PrefetchScoringEngine.score(
@@ -191,9 +209,54 @@ void main() {
         sessionCompletionRate: 0.22,
         sessionRebufferRatio: 0.05,
         sessionHasFirstFrame: true,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
       ),
     );
 
     expect(engaged, greaterThan(neutral));
+  });
+
+  test('audible stable session boosts near-ahead jobs further', () {
+    final neutral = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 0,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.6,
+        watchProgress: 0.22,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 3.2,
+        sessionCompletionRate: 0.14,
+        sessionRebufferRatio: 0.05,
+        sessionHasFirstFrame: true,
+        sessionIsAudible: false,
+        sessionHasStableFocus: false,
+      ),
+    );
+    final boosted = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 0,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.6,
+        watchProgress: 0.22,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 3.2,
+        sessionCompletionRate: 0.14,
+        sessionRebufferRatio: 0.05,
+        sessionHasFirstFrame: true,
+        sessionIsAudible: true,
+        sessionHasStableFocus: true,
+      ),
+    );
+
+    expect(boosted, greaterThan(neutral));
   });
 }

@@ -5,6 +5,8 @@ class PlaybackSignalSnapshot {
   final bool likelyUnstarted;
   final bool engagedSession;
   final bool unstableSession;
+  final bool audibleSession;
+  final bool stableFocusSession;
 
   const PlaybackSignalSnapshot({
     required this.normalizedWatchProgress,
@@ -13,6 +15,8 @@ class PlaybackSignalSnapshot {
     required this.likelyUnstarted,
     required this.engagedSession,
     required this.unstableSession,
+    required this.audibleSession,
+    required this.stableFocusSession,
   });
 }
 
@@ -27,6 +31,8 @@ class PlaybackSignalEngine {
     double sessionCompletionRate = 0.0,
     double sessionRebufferRatio = 0.0,
     bool sessionHasFirstFrame = false,
+    bool sessionIsAudible = false,
+    bool sessionHasStableFocus = false,
   }) {
     final progress = rawProgress.clamp(0.0, 1.0);
     final watchTime = sessionWatchTimeSeconds.clamp(0.0, double.infinity);
@@ -48,6 +54,8 @@ class PlaybackSignalEngine {
         likelyUnstarted: false,
         engagedSession: false,
         unstableSession: unstableSession,
+        audibleSession: sessionIsAudible,
+        stableFocusSession: sessionHasStableFocus,
       );
     }
 
@@ -59,6 +67,8 @@ class PlaybackSignalEngine {
         likelyUnstarted: false,
         engagedSession: false,
         unstableSession: unstableSession,
+        audibleSession: sessionIsAudible,
+        stableFocusSession: sessionHasStableFocus,
       );
     }
 
@@ -70,6 +80,8 @@ class PlaybackSignalEngine {
         likelyUnstarted: false,
         engagedSession: engagedSession,
         unstableSession: unstableSession,
+        audibleSession: sessionIsAudible,
+        stableFocusSession: sessionHasStableFocus,
       );
     }
 
@@ -81,6 +93,8 @@ class PlaybackSignalEngine {
         likelyUnstarted: false,
         engagedSession: engagedSession,
         unstableSession: unstableSession,
+        audibleSession: sessionIsAudible,
+        stableFocusSession: sessionHasStableFocus,
       );
     }
 
@@ -91,6 +105,8 @@ class PlaybackSignalEngine {
       likelyUnstarted: true,
       engagedSession: engagedSession,
       unstableSession: unstableSession,
+      audibleSession: sessionIsAudible,
+      stableFocusSession: sessionHasStableFocus,
     );
   }
 }

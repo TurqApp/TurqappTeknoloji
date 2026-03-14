@@ -354,6 +354,8 @@ class PrefetchScheduler extends GetxController {
         sessionCompletionRate: session?.completionRate ?? 0.0,
         sessionRebufferRatio: session?.rebufferRatio ?? 0.0,
         sessionHasFirstFrame: session?.hasFirstFrame ?? false,
+        sessionIsAudible: session?.isAudible ?? false,
+        sessionHasStableFocus: session?.hasStableFocus ?? false,
       ),
     );
   }
