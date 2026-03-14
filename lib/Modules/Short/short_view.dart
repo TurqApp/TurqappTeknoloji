@@ -8,6 +8,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
@@ -138,10 +139,12 @@ class _ShortViewState extends State<ShortView> {
   Timer? _scrollDebounce;
   Timer? _playDebounce;
   Timer? _tierDebounce;
+  Timer? _engagementRescoreTimer;
   static const Duration _playResumeDelay = Duration(milliseconds: 50);
   static const Duration _playResumeDelayAndroid = Duration.zero;
   static const Duration _scrollDebounceAndroid = Duration(milliseconds: 24);
   static const Duration _tierDebounceDelay = Duration(milliseconds: 70);
+  static const Duration _engagementRescoreDelay = Duration(milliseconds: 2500);
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;
 
@@ -233,6 +236,7 @@ class _ShortViewState extends State<ShortView> {
     // Sıfırlanmazsa eski videonun progress değeri delta hesabını bozar
     _lastPersistedProgress = 0.0;
     _lastProgressPersistAt = null;
+    _engagementRescoreTimer?.cancel();
 
     // Pahalı işlemleri debounce ile çalıştır
     _scrollDebounce?.cancel();
@@ -310,6 +314,7 @@ class _ShortViewState extends State<ShortView> {
         _telemetryFirstFrame = false;
         _telemetryAdapter = vc;
         vc.addListener(_telemetryListener);
+        _scheduleEngagementRescore(page);
       }
 
       // Cache state machine: playing olarak işaretle
@@ -333,6 +338,22 @@ class _ShortViewState extends State<ShortView> {
   void _setupVideoEndListener(HLSVideoAdapter vc) {
     vc.removeListener(_videoEndListener);
     vc.addListener(_videoEndListener);
+  }
+
+  void _scheduleEngagementRescore(int page) {
+    _engagementRescoreTimer?.cancel();
+    _engagementRescoreTimer = Timer(_engagementRescoreDelay, () {
+      if (!mounted || page != currentPage || isManuallyPaused) return;
+      if (page < 0 || page >= _cachedShorts.length) return;
+      final vc = controller.cache[page];
+      if (vc == null || !vc.value.hasRenderedFirstFrame) return;
+      try {
+        Get.find<PrefetchScheduler>().updateQueue(
+          _cachedShorts.map((s) => s.docID).toList(growable: false),
+          currentPage,
+        );
+      } catch (_) {}
+    });
   }
 
   /// A10: HLSVideoAdapter değişimlerini VideoTelemetryService'e iletir.
@@ -529,6 +550,7 @@ class _ShortViewState extends State<ShortView> {
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
     _tierDebounce?.cancel();
+    _engagementRescoreTimer?.cancel();
     _shortsWorker?.dispose();
     controller.lastIndex.value = currentPage;
     pageController.dispose();
