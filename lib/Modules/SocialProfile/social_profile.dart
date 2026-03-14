@@ -1241,7 +1241,8 @@ class _SocialProfileState extends State<SocialProfile> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16)),
+                              top: Radius.circular(16),
+                            ),
                           ),
                           padding: const EdgeInsets.all(16),
                           child: SafeArea(
@@ -1283,29 +1284,34 @@ class _SocialProfileState extends State<SocialProfile> {
                                     },
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 14, horizontal: 12),
+                                        vertical: 14,
+                                        horizontal: 12,
+                                      ),
                                       backgroundColor:
                                           Colors.grey.withAlpha(50),
                                       foregroundColor: Colors.black,
                                       shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Icon(CupertinoIcons.mail,
-                                            color: Colors.black),
+                                        const Icon(
+                                          CupertinoIcons.mail,
+                                          color: Colors.black,
+                                        ),
                                         const SizedBox(width: 8),
                                         Flexible(
                                           child: Text(
                                             controller.email.value,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
-                                                fontFamily: 'MontserratBold',
-                                                fontSize: 15,
-                                                color: Colors.black),
+                                              fontFamily: 'MontserratBold',
+                                              fontSize: 15,
+                                              color: Colors.black,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1323,29 +1329,34 @@ class _SocialProfileState extends State<SocialProfile> {
                                     },
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 14, horizontal: 12),
+                                        vertical: 14,
+                                        horizontal: 12,
+                                      ),
                                       backgroundColor:
                                           Colors.grey.withAlpha(50),
                                       foregroundColor: Colors.black,
                                       shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const Icon(CupertinoIcons.phone,
-                                            color: Colors.black),
+                                        const Icon(
+                                          CupertinoIcons.phone,
+                                          color: Colors.black,
+                                        ),
                                         const SizedBox(width: 8),
                                         Flexible(
                                           child: Text(
                                             '+90${controller.phoneNumber.value}',
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
-                                                fontFamily: 'MontserratBold',
-                                                fontSize: 15,
-                                                color: Colors.black),
+                                              fontFamily: 'MontserratBold',
+                                              fontSize: 15,
+                                              color: Colors.black,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -1385,7 +1396,6 @@ class _SocialProfileState extends State<SocialProfile> {
               }),
             ],
           ),
-          //
         ],
       ),
     );
