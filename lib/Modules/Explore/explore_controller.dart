@@ -28,8 +28,7 @@ class ExploreController extends GetxController {
   static const String _recentSearchUsersCachePrefix =
       'explore_recent_search_users_v1_';
   static const int _recentSearchUsersLimit = 100;
-  static const Duration _searchDebounceDuration =
-      Duration(milliseconds: 300);
+  static const Duration _searchDebounceDuration = Duration(milliseconds: 300);
   var selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
 
@@ -465,9 +464,11 @@ class ExploreController extends GetxController {
       // İlk çağrıda (veya yenilemede) sayaç sıfırla
       if (lastExploreDoc == null) _exploreEmptyScans = 0;
       int pagesFetched = 0;
-      const int maxPages = 10; // daha derin tarama (kök flood azsa)
       const int pageLimit = 20;
-      const int targetBatch = 24;
+      final isBootstrapTopUp =
+          lastExploreDoc == null && explorePosts.isNotEmpty;
+      final int maxPages = isBootstrapTopUp ? 4 : 10;
+      final int targetBatch = isBootstrapTopUp ? 12 : 24;
       List<PostsModel> accumulated = [];
       while (pagesFetched < maxPages && exploreHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
