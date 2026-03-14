@@ -164,9 +164,7 @@ class ExploreController extends GetxController {
       if (Get.isRegistered<SegmentCacheManager>()) {
         await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
       }
-    } catch (e) {
-      print('Explore cache quota apply error: $e');
-    }
+    } catch (_) {}
   }
 
   void _bindRecentSearchUsers() {
@@ -262,8 +260,7 @@ class ExploreController extends GetxController {
           .map((d) => d.id.trim())
           .where((e) => e.isNotEmpty)
           .toList(growable: false);
-    } catch (e) {
-      print('Explore recent search ids fetch error: $e');
+    } catch (_) {
       return CurrentUserService.instance.currentUser?.lastSearchList ??
           const <String>[];
     }
@@ -305,9 +302,7 @@ class ExploreController extends GetxController {
       if (restored.isNotEmpty) {
         recentSearchUsers.value = restored;
       }
-    } catch (e) {
-      print('Explore recent search cache load error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _saveRecentSearchUsersCache() async {
@@ -328,9 +323,7 @@ class ExploreController extends GetxController {
           )
           .toList(growable: false);
       await prefs.setString(key, jsonEncode(payload));
-    } catch (e) {
-      print('Explore recent search cache save error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> saveRecentSearch(String targetUid) async {
@@ -349,9 +342,9 @@ class ExploreController extends GetxController {
         subcollection: 'lastSearches',
         docId: cleanTarget,
         data: {
-        "userID": cleanTarget,
-        "updatedDate": now,
-        "timeStamp": now,
+          "userID": cleanTarget,
+          "updatedDate": now,
+          "timeStamp": now,
         },
       );
       final existing = await _subcollectionRepository.getEntries(
@@ -375,8 +368,7 @@ class ExploreController extends GetxController {
         subcollection: 'lastSearches',
         items: next.take(200).toList(growable: false),
       );
-    } catch (e) {
-      print('Explore recent search save error: $e');
+    } catch (_) {
     } finally {
       await _reloadRecentSearchUsers();
     }
@@ -409,13 +401,13 @@ class ExploreController extends GetxController {
       await _subcollectionRepository.setEntries(
         currentUserID,
         subcollection: 'lastSearches',
-        items: existing.where((e) => e.id != cleanTarget).toList(growable: false),
+        items:
+            existing.where((e) => e.id != cleanTarget).toList(growable: false),
       );
-    } catch (e) {
+    } catch (_) {
       // Yazma başarısızsa eski listeyi geri yükle.
       recentSearchUsers.value = before;
       await _saveRecentSearchUsersCache();
-      print('Explore recent search delete error: $e');
     } finally {
       await _reloadRecentSearchUsers();
     }
@@ -440,9 +432,7 @@ class ExploreController extends GetxController {
         preferCache: true,
       );
       followingIDs.assignAll(ids);
-    } catch (e) {
-      print('Error fetching following IDs: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> fetchExplorePosts() async {
@@ -518,9 +508,7 @@ class ExploreController extends GetxController {
           exploreHasMore.value = false;
         }
       }
-    } catch (e) {
-      print("fetchExplorePosts error: $e");
-    }
+    } catch (_) {}
     exploreIsLoading.value = false;
   }
 
@@ -674,8 +662,7 @@ class ExploreController extends GetxController {
         preferCache: true,
       );
       trendingTags.assignAll(tags);
-    } catch (e) {
-      print('fetchTrendingTags error: $e');
+    } catch (_) {
       trendingTags.clear();
     }
   }
@@ -690,7 +677,6 @@ class ExploreController extends GetxController {
       const int maxPages = 10;
       const int targetBatch = 24; // videolar için hedef sayfa boyutu
       List<PostsModel> accumulated = [];
-      print("[Explore] fetchVideo:start lastDoc=${lastVideoDoc != null}");
       while (pagesFetched < maxPages && videoHasMore.value) {
         const int pageLimit = 30;
         final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -721,8 +707,6 @@ class ExploreController extends GetxController {
             );
           }
         }
-        print(
-            "[Explore] fetchVideo:page=${pagesFetched + 1} serverDocs=${page.items.length}");
         if (page.items.isEmpty) {
           videoHasMore.value = false;
           break;
@@ -732,22 +716,16 @@ class ExploreController extends GetxController {
 
         var newVideos = page.items;
         // İstemci tarafında video içerenleri seç ve sadece kök flood videolarını göster
-        final beforeType = newVideos.length;
         newVideos = newVideos
             .where((p) => p.hasPlayableVideo)
             .where((p) => p.flood == false)
             .toList();
-        final afterType = newVideos.length;
         // nowMs already computed above in this loop
         newVideos = newVideos
             .where((p) => (p.timeStamp) <= nowMs)
             .where((p) => p.deletedPost != true)
             .toList();
-        final afterTime = newVideos.length;
         newVideos = await _filterByPrivacy(newVideos);
-        final afterPrivacy = newVideos.length;
-        print(
-            "[Explore] fetchVideo: filter type $beforeType->$afterType, time/deleted -> $afterTime, privacy -> $afterPrivacy");
         if (newVideos.isNotEmpty) {
           newVideos.shuffle();
           accumulated.addAll(newVideos);
@@ -768,22 +746,15 @@ class ExploreController extends GetxController {
         if (pagesFetched >= maxPages && videoHasMore.value) {
           videoHasMore.value = false;
         }
-        print(
-            "[Explore] fetchVideo:added ${accumulated.length} total=${exploreVideos.length} hasMore=${videoHasMore.value}");
       } else if (pagesFetched >= maxPages && videoHasMore.value) {
         videoHasMore.value = false;
-        print("[Explore] fetchVideo:maxPages reached; set hasMore=false");
       } else {
         _videoEmptyScans++;
         if (_videoEmptyScans >= 3) {
           videoHasMore.value = false;
         }
-        print(
-            "[Explore] fetchVideo:emptyScan=$_videoEmptyScans hasMore=${videoHasMore.value}");
       }
-    } catch (e) {
-      print("fetchVideo error: $e");
-    }
+    } catch (_) {}
     videoIsLoading.value = false;
   }
 
@@ -797,7 +768,6 @@ class ExploreController extends GetxController {
       const int maxPages = 5;
       const int pageLimit = 20;
       List<PostsModel> accumulated = [];
-      print("[Explore] fetchPhoto:start lastDoc=${lastPhotoDoc != null}");
       while (pagesFetched < maxPages && photoHasMore.value) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
         final page = await _exploreRepository.fetchPhotoPage(
@@ -805,8 +775,6 @@ class ExploreController extends GetxController {
           pageLimit: pageLimit,
           nowMs: nowMs,
         );
-        print(
-            "[Explore] fetchPhoto:page=${pagesFetched + 1} serverDocs=${page.items.length}");
         if (page.items.isEmpty) {
           photoHasMore.value = false;
           break;
@@ -820,17 +788,12 @@ class ExploreController extends GetxController {
             newPhotos.add(model);
           }
         }
-        final afterTextImg = newPhotos.length;
         // nowMs computed above in this loop
         newPhotos = newPhotos
             .where((p) => (p.timeStamp) <= nowMs)
             .where((p) => p.deletedPost != true)
             .toList();
-        final afterTime = newPhotos.length;
         newPhotos = await _filterByPrivacy(newPhotos);
-        final afterPrivacy = newPhotos.length;
-        print(
-            "[Explore] fetchPhoto: filter text+img -> $afterTextImg, time/deleted -> $afterTime, privacy -> $afterPrivacy");
         if (newPhotos.isNotEmpty) {
           newPhotos.shuffle();
           accumulated.addAll(newPhotos);
@@ -849,22 +812,15 @@ class ExploreController extends GetxController {
         if (pagesFetched >= maxPages && photoHasMore.value) {
           photoHasMore.value = false;
         }
-        print(
-            "[Explore] fetchPhoto:added ${accumulated.length} total=${explorePhotos.length} hasMore=${photoHasMore.value}");
       } else if (pagesFetched >= maxPages && photoHasMore.value) {
         photoHasMore.value = false;
-        print("[Explore] fetchPhoto:maxPages reached; set hasMore=false");
       } else {
         _photoEmptyScans++;
         if (_photoEmptyScans >= 3) {
           photoHasMore.value = false;
         }
-        print(
-            "[Explore] fetchPhoto:emptyScan=$_photoEmptyScans hasMore=${photoHasMore.value}");
       }
-    } catch (e) {
-      print("fetchPhoto error: $e");
-    }
+    } catch (_) {}
     photoIsLoading.value = false;
   }
 
@@ -889,18 +845,13 @@ class ExploreController extends GetxController {
             startAfter: lastFloodsDoc,
             pageLimit: pageLimit,
           );
-          print(
-              '[FLOODS] serverQuery page=${pagesFetched + 1} fetched=${page.items.length}');
-        } catch (e) {
+        } catch (_) {
           // Fallback: client-side filtre
-          print('[FLOODS] server filter failed; fallback. err=$e');
           page = await _exploreRepository.fetchFloodFallbackPage(
             startAfter: lastFloodsDoc,
             pageLimit: pageLimit,
             nowMs: nowMs,
           );
-          print(
-              '[FLOODS] fallback page=${pagesFetched + 1} fetched=${page.items.length}');
         }
         if (page.items.isEmpty) {
           noMoreServerPages = true;
@@ -909,44 +860,29 @@ class ExploreController extends GetxController {
         if (!page.hasMore) noMoreServerPages = true;
         lastFloodsDoc = page.lastDoc;
 
-        int notRoot = 0;
-        int noMedia = 0;
-        int notSeries = 0;
-        int duplicates = 0;
-        int keptPreTimeDel = 0;
         List<PostsModel> batch = [];
         for (final model in page.items) {
           // Kök flood ve video içeren gönderiler
           final hasMedia = model.hasPlayableVideo;
           if (model.flood == true) {
-            notRoot++;
             continue;
           }
           if (!hasMedia) {
-            noMedia++;
             continue;
           }
           if ((model.floodCount) <= 1) {
-            notSeries++;
             continue;
           }
           if (existingIDs.contains(model.docID)) {
-            duplicates++;
             continue;
           }
           batch.add(model);
         }
-        keptPreTimeDel = batch.length;
         batch = batch
             .where((p) => (p.timeStamp) <= nowMs)
             .where((p) => p.deletedPost != true)
             .toList();
-        final removedByTimeOrDeleted = keptPreTimeDel - batch.length;
-        final beforePrivacy = batch.length;
         batch = await _filterByPrivacy(batch);
-        final removedByPrivacy = beforePrivacy - batch.length;
-        print(
-            '[FLOODS] keptAfterFilters=${batch.length} notRoot=$notRoot noMedia=$noMedia notSeries=$notSeries dup=$duplicates removedByTimeOrDeleted=$removedByTimeOrDeleted removedByPrivacy=$removedByPrivacy');
         if (batch.isNotEmpty) {
           batch.shuffle();
           accumulated.addAll(batch);
@@ -963,19 +899,13 @@ class ExploreController extends GetxController {
         exploreFloods.addAll(prioritized);
         _floodsEmptyScans = 0;
         floodsHasMore.value = !noMoreServerPages; // sunucu bitti mi?
-        print(
-            '[FLOODS] appended=${accumulated.length} total=${exploreFloods.length} hasMore=${floodsHasMore.value}');
       } else {
         _floodsEmptyScans++;
         if (_floodsEmptyScans >= 2 || noMoreServerPages) {
           floodsHasMore.value = false;
         }
-        print(
-            '[FLOODS] no new items. emptyScans=$_floodsEmptyScans hasMore=${floodsHasMore.value}');
       }
-    } catch (e) {
-      print("fetchfloods error: $e");
-    }
+    } catch (_) {}
     floodsIsLoading.value = false;
   }
 
@@ -989,7 +919,6 @@ class ExploreController extends GetxController {
       cacheOnly: !ContentPolicy.isConnected,
     );
     final userPrivacy = <String, bool>{};
-    final initial = items.length;
     for (final uid in uniqueUserIDs) {
       final data = userProfiles[uid];
       userPrivacy[uid] = (data?['isPrivate'] ?? false) == true;
@@ -1002,8 +931,6 @@ class ExploreController extends GetxController {
       final follows = followingIDs.contains(post.userID);
       return isMine || follows;
     }).toList();
-    final removed = initial - filtered.length;
-    print('[FLOODS] privacyFilter removed=$removed kept=${filtered.length}');
     return filtered;
   }
 
@@ -1176,8 +1103,7 @@ class ExploreController extends GetxController {
         ));
       }
       searchedList.value = await _filterPendingOrDeletedUsers(users);
-    } catch (e) {
-      print("❌ Typesense arama hatası: $e");
+    } catch (_) {
       searchedList.clear();
       searchedHashtags.clear();
       searchedTags.clear();
