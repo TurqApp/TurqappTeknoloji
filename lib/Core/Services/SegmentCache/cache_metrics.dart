@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 
 /// Cache hit/miss sayaçları ve debug dump.
 class CacheMetrics {
@@ -19,16 +21,19 @@ class CacheMetrics {
     proxyRequestsTotal++;
     cacheHits++;
     bytesServedFromCache += bytes;
+    _publishKpiIfNeeded();
   }
 
   void recordMiss(int bytes) {
     proxyRequestsTotal++;
     cacheMisses++;
     bytesDownloaded += bytes;
+    _publishKpiIfNeeded();
   }
 
   void recordEviction() {
     evictions++;
+    _publishKpi(force: true);
   }
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +68,29 @@ class CacheMetrics {
     bytesServedFromCache = 0;
     bytesDownloaded = 0;
     evictions = 0;
+  }
+
+  void _publishKpiIfNeeded() {
+    if (proxyRequestsTotal < 10) return;
+    if (proxyRequestsTotal % 25 != 0) return;
+    _publishKpi();
+  }
+
+  void _publishKpi({bool force = false}) {
+    if (!Get.isRegistered<PlaybackKpiService>()) return;
+    if (!force && proxyRequestsTotal == 0) return;
+    Get.find<PlaybackKpiService>().track(
+      PlaybackKpiEventType.cacheHitRatio,
+      {
+        'proxyRequestsTotal': proxyRequestsTotal,
+        'cacheHits': cacheHits,
+        'cacheMisses': cacheMisses,
+        'cacheHitRate': cacheHitRate,
+        'bytesServedFromCache': bytesServedFromCache,
+        'bytesDownloaded': bytesDownloaded,
+        'evictions': evictions,
+      },
+    );
   }
 
   static String formatBytes(int bytes) {

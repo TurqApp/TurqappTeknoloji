@@ -206,6 +206,17 @@ class _SplashViewState extends State<SplashView> {
     } catch (_) {
       loggedIn = false;
     }
+    if (Get.isRegistered<PlaybackKpiService>()) {
+      Get.find<PlaybackKpiService>().track(
+        PlaybackKpiEventType.startup,
+        {
+          'launchToRouteMs':
+              DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+          'loggedIn': loggedIn,
+          'minimumStartupPrepared': _minimumStartupPrepared,
+        },
+      );
+    }
     _didNavigate = true;
     if (loggedIn) {
       if (Get.isRegistered<NavBarController>()) {
@@ -310,10 +321,13 @@ class _SplashViewState extends State<SplashView> {
 
   Future<void> _applyGlobalMediaCacheQuota() async {
     try {
-      if (!Get.isRegistered<SegmentCacheManager>()) return;
       final prefs = await SharedPreferences.getInstance();
       final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
       final quotaGb = savedGb.clamp(2, 5);
+      if (Get.isRegistered<StorageBudgetManager>()) {
+        await Get.find<StorageBudgetManager>().applyPlanGb(quotaGb);
+      }
+      if (!Get.isRegistered<SegmentCacheManager>()) return;
       await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
     } catch (_) {}
   }

@@ -4,7 +4,9 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 
 class _PermissionItem {
   final String title;
@@ -122,6 +124,9 @@ class _PermissionsViewState extends State<PermissionsView> {
   Future<void> _loadQuota() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getInt(_quotaKey) ?? 3;
+    if (Get.isRegistered<StorageBudgetManager>()) {
+      await Get.find<StorageBudgetManager>().applyPlanGb(saved.clamp(2, 5));
+    }
     if (!mounted) return;
     setState(() => _selectedQuota = saved.clamp(2, 5));
   }
@@ -130,6 +135,9 @@ class _PermissionsViewState extends State<PermissionsView> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_quotaKey, gb);
     try {
+      if (Get.isRegistered<StorageBudgetManager>()) {
+        await Get.find<StorageBudgetManager>().applyPlanGb(gb);
+      }
       if (Get.isRegistered<SegmentCacheManager>()) {
         await Get.find<SegmentCacheManager>().setUserLimitGB(gb);
       }
@@ -192,6 +200,85 @@ class _PermissionsViewState extends State<PermissionsView> {
             fontFamily: 'MontserratMedium',
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuotaBreakdown() {
+    final profile = StorageBudgetManager.profileForPlanGb(_selectedQuota);
+    final rows = <MapEntry<String, int>>[
+      MapEntry('Medya cache', profile.mediaQuotaBytes),
+      MapEntry('Gorsel cache', profile.imageQuotaBytes),
+      MapEntry('Metadata', profile.metadataQuotaBytes),
+      MapEntry('Yedek alan', profile.reserveQuotaBytes),
+      MapEntry('OS guvenlik payi', profile.osSafetyMarginBytes),
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F6F6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${profile.planGb} GB plan dagilimi',
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontFamily: 'MontserratSemiBold',
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...rows.map(
+            (row) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      row.key,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  ),
+                  Text(
+                    CacheMetrics.formatBytes(row.value),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: 'MontserratSemiBold',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Stream cache soft stop: ${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}',
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+          Text(
+            'Stream cache hard stop: ${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -296,6 +383,7 @@ class _PermissionsViewState extends State<PermissionsView> {
                               height: 1.3,
                             ),
                           ),
+                          _buildQuotaBreakdown(),
                         ],
                       ),
                     ),

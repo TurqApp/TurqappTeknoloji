@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
@@ -149,6 +150,9 @@ class ExploreController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       final savedGb = prefs.getInt('offline_cache_quota_gb') ?? 3;
       final quotaGb = savedGb.clamp(2, 5);
+      if (Get.isRegistered<StorageBudgetManager>()) {
+        await Get.find<StorageBudgetManager>().applyPlanGb(quotaGb);
+      }
       if (Get.isRegistered<SegmentCacheManager>()) {
         await Get.find<SegmentCacheManager>().setUserLimitGB(quotaGb);
       }

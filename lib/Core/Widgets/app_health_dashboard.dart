@@ -6,7 +6,10 @@ import '../Services/upload_queue_service.dart';
 import '../Services/draft_service.dart';
 import '../Services/post_editing_service.dart';
 import '../Services/media_enhancement_service.dart';
+import '../Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../Services/PlaybackIntelligence/storage_budget_manager.dart';
 import '../Services/SegmentCache/cache_manager.dart';
+import '../Services/SegmentCache/cache_metrics.dart';
 
 class AppHealthDashboard extends StatelessWidget {
   const AppHealthDashboard({super.key});
@@ -34,6 +37,8 @@ class AppHealthDashboard extends StatelessWidget {
             _buildOverallHealthCard(),
             const SizedBox(height: 20),
             _buildKpiAlertCard(),
+            const SizedBox(height: 20),
+            _buildPlaybackIntelligenceCard(),
             const SizedBox(height: 20),
             _buildServiceStatusGrid(),
             const SizedBox(height: 20),
@@ -65,6 +70,72 @@ class AppHealthDashboard extends StatelessWidget {
     if (!Get.isRegistered<MediaEnhancementService>()) {
       Get.put(MediaEnhancementService());
     }
+    if (!Get.isRegistered<StorageBudgetManager>()) {
+      Get.put(StorageBudgetManager());
+    }
+    if (!Get.isRegistered<PlaybackKpiService>()) {
+      Get.put(PlaybackKpiService());
+    }
+  }
+
+  Widget _buildPlaybackIntelligenceCard() {
+    final profile = Get.isRegistered<StorageBudgetManager>()
+        ? Get.find<StorageBudgetManager>().currentProfile
+        : StorageBudgetManager.profileForPlanGb(3);
+    final recentEvents = Get.isRegistered<PlaybackKpiService>()
+        ? Get.find<PlaybackKpiService>().recentEvents
+        : const <PlaybackKpiEvent>[];
+    final lastEvent = recentEvents.isNotEmpty ? recentEvents.last : null;
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Playback Intelligence',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('Plan: ${profile.planGb} GB'),
+            Text('Medya: ${CacheMetrics.formatBytes(profile.mediaQuotaBytes)}'),
+            Text(
+                'Gorsel: ${CacheMetrics.formatBytes(profile.imageQuotaBytes)}'),
+            Text(
+              'Metadata: ${CacheMetrics.formatBytes(profile.metadataQuotaBytes)}',
+            ),
+            Text(
+              'Soft/Hard stop: '
+              '${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)} / '
+              '${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
+            ),
+            const SizedBox(height: 10),
+            Text(
+              lastEvent == null
+                  ? 'Son KPI olayi henuz yok'
+                  : 'Son KPI: ${lastEvent.type.name}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            if (lastEvent != null)
+              Text(
+                lastEvent.payload.entries
+                    .take(3)
+                    .map((entry) => '${entry.key}: ${entry.value}')
+                    .join('  •  '),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildOverallHealthCard() {

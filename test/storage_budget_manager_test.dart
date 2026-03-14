@@ -17,6 +17,19 @@ void main() {
     expect(profile.isValid, isTrue);
   });
 
+  test('storage budget manager updates current profile when plan changes',
+      () async {
+    final manager = StorageBudgetManager();
+    await manager.applyPlanGb(5);
+
+    expect(manager.selectedPlanGb, 5);
+    expect(manager.currentProfile.planGb, 5);
+    expect(
+      manager.currentProfile.streamCacheHardStopBytes,
+      greaterThan(manager.currentProfile.streamCacheSoftStopBytes),
+    );
+  });
+
   test('playback policy resolves wifi fill mode with background prefetch', () {
     final snapshot = PlaybackPolicyEngine.resolve(
       const PlaybackPolicyContext(
