@@ -92,6 +92,14 @@ class FollowingFollowersController extends GetxController {
     return _otherUserLimit;
   }
 
+  List<String> _normalizedIds(Iterable<String> ids) {
+    return ids
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+
   Future<void> getCounters() async {
     _pruneCounterCache();
     final cached = _counterCacheByUserId[userId];
@@ -132,9 +140,8 @@ class FollowingFollowersController extends GetxController {
     }
     try {
       final data = await _userRepository.getUserRaw(userId);
-      final name = ((data?['nickname'] ?? data?['username'] ?? '')
-              .toString()
-              .trim());
+      final name =
+          ((data?['nickname'] ?? data?['username'] ?? '').toString().trim());
       nickname.value = name;
       _nicknameCacheByUserId[userId] = _NicknameCacheEntry(
         nickname: name,
@@ -182,7 +189,8 @@ class FollowingFollowersController extends GetxController {
       preferCache: !forceServer,
       forceRefresh: forceServer,
     );
-    takipciler.value = ids.take(fetchLimit).toList(growable: false);
+    takipciler.value =
+        _normalizedIds(ids).take(fetchLimit).toList(growable: false);
     hasMoreFollowers = false;
 
     _saveRelationListCache(isFollowers: true);
@@ -213,7 +221,8 @@ class FollowingFollowersController extends GetxController {
       preferCache: !forceServer,
       forceRefresh: forceServer,
     );
-    takipEdilenler.value = ids.take(fetchLimit).toList(growable: false);
+    takipEdilenler.value =
+        _normalizedIds(ids).take(fetchLimit).toList(growable: false);
     hasMoreFollowing = false;
 
     _saveRelationListCache(isFollowers: false);
@@ -230,10 +239,10 @@ class FollowingFollowersController extends GetxController {
       return false;
     }
     if (isFollowers) {
-      takipciler.value = List<String>.from(entry.ids);
+      takipciler.value = _normalizedIds(entry.ids);
       hasMoreFollowers = false;
     } else {
-      takipEdilenler.value = List<String>.from(entry.ids);
+      takipEdilenler.value = _normalizedIds(entry.ids);
       hasMoreFollowing = false;
     }
     return true;
@@ -243,12 +252,12 @@ class FollowingFollowersController extends GetxController {
     final now = DateTime.now();
     if (isFollowers) {
       _followersListCacheByUserId[userId] = _RelationListCacheEntry(
-        ids: List<String>.from(takipciler),
+        ids: _normalizedIds(takipciler),
         cachedAt: now,
       );
     } else {
       _followingsListCacheByUserId[userId] = _RelationListCacheEntry(
-        ids: List<String>.from(takipEdilenler),
+        ids: _normalizedIds(takipEdilenler),
         cachedAt: now,
       );
     }
@@ -400,7 +409,7 @@ class FollowingFollowersController extends GetxController {
     final cached = _searchResultCache['followers:$q'];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _searchResultCacheTtl) {
-      takipciler.value = cached.ids;
+      takipciler.value = _normalizedIds(cached.ids);
       return;
     }
 
@@ -410,7 +419,7 @@ class FollowingFollowersController extends GetxController {
       ids: List<String>.from(results),
       cachedAt: DateTime.now(),
     );
-    takipciler.value = results;
+    takipciler.value = _normalizedIds(results);
   }
 
   Future<void> searchTakipEdilenler() async {
@@ -421,7 +430,7 @@ class FollowingFollowersController extends GetxController {
     final cached = _searchResultCache['followings:$q'];
     if (cached != null &&
         DateTime.now().difference(cached.cachedAt) <= _searchResultCacheTtl) {
-      takipEdilenler.value = cached.ids;
+      takipEdilenler.value = _normalizedIds(cached.ids);
       return;
     }
 
@@ -431,7 +440,7 @@ class FollowingFollowersController extends GetxController {
       ids: List<String>.from(results),
       cachedAt: DateTime.now(),
     );
-    takipEdilenler.value = results;
+    takipEdilenler.value = _normalizedIds(results);
   }
 
   Future<Set<String>> _getRelationIdsCached(String relation) async {
