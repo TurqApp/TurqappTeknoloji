@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -142,6 +143,10 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   bool volume = true;
   bool showControls = true;
   DateTime _pageActivatedAt = DateTime.now();
+  bool _manualSnapInProgress = false;
+  double? _dragStartPage;
+  double _lastDragDeltaY = 0.0;
+  static const double _manualPageSnapThreshold = 0.08;
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
@@ -520,6 +525,63 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     setState(() {});
   }
 
+  bool _handlePageScrollNotification(ScrollNotification notification) {
+    if (!mounted || !pageController.hasClients) return false;
+    if (notification.metrics.axis != Axis.vertical) return false;
+
+    if (notification is ScrollStartNotification) {
+      _dragStartPage = pageController.page ?? currentPage.toDouble();
+      _lastDragDeltaY = 0.0;
+    } else if (notification is ScrollUpdateNotification) {
+      final deltaY = notification.dragDetails?.delta.dy;
+      if (deltaY != null && deltaY.abs() > 0) {
+        _lastDragDeltaY = deltaY;
+      }
+    } else if (notification is ScrollEndNotification) {
+      unawaited(_maybeForcePageSnap());
+    }
+
+    return false;
+  }
+
+  Future<void> _maybeForcePageSnap() async {
+    if (!mounted || !pageController.hasClients || _manualSnapInProgress) {
+      _dragStartPage = null;
+      return;
+    }
+
+    final startPage = _dragStartPage;
+    _dragStartPage = null;
+    if (startPage == null) return;
+
+    final startIndex = startPage.round();
+    if (currentPage != startIndex) return;
+
+    final currentVisualPage = pageController.page ?? startPage;
+    final moved = currentVisualPage - startPage;
+    if (moved.abs() < _manualPageSnapThreshold) return;
+
+    final movingForward = _lastDragDeltaY < 0 || moved > 0;
+    final maxIndex = shorts.length - 1;
+    if (maxIndex < 0) return;
+
+    final targetPage =
+        (movingForward ? currentPage + 1 : currentPage - 1).clamp(0, maxIndex);
+    if (targetPage == currentPage) return;
+
+    _manualSnapInProgress = true;
+    try {
+      await pageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    } catch (_) {
+    } finally {
+      _manualSnapInProgress = false;
+    }
+  }
+
   @override
   void dispose() {
     try {
@@ -802,20 +864,23 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             }
-            return PageView.builder(
-              controller: pageController,
-              scrollDirection: Axis.vertical,
-              physics: MomentumPageScrollPhysics(
-                maxPagesPerFling: 1,
-                baseMinFlingVelocity:
-                    defaultTargetPlatform == TargetPlatform.android
-                        ? 180.0
-                        : 220.0,
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              itemCount: shorts.length,
-              onPageChanged: _onPageChanged,
-              itemBuilder: (ctx, idx) {
+            return NotificationListener<ScrollNotification>(
+              onNotification: _handlePageScrollNotification,
+              child: PageView.builder(
+                controller: pageController,
+                scrollDirection: Axis.vertical,
+                dragStartBehavior: DragStartBehavior.down,
+                physics: MomentumPageScrollPhysics(
+                  maxPagesPerFling: 1,
+                  baseMinFlingVelocity:
+                      defaultTargetPlatform == TargetPlatform.android
+                          ? 180.0
+                          : 220.0,
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                itemCount: shorts.length,
+                onPageChanged: _onPageChanged,
+                itemBuilder: (ctx, idx) {
                 // Sadece başlangıç sayfası ve injectedController'ın kullanılacağı ilk frame için özel durum
                 if (idx == _initialIndexForSeek &&
                     _initialIndexForSeek != null &&
@@ -984,8 +1049,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                         ],
                       );
 
-                return _buildStackForController(idx, videoWidget, vp);
-              },
+                  return _buildStackForController(idx, videoWidget, vp);
+                },
+              ),
             );
           }),
         ),

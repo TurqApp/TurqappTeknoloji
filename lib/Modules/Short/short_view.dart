@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -120,7 +121,11 @@ class _ShortViewState extends State<ShortView> {
   bool _didInitialAttach = false;
   bool _isTransitioning = false;
   bool _isRefreshing = false;
+  bool _manualSnapInProgress = false;
   List<PostsModel> _cachedShorts = [];
+  double? _dragStartPage;
+  double _lastDragDeltaY = 0.0;
+  static const double _manualPageSnapThreshold = 0.08;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -405,6 +410,66 @@ class _ShortViewState extends State<ShortView> {
     }
   }
 
+  bool _handlePageScrollNotification(ScrollNotification notification) {
+    if (!mounted || !pageController.hasClients) return false;
+    if (notification.metrics.axis != Axis.vertical) return false;
+
+    if (notification is ScrollStartNotification) {
+      _dragStartPage = pageController.page ?? currentPage.toDouble();
+      _lastDragDeltaY = 0.0;
+    } else if (notification is ScrollUpdateNotification) {
+      final deltaY = notification.dragDetails?.delta.dy;
+      if (deltaY != null && deltaY.abs() > 0) {
+        _lastDragDeltaY = deltaY;
+      }
+    } else if (notification is ScrollEndNotification) {
+      unawaited(_maybeForcePageSnap());
+    }
+
+    return false;
+  }
+
+  Future<void> _maybeForcePageSnap() async {
+    if (!mounted ||
+        !pageController.hasClients ||
+        _manualSnapInProgress ||
+        _isTransitioning) {
+      _dragStartPage = null;
+      return;
+    }
+
+    final startPage = _dragStartPage;
+    _dragStartPage = null;
+    if (startPage == null) return;
+
+    final startIndex = startPage.round();
+    if (currentPage != startIndex) return;
+
+    final currentVisualPage = pageController.page ?? startPage;
+    final moved = currentVisualPage - startPage;
+    if (moved.abs() < _manualPageSnapThreshold) return;
+
+    final movingForward = _lastDragDeltaY < 0 || moved > 0;
+    final maxIndex = _cachedShorts.length - 1;
+    if (maxIndex < 0) return;
+
+    final targetPage =
+        (movingForward ? currentPage + 1 : currentPage - 1).clamp(0, maxIndex);
+    if (targetPage == currentPage) return;
+
+    _manualSnapInProgress = true;
+    try {
+      await pageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    } catch (_) {
+    } finally {
+      _manualSnapInProgress = false;
+    }
+  }
+
   Widget _buildRefreshingBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -564,20 +629,23 @@ class _ShortViewState extends State<ShortView> {
             color: Colors.white,
             strokeWidth: 3.0,
             displacement: 50.0,
-            child: PageView.builder(
-              controller: pageController,
-              scrollDirection: Axis.vertical,
-              physics: MomentumPageScrollPhysics(
-                maxPagesPerFling: 1,
-                baseMinFlingVelocity:
-                    defaultTargetPlatform == TargetPlatform.android
-                        ? 180.0
-                        : 220.0,
-                parent: const AlwaysScrollableScrollPhysics(),
-              ),
-              itemCount: list.length,
-              onPageChanged: _onPageChanged,
-              itemBuilder: (_, idx) {
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _handlePageScrollNotification,
+              child: PageView.builder(
+                controller: pageController,
+                scrollDirection: Axis.vertical,
+                dragStartBehavior: DragStartBehavior.down,
+                physics: MomentumPageScrollPhysics(
+                  maxPagesPerFling: 1,
+                  baseMinFlingVelocity:
+                      defaultTargetPlatform == TargetPlatform.android
+                          ? 180.0
+                          : 220.0,
+                  parent: const AlwaysScrollableScrollPhysics(),
+                ),
+                itemCount: list.length,
+                onPageChanged: _onPageChanged,
+                itemBuilder: (_, idx) {
                 final vp = controller.cache[idx];
 
                 if (vp == null) {
@@ -687,7 +755,8 @@ class _ShortViewState extends State<ShortView> {
                     ],
                   ),
                 );
-              },
+                },
+              ),
             ),
           );
 
