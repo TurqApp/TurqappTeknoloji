@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -72,8 +71,7 @@ class FamilyInfoController extends GetxController {
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      print("Error loading cities: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -146,8 +144,7 @@ class FamilyInfoController extends GetxController {
       } else {
         _resetToDefaults();
       }
-    } catch (e) {
-      print('Error fetching family info: $e');
+    } catch (_) {
     }
   }
 
@@ -182,7 +179,6 @@ class FamilyInfoController extends GetxController {
         title: "Şehir Seç",
         startSelection: city.value,
         onBackData: (v) {
-          print("SELECTED $v");
           city.value = v;
           town.value = "";
         },
@@ -207,7 +203,6 @@ class FamilyInfoController extends GetxController {
         title: "İlçe Seç",
         startSelection: town.value,
         onBackData: (v) {
-          print("SELECTED $v");
           town.value = v;
         },
       ),
@@ -230,7 +225,6 @@ class FamilyInfoController extends GetxController {
         title: title,
         startSelection: selectedValue.value,
         onBackData: (v) {
-          print("SELECTED $v");
           selectedValue.value = v;
         },
       ),
@@ -253,7 +247,6 @@ class FamilyInfoController extends GetxController {
         title: title,
         startSelection: selectedValue.value,
         onBackData: (v) {
-          log("SELECTED $v");
           selectedValue.value = v;
         },
       ),

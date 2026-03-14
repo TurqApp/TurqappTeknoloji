@@ -70,8 +70,7 @@ class ScholarshipApplicationsContentController extends GetxController {
     isDetailsLoading.value = true;
     Future.wait([getData(), ogrenciBilgileriniKontrolEt()]).then((_) {
       isDetailsLoading.value = false;
-    }).catchError((e) {
-      print("Error loading detailed data: $e");
+    }).catchError((_) {
       isDetailsLoading.value = false;
       AppSnackbar('Hata', 'Veriler yüklenirken bir hata oluştu');
     });
@@ -90,8 +89,7 @@ class ScholarshipApplicationsContentController extends GetxController {
             "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
                 .trim();
       }
-    } catch (e) {
-      print("Error loading initial data: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -118,8 +116,7 @@ class ScholarshipApplicationsContentController extends GetxController {
         nufusIlce.value = userString(data, key: "nufusIlce", scope: "profile");
         fakulte.value = userString(data, key: "fakulte", scope: "education");
       }
-    } catch (e) {
-      print("Error getting data: $e");
+    } catch (_) {
     }
   }
 
@@ -163,8 +160,7 @@ class ScholarshipApplicationsContentController extends GetxController {
         ikametIlce.value =
             userString(data, key: "ikametIlce", scope: "profile");
       }
-    } catch (e) {
-      print("Error checking student info: $e");
+    } catch (_) {
     }
   }
 

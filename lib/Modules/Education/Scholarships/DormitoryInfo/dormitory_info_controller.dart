@@ -58,8 +58,7 @@ class DormitoryInfoController extends GetxController {
           data.map((json) => CitiesModel.fromJson(json)).toList();
       sehirler.value =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (e) {
-      print("Error loading cities: $e");
+    } catch (_) {
     }
   }
 
@@ -71,8 +70,7 @@ class DormitoryInfoController extends GetxController {
       List<dynamic> jsonResponse = jsonDecode(jsonString);
       yurtList.value =
           jsonResponse.map((data) => DormitoryModel.fromJson(data)).toList();
-    } catch (e) {
-      print("Error loading yurt data: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
@@ -90,8 +88,7 @@ class DormitoryInfoController extends GetxController {
           scope: "family",
         );
       }
-    } catch (e) {
-      print("Error fetching Firestore data: $e");
+    } catch (_) {
     }
   }
 
@@ -102,7 +99,6 @@ class DormitoryInfoController extends GetxController {
         title: "İdari Seç",
         startSelection: sub.value,
         onBackData: (v) {
-          print("SELECTED $v");
           sub.value = v;
           yurt.value = "";
           yurtSelectionController.clear();
@@ -123,7 +119,6 @@ class DormitoryInfoController extends GetxController {
         title: "Şehir Seç",
         startSelection: sehir.value,
         onBackData: (v) {
-          print("SELECTED $v");
           sehir.value = v;
           ilce.value = "";
           yurt.value = "";
@@ -159,7 +154,6 @@ class DormitoryInfoController extends GetxController {
         title: "Yurt Seç",
         startSelection: yurt.value.isEmpty ? null : yurt.value,
         onBackData: (v) {
-          print("SELECTED YURT $v");
           yurt.value = v;
           listedeYok.value = false;
           yurtInput.clear();
@@ -211,8 +205,7 @@ class DormitoryInfoController extends GetxController {
         yurt.value = savedYurt;
         Get.back();
         AppSnackbar("Başarılı", "Yurt Bilgileriniz Kaydedildi.");
-      } catch (e) {
-        print("Error saving data: $e");
+      } catch (_) {
         AppSnackbar("Hata", "Veri kaydedilemedi.");
       }
     } else {
