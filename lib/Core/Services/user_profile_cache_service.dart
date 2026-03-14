@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 import 'turq_image_cache_manager.dart';
@@ -41,9 +42,17 @@ class UserProfileCacheService extends GetxService {
     bool forceServer = false,
   }) async {
     if (uid.isEmpty) return null;
+    final readDecision = MetadataReadPolicy.userProfileSummary(
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+      forceServer: forceServer,
+    );
 
     if (!forceServer && preferCache) {
-      final cached = _getFromMemory(uid, allowStale: true);
+      final cached = _getFromMemory(
+        uid,
+        allowStale: readDecision.allowStaleRead,
+      );
       if (cached != null) return cached;
     }
 
@@ -53,7 +62,10 @@ class UserProfileCacheService extends GetxService {
           .doc(uid)
           .get(const GetOptions(source: Source.cache));
       if (!doc.exists) {
-        return _getFromMemory(uid, allowStale: true);
+        return _getFromMemory(
+          uid,
+          allowStale: readDecision.allowStaleRead,
+        );
       }
       final map = _sanitizeProfile(doc.data() ?? const <String, dynamic>{});
       _put(uid, map);
@@ -76,7 +88,12 @@ class UserProfileCacheService extends GetxService {
 
     final server =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
-    if (!server.exists) return _getFromMemory(uid, allowStale: true);
+    if (!server.exists) {
+      return _getFromMemory(
+        uid,
+        allowStale: readDecision.allowStaleRead,
+      );
+    }
     final map = _sanitizeProfile(server.data() ?? const <String, dynamic>{});
     _put(uid, map);
     return map;

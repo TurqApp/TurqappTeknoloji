@@ -14,6 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -125,7 +127,8 @@ class CurrentUserService extends GetxController {
       'preferred_feed_view_selection';
   static const String _emailPromptTimestampKeyPrefix =
       'email_verify_prompt_last_shown';
-  static const Duration _cacheExpiration = Duration(days: 7);
+  static Duration get _cacheExpiration =>
+      MetadataCachePolicy.ttlFor(MetadataCacheBucket.currentUserSummary);
 
   bool _isInitialized = false;
   bool _isSyncing = false;
@@ -330,6 +333,11 @@ class CurrentUserService extends GetxController {
   /// Load user from cache
   Future<bool> _loadFromCache({String? expectedUid}) async {
     try {
+      final readDecision = MetadataReadPolicy.currentUserSummary(
+        preferCache: true,
+        cacheOnly: false,
+        forceServer: false,
+      );
       final cachedJson = _prefs?.getString(_cacheKey);
       final cachedTimestamp = _prefs?.getInt(_cacheTimestampKey);
 
@@ -339,6 +347,10 @@ class CurrentUserService extends GetxController {
 
       // Check cache expiration
       final cacheAge = DateTime.now().millisecondsSinceEpoch - cachedTimestamp;
+      if (!readDecision.allowStaleRead &&
+          cacheAge > _cacheExpiration.inMilliseconds) {
+        return false;
+      }
       if (cacheAge > _cacheExpiration.inMilliseconds) {
         return false;
       }
@@ -452,17 +464,25 @@ class CurrentUserService extends GetxController {
     bool forceServer = false,
   }) async {
     if (uid.isEmpty) return const <String, dynamic>{};
+    final readDecision = MetadataReadPolicy.currentUserSummary(
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+      forceServer: forceServer,
+    );
 
     final userRepository = UserRepository.ensure();
 
-    if (!forceServer) {
+    if (!forceServer &&
+        readDecision.readOrder.contains(MetadataReadSource.memory)) {
       final memory = _peekRootUserData(uid, allowStale: false);
       if (preferCache && memory != null) {
         return memory;
       }
     }
 
-    if (preferCache && !forceServer) {
+    if (preferCache &&
+        !forceServer &&
+        readDecision.readOrder.contains(MetadataReadSource.firestoreCache)) {
       final cached = await userRepository.getUserRaw(
         uid,
         preferCache: true,
@@ -475,7 +495,10 @@ class CurrentUserService extends GetxController {
     }
 
     if (cacheOnly) {
-      return _peekRootUserData(uid, allowStale: true) ??
+      return _peekRootUserData(
+            uid,
+            allowStale: readDecision.allowStaleRead,
+          ) ??
           const <String, dynamic>{};
     }
 

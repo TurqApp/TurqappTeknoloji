@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
@@ -83,5 +84,29 @@ void main() {
     expect(snapshot.allowBackgroundPrefetch, isFalse);
     expect(snapshot.allowOnDemandSegmentFetch, isFalse);
     expect(snapshot.cacheOnlyMode, isTrue);
+  });
+
+  test('metadata read policy keeps current user local-first by default', () {
+    final decision = MetadataReadPolicy.currentUserSummary(
+      preferCache: true,
+      cacheOnly: false,
+      forceServer: false,
+    );
+
+    expect(decision.readOrder.first, MetadataReadSource.memory);
+    expect(decision.readOrder, contains(MetadataReadSource.sharedPrefs));
+    expect(decision.readOrder.last, MetadataReadSource.server);
+  });
+
+  test('metadata read policy keeps user profile summary local-first', () {
+    final decision = MetadataReadPolicy.userProfileSummary(
+      preferCache: true,
+      cacheOnly: false,
+      forceServer: false,
+    );
+
+    expect(decision.readOrder.first, MetadataReadSource.memory);
+    expect(decision.readOrder, contains(MetadataReadSource.firestoreCache));
+    expect(decision.readOrder.last, MetadataReadSource.server);
   });
 }

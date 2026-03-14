@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
 
 import '../../Core/Services/profile_posts_cache_service.dart';
 import '../../Models/posts_model.dart';
@@ -57,8 +58,12 @@ class ProfileRepository extends GetxService {
 
   Future<ProfileBuckets?> readCachedBuckets(String uid) async {
     if (uid.isEmpty) return null;
+    final readDecision = MetadataReadPolicy.profilePosts();
     final fromMemory = _memory[uid];
     if (fromMemory != null) return fromMemory;
+    if (!readDecision.readOrder.contains(MetadataReadSource.sharedPrefs)) {
+      return null;
+    }
     final all = await _cacheService.readBucket(uid: uid, bucket: 'all');
     final photos = await _cacheService.readBucket(uid: uid, bucket: 'photos');
     final videos = await _cacheService.readBucket(uid: uid, bucket: 'videos');
