@@ -95,12 +95,7 @@ class NavBarController extends GetxController
       }
     });
 
-    // ⚠️ CRITICAL FIX: Safely initialize ShortController
     if (!GetPlatform.isIOS) {
-      try {
-        shortCtrl.preloadRange(7);
-      } catch (_) {
-      }
       _startBackgroundCacheLoop();
     }
     _startUploadIndicatorSync();
