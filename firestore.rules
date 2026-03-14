@@ -274,6 +274,43 @@ service cloud.firestore {
           || request.resource.data.reactions is map
         );
     }
+    function isValidQuestionsAnswersCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'cevaplar', 'dogruCevaplar', 'timeStamp', 'anaBaslik',
+          'sinavTuru', 'yil', 'baslik2', 'baslik3', 'cikmisSoruID', 'userID'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.cevaplar is list
+        && request.resource.data.dogruCevaplar is list
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.anaBaslik is string
+        && request.resource.data.sinavTuru is string
+        && request.resource.data.yil is string
+        && request.resource.data.baslik2 is string
+        && request.resource.data.baslik3 is string
+        && request.resource.data.cikmisSoruID is string;
+    }
+    function isValidOptikFormCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'max', 'cevaplar', 'name', 'userID', 'baslangic', 'bitis', 'kisitlama'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.max is int
+        && request.resource.data.max > 0
+        && request.resource.data.cevaplar is list
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.baslangic is int
+        && request.resource.data.bitis is int
+        && request.resource.data.bitis >= request.resource.data.baslangic
+        && request.resource.data.kisitlama is bool;
+    }
     function isValidResharePayload(docId) {
       return isAuth()
         && docId == request.auth.uid
@@ -1263,7 +1300,7 @@ service cloud.firestore {
     // Soru cevapları - kullanıcı kendi cevabını yazar
     match /questionsAnswers/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidQuestionsAnswersCreatePayload();
       allow update: if isAuth() && resource.data.userID == request.auth.uid;
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
@@ -1292,7 +1329,7 @@ service cloud.firestore {
     // Optik Kodlar
     match /optikForm/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidOptikFormCreatePayload();
       allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
     }
 

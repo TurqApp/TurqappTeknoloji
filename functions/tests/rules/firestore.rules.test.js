@@ -811,6 +811,82 @@ test("phoneAccounts blocks phone mutation on update", async () => {
   );
 });
 
+test("questionsAnswers allows owner-scoped canonical payload", async () => {
+  const uid = "questions-answer-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
+      cevaplar: ["A", "B", "C"],
+      dogruCevaplar: ["A", "D", "C"],
+      timeStamp: Date.now(),
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+      yil: "2025",
+      baslik2: "Genel",
+      baslik3: "",
+      cikmisSoruID: "cikmis-1",
+      userID: uid,
+    }),
+  );
+});
+
+test("questionsAnswers blocks spoofed owner payload", async () => {
+  const uid = "questions-answer-owner-block";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    addDoc(collection(ctx.firestore(), "questionsAnswers"), {
+      cevaplar: ["A"],
+      dogruCevaplar: ["A"],
+      timeStamp: Date.now(),
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+      yil: "2025",
+      baslik2: "Genel",
+      baslik3: "",
+      cikmisSoruID: "cikmis-2",
+      userID: "different-user",
+      extra: true,
+    }),
+  );
+});
+
+test("optikForm allows owner-scoped canonical payload", async () => {
+  const uid = "optik-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ctx.firestore(), "optikForm/form-1"), {
+      max: 4,
+      cevaplar: ["A", "B", "C", "D"],
+      name: "Deneme Formu",
+      userID: uid,
+      baslangic: Date.now(),
+      bitis: Date.now() + 60000,
+      kisitlama: false,
+    }),
+  );
+});
+
+test("optikForm blocks spoofed owner payload", async () => {
+  const uid = "optik-owner-block";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "optikForm/form-2"), {
+      max: 4,
+      cevaplar: ["A", "B", "C", "D"],
+      name: "Deneme Formu",
+      userID: "different-user",
+      baslangic: Date.now(),
+      bitis: Date.now() + 60000,
+      kisitlama: false,
+      unexpected: true,
+    }),
+  );
+});
+
 test("users_usernames legacy reservation path is disabled", async () => {
   const uid = "legacy-username-user";
   const ctx = testEnv.authenticatedContext(uid);
