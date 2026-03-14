@@ -255,6 +255,11 @@ class _PermissionsViewState extends State<PermissionsView> {
             streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
           )
         : null;
+    final recentProtectionWindow =
+        StorageBudgetManager.recentProtectionWindowForUsage(
+      profile,
+      streamUsageBytes: usage?.streamUsageBytes ?? 0,
+    );
     final rows = <MapEntry<String, int>>[
       MapEntry('Medya cache', profile.mediaQuotaBytes),
       MapEntry('Gorsel cache', profile.imageQuotaBytes),
@@ -321,6 +326,14 @@ class _PermissionsViewState extends State<PermissionsView> {
           ),
           Text(
             'Stream cache hard stop: ${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
+            style: const TextStyle(
+              color: Colors.black45,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+          Text(
+            'Yakin video koruma penceresi: $recentProtectionWindow icerik',
             style: const TextStyle(
               color: Colors.black45,
               fontSize: 12,

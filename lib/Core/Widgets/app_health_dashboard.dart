@@ -94,6 +94,11 @@ class AppHealthDashboard extends StatelessWidget {
             streamUsageBytes: Get.find<SegmentCacheManager>().totalSizeBytes,
           )
         : null;
+    final recentProtectionWindow =
+        StorageBudgetManager.recentProtectionWindowForUsage(
+      profile,
+      streamUsageBytes: usage?.streamUsageBytes ?? 0,
+    );
     final policy = Get.isRegistered<PlaybackPolicyEngine>()
         ? Get.find<PlaybackPolicyEngine>().snapshot()
         : null;
@@ -141,6 +146,7 @@ class AppHealthDashboard extends StatelessWidget {
               '${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)} / '
               '${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
             ),
+            Text('Recent protect window: $recentProtectionWindow video'),
             if (usage != null) ...[
               const SizedBox(height: 10),
               Text(
