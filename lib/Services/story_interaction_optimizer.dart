@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -60,11 +61,8 @@ class StoryInteractionOptimizer extends GetxService {
       _writeTimer?.cancel();
       _writeTimer =
           Timer(const Duration(milliseconds: 500), _flushPendingWrites);
-
-      print(
-          "📝 Queued story view - Owner: $storyOwnerId, Story: $storyId, Time: $storyTime");
     } catch (e) {
-      print("🚨 markStoryViewed error: $e");
+      debugPrint("markStoryViewed error: $e");
       // Error durumunda bile UI responsiveness için local cache güncelle
       localStoryCache[storyOwnerId] = true;
       localTimeCache[storyOwnerId] = storyTime;
@@ -112,12 +110,9 @@ class StoryInteractionOptimizer extends GetxService {
       }
       if (currentUsers.isNotEmpty || currentWrites.isNotEmpty) {
         await batch.commit();
-
-        print(
-            "✅ Batch write completed - ${currentWrites.length} story updates");
       }
     } catch (e) {
-      print("🚨 Batch write error: $e");
+      debugPrint("Story batch write error: $e");
 
       // Retry logic - pending writes'a geri ekle (data loss önlemek için)
       try {
@@ -132,7 +127,7 @@ class StoryInteractionOptimizer extends GetxService {
         // 2 saniye sonra tekrar dene
         Timer(const Duration(seconds: 2), _flushPendingWrites);
       } catch (retryError) {
-        print("🚨 Retry preparation error: $retryError");
+        debugPrint("Story retry preparation error: $retryError");
       }
     } finally {
       _isWriting = false;
@@ -176,8 +171,6 @@ class StoryInteractionOptimizer extends GetxService {
 
   /// App kapatılırken çağrılacak
   Future<void> cleanup() async {
-    print("🧹 StoryInteractionOptimizer cleanup starting...");
-
     _writeTimer?.cancel();
 
     // Stream subscriptions'ları temizle
@@ -188,7 +181,7 @@ class StoryInteractionOptimizer extends GetxService {
       try {
         await Future.wait(_pendingOperations, eagerError: false);
       } catch (e) {
-        print("🚨 Error waiting for pending operations: $e");
+        debugPrint("Story cleanup pending operation error: $e");
       }
       _pendingOperations.clear();
     }
@@ -199,8 +192,6 @@ class StoryInteractionOptimizer extends GetxService {
     // Local cache'leri temizle
     localStoryCache.clear();
     localTimeCache.clear();
-
-    print("✅ StoryInteractionOptimizer cleanup completed");
   }
 
   @override

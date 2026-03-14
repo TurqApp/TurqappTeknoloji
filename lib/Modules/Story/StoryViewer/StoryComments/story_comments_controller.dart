@@ -50,7 +50,7 @@ class StoryCommentsController extends GetxController {
       await getLast();
       closeKeyboard(Get.context!);
     } catch (e) {
-      print("setComment error: $e");
+      debugPrint("setComment error: $e");
     }
   }
 

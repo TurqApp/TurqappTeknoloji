@@ -133,7 +133,7 @@ class UserStoryContentController extends GetxController {
       reactionCounts.assignAll(snapshot.reactionCounts);
       myReaction.value = snapshot.myReaction;
     } catch (e) {
-      print("getReactions error: $e");
+      debugPrint("getReactions error: $e");
     }
   }
 
@@ -167,7 +167,7 @@ class UserStoryContentController extends GetxController {
       }
       HapticFeedback.lightImpact();
     } catch (e) {
-      print("react error: $e");
+      debugPrint("react error: $e");
     }
   }
 
