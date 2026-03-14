@@ -811,6 +811,70 @@ test("phoneAccounts blocks phone mutation on update", async () => {
   );
 });
 
+test("CikmisSorular allows admin-managed writes only", async () => {
+  const adminCtx = testEnv.authenticatedContext("education-admin", { admin: true });
+  const userCtx = testEnv.authenticatedContext("education-user");
+
+  await assertSucceeds(
+    setDoc(doc(adminCtx.firestore(), "CikmisSorular/cikmis-1"), {
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(userCtx.firestore(), "CikmisSorular/cikmis-2"), {
+      anaBaslik: "AYT",
+      sinavTuru: "Matematik",
+    }),
+  );
+});
+
+test("questions allows admin-managed root writes only", async () => {
+  const adminCtx = testEnv.authenticatedContext("question-admin", { admin: true });
+  const userCtx = testEnv.authenticatedContext("question-user");
+
+  await assertSucceeds(
+    setDoc(doc(adminCtx.firestore(), "questions", "question-root-1"), {
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+      sira: 1,
+    }),
+  );
+  await assertFails(
+    setDoc(doc(userCtx.firestore(), "questions", "question-root-2"), {
+      anaBaslik: "AYT",
+      sinavTuru: "Matematik",
+      sira: 2,
+    }),
+  );
+});
+
+test("questions subcollections allow admin writes and block non-admin writes", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "questions", "question-root-3"), {
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+      sira: 3,
+    });
+  });
+
+  const adminCtx = testEnv.authenticatedContext("question-admin-sub", { admin: true });
+  const userCtx = testEnv.authenticatedContext("question-user-sub");
+
+  await assertSucceeds(
+    setDoc(doc(adminCtx.firestore(), "questions", "question-root-3", "questions", "item-1"), {
+      soru: "Soru 1",
+      dogruCevap: "A",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(userCtx.firestore(), "questions", "question-root-3", "Sorular", "item-2"), {
+      soru: "Yetkisiz soru",
+      dogruCevap: "B",
+    }),
+  );
+});
+
 test("questionsAnswers allows owner-scoped canonical payload", async () => {
   const uid = "questions-answer-owner";
   const ctx = testEnv.authenticatedContext(uid);
