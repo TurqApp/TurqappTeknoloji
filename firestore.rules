@@ -246,6 +246,34 @@ service cloud.firestore {
         && request.resource.data.timeStamp is int
         && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
     }
+    function canClientUpdateStoryReactions() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        && request.resource.data.reactions is map;
+    }
+    function canOwnerUpdateStoryDocument() {
+      return isAuth()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'deleted', 'deletedAt', 'deleteReason', 'reactions'
+        ])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deleted'])
+          || request.resource.data.deleted is bool
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deletedAt'])
+          || request.resource.data.deletedAt is int
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['deleteReason'])
+          || !request.resource.data.keys().hasAny(['deleteReason'])
+          || request.resource.data.deleteReason is string
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reactions'])
+          || request.resource.data.reactions is map
+        );
+    }
     function isValidResharePayload(docId) {
       return isAuth()
         && docId == request.auth.uid
@@ -843,8 +871,8 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Stories/{storyId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update: if canOwnerUpdateStoryDocument() || canClientUpdateStoryReactions();
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /likes/{likeId} {
@@ -861,13 +889,7 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuth() && (
-        resource.data.userId == request.auth.uid
-        || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
-          && request.resource.data.reactions is map
-        )
-      );
+      allow update: if canOwnerUpdateStoryDocument() || canClientUpdateStoryReactions();
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /likes/{likeId} {

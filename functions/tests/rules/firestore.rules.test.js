@@ -522,6 +522,78 @@ test("posts izBirakSubscribers block spoofed subscription payload", async () => 
   );
 });
 
+test("stories collection allows owner-scoped create", async () => {
+  const ownerUid = "story-owner-create";
+  const storyId = "story-create-ok";
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+
+  await assertSucceeds(
+    setDoc(doc(ownerCtx.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+      deleted: false,
+      deletedAt: 0,
+    }),
+  );
+});
+
+test("stories collection blocks spoofed owner on create", async () => {
+  const ownerUid = "story-owner-create-block";
+  const storyId = "story-create-block";
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+
+  await assertFails(
+    setDoc(doc(ownerCtx.firestore(), `stories/${storyId}`), {
+      userId: "different-user",
+      createdDate: Date.now(),
+    }),
+  );
+});
+
+test("stories collection allows owner lifecycle updates only", async () => {
+  const ownerUid = "story-owner-update";
+  const storyId = "story-update-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+      deleted: false,
+      deletedAt: 0,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertSucceeds(
+    updateDoc(doc(ownerCtx.firestore(), `stories/${storyId}`), {
+      deleted: true,
+      deletedAt: Date.now(),
+      deleteReason: "manual",
+    }),
+  );
+});
+
+test("stories collection blocks arbitrary owner content updates", async () => {
+  const ownerUid = "story-owner-update-block";
+  const storyId = "story-update-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+      deleted: false,
+      deletedAt: 0,
+    });
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(ownerUid);
+  await assertFails(
+    updateDoc(doc(ownerCtx.firestore(), `stories/${storyId}`), {
+      createdDate: Date.now() + 1000,
+    }),
+  );
+});
+
 test("stories likes allow self like payload", async () => {
   const ownerUid = "story-owner";
   const likerUid = "story-liker";
