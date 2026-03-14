@@ -14,6 +14,10 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 0,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
     final lower = PrefetchScoringEngine.score(
@@ -27,6 +31,10 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 0,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
 
@@ -45,6 +53,10 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 0,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
     final far = PrefetchScoringEngine.score(
@@ -58,6 +70,10 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 0,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
 
@@ -76,6 +92,10 @@ void main() {
         watchProgress: 0.45,
         cachedSegmentCount: 2,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
     final consumed = PrefetchScoringEngine.score(
@@ -89,6 +109,10 @@ void main() {
         watchProgress: 0.95,
         cachedSegmentCount: 9,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
 
@@ -107,6 +131,10 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 0,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
     final ready = PrefetchScoringEngine.score(
@@ -120,9 +148,52 @@ void main() {
         watchProgress: 0.0,
         cachedSegmentCount: 3,
         totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
       ),
     );
 
     expect(notReady, greaterThan(ready));
+  });
+
+  test('engaged active session boosts near-ahead prefetch', () {
+    final neutral = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 0,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.6,
+        watchProgress: 0.25,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 0.0,
+        sessionCompletionRate: 0.0,
+        sessionRebufferRatio: 0.0,
+        sessionHasFirstFrame: false,
+      ),
+    );
+    final engaged = PrefetchScoringEngine.score(
+      const PrefetchScoreContext(
+        basePriority: 0,
+        currentIndex: 5,
+        targetIndex: 6,
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        feedReadyRatio: 0.6,
+        watchProgress: 0.25,
+        cachedSegmentCount: 0,
+        totalSegmentCount: 10,
+        sessionWatchTimeSeconds: 4.2,
+        sessionCompletionRate: 0.22,
+        sessionRebufferRatio: 0.05,
+        sessionHasFirstFrame: true,
+      ),
+    );
+
+    expect(engaged, greaterThan(neutral));
   });
 }

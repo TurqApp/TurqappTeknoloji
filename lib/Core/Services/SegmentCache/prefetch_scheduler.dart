@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_engine.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/prefetch_scoring_engine.dart';
+import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
 
 import '../network_awareness_service.dart';
@@ -124,6 +125,9 @@ class PrefetchScheduler extends GetxController {
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
+    if (docIDs.isEmpty) return;
+    final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+    final currentDocId = docIDs[safeCurrent];
 
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
@@ -138,7 +142,7 @@ class PrefetchScheduler extends GetxController {
 
     // Öncelik 1: Breadth-first — sonraki N videonun ilk K segmenti
     for (var i = 1; i <= _breadthCount; i++) {
-      final idx = currentIndex + i;
+      final idx = safeCurrent + i;
       if (idx >= docIDs.length) break;
       final docID = docIDs[idx];
 
@@ -151,7 +155,8 @@ class PrefetchScheduler extends GetxController {
         maxSegments: _targetReadySegments,
         priority: 0,
         sortScore: _buildJobScore(
-          currentIndex: currentIndex,
+          currentIndex: safeCurrent,
+          currentDocId: currentDocId,
           targetIndex: idx,
           priority: 0,
           watchProgress: entry?.watchProgress ?? 0.0,
@@ -163,8 +168,8 @@ class PrefetchScheduler extends GetxController {
     }
 
     // Öncelik 2: Aktif videoda ilk 2 segment
-    if (currentIndex >= 0 && currentIndex < docIDs.length) {
-      final docID = docIDs[currentIndex];
+    if (safeCurrent >= 0 && safeCurrent < docIDs.length) {
+      final docID = docIDs[safeCurrent];
       final entry = cacheManager.getEntry(docID);
       if (entry == null || !entry.isFullyCached) {
         _queue.add(_PrefetchJob(
@@ -172,8 +177,9 @@ class PrefetchScheduler extends GetxController {
           maxSegments: _targetReadySegments,
           priority: 1,
           sortScore: _buildJobScore(
-            currentIndex: currentIndex,
-            targetIndex: currentIndex,
+            currentIndex: safeCurrent,
+            currentDocId: currentDocId,
+            targetIndex: safeCurrent,
             priority: 1,
             watchProgress: entry?.watchProgress ?? 0.0,
             cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
@@ -186,7 +192,7 @@ class PrefetchScheduler extends GetxController {
 
     // Öncelik 3: Sonraki videolarda ilk 2 segment
     for (var i = 1; i <= _depthCount - 1; i++) {
-      final idx = currentIndex + i;
+      final idx = safeCurrent + i;
       if (idx >= docIDs.length) break;
       final docID = docIDs[idx];
       final entry = cacheManager.getEntry(docID);
@@ -197,7 +203,8 @@ class PrefetchScheduler extends GetxController {
         maxSegments: _targetReadySegments,
         priority: 2,
         sortScore: _buildJobScore(
-          currentIndex: currentIndex,
+          currentIndex: safeCurrent,
+          currentDocId: currentDocId,
           targetIndex: idx,
           priority: 2,
           watchProgress: entry?.watchProgress ?? 0.0,
@@ -211,7 +218,7 @@ class PrefetchScheduler extends GetxController {
     // -5 kuralı: gerideki 5 videonun izlenen kısmını cache'de tut
     // (eviction korumasını desteklemek için touchEntry çağır)
     for (var i = 1; i <= 5; i++) {
-      final idx = currentIndex - i;
+      final idx = safeCurrent - i;
       if (idx < 0) break;
       if (idx < docIDs.length) {
         cacheManager.touchEntry(docIDs[idx]);
@@ -268,6 +275,7 @@ class PrefetchScheduler extends GetxController {
         priority: priority,
         sortScore: _buildJobScore(
           currentIndex: safeCurrent,
+          currentDocId: docIDs[safeCurrent],
           targetIndex: index,
           priority: priority,
           watchProgress: entry?.watchProgress ?? 0.0,
@@ -315,12 +323,16 @@ class PrefetchScheduler extends GetxController {
 
   double _buildJobScore({
     required int currentIndex,
+    required String currentDocId,
     required int targetIndex,
     required int priority,
     required double watchProgress,
     required int cachedSegmentCount,
     required int totalSegmentCount,
   }) {
+    final session = VideoTelemetryService.instance.activeSessionSnapshot(
+      currentDocId,
+    );
     return PrefetchScoringEngine.score(
       PrefetchScoreContext(
         basePriority: priority,
@@ -332,6 +344,10 @@ class PrefetchScheduler extends GetxController {
         watchProgress: watchProgress,
         cachedSegmentCount: cachedSegmentCount,
         totalSegmentCount: totalSegmentCount,
+        sessionWatchTimeSeconds: session?.watchTimeSeconds ?? 0.0,
+        sessionCompletionRate: session?.completionRate ?? 0.0,
+        sessionRebufferRatio: session?.rebufferRatio ?? 0.0,
+        sessionHasFirstFrame: session?.hasFirstFrame ?? false,
       ),
     );
   }

@@ -11,6 +11,10 @@ class PrefetchScoreContext {
   final double watchProgress;
   final int cachedSegmentCount;
   final int totalSegmentCount;
+  final double sessionWatchTimeSeconds;
+  final double sessionCompletionRate;
+  final double sessionRebufferRatio;
+  final bool sessionHasFirstFrame;
 
   const PrefetchScoreContext({
     required this.basePriority,
@@ -22,13 +26,22 @@ class PrefetchScoreContext {
     required this.watchProgress,
     required this.cachedSegmentCount,
     required this.totalSegmentCount,
+    required this.sessionWatchTimeSeconds,
+    required this.sessionCompletionRate,
+    required this.sessionRebufferRatio,
+    required this.sessionHasFirstFrame,
   });
 }
 
 class PrefetchScoringEngine {
   static double score(PrefetchScoreContext context) {
-    final signal =
-        PlaybackSignalEngine.fromWatchProgress(context.watchProgress);
+    final signal = PlaybackSignalEngine.fromRuntimeSignals(
+      rawProgress: context.watchProgress,
+      sessionWatchTimeSeconds: context.sessionWatchTimeSeconds,
+      sessionCompletionRate: context.sessionCompletionRate,
+      sessionRebufferRatio: context.sessionRebufferRatio,
+      sessionHasFirstFrame: context.sessionHasFirstFrame,
+    );
     final usefulness = CacheUsefulnessEngine.fromSegments(
       cachedSegmentCount: context.cachedSegmentCount,
       totalSegmentCount: context.totalSegmentCount,
@@ -74,6 +87,22 @@ class PrefetchScoringEngine {
 
     if (signal.likelyConsumed) {
       score -= 10;
+    }
+
+    if (signal.engagedSession && context.targetIndex > context.currentIndex) {
+      if (distance <= 2) {
+        score += 16;
+      } else if (distance <= 5) {
+        score += 8;
+      }
+    }
+
+    if (signal.unstableSession && context.targetIndex > context.currentIndex) {
+      if (distance >= 3) {
+        score -= 8;
+      } else {
+        score -= 4;
+      }
     }
 
     if (!usefulness.startupReady) {

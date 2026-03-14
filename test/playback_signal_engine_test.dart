@@ -16,4 +16,17 @@ void main() {
     expect(signal.likelyConsumed, isTrue);
     expect(signal.resumeProbability, lessThan(0.3));
   });
+
+  test('engaged runtime session is detected from telemetry signals', () {
+    final signal = PlaybackSignalEngine.fromRuntimeSignals(
+      rawProgress: 0.30,
+      sessionWatchTimeSeconds: 4.0,
+      sessionCompletionRate: 0.22,
+      sessionRebufferRatio: 0.05,
+      sessionHasFirstFrame: true,
+    );
+
+    expect(signal.engagedSession, isTrue);
+    expect(signal.unstableSession, isFalse);
+  });
 }

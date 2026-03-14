@@ -80,6 +80,20 @@ class VideoSessionMetrics {
       };
 }
 
+class ActiveVideoSessionSnapshot {
+  final double watchTimeSeconds;
+  final double completionRate;
+  final double rebufferRatio;
+  final bool hasFirstFrame;
+
+  const ActiveVideoSessionSnapshot({
+    required this.watchTimeSeconds,
+    required this.completionRate,
+    required this.rebufferRatio,
+    required this.hasFirstFrame,
+  });
+}
+
 class VideoTelemetryService {
   static final VideoTelemetryService instance =
       VideoTelemetryService._internal();
@@ -133,6 +147,17 @@ class VideoTelemetryService {
   /// Record error.
   void onError(String videoId, String message) {
     _activeSessions[videoId]?.onError(message);
+  }
+
+  ActiveVideoSessionSnapshot? activeSessionSnapshot(String videoId) {
+    final session = _activeSessions[videoId];
+    if (session == null) return null;
+    return ActiveVideoSessionSnapshot(
+      watchTimeSeconds: session.watchTimeSeconds,
+      completionRate: session.completionRate,
+      rebufferRatio: session.rebufferRatio,
+      hasFirstFrame: session.firstFrameAt != null,
+    );
   }
 
   /// End session and flush metrics to Firestore.
