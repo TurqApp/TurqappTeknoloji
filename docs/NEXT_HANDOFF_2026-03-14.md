@@ -3,8 +3,8 @@
 ## Güvenli Baz
 
 - Branch: `codex/final-perf-firebase-baseline`
-- Son güvenli kaynak commit'i: `befd6b68`
-- Son handoff commit'i: `6f9cb76a`
+- Son güvenli kaynak commit'i: `b1413eac`
+- Son handoff commit'i: `1092658b`
 - Bu commit'e kadar source dosyaları commit'li ve doğrulanmış durumda.
 
 ## Son Alınan Kaynak Commit'leri
@@ -12,6 +12,7 @@
 - `d3140a50` `privacy: trim current user service debug traces`
 - `c9886589` `privacy: trim sign in debug traces`
 - `b4dd8e7c` `privacy: trim chat debug traces`
+- `b1413eac` `privacy: trim post creator debug traces`
 - `0480f068` `privacy: trim explore debug traces`
 - `befd6b68` `privacy: trim splash startup traces`
 - `0746810e` `privacy: trim scholarship creation debug traces`
@@ -34,6 +35,7 @@
 - `npm test`: gecti
 - `npm run test:rules`: gecti (`64/64`)
 - `bash scripts/check_repo_security_regressions.sh`: gecti
+- Son final gate turu `b1413eac` sonrasinda tekrar yesil alindi.
 
 ## Dikkat: Local Ortam Drift'i
 
@@ -45,26 +47,15 @@
 ## Devam Icin Ilk Isler
 
 1. `functions/node_modules` ve `.idea` drift'ini commit'e alma.
-2. Yeni bir source degisikligi yapmadan once final gate'i tek sefer daha rerun etmek istenirse su komutlari kos:
-   - `flutter test`
-   - `flutter analyze --no-fatal-infos`
-   - `npm test`
-   - `npm run test:rules`
-   - `bash scripts/check_repo_security_regressions.sh`
-3. Ham `flutter analyze` icin kalan 3 `file_names info` uyarisi istenirse kontrollu rename plani ile kapatilabilir.
+2. Ham `flutter analyze` icin kalan 3 `file_names info` uyarisi istenirse kontrollu rename plani ile kapatilabilir.
+3. Final release readiness ozeti veya yeni hesap icin devir notu gerekiyorsa bu dosya referans alinabilir.
 
 ## Kalan Teknik Isler
 
 ### P0/P1 disinda kalan son kalite isleri
 
-1. Geriye kalan son dusuk riskli debug/privacy yuzeylerini temizlemek
-   - oncelikli adaylar:
-     - `lib/Modules/Short/short_controller.dart`
-     - `lib/Services/post_migration_helper.dart`
-     - `lib/Services/post_stats_cleanup.dart`
-   - not: `explore`, `sign_in`, `chat`, `current_user_service`, `splash`, `create_scholarship` bloklari bu oturumda temizlendi
-2. Istenirse 3 adet dosya adi `info` uyarisi icin kontrollu rename plani
-3. Final release readiness ozeti cikarmak
+1. Istenirse 3 adet dosya adi `info` uyarisi icin kontrollu rename plani
+2. Final release readiness ozeti cikarmak
 
 ## Onemli Notlar
 
