@@ -11,6 +11,7 @@ class HLSVideoValue {
   final bool isInitialized;
   final bool isPlaying;
   final bool isBuffering;
+  final bool hasRenderedFirstFrame;
   final Duration position;
   final Duration duration;
   final Size size;
@@ -21,6 +22,7 @@ class HLSVideoValue {
     this.isInitialized = false,
     this.isPlaying = false,
     this.isBuffering = false,
+    this.hasRenderedFirstFrame = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.size = const Size(1920, 1080),
@@ -65,6 +67,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   StreamSubscription? _stateSub;
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
+  StreamSubscription? _firstFrameSub;
 
   bool _viewReady = false;
   bool _disposed = false;
@@ -121,6 +124,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _viewReady,
         isPlaying: state == PlayerState.playing,
         isBuffering: state == PlayerState.buffering,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: _value.duration,
         size: _value.size,
@@ -141,6 +145,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: pos,
         duration: _value.duration,
         size: _value.size,
@@ -156,8 +161,25 @@ class HLSVideoAdapter extends ChangeNotifier {
         isInitialized: _value.isInitialized,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
         position: _value.position,
         duration: dur,
+        size: _value.size,
+        aspectRatio: _value.aspectRatio,
+        buffered: _value.buffered,
+      );
+      notifyListeners();
+    });
+
+    _firstFrameSub = _hls.onFirstFrameChanged.listen((hasRenderedFirstFrame) {
+      if (_disposed) return;
+      _value = HLSVideoValue(
+        isInitialized: _value.isInitialized,
+        isPlaying: _value.isPlaying,
+        isBuffering: _value.isBuffering,
+        hasRenderedFirstFrame: hasRenderedFirstFrame,
+        position: _value.position,
+        duration: _value.duration,
         size: _value.size,
         aspectRatio: _value.aspectRatio,
         buffered: _value.buffered,
@@ -333,6 +355,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     _stateSub?.cancel();
     _posSub?.cancel();
     _durSub?.cancel();
+    _firstFrameSub?.cancel();
     _hls.dispose();
     super.dispose();
   }

@@ -523,8 +523,7 @@ class _AgendaContentState extends State<AgendaContent>
                   const SizedBox(width: 45),
                   Expanded(
                     child: Builder(builder: (_) {
-                      final double displayAspect =
-                          _isIzBirakPost ? 0.92 : 0.80;
+                      final double displayAspect = _isIzBirakPost ? 0.92 : 0.80;
                       return VisibilityDetector(
                         key: Key('agenda-media-${widget.model.docID}'),
                         onVisibilityChanged: (info) {
@@ -710,11 +709,7 @@ class _AgendaContentState extends State<AgendaContent>
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
-                                              if (v.isInitialized &&
-                                                  (v.isPlaying ||
-                                                      v.isBuffering ||
-                                                      v.position >
-                                                          Duration.zero)) {
+                                              if (v.hasRenderedFirstFrame) {
                                                 return const SizedBox.shrink();
                                               }
                                               return child!;
@@ -2084,7 +2079,8 @@ class _AgendaContentState extends State<AgendaContent>
                             const SizedBox(width: 2),
                             RozetContent(size: 13, userID: widget.model.userID),
                             Padding(
-                              padding: const EdgeInsets.only(left: 6, right: 12),
+                              padding:
+                                  const EdgeInsets.only(left: 6, right: 12),
                               child: Obx(
                                 () {
                                   _relativeTimeTickService.tick.value;
@@ -2224,8 +2220,7 @@ class _AgendaContentState extends State<AgendaContent>
                       sourceUserID: widget.model.quotedPost
                           ? widget.model.quotedSourceUserID
                           : '',
-                      labelSuffix:
-                          widget.model.quotedPost ? 'alıntılandı' : '',
+                      labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
                       fontSize: 12,
                     ),

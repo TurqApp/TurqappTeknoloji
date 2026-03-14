@@ -81,7 +81,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
   @override
   Widget build(BuildContext context) {
     final playerBody = Container(
-      color: widget.backgroundColor ?? Colors.transparent,
+      color: widget.backgroundColor ?? Colors.black,
       child: Stack(
         children: [
           // Platform view

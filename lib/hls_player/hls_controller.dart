@@ -29,6 +29,7 @@ class HLSController {
   bool _isMuted = false;
   bool _isLooping = false;
   String? _errorMessage;
+  bool _hasRenderedFirstFrame = false;
 
   // Fallback support
   String? _fallbackUrl;
@@ -45,6 +46,7 @@ class HLSController {
   final _durationController = StreamController<Duration>.broadcast();
   final _bufferingController = StreamController<bool>.broadcast();
   final _errorController = StreamController<String>.broadcast();
+  final _firstFrameController = StreamController<bool>.broadcast();
 
   // Getters
   PlayerState get state => _state;
@@ -57,6 +59,7 @@ class HLSController {
   bool get isPlaying => _state == PlayerState.playing;
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
+  bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
 
   // Streams
   Stream<PlayerState> get onStateChanged => _stateController.stream;
@@ -64,12 +67,15 @@ class HLSController {
   Stream<Duration> get onDurationChanged => _durationController.stream;
   Stream<bool> get onBufferingChanged => _bufferingController.stream;
   Stream<String> get onError => _errorController.stream;
+  Stream<bool> get onFirstFrameChanged => _firstFrameController.stream;
 
   // Initialize controller with view ID
   void initialize(int viewId) {
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
     _eventSubscription?.cancel();
     _eventSubscription = null;
+    _hasRenderedFirstFrame = false;
+    _firstFrameController.add(false);
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
@@ -108,6 +114,8 @@ class HLSController {
     _isLooping = loop;
     _updateState(PlayerState.loading);
     _firstFrameEmitted = false;
+    _hasRenderedFirstFrame = false;
+    _firstFrameController.add(false);
     if (_telemetryVideoId != null) {
       _telemetry.startSession(_telemetryVideoId!, url);
     }
@@ -294,6 +302,7 @@ class HLSController {
     await _durationController.close();
     await _bufferingController.close();
     await _errorController.close();
+    await _firstFrameController.close();
 
     _viewId = null;
     _eventChannel = null;
@@ -321,11 +330,11 @@ class HLSController {
             break;
 
           case 'play':
-            if (!_firstFrameEmitted && _telemetryVideoId != null) {
-              _firstFrameEmitted = true;
-              _telemetry.onFirstFrame(_telemetryVideoId!);
-            }
             _updateState(PlayerState.playing);
+            break;
+
+          case 'firstFrame':
+            _markFirstFrameRendered();
             break;
 
           case 'pause':
@@ -360,6 +369,9 @@ class HLSController {
             if (_telemetryVideoId != null) {
               _telemetry.onPositionUpdate(
                   _telemetryVideoId!, position, duration);
+            }
+            if (!_hasRenderedFirstFrame && position > 0) {
+              _markFirstFrameRendered();
             }
             // Native tarafında 'ready/play' eventi erken kaçarsa timeUpdate ile state'i toparla.
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
@@ -408,6 +420,16 @@ class HLSController {
     if (_state != newState) {
       _state = newState;
       _stateController.add(_state);
+    }
+  }
+
+  void _markFirstFrameRendered() {
+    if (_hasRenderedFirstFrame) return;
+    _hasRenderedFirstFrame = true;
+    _firstFrameController.add(true);
+    if (!_firstFrameEmitted && _telemetryVideoId != null) {
+      _firstFrameEmitted = true;
+      _telemetry.onFirstFrame(_telemetryVideoId!);
     }
   }
 

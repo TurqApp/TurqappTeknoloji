@@ -24,12 +24,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var isAutoPlay: Bool = true
     private var didRequestInitialPlay: Bool = false
     private var didStabilizeVisualLayer: Bool = false
+    private var didRenderFirstFrame: Bool = false
 
     // MARK: - Observers
     private var statusObserver: NSKeyValueObservation?
     private var playbackBufferEmptyObserver: NSKeyValueObservation?
     private var playbackLikelyToKeepUpObserver: NSKeyValueObservation?
     private var timeControlStatusObserver: NSKeyValueObservation?
+    private var playerLayerReadyObserver: NSKeyValueObservation?
 
     // MARK: - Notification Observers
     private var didPlayToEndTimeObserver: NSObjectProtocol?
@@ -45,7 +47,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         eventChannel: FlutterEventChannel
     ) {
         _view = PlayerContainerView(frame: frame)
-        _view.backgroundColor = .clear
+        _view.backgroundColor = .black
+        _view.isOpaque = true
 
         super.init()
 
@@ -69,6 +72,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         cleanup()
         didRequestInitialPlay = false
         didStabilizeVisualLayer = false
+        didRenderFirstFrame = false
     }
 
     func view() -> UIView {
@@ -83,6 +87,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         }
 
         cleanup()
+        didRequestInitialPlay = false
+        didStabilizeVisualLayer = false
+        didRenderFirstFrame = false
 
         // Create AVURLAsset for HLS
         // A7: AVURLAssetPreferPreciseDurationAndTimingKey kaldırıldı — HLS'de tüm içeriği
@@ -108,7 +115,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Create player layer
         playerLayer = AVPlayerLayer(player: player)
         playerLayer?.videoGravity = .resizeAspectFill
-        playerLayer?.backgroundColor = UIColor.clear.cgColor
+        playerLayer?.backgroundColor = UIColor.black.cgColor
         playerLayer?.needsDisplayOnBoundsChange = true
         playerLayer?.frame = _view.bounds
 
@@ -116,6 +123,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             _view.layer.addSublayer(playerLayer)
             _view.linkedPlayerLayer = playerLayer
         }
+
+        setupPlayerLayerObservers()
 
         refreshPlayerLayer()
 
@@ -400,10 +409,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 playerLayer.player = self.player
                 playerLayer.isHidden = false
                 playerLayer.frame = self._view.bounds
-                if forceReattach {
+                let shouldForceReattach = forceReattach && !self.didRenderFirstFrame
+                let needsAttach = playerLayer.superlayer == nil || playerLayer.superlayer !== self._view.layer
+                if shouldForceReattach {
                     playerLayer.removeFromSuperlayer()
                     self._view.layer.addSublayer(playerLayer)
-                } else if playerLayer.superlayer == nil {
+                } else if needsAttach {
                     self._view.layer.addSublayer(playerLayer)
                 }
                 self._view.linkedPlayerLayer = playerLayer
@@ -413,6 +424,18 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             self.playerLayer?.setNeedsDisplay()
             self._view.layer.setNeedsDisplay()
             CATransaction.commit()
+        }
+    }
+
+    private func setupPlayerLayerObservers() {
+        playerLayerReadyObserver?.invalidate()
+        playerLayerReadyObserver = playerLayer?.observe(\.isReadyForDisplay, options: [.initial, .new]) { [weak self] layer, _ in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
+                self.didRenderFirstFrame = true
+                self.sendEvent(["event": "firstFrame"])
+            }
         }
     }
 
@@ -445,6 +468,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackBufferEmptyObserver = nil
         playbackLikelyToKeepUpObserver = nil
         timeControlStatusObserver = nil
+        playerLayerReadyObserver?.invalidate()
+        playerLayerReadyObserver = nil
 
         // Remove notification observers
         if let observer = didPlayToEndTimeObserver {
@@ -476,6 +501,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer = nil
         playerItem = nil
         player = nil
+        didRenderFirstFrame = false
     }
 
     func dispose() {
@@ -502,6 +528,10 @@ extension HLSPlayerView: FlutterStreamHandler {
                 "event": "ready",
                 "duration": item.duration.seconds.isFinite ? item.duration.seconds : 0.0
             ])
+        }
+        if didRenderFirstFrame || playerLayer?.isReadyForDisplay == true {
+            didRenderFirstFrame = true
+            sendEvent(["event": "firstFrame"])
         }
         if isPlaying() {
             sendEvent(["event": "play"])

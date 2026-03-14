@@ -371,8 +371,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     try {
       items = await ShortRepository.ensure().fetchRandomReadyPosts(limit: 1000)
         ..shuffle();
-    } catch (_) {
-    }
+    } catch (_) {}
 
     final merged = <PostsModel>[];
 
@@ -516,11 +515,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             currentModel.docID,
             HLSAdapterPlaybackHandle(ctrl),
           );
-
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
 
     // Tüm videoları durdur
     _pauseAllControllers();
@@ -799,10 +796,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                         animation: injected,
                         builder: (_, __) {
                           final v = injected.value;
-                          final hideThumb = v.isInitialized &&
-                              (v.isPlaying ||
-                                  v.isBuffering ||
-                                  v.position > Duration.zero);
+                          final hideThumb = v.hasRenderedFirstFrame;
                           if (hideThumb) {
                             return const SizedBox.shrink();
                           }
@@ -905,10 +899,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                             animation: vp,
                             builder: (_, __) {
                               final v = vp.value;
-                              final hideThumb = v.isInitialized &&
-                                  (v.isPlaying ||
-                                      v.isBuffering ||
-                                      v.position > Duration.zero);
+                              final hideThumb = v.hasRenderedFirstFrame;
                               if (hideThumb) {
                                 return const SizedBox.shrink();
                               }

@@ -1047,10 +1047,9 @@ class _ClassicContentState extends State<ClassicContent>
       return fallback;
     }
 
-    final future =
-        sourceUserId.trim() == _quotedSourceProfileUserId
-            ? _quotedSourceProfileFuture
-            : null;
+    final future = sourceUserId.trim() == _quotedSourceProfileUserId
+        ? _quotedSourceProfileFuture
+        : null;
 
     return FutureBuilder<Map<String, dynamic>?>(
       future: future,
@@ -1679,7 +1678,7 @@ class _ClassicContentState extends State<ClassicContent>
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      if (v.isInitialized && v.position > Duration.zero) {
+                      if (v.hasRenderedFirstFrame) {
                         return const SizedBox.shrink();
                       }
                       return child!;

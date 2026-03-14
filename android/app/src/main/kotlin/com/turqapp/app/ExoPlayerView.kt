@@ -38,12 +38,14 @@ class ExoPlayerView(
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
+    private var didRenderFirstFrame = false
 
     init {
         playerView = PlayerView(context).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             setShutterBackgroundColor(Color.TRANSPARENT)
+            setBackgroundColor(Color.BLACK)
             setKeepContentOnPlayerReset(true)
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -125,6 +127,7 @@ class ExoPlayerView(
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
         isSoftHeld = false
+        didRenderFirstFrame = false
 
         if (existing == null) {
             activePlayer.addListener(object : Player.Listener {
@@ -166,6 +169,11 @@ class ExoPlayerView(
                     "message" to (error.message ?: "Unknown playback error")
                 ))
                 stopPositionUpdates()
+            }
+
+            override fun onRenderedFirstFrame() {
+                didRenderFirstFrame = true
+                sendEvent(mapOf("event" to "firstFrame"))
             }
             })
         }
@@ -341,6 +349,9 @@ class ExoPlayerView(
                         "duration" to (if (p.duration == C.TIME_UNSET) 0.0 else p.duration / 1000.0)
                     )
                 )
+            }
+            if (didRenderFirstFrame) {
+                sendEvent(mapOf("event" to "firstFrame"))
             }
             if (p.isPlaying) {
                 sendEvent(mapOf("event" to "play"))
