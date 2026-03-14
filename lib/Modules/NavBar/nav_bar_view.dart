@@ -130,68 +130,64 @@ class NavBarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      // Define pages and icons
-      final icons = [
-        'assets/icons/house',
-        'assets/icons/search',
-        'assets/icons/play',
-        if (settingController.educationScreenIsOn.value) 'assets/icons/sinav',
-        'profile_dynamic',
-      ];
-
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          final shouldPop = await _handleBackNavigation();
-          if (shouldPop) {
-            SystemNavigator.pop();
-          }
-        },
-        child: Scaffold(
-          resizeToAvoidBottomInset: false,
-          body: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              // Current page
-              Column(
-                children: [
-                  const OfflineIndicator(),
-                  Expanded(
-                    child: _buildSelectedPage(),
-                  ),
-                ],
-              ),
-
-              // Feed sekmesinde status bar altına beyaz zemin (üst katman)
-              if (controller.selectedIndex.value == 0)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: MediaQuery.of(context).padding.top - 3,
-                      color: Colors.white,
-                    ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _handleBackNavigation();
+        if (shouldPop) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            Column(
+              children: [
+                const OfflineIndicator(),
+                Expanded(
+                  child: Obx(() => _buildSelectedPage()),
+                ),
+              ],
+            ),
+            Obx(() {
+              if (controller.selectedIndex.value != 0) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: MediaQuery.of(context).padding.top - 3,
+                    color: Colors.white,
                   ),
                 ),
+              );
+            }),
+            Obx(() {
+              final icons = [
+                'assets/icons/house',
+                'assets/icons/search',
+                'assets/icons/play',
+                if (settingController.educationScreenIsOn.value)
+                  'assets/icons/sinav',
+                'profile_dynamic',
+              ];
+              final showBar = controller.showBar.value;
 
-              // Opening overlay (first boot only)
-              // const Positioned.fill(child: OpeningOverlay()),
-
-              AnimatedSlide(
-                offset: controller.showBar.value
-                    ? Offset.zero
-                    : const Offset(0, 1.2),
+              return AnimatedSlide(
+                offset: showBar ? Offset.zero : const Offset(0, 1.2),
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
                 child: AnimatedOpacity(
-                  opacity: controller.showBar.value ? 1 : 0,
+                  opacity: showBar ? 1 : 0,
                   duration: const Duration(milliseconds: 180),
                   child: IgnorePointer(
-                    ignoring: !controller.showBar.value,
+                    ignoring: !showBar,
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
                         12,
@@ -240,11 +236,9 @@ class NavBarView extends StatelessWidget {
                                         EdgeInsets.zero),
                                   ),
                                   onPressed: () async {
-                                    // Eğer zaten AgendaView (index 0) aktifken House ikonuna basılırsa, en üste kaydır
                                     if (i == 0 &&
                                         controller.selectedIndex.value == 0) {
-                                      if (Get.isRegistered<
-                                          AgendaController>()) {
+                                      if (Get.isRegistered<AgendaController>()) {
                                         final agendaCtrl =
                                             Get.find<AgendaController>();
                                         if (agendaCtrl
@@ -258,13 +252,10 @@ class NavBarView extends StatelessWidget {
                                           return;
                                         }
                                       }
-                                      // Kayıtlı controller yoksa normal akışa düşer
                                     }
-                                    // Explore sayfasındayken search ikonuna tekrar basılırsa: mevcut sekmenin en üstüne kaydır
                                     if (i == 1 &&
                                         controller.selectedIndex.value == 1) {
-                                      if (Get.isRegistered<
-                                          ExploreController>()) {
+                                      if (Get.isRegistered<ExploreController>()) {
                                         final explore =
                                             Get.find<ExploreController>();
                                         int tab = 0;
@@ -299,7 +290,6 @@ class NavBarView extends StatelessWidget {
                                           return;
                                         }
                                       }
-                                      // controller kayıtlı değilse normal akış
                                     }
                                     if (i != 2) {
                                       if (i ==
@@ -313,13 +303,11 @@ class NavBarView extends StatelessWidget {
                                         controller.changeIndex(i);
                                       }
                                     } else {
-                                      // Short ikonuna tıklandığında background preload başlat
                                       final shortController =
                                           Get.isRegistered<ShortController>()
                                               ? Get.find<ShortController>()
                                               : Get.put(ShortController());
 
-                                      // Preload'u ateşle ama BEKLEME — navigasyonu bloklamasın
                                       shortController
                                           .backgroundPreload()
                                           .catchError((_) {});
@@ -348,7 +336,6 @@ class NavBarView extends StatelessWidget {
                                           animation: controller
                                               .animationController.value,
                                           builder: (_, __) {
-                                            // Slightly faster sweep rotation
                                             final angle = controller
                                                     .animationController
                                                     .value
@@ -389,12 +376,12 @@ class NavBarView extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              );
+            }),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 }
 
