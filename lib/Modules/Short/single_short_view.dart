@@ -62,17 +62,15 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
     }
 
     final tolerance = toleranceFor(position);
-    if (velocity.abs() < tolerance.velocity) {
-      return super.createBallisticSimulation(position, velocity);
-    }
-
     final page = position.pixels / position.viewportDimension;
     final minPage = position.minScrollExtent / position.viewportDimension;
     final maxPage = position.maxScrollExtent / position.viewportDimension;
-    final nearestPage = page.roundToDouble();
-    final pageDelta = page - nearestPage;
+    final floorPage = page.floorToDouble();
+    final ceilPage = page.ceilToDouble();
+    final progressFromFloor = page - floorPage;
+    final progressFromCeil = ceilPage - page;
 
-    double targetPage = nearestPage;
+    double targetPage = page.roundToDouble();
     if (velocity.abs() >= baseMinFlingVelocity) {
       int pagesToAdvance = 1;
       if (velocity.abs() > baseMinFlingVelocity * 2.0) pagesToAdvance = 2;
@@ -83,8 +81,12 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
       targetPage = velocity > 0
           ? (page.ceilToDouble() + (pagesToAdvance - 1))
           : (page.floorToDouble() - (pagesToAdvance - 1));
-    } else if (pageDelta.abs() >= fastSwipeFraction) {
-      targetPage = pageDelta > 0 ? nearestPage + 1 : nearestPage - 1;
+    } else if (velocity > tolerance.velocity) {
+      targetPage =
+          progressFromFloor >= fastSwipeFraction ? floorPage + 1 : floorPage;
+    } else if (velocity < -tolerance.velocity) {
+      targetPage =
+          progressFromCeil >= fastSwipeFraction ? ceilPage - 1 : ceilPage;
     }
 
     final targetPixels =
