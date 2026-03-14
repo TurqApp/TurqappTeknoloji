@@ -948,7 +948,7 @@ class AgendaController extends GetxController {
       }
 
       // İlk yüklemede reshare eventlerini arka planda getir (feed'i bloklamasın)
-      unawaited(_fetchAndMergeReshareEvents());
+      unawaited(_fetchAndMergeReshareEvents(eventLimit: 200));
     }
 
     // Eğer shuffle edilmiş postlar varsa onlardan devam et
@@ -1636,7 +1636,7 @@ class AgendaController extends GetxController {
 
       // İlk açılış pipeline'ını kullan: hızlı cache + sunucudan güncel veri.
       await fetchAgendaBigData(initial: true);
-      await _fetchAndMergeReshareEvents();
+      await _fetchAndMergeReshareEvents(eventLimit: 500);
       pauseAll.value = false;
     } catch (e) {
       print("refreshAgenda error: $e");
@@ -1902,7 +1902,7 @@ class AgendaController extends GetxController {
   }
 
   // Reshare eventlerini getir ve ayrı listede tut (orijinal postlara dokunma)
-  Future<void> _fetchAndMergeReshareEvents() async {
+  Future<void> _fetchAndMergeReshareEvents({int eventLimit = 500}) async {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
@@ -1912,7 +1912,7 @@ class AgendaController extends GetxController {
       final reshareUserIds = <String>{};
 
       final rawEvents =
-          await _postRepository.fetchCollectionGroupReshares(limit: 500);
+          await _postRepository.fetchCollectionGroupReshares(limit: eventLimit);
       for (final data in rawEvents) {
         final postId = (data['postID'] ?? '').toString();
         if (postId.isEmpty) continue;
