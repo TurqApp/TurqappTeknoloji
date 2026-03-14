@@ -79,9 +79,8 @@ class AgendaController extends GetxController {
   bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
     final scheduled = post.scheduledAt.toInt();
     if (scheduled <= 0 || post.video.trim().isEmpty) return false;
-    final publishAt = scheduled > 0
-        ? scheduled
-        : post.izBirakYayinTarihi.toInt();
+    final publishAt =
+        scheduled > 0 ? scheduled : post.izBirakYayinTarihi.toInt();
     final now = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     return publishAt > now;
   }
@@ -216,7 +215,8 @@ class AgendaController extends GetxController {
     return publicIzBirakPosts.where((post) {
       final meta = authorMeta[post.userID];
       final rozet = (meta?['rozet'] ?? '').toString().trim();
-      final isApproved = (meta?['isApproved'] ?? meta?['hesapOnayi'] ?? false) == true;
+      final isApproved =
+          (meta?['isApproved'] ?? meta?['hesapOnayi'] ?? false) == true;
       if (rozet.isEmpty && !isApproved) return false;
       return true;
     }).toList(growable: false);
@@ -304,7 +304,8 @@ class AgendaController extends GetxController {
     // C-006: Sonraki 5 post'un görsellerini prefetch et
     _prefetchUpcomingImages();
 
-    final videoPosts = agendaList.where((p) => _canAutoplayVideoPost(p)).toList();
+    final videoPosts =
+        agendaList.where((p) => _canAutoplayVideoPost(p)).toList();
     if (videoPosts.isEmpty) return;
 
     int safeCurrent = 0;
@@ -558,7 +559,8 @@ class AgendaController extends GetxController {
       return;
     }
 
-    List<Map<String, dynamic>> filtered = mergedFeedEntries.toList(growable: false);
+    List<Map<String, dynamic>> filtered =
+        mergedFeedEntries.toList(growable: false);
 
     if (isFollowingMode && followingIDs.isNotEmpty) {
       final followingSet = followingIDs;
@@ -783,6 +785,76 @@ class AgendaController extends GetxController {
     }
   }
 
+  List<String> _primeAgendaUserStateFromCaches(
+    List<String> userIds,
+    Map<String, bool> userPrivacy,
+    Map<String, bool> userDeactivated,
+    Map<String, Map<String, dynamic>> userMeta,
+  ) {
+    final unresolved = <String>[];
+    for (final uid in userIds) {
+      if (uid.isEmpty) continue;
+      final cachedProfile = _profileCache.peekProfile(uid, allowStale: true);
+      if (cachedProfile != null) {
+        final isPrivate = (cachedProfile['isPrivate'] ?? false) == true;
+        final isDeactivated = _isUserMarkedDeactivated(cachedProfile);
+        userPrivacy[uid] = isPrivate;
+        userDeactivated[uid] = isDeactivated;
+        _userPrivacyCache[uid] = isPrivate;
+        _userDeactivatedCache[uid] = isDeactivated;
+        userMeta[uid] = cachedProfile;
+        continue;
+      }
+
+      final cachedPrivacy = _userPrivacyCache[uid];
+      final cachedDeactivated = _userDeactivatedCache[uid];
+      if (cachedPrivacy != null && cachedDeactivated != null) {
+        userPrivacy[uid] = cachedPrivacy;
+        userDeactivated[uid] = cachedDeactivated;
+        continue;
+      }
+
+      unresolved.add(uid);
+    }
+    return unresolved;
+  }
+
+  Future<void> _fillAgendaUserStateFromProfiles(
+    List<String> userIds,
+    Map<String, bool> userPrivacy,
+    Map<String, bool> userDeactivated,
+    Map<String, Map<String, dynamic>> userMeta, {
+    bool includeMeta = true,
+  }) async {
+    final unresolved = userIds.where((id) => id.isNotEmpty).toSet().toList();
+    if (unresolved.isEmpty) return;
+
+    final profiles = await _profileCache.getProfiles(
+      unresolved,
+      preferCache: true,
+      cacheOnly: !ContentPolicy.isConnected,
+    );
+    for (final uid in unresolved) {
+      final data = profiles[uid];
+      if (data == null) {
+        userPrivacy[uid] = false;
+        userDeactivated[uid] = false;
+        _userPrivacyCache[uid] = false;
+        _userDeactivatedCache[uid] = false;
+        continue;
+      }
+      final isPrivate = (data['isPrivate'] ?? false) == true;
+      final isDeactivated = _isUserMarkedDeactivated(data);
+      userPrivacy[uid] = isPrivate;
+      userDeactivated[uid] = isDeactivated;
+      _userPrivacyCache[uid] = isPrivate;
+      _userDeactivatedCache[uid] = isDeactivated;
+      if (includeMeta) {
+        userMeta[uid] = data;
+      }
+    }
+  }
+
   GlobalKey getAgendaKeyForDoc(String docID) {
     return _agendaKeys.putIfAbsent(
         docID, () => GlobalObjectKey("agenda_$docID"));
@@ -926,20 +998,19 @@ class AgendaController extends GetxController {
       Map<String, bool> userDeactivated = {};
       Map<String, Map<String, dynamic>> userMeta = {};
       if (uniqueUserIDs.isNotEmpty) {
-        final profiles = await _userRepository.getUsersRaw(
+        final unresolved = _primeAgendaUserStateFromCaches(
           uniqueUserIDs,
-          preferCache: true,
-          cacheOnly: !ContentPolicy.isConnected,
+          userPrivacy,
+          userDeactivated,
+          userMeta,
         );
-        for (final entry in profiles.entries) {
-          final data = entry.value;
-          final gizli = (data['isPrivate'] ?? false) == true;
-          final deactivated = _isUserMarkedDeactivated(data);
-          userPrivacy[entry.key] = gizli;
-          userDeactivated[entry.key] = deactivated;
-          _userPrivacyCache[entry.key] = gizli;
-          _userDeactivatedCache[entry.key] = deactivated;
-          userMeta[entry.key] = data;
+        if (unresolved.isNotEmpty) {
+          await _fillAgendaUserStateFromProfiles(
+            unresolved,
+            userPrivacy,
+            userDeactivated,
+            userMeta,
+          );
         }
       }
 
@@ -961,6 +1032,19 @@ class AgendaController extends GetxController {
       lastDoc = page.lastDoc;
 
       if (visibleItems.isNotEmpty) {
+        final missingMetaUserIDs = visibleItems
+            .map((post) => post.userID)
+            .where((uid) => !userMeta.containsKey(uid))
+            .toSet()
+            .toList();
+        if (missingMetaUserIDs.isNotEmpty) {
+          await _fillAgendaUserStateFromProfiles(
+            missingMetaUserIDs,
+            userPrivacy,
+            userDeactivated,
+            userMeta,
+          );
+        }
         unawaited(_saveFeedPostsToPool(visibleItems, userMeta));
         // Yeni eklenecekler içinde "zamanlıydı ve yeni görünür oldu" olanları vurgula
         final existingIDs = agendaList.map((e) => e.docID).toSet();
@@ -1209,19 +1293,21 @@ class AgendaController extends GetxController {
       final uniqueUserIDs = valid.map((e) => e.userID).toSet().toList();
       final Map<String, bool> userPrivacy = {};
       final Map<String, bool> userDeactivated = {};
-      final profiles = await _userRepository.getUsersRaw(
+      final userMeta = <String, Map<String, dynamic>>{};
+      final unresolved = _primeAgendaUserStateFromCaches(
         uniqueUserIDs,
-        preferCache: true,
-        cacheOnly: !ContentPolicy.isConnected,
+        userPrivacy,
+        userDeactivated,
+        userMeta,
       );
-      for (final entry in profiles.entries) {
-        final data = entry.value;
-        final gizli = (data['isPrivate'] ?? false) == true;
-        final deactivated = _isUserMarkedDeactivated(data);
-        userPrivacy[entry.key] = gizli;
-        userDeactivated[entry.key] = deactivated;
-        _userPrivacyCache[entry.key] = gizli;
-        _userDeactivatedCache[entry.key] = deactivated;
+      if (unresolved.isNotEmpty) {
+        await _fillAgendaUserStateFromProfiles(
+          unresolved,
+          userPrivacy,
+          userDeactivated,
+          userMeta,
+          includeMeta: false,
+        );
       }
 
       final String? me = FirebaseAuth.instance.currentUser?.uid;
