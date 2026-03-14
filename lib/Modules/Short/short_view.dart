@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -491,6 +492,38 @@ class _ShortViewState extends State<ShortView> {
     );
   }
 
+  Widget _cachedThumb(String url) {
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (_, __) => const SizedBox.shrink(),
+      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildThumbOverlay(String thumb, double modelAr) {
+    if (thumb.isEmpty) return const SizedBox.shrink();
+    if (modelAr > 1.2) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: modelAr,
+          child: _cachedThumb(thumb),
+        ),
+      );
+    }
+    if (modelAr >= 0.8) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: 1.0,
+          child: _cachedThumb(thumb),
+        ),
+      );
+    }
+    return SizedBox.expand(
+      child: _cachedThumb(thumb),
+    );
+  }
+
   @override
   void dispose() {
     _scrollDebounce?.cancel();
@@ -642,18 +675,25 @@ class _ShortViewState extends State<ShortView> {
                 onPageChanged: _onPageChanged,
                 itemBuilder: (_, idx) {
                   final vp = controller.cache[idx];
-
-                  if (vp == null) {
-                    return const Center(
-                      child: CupertinoActivityIndicator(color: Colors.white),
-                    );
-                  }
-
-                  // PURE BUILD — side effect yok, sadece widget döndür
+                  final thumb = list[idx].thumbnail;
                   final modelAr = list[idx].aspectRatio > 0
                       ? list[idx].aspectRatio.toDouble()
                       : (9 / 16);
 
+                  if (vp == null) {
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildThumbOverlay(thumb, modelAr),
+                        const Center(
+                          child:
+                              CupertinoActivityIndicator(color: Colors.white),
+                        ),
+                      ],
+                    );
+                  }
+
+                  // PURE BUILD — side effect yok, sadece widget döndür
                   // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
                   Widget videoWidget;
                   if (modelAr > 1.2) {
@@ -692,6 +732,28 @@ class _ShortViewState extends State<ShortView> {
                             vp.setVolume(volume ? 1 : 0);
                           },
                           child: videoWidget,
+                        ),
+                        AnimatedBuilder(
+                          animation: vp,
+                          builder: (_, __) {
+                            if (vp.value.hasRenderedFirstFrame) {
+                              return const SizedBox.shrink();
+                            }
+                            return _buildThumbOverlay(thumb, modelAr);
+                          },
+                        ),
+                        AnimatedBuilder(
+                          animation: vp,
+                          builder: (_, __) {
+                            if (vp.value.isInitialized) {
+                              return const SizedBox.shrink();
+                            }
+                            return const Center(
+                              child: CupertinoActivityIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          },
                         ),
                         ShortsContent(
                           model: list[idx],
