@@ -312,7 +312,6 @@ class ShortController extends GetxController {
   /// Yenileme işlemi - basit ve etkili
   Future<void> refreshShorts() async {
     if (isRefreshing.value || isLoading.value) {
-      print('[Shorts] Refresh blocked - already refreshing or loading');
       return;
     }
 
@@ -440,8 +439,7 @@ class ShortController extends GetxController {
         await _loadNextPage();
         loops++;
       }
-    } catch (e) {
-      print('[Shorts] warmStart error: $e');
+    } catch (_) {
     }
   }
 

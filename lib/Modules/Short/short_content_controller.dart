@@ -120,8 +120,7 @@ class ShortContentController extends GetxController {
     try {
       _postState ??= _postRepository.attachPost(model);
       _syncSharedInteractionState();
-    } catch (e) {
-      print('Load user interaction status error: $e');
+    } catch (_) {
     }
   }
 
@@ -464,8 +463,7 @@ class ShortContentController extends GetxController {
       if (outcome.limitReached) {
         AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
       }
-    } catch (e) {
-      print('Bir hata oluştu: $e');
+    } catch (_) {
     } finally {
       followLoading.value = false;
     }

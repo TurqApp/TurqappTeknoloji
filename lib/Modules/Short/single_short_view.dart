@@ -326,8 +326,6 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       // Injected controller hazır değilse hızlıca lokal controller oluştur.
       _initialIndexForSeek = null;
       _ensureController(initial);
-      print(
-          '[SingleShortView] Injected controller hazır değil, local controller kullanılıyor.');
     }
     if (list.isNotEmpty && initial >= 0 && initial < list.length) {
       try {
@@ -373,8 +371,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     try {
       items = await ShortRepository.ensure().fetchRandomReadyPosts(limit: 1000)
         ..shuffle();
-    } catch (e) {
-      print("fetch error: $e");
+    } catch (_) {
     }
 
     final merged = <PostsModel>[];
@@ -520,12 +517,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             HLSAdapterPlaybackHandle(ctrl),
           );
 
-          print(
-              '[SingleShortView] 🔙 Saved position: ${ctrl.value.position} for ${currentModel.docID}');
         }
       }
-    } catch (e) {
-      print('[SingleShortView] Error during didPop: $e');
+    } catch (_) {
     }
 
     // Tüm videoları durdur
@@ -684,15 +678,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
           position.inMilliseconds > 0) {
         _completionTriggered[index] = true;
 
-        print('[SingleShortView] 🎬 Video $index tamamlandı');
-        print(
-            '[SingleShortView] ⏱️  ${position.inSeconds}/${duration.inSeconds}s');
-
         // Sonraki videoya geç
         final nextIndex = currentPage + 1;
         if (nextIndex < shorts.length) {
-          print(
-              '[SingleShortView] ⏭️  Video $nextIndex\'e geçiliyor (nextPage ile)');
           if (pageController.hasClients) {
             // nextPage kullan (Short ekranı gibi)
             pageController.nextPage(
@@ -701,7 +689,6 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
             );
           }
         } else {
-          print('[SingleShortView] 📝 Son video, başa sarılıyor');
           // Son videoysa başa sar
           Future.delayed(const Duration(milliseconds: 100), () {
             final sameController = _videoControllers[index] == ctrl;
