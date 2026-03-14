@@ -58,7 +58,8 @@ class SolveTestController extends GetxController {
       );
       cevaplar.assignAll(List.generate(soruList.length, (index) => ""));
     } catch (e) {
-      print("Error fetching questions: $e");
+      soruList.clear();
+      cevaplar.clear();
     } finally {
       isLoading.value = false;
     }
@@ -80,7 +81,6 @@ class SolveTestController extends GetxController {
           [firstName, lastName].where((e) => e.isNotEmpty).join(" ").trim();
       fullname.value = nick.isNotEmpty ? nick : fallbackName;
     } catch (e) {
-      print("Error fetching user data: $e");
       fullname.value = "";
     }
   }
@@ -96,9 +96,7 @@ class SolveTestController extends GetxController {
       userId: FirebaseAuth.instance.currentUser!.uid,
       answers: cevaplar.toList(growable: false),
     )
-        .catchError((error) {
-      print("Yanitlar eklenirken hata: $error");
-    });
+        .catchError((error) {});
     Get.back();
     showSucces();
   }

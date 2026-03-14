@@ -56,14 +56,11 @@ class TestEntryController extends GetxController {
           testTuru: data['testTuru'] as String,
           taslak: data['taslak'] as bool,
         );
-        print("buldu");
         closeKeyboard(Get.context!);
       } else {
         model.value = null;
-        print("veriyok");
       }
     } catch (e) {
-      print("Error fetching test: $e");
       model.value = null;
     } finally {
       isLoading.value = false;

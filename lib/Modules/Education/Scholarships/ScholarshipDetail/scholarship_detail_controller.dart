@@ -175,26 +175,18 @@ class ScholarshipDetailController extends GetxController {
     }
 
     try {
-      print('Başvuru durumu kontrol ediliyor');
       final String scholarshipId =
           scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '';
-      final String type = 'bireysel';
-
-      print('Burs başvuru tipi: $type');
 
       if (scholarshipId.isNotEmpty) {
         allreadyApplied.value = await _scholarshipRepository.hasUserApplied(
           scholarshipId,
           currentUser.uid,
         );
-
-        print('Son başvuru durumu: ${allreadyApplied.value}');
       } else {
-        print('Geçersiz burs ID');
         allreadyApplied.value = false;
       }
     } catch (e) {
-      print('Başvuru durumu kontrol edilirken hata: $e');
       AppSnackbar("Hata", "Başvuru durumu kontrol edilirken hata oluştu.");
       allreadyApplied.value = false;
     }
@@ -234,7 +226,6 @@ class ScholarshipDetailController extends GetxController {
       allreadyApplied.value = true;
       AppSnackbar("Başarılı", "Burs başvurunuz alınmıştır.");
     } catch (e) {
-      print('Başvuru kaydedilirken hata: $e');
       AppSnackbar("Hata", "Başvuru kaydedilemedi.");
     } finally {
       isLoading.value = false;
@@ -259,7 +250,6 @@ class ScholarshipDetailController extends GetxController {
 
   void updatePageIndex(int pageIndex) {
     currentPageIndex.value = pageIndex;
-    print('Güncellenen sayfa indeksi: $pageIndex');
   }
 
   void toggleUniversityList() {
@@ -287,7 +277,6 @@ class ScholarshipDetailController extends GetxController {
       }
     } catch (e) {
       isFollowing.value = wasFollowing; // revert
-      print("Takip işlemi hatası: $e");
       AppSnackbar("Hata", "Takip işlemi başarısız.");
     } finally {
       isFollowLoading.value = false;
@@ -309,7 +298,6 @@ class ScholarshipDetailController extends GetxController {
       AppSnackbar("Başarılı", "Burs başarıyla silindi.");
     } catch (e) {
       AppSnackbar("Hata", "Burs silinirken bir hata oluştu: $e");
-      print("deleteScholarship hatası.");
     } finally {
       isLoading.value = false;
     }
@@ -337,7 +325,6 @@ class ScholarshipDetailController extends GetxController {
       await checkUserApplicationReadiness();
       AppSnackbar("Başarılı", "Burs başvurunuz iptal edildi.");
     } catch (e) {
-      print('Başvuru iptal edilirken hata: $e');
       AppSnackbar("Hata", "Başvuru iptal edilemedi.");
     } finally {
       isLoading.value = false;
