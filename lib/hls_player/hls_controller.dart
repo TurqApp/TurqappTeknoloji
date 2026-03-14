@@ -30,6 +30,8 @@ class HLSController {
   bool _isLooping = false;
   String? _errorMessage;
   bool _hasRenderedFirstFrame = false;
+  double? _pendingReattachSeekSeconds;
+  bool _pendingReattachShouldPlay = false;
 
   // Fallback support
   String? _fallbackUrl;
@@ -71,6 +73,19 @@ class HLSController {
 
   // Initialize controller with view ID
   void initialize(int viewId) {
+    final hadBoundView = _viewId != null;
+    if (hadBoundView) {
+      final previousPosition =
+          _currentPosition.isFinite ? _currentPosition : 0.0;
+      final shouldRestorePosition = previousPosition > 0.05;
+      final shouldResumePlay =
+          _state == PlayerState.playing || _state == PlayerState.buffering;
+      if (shouldRestorePosition || shouldResumePlay) {
+        _pendingReattachSeekSeconds = previousPosition;
+        _pendingReattachShouldPlay = shouldResumePlay;
+      }
+    }
+
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
     _eventSubscription?.cancel();
     _eventSubscription = null;
@@ -79,6 +94,10 @@ class HLSController {
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
+
+    if (_pendingReattachSeekSeconds != null || _pendingReattachShouldPlay) {
+      unawaited(pause());
+    }
   }
 
   // Load video with mp4 fallback on HLS failure
@@ -327,6 +346,18 @@ class HLSController {
             _durationController
                 .add(Duration(milliseconds: (durationSeconds * 1000).toInt()));
             _updateState(PlayerState.ready);
+            final pendingSeek = _pendingReattachSeekSeconds;
+            final pendingPlay = _pendingReattachShouldPlay;
+            _pendingReattachSeekSeconds = null;
+            _pendingReattachShouldPlay = false;
+            if ((pendingSeek != null && pendingSeek > 0.05) || pendingPlay) {
+              unawaited(
+                _restorePlaybackAfterReattach(
+                  seekSeconds: pendingSeek,
+                  resumePlay: pendingPlay,
+                ),
+              );
+            }
             break;
 
           case 'play':
@@ -444,5 +475,21 @@ class HLSController {
     _errorMessage = message;
     _updateState(PlayerState.error);
     _errorController.add(message);
+  }
+
+  Future<void> _restorePlaybackAfterReattach({
+    required double? seekSeconds,
+    required bool resumePlay,
+  }) async {
+    if (_viewId == null) return;
+    if (seekSeconds != null && seekSeconds > 0.05) {
+      try {
+        await seekTo(seekSeconds);
+      } catch (_) {}
+    }
+    if (!resumePlay) return;
+    try {
+      await play();
+    } catch (_) {}
   }
 }
