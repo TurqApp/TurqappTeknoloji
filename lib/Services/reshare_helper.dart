@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -59,7 +60,7 @@ class ReshareHelper {
 
       return nickname;
     } catch (e) {
-      print('ReshareHelper: getUserNickname error: $e');
+      debugPrint('ReshareHelper nickname lookup error: $e');
       return 'Bilinmeyen Kullanıcı';
     }
   }
@@ -107,7 +108,7 @@ class ReshareHelper {
       _cleanupCacheIfNeeded();
       return displayName;
     } catch (e) {
-      print('ReshareHelper: getUserDisplayName error: $e');
+      debugPrint('ReshareHelper displayName lookup error: $e');
       return 'Bilinmeyen Kullanıcı';
     }
   }
@@ -158,14 +159,8 @@ class ReshareHelper {
     String? existingOriginalUserID,
     String? existingOriginalPostID,
   ) async {
-    print('ReshareHelper.getOriginalUserInfo called:');
-    print('  postUserID: $postUserID');
-    print('  existingOriginalUserID: $existingOriginalUserID');
-    print('  existingOriginalPostID: $existingOriginalPostID');
-
     // Eğer post zaten bir reshare ise, orijinal bilgileri koru
     if (existingOriginalUserID != null && existingOriginalUserID.isNotEmpty) {
-      print('  -> Returning existing original user info');
       return {
         'userID': existingOriginalUserID,
         'originalPostID': existingOriginalPostID ?? '',
@@ -173,7 +168,6 @@ class ReshareHelper {
     }
 
     // İlk kez reshare ediliyorsa, post sahibinin bilgilerini al
-    print('  -> First time reshare, setting original user and post info');
     return {
       'userID': postUserID,
       'originalPostID':
@@ -189,15 +183,8 @@ class ReshareHelper {
     String? existingOriginalUserID,
     String? existingOriginalPostID,
   ) async {
-    print('ReshareHelper.getDynamicOriginalInfo called:');
-    print('  currentPostID: $currentPostID');
-    print('  currentUserID: $currentUserID');
-    print('  existingOriginalUserID: $existingOriginalUserID');
-    print('  existingOriginalPostID: $existingOriginalPostID');
-
     // Eğer mevcut post zaten bir paylaşım ise (originalUserID dolu)
     if (existingOriginalUserID != null && existingOriginalUserID.isNotEmpty) {
-      print('  -> Post is already a reshare, keeping original chain');
       return {
         'userID': existingOriginalUserID,
         'originalPostID': existingOriginalPostID ?? '',
@@ -205,7 +192,6 @@ class ReshareHelper {
     }
 
     // Eğer ilk kez paylaşılıyorsa, mevcut post'un sahibi ve ID'si ana referans olur
-    print('  -> First time reshare, setting current post as original source');
     return {
       'userID': currentUserID,
       'originalPostID': currentPostID,
