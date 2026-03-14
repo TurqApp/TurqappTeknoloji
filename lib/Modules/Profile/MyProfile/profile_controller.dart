@@ -35,6 +35,7 @@ class ProfileController extends GetxController {
   Worker? _videosWorker;
   Worker? _resharesWorker;
   Worker? _scheduledWorker;
+  Worker? _mergedPostsWorker;
   var postSelection = 0.obs;
 
   final currentVisibleIndex = RxInt(-1);
@@ -61,6 +62,8 @@ class ProfileController extends GetxController {
   }
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
+  final RxList<Map<String, dynamic>> mergedPosts =
+      <Map<String, dynamic>>[].obs;
   DocumentSnapshot? lastPostDoc;
   bool hasMorePosts = true;
   final int postLimit = 10;
@@ -129,6 +132,7 @@ class ProfileController extends GetxController {
     _videosWorker?.dispose();
     _resharesWorker?.dispose();
     _scheduledWorker?.dispose();
+    _mergedPostsWorker?.dispose();
     super.onClose();
   }
 
@@ -148,6 +152,46 @@ class ProfileController extends GetxController {
     _resharesWorker = ever(reshares, (_) => _schedulePersistPostCaches());
     _scheduledWorker =
         ever(scheduledPosts, (_) => _schedulePersistPostCaches());
+    _mergedPostsWorker = everAll(
+      [allPosts, reshares],
+      (_) => _rebuildMergedPosts(),
+    );
+    _rebuildMergedPosts();
+  }
+
+  void _rebuildMergedPosts() {
+    if (allPosts.isEmpty && reshares.isEmpty) {
+      mergedPosts.clear();
+      return;
+    }
+
+    final combined = <Map<String, dynamic>>[];
+
+    for (final post in allPosts.where((post) => !post.deletedPost && !post.arsiv)) {
+      combined.add({
+        'post': post,
+        'isReshare': false,
+        'timestamp': post.timeStamp,
+      });
+    }
+
+    for (final reshare in reshares.where((post) => !post.deletedPost && !post.arsiv)) {
+      final reshareTimestamp = reshareSortTimestampFor(
+        reshare.docID,
+        reshare.timeStamp.toInt(),
+      );
+      combined.add({
+        'post': reshare,
+        'isReshare': true,
+        'timestamp': reshareTimestamp,
+      });
+    }
+
+    combined.sort(
+      (a, b) => (b['timestamp'] as num).compareTo(a['timestamp'] as num),
+    );
+
+    mergedPosts.assignAll(combined);
   }
 
   void _schedulePersistPostCaches() {

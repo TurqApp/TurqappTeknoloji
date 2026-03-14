@@ -260,37 +260,7 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Obx(() {
                       return controller.postSelection.value == 0
                           ? () {
-                              final List<Map<String, dynamic>> combinedPosts =
-                                  [];
-
-                              for (final post in controller.allPosts.where(
-                                (post) => !post.deletedPost && !post.arsiv,
-                              )) {
-                                combinedPosts.add({
-                                  'post': post,
-                                  'isReshare': false,
-                                  'timestamp': post.timeStamp,
-                                });
-                              }
-
-                              for (final reshare in controller.reshares.where(
-                                (post) => !post.deletedPost && !post.arsiv,
-                              )) {
-                                final reshareTimestamp =
-                                    controller.reshareSortTimestampFor(
-                                  reshare.docID,
-                                  reshare.timeStamp.toInt(),
-                                );
-                                combinedPosts.add({
-                                  'post': reshare,
-                                  'isReshare': true,
-                                  'timestamp': reshareTimestamp,
-                                });
-                              }
-
-                              combinedPosts.sort((a, b) =>
-                                  (b['timestamp'] as num)
-                                      .compareTo(a['timestamp'] as num));
+                              final combinedPosts = controller.mergedPosts;
 
                               return combinedPosts.isNotEmpty
                                   ? NotificationListener<ScrollNotification>(
