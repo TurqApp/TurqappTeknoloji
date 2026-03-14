@@ -41,6 +41,7 @@ class GlobalVideoAdapterPool extends GetxService {
           coordinateAudioFocus: coordinateAudioFocus,
         );
       } else {
+        adapter.prepareForReuse();
         unawaited(adapter.setLooping(loop));
       }
     } else {

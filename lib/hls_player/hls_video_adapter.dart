@@ -113,6 +113,26 @@ class HLSVideoAdapter extends ChangeNotifier {
     }
   }
 
+  /// Warm pool'dan geri gelen adapter yeni native view'a bağlanmadan önce
+  /// stale ready state'ini bırakmalı; aksi halde volume/seek/play eski view'a gider.
+  void prepareForReuse() {
+    if (_disposed) return;
+    _viewReady = false;
+    _isStopped = false;
+    _value = HLSVideoValue(
+      isInitialized: false,
+      isPlaying: false,
+      isBuffering: false,
+      hasRenderedFirstFrame: false,
+      position: _value.position,
+      duration: _value.duration,
+      size: _value.size,
+      aspectRatio: _value.aspectRatio,
+      buffered: _value.buffered,
+    );
+    notifyListeners();
+  }
+
   void _subscribeToStreams() {
     _stateSub = _hls.onStateChanged.listen((state) {
       if (_disposed) return;
