@@ -106,6 +106,13 @@ class AppHealthDashboard extends StatelessWidget {
         ? Get.find<PlaybackKpiService>().recentEvents
         : const <PlaybackKpiEvent>[];
     final lastEvent = recentEvents.isNotEmpty ? recentEvents.last : null;
+    PlaybackKpiEvent? lastIntentEvent;
+    for (final event in recentEvents.reversed) {
+      if (event.type == PlaybackKpiEventType.playbackIntent) {
+        lastIntentEvent = event;
+        break;
+      }
+    }
     final scheduler = Get.isRegistered<PrefetchScheduler>()
         ? Get.find<PrefetchScheduler>()
         : null;
@@ -243,6 +250,19 @@ class AppHealthDashboard extends StatelessWidget {
                   color: Colors.grey[700],
                 ),
               ),
+            if (lastIntentEvent != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Son intent: '
+                '${lastIntentEvent.payload['source']}  •  '
+                '${lastIntentEvent.payload['audible'] == true ? 'sesli' : 'sessiz'}  •  '
+                '${lastIntentEvent.payload['stableFocus'] == true ? 'stabil odak' : 'gecici odak'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
           ],
         ),
       ),
