@@ -110,75 +110,81 @@ class ExploreView extends StatelessWidget {
         bottom: false,
         child: Stack(
           children: [
-            Obx(() {
-              return Column(
-                children: [
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.black.withValues(alpha: 0.06),
-                              ),
-                              borderRadius: BorderRadius.circular(10),
+            Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.black.withValues(alpha: 0.06),
                             ),
-                            child: TurqSearchBar(
-                              controller: controller.searchController,
-                              focusNode: controller.searchFocus,
-                              hintText: "Ara",
-                              onTap: () {
-                                controller.isSearchMode.value = true;
-                              },
-                              onChanged: (v) {
-                                controller.onSearchChanged(v);
-                              },
-                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: TurqSearchBar(
+                            controller: controller.searchController,
+                            focusNode: controller.searchFocus,
+                            hintText: "Ara",
+                            onTap: () {
+                              controller.isSearchMode.value = true;
+                            },
+                            onChanged: (v) {
+                              controller.onSearchChanged(v);
+                            },
                           ),
                         ),
-                        if (controller.isKeyboardOpen.value)
-                          GestureDetector(
-                            onTap: () {
-                              controller.searchFocus.unfocus();
-                              controller.searchController.clear();
-                              controller.searchText.value = "";
-                              controller.searchedList.clear();
-                              controller.searchedHashtags.clear();
-                              controller.searchedTags.clear();
-                              controller.showAllRecent.value = false;
-                              controller.isKeyboardOpen.value = false;
-                              controller.isSearchMode.value = false;
-                              closeKeyboard(context);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 10),
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.xmark,
-                                  color: Colors.black,
-                                  size: 17,
-                                ),
+                      ),
+                      Obx(() {
+                        if (!controller.isKeyboardOpen.value) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return GestureDetector(
+                          onTap: () {
+                            controller.searchFocus.unfocus();
+                            controller.searchController.clear();
+                            controller.searchText.value = "";
+                            controller.searchedList.clear();
+                            controller.searchedHashtags.clear();
+                            controller.searchedTags.clear();
+                            controller.showAllRecent.value = false;
+                            controller.isKeyboardOpen.value = false;
+                            controller.isSearchMode.value = false;
+                            closeKeyboard(context);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.xmark,
+                                color: Colors.black,
+                                size: 17,
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                        );
+                      }),
+                    ],
                   ),
+                ),
+                Obx(() {
+                  final showExploreTabs =
+                      !controller.isSearchMode.value &&
+                      !controller.isKeyboardOpen.value &&
+                      controller.searchText.value.trim().isEmpty;
 
-                  // ——————————— İçerik Sekmeleri ———————————
-                  if (!controller.isSearchMode.value &&
-                      !controller.searchFocus.hasFocus &&
-                      controller.searchText.value.trim().isEmpty)
-                    Expanded(
+                  if (showExploreTabs) {
+                    return Expanded(
                       child: Column(
                         children: [
                           PageLineBar(
@@ -565,86 +571,87 @@ class ExploreView extends StatelessWidget {
                           )
                         ],
                       ),
-                    )
-                  else
-                    Expanded(
-                      child: ListView(
-                        children: controller.searchText.value.trim().isEmpty
-                            ? [
-                                Obx(() {
-                                  final recent = controller.recentSearchUsers;
-                                  if (recent.isEmpty) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Column(
-                                    children: recent
-                                        .map(
-                                          (m) => SearchUserContent(
-                                            model: m,
-                                            isSearch: false,
-                                          ),
-                                        )
-                                        .toList(),
-                                  );
-                                }),
-                              ]
-                            : [
-                                ...controller.searchedHashtags.map((tag) {
-                                  final title = "#${tag.hashtag}";
-                                  return ListTile(
-                                    dense: true,
-                                    leading: const Icon(CupertinoIcons.number,
-                                        color: Colors.black87, size: 20),
-                                    title: Text(
-                                      title,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontFamily: "MontserratSemiBold",
-                                      ),
+                    );
+                  }
+
+                  return Expanded(
+                    child: ListView(
+                      children: controller.searchText.value.trim().isEmpty
+                          ? [
+                              Obx(() {
+                                final recent = controller.recentSearchUsers;
+                                if (recent.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  children: recent
+                                      .map(
+                                        (m) => SearchUserContent(
+                                          model: m,
+                                          isSearch: false,
+                                        ),
+                                      )
+                                      .toList(),
+                                );
+                              }),
+                            ]
+                          : [
+                              ...controller.searchedHashtags.map((tag) {
+                                final title = "#${tag.hashtag}";
+                                return ListTile(
+                                  dense: true,
+                                  leading: const Icon(CupertinoIcons.number,
+                                      color: Colors.black87, size: 20),
+                                  title: Text(
+                                    title,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontFamily: "MontserratSemiBold",
                                     ),
-                                    onTap: () => Get.to(
-                                        () => TagPosts(tag: tag.hashtag)),
-                                    trailing: const Icon(
-                                        CupertinoIcons.arrow_turn_up_left,
-                                        color: Colors.black45,
-                                        size: 18),
-                                  );
-                                }),
-                                ...controller.searchedTags.map((tag) {
-                                  final title = tag.hashtag;
-                                  return ListTile(
-                                    dense: true,
-                                    leading: const Icon(CupertinoIcons.tag,
-                                        color: Colors.black87, size: 20),
-                                    title: Text(
-                                      title,
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 16,
-                                        fontFamily: "MontserratSemiBold",
-                                      ),
-                                    ),
-                                    onTap: () => Get.to(
-                                        () => TagPosts(tag: tag.hashtag)),
-                                    trailing: const Icon(
-                                        CupertinoIcons.arrow_turn_up_left,
-                                        color: Colors.black45,
-                                        size: 18),
-                                  );
-                                }),
-                                ...controller.searchedList.map(
-                                  (u) => SearchUserContent(
-                                    model: u,
-                                    isSearch: true,
                                   ),
-                                )
-                              ],
-                      ),
-                    )
-                ],
-              );
-            }),
+                                  onTap: () =>
+                                      Get.to(() => TagPosts(tag: tag.hashtag)),
+                                  trailing: const Icon(
+                                      CupertinoIcons.arrow_turn_up_left,
+                                      color: Colors.black45,
+                                      size: 18),
+                                );
+                              }),
+                              ...controller.searchedTags.map((tag) {
+                                final title = tag.hashtag;
+                                return ListTile(
+                                  dense: true,
+                                  leading: const Icon(CupertinoIcons.tag,
+                                      color: Colors.black87, size: 20),
+                                  title: Text(
+                                    title,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontFamily: "MontserratSemiBold",
+                                    ),
+                                  ),
+                                  onTap: () =>
+                                      Get.to(() => TagPosts(tag: tag.hashtag)),
+                                  trailing: const Icon(
+                                      CupertinoIcons.arrow_turn_up_left,
+                                      color: Colors.black45,
+                                      size: 18),
+                                );
+                              }),
+                              ...controller.searchedList.map(
+                                (u) => SearchUserContent(
+                                  model: u,
+                                  isSearch: true,
+                                ),
+                              )
+                            ],
+                    ),
+                  );
+                }),
+              ],
+            ),
             Obx(() {
               return controller.showScrollToTop.value
                   ? Positioned(
