@@ -74,10 +74,6 @@ class ShortController extends GetxController {
   static bool _globalShuffleCompleted = false;
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      await adapter.stopPlayback();
-      return;
-    }
     await adapter.pause();
   }
 
@@ -439,8 +435,7 @@ class ShortController extends GetxController {
         await _loadNextPage();
         loops++;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Posts query: en yeni -> eski, arsiv=false, deletedPost=false, zaman geldi

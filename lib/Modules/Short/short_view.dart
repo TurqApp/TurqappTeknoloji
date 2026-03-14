@@ -122,10 +122,6 @@ class _ShortViewState extends State<ShortView> {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      await adapter.stopPlayback();
-      return;
-    }
     await adapter.pause();
   }
 

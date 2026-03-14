@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -123,10 +122,6 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      await adapter.stopPlayback();
-      return;
-    }
     await adapter.pause();
   }
 
