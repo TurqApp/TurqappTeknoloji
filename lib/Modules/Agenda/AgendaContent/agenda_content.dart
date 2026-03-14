@@ -91,7 +91,7 @@ class _AgendaContentState extends State<AgendaContent>
   static const PostActionStyle _actionStyle = PostActionStyle.modern();
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
-  static const Color _videoFallbackColor = Color(0xFF15181C);
+  static const Color _videoFallbackColor = Colors.transparent;
   static const List<String> _flagReasons = <String>[
     'Uyuşturucu',
     'Kumar',
@@ -696,9 +696,6 @@ class _AgendaContentState extends State<AgendaContent>
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          const ColoredBox(
-                                            color: _videoFallbackColor,
-                                          ),
                                           _isFullscreen
                                               ? const SizedBox.shrink()
                                               : videoController!.buildPlayer(

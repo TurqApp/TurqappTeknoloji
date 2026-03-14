@@ -247,7 +247,7 @@ class _ClassicContentState extends State<ClassicContent>
 
   Widget _buildVideoThumbnail({double? aspectRatio}) {
     final thumb = widget.model.thumbnail.trim();
-    final fallback = const ColoredBox(color: _classicMediaFallbackColor);
+    const fallback = ColoredBox(color: Colors.transparent);
     final cacheHeight = aspectRatio != null
         ? _feedCacheHeightForAspectRatio(aspectRatio)
         : (_feedCacheWidth * 1.4).round();
@@ -698,8 +698,6 @@ class _ClassicContentState extends State<ClassicContent>
   static const double _reelPortraitFrameAspectRatio = 5 / 8;
   static const double _feedPortraitFrameAspectRatio = 4 / 5;
   static const double _squareFrameAspectRatio = 0.92;
-  static const Color _classicMediaFallbackColor = Color(0xFF15181C);
-
   bool get _shouldPreserveScholarshipShareFrame {
     final type =
         _ctaNavigationService.resolveMeta(widget.model.reshareMap).type;
@@ -1663,9 +1661,6 @@ class _ClassicContentState extends State<ClassicContent>
                     child: buildUploadIndicator(),
                   ),
                 ] else if (videoController != null) ...[
-                  const ColoredBox(
-                    color: _classicMediaFallbackColor,
-                  ),
                   IgnorePointer(
                     ignoring: true,
                     child: _isFullscreen
@@ -1697,12 +1692,9 @@ class _ClassicContentState extends State<ClassicContent>
                     child: buildUploadIndicator(),
                   ),
                 ] else
-                  ColoredBox(
-                    color: _classicMediaFallbackColor,
-                    child: widget.model.thumbnail.isEmpty
-                        ? null
-                        : _buildVideoThumbnail(),
-                  ),
+                  widget.model.thumbnail.isEmpty
+                      ? const SizedBox.expand()
+                      : _buildVideoThumbnail(),
                 if (videoController == null)
                   Positioned(
                     top: 8,
