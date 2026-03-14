@@ -16,25 +16,38 @@ import '../../Models/posts_model.dart';
 
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
-    this.maxPagesPerFling = 4,
-    this.baseMinFlingVelocity = 600.0,
+    this.maxPagesPerFling = 1,
+    this.baseMinFlingVelocity = 220.0,
+    this.fastSwipeFraction = 0.10,
     super.parent,
   });
 
   final int maxPagesPerFling;
   final double baseMinFlingVelocity;
+  final double fastSwipeFraction;
 
   @override
   MomentumPageScrollPhysics applyTo(ScrollPhysics? ancestor) {
     return MomentumPageScrollPhysics(
       maxPagesPerFling: maxPagesPerFling,
       baseMinFlingVelocity: baseMinFlingVelocity,
+      fastSwipeFraction: fastSwipeFraction,
       parent: buildParent(ancestor),
     );
   }
 
   @override
   double get minFlingVelocity => baseMinFlingVelocity;
+
+  @override
+  double get dragStartDistanceMotionThreshold => 2.0;
+
+  @override
+  SpringDescription get spring => const SpringDescription(
+        mass: 0.35,
+        stiffness: 320.0,
+        damping: 28.0,
+      );
 
   @override
   Simulation? createBallisticSimulation(
@@ -53,16 +66,24 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
     final page = position.pixels / position.viewportDimension;
     final minPage = position.minScrollExtent / position.viewportDimension;
     final maxPage = position.maxScrollExtent / position.viewportDimension;
+    final nearestPage = page.roundToDouble();
+    final pageDelta = page - nearestPage;
 
-    int pagesToAdvance = 1;
-    if (velocity.abs() > baseMinFlingVelocity * 1.8) pagesToAdvance = 2;
-    if (velocity.abs() > baseMinFlingVelocity * 2.8) {
-      pagesToAdvance = maxPagesPerFling;
+    double targetPage = nearestPage;
+    if (velocity.abs() >= baseMinFlingVelocity) {
+      int pagesToAdvance = 1;
+      if (velocity.abs() > baseMinFlingVelocity * 2.0) pagesToAdvance = 2;
+      if (velocity.abs() > baseMinFlingVelocity * 3.2) {
+        pagesToAdvance = maxPagesPerFling;
+      }
+
+      targetPage = velocity > 0
+          ? (page.ceilToDouble() + (pagesToAdvance - 1))
+          : (page.floorToDouble() - (pagesToAdvance - 1));
+    } else if (pageDelta.abs() >= fastSwipeFraction) {
+      targetPage = pageDelta > 0 ? nearestPage + 1 : nearestPage - 1;
     }
 
-    final targetPage = velocity > 0
-        ? (page.ceilToDouble() + (pagesToAdvance - 1))
-        : (page.floorToDouble() - (pagesToAdvance - 1));
     final targetPixels =
         targetPage.clamp(minPage, maxPage) * position.viewportDimension;
 
@@ -545,12 +566,11 @@ class _ShortViewState extends State<ShortView> {
               controller: pageController,
               scrollDirection: Axis.vertical,
               physics: MomentumPageScrollPhysics(
-                maxPagesPerFling:
-                    defaultTargetPlatform == TargetPlatform.android ? 2 : 4,
+                maxPagesPerFling: 1,
                 baseMinFlingVelocity:
                     defaultTargetPlatform == TargetPlatform.android
-                        ? 500.0
-                        : 600.0,
+                        ? 180.0
+                        : 220.0,
                 parent: const AlwaysScrollableScrollPhysics(),
               ),
               itemCount: list.length,
