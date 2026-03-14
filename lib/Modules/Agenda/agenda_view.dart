@@ -87,7 +87,7 @@ class AgendaView extends StatelessWidget {
             left: 0,
             right: 0,
             child: Container(
-              height: topInset + 12,
+              height: topInset + 7,
               color: Colors.white,
             ),
           ),
@@ -538,7 +538,7 @@ class AgendaView extends StatelessWidget {
           padding: EdgeInsets.only(
             left: 15,
             right: 10,
-            top: Get.mediaQuery.padding.top + 18,
+            top: Get.mediaQuery.padding.top + 3,
             bottom: 8,
           ),
           child: Row(
@@ -686,7 +686,7 @@ class AgendaView extends StatelessWidget {
                   ),
                 );
               }),
-              const SizedBox(width: 2),
+              const SizedBox(width: AppIconSurface.kGap),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -717,7 +717,7 @@ class AgendaView extends StatelessWidget {
                         const Icon(
                           CupertinoIcons.mail,
                           color: Colors.black,
-                          size: 20,
+                          size: AppIconSurface.kIconSize,
                         ),
                         if (hasUnread)
                           Positioned(
@@ -739,7 +739,7 @@ class AgendaView extends StatelessWidget {
                   }),
                 ),
               ),
-              const SizedBox(width: 2),
+              const SizedBox(width: AppIconSurface.kGap),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
@@ -759,7 +759,7 @@ class AgendaView extends StatelessWidget {
                       const Icon(
                         CupertinoIcons.bell,
                         color: Colors.black,
-                        size: 20,
+                        size: AppIconSurface.kIconSize,
                       ),
                       Obx(() {
                         final hasUnread =
