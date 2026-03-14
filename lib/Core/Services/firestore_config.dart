@@ -2,7 +2,6 @@
 // Configures Firestore cache, persistence, and optimization settings
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
 class FirestoreConfig {
   static bool _initialized = false;
@@ -34,15 +33,7 @@ class FirestoreConfig {
 
       _initialized = true;
 
-      if (kDebugMode) {
-        print('✅ Firestore initialized with optimized settings');
-        print('   - Persistence: enabled');
-        print('   - Cache size: 100 MB');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Firestore initialization error: $e');
-      }
+    } catch (_) {
     }
   }
 
@@ -92,13 +83,7 @@ class FirestoreConfig {
   static Future<void> clearCache() async {
     try {
       await FirebaseFirestore.instance.clearPersistence();
-      if (kDebugMode) {
-        print('✅ Firestore cache cleared');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to clear Firestore cache: $e');
-      }
+    } catch (_) {
     }
   }
 }

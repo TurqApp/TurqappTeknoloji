@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
@@ -53,8 +52,7 @@ mixin PaginatedController<T> on GetxController {
       paginatedItems.assignAll(items);
       if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
       if (snap.docs.length < pageSize) hasMore.value = false;
-    } catch (e) {
-      log("PaginatedController.loadInitial error: $e");
+    } catch (_) {
       paginatedItems.clear();
     } finally {
       isLoading.value = false;
@@ -75,8 +73,7 @@ mixin PaginatedController<T> on GetxController {
       paginatedItems.addAll(items);
       if (snap.docs.isNotEmpty) _lastDocument = snap.docs.last;
       if (snap.docs.length < pageSize) hasMore.value = false;
-    } catch (e) {
-      log("PaginatedController.loadMore error: $e");
+    } catch (_) {
     } finally {
       isLoadingMore.value = false;
     }

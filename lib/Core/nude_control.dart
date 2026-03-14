@@ -36,9 +36,8 @@ Future<void> checkImagesForNude({
         nudeVar = true;
         break;
       }
-    } catch (e) {
+    } catch (_) {
       // Eğer bir dosya okunamazsa, atla veya kullanıcıya bildir
-      print('NSFW check failed for ${dosya.path}: $e');
     }
   }
   callback(nudeVar);

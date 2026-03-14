@@ -7,7 +7,6 @@ bool kufurKontrolEt(String text) {
 
   for (String word in words) {
     if (kufurler.contains(word.trim())) {
-      print('TESPİT EDİLEN KÜFÜR: $word');
       return true;
     }
   }

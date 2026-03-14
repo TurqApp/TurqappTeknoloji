@@ -45,8 +45,7 @@ class IzBirakSubscriptionService extends GetxService {
         'timeStamp': DateTime.now().millisecondsSinceEpoch,
       });
       return true;
-    } catch (e) {
-      print('[IzBirakSubscription] subscribe failed post=$normalizedPostId uid=$uid error=$e');
+    } catch (_) {
       subscribedPostIds.remove(normalizedPostId);
       return false;
     } finally {

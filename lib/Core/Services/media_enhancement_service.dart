@@ -226,8 +226,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error applying filter: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;
@@ -296,8 +295,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error applying adjustments: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;
@@ -378,8 +376,7 @@ class MediaEnhancementService extends GetxController {
 
       _processingProgress.value = 1.0;
       return processedBytes;
-    } catch (e) {
-      print('Error in full processing: $e');
+    } catch (_) {
       return null;
     } finally {
       _isProcessing.value = false;

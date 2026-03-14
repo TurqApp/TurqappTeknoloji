@@ -39,11 +39,7 @@ class MandatoryFollowService {
         // Transaction/rule edge-case durumlarında takip ilişkisini yine de kur.
         try {
           await _fallbackEnsureFollowing(me: me, other: uid);
-        } catch (fallbackError) {
-          // Sessiz yutmak yerine logla; kullanıcı akışını bloklamasın.
-          // ignore: avoid_print
-          print(
-              '[MandatoryFollow] follow failed error=$e fallback=$fallbackError');
+        } catch (_) {
         }
       }
     }

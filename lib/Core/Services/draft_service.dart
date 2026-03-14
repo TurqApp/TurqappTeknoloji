@@ -257,8 +257,7 @@ class DraftService extends GetxController {
       if (await draftDir.exists()) {
         await draftDir.delete(recursive: true);
       }
-    } catch (e) {
-      print('Error cleaning up draft media: $e');
+    } catch (_) {
     }
   }
 
