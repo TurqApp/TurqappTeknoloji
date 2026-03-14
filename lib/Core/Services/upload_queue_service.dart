@@ -251,9 +251,100 @@ class UploadQueueService extends GetxController {
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
 
-      // Video/HLS pipeline starts from Storage; create the Firestore shell first
-      // so feed-critical fields exist even if HLS updates arrive earlier.
-      // Keep the shell out of feed queries until the final write completes.
+      // NSFW gate must run before any Firestore shell doc is created.
+      for (final imagePath in upload.imagePaths) {
+        final file = File(imagePath);
+        if (!await file.exists()) continue;
+        final nsfwImage = await OptimizedNSFWService.checkImage(file);
+        if (nsfwImage.errorMessage != null) {
+          upload.status = UploadStatus.failed;
+          upload.errorMessage = 'NSFW görsel kontrolü başarısız';
+          await FirebaseFirestore.instance
+              .collection('Posts')
+              .doc(upload.id)
+              .delete()
+              .catchError((_) {});
+          await _saveQueueToStorage();
+          return;
+        }
+        if (nsfwImage.isNSFW) {
+          upload.status = UploadStatus.failed;
+          upload.errorMessage = 'Uygunsuz görsel tespit edildi';
+          await FirebaseFirestore.instance
+              .collection('Posts')
+              .doc(upload.id)
+              .delete()
+              .catchError((_) {});
+          await _saveQueueToStorage();
+          return;
+        }
+      }
+
+      File? checkedVideoFile;
+      if (upload.videoPath != null) {
+        final rawVideoFile = File(upload.videoPath!);
+        if (await rawVideoFile.exists()) {
+          checkedVideoFile = rawVideoFile;
+          try {
+            checkedVideoFile = await VideoCompressionService.compressForNetwork(
+              rawVideoFile,
+              targetMbps: 5.0,
+            );
+          } catch (_) {}
+          final effectiveVideoFile = checkedVideoFile ?? rawVideoFile;
+
+          final videoSize = await effectiveVideoFile.length();
+          if (videoSize > _maxVideoBytesForStorageRule) {
+            upload.status = UploadStatus.failed;
+            upload.errorMessage = 'Video boyutu çok büyük (maks. 35MB)';
+            await FirebaseFirestore.instance
+                .collection('Posts')
+                .doc(upload.id)
+                .delete()
+                .catchError((_) {});
+            await _saveQueueToStorage();
+            return;
+          }
+
+          final nsfwVideo =
+              await OptimizedNSFWService.checkVideo(effectiveVideoFile);
+          if (kDebugMode) {
+            debugPrint('[NSFW][Queue][Video] '
+                'blocked=${nsfwVideo.isNSFW} '
+                'frames=${nsfwVideo.framesChecked} '
+                'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
+                'error=${nsfwVideo.errorMessage}');
+            for (final sample in nsfwVideo.debugSamples.take(80)) {
+              debugPrint('[NSFW][Queue][Video][Frame] $sample');
+            }
+          }
+          if (nsfwVideo.errorMessage != null) {
+            upload.status = UploadStatus.failed;
+            upload.errorMessage = 'NSFW video kontrolü başarısız';
+            await FirebaseFirestore.instance
+                .collection('Posts')
+                .doc(upload.id)
+                .delete()
+                .catchError((_) {});
+            await _saveQueueToStorage();
+            return;
+          }
+          if (nsfwVideo.isNSFW) {
+            upload.status = UploadStatus.failed;
+            upload.errorMessage = 'Uygunsuz video tespit edildi';
+            await FirebaseFirestore.instance
+                .collection('Posts')
+                .doc(upload.id)
+                .delete()
+                .catchError((_) {});
+            await _saveQueueToStorage();
+            return;
+          }
+        }
+      }
+
+      // Video/HLS pipeline starts from Storage; create the Firestore shell only
+      // after local moderation gates are passed.
       await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
         "arsiv": true,
         "debugMode": false,
@@ -352,36 +443,8 @@ class UploadQueueService extends GetxController {
       int thumbWidth = 0;
       int thumbHeight = 0;
       if (upload.videoPath != null) {
-        File videoFile = File(upload.videoPath!);
+        File videoFile = checkedVideoFile ?? File(upload.videoPath!);
         if (await videoFile.exists()) {
-          // Compress in background before upload
-          try {
-            videoFile = await VideoCompressionService.compressForNetwork(
-              videoFile,
-              targetMbps: 5.0,
-            );
-          } catch (_) {}
-          final videoSize = await videoFile.length();
-          if (videoSize > _maxVideoBytesForStorageRule) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Video boyutu çok büyük (maks. 35MB)';
-            await _saveQueueToStorage();
-            return;
-          }
-
-          final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
-          if (nsfwVideo.errorMessage != null) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'NSFW video kontrolü başarısız';
-            await _saveQueueToStorage();
-            return;
-          }
-          if (nsfwVideo.isNSFW) {
-            upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Uygunsuz video tespit edildi';
-            await _saveQueueToStorage();
-            return;
-          }
           final ref = FirebaseStorage.instance.ref().child(
                 'Posts/${upload.id}/video.mp4',
               );

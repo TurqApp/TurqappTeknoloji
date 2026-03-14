@@ -131,6 +131,63 @@ class AntremanView2 extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 15),
             child: Obx(() {
+              if (controller.hasActiveSearch) {
+                if (controller.isSearchLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (controller.searchResults.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Aramaya uygun soru bulunamadı.',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: controller.searchResults.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final item = controller.searchResults[index];
+                    return ListTile(
+                      onTap: () => controller.openSearchResult(item),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      tileColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      title: Text(
+                        '${item.sinavTuru} • ${item.ders}',
+                        style: TextStyles.textFieldTitle.copyWith(
+                          fontSize: 15,
+                          color: const Color(0xFF151821),
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Soru ${item.soruNo} • ${item.yil}',
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 18,
+                        color: Color(0xFF151821),
+                      ),
+                    );
+                  },
+                );
+              }
+
               if (!controller.mainCategoryLoaded.value) {
                 return const Center(child: CircularProgressIndicator());
               }

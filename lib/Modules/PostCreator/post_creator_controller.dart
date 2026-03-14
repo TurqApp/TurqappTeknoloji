@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../NavBar/nav_bar_controller.dart';
@@ -80,10 +81,12 @@ class PreparedPostModel {
 class PostCreatorController extends GetxController with WidgetsBindingObserver {
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
   static const int _maxScheduledWindowDays = 90;
+  static int _lastModerationSnackbarAtMs = 0;
   final PostRepository _postRepository = PostRepository.ensure();
   RxList<PostCreatorModel> postList =
       <PostCreatorModel>[PostCreatorModel(index: 0, text: "")].obs;
   final RxBool isKeyboardOpen = false.obs;
+  final RxBool isPublishing = false.obs;
   var selectedIndex = 0.obs;
   final agendaController = Get.find<AgendaController>();
   var comment = true.obs;
@@ -174,6 +177,83 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return picked;
   }
 
+  Future<void> _hydrateQuotedSourceIfNeeded() async {
+    if (!_isSharedAsPost || !_isQuotedPost) return;
+
+    final sourcePostId = _sharedSourcePostID.trim().isNotEmpty
+        ? _sharedSourcePostID.trim()
+        : _sharedOriginalPostID.trim();
+
+    Map<String, dynamic> sourcePost = const <String, dynamic>{};
+    if (sourcePostId.isNotEmpty) {
+      sourcePost = await _postRepository.fetchPostRawById(
+            sourcePostId,
+            preferCache: true,
+          ) ??
+          const <String, dynamic>{};
+    }
+
+    final resolvedText = _quotedOriginalText.trim().isNotEmpty
+        ? _quotedOriginalText.trim()
+        : (sourcePost['metin'] ?? '').toString().trim();
+    if (resolvedText.isNotEmpty) {
+      _quotedOriginalText = resolvedText;
+    }
+
+    final sourceUserId = _quotedSourceUserID.trim().isNotEmpty
+        ? _quotedSourceUserID.trim()
+        : (sourcePost['userID'] ?? sourcePost['userId'] ?? '').toString().trim();
+    if (sourceUserId.isNotEmpty) {
+      _quotedSourceUserID = sourceUserId;
+    }
+
+    if (sourceUserId.isEmpty) return;
+
+    final userRaw = await UserRepository.ensure().getUserRaw(
+          sourceUserId,
+          preferCache: true,
+          cacheOnly: false,
+        ) ??
+        const <String, dynamic>{};
+
+    final resolvedDisplayName = _quotedSourceDisplayName.trim().isNotEmpty
+        ? _quotedSourceDisplayName.trim()
+        : [
+            (userRaw['displayName'] ?? '').toString().trim(),
+            [
+              (userRaw['firstName'] ?? '').toString().trim(),
+              (userRaw['lastName'] ?? '').toString().trim(),
+            ].where((e) => e.isNotEmpty).join(' ').trim(),
+            (userRaw['nickname'] ?? '').toString().trim(),
+            (userRaw['username'] ?? '').toString().trim(),
+          ].firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    if (resolvedDisplayName.isNotEmpty) {
+      _quotedSourceDisplayName = resolvedDisplayName;
+    }
+
+    final resolvedUsername = _quotedSourceUsername.trim().isNotEmpty
+        ? _quotedSourceUsername.trim()
+        : [
+            (userRaw['username'] ?? '').toString().trim(),
+            (userRaw['nickname'] ?? '').toString().trim(),
+          ].firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    if (resolvedUsername.isNotEmpty) {
+      _quotedSourceUsername = resolvedUsername;
+    }
+
+    final resolvedAvatar = _quotedSourceAvatarUrl.trim().isNotEmpty
+        ? _quotedSourceAvatarUrl.trim()
+        : [
+            (userRaw['avatarUrl'] ?? '').toString().trim(),
+            (userRaw['profileImage'] ?? '').toString().trim(),
+            (userRaw['photoUrl'] ?? '').toString().trim(),
+            (userRaw['imageUrl'] ?? '').toString().trim(),
+          ].firstWhere((e) => e.isNotEmpty, orElse: () => '');
+    if (resolvedAvatar.isNotEmpty) {
+      _quotedSourceAvatarUrl = resolvedAvatar;
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -262,6 +342,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     _quotedSourceDisplayName = (quotedSourceDisplayName ?? '').trim();
     _quotedSourceUsername = (quotedSourceUsername ?? '').trim();
     _quotedSourceAvatarUrl = (quotedSourceAvatarUrl ?? '').trim();
+    await _hydrateQuotedSourceIfNeeded();
 
     const tag = '0';
     if (!Get.isRegistered<CreatorContentController>(tag: tag)) {
@@ -954,6 +1035,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
       if (post.video != null) {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(post.video!);
+        if (kDebugMode) {
+          debugPrint('[NSFW][PostCreator][Video] '
+              'blocked=${nsfwVideo.isNSFW} '
+              'frames=${nsfwVideo.framesChecked} '
+              'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
+              'error=${nsfwVideo.errorMessage}');
+          for (final sample in nsfwVideo.debugSamples.take(80)) {
+            debugPrint('[NSFW][PostCreator][Video][Frame] $sample');
+          }
+        }
         if (nsfwVideo.errorMessage != null) {
           throw Exception('NSFW video kontrolü başarısız');
         }
@@ -1387,6 +1478,69 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     return true;
   }
 
+  void _showModerationSnackbarOnce(String title, String message) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs - _lastModerationSnackbarAtMs < 1500) {
+      return;
+    }
+    _lastModerationSnackbarAtMs = nowMs;
+    AppSnackbar(title, message);
+  }
+
+  Future<bool> _runModerationPreflightForComposer() async {
+    for (final postModel in postList) {
+      final tag = postModel.index.toString();
+      if (!Get.isRegistered<CreatorContentController>(tag: tag)) continue;
+
+      final controller = Get.find<CreatorContentController>(tag: tag);
+
+      for (final image in controller.selectedImages) {
+        final nsfwImage = await OptimizedNSFWService.checkImage(image);
+        if (nsfwImage.errorMessage != null) {
+          _showModerationSnackbarOnce(
+            'Yükleme Başarısız',
+            'İçerik güvenlik kontrolü tamamlanamadı.',
+          );
+          return false;
+        }
+        if (nsfwImage.isNSFW) {
+          _showModerationSnackbarOnce(
+            'Yükleme Başarısız',
+            'Bu görsel yüklenemiyor.',
+          );
+          return false;
+        }
+      }
+
+      final video = controller.selectedVideo.value;
+      if (video != null) {
+        final nsfwVideo = await OptimizedNSFWService.checkVideo(video);
+        if (kDebugMode) {
+          debugPrint('[NSFW][Composer][Video] '
+              'blocked=${nsfwVideo.isNSFW} '
+              'frames=${nsfwVideo.framesChecked} '
+              'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
+              'error=${nsfwVideo.errorMessage}');
+        }
+        if (nsfwVideo.errorMessage != null) {
+          _showModerationSnackbarOnce(
+            'Yükleme Başarısız',
+            'İçerik güvenlik kontrolü tamamlanamadı.',
+          );
+          return false;
+        }
+        if (nsfwVideo.isNSFW) {
+          _showModerationSnackbarOnce(
+            'Yükleme Başarısız',
+            'Bu video yüklenemiyor.',
+          );
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   /// Start auto-save timer
   void _startAutoSave() {
     _autoSaveTimer = Timer.periodic(
@@ -1438,6 +1592,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
   /// Enhanced upload with comprehensive error handling
   void uploadAllPostsInBackgroundWithErrorHandling() async {
+    if (isPublishing.value) return;
+    isPublishing.value = true;
     try {
       // Check network connectivity first
       if (!_networkService.isConnected) {
@@ -1527,6 +1683,10 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         return;
       }
 
+      if (!await _runModerationPreflightForComposer()) {
+        return;
+      }
+
       Get.back();
 
       // Start progress indicator
@@ -1556,6 +1716,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           'publishMode': publishMode.value,
         },
       );
+    } finally {
+      isPublishing.value = false;
     }
   }
 
@@ -1910,6 +2072,16 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             try {
               final nsfwVideo =
                   await OptimizedNSFWService.checkVideo(post.video!);
+              if (kDebugMode) {
+                debugPrint('[NSFW][PostCreator][Video] '
+                    'blocked=${nsfwVideo.isNSFW} '
+                    'frames=${nsfwVideo.framesChecked} '
+                    'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
+                    'error=${nsfwVideo.errorMessage}');
+                for (final sample in nsfwVideo.debugSamples.take(80)) {
+                  debugPrint('[NSFW][PostCreator][Video][Frame] $sample');
+                }
+              }
               if (nsfwVideo.errorMessage != null) {
                 throw Exception('NSFW video kontrolü başarısız');
               }

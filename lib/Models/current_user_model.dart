@@ -298,7 +298,12 @@ class CurrentUserModel {
     return CurrentUserModel(
       userID: doc.id,
       nickname:
-          (data['nickname'] ?? data['username'] ?? data['displayName'] ?? '')
+          (data['nickname'] ??
+                  data['nickName'] ??
+                  data['username'] ??
+                  data['userName'] ??
+                  data['displayName'] ??
+                  '')
               .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
@@ -309,7 +314,7 @@ class CurrentUserModel {
       dogumTarihi: data['dogumTarihi'] ?? '',
       cinsiyet: data['cinsiyet'] ?? '',
       bio: data['bio'] ?? '',
-      rozet: data['rozet'] ?? '',
+      rozet: (data['rozet'] ?? data['badge'] ?? '').toString(),
       hesapOnayi: (data['isApproved'] ?? false) == true,
       gizliHesap: (data['isPrivate'] ?? false) == true,
       viewSelection: data['viewSelection'] ?? 1,
@@ -583,7 +588,12 @@ class CurrentUserModel {
     return CurrentUserModel(
       userID: json['userID'] ?? '',
       nickname:
-          (json['nickname'] ?? json['username'] ?? json['displayName'] ?? '')
+          (json['nickname'] ??
+                  json['nickName'] ??
+                  json['username'] ??
+                  json['userName'] ??
+                  json['displayName'] ??
+                  '')
               .toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
@@ -594,7 +604,7 @@ class CurrentUserModel {
       dogumTarihi: json['dogumTarihi'] ?? '',
       cinsiyet: json['cinsiyet'] ?? '',
       bio: json['bio'] ?? '',
-      rozet: json['rozet'] ?? '',
+      rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
       hesapOnayi: (json['isApproved'] ?? false) == true,
       gizliHesap: (json['isPrivate'] ?? false) == true,
       viewSelection: json['viewSelection'] ?? 1,

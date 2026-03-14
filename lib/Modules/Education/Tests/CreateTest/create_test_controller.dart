@@ -130,11 +130,12 @@ class CreateTestController extends GetxController {
       final result = await detector.detectNSFWFromFile(imageFile.value!);
       print("NSFW detected: ${result?.isNsfw}");
       print("NSFW score: ${result?.score}");
-      if (result!.isNsfw) {
+      if (result == null || result.isNsfw) {
         imageFile.value = null;
       }
     } catch (e) {
       print("Error analyzing image: $e");
+      imageFile.value = null;
     }
   }
 

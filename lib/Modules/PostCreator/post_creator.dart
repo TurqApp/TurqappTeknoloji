@@ -116,7 +116,9 @@ class PostCreator extends StatelessWidget {
                 icon: const Icon(Icons.arrow_back, color: Colors.black),
               ),
               InkWell(
-                onTap: () async {
+                onTap: controller.isPublishing.value
+                    ? null
+                    : () async {
                   if (controller.isSavingEdit.value) return;
                   if (controller.isEditMode.value) {
                     final ok = await controller.savePostEdit();
@@ -150,7 +152,9 @@ class PostCreator extends StatelessWidget {
                         ? (controller.isSavingEdit.value
                             ? "Kaydediliyor..."
                             : "Kaydet")
-                        : "Yayınla",
+                        : (controller.isPublishing.value
+                            ? "Yükleniyor..."
+                            : "Yayınla"),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,

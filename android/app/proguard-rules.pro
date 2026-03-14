@@ -28,6 +28,9 @@
 -keep class androidx.media3.** { *; }
 -dontwarn androidx.media3.**
 
+# ONNX Runtime
+-keep class ai.onnxruntime.** { *; }
+
 # Keep annotations
 -keepattributes *Annotation*
 -keepattributes Signature

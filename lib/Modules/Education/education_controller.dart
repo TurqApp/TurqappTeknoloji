@@ -6,8 +6,10 @@ import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
+import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/deneme_sinavlari_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
@@ -74,7 +76,8 @@ class EducationController extends GetxController {
   }
 
   void _bindPasajConfig() {
-    _pasajConfigSub = ConfigRepository.ensure().watchAdminConfigDoc('pasaj').listen(
+    _pasajConfigSub =
+        ConfigRepository.ensure().watchAdminConfigDoc('pasaj').listen(
       (snap) {
         final data = snap;
         _adminPasajVisibility.clear();
@@ -284,6 +287,16 @@ class EducationController extends GetxController {
           jc.search.text = query;
         }
         break;
+      case "Soru Bankası":
+        if (Get.isRegistered<AntremanController>()) {
+          Get.find<AntremanController>().setSearchQuery(query);
+        }
+        break;
+      case "Denemeler":
+        if (Get.isRegistered<CikmisSorularController>()) {
+          Get.find<CikmisSorularController>().setSearchQuery(query);
+        }
+        break;
       case "Online Sınav":
         if (Get.isRegistered<DenemeSinavlariController>()) {
           Get.find<DenemeSinavlariController>().setSearchQuery(query);
@@ -314,6 +327,16 @@ class EducationController extends GetxController {
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();
+        }
+        break;
+      case "Soru Bankası":
+        if (Get.isRegistered<AntremanController>()) {
+          Get.find<AntremanController>().setSearchQuery('');
+        }
+        break;
+      case "Denemeler":
+        if (Get.isRegistered<CikmisSorularController>()) {
+          Get.find<CikmisSorularController>().setSearchQuery('');
         }
         break;
       case "Online Sınav":

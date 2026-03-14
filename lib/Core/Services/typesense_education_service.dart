@@ -46,10 +46,11 @@ class TypesenseEducationSearchService {
     int limit = 30,
     int page = 1,
   }) async {
-    if (query.trim().isEmpty) return [];
+    final normalized = query.trim();
+    if (normalized.isEmpty) return [];
     final callable = _functions.httpsCallable('f21_searchEducationCallable');
     final response = await callable.call(<String, dynamic>{
-      'q': query,
+      'q': normalized,
       'entity': entity.apiLabel,
       'limit': limit,
       'page': page,
@@ -58,10 +59,11 @@ class TypesenseEducationSearchService {
     final hits = (data['hits'] as List<dynamic>?) ?? [];
     final ids = <String>[];
     for (final rawHit in hits) {
-      if (rawHit is Map<String, dynamic>) {
-        final docId = rawHit['docId']?.toString().trim() ?? '';
-        if (docId.isNotEmpty) ids.add(docId);
-      }
+      final hitMap = rawHit is Map ? Map<String, dynamic>.from(rawHit) : null;
+      if (hitMap == null) continue;
+
+      final docId = (hitMap['docId'] ?? hitMap['id'])?.toString().trim() ?? '';
+      if (docId.isNotEmpty) ids.add(docId);
     }
     return ids;
   }

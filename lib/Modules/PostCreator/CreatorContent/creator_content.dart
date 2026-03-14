@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,8 +71,11 @@ class CreatorContent extends StatelessWidget {
         child: Obx(() {
           final userService = CurrentUserService.instance;
           final currentUser = userService.currentUserRx.value;
-          final composerUserId =
-              (currentUser?.userID ?? userService.userId).trim();
+          final composerUserId = (currentUser?.userID ??
+                  (userService.userId.isNotEmpty
+                      ? userService.userId
+                      : (FirebaseAuth.instance.currentUser?.uid ?? '')))
+              .trim();
           final composerAvatarUrl =
               (currentUser?.avatarUrl ?? userService.avatarUrl).trim();
           return IntrinsicHeight(

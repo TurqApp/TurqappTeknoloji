@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
-import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
-import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_grid.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -29,57 +29,22 @@ class CikmisSorular extends StatefulWidget {
 }
 
 class _CikmisSorularState extends State<CikmisSorular> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
+  final CikmisSorularController controller = Get.put(CikmisSorularController());
+  final ScrollController _scrollController = ScrollController();
+  double _previousOffset = 0.0;
   bool showButons = false;
-  List<CikmisSorularCoverModel> list = [];
+
   @override
   void initState() {
     super.initState();
-    getData();
     scrolControlcu();
   }
 
-  Future<void> getData() async {
-    const baslikSirasi = <String>[
-      "LGS",
-      "YKS",
-      "KPSS",
-      "ALES",
-      "YDS",
-      "DGS",
-      "TUS",
-      "DUS",
-    ];
-    final tempList = await _repository.fetchCovers();
-    tempList.sort((a, b) {
-      var indexA = baslikSirasi.indexOf(a.anaBaslik);
-      var indexB = baslikSirasi.indexOf(b.anaBaslik);
-      if (indexA == -1) indexA = baslikSirasi.length;
-      if (indexB == -1) indexB = baslikSirasi.length;
-      return indexA.compareTo(indexB);
-    });
-    if (mounted) {
-      setState(() {
-        list = tempList;
-      });
-    }
-  }
-
-  double _previousOffset = 0.0;
-
-  final ScrollController _scrollController = ScrollController();
-
   void scrolControlcu() {
     _scrollController.addListener(() {
-      double currentOffset = _scrollController.position.pixels;
+      final currentOffset = _scrollController.position.pixels;
 
-      if (currentOffset > _previousOffset) {
-        if (mounted && showButons) {
-          setState(() {
-            showButons = false;
-          });
-        }
-      } else if (currentOffset < _previousOffset) {
+      if (currentOffset > _previousOffset || currentOffset < _previousOffset) {
         if (mounted && showButons) {
           setState(() {
             showButons = false;
@@ -87,16 +52,134 @@ class _CikmisSorularState extends State<CikmisSorular> {
         }
       }
 
-      if (_scrollController.position.pixels ==
-          _scrollController.position.maxScrollExtent) {}
-
       _previousOffset = currentOffset;
     });
   }
 
+  Widget _buildSearchResults() {
+    if (controller.isSearchLoading.value) {
+      return const Center(child: CupertinoActivityIndicator());
+    }
+
+    if (controller.searchResults.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aramaya uygun deneme bulunamadı.',
+          style: TextStyle(
+            color: Colors.black54,
+            fontFamily: 'MontserratMedium',
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+      itemCount: controller.searchResults.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final item = controller.searchResults[index];
+        final title = (item['title'] ?? item['anaBaslik'] ?? '').toString();
+        final sinavTuru = (item['sinavTuru'] ?? '').toString();
+        final yil = (item['yil'] ?? '').toString();
+        final baslik2 = (item['baslik2'] ?? '').toString();
+        final baslik3 = (item['baslik3'] ?? '').toString();
+
+        return ListTile(
+          tileColor: const Color(0xFFF6F7FB),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+          title: Text(
+            title.isEmpty ? 'Deneme' : title,
+            style: const TextStyle(
+              fontFamily: 'MontserratBold',
+              color: Colors.black,
+            ),
+          ),
+          subtitle: Text(
+            [sinavTuru, yil, baslik2, baslik3]
+                .where((e) => e.isNotEmpty)
+                .join(' • '),
+            style: const TextStyle(
+              fontFamily: 'MontserratMedium',
+              color: Colors.black54,
+            ),
+          ),
+          trailing: const Icon(CupertinoIcons.chevron_right, size: 18),
+          onTap: () {
+            Get.to(
+              () => CikmisSorularPreview(
+                anaBaslik: (item['anaBaslik'] ?? '').toString(),
+                sinavTuru: sinavTuru,
+                yil: yil,
+                baslik2: baslik2,
+                baslik3: baslik3,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDefaultContent(List<Color> colors) {
+    return Container(
+      color: Colors.white,
+      child: ListView(
+        controller: _scrollController,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              EducationSlider(
+                sliderId: 'denemeler',
+                imageList: [
+                  AppAssets.previous1,
+                  AppAssets.practice2,
+                  AppAssets.previous3,
+                  AppAssets.previous4,
+                ],
+              ),
+              15.ph,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10.0,
+                    mainAxisSpacing: 10.0,
+                    childAspectRatio: 3 / 4,
+                  ),
+                  itemCount: controller.covers.length,
+                  itemBuilder: (context, index) {
+                    final color = colors[index % colors.length];
+                    final cover = controller.covers[index];
+                    return CikmisSorularGrid(
+                      anaBaslik: (cover['anaBaslik'] ?? '').toString(),
+                      color: color,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<Color> colors = [
+    final colors = <Color>[
       Colors.deepPurple,
       Colors.indigo,
       Colors.teal,
@@ -108,56 +191,14 @@ class _CikmisSorularState extends State<CikmisSorular> {
     ];
 
     final bodyContent = Expanded(
-      child: showButons || list.isEmpty
-          ? Center(child: CupertinoActivityIndicator())
-          : Container(
-              color: Colors.white,
-              child: ListView(
-                controller: _scrollController,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      EducationSlider(
-                        sliderId: 'denemeler',
-                        imageList: [
-                          AppAssets.previous1,
-                          AppAssets.practice2,
-                          AppAssets.previous3,
-                          AppAssets.previous4,
-                        ],
-                      ),
-                      15.ph,
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                        ),
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10.0,
-                            mainAxisSpacing: 10.0,
-                            childAspectRatio: 3 / 4,
-                          ),
-                          itemCount: list.length,
-                          itemBuilder: (context, index) {
-                            final color = colors[index % colors.length];
-                            return CikmisSorularGrid(
-                              anaBaslik: list[index].anaBaslik,
-                              color: color,
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 30),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        return controller.hasActiveSearch
+            ? _buildSearchResults()
+            : _buildDefaultContent(colors);
+      }),
     );
 
     if (widget.embedded) {
@@ -216,14 +257,14 @@ class _CikmisSorularState extends State<CikmisSorular> {
                       onPressed: () {
                         Get.back();
                       },
-                      icon: Icon(
+                      icon: const Icon(
                         AppIcons.arrowLeft,
                         color: Colors.black,
                         size: 25,
                       ),
                     ),
                     TypewriterText(
-                      text: "Denemeler",
+                      text: 'Denemeler',
                     ),
                   ],
                 ),

@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '15.0'
+platform :ios, '16.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -41,7 +41,7 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
       # Xcode 26 enforces quoted includes in framework headers as errors for
       # some third-party pods (e.g., share_plus/libwebp). Disable for Pods.
       config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
@@ -77,6 +77,27 @@ post_install do |installer|
         flutter_public = '"${PODS_ROOT}/Headers/Public/Flutter"'
         header_paths << flutter_public unless header_paths.include?(flutter_public)
         config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
+      end
+
+      if target.name == 'gRPC-Core' || target.name == 'gRPC-C++'
+        header_paths = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
+        header_paths = [header_paths] unless header_paths.is_a?(Array)
+        user_header_paths =
+          config.build_settings['USER_HEADER_SEARCH_PATHS'] || '$(inherited)'
+        user_header_paths = [user_header_paths] unless user_header_paths.is_a?(Array)
+
+        grpc_core_root = '"${PODS_ROOT}/gRPC-Core"'
+        grpc_core_src = '"${PODS_ROOT}/gRPC-Core/src"'
+        grpc_cpp_root = '"${PODS_ROOT}/gRPC-C++"'
+        grpc_cpp_src = '"${PODS_ROOT}/gRPC-C++/src"'
+
+        [grpc_core_root, grpc_core_src, grpc_cpp_root, grpc_cpp_src].each do |path|
+          header_paths << path unless header_paths.include?(path)
+          user_header_paths << path unless user_header_paths.include?(path)
+        end
+
+        config.build_settings['HEADER_SEARCH_PATHS'] = header_paths
+        config.build_settings['USER_HEADER_SEARCH_PATHS'] = user_header_paths
       end
     end
   end

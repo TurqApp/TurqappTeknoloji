@@ -116,9 +116,13 @@ class CreateBookController extends GetxController {
 
   Future<void> _analyzeImage() async {
     if (imageFile.value == null) return;
-    final detector = await NsfwDetector.load(threshold: 0.3);
-    final result = await detector.detectNSFWFromFile(imageFile.value!);
-    if (result?.isNsfw == true) {
+    try {
+      final detector = await NsfwDetector.load(threshold: 0.3);
+      final result = await detector.detectNSFWFromFile(imageFile.value!);
+      if (result == null || result.isNsfw) {
+        imageFile.value = null;
+      }
+    } catch (_) {
       imageFile.value = null;
     }
   }

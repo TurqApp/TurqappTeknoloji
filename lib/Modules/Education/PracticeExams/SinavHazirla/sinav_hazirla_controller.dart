@@ -96,12 +96,13 @@ class SinavHazirlaController extends GetxController {
     try {
       NsfwDetector detector = await NsfwDetector.load(threshold: 0.3);
       NsfwResult? result = await detector.detectNSFWFromFile(cover.value!);
-      if (result?.isNsfw ?? false) {
+      if (result == null || result.isNsfw) {
         AppSnackbar("Hata", "Seçilen resim uygun değil!");
         cover.value = null;
       }
     } catch (e) {
       AppSnackbar("Hata", "Resim analizi yapılamadı.");
+      cover.value = null;
     }
   }
 

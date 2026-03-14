@@ -130,19 +130,16 @@ class _StoryCircleState extends State<StoryCircle> {
                     // Use CachedUserAvatar for all users (instant for current user)
                     final imageUrl =
                         isMe ? userService.avatarUrl : widget.model.avatarUrl;
-
-                    if (imageUrl.isEmpty) {
-                      return const DefaultAvatar(
-                        radius: _storyAvatarRadius,
-                        backgroundColor: Colors.transparent,
-                      );
-                    }
-
                     return ClipRect(
                       child: CachedUserAvatar(
                         userId: widget.model.userID,
                         imageUrl: imageUrl,
                         radius: _storyAvatarRadius,
+                        backgroundColor: Colors.transparent,
+                        placeholder: const DefaultAvatar(
+                          radius: _storyAvatarRadius,
+                          backgroundColor: Colors.transparent,
+                        ),
                       ),
                     );
                   }

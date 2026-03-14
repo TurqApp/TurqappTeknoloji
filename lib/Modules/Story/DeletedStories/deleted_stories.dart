@@ -314,7 +314,7 @@ class _GridContentState extends State<_GridContent> {
             model: m,
             deletedAt: when,
             onRestore: () async {
-              await c.restore(m.id);
+              await c.repost(m);
               AppSnackbar('Hikaye', 'Hikaye Tekrar Paylaşıldı');
             },
           ),
@@ -467,7 +467,7 @@ class _VerticalStripState extends State<_VerticalStrip> {
                 ),
                 OutlinedButton(
                   onPressed: () async {
-                    await widget.controller.restore(m.id);
+                    await widget.controller.repost(m);
                     AppSnackbar('Hikaye', 'Hikaye Tekrar Paylaşıldı');
                   },
                   style: OutlinedButton.styleFrom(
@@ -475,7 +475,7 @@ class _VerticalStripState extends State<_VerticalStrip> {
                     padding: EdgeInsets.symmetric(horizontal: 5),
                   ),
                   child: Text(
-                    'Geri Yükle',
+                    'Paylaş',
                     style: TextStyle(
                         fontSize: 14,
                         color: Colors.blueAccent,

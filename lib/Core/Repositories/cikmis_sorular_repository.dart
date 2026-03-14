@@ -68,6 +68,47 @@ class CikmisSorularRepository extends GetxService {
     return items;
   }
 
+  Future<List<Map<String, dynamic>>> fetchRootDocsByIds(
+    List<String> ids, {
+    bool preferCache = true,
+  }) async {
+    final wanted =
+        ids.where((e) => e.trim().isNotEmpty).toList(growable: false);
+    if (wanted.isEmpty) return const <Map<String, dynamic>>[];
+
+    final resolved = <String, Map<String, dynamic>>{};
+    if (preferCache) {
+      final cached = await fetchRootDocs();
+      for (final doc in cached) {
+        final id = (doc['_docId'] ?? '').toString();
+        if (id.isNotEmpty) {
+          resolved[id] = Map<String, dynamic>.from(doc);
+        }
+      }
+    }
+
+    final missing = wanted.where((id) => !resolved.containsKey(id)).toList();
+    for (var i = 0; i < missing.length; i += 10) {
+      final end = (i + 10 > missing.length) ? missing.length : i + 10;
+      final chunk = missing.sublist(i, end);
+      final snap = await _firestore
+          .collection('questions')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get(const GetOptions(source: Source.serverAndCache));
+      for (final doc in snap.docs) {
+        resolved[doc.id] = <String, dynamic>{
+          '_docId': doc.id,
+          ...doc.data(),
+        };
+      }
+    }
+
+    return wanted
+        .map((id) => resolved[id])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
   Future<List<String>> distinctValues({
     required bool Function(Map<String, dynamic> doc) where,
     required String field,

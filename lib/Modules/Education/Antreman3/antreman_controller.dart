@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -150,6 +151,9 @@ class AntremanController extends GetxController {
   final RxBool isSubjectSelecting = false.obs;
   final RxMap<String, double> imageAspectRatios = <String, double>{}.obs;
   final RxString justAnswered = ''.obs; // New state to track answer status
+  final RxString searchQuery = ''.obs;
+  final RxList<QuestionBankModel> searchResults = <QuestionBankModel>[].obs;
+  final RxBool isSearchLoading = false.obs;
 
   final String userID = FirebaseAuth.instance.currentUser!.uid;
   final int batchSize = 5;
@@ -163,6 +167,8 @@ class AntremanController extends GetxController {
   final Set<String> _loadedQuestionIds = <String>{};
   final RxString _activeCategoryKey = ''.obs;
   bool _mainCategoryPromptShown = false;
+  Timer? _searchDebounce;
+  int _searchToken = 0;
 
   List<String> get mainCategories => const <String>[
         'LGS',
@@ -179,10 +185,18 @@ class AntremanController extends GetxController {
       ? mainCategories
       : <String>[mainCategory.value];
 
+  bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
+
   @override
   void onInit() {
     super.onInit();
     loadMainCategory();
+  }
+
+  @override
+  void onClose() {
+    _searchDebounce?.cancel();
+    super.onClose();
   }
 
   Future<void> loadMainCategory() async {
@@ -401,6 +415,80 @@ class AntremanController extends GetxController {
     }
   }
 
+  void setSearchQuery(String query) {
+    searchQuery.value = query.trim();
+    _searchDebounce?.cancel();
+    if (!hasActiveSearch) {
+      _searchToken++;
+      isSearchLoading.value = false;
+      searchResults.clear();
+      return;
+    }
+
+    final token = ++_searchToken;
+    isSearchLoading.value = true;
+    _searchDebounce = Timer(const Duration(milliseconds: 150), () async {
+      await _searchFromTypesense(searchQuery.value, token);
+    });
+  }
+
+  Future<void> _searchFromTypesense(String query, int token) async {
+    final normalized = query.trim();
+    try {
+      final docIds =
+          await TypesenseEducationSearchService.instance.searchDocIds(
+        entity: EducationTypesenseEntity.workout,
+        query: normalized,
+        limit: 40,
+      );
+      if (token != _searchToken || searchQuery.value.trim() != normalized) {
+        return;
+      }
+
+      final results = await _fetchQuestionModelsByIds(docIds);
+      if (token != _searchToken || searchQuery.value.trim() != normalized) {
+        return;
+      }
+      searchResults.assignAll(results.where((item) => item.active));
+    } catch (e) {
+      log('Workout typesense search error: $e');
+      if (token == _searchToken) {
+        searchResults.clear();
+      }
+    } finally {
+      if (token == _searchToken) {
+        isSearchLoading.value = false;
+      }
+    }
+  }
+
+  Future<void> openSearchResult(QuestionBankModel question) async {
+    final categoryKey = question.categoryKey.isNotEmpty
+        ? question.categoryKey
+        : _buildCategoryKey(
+            question.anaBaslik, question.sinavTuru, question.ders);
+    _activeCategoryKey.value = categoryKey;
+    selectedSubject.value = question.ders;
+    selectedSinavTuru.value = question.sinavTuru;
+    loadingProgress.value = 1.0;
+    questions.assignAll(<QuestionBankModel>[question]);
+    _categoryPool
+      ..clear()
+      ..add(question);
+    _loadedQuestionIds
+      ..clear()
+      ..add(question.docID);
+    currentQuestionIndex.value = 0;
+    await _hydrateAnswerAndSavedState(<QuestionBankModel>[question]);
+    await _prefetchAspectRatios(<QuestionBankModel>[question]);
+    await addToviewers(question);
+    Get.to(
+      () => QuestionContent(),
+      transition: Transition.noTransition,
+      preventDuplicates: true,
+    );
+  }
+
   Future<void> fetchAllQuestions(
       String anaBaslik, String sinavTuru, String ders) async {
     try {
@@ -608,10 +696,12 @@ class AntremanController extends GetxController {
 
         // İstatistik için en iyi gayretle yaz; başarısız olursa paylaşımı bozma.
         unawaited(
-          _antremanRepository.recordSharedQuestion(
-            userId: userID,
-            questionId: question.docID,
-          ).catchError((_) {}),
+          _antremanRepository
+              .recordSharedQuestion(
+                userId: userID,
+                questionId: question.docID,
+              )
+              .catchError((_) {}),
         );
       });
     } catch (_) {
@@ -639,12 +729,11 @@ class AntremanController extends GetxController {
         isCorrect ? 'correct' : 'incorrect'; // Set answer status
 
     try {
-      final Map<String, dynamic> userData =
-          await _userRepository.getUserRaw(
-                userID,
-                preferCache: true,
-              ) ??
-              const <String, dynamic>{};
+      final Map<String, dynamic> userData = await _userRepository.getUserRaw(
+            userID,
+            preferCache: true,
+          ) ??
+          const <String, dynamic>{};
       await _antremanRepository.submitAnswer(
         userId: userID,
         question: question,
@@ -813,7 +902,8 @@ class AntremanController extends GetxController {
     Map<String, dynamic> progress;
     if (progressData == null) {
       progress = _newProgressState(n);
-      await _antremanRepository.setProgress(userID, categoryKey, progress, merge: false);
+      await _antremanRepository.setProgress(userID, categoryKey, progress,
+          merge: false);
     } else {
       progress = Map<String, dynamic>.from(progressData);
       final int prevN = (progress['n'] as num?)?.toInt() ?? 0;

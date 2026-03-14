@@ -17,7 +17,6 @@ import '../../../Core/LocationFinderView/location_finder_view.dart';
 import '../../../Core/Services/upload_validation_service.dart';
 import '../../../Core/Services/media_compression_service.dart';
 import '../../../Core/Services/network_awareness_service.dart';
-import '../../../Core/Services/optimized_nsfw_service.dart';
 import '../../../Core/Camera/chat_camera_capture_view.dart';
 import '../../../Core/upload_constants.dart';
 import '../../../Themes/app_colors.dart';
@@ -350,32 +349,8 @@ class CreatorContentController extends GetxController {
       return;
     }
 
-    // Optimized NSFW check
-    // AppSnackbar(
-    //   'Kontrol ediliyor...',
-    //   'İçerik güvenlik kontrolünden geçiriliyor...',
-    //   backgroundColor: Colors.orange.withValues(alpha: 0.8),
-    // );
-
-    // Start processing (NSFW + compression)
     isProcessing.value = true;
     reusedImageUrls.clear();
-    final nsfwResults = await OptimizedNSFWService.checkImagesParallel(
-      files,
-      onProgress: (current, total) {
-        // Could add progress indicator here
-      },
-    );
-
-    final hasNSFW = nsfwResults.any((result) => result.isNSFW);
-    if (hasNSFW) {
-      AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-      );
-      isProcessing.value = false;
-      return;
-    }
 
     selectedImages.addAll(files);
     _enforceImageCap();
@@ -502,23 +477,6 @@ class CreatorContentController extends GetxController {
     isPlaying.value = false;
     hasVideo.value = false;
     hasVideo.refresh();
-
-    // Optimized NSFW check
-    // AppSnackbar(
-    //   'Kontrol ediliyor...',
-    //   'Fotoğraf güvenlik kontrolünden geçiriliyor...',
-    //   backgroundColor: Colors.orange.withValues(alpha: 0.8),
-    // );
-
-    final nsfwResult = await OptimizedNSFWService.checkImage(file);
-    if (nsfwResult.isNSFW) {
-      AppSnackbar(
-        "Yükleme Başarısız!",
-        "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-      );
-      isProcessing.value = false;
-      return;
-    }
 
     // Compress and add image
     try {

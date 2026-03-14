@@ -547,9 +547,10 @@ class PostRepository extends GetxService {
       final ts = model.timeStamp.toInt();
       final publishAt = model.izBirakYayinTarihi.toInt();
       final scheduledAt = model.scheduledAt.toInt();
+      final effectivePublishAt = publishAt > 0 ? publishAt : scheduledAt;
       if (ts < cutoffMs) continue;
-      if (scheduledAt <= 0 && publishAt <= 0) continue;
-      if (publishAt <= nowMs) continue;
+      if (effectivePublishAt <= 0) continue;
+      if (effectivePublishAt <= nowMs) continue;
       merged[model.docID] = model;
       if (merged.length >= limit) break;
     }

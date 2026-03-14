@@ -1,11 +1,16 @@
 import 'package:flutter/widgets.dart';
 
 class AppIconSurface extends StatelessWidget {
+  static const double kSize = 36;
+  static const double kRadius = 10;
+  static const double kIconSize = 20;
+  static const double kGap = 2;
+
   const AppIconSurface({
     super.key,
     required this.child,
-    this.size = 36,
-    this.radius = 10,
+    this.size = kSize,
+    this.radius = kRadius,
     this.color = const Color(0xFFFFFFFF),
   });
 

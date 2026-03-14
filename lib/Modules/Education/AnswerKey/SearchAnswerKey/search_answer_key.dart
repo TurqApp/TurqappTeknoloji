@@ -87,80 +87,107 @@ class SearchAnswerKey extends StatelessWidget {
   ) {
     return Expanded(
       child: Obx(
-        () => ListView.builder(
-          itemCount: controller.filteredList.length,
-          itemBuilder: (context, index) {
-            final item = controller.filteredList[index];
-            return Padding(
-              padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
-              child: GestureDetector(
-                onTap: () => controller.navigateToPreview(item),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    border:
-                        Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: item.cover,
-                          fit: BoxFit.contain,
-                          height: 80,
-                          width: 80,
-                          placeholder: (context, url) => const Center(
-                            child: CupertinoActivityIndicator(),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.error),
-                        ),
-                        12.pw,
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.baslik,
-                                maxLines: 2,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.basimTarihi,
-                                style: const TextStyle(
-                                  color: Colors.indigo,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item.yayinEvi,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        () {
+          if (controller.isLoading.value) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+          if (controller.searchController.text.trim().length < 2) {
+            return const Center(
+              child: Text(
+                'Aramak için en az 2 karakter yaz.',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontFamily: 'MontserratMedium',
                 ),
               ),
             );
-          },
-        ),
+          }
+          if (controller.filteredList.isEmpty) {
+            return const Center(
+              child: Text(
+                'Sonuç bulunamadı.',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+            );
+          }
+          return ListView.builder(
+            itemCount: controller.filteredList.length,
+            itemBuilder: (context, index) {
+              final item = controller.filteredList[index];
+              return Padding(
+                padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
+                child: GestureDetector(
+                  onTap: () => controller.navigateToPreview(item),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.all(Radius.circular(12)),
+                      border:
+                          Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          CachedNetworkImage(
+                            imageUrl: item.cover,
+                            fit: BoxFit.contain,
+                            height: 80,
+                            width: 80,
+                            placeholder: (context, url) => const Center(
+                              child: CupertinoActivityIndicator(),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
+                          ),
+                          12.pw,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.baslik,
+                                  maxLines: 2,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontFamily: "MontserratBold",
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.basimTarihi,
+                                  style: const TextStyle(
+                                    color: Colors.indigo,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratMedium",
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item.yayinEvi,
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 15,
+                                    fontFamily: "MontserratBold",
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
