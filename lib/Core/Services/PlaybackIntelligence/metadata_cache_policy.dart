@@ -1,5 +1,6 @@
 enum MetadataCacheBucket {
   currentUserSummary,
+  userProfileSummary,
   authorSummary,
   professionBio,
   followGraphSummary,
@@ -12,6 +13,8 @@ class MetadataCachePolicy {
     switch (bucket) {
       case MetadataCacheBucket.currentUserSummary:
         return const Duration(hours: 24);
+      case MetadataCacheBucket.userProfileSummary:
+        return const Duration(days: 7);
       case MetadataCacheBucket.authorSummary:
         return const Duration(days: 3);
       case MetadataCacheBucket.professionBio:
@@ -28,6 +31,8 @@ class MetadataCachePolicy {
   static bool allowStaleRead(MetadataCacheBucket bucket) {
     switch (bucket) {
       case MetadataCacheBucket.currentUserSummary:
+        return true;
+      case MetadataCacheBucket.userProfileSummary:
         return true;
       case MetadataCacheBucket.authorSummary:
         return true;

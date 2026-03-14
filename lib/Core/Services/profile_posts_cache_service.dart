@@ -1,12 +1,15 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class ProfilePostsCacheService {
   static const String _keyPrefix = 'profile_posts_cache_v1';
-  static const Duration _ttl = Duration(hours: 12);
   static const int _maxItemsPerBucket = 250;
+
+  Duration get _ttl =>
+      MetadataCachePolicy.ttlFor(MetadataCacheBucket.profilePostsBucket);
 
   SharedPreferences? _prefs;
 

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
 import 'turq_image_cache_manager.dart';
@@ -12,7 +13,8 @@ import 'turq_image_cache_manager.dart';
 class UserProfileCacheService extends GetxService {
   static const String _prefsKey = 'user_profile_cache_v2';
   static const int _maxEntries = 2000;
-  static const Duration _ttl = Duration(days: 7);
+  Duration get _ttl =>
+      MetadataCachePolicy.ttlFor(MetadataCacheBucket.userProfileSummary);
 
   final LinkedHashMap<String, _CachedUserProfile> _memory =
       LinkedHashMap<String, _CachedUserProfile>();
