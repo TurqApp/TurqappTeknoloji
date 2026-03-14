@@ -50,6 +50,22 @@ check_literal_in_file() {
   return 0
 }
 
+check_context_literal_in_file() {
+  local label="$1"
+  local anchor="$2"
+  local forbidden="$3"
+  local file="$4"
+
+  if rg -n -C 6 --fixed-strings "$anchor" "$file" | rg -n --fixed-strings "$forbidden"; then
+    echo
+    echo "[FAIL] $label"
+    return 1
+  fi
+
+  echo "[PASS] $label"
+  return 0
+}
+
 failures=0
 
 check_literal "Hardcoded legacy NETGSM usercode bulunmadi" "3326062598" || failures=$((failures + 1))
@@ -131,6 +147,28 @@ check_literal "HLS complete logunda URL dump'i geri gelmedi" '[HLS] Complete for
 check_literal "HLS story delete logunda path dump'i geri gelmedi" '[HLS] Story source deleted: ${filePath}' || failures=$((failures + 1))
 check_literal "Tutoring notification logunda tutor/doc dump'i geri gelmedi" '[TutoringNotif] Application notification sent to ${tutorUID} for ${docId}' || failures=$((failures + 1))
 check_literal "Tutoring notification status logunda applicant dump'i geri gelmedi" '[TutoringNotif] Status update notification sent to ${applicantId}: ${newStatus}' || failures=$((failures + 1))
+check_literal "Thumbnail skip logunda filePath dump'i geri gelmedi" 'Already a thumbnail, skipping:' || failures=$((failures + 1))
+check_literal "Thumbnail avatar skip logunda filePath dump'i geri gelmedi" 'Profile avatar source file, skipping thumbnail generation:' || failures=$((failures + 1))
+check_literal "Thumbnail non-image logunda filePath dump'i geri gelmedi" 'Not an image file, skipping:' || failures=$((failures + 1))
+check_literal "Thumbnail temp download logunda path dump'i geri gelmedi" 'Downloaded to temp:' || failures=$((failures + 1))
+check_literal "Thumbnail small image logunda filePath dump'i geri gelmedi" 'Image is already <= 600px, skipping thumbnail generation:' || failures=$((failures + 1))
+check_literal "Thumbnail generation logunda temp path dump'i geri gelmedi" 'Generated ${width}px thumbnail:' || failures=$((failures + 1))
+check_literal "Thumbnail upload logunda storage path dump'i geri gelmedi" 'Uploaded thumbnail to:' || failures=$((failures + 1))
+check_literal "Thumbnail cleanup logunda temp path dump'i geri gelmedi" 'Cleaned up temp file:' || failures=$((failures + 1))
+check_literal "Thumbnail complete logunda filePath dump'i geri gelmedi" '✅ Thumbnail generation complete for: ${filePath}' || failures=$((failures + 1))
+check_literal "Backfill posts logunda doc id dump'i geri gelmedi" "console.error('backfillPostsOriginalFields: error on', doc.id, e);" || failures=$((failures + 1))
+check_literal "countDocuments logunda collection path dump'i geri gelmedi" 'console.error("countDocuments error", collection.path, err);' || failures=$((failures + 1))
+check_literal "purge post logunda docPath dump'i geri gelmedi" 'console.error("purgePostSubcollections error", docPath, error);' || failures=$((failures + 1))
+check_literal "purge student logunda docPath dump'i geri gelmedi" "console.error('purgeStudentSubcollections error', docPath, name, err);" || failures=$((failures + 1))
+check_literal "purge student fatal logunda docPath dump'i geri gelmedi" "console.error('purgeStudentSubcollections fatal error', docPath, err);" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda email dump'i geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "emailLower," "functions/src/11_resend.ts" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda uid dump'i geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "uid," "functions/src/11_resend.ts" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda sağlayici body dump'i geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "netgsmBody," "functions/src/11_resend.ts" || failures=$((failures + 1))
+check_context_literal_in_file "Signup SMS logunda phone dump'i geri gelmedi" 'console.error("sendSignupSmsCode netgsm-error", {' "phone," "functions/src/11_resend.ts" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda email dump'i lib tarafinda geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "emailLower," "functions/lib/11_resend.js" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda uid dump'i lib tarafinda geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "uid," "functions/lib/11_resend.js" || failures=$((failures + 1))
+check_context_literal_in_file "Password reset SMS logunda sağlayici body dump'i lib tarafinda geri gelmedi" 'console.error("sendPasswordResetSmsCode netgsm-error", {' "netgsmBody," "functions/lib/11_resend.js" || failures=$((failures + 1))
+check_context_literal_in_file "Signup SMS logunda phone dump'i lib tarafinda geri gelmedi" 'console.error("sendSignupSmsCode netgsm-error", {' "phone," "functions/lib/11_resend.js" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

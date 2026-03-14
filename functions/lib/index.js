@@ -1048,7 +1048,7 @@ exports.backfillPostsOriginalFields = functions.https.onCall(async (data, contex
             }
         }
         catch (e) {
-            console.error('backfillPostsOriginalFields: error on', doc.id, e);
+            console.error('backfillPostsOriginalFields: error', e);
             failed += 1;
         }
     }
@@ -1081,7 +1081,7 @@ const countDocuments = async (collection) => {
         return typeof total === "number" ? total : 0;
     }
     catch (err) {
-        console.error("countDocuments error", collection.path, err);
+        console.error("countDocuments error", err);
         // Fallback: iterate in batches of 500 (may be slower but guarantees correctness)
         let total = 0;
         let query = collection
@@ -1155,10 +1155,8 @@ exports.purgePostSubcollections = functions
         };
     }
     catch (error) {
-        console.error("purgePostSubcollections error", docPath, error);
-        throw new functions.https.HttpsError("internal", error?.message ?? "Failed to purge subcollections", {
-            docPath,
-        });
+        console.error("purgePostSubcollections error", error);
+        throw new functions.https.HttpsError("internal", error?.message ?? "Failed to purge subcollections");
     }
 });
 exports.purgeStudentSubcollections = functions
@@ -1228,7 +1226,7 @@ exports.purgeStudentSubcollections = functions
                 totalDeleted += deletedDocuments;
             }
             catch (err) {
-                console.error('purgeStudentSubcollections error', docPath, name, err);
+                console.error('purgeStudentSubcollections error', err);
                 failures.push({
                     name,
                     message: typeof err?.message === 'string' ? err.message : String(err),
@@ -1248,7 +1246,7 @@ exports.purgeStudentSubcollections = functions
         };
     }
     catch (err) {
-        console.error('purgeStudentSubcollections fatal error', docPath, err);
+        console.error('purgeStudentSubcollections fatal error', err);
         throw new functions.https.HttpsError('internal', typeof err?.message === 'string' ? err.message : 'Unexpected error');
     }
 });

@@ -1169,7 +1169,7 @@ export const backfillPostsOriginalFields = functions.https.onCall(async (data, c
         skipped += 1;
       }
     } catch (e) {
-      console.error('backfillPostsOriginalFields: error on', doc.id, e);
+      console.error('backfillPostsOriginalFields: error', e);
       failed += 1;
     }
   }
@@ -1217,7 +1217,7 @@ const countDocuments = async (
     const total = snapshot.data().count;
     return typeof total === "number" ? total : 0;
   } catch (err) {
-    console.error("countDocuments error", collection.path, err);
+    console.error("countDocuments error", err);
     // Fallback: iterate in batches of 500 (may be slower but guarantees correctness)
     let total = 0;
     let query: admin.firestore.Query = collection
@@ -1300,13 +1300,10 @@ export const purgePostSubcollections = functions
       totalDeletedDocuments: totalDeleted,
     };
   } catch (error: any) {
-    console.error("purgePostSubcollections error", docPath, error);
+    console.error("purgePostSubcollections error", error);
     throw new functions.https.HttpsError(
       "internal",
       error?.message ?? "Failed to purge subcollections",
-      {
-        docPath,
-      },
     );
   }
 });
@@ -1387,7 +1384,7 @@ export const purgeStudentSubcollections = functions
           });
           totalDeleted += deletedDocuments;
         } catch (err: any) {
-          console.error('purgeStudentSubcollections error', docPath, name, err);
+          console.error('purgeStudentSubcollections error', err);
           failures.push({
             name,
             message: typeof err?.message === 'string' ? err.message : String(err),
@@ -1407,7 +1404,7 @@ export const purgeStudentSubcollections = functions
         processedAt: Date.now(),
       };
     } catch (err: any) {
-      console.error('purgeStudentSubcollections fatal error', docPath, err);
+      console.error('purgeStudentSubcollections fatal error', err);
       throw new functions.https.HttpsError(
         'internal',
         typeof err?.message === 'string' ? err.message : 'Unexpected error',

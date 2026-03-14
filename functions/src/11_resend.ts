@@ -670,9 +670,8 @@ export const sendPasswordResetSmsCode = onCall(
       const netgsmBody = String(response.data || "").trim();
       if (!isNetgsmSuccessResponse(netgsmBody)) {
         console.error("sendPasswordResetSmsCode netgsm-error", {
-          emailLower,
-          uid,
-          netgsmBody,
+          hasUser: uid.length > 0,
+          responsePresent: netgsmBody.length > 0,
         });
         throw new HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
       }
@@ -767,8 +766,8 @@ export const sendSignupSmsCode = onCall(
       const netgsmBody = String(response.data || "").trim();
       if (!isNetgsmSuccessResponse(netgsmBody)) {
         console.error("sendSignupSmsCode netgsm-error", {
-          phone,
-          netgsmBody,
+          phonePresent: phone.length > 0,
+          responsePresent: netgsmBody.length > 0,
         });
         throw new HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
       }
