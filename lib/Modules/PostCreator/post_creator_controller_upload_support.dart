@@ -74,21 +74,11 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
       try {
         final snap = await ref.get(const GetOptions(source: Source.server));
         final shellUserId = (snap.data()?["userID"] ?? '').toString();
-        if (kDebugMode) {
-          debugPrint('[UploadPreflight][PostShell] '
-              'serverExists=${snap.exists} '
-              'userMatch=${shellUserId == uid} '
-              'attempt=$attempt');
-        }
         if (snap.exists && shellUserId == uid) {
           return;
         }
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('[UploadPreflight][PostShell] '
-              'serverReadFailed=$e '
-              'attempt=$attempt');
-        }
+      } catch (_) {
+        // Best-effort server visibility check only.
       }
 
       if (attempt < retryDelays.length) {

@@ -487,9 +487,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         msg = e.message!.trim();
       }
       AppSnackbar('Hata', msg);
-      if (kDebugMode) {
-        debugPrint('savePostEdit error: $e');
-      }
       return false;
     } finally {
       isSavingEdit.value = false;
@@ -1013,11 +1010,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         imageUrls.addAll(post.reusedImageUrls.map(CdnUrlBuilder.toCdnUrl));
       } else {
         for (int j = 0; j < post.images.length; j++) {
-          if (kDebugMode) {
-            final postDoc = await _postRepository.fetchPostRawById(docID);
-            debugPrint('[UploadPreflight][PostCreator][Image] '
-                'postExists=${postDoc != null}');
-          }
           final url = await WebpUploadService.uploadBytesAsWebp(
             storage: FirebaseStorage.instance,
             bytes: post.images[j],
@@ -1035,16 +1027,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
       if (post.video != null) {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(post.video!);
-        if (kDebugMode) {
-          debugPrint('[NSFW][PostCreator][Video] '
-              'blocked=${nsfwVideo.isNSFW} '
-              'frames=${nsfwVideo.framesChecked} '
-              'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
-              'error=${nsfwVideo.errorMessage}');
-          for (final sample in nsfwVideo.debugSamples.take(80)) {
-            debugPrint('[NSFW][PostCreator][Video][Frame] $sample');
-          }
-        }
         if (nsfwVideo.errorMessage != null) {
           throw Exception('NSFW video kontrolü başarısız');
         }
@@ -1058,11 +1040,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         final videoRef = FirebaseStorage.instance.ref().child(
               'Posts/$docID/video.mp4',
             );
-        if (kDebugMode) {
-          final postDoc = await _postRepository.fetchPostRawById(docID);
-          debugPrint('[UploadPreflight][PostCreator] '
-              'postExists=${postDoc != null}');
-        }
         final uploadTask = await _putFileWithAuthRetry(
           ref: videoRef,
           file: post.video!,
@@ -1121,12 +1098,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             storagePathWithoutExt: 'Posts/$docID/thumbnail',
           );
           thumbnailUrl = CdnUrlBuilder.toCdnUrl(thumbUrl);
-          if (kDebugMode) {
-            debugPrint('[PostCreator] Thumbnail uploaded: '
-                'orig=${(thumbnailData.length / 1e6).toStringAsFixed(2)} MB '
-                'webp=${(thumbWebp.length / 1e6).toStringAsFixed(2)} MB '
-                'minWidth=${UploadConstants.thumbnailMaxWidth}');
-          }
         }
       } else if (isReusedVideoPost) {
         videoUrl = post.reusedVideoUrl.trim();
@@ -1280,7 +1251,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         try {
           final currentUserId = FirebaseAuth.instance.currentUser!.uid;
           final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-          debugPrint('[QuotePublish/direct] reshare relation persisted');
           final originalPostRef = FirebaseFirestore.instance
               .collection("Posts")
               .doc(_sharedOriginalPostID);
@@ -1311,9 +1281,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             await originalPostRef.update({
               "stats.retryCount": FieldValue.increment(1),
             });
-            debugPrint(
-              '[QuotePublish/direct] incremented original retryCount post=$_sharedOriginalPostID',
-            );
           }
           if (_sharedSourcePostID.isNotEmpty &&
               _sharedSourcePostID != _sharedOriginalPostID) {
@@ -1332,15 +1299,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               await sourcePostRef.update({
                 "stats.retryCount": FieldValue.increment(1),
               });
-              debugPrint(
-                '[QuotePublish/direct] incremented source retryCount post=$_sharedSourcePostID',
-              );
             }
           }
-        } catch (e, st) {
-          debugPrint('[QuotePublish/direct] failed: $e');
-          debugPrintStack(stackTrace: st);
-        }
+        } catch (_, __) {}
       }
 
       uploadedPosts.add(
@@ -1423,9 +1384,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       _networkService = Get.put(NetworkAwarenessService());
       _uploadQueueService = Get.put(UploadQueueService());
       _draftService = Get.put(DraftService());
-    } catch (e) {
-      print('Error initializing services: $e');
-    }
+    } catch (_) {}
   }
 
   Map<String, dynamic> _normalizePollForSave(
@@ -1515,13 +1474,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
       final video = controller.selectedVideo.value;
       if (video != null) {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(video);
-        if (kDebugMode) {
-          debugPrint('[NSFW][Composer][Video] '
-              'blocked=${nsfwVideo.isNSFW} '
-              'frames=${nsfwVideo.framesChecked} '
-              'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
-              'error=${nsfwVideo.errorMessage}');
-        }
         if (nsfwVideo.errorMessage != null) {
           _showModerationSnackbarOnce(
             'Yükleme Başarısız',
@@ -2036,11 +1988,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             // Upload images with retry logic
             for (int j = 0; j < post.images.length; j++) {
               try {
-                if (kDebugMode) {
-                  final postDoc = await _postRepository.fetchPostRawById(docID);
-                  debugPrint('[UploadPreflight][PostCreator][Image] '
-                      'postExists=${postDoc != null}');
-                }
                 final url = await WebpUploadService.uploadBytesAsWebp(
                   storage: FirebaseStorage.instance,
                   bytes: post.images[j],
@@ -2072,16 +2019,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             try {
               final nsfwVideo =
                   await OptimizedNSFWService.checkVideo(post.video!);
-              if (kDebugMode) {
-                debugPrint('[NSFW][PostCreator][Video] '
-                    'blocked=${nsfwVideo.isNSFW} '
-                    'frames=${nsfwVideo.framesChecked} '
-                    'confidence=${nsfwVideo.confidence.toStringAsFixed(3)} '
-                    'error=${nsfwVideo.errorMessage}');
-                for (final sample in nsfwVideo.debugSamples.take(80)) {
-                  debugPrint('[NSFW][PostCreator][Video][Frame] $sample');
-                }
-              }
               if (nsfwVideo.errorMessage != null) {
                 throw Exception('NSFW video kontrolü başarısız');
               }
@@ -2095,11 +2032,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               final videoRef = FirebaseStorage.instance
                   .ref()
                   .child('Posts/$docID/video.mp4');
-              if (kDebugMode) {
-                final postDoc = await _postRepository.fetchPostRawById(docID);
-                debugPrint('[UploadPreflight][PostCreator] '
-                    'postExists=${postDoc != null}');
-              }
               final uploadTask = await _putFileWithAuthRetry(
                 ref: videoRef,
                 file: post.video!,
@@ -2146,12 +2078,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 thumbnailUrl = CdnUrlBuilder.toCdnUrl(
                   thumbUrl,
                 );
-                if (kDebugMode) {
-                  debugPrint('[PostCreator] Thumbnail uploaded: '
-                      'orig=${(thumbnailData.length / 1e6).toStringAsFixed(2)} MB '
-                      'webp=${(thumbWebp.length / 1e6).toStringAsFixed(2)} MB '
-                      'minWidth=${UploadConstants.thumbnailMaxWidth}');
-                }
               }
             } catch (e) {
               final tooLarge = e.toString().contains('VIDEO_TOO_LARGE');
@@ -2316,9 +2242,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               try {
                 final currentUserId = FirebaseAuth.instance.currentUser!.uid;
                 final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-                debugPrint(
-                  '[QuotePublish/direct-alt] reshare relation persisted',
-                );
                 final originalPostRef = FirebaseFirestore.instance
                     .collection("Posts")
                     .doc(_sharedOriginalPostID);
@@ -2352,9 +2275,6 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   await originalPostRef.update({
                     "stats.retryCount": FieldValue.increment(1),
                   });
-                  debugPrint(
-                    '[QuotePublish/direct-alt] incremented original retryCount post=$_sharedOriginalPostID',
-                  );
                 }
                 if (_sharedSourcePostID.isNotEmpty &&
                     _sharedSourcePostID != _sharedOriginalPostID) {
@@ -2376,15 +2296,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                     await sourcePostRef.update({
                       "stats.retryCount": FieldValue.increment(1),
                     });
-                    debugPrint(
-                      '[QuotePublish/direct-alt] incremented source retryCount post=$_sharedSourcePostID',
-                    );
                   }
                 }
-              } catch (e, st) {
-                debugPrint('[QuotePublish/direct-alt] failed: $e');
-                debugPrintStack(stackTrace: st);
-              }
+              } catch (_, __) {}
             }
 
             // Create PostsModel
