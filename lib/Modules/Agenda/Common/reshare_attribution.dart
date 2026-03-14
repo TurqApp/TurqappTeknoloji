@@ -86,6 +86,10 @@ class _ReshareAttributionState extends State<ReshareAttribution> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.model.originalUserID.trim().isNotEmpty) {
+      return widget.placeholder;
+    }
+
     final me = FirebaseAuth.instance.currentUser?.uid;
 
     if (widget.explicitReshareUserId != null) {

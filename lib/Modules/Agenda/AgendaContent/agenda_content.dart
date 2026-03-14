@@ -801,7 +801,8 @@ class _AgendaContentState extends State<AgendaContent>
                                       child: Texts.colorfulFloodLeftSide,
                                     ),
                                   ),
-                                if (widget.isReshared ||
+                                if ((widget.isReshared &&
+                                        widget.model.originalUserID.isEmpty) ||
                                     widget.model.originalUserID.isNotEmpty)
                                   Positioned(
                                     left: 8,
@@ -814,12 +815,9 @@ class _AgendaContentState extends State<AgendaContent>
                                           CrossAxisAlignment.start,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (widget.isReshared)
-                                          _buildAgendaReshareOverlay(),
                                         if (widget.isReshared &&
-                                            widget.model.originalUserID
-                                                .isNotEmpty)
-                                          const SizedBox(height: 6),
+                                            widget.model.originalUserID.isEmpty)
+                                          _buildAgendaReshareOverlay(),
                                         if (widget
                                             .model.originalUserID.isNotEmpty)
                                           SharedPostLabel(
@@ -2199,7 +2197,8 @@ class _AgendaContentState extends State<AgendaContent>
               },
               child: Texts.colorfulFloodLeftSide,
             ),
-          if (widget.isReshared || widget.model.originalUserID.isNotEmpty)
+          if ((widget.isReshared && widget.model.originalUserID.isEmpty) ||
+              widget.model.originalUserID.isNotEmpty)
             Positioned(
               left: 8,
               bottom:
@@ -2210,10 +2209,8 @@ class _AgendaContentState extends State<AgendaContent>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (widget.isReshared) _buildAgendaReshareOverlay(),
-                  if (widget.isReshared &&
-                      widget.model.originalUserID.isNotEmpty)
-                    const SizedBox(height: 6),
+                  if (widget.isReshared && widget.model.originalUserID.isEmpty)
+                    _buildAgendaReshareOverlay(),
                   if (widget.model.originalUserID.isNotEmpty)
                     SharedPostLabel(
                       originalUserID: widget.model.originalUserID,
@@ -2233,6 +2230,9 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildAgendaReshareOverlay() {
+    if (widget.model.originalUserID.isNotEmpty) {
+      return const SizedBox.shrink();
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

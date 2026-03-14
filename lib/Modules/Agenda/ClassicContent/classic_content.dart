@@ -476,7 +476,9 @@ class _ClassicContentState extends State<ClassicContent>
   }
 
   Widget _buildClassicReshareOverlay({required double bottom}) {
-    if (!widget.isReshared) return const SizedBox.shrink();
+    if (!widget.isReshared || widget.model.originalUserID.isNotEmpty) {
+      return const SizedBox.shrink();
+    }
     return Positioned(
       left: 8,
       bottom: bottom,
