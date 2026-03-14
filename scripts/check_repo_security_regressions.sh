@@ -35,6 +35,21 @@ check_literal() {
   return 0
 }
 
+check_literal_in_file() {
+  local label="$1"
+  local pattern="$2"
+  local file="$3"
+
+  if rg -n --fixed-strings "$pattern" "$file"; then
+    echo
+    echo "[FAIL] $label"
+    return 1
+  fi
+
+  echo "[PASS] $label"
+  return 0
+}
+
 failures=0
 
 check_literal "Hardcoded legacy NETGSM usercode bulunmadi" "3326062598" || failures=$((failures + 1))
@@ -77,6 +92,27 @@ check_literal "Past result logunda timestamp dump'i geri gelmedi" 'print("Fetche
 check_literal "Past result logunda docID dump'i geri gelmedi" 'print("Hiç veri bulunamadı: ${model.docID}");' || failures=$((failures + 1))
 check_literal "Create test question ekrani image URL dump'i geri gelmedi" "print(controller.model.img)" || failures=$((failures + 1))
 check_literal "Scholarship share logunda shortUrl dump'i geri gelmedi" "print('Sharing: \$shortUrl');" || failures=$((failures + 1))
+check_literal "Upload queue image logunda dosya adi dump'i geri gelmedi" "\${p.basename(imagePath)}" || failures=$((failures + 1))
+check_literal "Upload queue preflight logunda path dump'i geri gelmedi" "path=\${ref.fullPath}" || failures=$((failures + 1))
+check_literal "Upload queue preflight logunda uid dump'i geri gelmedi" "uid=\$userID" || failures=$((failures + 1))
+check_literal "Upload queue preflight logunda post owner dump'i geri gelmedi" "postUserID=" || failures=$((failures + 1))
+check_literal "Upload queue video logunda URL dump'i geri gelmedi" "MB url=\$videoUrl" || failures=$((failures + 1))
+check_literal "Upload queue thumbnail logunda URL dump'i geri gelmedi" "url=\$thumbnailUrl" || failures=$((failures + 1))
+check_literal "WebP preflight logunda path uid dump'i geri gelmedi" "[UploadPreflight][WebP] path=\${ref.fullPath} uid=\$uid bytes=\${data.length}" || failures=$((failures + 1))
+check_literal_in_file "Post shell preflight logunda docID dump'i geri gelmedi" "docID=\$docID " "lib/Modules/PostCreator/post_creator_controller_upload_support.dart" || failures=$((failures + 1))
+check_literal_in_file "Post shell preflight logunda uid dump'i geri gelmedi" "uid=\$uid " "lib/Modules/PostCreator/post_creator_controller_upload_support.dart" || failures=$((failures + 1))
+check_literal_in_file "Post shell preflight logunda server user dump'i geri gelmedi" "serverUserID=\$shellUserId" "lib/Modules/PostCreator/post_creator_controller_upload_support.dart" || failures=$((failures + 1))
+check_literal "Post creator image preflight logunda path uid dump'i geri gelmedi" 'path=Posts/$docID/image_$j.webp' || failures=$((failures + 1))
+check_literal "Post creator image preflight logunda post owner dump'i geri gelmedi" 'postUserID=${postDoc?["userID"]}' || failures=$((failures + 1))
+check_literal "Post creator video preflight logunda path dump'i geri gelmedi" 'path=${videoRef.fullPath}' || failures=$((failures + 1))
+check_literal "Post creator thumbnail logunda URL dump'i geri gelmedi" "url=\$thumbnailUrl" || failures=$((failures + 1))
+check_literal "Quote publish direct logunda docID dump'i geri gelmedi" '[QuotePublish/direct] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId' || failures=$((failures + 1))
+check_literal "Quote publish direct-alt logunda docID dump'i geri gelmedi" '[QuotePublish/direct-alt] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId' || failures=$((failures + 1))
+check_literal "Post like search logunda query dump'i geri gelmedi" 'query=\"$normalized\"' || failures=$((failures + 1))
+check_literal "Post like search logunda term dump'i geri gelmedi" 'term=\"$term\"' || failures=$((failures + 1))
+check_literal "Tag posts logunda tag dump'i geri gelmedi" 'print(">>> Tag post araması başlıyor! [TAG: $tag]")' || failures=$((failures + 1))
+check_literal "Tag posts logunda sonuc dump'i geri gelmedi" 'print(">>> Tag sonuç: ${fetchedPosts.length}")' || failures=$((failures + 1))
+check_literal_in_file "Agenda ilk video trigger logunda docID dump'i geri gelmedi" "print('🎬 İlk video manuel trigger: \${firstPost.docID}');" "lib/Modules/Agenda/agenda_controller.dart" || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

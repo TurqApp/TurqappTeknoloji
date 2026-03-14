@@ -29,10 +29,8 @@ class TagPostsController extends GetxController {
   }
 
   Future<void> getPosts() async {
-    print(">>> Tag post araması başlıyor! [TAG: $tag]");
     final fetchedPosts = await _repo.fetchByTag(tag);
     fetchedPosts.shuffle();
     list.assignAll(fetchedPosts);
-    print(">>> Tag sonuç: ${fetchedPosts.length}");
   }
 }

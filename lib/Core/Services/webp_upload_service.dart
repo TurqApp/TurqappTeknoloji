@@ -142,9 +142,7 @@ class WebpUploadService {
     final uid = await _ensureUploadAuthReady();
     final ref = storage.ref().child('$storagePathWithoutExt.webp');
     if (kDebugMode) {
-      debugPrint(
-        '[UploadPreflight][WebP] path=${ref.fullPath} uid=$uid bytes=${data.length}',
-      );
+      debugPrint('[UploadPreflight][WebP] bytes=${data.length}');
     }
     await _putDataWithSingleAuthRetry(
       ref,
@@ -180,9 +178,7 @@ class WebpUploadService {
     final uid = await _ensureUploadAuthReady();
     final ref = storage.ref().child('$storagePathWithoutExt.webp');
     if (kDebugMode) {
-      debugPrint(
-        '[UploadPreflight][WebP] path=${ref.fullPath} uid=$uid bytes=${data.length}',
-      );
+      debugPrint('[UploadPreflight][WebP] bytes=${data.length}');
     }
     await _putDataWithSingleAuthRetry(
       ref,

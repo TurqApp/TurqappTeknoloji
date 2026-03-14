@@ -76,10 +76,8 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
         final shellUserId = (snap.data()?["userID"] ?? '').toString();
         if (kDebugMode) {
           debugPrint('[UploadPreflight][PostShell] '
-              'docID=$docID '
-              'uid=$uid '
               'serverExists=${snap.exists} '
-              'serverUserID=$shellUserId '
+              'userMatch=${shellUserId == uid} '
               'attempt=$attempt');
         }
         if (snap.exists && shellUserId == uid) {
@@ -88,8 +86,6 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[UploadPreflight][PostShell] '
-              'docID=$docID '
-              'uid=$uid '
               'serverReadFailed=$e '
               'attempt=$attempt');
         }

@@ -935,10 +935,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           if (kDebugMode) {
             final postDoc = await _postRepository.fetchPostRawById(docID);
             debugPrint('[UploadPreflight][PostCreator][Image] '
-                'path=Posts/$docID/image_$j.webp '
-                'uid=$uid '
-                'postExists=${postDoc != null} '
-                'postUserID=${postDoc?["userID"]}');
+                'postExists=${postDoc != null}');
           }
           final url = await WebpUploadService.uploadBytesAsWebp(
             storage: FirebaseStorage.instance,
@@ -973,10 +970,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         if (kDebugMode) {
           final postDoc = await _postRepository.fetchPostRawById(docID);
           debugPrint('[UploadPreflight][PostCreator] '
-              'path=${videoRef.fullPath} '
-              'uid=$uid '
-              'postExists=${postDoc != null} '
-              'postUserID=${postDoc?["userID"]}');
+              'postExists=${postDoc != null}');
         }
         final uploadTask = await _putFileWithAuthRetry(
           ref: videoRef,
@@ -1040,7 +1034,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             debugPrint('[PostCreator] Thumbnail uploaded: '
                 'orig=${(thumbnailData.length / 1e6).toStringAsFixed(2)} MB '
                 'webp=${(thumbWebp.length / 1e6).toStringAsFixed(2)} MB '
-                'minWidth=${UploadConstants.thumbnailMaxWidth} url=$thumbnailUrl');
+                'minWidth=${UploadConstants.thumbnailMaxWidth}');
           }
         }
       } else if (isReusedVideoPost) {
@@ -1119,11 +1113,11 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
       final scheduledDate = _normalizedIzBirakDateTime();
       final scheduledMs = scheduledDate?.millisecondsSinceEpoch ?? 0;
-      final baseTime = scheduledMs != 0 ? scheduledMs : nowMs;
+      final publishTime = scheduledMs != 0 ? scheduledMs : nowMs;
       final locationCity = _resolvePostLocationCity();
 
       final pollPayload = post.poll.isNotEmpty
-          ? _normalizePollForSave(post.poll, baseTime)
+          ? _normalizePollForSave(post.poll, publishTime)
           : null;
 
       await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
@@ -1139,7 +1133,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "imgMap": imgMap,
         "isAd": false,
         "ad": false,
-        "izBirakYayinTarihi": baseTime,
+        "izBirakYayinTarihi": publishTime,
         "stats": {
           "commentCount": 0,
           "likeCount": 0,
@@ -1160,7 +1154,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         "stabilized": false,
         "tags": index == 0 ? allHashtags.toList() : [],
         "thumbnail": thumbnailUrl,
-        "timeStamp": baseTime + index,
+        "timeStamp": nowMs + index,
         "userID": uid,
         "video": videoUrl,
         "hlsStatus": isReusedVideoPost ? "ready" : "none",
@@ -1195,9 +1189,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         try {
           final currentUserId = FirebaseAuth.instance.currentUser!.uid;
           final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-          debugPrint(
-            '[QuotePublish/direct] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId',
-          );
+          debugPrint('[QuotePublish/direct] reshare relation persisted');
           final originalPostRef = FirebaseFirestore.instance
               .collection("Posts")
               .doc(_sharedOriginalPostID);
@@ -1274,7 +1266,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           img: imageUrls,
           isAd: false,
           ad: false,
-          izBirakYayinTarihi: baseTime,
+          izBirakYayinTarihi: publishTime,
           stats: PostStats(),
           konum: post.location,
           locationCity: locationCity,
@@ -1289,7 +1281,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           stabilized: false,
           tags: index == 0 ? allHashtags.toList() : [],
           thumbnail: thumbnailUrl,
-          timeStamp: baseTime + index,
+          timeStamp: nowMs + index,
           userID: FirebaseAuth.instance.currentUser!.uid,
           video: videoUrl,
           hlsStatus: isReusedVideoPost ? "ready" : "none",
@@ -1317,8 +1309,8 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         ),
       );
 
-      // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa (baseTime == now)
-      if (index == 0 && baseTime == nowMs) {
+      // Sayaç güncelle: kök post (index==0) ve hemen yayınlanıyorsa
+      if (index == 0 && publishTime == nowMs) {
         try {
           final me = FirebaseAuth.instance.currentUser?.uid;
           if (me != null) {
@@ -1885,10 +1877,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 if (kDebugMode) {
                   final postDoc = await _postRepository.fetchPostRawById(docID);
                   debugPrint('[UploadPreflight][PostCreator][Image] '
-                      'path=Posts/$docID/image_$j.webp '
-                      'uid=$uid '
-                      'postExists=${postDoc != null} '
-                      'postUserID=${postDoc?["userID"]}');
+                      'postExists=${postDoc != null}');
                 }
                 final url = await WebpUploadService.uploadBytesAsWebp(
                   storage: FirebaseStorage.instance,
@@ -1937,10 +1926,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               if (kDebugMode) {
                 final postDoc = await _postRepository.fetchPostRawById(docID);
                 debugPrint('[UploadPreflight][PostCreator] '
-                    'path=${videoRef.fullPath} '
-                    'uid=$uid '
-                    'postExists=${postDoc != null} '
-                    'postUserID=${postDoc?["userID"]}');
+                    'postExists=${postDoc != null}');
               }
               final uploadTask = await _putFileWithAuthRetry(
                 ref: videoRef,
@@ -1992,7 +1978,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                   debugPrint('[PostCreator] Thumbnail uploaded: '
                       'orig=${(thumbnailData.length / 1e6).toStringAsFixed(2)} MB '
                       'webp=${(thumbWebp.length / 1e6).toStringAsFixed(2)} MB '
-                      'minWidth=${UploadConstants.thumbnailMaxWidth} url=$thumbnailUrl');
+                      'minWidth=${UploadConstants.thumbnailMaxWidth}');
                 }
               }
             } catch (e) {
@@ -2018,7 +2004,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
 
           // Calculate timing
           final scheduledDate = _normalizedIzBirakDateTime();
-          final baseTime = scheduledDate?.millisecondsSinceEpoch ?? nowMs;
+          final publishTime = scheduledDate?.millisecondsSinceEpoch ?? nowMs;
 
           // Calculate proper aspect ratio
           double aspectRatio = 1.0;
@@ -2100,7 +2086,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "imgMap": imgMap,
               "isAd": false,
               "ad": false,
-              "izBirakYayinTarihi": baseTime,
+              "izBirakYayinTarihi": publishTime,
               "stats": {
                 "commentCount": 0,
                 "likeCount": 0,
@@ -2121,7 +2107,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               "stabilized": false,
               "tags": index == 0 ? allHashtags.toList() : [],
               "thumbnail": thumbnailUrl,
-              "timeStamp": baseTime + index,
+              "timeStamp": nowMs + index,
               "userID": FirebaseAuth.instance.currentUser!.uid,
               "video": videoUrl,
               "hlsStatus": isReusedVideoPost ? "ready" : "none",
@@ -2159,7 +2145,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 final currentUserId = FirebaseAuth.instance.currentUser!.uid;
                 final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
                 debugPrint(
-                  '[QuotePublish/direct-alt] docID=$docID quoted=$_isQuotedPost original=$_sharedOriginalPostID source=$_sharedSourcePostID user=$currentUserId',
+                  '[QuotePublish/direct-alt] reshare relation persisted',
                 );
                 final originalPostRef = FirebaseFirestore.instance
                     .collection("Posts")
@@ -2244,7 +2230,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 img: imageUrls,
                 isAd: false,
                 ad: false,
-                izBirakYayinTarihi: baseTime,
+                izBirakYayinTarihi: publishTime,
                 stats: PostStats(),
                 konum: post.location,
                 locationCity: locationCity,
@@ -2261,7 +2247,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 stabilized: false,
                 tags: index == 0 ? allHashtags.toList() : [],
                 thumbnail: thumbnailUrl,
-                timeStamp: baseTime + index,
+                timeStamp: nowMs + index,
                 userID: FirebaseAuth.instance.currentUser!.uid,
                 video: videoUrl,
                 hlsStatus: isReusedVideoPost ? "ready" : "none",
@@ -2292,7 +2278,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
             );
 
             // Update counter for root post
-            if (index == 0 && baseTime == nowMs) {
+            if (index == 0 && publishTime == nowMs) {
               try {
                 final me = FirebaseAuth.instance.currentUser?.uid;
                 if (me != null) {

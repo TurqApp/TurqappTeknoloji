@@ -59,7 +59,6 @@ class PostLikeListingController extends GetxController {
     final normalized = _normalize(value);
     if (query.value == normalized) return;
     query.value = normalized;
-    debugPrint('[PostLikeSearch] query="$normalized"');
   }
 
   void _syncQueryFromInput() {
@@ -145,9 +144,6 @@ class PostLikeListingController extends GetxController {
         users.where((user) => user.searchText.contains(term)),
       );
     }
-    debugPrint(
-      '[PostLikeSearch] total=${users.length} filtered=${filteredUsers.length} term="$term"',
-    );
   }
 
   void _onScroll() {

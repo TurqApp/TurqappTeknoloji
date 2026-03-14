@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
-import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as img;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
@@ -250,7 +249,7 @@ class UploadQueueService extends GetxController {
       } catch (_) {}
 
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final baseTime = scheduledAt != 0 ? scheduledAt : nowMs;
+      final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
 
       // Video/HLS pipeline starts from Storage; create the Firestore shell first
       // so feed-critical fields exist even if HLS updates arrive earlier.
@@ -267,7 +266,7 @@ class UploadQueueService extends GetxController {
         "imgMap": const <Map<String, dynamic>>[],
         "isAd": false,
         "ad": false,
-        "izBirakYayinTarihi": baseTime,
+        "izBirakYayinTarihi": publishTime,
         "konum": location,
         "mainFlood": mainFlood,
         "metin": text,
@@ -284,7 +283,7 @@ class UploadQueueService extends GetxController {
         },
         "tags": const <String>[],
         "thumbnail": "",
-        "timeStamp": baseTime,
+        "timeStamp": nowMs,
         "userID": userID,
         "video": "",
         "isUploading": true,
@@ -340,8 +339,8 @@ class UploadQueueService extends GetxController {
           _notifyQueueUpdated();
           if (kDebugMode) {
             final len = await file.length();
-            debugPrint('[Queue] Image uploaded: ${p.basename(imagePath)} '
-                'localSize=${(len / 1e6).toStringAsFixed(2)} MB url=$url');
+            debugPrint('[Queue] Image uploaded successfully '
+                'localSize=${(len / 1e6).toStringAsFixed(2)} MB');
           }
           imageUrls.add(CdnUrlBuilder.toCdnUrl(url));
         }
@@ -392,10 +391,7 @@ class UploadQueueService extends GetxController {
                 .doc(upload.id)
                 .get();
             debugPrint('[UploadPreflight][Queue] '
-                'path=${ref.fullPath} '
-                'uid=$userID '
-                'postExists=${postDoc.exists} '
-                'postUserID=${postDoc.data()?["userID"]}');
+                'postExists=${postDoc.exists}');
           }
 
           final uploadTaskFuture = _putFileWithAuthRetry(
@@ -415,8 +411,8 @@ class UploadQueueService extends GetxController {
           );
           if (kDebugMode) {
             final len = await videoFile.length();
-            debugPrint(
-                '[Queue] Video uploaded: size=${(len / 1e6).toStringAsFixed(2)} MB url=$videoUrl');
+            debugPrint('[Queue] Video uploaded successfully '
+                'size=${(len / 1e6).toStringAsFixed(2)} MB');
           }
 
           // Generate and upload thumbnail
@@ -448,7 +444,7 @@ class UploadQueueService extends GetxController {
               debugPrint('[Queue] Thumbnail uploaded: '
                   'orig=${(tData.length / 1e6).toStringAsFixed(2)} MB '
                   'webp=${(thumbData.length / 1e6).toStringAsFixed(2)} MB '
-                  'minWidth=${UploadConstants.thumbnailMaxWidth} url=$thumbnailUrl');
+                  'minWidth=${UploadConstants.thumbnailMaxWidth}');
             }
 
             // Compute dimensions from JPEG bytes
@@ -532,7 +528,7 @@ class UploadQueueService extends GetxController {
         "imgMap": imgMap,
         "isAd": false,
         "ad": false,
-        "izBirakYayinTarihi": baseTime,
+        "izBirakYayinTarihi": publishTime,
         "konum": location,
         "mainFlood": mainFlood,
         "metin": text,
@@ -549,7 +545,7 @@ class UploadQueueService extends GetxController {
         },
         "tags": flood ? [] : allTags,
         "thumbnail": thumbnailUrl,
-        "timeStamp": baseTime,
+        "timeStamp": nowMs,
         "userID": userID,
         "video": videoUrl,
         "isUploading": false,

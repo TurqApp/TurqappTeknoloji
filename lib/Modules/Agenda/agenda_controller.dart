@@ -70,6 +70,20 @@ class AgendaController extends GetxController {
     return post.hasPlayableVideo; // HLS ready + playbackUrl var
   }
 
+  bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
+    final scheduled = post.scheduledAt.toInt();
+    if (scheduled <= 0 || post.video.trim().isEmpty) return false;
+    final publishAt = scheduled > 0
+        ? scheduled
+        : post.izBirakYayinTarihi.toInt();
+    final now = nowMs ?? DateTime.now().millisecondsSinceEpoch;
+    return publishAt > now;
+  }
+
+  bool _canAutoplayVideoPost(PostsModel post, [int? nowMs]) {
+    return post.hasPlayableVideo && !_isBlurredIzBirakVideo(post, nowMs);
+  }
+
   Future<bool> _canViewerSeePost(PostsModel post) async {
     if (hiddenPosts.contains(post.docID)) return false;
     if (post.deletedPost == true) return false;
@@ -192,17 +206,12 @@ class AgendaController extends GetxController {
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
-    final String? me = FirebaseAuth.instance.currentUser?.uid;
-
     return publicIzBirakPosts.where((post) {
       final meta = authorMeta[post.userID];
       final rozet = (meta?['rozet'] ?? '').toString().trim();
-      if (rozet.isEmpty) return false;
-      final isPrivate = (meta?['isPrivate'] ?? false) == true;
-      if (!isPrivate) return true;
-      final isMine = me != null && post.userID == me;
-      final follows = followingIDs.contains(post.userID);
-      return isMine || follows;
+      final isApproved = (meta?['isApproved'] ?? meta?['hesapOnayi'] ?? false) == true;
+      if (rozet.isEmpty && !isApproved) return false;
+      return true;
     }).toList(growable: false);
   }
 
@@ -234,8 +243,7 @@ class AgendaController extends GetxController {
       if (agendaList.isNotEmpty && centeredIndex.value == 0) {
         final videoManager = VideoStateManager.instance;
         final firstPost = agendaList[0];
-        if (firstPost.video.isNotEmpty) {
-          print('🎬 İlk video manuel trigger: ${firstPost.docID}');
+        if (_canAutoplayVideoPost(firstPost)) {
           videoManager.playOnlyThis(firstPost.docID);
         }
       }
@@ -259,7 +267,7 @@ class AgendaController extends GetxController {
         final centeredPost = agendaList[newIndex];
 
         // Eğer centered post VIDEO içeriyorsa, SADECE o videoyu oynat
-        if (centeredPost.video.isNotEmpty) {
+        if (_canAutoplayVideoPost(centeredPost)) {
           // 🎯 CRITICAL FIX: pauseAllExcept yerine playOnlyThis kullan
           // playOnlyThis = diğerlerini durdur + bu videoyu OYNAT
           videoManager.playOnlyThis(centeredPost.docID);
@@ -287,7 +295,7 @@ class AgendaController extends GetxController {
     // C-006: Sonraki 5 post'un görsellerini prefetch et
     _prefetchUpcomingImages();
 
-    final videoPosts = agendaList.where((p) => p.hasPlayableVideo).toList();
+    final videoPosts = agendaList.where((p) => _canAutoplayVideoPost(p)).toList();
     if (videoPosts.isEmpty) return;
 
     int safeCurrent = 0;
@@ -300,7 +308,7 @@ class AgendaController extends GetxController {
       } else {
         int beforeCount = 0;
         for (int i = 0; i < centered; i++) {
-          if (agendaList[i].hasPlayableVideo) beforeCount++;
+          if (_canAutoplayVideoPost(agendaList[i])) beforeCount++;
         }
         safeCurrent = beforeCount.clamp(0, videoPosts.length - 1);
       }
@@ -347,13 +355,13 @@ class AgendaController extends GetxController {
     }
 
     // Hedef post video değilse en yakın oynatılabilir videoya kay.
-    if (!agendaList[target].hasPlayableVideo) {
+    if (!_canAutoplayVideoPost(agendaList[target])) {
       final nextVideo =
-          agendaList.indexWhere((p) => p.hasPlayableVideo, target);
+          agendaList.indexWhere((p) => _canAutoplayVideoPost(p), target);
       if (nextVideo != -1) {
         target = nextVideo;
       } else {
-        final anyVideo = agendaList.indexWhere((p) => p.hasPlayableVideo);
+        final anyVideo = agendaList.indexWhere((p) => _canAutoplayVideoPost(p));
         if (anyVideo != -1) target = anyVideo;
       }
     }
@@ -365,7 +373,7 @@ class AgendaController extends GetxController {
     }
 
     final targetPost = agendaList[target];
-    if (!targetPost.hasPlayableVideo) return;
+    if (!_canAutoplayVideoPost(targetPost)) return;
 
     final manager = VideoStateManager.instance;
     manager.playOnlyThis(targetPost.docID);
