@@ -89,6 +89,7 @@ class ExploreController extends GetxController {
   Worker? _currentUserWorker;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
+  String _recentSearchReloadKey = '';
 
   @override
   void onInit() {
@@ -173,11 +174,37 @@ class ExploreController extends GetxController {
 
   void _bindRecentSearchUsers() {
     _currentUserWorker?.dispose();
+    _recentSearchReloadKey = _buildRecentSearchReloadKey(
+      CurrentUserService.instance.currentUserRx.value,
+    );
     _currentUserWorker = ever(
       CurrentUserService.instance.currentUserRx,
-      (_) => unawaited(_reloadRecentSearchUsers()),
+      (currentUser) {
+        final nextKey = _buildRecentSearchReloadKey(currentUser);
+        if (nextKey == _recentSearchReloadKey) {
+          return;
+        }
+        _recentSearchReloadKey = nextKey;
+        unawaited(_reloadRecentSearchUsers());
+      },
     );
     unawaited(_reloadRecentSearchUsers());
+  }
+
+  String _buildRecentSearchReloadKey(dynamic currentUser) {
+    final userID =
+        (currentUser?.userID ?? FirebaseAuth.instance.currentUser?.uid ?? '')
+            .toString();
+    if (userID.isEmpty) {
+      return '';
+    }
+
+    final lastSearches = currentUser?.lastSearchList;
+    if (lastSearches is! List) {
+      return userID;
+    }
+
+    return '$userID::${lastSearches.map((e) => e.toString()).join('|')}';
   }
 
   Future<void> _reloadRecentSearchUsers() async {
