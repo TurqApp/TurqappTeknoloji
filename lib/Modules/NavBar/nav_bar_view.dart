@@ -48,17 +48,21 @@ class NavBarView extends StatelessWidget {
     if (!Get.isRegistered<AgendaController>()) {
       Get.put(AgendaController());
     }
-    if (!isIOS && !Get.isRegistered<ExploreController>()) {
-      Get.put(ExploreController());
-    }
-    if (!isIOS && !Get.isRegistered<ShortController>()) {
-      Get.put(ShortController());
-    }
-    if (!isIOS && !Get.isRegistered<EducationController>()) {
-      Get.put(EducationController());
-    }
     if (!isIOS && !Get.isRegistered<StoryRowController>()) {
       Get.put(StoryRowController());
+    }
+    if (!isIOS) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!Get.isRegistered<ExploreController>()) {
+          Get.put(ExploreController());
+        }
+        if (!Get.isRegistered<ShortController>()) {
+          Get.put(ShortController());
+        }
+        if (!Get.isRegistered<EducationController>()) {
+          Get.put(EducationController());
+        }
+      });
     }
 
     // Deep link çözümleme her NavBar açılışında tetiklensin.
