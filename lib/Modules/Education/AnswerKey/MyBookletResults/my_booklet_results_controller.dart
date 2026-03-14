@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
@@ -55,8 +54,7 @@ class MyBookletResultsController extends GetxController {
         );
       }
       list.assignAll(tempList);
-    } catch (e) {
-      log("fetchBookletResults error: $e");
+    } catch (_) {
     }
   }
 
@@ -75,8 +73,7 @@ class MyBookletResultsController extends GetxController {
 
       tempList.sort((a, b) => b.baslangic.compareTo(a.baslangic));
       optikSonuclari.assignAll(tempList);
-    } catch (error) {
-      log("fetchOptikSonuclari error: $error");
+    } catch (_) {
     }
   }
 }

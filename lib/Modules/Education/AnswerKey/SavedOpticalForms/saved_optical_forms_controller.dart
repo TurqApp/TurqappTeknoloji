@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
@@ -35,8 +34,7 @@ class SavedOpticalFormsController extends GetxController {
         preferCache: true,
       );
       list.assignAll(books);
-    } catch (e) {
-      log("SavedOpticalFormsController.getData error: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

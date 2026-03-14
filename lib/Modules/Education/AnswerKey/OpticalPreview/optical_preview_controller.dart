@@ -37,11 +37,6 @@ class OpticalPreviewController extends GetxController {
   void checkInternetConnection() {
     Connectivity().onConnectivityChanged.listen((results) {
       isConnected.value = results.any((r) => r != ConnectivityResult.none);
-      print(
-        isConnected.value
-            ? "İnternet bağlantısı var."
-            : "İnternet bağlantısı yok.",
-      );
     });
   }
 

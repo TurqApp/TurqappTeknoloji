@@ -43,8 +43,7 @@ class TestPastResultContentController extends GetxController {
         count.value = filtered.length;
         timeStamp.value = ((filtered.first["timeStamp"] ?? 0) as num).toInt();
       }
-    } catch (e) {
-      print("Error fetching answer count: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

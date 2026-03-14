@@ -24,8 +24,7 @@ class MyTestsController extends GetxController {
           preferCache: true,
         ),
       );
-    } catch (e) {
-      print("Error fetching tests: $e");
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }
