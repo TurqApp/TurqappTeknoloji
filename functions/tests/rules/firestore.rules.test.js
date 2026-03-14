@@ -1031,6 +1031,76 @@ test("books blocks spoofed owner and unexpected fields on create", async () => {
   );
 });
 
+test("books CevapAnahtarlari allows canonical owner payload and delete", async () => {
+  const uid = "book-answer-owner";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "books", "book-answer-1"), {
+      basimTarihi: "2026",
+      baslik: "Deneme Kitabi",
+      cover: "",
+      dil: "Turkce",
+      sinavTuru: "TYT",
+      timeStamp: Date.now(),
+      yayinEvi: "Turq",
+      userID: uid,
+      viewCount: 0,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  const answerRef = doc(
+    ctx.firestore(),
+    "books",
+    "book-answer-1",
+    "CevapAnahtarlari",
+    "key-1",
+  );
+  await assertSucceeds(
+    setDoc(answerRef, {
+      baslik: "Deneme 1",
+      sira: 1,
+      dogruCevaplar: ["A", "B", "C"],
+    }),
+  );
+  await assertSucceeds(deleteDoc(answerRef));
+});
+
+test("books CevapAnahtarlari blocks spoofed payload", async () => {
+  const ownerUid = "book-answer-owner-block";
+  const attackerUid = "book-answer-attacker";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "books", "book-answer-2"), {
+      basimTarihi: "2026",
+      baslik: "Deneme Kitabi",
+      cover: "",
+      dil: "Turkce",
+      sinavTuru: "TYT",
+      timeStamp: Date.now(),
+      yayinEvi: "Turq",
+      userID: ownerUid,
+      viewCount: 0,
+    });
+  });
+
+  const attackerCtx = testEnv.authenticatedContext(attackerUid);
+  await assertFails(
+    setDoc(doc(
+      attackerCtx.firestore(),
+      "books",
+      "book-answer-2",
+      "CevapAnahtarlari",
+      "key-1",
+    ), {
+      baslik: "Deneme 1",
+      sira: 1,
+      dogruCevaplar: ["A", "B"],
+      adminOnly: true,
+    }),
+  );
+});
+
 test("practiceExams SinaviBitenler allows canonical owner payload", async () => {
   const ownerUid = "practice-exam-owner";
   const finisherUid = "practice-exam-finisher";

@@ -390,6 +390,16 @@ service cloud.firestore {
         && request.resource.data.viewCount is int
         && request.resource.data.viewCount >= 0;
     }
+    function isValidBookAnswerKeyPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['baslik', 'sira', 'dogruCevaplar'])
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.sira is int
+        && request.resource.data.sira >= 0
+        && request.resource.data.dogruCevaplar is list;
+    }
     function isValidPracticeExamFinishPayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
@@ -1448,10 +1458,17 @@ service cloud.firestore {
            .hasOnly(['viewCount', 'solveCount'])
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      match /CevapAnahtarlari/{answerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && isValidBookAnswerKeyPayload()
+          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
+        allow delete: if isAuth()
+          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
+      }
       match /{sub=**} {
         allow read: if isAuth();
-        allow write: if isAuth()
-          && get(/databases/$(database)/documents/books/$(docId)).data.userID == request.auth.uid;
+        allow write: if false;
       }
     }
 
