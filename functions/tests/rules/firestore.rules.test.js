@@ -887,6 +887,113 @@ test("optikForm blocks spoofed owner payload", async () => {
   );
 });
 
+test("optikForm answers allow owner create and update", async () => {
+  const uid = "optik-answer-owner";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "optikForm/form-answers"), {
+      max: 4,
+      cevaplar: ["A", "B", "C", "D"],
+      name: "Form",
+      userID: uid,
+      baslangic: Date.now(),
+      bitis: Date.now() + 60000,
+      kisitlama: false,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  const answerRef = doc(
+    ctx.firestore(),
+    "optikForm",
+    "form-answers",
+    "Yanitlar",
+    "optik-answer-owner",
+  );
+  await assertSucceeds(
+    setDoc(answerRef, {
+      timeStamp: Date.now(),
+      cevaplar: ["", "", "", ""],
+    }),
+  );
+  await assertSucceeds(
+    updateDoc(answerRef, {
+      timeStamp: Date.now(),
+      cevaplar: ["A", "B", "", "D"],
+      ogrenciNo: "123",
+      fullName: "Test User",
+    }),
+  );
+});
+
+test("optikForm answers block other users", async () => {
+  const ownerUid = "optik-answer-owner-block";
+  const attackerUid = "optik-answer-attacker";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "optikForm/form-answers-block"), {
+      max: 4,
+      cevaplar: ["A", "B", "C", "D"],
+      name: "Form",
+      userID: ownerUid,
+      baslangic: Date.now(),
+      bitis: Date.now() + 60000,
+      kisitlama: false,
+    });
+  });
+
+  const attackerCtx = testEnv.authenticatedContext(attackerUid);
+  await assertFails(
+    setDoc(doc(attackerCtx.firestore(), "optikForm/form-answers-block/Yanitlar/optik-answer-owner-block"), {
+      timeStamp: Date.now(),
+      cevaplar: ["A"],
+    }),
+  );
+});
+
+test("practiceExams SinaviBitenler allows canonical owner payload", async () => {
+  const ownerUid = "practice-exam-owner";
+  const finisherUid = "practice-exam-finisher";
+  const examId = "practice-exam-1";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `practiceExams/${examId}`), {
+      userID: ownerUid,
+      title: "Exam",
+    });
+  });
+
+  const finisherCtx = testEnv.authenticatedContext(finisherUid);
+  await assertSucceeds(
+    setDoc(doc(finisherCtx.firestore(), `practiceExams/${examId}/SinaviBitenler/finish-1`), {
+      userID: finisherUid,
+      timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("practiceExams SinaviBitenler blocks spoofed payload", async () => {
+  const ownerUid = "practice-exam-owner-block";
+  const finisherUid = "practice-exam-finisher-block";
+  const examId = "practice-exam-2";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `practiceExams/${examId}`), {
+      userID: ownerUid,
+      title: "Exam",
+    });
+  });
+
+  const finisherCtx = testEnv.authenticatedContext(finisherUid);
+  await assertFails(
+    setDoc(doc(finisherCtx.firestore(), `practiceExams/${examId}/SinaviBitenler/finish-1`), {
+      userID: ownerUid,
+      timeStamp: Date.now(),
+      extra: true,
+    }),
+  );
+});
+
 test("users_usernames legacy reservation path is disabled", async () => {
   const uid = "legacy-username-user";
   const ctx = testEnv.authenticatedContext(uid);

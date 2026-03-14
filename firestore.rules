@@ -311,6 +311,38 @@ service cloud.firestore {
         && request.resource.data.bitis >= request.resource.data.baslangic
         && request.resource.data.kisitlama is bool;
     }
+    function isValidOptikFormAnswerCreatePayload(userId) {
+      return isOwner(userId)
+        && request.resource.data.keys().hasOnly(['timeStamp', 'cevaplar'])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.cevaplar is list;
+    }
+    function isValidOptikFormAnswerUpdatePayload(userId) {
+      return isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'timeStamp', 'cevaplar', 'ogrenciNo', 'fullName'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.cevaplar is list
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ogrenciNo'])
+          || request.resource.data.ogrenciNo is string
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['fullName'])
+          || request.resource.data.fullName is string
+        );
+    }
+    function isValidPracticeExamFinishPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
     function isValidResharePayload(docId) {
       return isAuth()
         && docId == request.auth.uid
@@ -1272,6 +1304,12 @@ service cloud.firestore {
         allow create, update: if isOwner(userId);
         allow delete: if false;
       }
+
+      match /SinaviBitenler/{entryId} {
+        allow read: if isAuth();
+        allow create: if isValidPracticeExamFinishPayload();
+        allow update, delete: if false;
+      }
     }
 
     // Çıkmış Sorular (admin/system tarafından eklenen içerik)
@@ -1331,6 +1369,13 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isValidOptikFormCreatePayload();
       allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+      match /Yanitlar/{userId} {
+        allow read: if isAuth();
+        allow create: if isValidOptikFormAnswerCreatePayload(userId);
+        allow update: if isValidOptikFormAnswerUpdatePayload(userId);
+        allow delete: if false;
+      }
     }
 
     // Kitaplar / Cevap Anahtarı Kitapları
