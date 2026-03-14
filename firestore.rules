@@ -1410,8 +1410,7 @@ service cloud.firestore {
     match /questionsAnswers/{docId} {
       allow read: if isAuth();
       allow create: if isValidQuestionsAnswersCreatePayload();
-      allow update: if isAuth() && resource.data.userID == request.auth.uid;
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // Kitapçık Cevapları

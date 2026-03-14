@@ -916,6 +916,34 @@ test("questionsAnswers blocks spoofed owner payload", async () => {
   );
 });
 
+test("questionsAnswers rejects client update and delete after create", async () => {
+  const uid = "questions-answer-owner-immutable";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "questionsAnswers", "qa-immutable"), {
+      cevaplar: ["A", "B", "C"],
+      dogruCevaplar: ["A", "D", "C"],
+      timeStamp: Date.now() - 1000,
+      anaBaslik: "TYT",
+      sinavTuru: "Turkce",
+      yil: "2025",
+      baslik2: "Genel",
+      baslik3: "",
+      cikmisSoruID: "cikmis-immutable",
+      userID: uid,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  const resultRef = doc(ctx.firestore(), "questionsAnswers", "qa-immutable");
+  await assertFails(
+    updateDoc(resultRef, {
+      cevaplar: ["A", "A", "A"],
+    }),
+  );
+  await assertFails(deleteDoc(resultRef));
+});
+
 test("users KitapcikCevaplari allows owner-scoped canonical payload", async () => {
   const uid = "booklet-answer-owner";
   const ctx = testEnv.authenticatedContext(uid);
