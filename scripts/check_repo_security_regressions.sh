@@ -113,6 +113,9 @@ check_literal "Post like search logunda term dump'i geri gelmedi" 'term=\"$term\
 check_literal "Tag posts logunda tag dump'i geri gelmedi" 'print(">>> Tag post araması başlıyor! [TAG: $tag]")' || failures=$((failures + 1))
 check_literal "Tag posts logunda sonuc dump'i geri gelmedi" 'print(">>> Tag sonuç: ${fetchedPosts.length}")' || failures=$((failures + 1))
 check_literal_in_file "Agenda ilk video trigger logunda docID dump'i geri gelmedi" "print('🎬 İlk video manuel trigger: \${firstPost.docID}');" "lib/Modules/Agenda/agenda_controller.dart" || failures=$((failures + 1))
+check_literal "Deleted stories controller logunda uid dump'i geri gelmedi" 'DeletedStoriesController.fetch: uid=$uid' || failures=$((failures + 1))
+check_literal "Deleted stories repository logunda uid dump'i geri gelmedi" 'Deleted stories fetch: uid=$uid' || failures=$((failures + 1))
+check_literal "Mandatory follow logunda uid dump'i geri gelmedi" '[MandatoryFollow] follow failed uid=$uid' || failures=$((failures + 1))
 
 if [[ "$failures" -gt 0 ]]; then
   echo

@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/story_comment_model.dart';
@@ -67,6 +68,36 @@ class StoryRepository extends GetxService {
 
   static DateTime get _storyExpiryCutoff =>
       DateTime.now().subtract(const Duration(hours: 24));
+
+  int _asEpochMillis(dynamic value, {int fallback = 0}) {
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is DateTime) return value.millisecondsSinceEpoch;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final numeric = int.tryParse(value);
+      if (numeric != null) return numeric;
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed.millisecondsSinceEpoch;
+    }
+    return fallback;
+  }
+
+  List<Map<String, dynamic>> _normalizeStoryElements(dynamic raw) {
+    if (raw is! List) return const <Map<String, dynamic>>[];
+    return raw.map<Map<String, dynamic>>((item) {
+      if (item is Map) {
+        final map = Map<String, dynamic>.from(item.cast<dynamic, dynamic>());
+        final positionRaw = map['position'];
+        if (positionRaw is Map) {
+          map['position'] = Map<String, dynamic>.from(
+            positionRaw.cast<dynamic, dynamic>(),
+          );
+        }
+        return map;
+      }
+      return const <String, dynamic>{};
+    }).toList(growable: false);
+  }
 
   static StoryRepository ensure() {
     if (Get.isRegistered<StoryRepository>()) {
@@ -434,6 +465,77 @@ class StoryRepository extends GetxService {
     }
   }
 
+  Future<String> repostDeletedStory(StoryModel story) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? story.userId;
+    if (uid.trim().isEmpty) return '';
+
+    final docRef = FirebaseFirestore.instance.collection('stories').doc();
+    final createdAt = DateTime.now().millisecondsSinceEpoch;
+    final storyId = docRef.id;
+
+    final serialized = story.elements
+        .map(
+          (e) => <String, dynamic>{
+            'type': e.type.toString().split('.').last,
+            'content': e.content,
+            'width': e.width,
+            'height': e.height,
+            'position': {'x': e.position.dx, 'y': e.position.dy},
+            'rotation': e.rotation,
+            'zIndex': e.zIndex,
+            'isMuted': e.isMuted,
+            'fontSize': e.fontSize,
+            'aspectRatio': e.aspectRatio,
+            'textColor': e.textColor,
+            'textBgColor': e.textBgColor,
+            'hasTextBg': e.hasTextBg,
+            'textAlign': e.textAlign,
+            'fontWeight': e.fontWeight,
+            'italic': e.italic,
+            'underline': e.underline,
+            'shadowBlur': e.shadowBlur,
+            'shadowOpacity': e.shadowOpacity,
+            'fontFamily': e.fontFamily,
+            'hasOutline': e.hasOutline,
+            'outlineColor': e.outlineColor,
+            'stickerType': e.stickerType,
+            'stickerData': e.stickerData,
+          },
+        )
+        .toList(growable: false);
+
+    await docRef.set({
+      'userId': uid,
+      'createdDate': createdAt,
+      'backgroundColor': story.backgroundColor.toARGB32(),
+      'musicId': story.musicId,
+      'musicUrl': story.musicUrl,
+      'musicTitle': story.musicTitle,
+      'musicArtist': story.musicArtist,
+      'musicCoverUrl': story.musicCoverUrl,
+      'elements': serialized,
+      'deleted': false,
+      'deletedAt': 0,
+    });
+
+    if (story.musicId.trim().isNotEmpty) {
+      final track = await StoryMusicLibraryService.instance.fetchTrackById(
+        story.musicId,
+        preferCache: true,
+      );
+      if (track != null) {
+        await StoryMusicLibraryService.instance.recordStoryUsage(
+          track: track,
+          storyId: storyId,
+          userId: uid,
+          createdAt: createdAt,
+        );
+      }
+    }
+
+    return storyId;
+  }
+
   Future<DeletedStoryCachePayload?> restoreDeletedStoriesCache(
       String uid) async {
     await _ensureInitialized();
@@ -531,27 +633,28 @@ class StoryRepository extends GetxService {
           if (storyId.isEmpty || !seenStoryIds.add(storyId)) continue;
           deletedDocCount++;
 
+          final createdAtMs = _asEpochMillis(
+            data['createdAtOriginal'] ?? data['createdDate'],
+            fallback: DateTime.now().millisecondsSinceEpoch,
+          );
+
           final model = StoryModel.fromCacheMap(<String, dynamic>{
             'id': storyId,
             'userId': (data['userId'] ?? uid).toString(),
-            'createdDate':
-                (data['createdAtOriginal'] as num?)?.toInt() ??
-                    (data['createdDate'] as num?)?.toInt() ??
-                    DateTime.now().millisecondsSinceEpoch,
+            'createdDate': createdAtMs,
             'backgroundColor':
-                (data['backgroundColor'] as num?)?.toInt() ?? 0xFF000000,
+                _asEpochMillis(data['backgroundColor'], fallback: 0xFF000000),
             'musicId': (data['musicId'] ?? '').toString(),
             'musicUrl': (data['musicUrl'] ?? '').toString(),
             'musicTitle': (data['musicTitle'] ?? '').toString(),
             'musicArtist': (data['musicArtist'] ?? '').toString(),
             'musicCoverUrl': (data['musicCoverUrl'] ?? '').toString(),
-            'elements': (data['elements'] as List?) ?? const [],
+            'elements': _normalizeStoryElements(data['elements']),
           });
           items.add(model);
-          deletedAtById[model.id] = (data['deletedAt'] as num?)?.toInt() ?? 0;
-          final reason = (data['reason'] ?? data['deleteReason'] ?? '')
-              .toString()
-              .trim();
+          deletedAtById[model.id] = _asEpochMillis(data['deletedAt']);
+          final reason =
+              (data['reason'] ?? data['deleteReason'] ?? '').toString().trim();
           if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
         } catch (e) {
           parseErrorCount++;
@@ -576,11 +679,16 @@ class StoryRepository extends GetxService {
         final model = StoryModel.fromCacheMap(<String, dynamic>{
           'id': d.id,
           ...data,
+          'createdDate': _asEpochMillis(
+            data['createdDate'],
+            fallback: DateTime.now().millisecondsSinceEpoch,
+          ),
+          'backgroundColor':
+              _asEpochMillis(data['backgroundColor'], fallback: 0xFF000000),
+          'elements': _normalizeStoryElements(data['elements']),
         });
         items.add(model);
-        final delAt = (data['deletedAt'] ?? 0) is num
-            ? ((data['deletedAt'] ?? 0) as num).toInt()
-            : 0;
+        final delAt = _asEpochMillis(data['deletedAt']);
         deletedAtById[model.id] = delAt;
         final reason = (data['deleteReason'] ?? '').toString();
         if (reason.isNotEmpty) deleteReasonById[model.id] = reason;
@@ -591,9 +699,9 @@ class StoryRepository extends GetxService {
     }
 
     debugPrint(
-      'Deleted stories fetch: uid=$uid liveDocs=${snap.docs.length} '
+      'Deleted stories fetch: liveDocs=${snap.docs.length} '
       'deletedDocs=$deletedDocCount parsed=${items.length} parseErrors=$parseErrorCount '
-      'reasons=${deleteReasonById.values.toList()}',
+      'reasons=${deleteReasonById.length}',
     );
 
     items.sort((a, b) {
@@ -675,7 +783,8 @@ class StoryRepository extends GetxService {
           (doc) => includeDeleted || (doc.data()['deleted'] ?? false) != true,
         )
         .map(StoryModel.fromDoc)
-        .where((story) => includeDeleted || story.createdAt.isAfter(expiryCutoff))
+        .where(
+            (story) => includeDeleted || story.createdAt.isAfter(expiryCutoff))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return stories;
@@ -793,7 +902,7 @@ class StoryRepository extends GetxService {
         .set({
       'userId': userId,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
-        });
+    });
   }
 
   Future<void> markUserStoriesFullyViewed({
@@ -926,7 +1035,8 @@ class StoryRepository extends GetxService {
     if (storyId.isEmpty || currentUid.trim().isEmpty || emoji.trim().isEmpty) {
       return currentReaction;
     }
-    final docRef = FirebaseFirestore.instance.collection('stories').doc(storyId);
+    final docRef =
+        FirebaseFirestore.instance.collection('stories').doc(storyId);
 
     if (currentReaction == emoji) {
       await docRef.update({

@@ -43,7 +43,7 @@ class MandatoryFollowService {
           // Sessiz yutmak yerine logla; kullanıcı akışını bloklamasın.
           // ignore: avoid_print
           print(
-              '[MandatoryFollow] follow failed uid=$uid error=$e fallback=$fallbackError');
+              '[MandatoryFollow] follow failed error=$e fallback=$fallbackError');
         }
       }
     }

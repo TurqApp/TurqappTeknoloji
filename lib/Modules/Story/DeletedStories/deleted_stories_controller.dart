@@ -69,8 +69,8 @@ class DeletedStoriesController extends GetxController {
       deleteReasonById.clear();
       final payload = await _storyRepository.fetchDeletedStories(uid);
       debugPrint(
-        'DeletedStoriesController.fetch: uid=$uid items=${payload.stories.length} '
-        'reasons=${payload.deleteReasonById}',
+        'DeletedStoriesController.fetch: items=${payload.stories.length} '
+        'reasons=${payload.deleteReasonById.length}',
       );
       list.assignAll(payload.stories);
       deletedAtById.assignAll(payload.deletedAtById);
@@ -109,6 +109,14 @@ class DeletedStoriesController extends GetxController {
       await _persistCache(uid);
     }
     // Dinamik: Hikaye satırını anlık tazele ve sahiplik bayrağını güncelle
+    try {
+      await StoryRowController.refreshStoriesGlobally();
+    } catch (_) {}
+  }
+
+  Future<void> repost(StoryModel story) async {
+    final storyId = await _storyRepository.repostDeletedStory(story);
+    if (storyId.isEmpty) return;
     try {
       await StoryRowController.refreshStoriesGlobally();
     } catch (_) {}
