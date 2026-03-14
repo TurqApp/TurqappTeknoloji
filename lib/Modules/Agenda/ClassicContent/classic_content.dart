@@ -113,6 +113,8 @@ class _ClassicContentState extends State<ClassicContent>
   bool _isCaptionExpanded = false;
   bool _isQuoteExpanded = false;
   late final RelativeTimeTickService _relativeTimeTickService;
+  Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
+  String _quotedSourceProfileUserId = '';
 
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
@@ -129,6 +131,7 @@ class _ClassicContentState extends State<ClassicContent>
   void initState() {
     super.initState();
     _relativeTimeTickService = RelativeTimeTickService.ensure();
+    _refreshQuotedSourceProfileFuture();
   }
 
   Future<void> _subscribeToIzBirak() async {
@@ -719,6 +722,15 @@ class _ClassicContentState extends State<ClassicContent>
   @override
   void didUpdateWidget(covariant ClassicContent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldSourceUserId = oldWidget.model.quotedSourceUserID.trim().isNotEmpty
+        ? oldWidget.model.quotedSourceUserID.trim()
+        : oldWidget.model.originalUserID.trim();
+    final newSourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.originalUserID.trim();
+    if (oldSourceUserId != newSourceUserId) {
+      _refreshQuotedSourceProfileFuture();
+    }
     if (widget.shouldPlay != oldWidget.shouldPlay &&
         videoController?.value.isInitialized == true) {
       if (_shouldBlurIzBirakPost) {
@@ -731,6 +743,25 @@ class _ClassicContentState extends State<ClassicContent>
         videoController?.pause();
       }
     }
+  }
+
+  void _refreshQuotedSourceProfileFuture() {
+    final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.originalUserID.trim();
+    _quotedSourceProfileUserId = sourceUserId;
+    if (sourceUserId.isEmpty) {
+      _quotedSourceProfileFuture = null;
+      return;
+    }
+
+    final profileCache = Get.isRegistered<UserProfileCacheService>()
+        ? Get.find<UserProfileCacheService>()
+        : Get.put(UserProfileCacheService());
+    _quotedSourceProfileFuture = profileCache.getProfile(
+      sourceUserId,
+      preferCache: true,
+    );
   }
 
   @override
@@ -985,10 +1016,6 @@ class _ClassicContentState extends State<ClassicContent>
       height: 1.35,
     );
 
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService());
-
     String resolveSourceNickname(Map<String, dynamic>? profile) {
       final raw = (profile?['nickname'] ??
               profile?['displayName'] ??
@@ -1006,10 +1033,13 @@ class _ClassicContentState extends State<ClassicContent>
       return fallback;
     }
 
+    final future =
+        sourceUserId.trim() == _quotedSourceProfileUserId
+            ? _quotedSourceProfileFuture
+            : null;
+
     return FutureBuilder<Map<String, dynamic>?>(
-      future: sourceUserId.trim().isEmpty
-          ? Future.value(null)
-          : profileCache.getProfile(sourceUserId, preferCache: true),
+      future: future,
       builder: (context, snapshot) {
         final sourceNickname = resolveSourceNickname(snapshot.data);
         final quotedSpan = <InlineSpan>[

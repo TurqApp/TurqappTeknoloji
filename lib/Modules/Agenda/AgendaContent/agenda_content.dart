@@ -107,6 +107,9 @@ class _AgendaContentState extends State<AgendaContent>
   bool _isFullscreen = false;
   bool _pauseQueuedAfterBuild = false;
   late final RelativeTimeTickService _relativeTimeTickService;
+  Future<List<dynamic>>? _quotedSourceFuture;
+  String _quotedSourceFutureUserId = '';
+  String _quotedSourceFuturePostId = '';
 
   bool get _isIzBirakPost => widget.model.scheduledAt.toInt() > 0;
 
@@ -123,6 +126,55 @@ class _AgendaContentState extends State<AgendaContent>
   void initState() {
     super.initState();
     _relativeTimeTickService = RelativeTimeTickService.ensure();
+    _refreshQuotedSourceFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant AgendaContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldUserId = oldWidget.model.quotedSourceUserID.trim().isNotEmpty
+        ? oldWidget.model.quotedSourceUserID.trim()
+        : oldWidget.model.originalUserID.trim();
+    final newUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.originalUserID.trim();
+    final oldPostId = oldWidget.model.originalPostID.trim();
+    final newPostId = widget.model.originalPostID.trim();
+    if (oldUserId != newUserId || oldPostId != newPostId) {
+      _refreshQuotedSourceFuture();
+    }
+  }
+
+  void _refreshQuotedSourceFuture() {
+    final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
+        ? widget.model.quotedSourceUserID.trim()
+        : widget.model.originalUserID.trim();
+    final sourcePostId = widget.model.originalPostID.trim();
+
+    _quotedSourceFutureUserId = sourceUserId;
+    _quotedSourceFuturePostId = sourcePostId;
+
+    if (sourceUserId.isEmpty) {
+      _quotedSourceFuture = null;
+      return;
+    }
+
+    final profileCache = Get.isRegistered<UserProfileCacheService>()
+        ? Get.find<UserProfileCacheService>()
+        : Get.put(UserProfileCacheService(), permanent: true);
+    final postRepository = PostRepository.ensure();
+
+    _quotedSourceFuture = Future.wait<dynamic>([
+      profileCache.getProfile(
+        sourceUserId,
+        preferCache: true,
+        cacheOnly: false,
+      ),
+      if (sourcePostId.isNotEmpty)
+        postRepository.fetchPostsByIds([sourcePostId])
+      else
+        Future.value(null),
+    ]);
   }
 
   Future<void> _subscribeToIzBirak() async {
@@ -1064,31 +1116,15 @@ class _AgendaContentState extends State<AgendaContent>
   }
 
   Widget _buildAgendaQuotedSourceHeader() {
-    final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
-        ? widget.model.quotedSourceUserID.trim()
-        : widget.model.originalUserID.trim();
-    final sourcePostId = widget.model.originalPostID.trim();
-    if (sourceUserId.isEmpty) {
+    final sourceUserId = _quotedSourceFutureUserId;
+    final sourcePostId = _quotedSourceFuturePostId;
+    final future = _quotedSourceFuture;
+    if (sourceUserId.isEmpty || future == null) {
       return const SizedBox.shrink();
     }
 
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService(), permanent: true);
-    final postRepository = PostRepository.ensure();
-
     return FutureBuilder<List<dynamic>>(
-      future: Future.wait<dynamic>([
-        profileCache.getProfile(
-          sourceUserId,
-          preferCache: true,
-          cacheOnly: false,
-        ),
-        if (sourcePostId.isNotEmpty)
-          postRepository.fetchPostsByIds([sourcePostId])
-        else
-          Future.value(null),
-      ]),
+      future: future,
       builder: (context, snapshot) {
         final profile = (snapshot.data != null && snapshot.data!.isNotEmpty
                 ? snapshot.data!.first
