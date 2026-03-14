@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import androidx.media3.common.AudioAttributes
@@ -41,7 +42,8 @@ class ExoPlayerView(
     private var didRenderFirstFrame = false
 
     init {
-        playerView = PlayerView(context).apply {
+        playerView = (LayoutInflater.from(context)
+            .inflate(R.layout.exo_player_view, container, false) as PlayerView).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             setShutterBackgroundColor(Color.TRANSPARENT)
