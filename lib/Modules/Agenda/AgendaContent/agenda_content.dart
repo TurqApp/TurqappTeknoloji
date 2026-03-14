@@ -153,52 +153,55 @@ class _AgendaContentState extends State<AgendaContent>
       left: 10,
       right: 10,
       bottom: 10,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.62),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontFamily: 'MontserratBold',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontFamily: 'MontserratBold',
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _subscribeToIzBirak,
-              child: SizedBox(
-                width: 36,
-                height: 36,
-                child: Center(
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.green,
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.add,
-                      color: Colors.white,
-                      size: 14,
+              const SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _subscribeToIzBirak,
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Center(
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.green,
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.add,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -325,7 +328,8 @@ class _AgendaContentState extends State<AgendaContent>
     // Bu yüzden pause işlemini frame sonuna erteliyoruz.
     if (controller.gizlendi.value ||
         controller.arsiv.value ||
-        controller.silindi.value) {
+        controller.silindi.value ||
+        _shouldBlurIzBirakPost) {
       if (!_pauseQueuedAfterBuild) {
         _pauseQueuedAfterBuild = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -433,6 +437,10 @@ class _AgendaContentState extends State<AgendaContent>
                                 SizedBox.expand(
                                   child: GestureDetector(
                                     onTap: () async {
+                                      if (_shouldBlurIzBirakPost) {
+                                        videoController?.pause();
+                                        return;
+                                      }
                                       if (widget.isPreview) {
                                         final currentPos =
                                             await _resolveCurrentVideoPosition();
@@ -2065,59 +2073,65 @@ class _AgendaContentState extends State<AgendaContent>
 
     final outerRadius = BorderRadius.circular(12);
 
-    return Stack(
-      alignment: Alignment.bottomLeft,
-      children: [
-        GestureDetector(
-          onTap: _openImageMediaOrFeedCta,
-          onDoubleTap: () {
-            controller.like();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: outerRadius,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: _buildImageContent(images),
-          ),
-        ),
-        _buildIzBirakBlurOverlay(),
-        _buildIzBirakBottomBar(),
-        if (widget.model.floodCount > 1 && widget.model.flood == false)
+    return ClipRRect(
+      borderRadius: outerRadius,
+      child: Stack(
+        alignment: Alignment.bottomLeft,
+        children: [
           GestureDetector(
-            onTap: () {
-              Get.to(() => FloodListing(mainModel: widget.model));
+            onTap: _openImageMediaOrFeedCta,
+            onDoubleTap: () {
+              controller.like();
             },
-            child: Texts.colorfulFloodLeftSide,
-          ),
-        if (widget.isReshared || widget.model.originalUserID.isNotEmpty)
-          Positioned(
-            left: 8,
-            bottom: (widget.model.floodCount > 1 && widget.model.flood == false)
-                ? 26
-                : 8,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.isReshared) _buildAgendaReshareOverlay(),
-                if (widget.isReshared && widget.model.originalUserID.isNotEmpty)
-                  const SizedBox(height: 6),
-                if (widget.model.originalUserID.isNotEmpty)
-                  SharedPostLabel(
-                    originalUserID: widget.model.originalUserID,
-                    sourceUserID: widget.model.quotedPost
-                        ? widget.model.quotedSourceUserID
-                        : '',
-                    labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
-                    textColor: Colors.white,
-                    fontSize: 12,
-                  ),
-              ],
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: outerRadius,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _buildImageContent(images),
             ),
           ),
-      ],
+          _buildIzBirakBlurOverlay(),
+          _buildIzBirakBottomBar(),
+          if (widget.model.floodCount > 1 && widget.model.flood == false)
+            GestureDetector(
+              onTap: () {
+                Get.to(() => FloodListing(mainModel: widget.model));
+              },
+              child: Texts.colorfulFloodLeftSide,
+            ),
+          if (widget.isReshared || widget.model.originalUserID.isNotEmpty)
+            Positioned(
+              left: 8,
+              bottom:
+                  (widget.model.floodCount > 1 && widget.model.flood == false)
+                      ? 26
+                      : 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.isReshared) _buildAgendaReshareOverlay(),
+                  if (widget.isReshared &&
+                      widget.model.originalUserID.isNotEmpty)
+                    const SizedBox(height: 6),
+                  if (widget.model.originalUserID.isNotEmpty)
+                    SharedPostLabel(
+                      originalUserID: widget.model.originalUserID,
+                      sourceUserID: widget.model.quotedPost
+                          ? widget.model.quotedSourceUserID
+                          : '',
+                      labelSuffix:
+                          widget.model.quotedPost ? 'alıntılandı' : '',
+                      textColor: Colors.white,
+                      fontSize: 12,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 
