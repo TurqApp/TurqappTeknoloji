@@ -158,6 +158,94 @@ service cloud.firestore {
           )
         );
     }
+    function isValidPostCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'likes', 'text', 'imgs', 'videos', 'timeStamp', 'userID',
+          'edited', 'editTimestamp', 'deleted', 'deletedTimeStamp',
+          'hasReplies', 'repliesCount'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 5000
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.likes is list
+        && request.resource.data.likes.size() == 0
+        && request.resource.data.imgs is list
+        && request.resource.data.videos is list
+        && request.resource.data.edited is bool
+        && request.resource.data.edited == false
+        && request.resource.data.editTimestamp is int
+        && request.resource.data.editTimestamp == 0
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == false
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp == 0
+        && request.resource.data.hasReplies is bool
+        && request.resource.data.hasReplies == false
+        && request.resource.data.repliesCount is int
+        && request.resource.data.repliesCount == 0
+        && (
+          request.resource.data.text.size() > 0
+          || request.resource.data.imgs.size() > 0
+          || request.resource.data.videos.size() > 0
+        );
+    }
+    function isValidSubCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'likes', 'text', 'imgs', 'videos', 'timeStamp', 'userID',
+          'edited', 'editTimestamp', 'deleted', 'deletedTimeStamp'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 5000
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.likes is list
+        && request.resource.data.likes.size() == 0
+        && request.resource.data.imgs is list
+        && request.resource.data.videos is list
+        && request.resource.data.edited is bool
+        && request.resource.data.edited == false
+        && request.resource.data.editTimestamp is int
+        && request.resource.data.editTimestamp == 0
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == false
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp == 0
+        && (
+          request.resource.data.text.size() > 0
+          || request.resource.data.imgs.size() > 0
+          || request.resource.data.videos.size() > 0
+        );
+    }
+    function canSoftDeleteOwnedComment() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['deleted', 'deletedTimeStamp'])
+        && request.resource.data.deleted is bool
+        && request.resource.data.deleted == true
+        && request.resource.data.deletedTimeStamp is int
+        && request.resource.data.deletedTimeStamp >= resource.data.deletedTimeStamp;
+    }
+    function isValidStoryCommentCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'metin', 'timeStamp', 'gif'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.metin is string
+        && request.resource.data.metin.size() <= 5000
+        && request.resource.data.gif is string
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
     function isValidResharePayload(docId) {
       return isAuth()
         && docId == request.auth.uid
@@ -689,15 +777,15 @@ service cloud.firestore {
       // Comments
       match /comments/{commentId} {
         allow read: if isAuth();
-        allow create: if isAuth();
-        allow update: if isAuth() && resource.data.userID == request.auth.uid;
+        allow create: if isValidPostCommentCreatePayload();
+        allow update: if canSoftDeleteOwnedComment();
         allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
         // Sub-comments (replies)
         match /sub_comments/{replyId} {
           allow read: if isAuth();
-          allow create: if isAuth();
-          allow update: if isAuth() && resource.data.userID == request.auth.uid;
+          allow create: if isValidSubCommentCreatePayload();
+          allow update: if canSoftDeleteOwnedComment();
           allow delete: if isAuth() && resource.data.userID == request.auth.uid;
         }
       }
@@ -802,8 +890,7 @@ service cloud.firestore {
 
       match /Yorumlar/{commentId} {
         allow read: if isAuth();
-        allow create: if isAuth()
-          && request.resource.data.userID == request.auth.uid;
+        allow create: if isValidStoryCommentCreatePayload();
         allow update, delete: if isAuth()
           && resource.data.userID == request.auth.uid;
       }

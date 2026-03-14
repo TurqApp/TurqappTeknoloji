@@ -8,6 +8,8 @@ let testEnv;
 let assertFails;
 let assertSucceeds;
 let initializeTestEnvironment;
+let addDoc;
+let collection;
 let doc;
 let deleteDoc;
 let getDoc;
@@ -18,7 +20,7 @@ test.before(async () => {
   ({ initializeTestEnvironment, assertFails, assertSucceeds } = await import(
     "@firebase/rules-unit-testing"
   ));
-  ({ doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
+  ({ addDoc, collection, doc, deleteDoc, getDoc, setDoc, updateDoc } = await import("firebase/firestore"));
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
     firestore: {
@@ -336,6 +338,69 @@ test("posts likes block spoofed payload", async () => {
   );
 });
 
+test("posts comments allow owner-scoped canonical payload", async () => {
+  const ownerUid = "post-owner-comment";
+  const commenterUid = "post-commenter";
+  const postId = "post-comment-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "comment test",
+    });
+  });
+
+  const commenterCtx = testEnv.authenticatedContext(commenterUid);
+  await assertSucceeds(
+    setDoc(doc(commenterCtx.firestore(), `Posts/${postId}/comments/comment-1`), {
+      likes: [],
+      text: "Merhaba",
+      imgs: [],
+      videos: [],
+      timeStamp: Date.now(),
+      userID: commenterUid,
+      edited: false,
+      editTimestamp: 0,
+      deleted: false,
+      deletedTimeStamp: 0,
+      hasReplies: false,
+      repliesCount: 0,
+    }),
+  );
+});
+
+test("posts comments block spoofed owner and unexpected fields", async () => {
+  const ownerUid = "post-owner-comment-block";
+  const commenterUid = "post-commenter-block";
+  const postId = "post-comment-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "comment block test",
+    });
+  });
+
+  const commenterCtx = testEnv.authenticatedContext(commenterUid);
+  await assertFails(
+    setDoc(doc(commenterCtx.firestore(), `Posts/${postId}/comments/comment-1`), {
+      likes: [],
+      text: "Yetkisiz",
+      imgs: [],
+      videos: [],
+      timeStamp: Date.now(),
+      userID: ownerUid,
+      edited: false,
+      editTimestamp: 0,
+      deleted: false,
+      deletedTimeStamp: 0,
+      hasReplies: false,
+      repliesCount: 0,
+      adminOnly: true,
+    }),
+  );
+});
+
 test("posts viewers allow legacy random-doc payload for self", async () => {
   const ownerUid = "post-owner-view";
   const viewerUid = "post-viewer";
@@ -493,6 +558,53 @@ test("stories viewers allow self viewer payload", async () => {
   await assertSucceeds(
     setDoc(doc(viewerCtx.firestore(), `stories/${storyId}/Viewers/${viewerUid}`), {
       timeStamp: Date.now(),
+    }),
+  );
+});
+
+test("stories comments allow canonical payload", async () => {
+  const ownerUid = "story-owner-comment";
+  const commenterUid = "story-commenter";
+  const storyId = "story-comment-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+    });
+  });
+
+  const commenterCtx = testEnv.authenticatedContext(commenterUid);
+  await assertSucceeds(
+    addDoc(collection(commenterCtx.firestore(), `stories/${storyId}/Yorumlar`), {
+      userID: commenterUid,
+      metin: "Story yorumu",
+      timeStamp: Date.now(),
+      gif: "",
+    }),
+  );
+});
+
+test("stories comments block spoofed payload", async () => {
+  const ownerUid = "story-owner-comment-block";
+  const commenterUid = "story-commenter-block";
+  const storyId = "story-comment-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `stories/${storyId}`), {
+      userId: ownerUid,
+      createdDate: Date.now(),
+    });
+  });
+
+  const commenterCtx = testEnv.authenticatedContext(commenterUid);
+  await assertFails(
+    addDoc(collection(commenterCtx.firestore(), `stories/${storyId}/Yorumlar`), {
+      userID: ownerUid,
+      metin: "Spoofed story yorumu",
+      timeStamp: Date.now(),
+      gif: "",
+      extra: true,
     }),
   );
 });
