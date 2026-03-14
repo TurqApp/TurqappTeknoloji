@@ -468,6 +468,58 @@ test("posts reshares allow quote metadata payload", async () => {
   );
 });
 
+test("posts postSharers allow self-scoped shared-post payload", async () => {
+  const ownerUid = "post-owner-sharer";
+  const sharerUid = "post-sharer-ok";
+  const postId = "post-sharer-ok";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "post sharer test",
+    });
+  });
+
+  const sharerCtx = testEnv.authenticatedContext(sharerUid);
+  await assertSucceeds(
+    setDoc(
+      doc(sharerCtx.firestore(), `Posts/${postId}/postSharers/${sharerUid}`),
+      {
+        userID: sharerUid,
+        timestamp: Date.now(),
+        sharedPostID: "shared-post-1",
+        quotedPost: false,
+      },
+    ),
+  );
+});
+
+test("posts postSharers block spoofed shared-post payload", async () => {
+  const ownerUid = "post-owner-sharer-block";
+  const sharerUid = "post-sharer-block";
+  const postId = "post-sharer-block";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `Posts/${postId}`), {
+      userID: ownerUid,
+      metin: "post sharer block test",
+    });
+  });
+
+  const sharerCtx = testEnv.authenticatedContext(sharerUid);
+  await assertFails(
+    setDoc(
+      doc(sharerCtx.firestore(), `Posts/${postId}/postSharers/${sharerUid}`),
+      {
+        userID: ownerUid,
+        timestamp: Date.now(),
+        sharedPostID: "shared-post-1",
+        quotedPost: false,
+      },
+    ),
+  );
+});
+
 test("posts izBirakSubscribers allow self-scoped subscription payload", async () => {
   const ownerUid = "post-owner-izbirak";
   const subscriberUid = "post-subscriber-izbirak";

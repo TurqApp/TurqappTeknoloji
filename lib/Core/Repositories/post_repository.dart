@@ -40,6 +40,18 @@ class PostSubcollectionPage {
   final bool hasMore;
 }
 
+class PostSharersPage {
+  const PostSharersPage({
+    required this.items,
+    required this.lastDoc,
+    required this.hasMore,
+  });
+
+  final List<PostSharersModel> items;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
+  final bool hasMore;
+}
+
 class PostReshareEntry {
   const PostReshareEntry({
     required this.userId,
@@ -830,6 +842,78 @@ class PostRepository extends GetxService {
         .toList(growable: false);
     _postSharersMemory[normalizedPostId] = List<PostSharersModel>.from(sharers);
     return sharers;
+  }
+
+  Future<PostSharersPage> fetchPostSharersPage(
+    String postId, {
+    DocumentSnapshot<Map<String, dynamic>>? lastDoc,
+    int limit = 20,
+  }) async {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty) {
+      return const PostSharersPage(
+        items: <PostSharersModel>[],
+        lastDoc: null,
+        hasMore: false,
+      );
+    }
+
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('Posts')
+        .doc(normalizedPostId)
+        .collection('postSharers')
+        .orderBy('timestamp', descending: true)
+        .limit(limit);
+    if (lastDoc != null) {
+      query = query.startAfterDocument(lastDoc);
+    }
+
+    final snap = await query.get();
+    final items = snap.docs
+        .map((doc) => PostSharersModel.fromMap(doc.data()))
+        .toList(growable: false);
+    return PostSharersPage(
+      items: items,
+      lastDoc: snap.docs.isEmpty ? lastDoc : snap.docs.last,
+      hasMore: snap.docs.length >= limit,
+    );
+  }
+
+  Future<List<PostSharersModel>> fetchSharedAsPostSharersFallback(
+    String originalPostId,
+  ) async {
+    final normalizedPostId = originalPostId.trim();
+    if (normalizedPostId.isEmpty) return const <PostSharersModel>[];
+
+    final snap = await _firestore
+        .collection('Posts')
+        .where('originalPostID', isEqualTo: normalizedPostId)
+        .where('sharedAsPost', isEqualTo: true)
+        .get();
+
+    final seenUserIds = <String>{};
+    final items = snap.docs
+        .map((doc) {
+          final data = doc.data();
+          final userId = (data['userID'] ?? '').toString().trim();
+          final timestamp = (data['timeStamp'] as num?)?.toInt() ??
+              int.tryParse('${data['timeStamp']}') ??
+              0;
+          if (userId.isEmpty) return null;
+          if (data['deletedPost'] == true || data['quotedPost'] == true) {
+            return null;
+          }
+          return PostSharersModel(
+            userID: userId,
+            timestamp: timestamp,
+            sharedPostID: doc.id,
+          );
+        })
+        .whereType<PostSharersModel>()
+        .toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    return items.where((item) => seenUserIds.add(item.userID)).toList();
   }
 
   Future<PostSubcollectionPage> fetchLikeUserIdsPage(

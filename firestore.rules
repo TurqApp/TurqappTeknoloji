@@ -440,6 +440,30 @@ service cloud.firestore {
           || request.resource.data.quotedPost is bool
         );
     }
+    function isValidPostSharerPayload(docId) {
+      return isAuth()
+        && docId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userID', 'timestamp', 'sharedPostID', 'quotedPost'
+        ])
+        && request.resource.data.timestamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timestamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == request.auth.uid
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['sharedPostID'])
+          || request.resource.data.sharedPostID is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['quotedPost'])
+          || request.resource.data.quotedPost is bool
+        );
+    }
     function postCounterTopLevelKeys() {
       return [
         'stats',
@@ -971,6 +995,13 @@ service cloud.firestore {
         allow delete: if isAuth() && request.auth.uid == reshareId;
       }
 
+      // Shared-as-post attribution records
+      match /postSharers/{sharerId} {
+        allow read: if isAuth();
+        allow create, update: if isValidPostSharerPayload(sharerId);
+        allow delete: if isAuth() && request.auth.uid == sharerId;
+      }
+
       // Iz Birak subscribers
       match /izBirakSubscribers/{subscriberId} {
         allow read: if false;
@@ -1003,6 +1034,12 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create, update: if isValidResharePayload(reshareId);
       allow delete: if isAuth() && request.auth.uid == reshareId;
+    }
+
+    match /{path=**}/postSharers/{sharerId} {
+      allow read: if isAuth();
+      allow create, update: if isValidPostSharerPayload(sharerId);
+      allow delete: if isAuth() && request.auth.uid == sharerId;
     }
 
     // ──────────────────────────────────────────────

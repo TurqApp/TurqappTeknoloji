@@ -1,21 +1,49 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/functions.dart';
+import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_controller.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers_controller.dart';
+import 'package:turqappv2/Models/post_sharers_model.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
-class PostSharers extends StatelessWidget {
+class PostSharers extends StatefulWidget {
   final String postID;
 
   const PostSharers({super.key, required this.postID});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(PostSharersController(postID: postID));
+  State<PostSharers> createState() => _PostSharersState();
+}
 
+class _PostSharersState extends State<PostSharers> {
+  late final String _controllerTag;
+  late final PostSharersController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'post_sharers_${widget.postID}_${DateTime.now().microsecondsSinceEpoch}';
+    controller = Get.put(
+      PostSharersController(postID: widget.postID),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<PostSharersController>(tag: _controllerTag)) {
+      Get.delete<PostSharersController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -58,7 +86,9 @@ class PostSharers extends StatelessWidget {
                 }
 
                 return ListView.separated(
-                  itemCount: controller.postSharers.length,
+                  controller: controller.scrollController,
+                  itemCount: controller.postSharers.length +
+                      (controller.isLoadingMore.value ? 1 : 0),
                   separatorBuilder: (context, index) => Divider(
                     indent: 10,
                     endIndent: 10,
@@ -67,89 +97,21 @@ class PostSharers extends StatelessWidget {
                     color: Colors.grey.shade200,
                   ),
                   itemBuilder: (context, index) {
+                    if (index >= controller.postSharers.length) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: CupertinoActivityIndicator(),
+                        ),
+                      );
+                    }
+
                     final sharer = controller.postSharers[index];
                     final userData = controller.usersData[sharer.userID];
 
-                    return ListTile(
-                      leading: GestureDetector(
-                        onTap: () {
-                          Get.to(() => SocialProfile(userID: sharer.userID));
-                        },
-                        child: ClipOval(
-                          child: SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: userData?['avatarUrl'] != null &&
-                                    userData!['avatarUrl'].isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: userData['avatarUrl'],
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(
-                                        CupertinoIcons.person_fill,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(
-                                        CupertinoIcons.person_fill,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    color: Colors.grey[200],
-                                    child: const Icon(
-                                      CupertinoIcons.person_fill,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      title: GestureDetector(
-                        onTap: () {
-                          Get.to(() => SocialProfile(userID: sharer.userID));
-                        },
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  userData?['fullName'] ??
-                                      'Bilinmeyen Kullanıcı',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                                Text(
-                                  timeAgoMetin(sharer.timestamp),
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 13,
-                                    fontFamily: "MontserratMedium",
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              '@${userData?['nickname'] ?? 'Bilinmeyen Kullanıcı'}',
-                              style: const TextStyle(
-                                color: Colors.blueAccent,
-                                fontSize: 15,
-                                fontFamily: "MontserratBold",
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    return _PostSharerTile(
+                      sharer: sharer,
+                      userData: userData,
                     );
                   },
                 );
@@ -159,5 +121,195 @@ class PostSharers extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _PostSharerTile extends StatefulWidget {
+  const _PostSharerTile({
+    required this.sharer,
+    required this.userData,
+  });
+
+  final PostSharersModel sharer;
+  final Map<String, dynamic>? userData;
+
+  @override
+  State<_PostSharerTile> createState() => _PostSharerTileState();
+}
+
+class _PostSharerTileState extends State<_PostSharerTile> {
+  late final String _followTag;
+  FollowerController? _followController;
+  bool _followStateReady = false;
+
+  String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    _followTag =
+        'post_sharer_follow_${widget.sharer.userID}_${DateTime.now().microsecondsSinceEpoch}';
+    if (widget.sharer.userID != _currentUid) {
+      _followController = Get.put(FollowerController(), tag: _followTag);
+      _refreshFollowState();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<FollowerController>(tag: _followTag)) {
+      Get.delete<FollowerController>(tag: _followTag, force: true);
+    }
+    super.dispose();
+  }
+
+  Future<void> _refreshFollowState() async {
+    if (_followController == null) return;
+    await _followController!.followControl(widget.sharer.userID);
+    if (!mounted) return;
+    setState(() {
+      _followStateReady = true;
+    });
+  }
+
+  Future<void> _openProfile() async {
+    await Get.to(() => SocialProfile(userID: widget.sharer.userID));
+    await _refreshFollowState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nickname = (widget.userData?['nickname'] ?? '').toString().trim();
+    final fullName = (widget.userData?['fullName'] ?? '').toString().trim();
+    final displayName =
+        fullName.isNotEmpty && fullName != 'Bilinmeyen Kullanıcı'
+            ? fullName
+            : (nickname.isNotEmpty ? nickname : 'Bilinmeyen Kullanıcı');
+    final subtitle =
+        nickname.isNotEmpty ? '@$nickname' : '@Bilinmeyen Kullanıcı';
+    final avatarUrl = (widget.userData?['avatarUrl'] ?? '').toString().trim();
+
+    return ListTile(
+      onTap: _openProfile,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      leading: ClipOval(
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: avatarUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      CupertinoIcons.person_fill,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      CupertinoIcons.person_fill,
+                      color: Colors.grey,
+                    ),
+                  ),
+                )
+              : Container(
+                  color: Colors.grey[200],
+                  child: const Icon(
+                    CupertinoIcons.person_fill,
+                    color: Colors.grey,
+                  ),
+                ),
+        ),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 15,
+                fontFamily: "MontserratBold",
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            timeAgoMetin(widget.sharer.timestamp),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 13,
+              fontFamily: "MontserratMedium",
+            ),
+          ),
+        ],
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.blueAccent,
+            fontSize: 15,
+            fontFamily: "MontserratBold",
+          ),
+        ),
+      ),
+      trailing:
+          widget.sharer.userID == _currentUid ? null : _buildFollowButton(),
+    );
+  }
+
+  Widget _buildFollowButton() {
+    if (_followController == null || !_followStateReady) {
+      return const SizedBox.shrink();
+    }
+
+    return Obx(() {
+      if (_followController!.isFollowed.value) {
+        return const SizedBox.shrink();
+      }
+
+      return GestureDetector(
+        onTap: _followController!.followLoading.value
+            ? null
+            : () {
+                _followController!.follow(widget.sharer.userID);
+              },
+        child: Container(
+          height: 30,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          child: _followController!.followLoading.value
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  "Takip Et",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontFamily: "MontserratBold",
+                  ),
+                ),
+        ),
+      );
+    });
   }
 }
