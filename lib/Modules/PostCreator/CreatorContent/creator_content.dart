@@ -947,82 +947,66 @@ class CreatorContent extends StatelessWidget {
     return Obx(() {
       final presets = CreatorContentController.supportedVideoLookPresets;
       return Container(
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: const Color(0xFFF6F7F9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFFE6E8EC)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            const Row(
-              children: [
-                Icon(
-                  CupertinoIcons.slider_horizontal_3,
-                  size: 15,
-                  color: Color(0xFF5F6B7A),
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Görünüm',
-                  style: TextStyle(
-                    color: Color(0xFF5F6B7A),
-                    fontSize: 12,
-                    fontFamily: "MontserratBold",
+            ...presets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final preset = entry.value;
+              final isSelected = controller.videoLookPreset.value == preset;
+              final label = _videoLookLabels[preset] ?? preset;
+              final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: index == presets.length - 1 ? 0 : 8,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: presets.map((preset) {
-                  final isSelected = controller.videoLookPreset.value == preset;
-                  final label = _videoLookLabels[preset] ?? preset;
-                  final icon = _videoLookIcons[preset] ?? CupertinoIcons.circle;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => controller.setVideoLookPreset(preset),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 9,
+                  child: GestureDetector(
+                    onTap: () => controller.setVideoLookPreset(preset),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.black : Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.black
+                              : const Color(0xFFE2E5EA),
                         ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.black : Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
+                        boxShadow: isSelected
+                            ? const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            icon,
+                            size: 14,
                             color: isSelected
-                                ? Colors.black
-                                : const Color(0xFFE2E5EA),
+                                ? Colors.white
+                                : const Color(0xFF4B5563),
                           ),
-                          boxShadow: isSelected
-                              ? const [
-                                  BoxShadow(
-                                    color: Color(0x22000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              icon,
-                              size: 14,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF4B5563),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
                               label,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: isSelected
                                     ? Colors.white
@@ -1033,14 +1017,14 @@ class CreatorContent extends StatelessWidget {
                                     : "MontserratMedium",
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       );

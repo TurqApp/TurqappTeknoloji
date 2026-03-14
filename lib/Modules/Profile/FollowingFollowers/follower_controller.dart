@@ -137,24 +137,32 @@ class FollowerController extends GetxController {
     final wasFollowed = isFollowed.value;
     isFollowed.value = !wasFollowed; // optimistic
     followLoading.value = true;
-    final outcome = await FollowService.toggleFollow(otherUserID);
-    isFollowed.value = outcome.nowFollowing; // reconcile
-    final myUid = FirebaseAuth.instance.currentUser?.uid;
-    if (myUid != null) {
-      _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(
-        isFollowed: outcome.nowFollowing,
-        cachedAt: DateTime.now(),
-      );
-      FollowingFollowersController.applyFollowMutationToCaches(
-        currentUid: myUid,
-        otherUserID: otherUserID,
-        nowFollowing: outcome.nowFollowing,
-      );
+    try {
+      final outcome = await FollowService.toggleFollow(otherUserID);
+      isFollowed.value = outcome.nowFollowing; // reconcile
+      isFollowed.refresh();
+      final myUid = FirebaseAuth.instance.currentUser?.uid;
+      if (myUid != null) {
+        _followStateCacheByUser['$myUid:$otherUserID'] = _FollowStateCacheEntry(
+          isFollowed: outcome.nowFollowing,
+          cachedAt: DateTime.now(),
+        );
+        FollowingFollowersController.applyFollowMutationToCaches(
+          currentUid: myUid,
+          otherUserID: otherUserID,
+          nowFollowing: outcome.nowFollowing,
+        );
+      }
+      if (outcome.limitReached) {
+        AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
+      }
+    } catch (_) {
+      isFollowed.value = wasFollowed;
+      isFollowed.refresh();
+      AppSnackbar('Hata', 'Takip durumu güncellenemedi.');
+    } finally {
+      followLoading.value = false;
     }
-    if (outcome.limitReached) {
-      AppSnackbar('Takip Limiti', 'Günlük daha fazla kişi takip edilemiyor.');
-    }
-    followLoading.value = false;
   }
 
   void _pruneFollowStateCache() {
