@@ -256,6 +256,7 @@ function pickFirstUrl(value: unknown): string {
 
 function pickBestImageFromData(data: Record<string, unknown>): string {
   const candidates: unknown[] = [
+    data.avatarUrl,
     data.imageUrl,
     data.thumbnail,
     data.thumbnailOfVideo,
@@ -356,12 +357,34 @@ async function buildUserMeta(
     return { title: "TurqApp Profili", desc: "", imageUrl: "" };
   }
   const data = (snap.data() || {}) as Record<string, unknown>;
+  const profile =
+    data.profile && typeof data.profile === "object"
+      ? (data.profile as Record<string, unknown>)
+      : {};
   const nickname = normalizeText(
-    data.nickname || data.userNickname || data.name,
+    data.nickname ||
+      data.username ||
+      data.userNickname ||
+      profile.nickname ||
+      profile.username ||
+      data.name,
     60
   );
-  const bio = normalizeText(data.bio || data.about || data.desc, 170);
-  const imageUrl = normalizeText(pickBestImageFromData(data), 1024);
+  const bio = normalizeText(
+    data.bio || profile.bio || data.about || data.desc,
+    170
+  );
+  const imageUrl = normalizeText(
+    pickBestImageFromData({
+      ...profile,
+      ...data,
+      avatarUrl: data.avatarUrl || profile.avatarUrl || profile.profileImage,
+      photoUrl: data.photoUrl || profile.photoUrl,
+      imageUrl: data.imageUrl || profile.imageUrl,
+      profileImage: data.profileImage || profile.profileImage,
+    }),
+    1024
+  );
   return {
     title: nickname ? `@${nickname} - TurqApp` : "TurqApp Profili",
     desc: bio,

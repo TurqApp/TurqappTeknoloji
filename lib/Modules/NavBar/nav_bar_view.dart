@@ -1,10 +1,9 @@
 import 'dart:ui';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
-import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'dart:math' as math;
 import 'nav_bar_controller.dart';
@@ -333,6 +332,13 @@ class NavBarView extends StatelessWidget {
                                       return Obx(() {
                                         CurrentUserService
                                             .instance.currentUserRx.value;
+                                        final authUid = FirebaseAuth
+                                                .instance.currentUser?.uid ??
+                                            '';
+                                        final userId = CurrentUserService
+                                                .instance.userId.isNotEmpty
+                                            ? CurrentUserService.instance.userId
+                                            : authUid;
                                         final img = CurrentUserService
                                             .instance.avatarUrl;
                                         final uploading =
@@ -351,6 +357,7 @@ class NavBarView extends StatelessWidget {
                                                 math.pi *
                                                 3;
                                             return _AvatarWithRing(
+                                              userId: userId,
                                               imageUrl: img,
                                               size: size,
                                               isSelected: isSelected,
@@ -392,12 +399,14 @@ class NavBarView extends StatelessWidget {
 }
 
 class _AvatarWithRing extends StatefulWidget {
+  final String userId;
   final String imageUrl;
   final double size;
   final bool isSelected;
   final bool uploading;
   final double angle; // radians
   const _AvatarWithRing({
+    required this.userId,
     required this.imageUrl,
     required this.size,
     required this.isSelected,
@@ -411,6 +420,28 @@ class _AvatarWithRing extends StatefulWidget {
 
 class _AvatarWithRingState extends State<_AvatarWithRing> {
   double _scale = 1.0;
+  late String _stableUserId;
+  late String _stableImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _stableUserId = widget.userId.trim();
+    _stableImageUrl = widget.imageUrl.trim();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AvatarWithRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextUserId = widget.userId.trim();
+    final nextImageUrl = widget.imageUrl.trim();
+    if (nextUserId.isNotEmpty) {
+      _stableUserId = nextUserId;
+    }
+    if (nextImageUrl.isNotEmpty) {
+      _stableImageUrl = nextImageUrl;
+    }
+  }
 
   void _down(PointerDownEvent e) {
     setState(() => _scale = 0.75);
@@ -426,25 +457,25 @@ class _AvatarWithRingState extends State<_AvatarWithRing> {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = CircleAvatar(
+    final avatar = CachedUserAvatar(
+      userId: _stableUserId.isNotEmpty ? _stableUserId : widget.userId,
+      imageUrl: _stableImageUrl.isNotEmpty ? _stableImageUrl : widget.imageUrl,
       radius: widget.size / 2,
       backgroundColor: Colors.transparent,
-      backgroundImage: widget.imageUrl.isNotEmpty
-          ? CachedNetworkImageProvider(
-              widget.imageUrl,
-              cacheManager: TurqImageCacheManager.instance,
-            )
-          : null,
-      child: widget.imageUrl.isEmpty
-          ? DefaultAvatar(
-              radius: widget.size / 2,
-              backgroundColor: Colors.transparent,
-              iconColor: widget.isSelected
-                  ? Colors.black
-                  : Colors.black.withValues(alpha: 0.5),
-              padding: EdgeInsets.all(widget.size * 0.18),
-            )
-          : null,
+      placeholder: DefaultAvatar(
+        radius: widget.size / 2,
+        backgroundColor: Colors.transparent,
+        iconColor:
+            widget.isSelected ? Colors.black : Colors.black.withValues(alpha: 0.5),
+        padding: EdgeInsets.all(widget.size * 0.18),
+      ),
+      errorWidget: DefaultAvatar(
+        radius: widget.size / 2,
+        backgroundColor: Colors.transparent,
+        iconColor:
+            widget.isSelected ? Colors.black : Colors.black.withValues(alpha: 0.5),
+        padding: EdgeInsets.all(widget.size * 0.18),
+      ),
     );
 
     // Two-pixel gap around avatar

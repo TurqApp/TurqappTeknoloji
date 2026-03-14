@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
@@ -73,15 +74,30 @@ class MyQRCode extends StatelessWidget {
                               () => ClipRRect(
                                 borderRadius:
                                     BorderRadius.all(Radius.circular(12)),
-                                child: QrImageView(
-                                  data: controller.profileLink.value.isNotEmpty
-                                      ? controller.profileLink.value
-                                      : userService.userId,
-                                  version: QrVersions.auto,
-                                  size: 250.0,
-                                  backgroundColor: Colors.white,
-                                  embeddedImage: AssetImage(
-                                      "assets/images/logogradient.webp"),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    QrImageView(
+                                      data: controller.profileLink.value.isNotEmpty
+                                          ? controller.profileLink.value
+                                          : userService.userId,
+                                      version: QrVersions.auto,
+                                      size: 250.0,
+                                      backgroundColor: Colors.white,
+                                    ),
+                                    Container(
+                                      width: 42,
+                                      height: 42,
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: SvgPicture.asset(
+                                        "assets/icons/logo.svg",
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

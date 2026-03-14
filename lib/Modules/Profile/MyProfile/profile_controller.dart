@@ -43,6 +43,22 @@ class ProfileController extends GetxController {
 
   var followerCount = 0.obs;
   var followingCount = 0.obs;
+  final RxString headerNickname = ''.obs;
+  final RxString headerRozet = ''.obs;
+  final RxString headerFirstName = ''.obs;
+  final RxString headerLastName = ''.obs;
+  final RxString headerMeslek = ''.obs;
+  final RxString headerBio = ''.obs;
+  final RxString headerAdres = ''.obs;
+
+  String _preserveNonEmpty(
+    RxString target,
+    dynamic raw,
+  ) {
+    final next = (raw ?? '').toString().trim();
+    if (next.isNotEmpty) return next;
+    return target.value.trim();
+  }
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
   DocumentSnapshot? lastPostDoc;
@@ -226,6 +242,38 @@ class ProfileController extends GetxController {
         .listen((snapshot) {
       final data = snapshot;
       if (data != null) {
+        headerNickname.value =
+            (data['nickname'] ??
+                    data['nickName'] ??
+                    data['username'] ??
+                    data['userName'] ??
+                    data['displayName'] ??
+                    '')
+                .toString()
+                .trim();
+        headerRozet.value = (data['rozet'] ?? data['badge'] ?? '')
+            .toString()
+            .trim();
+        headerFirstName.value = _preserveNonEmpty(
+          headerFirstName,
+          data['firstName'],
+        );
+        headerLastName.value = _preserveNonEmpty(
+          headerLastName,
+          data['lastName'],
+        );
+        headerMeslek.value = _preserveNonEmpty(
+          headerMeslek,
+          data['meslekKategori'],
+        );
+        headerBio.value = _preserveNonEmpty(
+          headerBio,
+          data['bio'],
+        );
+        headerAdres.value = _preserveNonEmpty(
+          headerAdres,
+          data['adres'],
+        );
         followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
             (data['followersCount'] as num?)?.toInt() ??
             (data['takipci'] as num?)?.toInt() ??
@@ -337,6 +385,37 @@ class ProfileController extends GetxController {
       final data = await _userRepository.getUserRaw(
         uid,
         preferCache: true,
+      );
+      headerNickname.value =
+          (data?['nickname'] ??
+                  data?['nickName'] ??
+                  data?['username'] ??
+                  data?['userName'] ??
+                  data?['displayName'] ??
+                  '')
+              .toString()
+              .trim();
+      headerRozet.value =
+          (data?['rozet'] ?? data?['badge'] ?? '').toString().trim();
+      headerFirstName.value = _preserveNonEmpty(
+        headerFirstName,
+        data?['firstName'],
+      );
+      headerLastName.value = _preserveNonEmpty(
+        headerLastName,
+        data?['lastName'],
+      );
+      headerMeslek.value = _preserveNonEmpty(
+        headerMeslek,
+        data?['meslekKategori'],
+      );
+      headerBio.value = _preserveNonEmpty(
+        headerBio,
+        data?['bio'],
+      );
+      headerAdres.value = _preserveNonEmpty(
+        headerAdres,
+        data?['adres'],
       );
       followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
           (data?['followersCount'] as num?)?.toInt() ??

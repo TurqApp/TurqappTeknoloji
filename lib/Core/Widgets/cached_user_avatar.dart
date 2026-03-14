@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -36,6 +37,20 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _resolvedFilePath = '';
   bool _didBootstrap = false;
 
+  String _pickAvatarUrl(Map<String, dynamic>? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    Map<String, dynamic>? nestedProfile;
+    final rawProfile = raw['profile'];
+    if (rawProfile is Map) {
+      nestedProfile = Map<String, dynamic>.from(rawProfile);
+    }
+    final rawPublicProfile = raw['publicProfile'];
+    if (rawPublicProfile is Map) {
+      nestedProfile ??= Map<String, dynamic>.from(rawPublicProfile);
+    }
+    return resolveAvatarUrl(raw, profile: nestedProfile);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,7 +64,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     final nextResolved = _normalizeUrl(widget.imageUrl);
     if (oldWidget.userId != widget.userId ||
         oldWidget.imageUrl != widget.imageUrl) {
-      _resolvedUrl = nextResolved;
+      final sameUser = (oldWidget.userId ?? '').trim() == (widget.userId ?? '').trim();
+      final shouldPreserveResolvedUrl =
+          sameUser && nextResolved.isEmpty && _resolvedUrl.isNotEmpty;
+      _resolvedUrl = shouldPreserveResolvedUrl ? _resolvedUrl : nextResolved;
       _didBootstrap = false;
       unawaited(_bootstrap());
     }
@@ -60,19 +78,35 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     _didBootstrap = true;
 
     final uid = (widget.userId ?? '').trim();
+    final authUid = (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
     if (uid.isEmpty) {
       await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
       return;
     }
 
     final currentUser = CurrentUserService.instance;
-    if (uid == currentUser.userId) {
+    if (uid == currentUser.userId || (authUid.isNotEmpty && uid == authUid)) {
       final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
       if (currentAvatar.isNotEmpty) {
         _resolvedUrl = currentAvatar;
+        await _resolveLocalFile(currentAvatar, allowNetwork: true);
+        return;
       }
-      await _resolveLocalFile(currentAvatar, allowNetwork: true);
-      return;
+
+      try {
+        final currentRaw = await UserRepository.ensure().getUserRaw(
+          uid,
+          preferCache: true,
+          cacheOnly: false,
+          forceServer: true,
+        );
+        final currentRawUrl = _pickAvatarUrl(currentRaw);
+        if (currentRawUrl.isNotEmpty) {
+          _resolvedUrl = currentRawUrl;
+          await _resolveLocalFile(currentRawUrl, allowNetwork: true);
+          return;
+        }
+      } catch (_) {}
     }
 
     final users = UserRepository.ensure();
@@ -94,6 +128,23 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       }
     } catch (_) {}
 
+    try {
+      final cachedRaw = await users.getUserRaw(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      final cachedRawUrl = _pickAvatarUrl(cachedRaw);
+      if (cachedRawUrl.isNotEmpty && cachedRawUrl != _resolvedUrl && mounted) {
+        setState(() {
+          _resolvedUrl = cachedRawUrl;
+        });
+      }
+      if (cachedRawUrl.isNotEmpty) {
+        await _resolveLocalFile(cachedRawUrl, allowNetwork: false);
+      }
+    } catch (_) {}
+
     if (_resolvedUrl.isNotEmpty) return;
 
     try {
@@ -110,6 +161,26 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       }
       if (fetchedUrl.isNotEmpty) {
         await _resolveLocalFile(fetchedUrl, allowNetwork: true);
+      }
+    } catch (_) {}
+
+    if (_resolvedUrl.isNotEmpty) return;
+
+    try {
+      final fetchedRaw = await users.getUserRaw(
+        uid,
+        preferCache: true,
+        cacheOnly: false,
+        forceServer: true,
+      );
+      final fetchedRawUrl = _pickAvatarUrl(fetchedRaw);
+      if (fetchedRawUrl.isNotEmpty && fetchedRawUrl != _resolvedUrl && mounted) {
+        setState(() {
+          _resolvedUrl = fetchedRawUrl;
+        });
+      }
+      if (fetchedRawUrl.isNotEmpty) {
+        await _resolveLocalFile(fetchedRawUrl, allowNetwork: true);
       }
     } catch (_) {}
   }
@@ -148,8 +219,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   Widget build(BuildContext context) {
     final userService = CurrentUserService.instance;
     final uid = (widget.userId ?? '').trim();
+    final authUid = (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
 
-    if (uid.isNotEmpty && uid == userService.userId) {
+    if (uid.isNotEmpty &&
+        (uid == userService.userId || (authUid.isNotEmpty && uid == authUid))) {
       return StreamBuilder(
         stream: userService.userStream,
         initialData: userService.currentUser,

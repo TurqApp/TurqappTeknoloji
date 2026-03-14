@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show ImageByteFormat;
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'dart:ui' as ui;
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,35 +27,41 @@ class MyQRCodeController extends GetxController {
     unawaited(_prepareProfileLink());
   }
 
-  Future<String> _buildProfileLink() async {
+  String _buildProfileLink() {
+    final nickname = userService.nickname.trim();
+    if (nickname.isNotEmpty) {
+      return 'https://turqapp.com/u/$nickname';
+    }
     final uid = userService.userId.isNotEmpty
         ? userService.userId
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
-    if (uid.isEmpty) return 'https://turqapp.com/u/guest';
-    final nickname = userService.nickname.trim();
-    final slug = nickname.toLowerCase();
-    final safeSlug = slug.isEmpty ? uid : slug;
-    final result = await _shortLinkService.upsertUser(
-      userId: uid,
-      slug: safeSlug,
-      title: '@$nickname - TurqApp',
-      desc: 'TurqApp profilini görüntüle',
-      imageUrl: userService.avatarUrl,
-    );
-    final url = (result['url'] ?? '').toString().trim();
-    return url.isNotEmpty ? url : 'https://turqapp.com/u/$safeSlug';
+    if (uid.isNotEmpty) {
+      return 'https://turqapp.com/u/$uid';
+    }
+    return 'https://turqapp.com/u/guest';
+  }
+
+  String _fallbackProfileLink() {
+    return _buildProfileLink();
   }
 
   Future<void> _prepareProfileLink() async {
+    final link = _buildProfileLink();
+    profileLink.value = link;
+    final uid = userService.userId.isNotEmpty
+        ? userService.userId
+        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+    final nickname = userService.nickname.trim();
+    if (uid.isEmpty || nickname.isEmpty) return;
     try {
-      profileLink.value = await _buildProfileLink();
-    } catch (_) {
-      final uid = userService.userId.isNotEmpty
-          ? userService.userId
-          : (FirebaseAuth.instance.currentUser?.uid ?? '');
-      final slug = userService.nickname.trim().toLowerCase();
-      profileLink.value = 'https://turqapp.com/u/${slug.isEmpty ? uid : slug}';
-    }
+      await _shortLinkService.upsertUser(
+        userId: uid,
+        slug: nickname,
+        title: '@$nickname - TurqApp',
+        desc: 'TurqApp profilini görüntüle',
+        imageUrl: userService.avatarUrl,
+      );
+    } catch (_) {}
   }
 
   void showQrScannerModal() {
@@ -73,7 +78,10 @@ class MyQRCodeController extends GetxController {
 
   Future<void> shareProfile() async {
     await ShareActionGuard.run(() async {
-      final link = await _buildProfileLink();
+      String link = _buildProfileLink();
+      if (link.trim().isEmpty) {
+        link = _fallbackProfileLink();
+      }
       profileLink.value = link;
       await ShareLinkService.shareUrl(
         url: link,
@@ -84,7 +92,7 @@ class MyQRCodeController extends GetxController {
   }
 
   Future<void> copyLink() async {
-    final link = await _buildProfileLink();
+    final link = _buildProfileLink();
     profileLink.value = link;
     await Clipboard.setData(ClipboardData(text: link));
     AppSnackbar("Link Kopyalandı", "Profil linki panoya kopyalandı");
@@ -114,20 +122,18 @@ class MyQRCodeController extends GetxController {
       final qrPainter = QrPainter(
         data: profileLink.value.isNotEmpty
             ? profileLink.value
-            : await _buildProfileLink(),
+            : _buildProfileLink(),
         version: QrVersions.auto,
         gapless: true,
         eyeStyle:
             const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
         dataModuleStyle: const QrDataModuleStyle(
             dataModuleShape: QrDataModuleShape.square, color: Colors.black),
-        embeddedImage: await _loadLogoImage(),
-        embeddedImageStyle: QrEmbeddedImageStyle(size: Size(200, 200)),
       );
 
       final picData = await qrPainter.toImageData(
         1000,
-        format: ui.ImageByteFormat.png,
+        format: ImageByteFormat.png,
       );
       if (picData == null) {
         AppSnackbar('Hata', 'QR kod verisi oluşturulamadı.');
@@ -151,12 +157,5 @@ class MyQRCodeController extends GetxController {
     } catch (e) {
       AppSnackbar('Hata', 'İndirme sırasında hata oluştu.');
     }
-  }
-
-  Future<ui.Image?> _loadLogoImage() async {
-    final byteData = await rootBundle.load("assets/images/logogradient.webp");
-    final codec = await ui.instantiateImageCodec(byteData.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    return frame.image;
   }
 }

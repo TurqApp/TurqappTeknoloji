@@ -19,8 +19,8 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
 import 'package:turqappv2/Modules/Profile/BecomeVerifiedAccount/become_verified_account.dart';
@@ -86,13 +86,53 @@ class _ProfileViewState extends State<ProfileView> {
       FirebaseAuth.instance.currentUser?.uid ??
       '';
   String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
+  String get _myIosSafeNickname {
+    final controllerNickname = controller.headerNickname.value.trim();
+    if (controllerNickname.isNotEmpty) return controllerNickname;
+    final direct = _myNickname.trim();
+    if (direct.isNotEmpty) return direct;
+    final authDisplay =
+        FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+    if (authDisplay.isNotEmpty) return authDisplay;
+    return _myNickname;
+  }
   String get _myAvatarUrl => userService.avatarUrl;
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
   String get _myRozet => userService.currentUserRx.value?.rozet ?? '';
+  bool get _hasVerifiedRozet {
+    final headerRozet = controller.headerRozet.value.trim();
+    if (headerRozet.isNotEmpty) return true;
+    return _myRozet.trim().isNotEmpty;
+  }
   String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';
   String get _myBio => userService.currentUserRx.value?.bio ?? '';
   String get _myAdres => userService.currentUserRx.value?.adres ?? '';
+  String get _myDisplayFirstName {
+    final direct = controller.headerFirstName.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return _myFirstName.trim();
+  }
+  String get _myDisplayLastName {
+    final direct = controller.headerLastName.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return _myLastName.trim();
+  }
+  String get _myDisplayMeslek {
+    final direct = controller.headerMeslek.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return _myMeslek.trim();
+  }
+  String get _myDisplayBio {
+    final direct = controller.headerBio.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return _myBio.trim();
+  }
+  String get _myDisplayAdres {
+    final direct = controller.headerAdres.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return _myAdres.trim();
+  }
   int get _myTotalPosts => userService.currentUserRx.value?.counterOfPosts ?? 0;
   int get _myTotalLikes => userService.currentUserRx.value?.counterOfLikes ?? 0;
   int get _myTotalMarket => 0;
@@ -975,7 +1015,7 @@ class _ProfileViewState extends State<ProfileView> {
                           });
                         },
                         child: Text(
-                          _myNickname,
+                          _myIosSafeNickname,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 20,
@@ -983,7 +1023,7 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                       ),
-                      if (_myNickname.trim().isNotEmpty) ...[
+                      if (_myIosSafeNickname.trim().isNotEmpty) ...[
                         RozetContent(
                           size: 15,
                           userID: _myUserId,
@@ -1006,11 +1046,11 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Icon(
                       CupertinoIcons.qrcode,
                       color: AppColors.textBlack,
-                      size: 21,
+                      size: AppIconSurface.kIconSize,
                     ),
                   ),
                 ),
-                12.pw,
+                AppIconSurface.kGap.pw,
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
@@ -1023,11 +1063,11 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Icon(
                       CupertinoIcons.mail,
                       color: AppColors.textBlack,
-                      size: 20,
+                      size: AppIconSurface.kIconSize,
                     ),
                   ),
                 ),
-                12.pw,
+                AppIconSurface.kGap.pw,
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
@@ -1041,7 +1081,7 @@ class _ProfileViewState extends State<ProfileView> {
                     child: Icon(
                       CupertinoIcons.gear,
                       color: AppColors.textBlack,
-                      size: 21,
+                      size: AppIconSurface.kIconSize,
                     ),
                   ),
                 ),
@@ -1229,7 +1269,7 @@ class _ProfileViewState extends State<ProfileView> {
           Row(
             children: [
               Text(
-                "$_myFirstName $_myLastName",
+                '$_myDisplayFirstName $_myDisplayLastName'.trim(),
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
@@ -1237,7 +1277,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
               4.pw,
-              if (_myRozet.isEmpty)
+              if (!_hasVerifiedRozet)
                 GestureDetector(
                   onTap: () {
                     controller.pausetheall.value = true;
@@ -1265,11 +1305,11 @@ class _ProfileViewState extends State<ProfileView> {
                 )
             ],
           ),
-          if (_myMeslek.isNotEmpty)
+          if (_myDisplayMeslek.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Text(
-                _myMeslek,
+                _myDisplayMeslek,
                 style: TextStyle(
                   color: Colors.blueAccent,
                   fontSize: 15,
@@ -1277,7 +1317,7 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
             ),
-          if (_myBio.isNotEmpty)
+          if (_myDisplayBio.isNotEmpty)
             GestureDetector(
               onTap: () {
                 controller.pausetheall.value = true;
@@ -1289,7 +1329,7 @@ class _ProfileViewState extends State<ProfileView> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  _myBio,
+                  _myDisplayBio,
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 15,
@@ -1298,15 +1338,15 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
               ),
             ),
-          if (_myAdres.isNotEmpty)
+          if (_myDisplayAdres.isNotEmpty)
             GestureDetector(
               onTap: () {
-                showMapsSheetWithAdres(_myAdres);
+                showMapsSheetWithAdres(_myDisplayAdres);
               },
               child: Padding(
                 padding: const EdgeInsets.only(top: 3),
                 child: Text(
-                  _myAdres,
+                  _myDisplayAdres,
                   style: TextStyle(
                     color: Colors.indigo,
                     fontSize: 12,
