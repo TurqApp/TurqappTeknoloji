@@ -110,8 +110,7 @@ class CurrentUserService extends GetxController {
 
   /// Feed view selection with local fallback.
   /// 0: Classic, 1: Modern
-  int get effectiveViewSelection =>
-      viewSelectionRx.value;
+  int get effectiveViewSelection => viewSelectionRx.value;
   final RxInt viewSelectionRx = 1.obs;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -146,6 +145,7 @@ class CurrentUserService extends GetxController {
   String?
       _lastCacheSignature; // Track last saved snapshot to prevent duplicates
   String? _lastReactiveSignature;
+  String? _lastRootSyncSignature;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🚀 Initialization
@@ -267,19 +267,17 @@ class CurrentUserService extends GetxController {
               'cancelledAt': DateTime.now().millisecondsSinceEpoch,
             },
           );
-          final next = actions
-              .map((entry) {
-                if (entry.id != pendingDeletion.id) return entry;
-                return UserSubcollectionEntry(
-                  id: entry.id,
-                  data: {
-                    ...entry.data,
-                    'status': 'cancelled',
-                    'cancelledAt': DateTime.now().millisecondsSinceEpoch,
-                  },
-                );
-              })
-              .toList(growable: false);
+          final next = actions.map((entry) {
+            if (entry.id != pendingDeletion.id) return entry;
+            return UserSubcollectionEntry(
+              id: entry.id,
+              data: {
+                ...entry.data,
+                'status': 'cancelled',
+                'cancelledAt': DateTime.now().millisecondsSinceEpoch,
+              },
+            );
+          }).toList(growable: false);
           await _userSubcollectionRepository.setEntries(
             uid,
             subcollection: 'account_actions',
@@ -531,7 +529,13 @@ class CurrentUserService extends GetxController {
           if (data == null || data.isEmpty) {
             return;
           }
+          final rootSignature = jsonEncode(data);
+          if (_currentUser?.userID == firebaseUser.uid &&
+              _lastRootSyncSignature == rootSignature) {
+            return;
+          }
           _storeRootUserData(firebaseUser.uid, data);
+          _lastRootSyncSignature = rootSignature;
 
           final merged = await _buildMergedUserData(
             uid: firebaseUser.uid,
@@ -977,7 +981,6 @@ class CurrentUserService extends GetxController {
           firebaseUser.uid,
         );
       }
-
     } catch (_) {
       rethrow;
     }
@@ -1459,6 +1462,7 @@ class CurrentUserService extends GetxController {
       _cacheSaveTimer = null;
       _lastCacheSignature = null;
       _lastReactiveSignature = null;
+      _lastRootSyncSignature = null;
 
       _currentUser = null;
       viewSelectionRx.value = 1;
@@ -1470,7 +1474,6 @@ class CurrentUserService extends GetxController {
       _isSyncing = false;
       emailVerifiedRx.value = true;
       _lastEmailPromptAt = null;
-
     } catch (_) {}
   }
 
