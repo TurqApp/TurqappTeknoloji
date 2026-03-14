@@ -361,6 +361,35 @@ service cloud.firestore {
         && (request.resource.data.puan is int || request.resource.data.puan is float)
         && (request.resource.data.net is int || request.resource.data.net is float);
     }
+    function isValidBookCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'basimTarihi', 'baslik', 'cover', 'dil', 'sinavTuru',
+          'timeStamp', 'yayinEvi', 'userID', 'viewCount'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.basimTarihi is string
+        && request.resource.data.basimTarihi.size() > 0
+        && request.resource.data.basimTarihi.size() <= 64
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.cover is string
+        && request.resource.data.cover.size() <= 4096
+        && request.resource.data.dil is string
+        && request.resource.data.dil.size() > 0
+        && request.resource.data.dil.size() <= 64
+        && request.resource.data.sinavTuru is string
+        && request.resource.data.sinavTuru.size() > 0
+        && request.resource.data.sinavTuru.size() <= 128
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.yayinEvi is string
+        && request.resource.data.yayinEvi.size() > 0
+        && request.resource.data.yayinEvi.size() <= 256
+        && request.resource.data.viewCount is int
+        && request.resource.data.viewCount >= 0;
+    }
     function isValidPracticeExamFinishPayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
@@ -1412,7 +1441,7 @@ service cloud.firestore {
     // Kitaplar / Cevap Anahtarı Kitapları
     match /books/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidBookCreatePayload();
       allow update: if isAuth() && (
         resource.data.userID == request.auth.uid
         || request.resource.data.diff(resource.data).affectedKeys()

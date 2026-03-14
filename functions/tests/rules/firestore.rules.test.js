@@ -992,6 +992,45 @@ test("optikForm answers block other users", async () => {
   );
 });
 
+test("books allows canonical owner create payload", async () => {
+  const uid = "book-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ctx.firestore(), "books/book-1"), {
+      basimTarihi: "2026",
+      baslik: "Deneme Kitabi",
+      cover: "",
+      dil: "Turkce",
+      sinavTuru: "TYT",
+      timeStamp: Date.now(),
+      yayinEvi: "Turq",
+      userID: uid,
+      viewCount: 0,
+    }),
+  );
+});
+
+test("books blocks spoofed owner and unexpected fields on create", async () => {
+  const uid = "book-owner-block";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "books/book-2"), {
+      basimTarihi: "2026",
+      baslik: "Deneme Kitabi",
+      cover: "",
+      dil: "Turkce",
+      sinavTuru: "TYT",
+      timeStamp: Date.now(),
+      yayinEvi: "Turq",
+      userID: "different-user",
+      viewCount: 0,
+      role: "admin",
+    }),
+  );
+});
+
 test("practiceExams SinaviBitenler allows canonical owner payload", async () => {
   const ownerUid = "practice-exam-owner";
   const finisherUid = "practice-exam-finisher";
