@@ -247,25 +247,22 @@ class _ProfileViewState extends State<ProfileView> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Obx(() {
-          return Stack(
-            children: [
-              Column(
-                children: [
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        await controller.refreshAll();
-                        socialMediaController.getData();
-                      },
-                      child: controller.postSelection.value == 0
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      await controller.refreshAll();
+                      socialMediaController.getData();
+                    },
+                    child: Obx(() {
+                      return controller.postSelection.value == 0
                           ? () {
-                              // Normal postlar ve yeniden paylaşılanları birleştir
                               final List<Map<String, dynamic>> combinedPosts =
                                   [];
 
-                              // Profil ana akışında silinmiş/arşivlenmiş
-                              // gönderileri göstermeyelim.
                               for (final post in controller.allPosts.where(
                                 (post) => !post.deletedPost && !post.arsiv,
                               )) {
@@ -276,7 +273,6 @@ class _ProfileViewState extends State<ProfileView> {
                                 });
                               }
 
-                              // Yeniden paylaşılanları ekle
                               for (final reshare in controller.reshares.where(
                                 (post) => !post.deletedPost && !post.arsiv,
                               )) {
@@ -292,7 +288,6 @@ class _ProfileViewState extends State<ProfileView> {
                                 });
                               }
 
-                              // Zaman damgasına göre sırala (en yeni en üstte)
                               combinedPosts.sort((a, b) =>
                                   (b['timestamp'] as num)
                                       .compareTo(a['timestamp'] as num));
@@ -309,14 +304,12 @@ class _ProfileViewState extends State<ProfileView> {
                                             const AlwaysScrollableScrollPhysics(
                                                 parent:
                                                     BouncingScrollPhysics()),
-                                        itemCount: combinedPosts.length +
-                                            2, // +2 header ve bottom space
+                                        itemCount: combinedPosts.length + 2,
                                         itemBuilder: (context, index) {
                                           if (index == 0) {
                                             return header();
                                           }
 
-                                          // EN ALTA GELİNCE 50PX LİK BOŞLUK EKLE
                                           if (index ==
                                               combinedPosts.length + 1) {
                                             return 50.ph;
@@ -426,74 +419,73 @@ class _ProfileViewState extends State<ProfileView> {
                                           ? buildMarkets(context)
                                           : controller.postSelection.value == 5
                                               ? buildIzbiraklar(context)
-                                              : Column(children: [header()]),
-                    ),
+                                              : Column(children: [header()]);
+                    }),
                   ),
-                ],
-              ),
-              Obx(() => controller.showScrollToTop.value
-                  ? Positioned(
-                      bottom: 90,
-                      right: 20,
-                      child: GestureDetector(
-                        onTap: () {
-                          controller.scrollController.animateTo(0,
-                              duration: Duration(milliseconds: 300),
-                              curve: Curves.bounceIn);
-                        },
-                        child: RoadToTop(),
-                      ),
-                    )
-                  : const SizedBox.shrink()),
-              if (controller.showPfImage.value)
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    GestureDetector(
+                ),
+              ],
+            ),
+            Obx(() => controller.showScrollToTop.value
+                ? Positioned(
+                    bottom: 90,
+                    right: 20,
+                    child: GestureDetector(
                       onTap: () {
-                        controller.showPfImage.value = false;
+                        controller.scrollController.animateTo(0,
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.bounceIn);
                       },
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: 10.0, // Yatay bulanıklık yoğunluğu
-                          sigmaY: 10.0, // Dikey bulanıklık yoğunluğu
-                        ),
-                        child: Container(
-                          // İstediğiniz opaklık oranını buradan ayarlayabilirsiniz
-                          color: Colors.white.withValues(alpha: 0.2),
-                          // Tam ekran kaplaması istiyorsanız genişlik/yükseklik verin:
-                          width: double.infinity,
-                          height: double.infinity,
+                      child: RoadToTop(),
+                    ),
+                  )
+                : const SizedBox.shrink()),
+            Obx(() => controller.showPfImage.value
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          controller.showPfImage.value = false;
+                        },
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(
+                            sigmaX: 10.0,
+                            sigmaY: 10.0,
+                          ),
+                          child: Container(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
                         ),
                       ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 80),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: CachedUserAvatar(
-                              userId: _myUserId,
-                              imageUrl: _myAvatarUrl,
-                              radius: 120,
-                              placeholder: const DefaultAvatar(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 80),
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: CachedUserAvatar(
+                                userId: _myUserId,
+                                imageUrl: _myAvatarUrl,
                                 radius: 120,
-                                backgroundColor: Colors.transparent,
-                                iconColor: Colors.white70,
-                                padding: EdgeInsets.all(36),
+                                placeholder: const DefaultAvatar(
+                                  radius: 120,
+                                  backgroundColor: Colors.transparent,
+                                  iconColor: Colors.white70,
+                                  padding: EdgeInsets.all(36),
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                )
-            ],
-          );
-        }),
+                          )
+                        ],
+                      )
+                    ],
+                  )
+                : const SizedBox.shrink()),
+          ],
+        ),
       ),
     );
   }
