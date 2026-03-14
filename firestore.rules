@@ -335,6 +335,32 @@ service cloud.firestore {
           || request.resource.data.fullName is string
         );
     }
+    function isValidUserBookletAnswerCreatePayload(uid) {
+      return isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'timeStamp', 'kitapcikID', 'baslik', 'cevaplar', 'dogruCevaplar',
+          'dogru', 'yanlis', 'bos', 'puan', 'net'
+        ])
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.kitapcikID is string
+        && request.resource.data.kitapcikID.size() > 0
+        && request.resource.data.kitapcikID.size() <= 128
+        && request.resource.data.baslik is string
+        && request.resource.data.baslik.size() > 0
+        && request.resource.data.baslik.size() <= 256
+        && request.resource.data.cevaplar is list
+        && request.resource.data.dogruCevaplar is list
+        && request.resource.data.cevaplar.size() == request.resource.data.dogruCevaplar.size()
+        && request.resource.data.dogru is int
+        && request.resource.data.yanlis is int
+        && request.resource.data.bos is int
+        && request.resource.data.dogru >= 0
+        && request.resource.data.yanlis >= 0
+        && request.resource.data.bos >= 0
+        && request.resource.data.dogru + request.resource.data.yanlis + request.resource.data.bos == request.resource.data.dogruCevaplar.size()
+        && (request.resource.data.puan is int || request.resource.data.puan is float)
+        && (request.resource.data.net is int || request.resource.data.net is float);
+    }
     function isValidPracticeExamFinishPayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
@@ -699,6 +725,11 @@ service cloud.firestore {
       }
       match /bookletResults/{bookId} {
         allow read, write: if isOwner(uid);
+      }
+      match /KitapcikCevaplari/{docId} {
+        allow read: if isOwner(uid);
+        allow create: if isValidUserBookletAnswerCreatePayload(uid);
+        allow update, delete: if false;
       }
 
       // Stats (follow rate limiting)

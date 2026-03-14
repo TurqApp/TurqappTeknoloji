@@ -852,6 +852,47 @@ test("questionsAnswers blocks spoofed owner payload", async () => {
   );
 });
 
+test("users KitapcikCevaplari allows owner-scoped canonical payload", async () => {
+  const uid = "booklet-answer-owner";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ctx.firestore(), "users", uid, "KitapcikCevaplari", "result-1"), {
+      timeStamp: Date.now(),
+      kitapcikID: "booklet-1",
+      baslik: "Deneme 1",
+      cevaplar: ["A", "B", ""],
+      dogruCevaplar: ["A", "D", "C"],
+      dogru: 1,
+      yanlis: 1,
+      bos: 1,
+      puan: 33.3,
+      net: 0.75,
+    }),
+  );
+});
+
+test("users KitapcikCevaplari blocks spoofed and malformed payload", async () => {
+  const uid = "booklet-answer-owner-block";
+  const ctx = testEnv.authenticatedContext(uid);
+
+  await assertFails(
+    setDoc(doc(ctx.firestore(), "users", uid, "KitapcikCevaplari", "result-1"), {
+      timeStamp: Date.now(),
+      kitapcikID: "booklet-2",
+      baslik: "Deneme 2",
+      cevaplar: ["A"],
+      dogruCevaplar: ["A", "B"],
+      dogru: 1,
+      yanlis: 0,
+      bos: 0,
+      puan: 100,
+      net: 1,
+      userID: "different-user",
+    }),
+  );
+});
+
 test("optikForm allows owner-scoped canonical payload", async () => {
   const uid = "optik-owner";
   const ctx = testEnv.authenticatedContext(uid);
