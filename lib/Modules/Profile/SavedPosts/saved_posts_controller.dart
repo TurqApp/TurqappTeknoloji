@@ -73,8 +73,7 @@ class SavedPostsController extends GetxController {
         }
         savedAgendas.add(post);
       }
-    } catch (e) {
-      print('❌ SavedPostsController hydrate error: $e');
+    } catch (_) {
     } finally {
       isLoading.value = false;
     }

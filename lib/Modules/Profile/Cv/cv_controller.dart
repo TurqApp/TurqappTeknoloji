@@ -1181,8 +1181,7 @@ class CvController extends GetxController {
             .map((e) => e.toString())
             .toList();
       }
-    } catch (e) {
-      print('CV verisi yüklenirken hata: $e');
+    } catch (_) {
     }
   }
 

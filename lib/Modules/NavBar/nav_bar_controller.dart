@@ -99,8 +99,7 @@ class NavBarController extends GetxController
     if (!GetPlatform.isIOS) {
       try {
         shortCtrl.preloadRange(7);
-      } catch (e) {
-        print('[NavBar] ShortController preload error: $e');
+      } catch (_) {
       }
       _startBackgroundCacheLoop();
     }
@@ -172,9 +171,8 @@ class NavBarController extends GetxController
       if (!_isDisposed) {
         hideAcilis.value = true;
       }
-    } catch (e) {
+    } catch (_) {
       // Animation was interrupted (controller disposed), silently ignore
-      print('[NavBar] Animation interrupted: $e');
     }
   }
 
@@ -192,20 +190,17 @@ class NavBarController extends GetxController
     // Dispose animation controllers safely
     try {
       typingController.value.dispose();
-    } catch (e) {
-      print('[NavBar] typingController dispose error: $e');
+    } catch (_) {
     }
 
     try {
       deletingController.value.dispose();
-    } catch (e) {
-      print('[NavBar] deletingController dispose error: $e');
+    } catch (_) {
     }
 
     try {
       animationController.value.dispose();
-    } catch (e) {
-      print('[NavBar] animationController dispose error: $e');
+    } catch (_) {
     }
 
     super.onClose();
@@ -279,14 +274,12 @@ class NavBarController extends GetxController
     try {
       // Debug modda version kontrolünü bypass et
       if (kDebugMode) {
-        print("🔧 DEBUG MODE: Version kontrolü bypass edildi");
         return;
       }
 
       // Mevcut uygulama bilgilerini al
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
       String currentVersion = packageInfo.version;
-      print("📱 Cihaz versiyonu: $currentVersion");
 
       // Merkezi config cache üzerinden minimum version bilgilerini al
       final doc = await ConfigRepository.ensure().getLegacyConfigDoc(
@@ -302,19 +295,12 @@ class NavBarController extends GetxController
         requiredVersion = (doc?["iosMinVersion"] ?? "").toString();
       }
 
-      print("🔥 Firebase minimum versiyon: $requiredVersion");
-
       // Version karşılaştırması yap
       if (requiredVersion.isNotEmpty &&
           _isVersionLower(currentVersion, requiredVersion)) {
-        print(
-            "⚠️ Güncelleme gerekli: Mevcut $currentVersion < Gerekli $requiredVersion");
         _showUpdateDialog();
-      } else {
-        print("✅ Version uygun: $currentVersion");
       }
-    } catch (e) {
-      print("❌ Version kontrolü hatası: $e");
+    } catch (_) {
       // Fail-open: ağ/izin/Firestore hatasında kullanıcıyı kilitleme.
     }
   }
@@ -477,8 +463,7 @@ class NavBarController extends GetxController
       final Uri url = Uri.parse(storeUrl);
       try {
         await launchUrl(url, mode: LaunchMode.externalApplication);
-      } catch (e) {
-        print("Mağaza açma hatası: $e");
+      } catch (_) {
         AppSnackbar(
           "Hata",
           "Mağaza açılırken bir hata oluştu",

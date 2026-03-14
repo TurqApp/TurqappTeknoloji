@@ -550,8 +550,7 @@ class EditPostController extends GetxController {
       } else {
         profilecontroller.fetchPhotos(isInitial: true);
       }
-    } catch (e) {
-      print("setData error: $e");
+    } catch (_) {
     } finally {
       bekle.value = false;
       Get.back(result: model.docID);
