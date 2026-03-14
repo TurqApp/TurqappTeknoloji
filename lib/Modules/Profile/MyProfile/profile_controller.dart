@@ -112,12 +112,16 @@ class ProfileController extends GetxController {
     unawaited(_bootstrapProfileData());
 
     scrollController.addListener(() {
-      if (scrollController.offset > 500) {
-        showScrollToTop.value = true;
-      } else {
-        showScrollToTop.value = false;
-      }
+      _syncScrollToTopVisibility(scrollController.offset);
     });
+  }
+
+  void _syncScrollToTopVisibility(double offset) {
+    final shouldShow = offset > 500;
+    if (showScrollToTop.value == shouldShow) {
+      return;
+    }
+    showScrollToTop.value = shouldShow;
   }
 
   @override

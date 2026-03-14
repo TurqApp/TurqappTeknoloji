@@ -97,10 +97,9 @@ class _SocialProfileState extends State<SocialProfile> {
     final screenCenterY = screenHeight / 2;
 
     // Yukarı butonu görünürlüğü
-    if (scrollController.offset > 500) {
-      controller.showScrollToTop.value = true;
-    } else {
-      controller.showScrollToTop.value = false;
+    final shouldShowScrollToTop = scrollController.offset > 500;
+    if (controller.showScrollToTop.value != shouldShowScrollToTop) {
+      controller.showScrollToTop.value = shouldShowScrollToTop;
     }
 
     if (scrollController.position.pixels >=
