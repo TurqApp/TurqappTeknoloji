@@ -1916,9 +1916,6 @@ class AgendaController extends GetxController {
       }
 
       await _warmPrivacyCacheForUsers(reshareUserIds.toList());
-      for (final userId in reshareUserIds) {
-        unawaited(ReshareHelper.getUserNickname(userId));
-      }
 
       final visibleEvents = allReshareEvents.where((event) {
         final reshareUserId = (event['userID'] ?? '').toString();
@@ -1931,6 +1928,14 @@ class AgendaController extends GetxController {
       }).toList()
         ..sort((a, b) => ((b['timeStamp'] ?? 0) as int)
             .compareTo((a['timeStamp'] ?? 0) as int));
+
+      final visibleUserIds = visibleEvents
+          .map((event) => (event['userID'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      for (final userId in visibleUserIds) {
+        unawaited(ReshareHelper.getUserNickname(userId));
+      }
 
       if (visibleEvents.length > 120) {
         visibleEvents.removeRange(120, visibleEvents.length);
