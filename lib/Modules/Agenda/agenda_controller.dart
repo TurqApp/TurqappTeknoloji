@@ -1941,10 +1941,15 @@ class AgendaController extends GetxController {
         unawaited(ReshareHelper.getUserNickname(userId));
       }
 
-      if (resharedPostIds.isEmpty) return;
+      final visiblePostIds = visibleEvents
+          .map((event) => (event['postID'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      if (visiblePostIds.isEmpty) return;
 
       final postsById = <String, PostsModel>{};
-      for (final batch in _chunkList(resharedPostIds.toList(), 10)) {
+      for (final batch in _chunkList(visiblePostIds, 10)) {
         try {
           final batchPosts = await _postRepository.fetchPostsByIds(
             batch,
