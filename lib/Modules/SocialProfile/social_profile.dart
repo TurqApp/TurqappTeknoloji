@@ -1172,7 +1172,6 @@ class _SocialProfileState extends State<SocialProfile> {
                         openKeyboard: true,
                       ),
                     );
-                    print("SOHBET VARMIS");
                   } else {
                     final chatId = buildConversationId(
                       _myUserId,
@@ -1188,7 +1187,6 @@ class _SocialProfileState extends State<SocialProfile> {
                     )?.then((_) {
                       chatListingController.getList();
                     });
-                    print("SOHBET YOKMUS");
                   }
                 },
                 style: TextButton.styleFrom(
