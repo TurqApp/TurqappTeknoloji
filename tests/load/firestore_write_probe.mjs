@@ -6,11 +6,11 @@
  * Purpose:
  * - create temporary auth users
  * - seed one temporary post
- * - exercise like/follow edge writes with live auth + rules
+ * - exercise like/follow/comment writes with live auth + rules
  * - clean up probe documents afterwards
  *
  * Notes:
- * - This intentionally avoids mutating top-level post stats counters.
+ * - Comment probe intentionally mutates post commentCount to validate rules.
  * - Temporary Firebase Auth users remain in Auth unless removed separately.
  */
 
@@ -20,6 +20,7 @@ const FIREBASE_API_KEY =
 const USER_COUNT = Number(process.env.PROBE_USER_COUNT || "4");
 const LIKE_ROUNDS = Number(process.env.PROBE_LIKE_ROUNDS || "2");
 const FOLLOW_ROUNDS = Number(process.env.PROBE_FOLLOW_ROUNDS || "2");
+const COMMENT_ROUNDS = Number(process.env.PROBE_COMMENT_ROUNDS || "2");
 
 const FIRESTORE_BASE =
   `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -66,6 +67,10 @@ function fireInt(value) {
 
 function fireBool(value) {
   return { booleanValue: !!value };
+}
+
+function fireArray(values = []) {
+  return { arrayValue: { values } };
 }
 
 function fireMap(value) {
@@ -147,6 +152,26 @@ async function writeDoc({ token, path, fields, exists = null }) {
   return json;
 }
 
+async function patchDoc({ token, path, fields, updateMaskPaths = [] }) {
+  const query = updateMaskPaths.length
+    ? `?${updateMaskPaths
+        .map((field) => `updateMask.fieldPaths=${encodeURIComponent(field)}`)
+        .join("&")}`
+    : "";
+  const { res, json } = await jsonFetch(`${FIRESTORE_BASE}/${path}${query}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    throw new Error(`patchDoc failed (${path}): ${JSON.stringify(json)}`);
+  }
+  return json;
+}
+
 async function deleteDoc({ token, path }) {
   const { res, json } = await jsonFetch(`${FIRESTORE_BASE}/${path}`, {
     method: "DELETE",
@@ -166,6 +191,23 @@ async function timedMetric(bucket, fn) {
   bucket.push(nowMs() - started);
 }
 
+function buildCommentFields(actorUid, round) {
+  return {
+    likes: fireArray([]),
+    text: fireString(`codex comment probe round ${round}`),
+    imgs: fireArray([]),
+    videos: fireArray([]),
+    timeStamp: fireInt(nowMs()),
+    userID: fireString(actorUid),
+    edited: fireBool(false),
+    editTimestamp: fireInt(0),
+    deleted: fireBool(false),
+    deletedTimeStamp: fireInt(0),
+    hasReplies: fireBool(false),
+    repliesCount: fireInt(0),
+  };
+}
+
 async function main() {
   const users = [];
   const metrics = {
@@ -173,6 +215,8 @@ async function main() {
     likeDeleteMs: [],
     followCreateMs: [],
     followDeleteMs: [],
+    commentCreateMs: [],
+    commentDeleteMs: [],
   };
   const failures = [];
 
@@ -276,6 +320,66 @@ async function main() {
       }
     }
 
+    for (let round = 0; round < COMMENT_ROUNDS; round += 1) {
+      for (const actor of actors) {
+        const commentId = randomId("probe_comment");
+        const commentPath = `Posts/${postId}/comments/${commentId}`;
+        const commentedPath = `users/${actor.uid}/commented_posts/${postId}`;
+
+        try {
+          await timedMetric(metrics.commentCreateMs, async () => {
+            await writeDoc({
+              token: actor.idToken,
+              path: commentPath,
+              fields: buildCommentFields(actor.uid, round),
+              exists: false,
+            });
+            await writeDoc({
+              token: actor.idToken,
+              path: commentedPath,
+              fields: {
+                postDocID: fireString(postId),
+                timeStamp: fireInt(nowMs()),
+              },
+              exists: false,
+            });
+            await patchDoc({
+              token: author.idToken,
+              path: `Posts/${postId}`,
+              fields: {
+                stats: fireMap({
+                  commentCount: fireInt(1),
+                }),
+              },
+              updateMaskPaths: ["stats.commentCount"],
+            });
+          });
+
+          await timedMetric(metrics.commentDeleteMs, async () => {
+            await deleteDoc({ token: actor.idToken, path: commentPath });
+            await deleteDoc({ token: actor.idToken, path: commentedPath });
+            await patchDoc({
+              token: author.idToken,
+              path: `Posts/${postId}`,
+              fields: {
+                stats: fireMap({
+                  commentCount: fireInt(0),
+                }),
+              },
+              updateMaskPaths: ["stats.commentCount"],
+            });
+          });
+        } catch (error) {
+          failures.push({
+            phase: "comment",
+            uid: actor.uid,
+            round,
+            error: String(error?.message || error),
+          });
+        }
+      }
+    }
+
     const output = {
       ok: failures.length === 0,
       projectId: PROJECT_ID,
@@ -283,6 +387,7 @@ async function main() {
         userCount: USER_COUNT,
         likeRounds: LIKE_ROUNDS,
         followRounds: FOLLOW_ROUNDS,
+        commentRounds: COMMENT_ROUNDS,
         postId,
       },
       metrics: {
@@ -290,6 +395,8 @@ async function main() {
         likeDelete: metricSummary(metrics.likeDeleteMs),
         followCreate: metricSummary(metrics.followCreateMs),
         followDelete: metricSummary(metrics.followDeleteMs),
+        commentCreate: metricSummary(metrics.commentCreateMs),
+        commentDelete: metricSummary(metrics.commentDeleteMs),
       },
       failures,
     };
