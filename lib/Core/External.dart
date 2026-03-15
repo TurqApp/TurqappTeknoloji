@@ -11,6 +11,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/report_model.dart';
 import 'dart:ui' as ui;
 
+part 'external_text_utils_part.dart';
+
 List<String> bursKosullari = [
   "T.C. vatandaşı olmak.",
   "En az lise düzeyinde öğrenim görüyor olmak.",
@@ -162,99 +164,6 @@ final List<String> siralamaList = [
   "Tarih: Yeniden Eskiye",
 ];
 
-String getRemainingTimeText(int millis) {
-  DateTime releaseDate = DateTime.fromMillisecondsSinceEpoch(millis);
-  Duration remaining = releaseDate.difference(DateTime.now());
-
-  int days = remaining.inDays;
-  int hours = remaining.inHours % 24;
-  int minutes = remaining.inMinutes % 60;
-  int seconds = remaining.inSeconds % 60;
-
-  if (remaining.inDays > 0) {
-    String dayStr = days.toString().padLeft(2, '0');
-    return '$dayStr Gün Kaldı';
-  } else if (remaining.inHours > 0) {
-    String hourStr = hours.toString().padLeft(2, '0');
-    return '$hourStr Saat Kaldı';
-  } else if (remaining.inMinutes > 0) {
-    String minuteStr = minutes.toString().padLeft(2, '0');
-    return '$minuteStr Dakika Kaldı';
-  } else {
-    String secondStr = seconds.toString().padLeft(2, '0');
-    return '$secondStr Saniye Kaldı';
-  }
-}
-
-String zamanFarkiniHesapla(int targetMillis) {
-  int currentMillis = DateTime.now().millisecondsSinceEpoch;
-  int difference = targetMillis - currentMillis;
-
-  if (difference < 0) {
-    return "Zaman geçmiş";
-  }
-
-  int years = difference ~/ (365 * 24 * 60 * 60 * 1000);
-  difference %= (365 * 24 * 60 * 60 * 1000);
-  int months = difference ~/ (30 * 24 * 60 * 60 * 1000);
-  difference %= (30 * 24 * 60 * 60 * 1000);
-  int days = difference ~/ (24 * 60 * 60 * 1000);
-
-  String result = "";
-
-  if (years > 0) {
-    result += "$years Yıl ";
-  }
-  if (months > 0) {
-    result += "$months Ay ";
-  }
-  if (days > 0) {
-    result += "$days Gün";
-  }
-
-  return result.isEmpty ? "Zamanı Gelmiş" : result;
-}
-
-class KilometerInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    String newText = newValue.text.replaceAll(RegExp(r'\D'), '');
-
-    String formattedText = '';
-    for (int i = 0; i < newText.length; i++) {
-      if (i > 0 && (newText.length - i) % 3 == 0) {
-        formattedText += '.';
-      }
-      formattedText += newText[i];
-    }
-
-    return TextEditingValue(
-      text: formattedText,
-      selection: TextSelection.collapsed(offset: formattedText.length),
-    );
-  }
-}
-
-int generateRandomNumber(int min, int max) {
-  final random = Random();
-  return min + random.nextInt(max - min);
-}
-
-String capitalize(String s) {
-  return s
-      .replaceAll(RegExp(' +'), ' ')
-      .split(' ')
-      .map(
-        (str) => str.isNotEmpty
-            ? '${str[0].toUpperCase()}${str.substring(1).toLowerCase()}'
-            : '',
-      )
-      .join(' ');
-}
-
 List<String> dersYerleri = [
   "Öğrencinin Evi",
   "Öğretmenin Evi",
@@ -262,264 +171,6 @@ List<String> dersYerleri = [
   "Uzaktan Eğitim",
   "Ders Verme Alanı",
 ];
-
-String formatTimestampToTurkish(String timestamp) {
-  DateTime date = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
-
-  List<String> turkishMonths = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
-  ];
-
-  String month = turkishMonths[date.month - 1];
-  String year = date.year.toString();
-
-  return "$month $year";
-}
-
-String formatTimestampToTurkish2(String dateStr) {
-  try {
-    final date = DateFormat('dd.MM.yyyy').parseStrict(dateStr);
-
-    const turkishMonths = [
-      "Ocak",
-      "Şubat",
-      "Mart",
-      "Nisan",
-      "Mayıs",
-      "Haziran",
-      "Temmuz",
-      "Ağustos",
-      "Eylül",
-      "Ekim",
-      "Kasım",
-      "Aralık",
-    ];
-
-    return "${date.day} ${turkishMonths[date.month - 1]} ${date.year}";
-  } catch (e) {
-    return dateStr;
-  }
-}
-
-String formatTimestampToDate(String timestamp) {
-  DateTime date = DateTime.fromMillisecondsSinceEpoch(int.parse(timestamp));
-
-  String day = date.day.toString().padLeft(2, '0');
-  String month = date.month.toString().padLeft(2, '0');
-  String year = date.year.toString();
-
-  return "$day/$month/$year";
-}
-
-String capitalizeFirstLetter(String input) {
-  if (input.isEmpty) {
-    return input;
-  }
-  return input[0].toUpperCase() + input.substring(1);
-}
-
-String maskedLastName(String lastName) {
-  if (lastName.isEmpty) return "";
-  return lastName[0] + '*' * (lastName.length - 1);
-}
-
-String timeAgo2(num timestamp) {
-  DateTime now = DateTime.now();
-
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
-
-  Duration difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return "Yeni";
-  } else if (difference.inMinutes < 60) {
-    return "Yeni";
-  } else if (difference.inHours < 24) {
-    return "Yeni";
-  } else if (difference.inDays > 15) {
-    return "15+ gün önce";
-  } else {
-    return "${difference.inDays} gün önce";
-  }
-}
-
-String timeAgo(num timestamp) {
-  DateTime now = DateTime.now();
-
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
-
-  Duration difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return "${difference.inSeconds} saniye önce";
-  } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes} dakika önce";
-  } else if (difference.inHours < 24) {
-    return "${difference.inHours} saat önce";
-  } else {
-    return "${difference.inDays} gün önce";
-  }
-}
-
-String timeAgo3(num timestamp) {
-  DateTime now = DateTime.now();
-
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp.toInt());
-
-  Duration difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return "${difference.inSeconds}sn";
-  } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk";
-  } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa";
-  } else {
-    return "${difference.inDays}g";
-  }
-}
-
-String timeAgoMesaj(num timestamp) {
-  DateTime now = DateTime.now();
-
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(
-    timestamp.toInt(),
-    isUtc: true,
-  ).toLocal();
-
-  Duration difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return "1dk önce";
-  } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk önce";
-  } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa önce";
-  } else if (difference.inDays < 15) {
-    return "${difference.inDays}g önce";
-  } else {
-    String formattedDate =
-        "${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year} - ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
-    return formattedDate;
-  }
-}
-
-String timeAgoMetin(num? timestamp) {
-  if (timestamp == null || timestamp < 0) {
-    return "Tarih bilinmiyor";
-  }
-
-  DateTime now = DateTime.now();
-  DateTime dateTime =
-      DateTime.fromMillisecondsSinceEpoch(timestamp.toInt()).toLocal();
-
-  Duration difference = now.difference(dateTime);
-
-  if (difference.inSeconds < 60) {
-    return "1dk önce";
-  } else if (difference.inMinutes < 60) {
-    return "${difference.inMinutes}dk önce";
-  } else if (difference.inHours < 24) {
-    return "${difference.inHours}sa önce";
-  } else if (difference.inDays < 5) {
-    return "${difference.inDays}g önce";
-  } else {
-    String day = dateTime.day.toString().padLeft(2, '0');
-    String month = dateTime.month.toString().padLeft(2, '0');
-    String year = dateTime.year.toString();
-    return "$day.$month.$year";
-  }
-}
-
-bool isBitisTarihiGecmis(String? bitisTarihi) {
-  if (bitisTarihi == null || bitisTarihi.isEmpty) {
-    return true;
-  }
-
-  try {
-    List<String> parts = bitisTarihi.split('.');
-    if (parts.length != 3) {
-      return true;
-    }
-    int day = int.parse(parts[0]);
-    int month = int.parse(parts[1]);
-    int year = int.parse(parts[2]);
-    DateTime targetDate = DateTime(year, month, day);
-
-    DateTime now = DateTime.now();
-
-    Duration difference = targetDate.difference(now);
-
-    return difference.isNegative;
-  } catch (e) {
-    print("Hata: Bitiş tarihi '$bitisTarihi' işlenemedi - $e");
-    return true;
-  }
-}
-
-String? remainingDaysText(String? bitisTarihi) {
-  if (bitisTarihi == null || bitisTarihi.isEmpty) {
-    return null;
-  }
-
-  try {
-    List<String> parts = bitisTarihi.split('.');
-    if (parts.length != 3) {
-      return null;
-    }
-    int day = int.parse(parts[0]);
-    int month = int.parse(parts[1]);
-    int year = int.parse(parts[2]);
-    DateTime targetDate = DateTime(year, month, day);
-
-    DateTime now = DateTime.now();
-
-    Duration difference = targetDate.difference(now);
-
-    if (difference.isNegative) {
-      return null;
-    }
-
-    int remainingDays = difference.inDays + 1;
-
-    if (remainingDays >= 1 && remainingDays <= 7) {
-      return "Son $remainingDays gün";
-    } else {
-      return null;
-    }
-  } catch (e) {
-    print("Hata: Bitiş tarihi '$bitisTarihi' işlenemedi - $e");
-    return null;
-  }
-}
-
-Future<File> convertUiImageToFile(
-  ui.Image image, {
-  String filename = 'cropped_image.png',
-}) async {
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  final buffer = byteData!.buffer;
-
-  final directory = await getTemporaryDirectory();
-  final filePath = '${directory.path}/$filename';
-  final file = File(filePath);
-
-  await file.writeAsBytes(
-    buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
-  );
-  return file;
-}
 
 List<String> categories = [
   "Kadın",
@@ -547,24 +198,6 @@ List<String> categories = [
   "Eğlence",
   "Hobiler",
 ];
-
-String normalizeTurkishCharacters(String input) {
-  return input
-      .replaceAll('Ç', 'C')
-      .replaceAll('ç', 'c')
-      .replaceAll('Ğ', 'G')
-      .replaceAll('ğ', 'g')
-      .replaceAll('ı', 'i')
-      .replaceAll('İ', 'i')
-      .replaceAll('Ö', 'O')
-      .replaceAll('ö', 'o')
-      .replaceAll('Ş', 'S')
-      .replaceAll('ş', 's')
-      .replaceAll('Ü', 'U')
-      .replaceAll('ü', 'u')
-      .replaceAll('Ğ', 'G')
-      .replaceAll('ı', 'i');
-}
 
 List<Color> renkler2 = [
   Colors.blueGrey,
@@ -612,47 +245,6 @@ List<String> renkler = [
   "Gümüş",
   "Turkuaz",
 ];
-
-String formatPhoneNumber(String phoneNumber) {
-  if (phoneNumber.length == 10) {
-    return "${phoneNumber.substring(0, 3)} ${phoneNumber.substring(3, 6)} ${phoneNumber.substring(6)}";
-  }
-  return phoneNumber;
-}
-
-String formatPhoneNumber2(String phoneNumber) {
-  if (!phoneNumber.startsWith("+90")) {
-    phoneNumber = "+90$phoneNumber";
-  }
-
-  if (phoneNumber.length == 13) {
-    return "${phoneNumber.substring(0, 3)} ${phoneNumber.substring(3, 6)} ${phoneNumber.substring(6, 9)} ${phoneNumber.substring(9)}";
-  }
-
-  return phoneNumber;
-}
-
-class CapitalizeInputFormatter2 extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.isNotEmpty) {
-      String capitalized = newValue.text.split(' ').map((word) {
-        if (word.isNotEmpty) {
-          return word[0].toUpperCase() + word.substring(1).toLowerCase();
-        }
-        return '';
-      }).join(' ');
-      return newValue.copyWith(
-        text: capitalized,
-        selection: TextSelection.collapsed(offset: capitalized.length),
-      );
-    }
-    return newValue;
-  }
-}
 
 List<ReportModel> reportSelections = [
   ReportModel(
@@ -1083,28 +675,6 @@ List<String> yabanciDiller = [
   "Rusça",
 ];
 
-String turkceAyBilgisi() {
-  List<String> aylar = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
-  ];
-
-  DateTime now = DateTime.now();
-  int ayIndex = now.month - 1;
-
-  return aylar[ayIndex];
-}
-
 List<String> lgsDersler = [
   "Matematik",
   "Fen Bilimleri",
@@ -1215,17 +785,6 @@ Map<String, Color> sinavTuruRenkleri = {
   "YDS": Colors.pink,
 };
 
-String extractPngFilename(String url) {
-  final regex = RegExp(r'(\d+)\.png');
-  final match = regex.firstMatch(url);
-
-  if (match != null) {
-    return match.group(1)!;
-  } else {
-    return '';
-  }
-}
-
 List<Color> dersRenkleri = [
   Color(0xFF1A237E),
   Color(0xFF512DA8),
@@ -1260,76 +819,6 @@ List<String> yanHaklar = [
   'Fleksible Çalışma Seçenekleri',
   'Çalışma Alanı Desteği (Ofis / Ev)',
 ];
-
-String convertTimestampToDate(int timestamp) {
-  if (timestamp < 1000000000000) {
-    timestamp *= 1000;
-  }
-
-  DateTime dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-  String formattedDate =
-      "${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}";
-
-  return formattedDate;
-}
-
-Future<String> calculateDistanceToTarget(
-  double targetLatitude,
-  double targetLongitude,
-) async {
-  try {
-    Position position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
-
-    double userLatitude = position.latitude;
-    double userLongitude = position.longitude;
-
-    double distance = calculateDistance(
-      userLatitude,
-      userLongitude,
-      targetLatitude,
-      targetLongitude,
-    );
-
-    return '${distance.toStringAsFixed(2)} km';
-  } catch (e) {
-    return 'Konum alınamadı: $e';
-  }
-}
-
-double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-  const double R = 6371;
-
-  double dLat = _toRadians(lat2 - lat1);
-  double dLon = _toRadians(lon2 - lon1);
-
-  double a = sin(dLat / 2) * sin(dLat / 2) +
-      cos(_toRadians(lat1)) *
-          cos(_toRadians(lat2)) *
-          sin(dLon / 2) *
-          sin(dLon / 2);
-  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-  double distance = R * c;
-
-  return distance;
-}
-
-double _toRadians(double degree) {
-  return degree * pi / 180;
-}
-
-String capitalizeEachWord(String text) {
-  return text
-      .split(' ')
-      .map(
-        (word) => word.isNotEmpty
-            ? '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}'
-            : word,
-      )
-      .join(' ');
-}
 
 List<Color> softColors = [
   Colors.green[400]!,
