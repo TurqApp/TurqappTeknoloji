@@ -1107,7 +1107,7 @@ class _AgendaContentState extends State<AgendaContent>
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF3A434D),
-                        fontSize: 14,
+                        fontSize: 13,
                         height: 1.35,
                         fontFamily: "Montserrat",
                       ),
