@@ -21,6 +21,9 @@ class InAppNotifications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.markInboxSeen();
+    });
     return Scaffold(
       body: SafeArea(
         bottom: false,

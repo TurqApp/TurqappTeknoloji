@@ -23,6 +23,8 @@ class InAppNotificationsController extends GetxController {
   final RxInt unreadTotal = 0.obs;
   final NotificationsRepository _notificationsRepository =
       NotificationsRepository.ensure();
+  bool _markAllReadQueued = false;
+  bool _inboxSeenRequested = false;
 
   @override
   void onInit() {
@@ -204,6 +206,28 @@ class InAppNotificationsController extends GetxController {
 
   void _refreshUnreadTotal() {
     unreadTotal.value = _allNotifications.where((n) => !n.isRead).length;
+  }
+
+  void _queueMarkAllAsReadIfNeeded() {
+    if (_markAllReadQueued || busyMarkAllRead.value) return;
+    if (_allNotifications.every((n) => n.isRead)) return;
+    _markAllReadQueued = true;
+    Future<void>.microtask(() async {
+      try {
+        await markAllAsRead();
+      } finally {
+        _markAllReadQueued = false;
+      }
+    });
+  }
+
+  void markInboxSeen() {
+    if (_inboxSeenRequested) {
+      _queueMarkAllAsReadIfNeeded();
+      return;
+    }
+    _inboxSeenRequested = true;
+    _queueMarkAllAsReadIfNeeded();
   }
 
   Future<void> delete(String docID) async {
