@@ -42,6 +42,7 @@ part 'post_creator_controller_upload_support.dart';
 part 'post_creator_controller_flow_part.dart';
 part 'post_creator_controller_source_part.dart';
 part 'post_creator_controller_publish_part.dart';
+part 'post_creator_controller_publish_upload_part.dart';
 
 class PreparedPostModel {
   final String text;

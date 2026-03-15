@@ -25,6 +25,7 @@ import '../../SocialProfile/social_profile.dart';
 
 part 'message_content_reply_parts.dart';
 part 'message_content_body_parts.dart';
+part 'message_content_post_parts.dart';
 
 class MessageContent extends StatelessWidget {
   final String mainID;

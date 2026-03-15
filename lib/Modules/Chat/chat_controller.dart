@@ -36,6 +36,7 @@ import '../../Models/message_model.dart';
 
 part 'chat_controller_conversation.dart';
 part 'chat_controller_actions_part.dart';
+part 'chat_controller_forwarding_part.dart';
 part 'chat_controller_media_part.dart';
 
 class ChatController extends GetxController {
