@@ -62,8 +62,7 @@ class ProfileController extends GetxController {
   }
 
   final RxList<PostsModel> allPosts = <PostsModel>[].obs;
-  final RxList<Map<String, dynamic>> mergedPosts =
-      <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> mergedPosts = <Map<String, dynamic>>[].obs;
   DocumentSnapshot? lastPostDoc;
   bool hasMorePosts = true;
   final int postLimit = 10;
@@ -171,7 +170,8 @@ class ProfileController extends GetxController {
 
     final combined = <Map<String, dynamic>>[];
 
-    for (final post in allPosts.where((post) => !post.deletedPost && !post.arsiv)) {
+    for (final post in allPosts.where((post) =>
+        !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
       combined.add({
         'post': post,
         'isReshare': false,
@@ -179,7 +179,8 @@ class ProfileController extends GetxController {
       });
     }
 
-    for (final reshare in reshares.where((post) => !post.deletedPost && !post.arsiv)) {
+    for (final reshare in reshares.where((post) =>
+        !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
       final reshareTimestamp = reshareSortTimestampFor(
         reshare.docID,
         reshare.timeStamp.toInt(),
@@ -285,23 +286,19 @@ class ProfileController extends GetxController {
     _counterSub?.cancel();
 
     // ⚠️ REAL-TIME FIX: Listen to user document changes for instant counter updates
-    _counterSub = _userRepository
-        .watchUserRaw(uid)
-        .listen((snapshot) {
+    _counterSub = _userRepository.watchUserRaw(uid).listen((snapshot) {
       final data = snapshot;
       if (data != null) {
-        headerNickname.value =
-            (data['nickname'] ??
-                    data['nickName'] ??
-                    data['username'] ??
-                    data['userName'] ??
-                    data['displayName'] ??
-                    '')
-                .toString()
-                .trim();
-        headerRozet.value = (data['rozet'] ?? data['badge'] ?? '')
+        headerNickname.value = (data['nickname'] ??
+                data['nickName'] ??
+                data['username'] ??
+                data['userName'] ??
+                data['displayName'] ??
+                '')
             .toString()
             .trim();
+        headerRozet.value =
+            (data['rozet'] ?? data['badge'] ?? '').toString().trim();
         headerFirstName.value = _preserveNonEmpty(
           headerFirstName,
           data['firstName'],
@@ -434,15 +431,14 @@ class ProfileController extends GetxController {
         uid,
         preferCache: true,
       );
-      headerNickname.value =
-          (data?['nickname'] ??
-                  data?['nickName'] ??
-                  data?['username'] ??
-                  data?['userName'] ??
-                  data?['displayName'] ??
-                  '')
-              .toString()
-              .trim();
+      headerNickname.value = (data?['nickname'] ??
+              data?['nickName'] ??
+              data?['username'] ??
+              data?['userName'] ??
+              data?['displayName'] ??
+              '')
+          .toString()
+          .trim();
       headerRozet.value =
           (data?['rozet'] ?? data?['badge'] ?? '').toString().trim();
       headerFirstName.value = _preserveNonEmpty(
@@ -470,12 +466,11 @@ class ProfileController extends GetxController {
           (data?['takipci'] as num?)?.toInt() ??
           (data?['followerCount'] as num?)?.toInt() ??
           0;
-      followingCount.value =
-          (data?['counterOfFollowings'] as num?)?.toInt() ??
-              (data?['followingCount'] as num?)?.toInt() ??
-              (data?['takip'] as num?)?.toInt() ??
-              (data?['followCount'] as num?)?.toInt() ??
-              0;
+      followingCount.value = (data?['counterOfFollowings'] as num?)?.toInt() ??
+          (data?['followingCount'] as num?)?.toInt() ??
+          (data?['takip'] as num?)?.toInt() ??
+          (data?['followCount'] as num?)?.toInt() ??
+          0;
 
       if (followerCount.value == 0 || followingCount.value == 0) {
         final followers = await _followRepository.getFollowerIds(

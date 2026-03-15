@@ -401,6 +401,7 @@ class PostRepository extends GetxService {
     );
     final items = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+        .where((post) => !post.shouldHideWhileUploading)
         .toList(growable: false);
     return PostQueryPage(
       items: items,
@@ -516,6 +517,7 @@ class PostRepository extends GetxService {
       return snap.docs
           .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
           .where((post) =>
+              !post.shouldHideWhileUploading &&
               post.timeStamp >= cutoffMs &&
               (post.timeStamp <= nowMs || post.scheduledAt.toInt() > 0))
           .toList(growable: false);
@@ -556,6 +558,7 @@ class PostRepository extends GetxService {
     final merged = <String, PostsModel>{};
     for (final doc in snap.docs) {
       final model = PostsModel.fromMap(doc.data(), doc.id);
+      if (model.shouldHideWhileUploading) continue;
       final ts = model.timeStamp.toInt();
       final publishAt = model.izBirakYayinTarihi.toInt();
       final scheduledAt = model.scheduledAt.toInt();
@@ -583,6 +586,16 @@ class PostRepository extends GetxService {
       preferCache: preferCache,
     );
     return items[normalized];
+  }
+
+  void mergeCachedPostData(String postId, Map<String, dynamic> patch) {
+    final normalized = postId.trim();
+    if (normalized.isEmpty || patch.isEmpty) return;
+    final state =
+        _states.putIfAbsent(normalized, () => PostRepositoryState(normalized));
+    final current = Map<String, dynamic>.from(state.latestPostData.value ?? {});
+    current.addAll(patch);
+    state.latestPostData.value = current;
   }
 
   Future<Map<String, dynamic>?> fetchPostRawById(

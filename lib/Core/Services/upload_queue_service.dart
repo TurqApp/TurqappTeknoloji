@@ -13,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -764,6 +765,7 @@ class UploadQueueService extends GetxController {
           .collection('Posts')
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
+      PostRepository.ensure().mergeCachedPostData(upload.id, data);
 
       if (sharedAsPost &&
           originalUserID.isNotEmpty &&

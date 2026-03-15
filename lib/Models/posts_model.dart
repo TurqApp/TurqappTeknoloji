@@ -74,6 +74,7 @@ class PostsModel {
   bool gizlendi;
   List<String> img;
   bool isAd;
+  bool isUploading;
   num izBirakYayinTarihi;
   String konum;
   String locationCity;
@@ -124,6 +125,7 @@ class PostsModel {
     required this.gizlendi,
     required this.img,
     required this.isAd,
+    this.isUploading = false,
     required this.izBirakYayinTarihi,
     required this.konum,
     this.locationCity = '',
@@ -168,6 +170,8 @@ class PostsModel {
   bool get isHlsReady => hlsStatus == 'ready' && hasHls;
 
   bool get hasPlayableVideo => playbackUrl.trim().isNotEmpty;
+
+  bool get shouldHideWhileUploading => isUploading;
 
   int get yorumVisibility {
     final v = yorumMap['visibility'];
@@ -286,6 +290,7 @@ class PostsModel {
       gizlendi: data['gizlendi'] ?? false,
       img: parsedImgUrls,
       isAd: data['isAd'] ?? false,
+      isUploading: data['isUploading'] == true,
       izBirakYayinTarihi: parseNum(data['izBirakYayinTarihi']),
       konum: data['konum'] ?? '',
       locationCity: (data['locationCity'] ?? '').toString(),
@@ -345,6 +350,7 @@ class PostsModel {
       'gizlendi': gizlendi,
       'img': img,
       'isAd': isAd,
+      'isUploading': isUploading,
       'izBirakYayinTarihi': izBirakYayinTarihi,
       'konum': konum,
       'locationCity': locationCity,
@@ -396,6 +402,7 @@ class PostsModel {
       gizlendi: false,
       img: const [],
       isAd: false,
+      isUploading: false,
       izBirakYayinTarihi: 0,
       konum: '',
       locationCity: '',
@@ -445,6 +452,7 @@ class PostsModel {
     bool? gizlendi,
     List<String>? img,
     bool? isAd,
+    bool? isUploading,
     num? izBirakYayinTarihi,
     String? konum,
     String? locationCity,
@@ -491,6 +499,7 @@ class PostsModel {
       gizlendi: gizlendi ?? this.gizlendi,
       img: img ?? this.img,
       isAd: isAd ?? this.isAd,
+      isUploading: isUploading ?? this.isUploading,
       izBirakYayinTarihi: izBirakYayinTarihi ?? this.izBirakYayinTarihi,
       konum: konum ?? this.konum,
       locationCity: locationCity ?? this.locationCity,
