@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'photo_short_content.dart';
 
 extension PhotoShortContentBodyPart on _PhotoShortContentState {

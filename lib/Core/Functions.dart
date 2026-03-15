@@ -281,3 +281,4 @@ String getMusicNameFromURL(String url) {
           .replaceAll(".mp4", "")
       : "Her anına uygun müzik, Spotify’da!";
 }
+// ignore_for_file: file_names

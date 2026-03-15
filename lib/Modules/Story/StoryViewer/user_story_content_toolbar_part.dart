@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'user_story_content.dart';
 
 extension UserStoryContentToolbarPart on _UserStoryContentState {

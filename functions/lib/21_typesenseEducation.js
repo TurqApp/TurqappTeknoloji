@@ -802,7 +802,8 @@ exports.f21_searchEducationCallable = (0, https_1.onCall)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }

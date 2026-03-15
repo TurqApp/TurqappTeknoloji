@@ -1,3 +1,5 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {

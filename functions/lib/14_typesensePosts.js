@@ -730,6 +730,8 @@ exports.f14_searchPosts = (0, https_1.onRequest)({
         res.status(405).json({ error: "method_not_allowed" });
         return;
     }
+    const rateKey = String(req.headers["cf-connecting-ip"] || req.ip || "unknown");
+    (0, rateLimiter_1.enforceRateLimitForKey)(rateKey, "typesense_http_search", 240, 60);
     if (!typesenseReady()) {
         res.status(503).json({ error: "typesense_not_configured" });
         return;
@@ -756,7 +758,8 @@ exports.f14_searchPostsCallable = (0, https_1.onCall)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -780,7 +783,8 @@ const f14_searchUsersCallable = (0, https_1.onCall)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -804,7 +808,8 @@ const f14_searchTagsCallable = (0, https_1.onCall)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }
@@ -883,7 +888,8 @@ exports.f15_getLatestPostIdsCallable = (0, https_1.onCall)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    requireAuth(request);
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }

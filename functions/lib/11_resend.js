@@ -21,8 +21,10 @@ const VERIFY_USE_WINDOW_MS = 60 * 60 * 1000;
 const NETGSM_ENDPOINT = "https://api.netgsm.com.tr/sms/send/otp";
 const SIGNUP_SMS_RESEND_MS = 5 * 60 * 1000;
 const SIGNUP_SMS_TTL_MS = 120 * 1000;
+const SIGNUP_SMS_LOCK_MS = 15 * 1000;
 const PASSWORD_RESET_SMS_RESEND_MS = 5 * 60 * 1000;
 const PASSWORD_RESET_SMS_TTL_MS = 60 * 1000;
+const PASSWORD_RESET_SMS_LOCK_MS = 15 * 1000;
 const PHONE_ACCOUNT_LIMIT = 5;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const VALID_PURPOSES = [
@@ -65,6 +67,48 @@ function passwordResetSmsRef(emailLower) {
 }
 function signupSmsRef(phone) {
     return db.collection("phoneVerifications").doc(phone);
+}
+async function clearSmsDispatchingLock(ref) {
+    await ref.set({
+        dispatchingAt: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
+}
+async function markSignupSmsDispatching(ref, phoneNumber, verificationCode, now) {
+    await db.runTransaction(async (tx) => {
+        const existing = await tx.get(ref);
+        if (existing.exists) {
+            const data = existing.data() || {};
+            const lastSentAt = Number(data.lastSentAt || 0);
+            const leftMs = SIGNUP_SMS_RESEND_MS - (now - lastSentAt);
+            if (lastSentAt > 0 && leftMs > 0) {
+                const leftSec = Math.ceil(leftMs / 1000);
+                throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
+            }
+            const dispatchingAt = Number(data.dispatchingAt || 0);
+            const lockLeftMs = SIGNUP_SMS_LOCK_MS - (now - dispatchingAt);
+            if (dispatchingAt > 0 && lockLeftMs > 0) {
+                throw new https_1.HttpsError("failed-precondition", "Kod gönderimi zaten başlatıldı. Lütfen birkaç saniye bekleyin.");
+            }
+        }
+        tx.set(ref, {
+            phone: phoneNumber,
+            verificationCode,
+            dispatchingAt: now,
+        }, { merge: true });
+    });
+}
+async function persistSignupSmsChallenge(ref, phoneNumber, verificationCode, now) {
+    await ref.set({
+        phone: phoneNumber,
+        verificationCode,
+        createdAt: now,
+        lastSentAt: now,
+        expiresAt: now + SIGNUP_SMS_TTL_MS,
+        attempts: 0,
+        verified: false,
+        verifiedAt: admin.firestore.FieldValue.delete(),
+        dispatchingAt: admin.firestore.FieldValue.delete(),
+    }, { merge: true });
 }
 function isNetgsmSuccessResponse(rawBody) {
     const body = String(rawBody || "").trim();
@@ -624,20 +668,36 @@ exports.sendPasswordResetSmsCode = (0, https_1.onCall)({
             throw new https_1.HttpsError("failed-precondition", "Bu hesap için kayıtlı telefon numarası bulunamadı");
         }
         const smsRef = passwordResetSmsRef(emailLower);
-        const existing = await smsRef.get();
         const now = Date.now();
-        if (existing.exists) {
-            const data = existing.data() || {};
-            const lastSentAt = Number(data.lastSentAt || 0);
-            const leftMs = PASSWORD_RESET_SMS_RESEND_MS - (now - lastSentAt);
-            if (lastSentAt > 0 && leftMs > 0) {
-                const leftSec = Math.ceil(leftMs / 1000);
-                throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
-            }
-        }
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await db.runTransaction(async (tx) => {
+            const existing = await tx.get(smsRef);
+            if (existing.exists) {
+                const data = existing.data() || {};
+                const lastSentAt = Number(data.lastSentAt || 0);
+                const leftMs = PASSWORD_RESET_SMS_RESEND_MS - (now - lastSentAt);
+                if (lastSentAt > 0 && leftMs > 0) {
+                    const leftSec = Math.ceil(leftMs / 1000);
+                    throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
+                }
+                const dispatchingAt = Number(data.dispatchingAt || 0);
+                const lockLeftMs = PASSWORD_RESET_SMS_LOCK_MS - (now - dispatchingAt);
+                if (dispatchingAt > 0 && lockLeftMs > 0) {
+                    throw new https_1.HttpsError("failed-precondition", "Kod gönderimi zaten başlatıldı. Lütfen birkaç saniye bekleyin.");
+                }
+            }
+            tx.set(smsRef, {
+                email: emailLower,
+                uid,
+                verificationCode,
+                dispatchingAt: now,
+            }, { merge: true });
+        });
         const netgsmBody = await sendNetgsmOtp(phone, verificationCode);
         if (!isNetgsmSuccessResponse(netgsmBody)) {
+            await smsRef.set({
+                dispatchingAt: admin.firestore.FieldValue.delete(),
+            }, { merge: true });
             console.error("sendPasswordResetSmsCode netgsm-error", {
                 hasUser: uid.length > 0,
                 responsePresent: netgsmBody.length > 0,
@@ -654,6 +714,7 @@ exports.sendPasswordResetSmsCode = (0, https_1.onCall)({
             attempts: 0,
             verified: false,
             consumed: false,
+            dispatchingAt: admin.firestore.FieldValue.delete(),
         }, { merge: true });
         return {
             success: true,
@@ -682,13 +743,15 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
         const phoneRaw = String(request.data?.phone || "").trim();
         const phone = normalizePhone(phoneRaw);
         console.info("sendSignupSmsCode request", {
-            phoneRawLength: phoneRaw.length,
-            normalizedPhone: phone,
+            hasPhoneInput: phoneRaw.length > 0,
+            normalizedPhoneLength: phone.length,
             hasEmail: String(request.data?.email || "").trim().length > 0,
             hasNickname: String(request.data?.nickname || "").trim().length > 0,
         });
         await assertSignupIdentityAvailable(request.data?.email, request.data?.nickname);
-        console.info("sendSignupSmsCode identity-available", { phone });
+        console.info("sendSignupSmsCode identity-available", {
+            normalizedPhoneLength: phone.length,
+        });
         if (phone.length !== 10 || !phone.startsWith("5")) {
             throw new https_1.HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
         }
@@ -696,46 +759,31 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
         const phoneInUse = await isPhoneAlreadyInUse(phone);
         if (phoneInUse.inUse) {
             console.error("sendSignupSmsCode phone-in-use", {
-                phone,
                 source: phoneInUse.source,
                 count: phoneInUse.count,
                 limit: phoneInUse.limit,
-                matches: phoneInUse.matches,
+                hasMatches: phoneInUse.matches.length > 0,
             });
             throw new https_1.HttpsError("already-exists", "Bu telefon numarası için en fazla 5 hesap oluşturulabilir");
         }
-        console.info("sendSignupSmsCode phone-available", { phone });
-        const smsRef = signupSmsRef(phone);
-        const existing = await smsRef.get();
+        console.info("sendSignupSmsCode phone-available", {
+            normalizedPhoneLength: phone.length,
+        });
         const now = Date.now();
-        if (existing.exists) {
-            const data = existing.data() || {};
-            const lastSentAt = Number(data.lastSentAt || 0);
-            const leftMs = SIGNUP_SMS_RESEND_MS - (now - lastSentAt);
-            if (lastSentAt > 0 && leftMs > 0) {
-                const leftSec = Math.ceil(leftMs / 1000);
-                throw new https_1.HttpsError("failed-precondition", `Yeni SMS için ${leftSec} saniye bekleyin.`);
-            }
-        }
+        const smsRef = signupSmsRef(phone);
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const netgsmBody = await sendNetgsmOtp(phone, verificationCode);
+        const signupPhone = phone;
+        await markSignupSmsDispatching(smsRef, signupPhone, verificationCode, now);
+        const recipientPhone = signupPhone;
+        const netgsmBody = await sendNetgsmOtp(recipientPhone, verificationCode);
         if (!isNetgsmSuccessResponse(netgsmBody)) {
+            await clearSmsDispatchingLock(smsRef);
             console.error("sendSignupSmsCode netgsm-error", {
-                phone,
-                response: netgsmBody.slice(0, 300),
+                responsePresent: netgsmBody.length > 0,
             });
             throw new https_1.HttpsError("unavailable", "SMS servisine ulaşılamadı. Lütfen tekrar deneyin.");
         }
-        await smsRef.set({
-            phone,
-            verificationCode,
-            createdAt: now,
-            lastSentAt: now,
-            expiresAt: now + SIGNUP_SMS_TTL_MS,
-            attempts: 0,
-            verified: false,
-            verifiedAt: admin.firestore.FieldValue.delete(),
-        }, { merge: true });
+        await persistSignupSmsChallenge(smsRef, signupPhone, verificationCode, now);
         return {
             success: true,
             message: "Doğrulama kodu telefon numaranıza gönderildi",

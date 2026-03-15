@@ -1,7 +1,6 @@
 part of 'job_details.dart';
 
 extension JobDetailsBodyPart on JobDetails {
-  @override
   Widget buildContent(BuildContext context) {
     final controller =
         Get.put(JobDetailsController(model: model), tag: model.docID);

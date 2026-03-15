@@ -206,6 +206,7 @@ function pickFirstUrl(value) {
 }
 function pickBestImageFromData(data) {
     const candidates = [
+        data.avatarUrl,
         data.imageUrl,
         data.thumbnail,
         data.thumbnailOfVideo,
@@ -291,9 +292,24 @@ async function buildUserMeta(db, entityId) {
         return { title: "TurqApp Profili", desc: "", imageUrl: "" };
     }
     const data = (snap.data() || {});
-    const nickname = normalizeText(data.nickname || data.userNickname || data.name, 60);
-    const bio = normalizeText(data.bio || data.about || data.desc, 170);
-    const imageUrl = normalizeText(pickBestImageFromData(data), 1024);
+    const profile = data.profile && typeof data.profile === "object"
+        ? data.profile
+        : {};
+    const nickname = normalizeText(data.nickname ||
+        data.username ||
+        data.userNickname ||
+        profile.nickname ||
+        profile.username ||
+        data.name, 60);
+    const bio = normalizeText(data.bio || profile.bio || data.about || data.desc, 170);
+    const imageUrl = normalizeText(pickBestImageFromData({
+        ...profile,
+        ...data,
+        avatarUrl: data.avatarUrl || profile.avatarUrl || profile.profileImage,
+        photoUrl: data.photoUrl || profile.photoUrl,
+        imageUrl: data.imageUrl || profile.imageUrl,
+        profileImage: data.profileImage || profile.profileImage,
+    }), 1024);
     return {
         title: nickname ? `@${nickname} - TurqApp` : "TurqApp Profili",
         desc: bio,
@@ -712,6 +728,12 @@ exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "publi
     const inputId = normalizeText(req.data?.id, 64);
     if (!inputId)
         throw new https_1.HttpsError("invalid-argument", "id zorunlu.");
+    const rawRequest = req.rawRequest;
+    const ipHeader = rawRequest?.headers?.["cf-connecting-ip"];
+    const rateKey = Array.isArray(ipHeader)
+        ? String(ipHeader[0] || rawRequest?.ip || inputId)
+        : String(ipHeader || rawRequest?.ip || inputId);
+    (0, rateLimiter_1.enforceRateLimitForKey)(rateKey, "short_link_resolve", 120, 60);
     // user slug her zaman lowercase; post/story shortId case-sensitive.
     const candidateIds = type === "user"
         ? [inputId.toLowerCase()]

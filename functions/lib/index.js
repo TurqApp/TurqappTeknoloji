@@ -14,12 +14,16 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.archiveOnStoryDelete = exports.cleanupExpiredStories = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = void 0;
+exports.migrateusersToUsers = exports.purgeStudentSubcollections = exports.purgePostSubcollections = exports.backfillPostsOriginalFields = exports.backfillUserAvatarUrls = exports.backfillUsernames = exports.backfillPhoneAccounts = exports.resetMonthlyAntPoint = exports.publishScheduledIzBirakPosts = exports.processScheduledAccountDeletions = exports.onUserNotificationCreate = exports.onUserDocUpdate = exports.onUserDocDelete = exports.enforceMandatoryFollowOnUserCreate = exports.syncUserSchemaAndFlags = exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = exports.onVideoUpload = exports.generateThumbnails = exports.cleanupExpiredStories = exports.archiveOnStoryDelete = void 0;
 // Cloud Functions templates for story TTL and deletion archival
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
 const hybridFeed_1 = require("./hybridFeed");
+var storyArchive_1 = require("./storyArchive");
+Object.defineProperty(exports, "archiveOnStoryDelete", { enumerable: true, get: function () { return storyArchive_1.archiveOnStoryDelete; } });
+Object.defineProperty(exports, "cleanupExpiredStories", { enumerable: true, get: function () { return storyArchive_1.cleanupExpiredStories; } });
+const userSchemaUtils_1 = require("./userSchemaUtils");
 admin.initializeApp();
 const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -70,156 +74,6 @@ __exportStar(require("./20_moderationConfig"), exports);
 __exportStar(require("./22_badgeAdmin"), exports);
 __exportStar(require("./23_sharedPostCascade"), exports);
 __exportStar(require("./24_reports"), exports);
-// SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
-exports.cleanupExpiredStories = functions.pubsub
-    .schedule("every 60 minutes")
-    .onRun(async () => {
-    const now = Date.now();
-    const cutoff = now - 24 * 60 * 60 * 1000; // 24h in ms
-    const snap = await db
-        .collection("stories")
-        .where("createdDate", "<=", cutoff)
-        .limit(500)
-        .get();
-    const batch = db.batch();
-    for (const doc of snap.docs) {
-        try {
-            const data = doc.data();
-            const userId = data.userId;
-            const archiveRef = db
-                .collection("users")
-                .doc(userId)
-                .collection("DeletedStories")
-                .doc();
-            batch.set(archiveRef, {
-                storyId: doc.id,
-                deletedAt: now,
-                reason: "expired_cf",
-                userId: userId,
-                createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-                backgroundColor: data.backgroundColor ?? 0,
-                musicUrl: data.musicUrl ?? "",
-                elements: data.elements ?? [],
-            });
-            batch.delete(doc.ref);
-        }
-        catch (e) {
-            console.error("cleanupExpiredStories error", e);
-        }
-    }
-    await batch.commit();
-    return null;
-});
-// FIRESTORE TRIGGER: When a story is deleted without client-side archival, archive it.
-// Note: v2 onDocumentDeleted provides the old data; here we simulate with onDelete + data in value before delete.
-exports.archiveOnStoryDelete = functions.firestore
-    .document("stories/{storyId}")
-    .onDelete(async (snap, context) => {
-    const data = snap.data();
-    if (!data)
-        return;
-    try {
-        const now = Date.now();
-        const userId = data.userId;
-        const archiveRef = db
-            .collection("users")
-            .doc(userId)
-            .collection("DeletedStories")
-            .doc();
-        await archiveRef.set({
-            storyId: context.params.storyId,
-            deletedAt: now,
-            reason: "onDelete_trigger",
-            userId: userId,
-            createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-            backgroundColor: data.backgroundColor ?? 0,
-            musicUrl: data.musicUrl ?? "",
-            elements: data.elements ?? [],
-        });
-    }
-    catch (e) {
-        console.error("archiveOnStoryDelete error", e);
-    }
-});
-// Helper: normalize phone to last 10 digits (TR mobile format in app)
-const normalizePhone = (raw) => {
-    if (!raw)
-        return "";
-    const digits = String(raw).replace(/[^0-9]/g, "");
-    if (digits.length >= 10) {
-        return digits.substring(digits.length - 10);
-    }
-    return digits;
-};
-const normalizeUsernameLower = (raw) => {
-    const s = String(raw ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "");
-    return s.replace(/[^a-z0-9._]/g, "");
-};
-const LEGACY_DEFAULT_AVATAR_URL = "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2";
-const normalizeAvatarUrl = (raw) => {
-    const value = String(raw ?? "").trim();
-    if (!value)
-        return "";
-    if (value === LEGACY_DEFAULT_AVATAR_URL)
-        return "";
-    const lower = value.toLowerCase();
-    if (lower.includes("/o/profileimage.png") ||
-        lower.endsWith("/profileimage.png") ||
-        lower.endsWith("profileimage.png")) {
-        return "";
-    }
-    return value;
-};
-const parseForceFollowUids = (data) => {
-    if (!data)
-        return [];
-    const enabled = data.enabled;
-    if (enabled === false)
-        return [];
-    const out = new Set();
-    const addOne = (v) => {
-        if (typeof v !== "string")
-            return;
-        const trimmed = v.trim();
-        if (trimmed)
-            out.add(trimmed);
-    };
-    const addMany = (arr) => {
-        if (!Array.isArray(arr))
-            return;
-        for (const v of arr)
-            addOne(v);
-    };
-    addOne(data.requiredUserIds);
-    addMany(data.requiredUserIds);
-    addOne(data.equiredUserIds);
-    addMany(data.equiredUserIds);
-    addOne(data.requiredUserId);
-    addOne(data.uid);
-    addOne(data.userId);
-    return Array.from(out);
-};
-const parseLegacyCreatedDateToTimestamp = (raw) => {
-    if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
-        return admin.firestore.Timestamp.fromMillis(Math.floor(raw));
-    }
-    if (typeof raw === "string") {
-        const n = Number(raw);
-        if (Number.isFinite(n) && n > 0) {
-            return admin.firestore.Timestamp.fromMillis(Math.floor(n));
-        }
-    }
-    return null;
-};
-const toNonNegativeInt = (raw) => {
-    const n = Number(raw);
-    if (!Number.isFinite(n))
-        return 0;
-    return Math.max(0, Math.trunc(n));
-};
 // USER SCHEMA NORMALIZER (canonical-only)
 exports.syncUserSchemaAndFlags = functions.firestore
     .document("users/{uid}")
@@ -232,7 +86,7 @@ exports.syncUserSchemaAndFlags = functions.firestore
         return;
     }
     const patch = {};
-    const canonicalUsername = normalizeUsernameLower(afterData?.usernameLower ||
+    const canonicalUsername = (0, userSchemaUtils_1.normalizeUsernameLower)(afterData?.usernameLower ||
         afterData?.username ||
         afterData?.nickname ||
         afterData?.displayName ||
@@ -247,7 +101,7 @@ exports.syncUserSchemaAndFlags = functions.firestore
         patch.isBanned = false;
     if (afterData?.isBot === undefined)
         patch.isBot = false;
-    const canonicalAvatarUrl = normalizeAvatarUrl(afterData?.avatarUrl);
+    const canonicalAvatarUrl = (0, userSchemaUtils_1.normalizeAvatarUrl)(afterData?.avatarUrl);
     if (String(afterData?.avatarUrl ?? "").trim() !== canonicalAvatarUrl) {
         patch.avatarUrl = canonicalAvatarUrl;
     }
@@ -279,7 +133,7 @@ exports.syncUserSchemaAndFlags = functions.firestore
     if (displayName && String(afterData?.displayName || "") !== displayName) {
         patch.displayName = displayName;
     }
-    const createdDateTs = parseLegacyCreatedDateToTimestamp(afterData?.createdDate);
+    const createdDateTs = (0, userSchemaUtils_1.parseLegacyCreatedDateToTimestamp)(afterData?.createdDate);
     if (!afterData?.createdDate) {
         patch.createdDate = createdDateTs?.toMillis() ?? Date.now();
     }
@@ -290,7 +144,7 @@ exports.syncUserSchemaAndFlags = functions.firestore
         patch.createdAt = admin.firestore.FieldValue.delete();
     }
     if (afterData?.updatedAt !== undefined) {
-        const updatedTs = parseLegacyCreatedDateToTimestamp(afterData?.updatedAt);
+        const updatedTs = (0, userSchemaUtils_1.parseLegacyCreatedDateToTimestamp)(afterData?.updatedAt);
         patch.updatedDate = updatedTs?.toMillis() ?? Date.now();
         patch.updatedAt = admin.firestore.FieldValue.delete();
     }
@@ -309,9 +163,9 @@ exports.syncUserSchemaAndFlags = functions.firestore
     if (afterData?.userID !== undefined) {
         patch.userID = admin.firestore.FieldValue.delete();
     }
-    const followersCount = toNonNegativeInt(afterData?.counterOfFollowers);
-    const followingsCount = toNonNegativeInt(afterData?.counterOfFollowings);
-    const postsCount = toNonNegativeInt(afterData?.counterOfPosts);
+    const followersCount = (0, userSchemaUtils_1.toNonNegativeInt)(afterData?.counterOfFollowers);
+    const followingsCount = (0, userSchemaUtils_1.toNonNegativeInt)(afterData?.counterOfFollowings);
+    const postsCount = (0, userSchemaUtils_1.toNonNegativeInt)(afterData?.counterOfPosts);
     if (followersCount !== Number(afterData?.counterOfFollowers)) {
         patch.counterOfFollowers = followersCount;
     }
@@ -359,7 +213,7 @@ exports.enforceMandatoryFollowOnUserCreate = functions.firestore
         return;
     try {
         const configSnap = await db.collection("adminConfig").doc("forceFollow").get();
-        const required = parseForceFollowUids(configSnap.data()).filter((target) => target !== uid);
+        const required = (0, userSchemaUtils_1.parseForceFollowUids)(configSnap.data()).filter((target) => target !== uid);
         if (required.length === 0)
             return;
         const now = Date.now();
@@ -395,7 +249,7 @@ exports.onUserDocDelete = functions.firestore
     .onDelete(async (snap, context) => {
     const before = snap.data();
     const uid = context.params.uid;
-    const phone = normalizePhone(before?.phoneNumber);
+    const phone = (0, userSchemaUtils_1.normalizePhone)(before?.phoneNumber);
     if (!phone)
         return;
     try {
@@ -428,8 +282,8 @@ exports.onUserDocUpdate = functions.firestore
     const before = change.before.data();
     const after = change.after.data();
     const uid = context.params.uid;
-    const oldPhone = normalizePhone(before?.phoneNumber);
-    const newPhone = normalizePhone(after?.phoneNumber);
+    const oldPhone = (0, userSchemaUtils_1.normalizePhone)(before?.phoneNumber);
+    const newPhone = (0, userSchemaUtils_1.normalizePhone)(after?.phoneNumber);
     if (!oldPhone && !newPhone)
         return;
     try {
@@ -900,7 +754,7 @@ exports.backfillPhoneAccounts = functions.https.onCall(async (data, context) => 
     for (const doc of snap.docs) {
         const data = doc.data();
         const uid = doc.id;
-        const phone = normalizePhone(data?.phoneNumber);
+        const phone = (0, userSchemaUtils_1.normalizePhone)(data?.phoneNumber);
         if (!phone)
             continue;
         if (!phoneMap.has(phone))
@@ -965,7 +819,7 @@ exports.backfillUserAvatarUrls = functions.https.onCall(async (data, context) =>
         }
         const userData = doc.data();
         const before = String(userData?.avatarUrl ?? "").trim();
-        const after = normalizeAvatarUrl(before);
+        const after = (0, userSchemaUtils_1.normalizeAvatarUrl)(before);
         if (before === after) {
             skipped += 1;
             continue;
