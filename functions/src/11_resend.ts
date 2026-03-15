@@ -805,6 +805,69 @@ export const sendSignupSmsCode = onCall(
   },
 );
 
+export const checkSignupAvailability = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    const rawEmail = String(request.data?.email || "").trim().toLowerCase();
+    const rawNickname = String(request.data?.nickname || "").trim().toLowerCase();
+    const normalizedNickname = rawNickname.replace(/\s+/g, "");
+
+    if (!rawEmail && !normalizedNickname) {
+      throw new HttpsError("invalid-argument", "E-posta veya kullanıcı adı gereklidir");
+    }
+
+    if (rawEmail) {
+      if (!validEmail(rawEmail)) {
+        throw new HttpsError("invalid-argument", "Geçerli bir e-posta girin");
+      }
+      enforceRateLimitForKey(rawEmail, "signup_email_check", 20, 300);
+    }
+
+    if (normalizedNickname) {
+      if (normalizedNickname.length < 6) {
+        throw new HttpsError("invalid-argument", "Kullanıcı adı en az 6 karakter olmalıdır");
+      }
+      enforceRateLimitForKey(normalizedNickname, "signup_username_check", 20, 300);
+    }
+
+    let emailAvailable = true;
+    let nicknameAvailable = true;
+
+    if (rawEmail) {
+      try {
+        await admin.auth().getUserByEmail(rawEmail);
+        emailAvailable = false;
+      } catch (error: unknown) {
+        const code = (error as { code?: string })?.code || "";
+        if (code !== "auth/user-not-found") {
+          console.error("checkSignupAvailability email lookup error", { code });
+          throw new HttpsError("internal", "E-posta uygunluğu kontrol edilemedi");
+        }
+      }
+    }
+
+    if (normalizedNickname) {
+      const usernameSnap = await db
+        .collection("users")
+        .where("usernameLower", "==", normalizedNickname)
+        .limit(1)
+        .get();
+      nicknameAvailable = usernameSnap.empty;
+    }
+
+    return {
+      success: true,
+      emailAvailable,
+      nicknameAvailable,
+      normalizedNickname,
+    };
+  },
+);
+
 export const verifySignupSmsCode = onCall(
   {
     region: REGION,

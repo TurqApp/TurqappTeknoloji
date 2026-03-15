@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyPasswordResetSmsCode = exports.verifySignupSmsCode = exports.sendSignupSmsCode = exports.sendPasswordResetSmsCode = exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
+exports.verifyPasswordResetSmsCode = exports.verifySignupSmsCode = exports.checkSignupAvailability = exports.sendSignupSmsCode = exports.sendPasswordResetSmsCode = exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
 const resend_1 = require("resend");
@@ -652,6 +652,59 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
         });
         throw new https_1.HttpsError("failed-precondition", "Kod gönderilemedi. Lütfen tekrar deneyin.");
     }
+});
+exports.checkSignupAvailability = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+}, async (request) => {
+    const rawEmail = String(request.data?.email || "").trim().toLowerCase();
+    const rawNickname = String(request.data?.nickname || "").trim().toLowerCase();
+    const normalizedNickname = rawNickname.replace(/\s+/g, "");
+    if (!rawEmail && !normalizedNickname) {
+        throw new https_1.HttpsError("invalid-argument", "E-posta veya kullanıcı adı gereklidir");
+    }
+    if (rawEmail) {
+        if (!validEmail(rawEmail)) {
+            throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta girin");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(rawEmail, "signup_email_check", 20, 300);
+    }
+    if (normalizedNickname) {
+        if (normalizedNickname.length < 6) {
+            throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 6 karakter olmalıdır");
+        }
+        (0, rateLimiter_1.enforceRateLimitForKey)(normalizedNickname, "signup_username_check", 20, 300);
+    }
+    let emailAvailable = true;
+    let nicknameAvailable = true;
+    if (rawEmail) {
+        try {
+            await admin.auth().getUserByEmail(rawEmail);
+            emailAvailable = false;
+        }
+        catch (error) {
+            const code = error?.code || "";
+            if (code !== "auth/user-not-found") {
+                console.error("checkSignupAvailability email lookup error", { code });
+                throw new https_1.HttpsError("internal", "E-posta uygunluğu kontrol edilemedi");
+            }
+        }
+    }
+    if (normalizedNickname) {
+        const usernameSnap = await db
+            .collection("users")
+            .where("usernameLower", "==", normalizedNickname)
+            .limit(1)
+            .get();
+        nicknameAvailable = usernameSnap.empty;
+    }
+    return {
+        success: true,
+        emailAvailable,
+        nicknameAvailable,
+        normalizedNickname,
+    };
 });
 exports.verifySignupSmsCode = (0, https_1.onCall)({
     region: REGION,

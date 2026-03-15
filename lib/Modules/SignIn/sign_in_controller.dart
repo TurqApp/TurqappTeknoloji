@@ -81,6 +81,8 @@ class SignInController extends GetxController
 
   var otpTimer = 0.obs;
   Timer? _timer;
+  Timer? _emailAvailabilityDebounce;
+  Timer? _nicknameAvailabilityDebounce;
   var signupCodeRequested = false.obs;
   var otpRequestInFlight = false.obs;
 
@@ -94,6 +96,8 @@ class SignInController extends GetxController
   var signInEmail = "".obs;
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'europe-west3');
+  int _emailAvailabilityRequestId = 0;
+  int _nicknameAvailabilityRequestId = 0;
 
   void _ensureFeedTabSelected() {
     if (Get.isRegistered<NavBarController>()) {
@@ -221,6 +225,8 @@ class SignInController extends GetxController
     newPasswordRepeatController.dispose();
     animationController.dispose();
     _timer?.cancel(); // Timer'ı durdur
+    _emailAvailabilityDebounce?.cancel();
+    _nicknameAvailabilityDebounce?.cancel();
     super.onClose();
   }
 
@@ -401,19 +407,14 @@ class SignInController extends GetxController
   }
 
   Future<void> searchEmail() async {
+    final candidate = emailcontroller.text.trim().toLowerCase();
+    final requestId = ++_emailAvailabilityRequestId;
     emailAvilable.value = false;
-    if (isValidEmail(emailcontroller.text.trim())) {
-      if (FirebaseAuth.instance.currentUser == null) {
-        // Giriş öncesi users koleksiyonu auth ister; bloklama yapma.
-        emailAvilable.value = true;
-        return;
-      }
-      final exists = await _userRepository.emailExists(
-        emailcontroller.text,
-        preferCache: true,
-      );
-      emailAvilable.value = !exists;
-    }
+    if (!isValidEmail(candidate)) return;
+
+    final result = await _checkSignupAvailability(email: candidate);
+    if (requestId != _emailAvailabilityRequestId) return;
+    emailAvilable.value = result.emailAvailable;
   }
 
   bool isValidEmail(String value) {
@@ -438,22 +439,142 @@ class SignInController extends GetxController
   }
 
   Future<void> searchNickname() async {
+    final usernameLower = nickname.value.trim().toLowerCase();
+    final requestId = ++_nicknameAvailabilityRequestId;
     nicknameAvilable.value = false;
 
-    if (nickname.value.length >= 6) {
-      final usernameLower = nickname.value.trim().toLowerCase();
-      if (usernameLower.isEmpty) {
-        nicknameAvilable.value = false;
-        return;
+    if (usernameLower.length < 6) return;
+
+    final result = await _checkSignupAvailability(nickname: usernameLower);
+    if (requestId != _nicknameAvailabilityRequestId) return;
+    nicknameAvilable.value = result.nicknameAvailable;
+  }
+
+  void scheduleEmailAvailabilityCheck() {
+    _emailAvailabilityDebounce?.cancel();
+    _emailAvailabilityDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () {
+        unawaited(searchEmail());
+      },
+    );
+  }
+
+  void scheduleNicknameAvailabilityCheck() {
+    _nicknameAvailabilityDebounce?.cancel();
+    _nicknameAvailabilityDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () {
+        unawaited(searchNickname());
+      },
+    );
+  }
+
+  Future<bool> validateSignupIdentityStep() async {
+    final emailText = emailcontroller.text.trim().toLowerCase();
+    final nicknameText = nicknamecontroller.text.trim().toLowerCase();
+    final pass = passwordcontroller.text;
+
+    if (!isValidEmail(emailText)) {
+      AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
+      return false;
+    }
+    if (nicknameText.length < 6) {
+      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 6 karakter olmalı.');
+      return false;
+    }
+
+    password.value = pass;
+    await verifyPassword();
+    if (!passwordAvilable.value) {
+      AppSnackbar(
+        'Zayıf Şifre',
+        'Şifre en az bir harf, bir sayı ve bir noktalama içermeli (min 6 karakter).',
+      );
+      return false;
+    }
+
+    final availability = await _checkSignupAvailability(
+      email: emailText,
+      nickname: nicknameText,
+      showServiceError: true,
+    );
+    emailAvilable.value = availability.emailAvailable;
+    nicknameAvilable.value = availability.nicknameAvailable;
+
+    if (!availability.emailAvailable) {
+      AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
+      return false;
+    }
+    if (!availability.nicknameAvailable) {
+      AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> ensureSignupAvailabilityBeforeContinue() async {
+    final availability = await _checkSignupAvailability(
+      email: emailcontroller.text.trim().toLowerCase(),
+      nickname: nicknamecontroller.text.trim().toLowerCase(),
+      showServiceError: true,
+    );
+    emailAvilable.value = availability.emailAvailable;
+    nicknameAvilable.value = availability.nicknameAvailable;
+
+    if (!availability.emailAvailable) {
+      AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
+      return false;
+    }
+    if (!availability.nicknameAvailable) {
+      AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
+      return false;
+    }
+    return true;
+  }
+
+  Future<({
+    bool emailAvailable,
+    bool nicknameAvailable,
+  })> _checkSignupAvailability({
+    String? email,
+    String? nickname,
+    bool showServiceError = false,
+  }) async {
+    final normalizedEmail = (email ?? '').trim().toLowerCase();
+    final normalizedNickname = (nickname ?? '').trim().toLowerCase();
+
+    try {
+      final response = await _functions.httpsCallable('checkSignupAvailability').call({
+        if (normalizedEmail.isNotEmpty) 'email': normalizedEmail,
+        if (normalizedNickname.isNotEmpty) 'nickname': normalizedNickname,
+      });
+      final data = Map<String, dynamic>.from(response.data as Map);
+      return (
+        emailAvailable: (data['emailAvailable'] == true),
+        nicknameAvailable: data['nicknameAvailable'] != false,
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (showServiceError) {
+        AppSnackbar(
+          'Kontrol Edilemedi',
+          'Kayıt uygunluğu şu anda kontrol edilemiyor. Lütfen tekrar deneyin.',
+        );
       }
-      if (FirebaseAuth.instance.currentUser == null) {
-        // Auth yoksa sorgu yok; akış bloklanmasın.
-        nicknameAvilable.value = true;
-        return;
+      return (
+        emailAvailable: false,
+        nicknameAvailable: false,
+      );
+    } catch (_) {
+      if (showServiceError) {
+        AppSnackbar(
+          'Kontrol Edilemedi',
+          'Kayıt uygunluğu şu anda kontrol edilemiyor. Lütfen tekrar deneyin.',
+        );
       }
-      nicknameAvilable.value = await _userRepository.usernameLowerAvailable(
-        usernameLower,
-        preferCache: true,
+      return (
+        emailAvailable: false,
+        nicknameAvailable: false,
       );
     }
   }
@@ -476,6 +597,9 @@ class SignInController extends GetxController
       );
       return;
     }
+
+    final availabilityOk = await ensureSignupAvailabilityBeforeContinue();
+    if (!availabilityOk) return;
 
     selection.value = 4;
     otpRequestInFlight.value = true;
@@ -612,6 +736,12 @@ class SignInController extends GetxController
         "phone": phone,
         "verificationCode": code,
       });
+
+      final availabilityOk = await ensureSignupAvailabilityBeforeContinue();
+      if (!availabilityOk) {
+        wait.value = false;
+        return;
+      }
 
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email.value.trim(),

@@ -549,7 +549,7 @@ class SignIn extends StatelessWidget {
                               fontFamily: "MontserratMedium",
                             ),
                             onChanged: (txt) {
-                              controller.searchEmail();
+                              controller.scheduleEmailAvailabilityCheck();
                             },
                           ),
                         ),
@@ -604,7 +604,7 @@ class SignIn extends StatelessWidget {
                             },
                             onChanged: (txt) {
                               if (txt.length >= 6) {
-                                controller.searchNickname();
+                                controller.scheduleNicknameAvailabilityCheck();
                               } else {
                                 controller.nicknameAvilable.value = false;
                               }
@@ -760,43 +760,11 @@ class SignIn extends StatelessWidget {
                   ),
 
                   GestureDetector(
-                    onTap: () {
-                      // Dinamik doğrulamalar
-                      final email = controller.emailcontroller.text.trim();
-                      final nick = controller.nicknamecontroller.text.trim();
-                      final pass = controller.passwordcontroller.text;
+                    onTap: () async {
+                      final canContinue =
+                          await controller.validateSignupIdentityStep();
+                      if (!canContinue) return;
 
-                      if (email.isEmpty ||
-                          !email.contains('@') ||
-                          !email.contains('.')) {
-                        AppSnackbar(
-                            'Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
-                        return;
-                      }
-                      if (!controller.emailAvilable.value) {
-                        AppSnackbar(
-                            'Kullanılamaz', 'Bu e-posta zaten kullanımda.');
-                        return;
-                      }
-                      if (nick.length < 6) {
-                        AppSnackbar('Eksik Bilgi',
-                            'Kullanıcı adı en az 6 karakter olmalı.');
-                        return;
-                      }
-                      if (!controller.nicknameAvilable.value) {
-                        AppSnackbar('Kullanılamaz',
-                            'Bu kullanıcı adı zaten kullanımda.');
-                        return;
-                      }
-                      controller.password.value = pass; // güncel veriyi teyit
-                      controller.verifyPassword();
-                      if (!controller.passwordAvilable.value) {
-                        AppSnackbar('Zayıf Şifre',
-                            'Şifre en az bir harf, bir sayı ve bir noktalama içermeli (min 6 karakter).');
-                        return;
-                      }
-
-                      // Başarılı → bir sonraki adıma
                       controller.emailFocus.value.unfocus();
                       controller.nicknameFocus.value.unfocus();
                       controller.passwordFocus.value.unfocus();
