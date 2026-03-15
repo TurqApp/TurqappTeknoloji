@@ -1647,6 +1647,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
     try {
       _startQueueRingMonitor();
       if (!_validatePollRequirements()) return;
+      var addedCount = 0;
       for (int index = 0; index < postList.length; index++) {
         final postModel = postList[index];
         final tag = postModel.index.toString();
@@ -1663,6 +1664,9 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           'location': controller.adres.value,
           'gif': controller.gif.value,
           'userID': FirebaseAuth.instance.currentUser!.uid,
+          'sourceImagePaths':
+              controller.selectedImages.map((f) => f.path).toList(),
+          'sourceVideoPath': controller.selectedVideo.value?.path ?? '',
           'yorumMap': {
             'visibility': commentVisibility.value,
           },
@@ -1736,7 +1740,15 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
           createdAt: DateTime.now(),
         );
 
-        await _uploadQueueService.addToQueue(queuedUpload);
+        final added = await _uploadQueueService.addToQueue(queuedUpload);
+        if (added) {
+          addedCount++;
+        }
+      }
+
+      if (addedCount == 0) {
+        progressController.complete('Bu medya zaten yükleme kuyruğunda.');
+        return;
       }
 
       progressController

@@ -134,13 +134,58 @@ class UploadQueueService extends GetxController {
     _listenToConnectivity();
   }
 
+  String _queueFingerprintForMap(Map<String, dynamic> data) {
+    final sourceImages = (data['sourceImagePaths'] is List)
+        ? List<String>.from(data['sourceImagePaths'] as List)
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : <String>[];
+    sourceImages.sort();
+    final sourceVideo = (data['sourceVideoPath'] ?? '').toString().trim();
+    final text = (data['text'] ?? '').toString().trim();
+    final location = (data['location'] ?? '').toString().trim();
+    final gif = (data['gif'] ?? '').toString().trim();
+    final userID = (data['userID'] ?? '').toString().trim();
+    final scheduledAt = (data['scheduledAt'] ?? 0).toString();
+    return jsonEncode({
+      'userID': userID,
+      'text': text,
+      'location': location,
+      'gif': gif,
+      'scheduledAt': scheduledAt,
+      'sourceImagePaths': sourceImages,
+      'sourceVideoPath': sourceVideo,
+    });
+  }
+
+  String _queueFingerprint(QueuedUpload upload) {
+    try {
+      final map = jsonDecode(upload.postData) as Map<String, dynamic>;
+      return _queueFingerprintForMap(map);
+    } catch (_) {
+      return '';
+    }
+  }
+
   /// Add upload to queue
-  Future<void> addToQueue(QueuedUpload upload) async {
+  Future<bool> addToQueue(QueuedUpload upload) async {
+    final fingerprint = _queueFingerprint(upload);
+    final duplicateActive = fingerprint.isNotEmpty &&
+        _queue.any((item) =>
+            item.status != UploadStatus.completed &&
+            item.status != UploadStatus.failed &&
+            _queueFingerprint(item) == fingerprint);
+    if (duplicateActive) {
+      AppSnackbar('Bilgi', 'Bu medya zaten yükleniyor.');
+      return false;
+    }
     _queue.add(upload);
     _notifyQueueUpdated();
     await _saveQueueToStorage();
     await _createPendingPostShell(upload);
     _processQueue();
+    return true;
   }
 
   Future<void> _createPendingPostShell(QueuedUpload upload) async {
