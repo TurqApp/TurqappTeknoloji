@@ -44,8 +44,8 @@ class AccountCenterView extends StatelessWidget {
       }
       if (switched) return;
       AppSnackbar(
-        'Gecis yapilamadi',
-        'Bu hesap icin once bir kez normal giris yapilmasi gerekiyor.',
+        'Geçiş yapılamadı',
+        'Bu hesap için önce bir kez normal giriş yapılması gerekiyor.',
       );
       return;
     }
@@ -126,21 +126,11 @@ class AccountCenterView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Profiller ve giris bilgileri',
+                                  'Profiller ve giriş bilgileri',
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 26,
                                     fontFamily: 'MontserratBold',
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Bu cihazda kullandigin hesaplari burada gorebilir, istedigin hesabla devam edebilir veya yeni bir hesap ekleyebilirsin.',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 14,
-                                    height: 1.45,
-                                    fontFamily: 'MontserratMedium',
                                   ),
                                 ),
                                 SizedBox(height: 18),
@@ -168,7 +158,7 @@ class AccountCenterView extends StatelessWidget {
                                       vertical: 22,
                                     ),
                                     child: Text(
-                                      'Henuz bu cihaza eklenmis bir hesap yok.',
+                                      'Henüz bu cihaza eklenmiş bir hesap yok.',
                                       style: TextStyle(
                                         color: Colors.black54,
                                         fontSize: 14,
@@ -219,7 +209,7 @@ class AccountCenterView extends StatelessWidget {
                           const Padding(
                             padding: EdgeInsets.fromLTRB(4, 0, 4, 10),
                             child: Text(
-                              'Kisisel detaylar',
+                              'Kişisel detaylar',
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontSize: 14,
@@ -262,7 +252,7 @@ class _PersonalDetailsCard extends StatelessWidget {
     final rows = <Widget>[
       if (contactDetails != null)
         _PersonalDetailRow(
-          title: 'Iletisim bilgileri',
+          title: 'İletişim bilgileri',
           value: contactDetails!,
           onTap: onContactTap,
         ),
@@ -277,7 +267,7 @@ class _PersonalDetailsCard extends StatelessWidget {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
         child: const Text(
-          'Henuz gosterilecek bir kisisel detay yok.',
+          'Henüz gösterilecek bir kişisel detay yok.',
           style: TextStyle(
             color: Colors.black54,
             fontSize: 14,
@@ -455,7 +445,7 @@ class _ContactDetailsView extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: 'Iletisim Bilgileri'),
+            BackButtons(text: 'İletişim Bilgileri'),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -477,7 +467,7 @@ class _ContactDetailsView extends StatelessWidget {
                           title: 'E-posta',
                           value: email.isNotEmpty ? email : 'E-posta eklenmedi',
                           isVerified: emailVerified,
-                          verifiedLabel: 'Onayli',
+                          verifiedLabel: 'Onaylı',
                           pendingLabel: 'Onayla',
                           onTap: () => Get.to(() => EditorEmail()),
                         ),
@@ -487,8 +477,8 @@ class _ContactDetailsView extends StatelessWidget {
                           title: 'Telefon',
                           value: phone.isNotEmpty ? phone : 'Telefon eklenmedi',
                           isVerified: phoneVerified,
-                          verifiedLabel: 'Onayli',
-                          pendingLabel: 'Onaysiz',
+                          verifiedLabel: 'Onaylı',
+                          pendingLabel: 'Onaysız',
                           onTap: () => Get.to(() => EditorPhoneNumber()),
                         ),
                       ],
