@@ -44,6 +44,8 @@ import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings.da
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
+import 'package:turqappv2/Modules/Market/market_controller.dart';
+import 'package:turqappv2/Modules/Market/market_view.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder.dart';
 import 'package:turqappv2/Modules/JobFinder/JobCreator/job_creator.dart';
 import 'package:turqappv2/Modules/JobFinder/CareerProfile/career_profile.dart';
@@ -82,6 +84,10 @@ class EducationView extends StatelessWidget {
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollController
             : null;
+      case "Market":
+        return Get.isRegistered<MarketController>()
+            ? Get.find<MarketController>().scrollController
+            : null;
       default:
         return null;
     }
@@ -104,6 +110,10 @@ class EducationView extends StatelessWidget {
       case "Özel Ders":
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollOffset.value <= 350
+            : true;
+      case "Market":
+        return Get.isRegistered<MarketController>()
+            ? Get.find<MarketController>().scrollOffset.value <= 350
             : true;
       default:
         return true;
@@ -190,6 +200,50 @@ class EducationView extends StatelessWidget {
             title: 'Sonra Çöz',
             icon: CupertinoIcons.repeat,
             onTap: () => Get.to(() => ThenSolve()),
+          ),
+        ];
+      case "Market":
+        return [
+          PullDownMenuItem(
+            title: 'Ara',
+            icon: CupertinoIcons.search,
+            onTap: _focusGlobalSearch,
+          ),
+          PullDownMenuItem(
+            title: 'İlan Ekle',
+            icon: CupertinoIcons.add_circled,
+            onTap: () {
+              if (Get.isRegistered<MarketController>()) {
+                Get.find<MarketController>().showComingSoon('İlan Ekle');
+              }
+            },
+          ),
+          PullDownMenuItem(
+            title: 'İlanlarım',
+            icon: CupertinoIcons.cube_box,
+            onTap: () {
+              if (Get.isRegistered<MarketController>()) {
+                Get.find<MarketController>().openRoundMenu('my_items');
+              }
+            },
+          ),
+          PullDownMenuItem(
+            title: 'Kaydettiklerim',
+            icon: CupertinoIcons.bookmark,
+            onTap: () {
+              if (Get.isRegistered<MarketController>()) {
+                Get.find<MarketController>().openRoundMenu('saved');
+              }
+            },
+          ),
+          PullDownMenuItem(
+            title: 'Tekliflerim',
+            icon: CupertinoIcons.tag,
+            onTap: () {
+              if (Get.isRegistered<MarketController>()) {
+                Get.find<MarketController>().openRoundMenu('offers');
+              }
+            },
           ),
         ];
       case "Denemeler":
@@ -461,8 +515,9 @@ class EducationView extends StatelessWidget {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 15),
                       child: Row(
-                        children: List.generate(
-                            controller.visibleTabIndexes.length, (visibleIndex) {
+                        children:
+                            List.generate(controller.visibleTabIndexes.length,
+                                (visibleIndex) {
                           final actualIndex =
                               controller.actualIndexForVisible(visibleIndex);
                           final isSelected =
@@ -545,6 +600,11 @@ class EducationView extends StatelessWidget {
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
+                            case "Market":
+                              return MarketView(
+                                embedded: true,
+                                showEmbeddedControls: false,
+                              );
                             case "Soru Bankası":
                               return AntremanView2(
                                 embedded: true,
@@ -613,8 +673,7 @@ class EducationView extends StatelessWidget {
                         context: context,
                         menuItems: menuItems,
                         permissionScope: switch (
-                          _titleForIndex(controller.selectedTab.value)
-                        ) {
+                            _titleForIndex(controller.selectedTab.value)) {
                           "Burslar" => ActionButtonPermissionScope.scholarships,
                           "Online Sınav" =>
                             ActionButtonPermissionScope.practiceExams,

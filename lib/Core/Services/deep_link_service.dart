@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -14,6 +15,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -29,6 +31,8 @@ class DeepLinkService extends GetxService {
       <String, _PostLookupCache>{};
   static final Map<String, _JobLookupCache> _jobLookupCache =
       <String, _JobLookupCache>{};
+  static final Map<String, _MarketLookupCache> _marketLookupCache =
+      <String, _MarketLookupCache>{};
   static final Map<String, _UserLookupCache> _userLookupCache =
       <String, _UserLookupCache>{};
   static final Map<String, _StoryListLookupCache> _storyListLookupCache =
@@ -92,6 +96,24 @@ class DeepLinkService extends GetxService {
     return lookup;
   }
 
+  Future<_MarketLookupCache> _getMarketLookup(String itemId) async {
+    _pruneStaleLookups();
+    final cached = _marketLookupCache[itemId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _lookupTtl) {
+      return cached;
+    }
+    final lookup = _MarketLookupCache(
+      model: await MarketRepository.ensure().fetchById(
+        itemId,
+        preferCache: true,
+      ),
+      cachedAt: DateTime.now(),
+    );
+    _marketLookupCache[itemId] = lookup;
+    return lookup;
+  }
+
   Future<_StoryDocLookupCache> _getStoryDocLookup(String storyId) async {
     _pruneStaleLookups();
     final cached = _storyDocLookupCache[storyId];
@@ -139,6 +161,10 @@ class DeepLinkService extends GetxService {
         await _openEducationLink(parsed.id);
         return;
       }
+      if (parsed.type == 'market') {
+        await _openMarket(parsed.id);
+        return;
+      }
 
       final resolved = await _shortLinkService.resolve(
         type: parsed.type,
@@ -170,6 +196,9 @@ class DeepLinkService extends GetxService {
         case 'edu':
           await _openEducationLink(entityId);
           return;
+        case 'market':
+          await _openMarket(entityId);
+          return;
       }
     } catch (_) {
       final handled = await _tryDirectFallback(parsed);
@@ -197,6 +226,9 @@ class DeepLinkService extends GetxService {
           return true;
         case 'edu':
           await _openEducationLink(rawId);
+          return true;
+        case 'market':
+          await _openMarket(rawId);
           return true;
       }
     } catch (_) {
@@ -259,6 +291,9 @@ class DeepLinkService extends GetxService {
         value == 'edu' ||
         value == 'education') {
       return 'edu';
+    }
+    if (value == 'm' || value == 'market' || value == 'product') {
+      return 'market';
     }
     return null;
   }
@@ -362,6 +397,16 @@ class DeepLinkService extends GetxService {
         ));
   }
 
+  Future<void> _openMarket(String itemId) async {
+    final lookup = await _getMarketLookup(itemId);
+    final item = lookup.model;
+    if (item == null) {
+      AppSnackbar('Bilgi', 'Ilan bulunamadi.');
+      return;
+    }
+    await Get.to(() => MarketDetailView(item: item));
+  }
+
   Future<List<StoryModel>> _fetchStoriesByUserIndexSafe(String userId) async {
     _pruneStaleLookups();
     final cached = _storyListLookupCache[userId];
@@ -388,6 +433,7 @@ class DeepLinkService extends GetxService {
 
     _postLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _jobLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _marketLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _userLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _storyListLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _storyDocLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
@@ -410,6 +456,7 @@ class DeepLinkService extends GetxService {
 
     trimMap<_PostLookupCache>(_postLookupCache, (v) => v.cachedAt);
     trimMap<_JobLookupCache>(_jobLookupCache, (v) => v.cachedAt);
+    trimMap<_MarketLookupCache>(_marketLookupCache, (v) => v.cachedAt);
     trimMap<_UserLookupCache>(_userLookupCache, (v) => v.cachedAt);
     trimMap<_StoryListLookupCache>(_storyListLookupCache, (v) => v.cachedAt);
     trimMap<_StoryDocLookupCache>(_storyDocLookupCache, (v) => v.cachedAt);
@@ -503,6 +550,16 @@ class _JobLookupCache {
   final DateTime cachedAt;
 
   const _JobLookupCache({
+    required this.model,
+    required this.cachedAt,
+  });
+}
+
+class _MarketLookupCache {
+  final dynamic model;
+  final DateTime cachedAt;
+
+  const _MarketLookupCache({
     required this.model,
     required this.cachedAt,
   });

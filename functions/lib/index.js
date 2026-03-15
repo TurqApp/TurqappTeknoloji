@@ -74,6 +74,7 @@ __exportStar(require("./20_moderationConfig"), exports);
 __exportStar(require("./22_badgeAdmin"), exports);
 __exportStar(require("./23_sharedPostCascade"), exports);
 __exportStar(require("./24_reports"), exports);
+__exportStar(require("./25_typesenseMarket"), exports);
 // USER SCHEMA NORMALIZER (canonical-only)
 exports.syncUserSchemaAndFlags = functions.firestore
     .document("users/{uid}")

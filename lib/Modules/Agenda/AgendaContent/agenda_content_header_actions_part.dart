@@ -353,9 +353,9 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
   }
 
   Widget pulldownmenu() {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final canManagePost =
-        widget.model.userID == FirebaseAuth.instance.currentUser!.uid ||
-            controller.canSendAdminPush;
+        widget.model.userID == currentUid || controller.canSendAdminPush;
     return PullDownButton(
       itemBuilder: (context) => [
         PullDownMenuItem(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,10 +14,13 @@ import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Helpers/show_map_sheet.dart';
 import 'package:turqappv2/Core/Helpers/seen_count_label.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
@@ -47,8 +51,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
-import '../../../Core/dummy_data.dart';
-import '../../../Core/functions.dart';
 import '../../../Core/text_styles.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';
@@ -84,6 +86,9 @@ class _ProfileViewState extends State<ProfileView> {
           : Get.put(SocialMediaController());
   final userService = CurrentUserService.instance;
   final PostRepository _postRepository = PostRepository.ensure();
+  final MarketRepository _marketRepository = MarketRepository.ensure();
+  List<MarketItemModel> _marketItems = const <MarketItemModel>[];
+  bool _marketLoading = false;
 
   String get _myUserId =>
       userService.currentUserRx.value?.userID ??
@@ -146,7 +151,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   int get _myTotalPosts => userService.currentUserRx.value?.counterOfPosts ?? 0;
   int get _myTotalLikes => userService.currentUserRx.value?.counterOfLikes ?? 0;
-  int get _myTotalMarket => 0;
+  int get _myTotalMarket =>
+      _marketItems.where((item) => item.status != 'archived').length;
   bool get _hasMyStories =>
       _myUserId.isNotEmpty &&
       storyOwnerUsers.any((u) => u.userID == _myUserId && u.stories.isNotEmpty);
@@ -172,6 +178,7 @@ class _ProfileViewState extends State<ProfileView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       socialMediaController.getData();
     });
+    unawaited(_loadMarketItems());
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null && uid.isNotEmpty) {
@@ -187,6 +194,42 @@ class _ProfileViewState extends State<ProfileView> {
   void _refreshUserState() {
     userService.forceRefresh();
     StoryRowController.refreshStoriesGlobally();
+    unawaited(_loadMarketItems(force: true));
+  }
+
+  Future<void> _loadMarketItems({bool force = false}) async {
+    final uid = _myUserId.trim();
+    if (uid.isEmpty) return;
+    if (_marketLoading && !force) return;
+    if (mounted) {
+      setState(() {
+        _marketLoading = true;
+      });
+    }
+    try {
+      final items = await _marketRepository.fetchByOwner(
+        uid,
+        preferCache: !force,
+        forceRefresh: force,
+      );
+      if (!mounted) return;
+      setState(() {
+        _marketItems = items
+            .where((item) => item.status != 'archived')
+            .toList(growable: false);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _marketItems = const <MarketItemModel>[];
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _marketLoading = false;
+        });
+      }
+    }
   }
 
   void _onScroll() {
@@ -210,8 +253,14 @@ class _ProfileViewState extends State<ProfileView> {
       final key = controller.getPostKey(i);
       final ctx = key.currentContext;
       if (ctx == null) continue;
+      if (!ctx.mounted) continue;
 
-      final box = ctx.findRenderObject() as RenderBox?;
+      RenderBox? box;
+      try {
+        box = ctx.findRenderObject() as RenderBox?;
+      } catch (_) {
+        continue;
+      }
       if (box == null || !box.attached) continue;
 
       final pos = box.localToGlobal(Offset.zero);
@@ -249,6 +298,7 @@ class _ProfileViewState extends State<ProfileView> {
                   child: RefreshIndicator(
                     onRefresh: () async {
                       await controller.refreshAll();
+                      await _loadMarketItems(force: true);
                       socialMediaController.getData();
                     },
                     child: Obx(() {

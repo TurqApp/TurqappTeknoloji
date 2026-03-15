@@ -12,6 +12,7 @@ import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
+import 'package:turqappv2/Modules/Market/market_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
@@ -287,6 +288,11 @@ class EducationController extends GetxController {
           jc.search.text = query;
         }
         break;
+      case "Market":
+        if (Get.isRegistered<MarketController>()) {
+          Get.find<MarketController>().setSearchQuery(query);
+        }
+        break;
       case "Soru Bankası":
         if (Get.isRegistered<AntremanController>()) {
           Get.find<AntremanController>().setSearchQuery(query);
@@ -327,6 +333,11 @@ class EducationController extends GetxController {
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();
+        }
+        break;
+      case "Market":
+        if (Get.isRegistered<MarketController>()) {
+          Get.find<MarketController>().setSearchQuery('');
         }
         break;
       case "Soru Bankası":

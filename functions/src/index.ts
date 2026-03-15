@@ -63,6 +63,7 @@ export * from "./20_moderationConfig";
 export * from "./22_badgeAdmin";
 export * from "./23_sharedPostCascade";
 export * from "./24_reports";
+export * from "./25_typesenseMarket";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore

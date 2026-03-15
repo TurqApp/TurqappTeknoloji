@@ -494,156 +494,271 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final itemWidth = screenSize.width / 2;
-    final itemHeight = screenSize.height * 0.43;
-    final aspectRatio = itemWidth / itemHeight;
-    return ListView(
-      children: [
-        header(),
-        const Padding(
-          padding: EdgeInsets.all(15),
-          child: Column(
-            children: [
-              Text(
-                "AlSat",
-                style: TextStyle(
-                  color: Colors.pink,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Text(
-                  "Almak da satmak da artık çok daha kolay.\nYakında buradayız!",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium",
+    final activeCount =
+        _marketItems.where((item) => item.status == 'active').length;
+    final draftCount =
+        _marketItems.where((item) => item.status == 'draft').length;
+    final soldCount =
+        _marketItems.where((item) => item.status == 'sold').length;
+
+    return CustomScrollView(
+      controller: controller.scrollController,
+      physics:
+          const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+      slivers: [
+        SliverToBoxAdapter(child: header()),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(15, 12, 15, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _marketSummaryChip(
+                    label: 'Aktif',
+                    count: activeCount,
+                    color: const Color(0xFF111827),
                   ),
                 ),
-              ),
-            ],
+                8.pw,
+                Expanded(
+                  child: _marketSummaryChip(
+                    label: 'Taslak',
+                    count: draftCount,
+                    color: const Color(0xFF7C3AED),
+                  ),
+                ),
+                8.pw,
+                Expanded(
+                  child: _marketSummaryChip(
+                    label: 'Satildi',
+                    count: soldCount,
+                    color: const Color(0xFFB45309),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: aspectRatio,
-              crossAxisSpacing: 7,
-              mainAxisSpacing: 7,
+        if (_marketLoading)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 28),
+              child: Center(child: CupertinoActivityIndicator()),
             ),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: dummyAds.length,
-            itemBuilder: (context, index) {
-              final item = dummyAds[index];
-              return Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                      child: AspectRatio(
-                        aspectRatio: 1 / 1.2,
-                        child: Image.asset(
-                          "assets/dummy/${item.imageAsset}.webp",
+          )
+        else if (_marketItems.isEmpty)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: EmptyRow(text: 'Ilan Yok'),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+                childAspectRatio: 0.73,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _buildMarketGridCard(_marketItems[index]),
+                childCount: _marketItems.length,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _marketSummaryChip({
+    required String label,
+    required int count,
+    required Color color,
+  }) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            NumberFormatter.format(count),
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarketGridCard(MarketItemModel item) {
+    final statusColor = _marketStatusColor(item.status);
+    return GestureDetector(
+      onTap: () => Get.to(() => MarketDetailView(item: item)),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  item.coverImageUrl.trim().isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: item.coverImageUrl,
+                          cacheManager: TurqImageCacheManager.instance,
                           fit: BoxFit.cover,
+                          memCacheWidth: 400,
+                          memCacheHeight: 400,
+                          placeholder: (context, url) => Container(
+                            color: Colors.grey.withAlpha(30),
+                          ),
+                          errorWidget: (context, url, error) =>
+                              _marketImageFallback(),
+                        )
+                      : _marketImageFallback(),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _marketStatusLabel(item.status),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontFamily: 'MontserratBold',
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
-                          ),
-                          Text(
-                            item.category,
-                            style: const TextStyle(
-                              color: Colors.pink,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              if (item.discount != null) ...[
-                                Text(
-                                  calculateDiscountedPrice(
-                                    item.price,
-                                    item.discount!,
-                                  ),
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                                6.pw,
-                                Expanded(
-                                  child: Text(
-                                    item.price,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 14,
-                                      fontFamily: "MontserratMedium",
-                                      decoration: TextDecoration.lineThrough,
-                                    ),
-                                  ),
-                                ),
-                              ] else ...[
-                                Text(
-                                  item.price,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          4.ph,
-                          Text(
-                            item.shortDescription,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontFamily: 'MontserratBold',
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.categoryLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${item.price.toStringAsFixed(0)} ${item.currency}',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 15,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.locationText.isEmpty
+                        ? 'Konum belirtilmedi'
+                        : item.locationText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
+  }
+
+  Widget _marketImageFallback() {
+    return Container(
+      color: Colors.grey.withAlpha(25),
+      alignment: Alignment.center,
+      child: Icon(
+        CupertinoIcons.photo,
+        color: Colors.grey.withAlpha(170),
+        size: 26,
+      ),
+    );
+  }
+
+  Color _marketStatusColor(String status) {
+    switch (status) {
+      case 'sold':
+        return const Color(0xFFB45309);
+      case 'draft':
+        return const Color(0xFF7C3AED);
+      case 'archived':
+        return const Color(0xFF6B7280);
+      default:
+        return const Color(0xFF111827);
+    }
+  }
+
+  String _marketStatusLabel(String status) {
+    switch (status) {
+      case 'sold':
+        return 'Satildi';
+      case 'draft':
+        return 'Taslak';
+      case 'archived':
+        return 'Arsiv';
+      default:
+        return 'Aktif';
+    }
   }
 
   Widget buildIzbiraklar(BuildContext context) {

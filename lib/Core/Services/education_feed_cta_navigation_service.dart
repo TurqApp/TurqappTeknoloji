@@ -1,10 +1,12 @@
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
@@ -122,6 +124,9 @@ class EducationFeedCtaNavigationService {
       case 'job':
         await _openJob(docId);
         return;
+      case 'market':
+        await _openMarket(docId);
+        return;
       default:
         AppSnackbar('Hata', 'İçerik tipi desteklenmiyor.');
     }
@@ -148,6 +153,11 @@ class EducationFeedCtaNavigationService {
       case 'is-bul':
       case 'isbul':
         return 'job';
+      case 'market':
+      case 'pasaj':
+      case 'product':
+      case 'urun':
+        return 'market';
       default:
         return '';
     }
@@ -162,6 +172,8 @@ class EducationFeedCtaNavigationService {
       case 'tutoring':
       case 'job':
         return 'İlanı İncele';
+      case 'market':
+        return 'Ilani Incele';
       default:
         return '';
     }
@@ -176,13 +188,17 @@ class EducationFeedCtaNavigationService {
     final host = uri.host.toLowerCase().trim();
     final segments =
         uri.pathSegments.where((e) => e.trim().isNotEmpty).toList();
-    if (segments.isEmpty || (host != 'education' && host != 'edu')) {
+    if (segments.isEmpty ||
+        (host != 'education' && host != 'edu' && host != 'market')) {
       return null;
     }
 
     String type = '';
     String docId = '';
-    if (segments.length >= 2) {
+    if (host == 'market') {
+      type = 'market';
+      docId = segments.first;
+    } else if (segments.length >= 2) {
       type = segments[0];
       docId = segments[1];
     } else if (segments.first.contains(':')) {
@@ -269,5 +285,17 @@ class EducationFeedCtaNavigationService {
       return;
     }
     await Get.to(() => JobDetails(model: lookup.model!));
+  }
+
+  Future<void> _openMarket(String docId) async {
+    final item = await MarketRepository.ensure().fetchById(
+      docId,
+      preferCache: true,
+    );
+    if (item == null) {
+      AppSnackbar('Hata', 'Ilan bulunamadi.');
+      return;
+    }
+    await Get.to(() => MarketDetailView(item: item));
   }
 }
