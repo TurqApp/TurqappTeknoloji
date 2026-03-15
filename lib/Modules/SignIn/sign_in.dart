@@ -1095,9 +1095,7 @@ class SignIn extends StatelessWidget {
                         return;
                       }
 
-                      controller.selection.value = 4;
                       controller.otpController.text = "";
-                      controller.otpTimer.value = 30;
                       controller.sendOtpCode();
                     },
                     child: Container(

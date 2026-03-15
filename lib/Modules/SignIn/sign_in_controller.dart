@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -96,8 +97,16 @@ class SignInController extends GetxController
   var signInEmail = "".obs;
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'europe-west3');
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
   int _emailAvailabilityRequestId = 0;
   int _nicknameAvailabilityRequestId = 0;
+  static const String _signupAvailabilityUrl =
+      'https://europe-west3-turqappteknoloji.cloudfunctions.net/checkSignupAvailabilityHttp';
 
   void _ensureFeedTabSelected() {
     if (Get.isRegistered<NavBarController>()) {
@@ -412,7 +421,7 @@ class SignInController extends GetxController
     emailAvilable.value = false;
     if (!isValidEmail(candidate)) return;
 
-    final result = await _checkSignupAvailability(email: candidate);
+    final result = await _checkSignupAvailabilityHttp(email: candidate);
     if (requestId != _emailAvailabilityRequestId) return;
     emailAvilable.value = result.emailAvailable;
   }
@@ -442,10 +451,9 @@ class SignInController extends GetxController
     final usernameLower = nickname.value.trim().toLowerCase();
     final requestId = ++_nicknameAvailabilityRequestId;
     nicknameAvilable.value = false;
-
     if (usernameLower.length < 8) return;
 
-    final result = await _checkSignupAvailability(nickname: usernameLower);
+    final result = await _checkSignupAvailabilityHttp(nickname: usernameLower);
     if (requestId != _nicknameAvailabilityRequestId) return;
     nicknameAvilable.value = result.nicknameAvailable;
   }
@@ -494,34 +502,14 @@ class SignInController extends GetxController
       return false;
     }
 
-    final availability = await _checkSignupAvailability(
+    final availability = await _checkSignupAvailabilityHttp(
       email: emailText,
       nickname: nicknameText,
       showServiceError: true,
     );
     emailAvilable.value = availability.emailAvailable;
     nicknameAvilable.value = availability.nicknameAvailable;
-
-    if (!availability.emailAvailable) {
-      AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
-      return false;
-    }
-    if (!availability.nicknameAvailable) {
-      AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
-      return false;
-    }
-    return true;
-  }
-
-  Future<bool> ensureSignupAvailabilityBeforeContinue() async {
-    final availability = await _checkSignupAvailability(
-      email: emailcontroller.text.trim().toLowerCase(),
-      nickname: nicknamecontroller.text.trim().toLowerCase(),
-      showServiceError: true,
-    );
-    emailAvilable.value = availability.emailAvailable;
-    nicknameAvilable.value = availability.nicknameAvailable;
-
+    if (!availability.reachable) return false;
     if (!availability.emailAvailable) {
       AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
       return false;
@@ -536,7 +524,8 @@ class SignInController extends GetxController
   Future<({
     bool emailAvailable,
     bool nicknameAvailable,
-  })> _checkSignupAvailability({
+    bool reachable,
+  })> _checkSignupAvailabilityHttp({
     String? email,
     String? nickname,
     bool showServiceError = false,
@@ -545,16 +534,28 @@ class SignInController extends GetxController
     final normalizedNickname = (nickname ?? '').trim().toLowerCase();
 
     try {
-      final response = await _functions.httpsCallable('checkSignupAvailability').call({
-        if (normalizedEmail.isNotEmpty) 'email': normalizedEmail,
-        if (normalizedNickname.isNotEmpty) 'nickname': normalizedNickname,
-      });
+      final response = await _dio.post(
+        _signupAvailabilityUrl,
+        data: {
+          if (normalizedEmail.isNotEmpty) 'email': normalizedEmail,
+          if (normalizedNickname.isNotEmpty) 'nickname': normalizedNickname,
+        },
+      );
       final data = Map<String, dynamic>.from(response.data as Map);
       return (
-        emailAvailable: (data['emailAvailable'] == true),
-        nicknameAvailable: data['nicknameAvailable'] != false,
+        emailAvailable: data['emailAvailable'] == true,
+        nicknameAvailable: data['nicknameAvailable'] == true,
+        reachable: true,
       );
-    } on FirebaseFunctionsException catch (e) {
+    } on DioException catch (e) {
+      final responseData = e.response?.data;
+      if (responseData is Map<String, dynamic>) {
+        return (
+          emailAvailable: responseData['emailAvailable'] == true,
+          nicknameAvailable: responseData['nicknameAvailable'] == true,
+          reachable: e.response?.statusCode == 400,
+        );
+      }
       if (showServiceError) {
         AppSnackbar(
           'Kontrol Edilemedi',
@@ -564,6 +565,7 @@ class SignInController extends GetxController
       return (
         emailAvailable: false,
         nicknameAvailable: false,
+        reachable: false,
       );
     } catch (_) {
       if (showServiceError) {
@@ -575,6 +577,7 @@ class SignInController extends GetxController
       return (
         emailAvailable: false,
         nicknameAvailable: false,
+        reachable: false,
       );
     }
   }
@@ -598,15 +601,14 @@ class SignInController extends GetxController
       return;
     }
 
-    final availabilityOk = await ensureSignupAvailabilityBeforeContinue();
-    if (!availabilityOk) return;
-
-    selection.value = 4;
     otpRequestInFlight.value = true;
     try {
       await _functions.httpsCallable('sendSignupSmsCode').call({
         "phone": phone,
+        "email": email.value.trim().toLowerCase(),
+        "nickname": nickname.value.trim().toLowerCase(),
       });
+      selection.value = 4;
       startOtpTimer();
       signupCodeRequested.value = true;
       AppSnackbar(
@@ -617,10 +619,10 @@ class SignInController extends GetxController
       String message;
       switch (e.code) {
         case 'invalid-argument':
-          message = "Telefon numarası 5 ile başlayan 10 hane olmalı.";
+          message = e.message ?? "Girilen bilgiler geçerli değil.";
           break;
         case 'already-exists':
-          message = "Bu telefon numarası zaten kullanımda.";
+          message = e.message ?? "Bu bilgiler zaten kullanımda.";
           break;
         case 'failed-precondition':
           message = e.message ?? "Yeni kod istemeden önce biraz bekleyin.";
@@ -735,13 +737,9 @@ class SignInController extends GetxController
       await _functions.httpsCallable('verifySignupSmsCode').call({
         "phone": phone,
         "verificationCode": code,
+        "email": email.value.trim().toLowerCase(),
+        "nickname": nickname.value.trim().toLowerCase(),
       });
-
-      final availabilityOk = await ensureSignupAvailabilityBeforeContinue();
-      if (!availabilityOk) {
-        wait.value = false;
-        return;
-      }
 
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email.value.trim(),
@@ -754,6 +752,9 @@ class SignInController extends GetxController
       switch (e.code) {
         case 'deadline-exceeded':
           message = "Kodun süresi doldu. Lütfen yeni kod isteyin.";
+          break;
+        case 'already-exists':
+          message = e.message ?? "Bu e-posta veya kullanıcı adı zaten kullanımda.";
           break;
         case 'not-found':
           message = "Doğrulama kodu bulunamadı. Yeniden kod alın.";

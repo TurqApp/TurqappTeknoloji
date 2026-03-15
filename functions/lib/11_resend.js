@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyPasswordResetSmsCode = exports.verifySignupSmsCode = exports.checkSignupAvailability = exports.sendSignupSmsCode = exports.sendPasswordResetSmsCode = exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
+exports.verifyPasswordResetSmsCode = exports.verifySignupSmsCode = exports.checkSignupAvailabilityHttp = exports.checkSignupAvailability = exports.sendSignupSmsCode = exports.sendPasswordResetSmsCode = exports.updateUserPhoneNumberAfterEmailVerification = exports.markCurrentEmailVerified = exports.updateUserEmail = exports.verifyEmailCode = exports.sendEmailVerificationCode = void 0;
 const admin = require("firebase-admin");
 const axios_1 = require("axios");
 const resend_1 = require("resend");
@@ -70,6 +70,32 @@ function isNetgsmSuccessResponse(rawBody) {
         return false;
     const code = Number(match[1]);
     return Number.isFinite(code) && code === 0;
+}
+async function assertSignupIdentityAvailable(emailRaw, nicknameRaw) {
+    const email = String(emailRaw || "").trim().toLowerCase();
+    const nickname = String(nicknameRaw || "").trim().toLowerCase().replace(/\s+/g, "");
+    if (!email || !validEmail(email)) {
+        throw new https_1.HttpsError("invalid-argument", "Geçerli bir e-posta girin");
+    }
+    if (!nickname || nickname.length < 8) {
+        throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 8 karakter olmalıdır");
+    }
+    const emailSnap = await db
+        .collection("users")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+    if (!emailSnap.empty) {
+        throw new https_1.HttpsError("already-exists", "Bu e-posta zaten kullanımda");
+    }
+    const usernameSnap = await db
+        .collection("users")
+        .where("usernameLower", "==", nickname)
+        .limit(1)
+        .get();
+    if (!usernameSnap.empty) {
+        throw new https_1.HttpsError("already-exists", "Bu kullanıcı adı zaten kullanımda");
+    }
 }
 async function resolveCaller(request) {
     const authUid = String(request.auth?.uid || "").trim();
@@ -582,6 +608,7 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
     try {
         const phoneRaw = String(request.data?.phone || "").trim();
         const phone = normalizePhone(phoneRaw);
+        await assertSignupIdentityAvailable(request.data?.email, request.data?.nickname);
         if (phone.length !== 10 || !phone.startsWith("5")) {
             throw new https_1.HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
         }
@@ -657,6 +684,7 @@ exports.checkSignupAvailability = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 30,
     memory: "256MiB",
+    invoker: "public",
 }, async (request) => {
     const rawEmail = String(request.data?.email || "").trim().toLowerCase();
     const rawNickname = String(request.data?.nickname || "").trim().toLowerCase();
@@ -679,17 +707,12 @@ exports.checkSignupAvailability = (0, https_1.onCall)({
     let emailAvailable = true;
     let nicknameAvailable = true;
     if (rawEmail) {
-        try {
-            await admin.auth().getUserByEmail(rawEmail);
-            emailAvailable = false;
-        }
-        catch (error) {
-            const code = error?.code || "";
-            if (code !== "auth/user-not-found") {
-                console.error("checkSignupAvailability email lookup error", { code });
-                throw new https_1.HttpsError("internal", "E-posta uygunluğu kontrol edilemedi");
-            }
-        }
+        const emailSnap = await db
+            .collection("users")
+            .where("email", "==", rawEmail)
+            .limit(1)
+            .get();
+        emailAvailable = emailSnap.empty;
     }
     if (normalizedNickname) {
         const usernameSnap = await db
@@ -706,6 +729,76 @@ exports.checkSignupAvailability = (0, https_1.onCall)({
         normalizedNickname,
     };
 });
+exports.checkSignupAvailabilityHttp = (0, https_1.onRequest)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    invoker: "public",
+}, async (req, res) => {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+        res.status(204).send("");
+        return;
+    }
+    if (req.method !== "POST") {
+        res.status(405).json({ success: false, message: "Method not allowed" });
+        return;
+    }
+    try {
+        const rawEmail = String(req.body?.email || "").trim().toLowerCase();
+        const rawNickname = String(req.body?.nickname || "").trim().toLowerCase();
+        const normalizedNickname = rawNickname.replace(/\s+/g, "");
+        if (!rawEmail && !normalizedNickname) {
+            res.status(400).json({ success: false, message: "E-posta veya kullanıcı adı gereklidir" });
+            return;
+        }
+        if (rawEmail) {
+            if (!validEmail(rawEmail)) {
+                res.status(400).json({ success: false, message: "Geçerli bir e-posta girin" });
+                return;
+            }
+            (0, rateLimiter_1.enforceRateLimitForKey)(rawEmail, "signup_email_check_http", 20, 300);
+        }
+        if (normalizedNickname) {
+            if (normalizedNickname.length < 8) {
+                res.status(400).json({ success: false, message: "Kullanıcı adı en az 8 karakter olmalıdır" });
+                return;
+            }
+            (0, rateLimiter_1.enforceRateLimitForKey)(normalizedNickname, "signup_username_check_http", 20, 300);
+        }
+        let emailAvailable = true;
+        let nicknameAvailable = true;
+        if (rawEmail) {
+            const emailSnap = await db
+                .collection("users")
+                .where("email", "==", rawEmail)
+                .limit(1)
+                .get();
+            emailAvailable = emailSnap.empty;
+        }
+        if (normalizedNickname) {
+            const usernameSnap = await db
+                .collection("users")
+                .where("usernameLower", "==", normalizedNickname)
+                .limit(1)
+                .get();
+            nicknameAvailable = usernameSnap.empty;
+        }
+        res.status(200).json({
+            success: true,
+            emailAvailable,
+            nicknameAvailable,
+            normalizedNickname,
+        });
+    }
+    catch (error) {
+        const message = error?.message || "unknown";
+        console.error("checkSignupAvailabilityHttp fatal-error", { message });
+        res.status(500).json({ success: false, message: "Kayıt uygunluğu kontrol edilemedi" });
+    }
+});
 exports.verifySignupSmsCode = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 30,
@@ -714,6 +807,7 @@ exports.verifySignupSmsCode = (0, https_1.onCall)({
     const phoneRaw = String(request.data?.phone || "").trim();
     const verificationCode = String(request.data?.verificationCode || "").trim();
     const phone = normalizePhone(phoneRaw);
+    await assertSignupIdentityAvailable(request.data?.email, request.data?.nickname);
     if (phone.length !== 10 || !phone.startsWith("5") || !verificationCode) {
         throw new https_1.HttpsError("invalid-argument", "Telefon numarası ve doğrulama kodu gereklidir");
     }
