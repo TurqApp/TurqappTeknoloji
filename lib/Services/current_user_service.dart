@@ -781,6 +781,22 @@ class CurrentUserService extends GetxController {
   ///   'bio': 'New bio text',
   /// });
   /// ```
+  bool isUserBlocked(String userId) {
+    return _currentUser?.blockedUsers.contains(userId) ?? false;
+  }
+
+  bool hasReadStory(String storyId) {
+    return _currentUser?.readStories.contains(storyId) ?? false;
+  }
+
+  int? getStoryReadTime(String userId) {
+    return _currentUser?.readStoriesTimes[userId];
+  }
+
+  bool get isVerified => _currentUser?.isVerified ?? false;
+
+  bool get isEmailVerified => emailVerifiedRx.value;
+
   /// Is private account
   bool get isPrivate => _currentUser?.isPrivate ?? false;
 
