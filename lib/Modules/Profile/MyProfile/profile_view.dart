@@ -63,6 +63,8 @@ import '../../../Core/Services/video_state_manager.dart';
 import '../SocialMediaLinks/social_media_links_controller.dart';
 import '../../../Models/social_media_model.dart';
 
+part 'profile_view_sections_part.dart';
+
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
 
@@ -96,6 +98,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (authDisplay.isNotEmpty) return authDisplay;
     return _myNickname;
   }
+
   String get _myAvatarUrl => userService.avatarUrl;
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
@@ -105,6 +108,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (headerRozet.isNotEmpty) return true;
     return _myRozet.trim().isNotEmpty;
   }
+
   String get _myMeslek => userService.currentUserRx.value?.meslekKategori ?? '';
   String get _myBio => userService.currentUserRx.value?.bio ?? '';
   String get _myAdres => userService.currentUserRx.value?.adres ?? '';
@@ -113,26 +117,31 @@ class _ProfileViewState extends State<ProfileView> {
     if (direct.isNotEmpty) return direct;
     return _myFirstName.trim();
   }
+
   String get _myDisplayLastName {
     final direct = controller.headerLastName.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myLastName.trim();
   }
+
   String get _myDisplayMeslek {
     final direct = controller.headerMeslek.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myMeslek.trim();
   }
+
   String get _myDisplayBio {
     final direct = controller.headerBio.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myBio.trim();
   }
+
   String get _myDisplayAdres {
     final direct = controller.headerAdres.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myAdres.trim();
   }
+
   int get _myTotalPosts => userService.currentUserRx.value?.counterOfPosts ?? 0;
   int get _myTotalLikes => userService.currentUserRx.value?.counterOfLikes ?? 0;
   int get _myTotalMarket => 0;
@@ -300,10 +309,10 @@ class _ProfileViewState extends State<ProfileView> {
                                             child: Column(
                                               children: [
                                                 Obx(() {
-                                                  final isCentered =
-                                                      controller.centeredIndex
-                                                              .value ==
-                                                          actualIndex;
+                                                  final isCentered = controller
+                                                          .centeredIndex
+                                                          .value ==
+                                                      actualIndex;
                                                   return Padding(
                                                     padding: EdgeInsets.only(
                                                         top: actualIndex == 0
@@ -1359,115 +1368,6 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildLinksAndHighlightsRow() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return const SizedBox.shrink();
-
-    final tag = 'highlights_$uid';
-    final hlController = Get.isRegistered<StoryHighlightsController>(tag: tag)
-        ? Get.find<StoryHighlightsController>(tag: tag)
-        : Get.put(StoryHighlightsController(userId: uid), tag: tag);
-
-    return Obx(() {
-      const rowHeight = 90.0;
-      const itemWidth = 70.0;
-      const itemSpacing = 18.0;
-      final mixedItems = <Map<String, dynamic>>[];
-      for (final model in socialMediaController.list) {
-        mixedItems.add({
-          'type': 'link',
-          'createdAt': int.tryParse(model.docID) ?? 0,
-          'data': model,
-        });
-      }
-      for (final hl in hlController.highlights) {
-        mixedItems.add({
-          'type': 'highlight',
-          'createdAt': hl.createdAt.millisecondsSinceEpoch,
-          'data': hl,
-        });
-      }
-      if (mixedItems.isEmpty) return const SizedBox.shrink();
-      mixedItems.sort(
-          (a, b) => (b['createdAt'] as int).compareTo(a['createdAt'] as int));
-
-      return Padding(
-        padding: const EdgeInsets.only(top: 2, bottom: 4),
-        child: SizedBox(
-          height: rowHeight,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            itemCount: mixedItems.length,
-            itemBuilder: (context, index) {
-              final item = mixedItems[index];
-              return Padding(
-                padding: EdgeInsets.only(right: itemSpacing),
-                child: _buildLinkHighlightTile(
-                  context,
-                  item,
-                  uid,
-                  hlController,
-                  itemWidth,
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildLinkHighlightTile(
-      BuildContext context,
-      Map<String, dynamic> item,
-      String uid,
-      StoryHighlightsController hlController,
-      double width) {
-    if (item['type'] == 'link') {
-      final model = item['data'] as SocialMediaModel;
-      return SizedBox(
-        width: width,
-        child: GestureDetector(
-          onTap: () {
-            launchUrl(Uri.parse(model.url));
-          },
-          onLongPress: () {
-            controller.showSocialMediaLinkDelete(model.docID);
-          },
-          child: SocialMediaContent(model: model),
-        ),
-      );
-    }
-
-    final hl = item['data'] as StoryHighlightModel;
-    return SizedBox(
-      width: width,
-      child: StoryHighlightCircle(
-        highlight: hl,
-        onTap: () => HighlightStoryViewerService.openHighlight(
-          userId: uid,
-          highlight: hl,
-        ),
-        onLongPress: () => _showHighlightDeleteConfirmation(hlController, hl),
-      ),
-    );
-  }
-
-  Future<void> _showHighlightDeleteConfirmation(
-      StoryHighlightsController hlController, StoryHighlightModel hl) async {
-    await noYesAlert(
-      title: "Öne Çıkartılanı Kaldır",
-      message: "Bu öne çıkartılanı kaldırmak istediğinizden emin misiniz?",
-      cancelText: "Vazgeç",
-      yesText: "Kaldır",
-      yesButtonColor: CupertinoColors.destructiveRed,
-      onYesPressed: () async {
-        await hlController.deleteHighlight(hl.id);
-      },
-    );
-  }
-
   Widget counters() {
     return Row(
       children: [
@@ -2139,48 +2039,5 @@ class _ProfileViewState extends State<ProfileView> {
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],
     );
-  }
-
-  // Profil fotoğrafını hikaye durumuna göre border ile oluştur
-  Widget _buildProfileImageWithBorder() {
-    final hasStories = _hasMyStories;
-
-    if (hasStories) {
-      // Hikaye varsa gradient border
-      return Container(
-        width: 91, // 85 + 6 padding
-        height: 91,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF00BCD4), // Turkuaz
-              Color(0xFF0097A7), // Koyu turkuaz
-            ],
-          ),
-        ),
-        child: Container(
-          margin: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-          ),
-          child: CachedUserAvatar(
-            userId: _myUserId,
-            imageUrl: _myAvatarUrl,
-            radius: 42.5,
-          ),
-        ),
-      );
-    } else {
-      // Hikaye yoksa sadece resim (border yok)
-      return CachedUserAvatar(
-        userId: _myUserId,
-        imageUrl: _myAvatarUrl,
-        radius: 42.5,
-      );
-    }
   }
 }
