@@ -6,12 +6,9 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Models/notification_model.dart';
-import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:turqappv2/Modules/Short/single_short_view.dart';
-import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
+import 'package:turqappv2/Models/notification_model.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 import 'notification_content_controller.dart';
 
@@ -27,7 +24,10 @@ class NotificationContent extends StatelessWidget {
     this.onCardTap,
   }) {
     controller = Get.put(
-      NotificationContentController(userID: model.userID),
+      NotificationContentController(
+        userID: model.userID,
+        notification: model,
+      ),
       tag: model.docID,
     );
   }
@@ -186,6 +186,32 @@ class NotificationContent extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          if (controller.targetHint.value.trim().isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    CupertinoIcons.arrow_turn_down_right,
+                                    size: 12,
+                                    color: Colors.black45,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      controller.targetHint.value,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 11,
+                                        fontFamily: "MontserratMedium",
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -294,27 +320,9 @@ class NotificationContent extends StatelessWidget {
   }
 
   void yonlendirme() async {
-    final store = Get.find<ExploreController>();
     final notifyReader = Get.isRegistered<NotifyReaderController>()
         ? Get.find<NotifyReaderController>()
         : Get.put(NotifyReaderController());
-    if (model.type == "job_application") {
-      await notifyReader.goToJob(model.postID);
-    } else if (model.type == "tutoring_application" ||
-        model.type == "tutoring_status") {
-      await notifyReader.goToTutoring(model.postID);
-    } else if (model.postType == "User") {
-      Get.to(() => SocialProfile(userID: model.userID));
-    } else {
-      if (controller.model.value.img.isNotEmpty) {
-        Get.to(() => PhotoShorts(
-            fetchedList: store.explorePhotos,
-            startModel: controller.model.value));
-      } else if (controller.model.value.hasPlayableVideo) {
-        Get.to(() => SingleShortView(
-            startModel: controller.model.value,
-            startList: store.exploreVideos..shuffle()));
-      }
-    }
+    await notifyReader.openNotification(model);
   }
 }

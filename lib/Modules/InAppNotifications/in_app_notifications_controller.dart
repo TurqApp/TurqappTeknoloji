@@ -350,6 +350,7 @@ class InAppNotificationsController extends GetxController {
       case "like":
       case "reshared_posts":
       case "shared_as_posts":
+      case "reshare":
       case "Posts":
       default:
         return "Posts";
@@ -376,6 +377,7 @@ class InAppNotificationsController extends GetxController {
       case "reshared_posts":
         return "gönderini yeniden paylaştı";
       case "shared_as_posts":
+      case "reshare":
         return "gönderini paylaştı";
       case "follow":
       case "User":
