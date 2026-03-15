@@ -106,7 +106,7 @@ class EditorNicknameController extends GetxController {
   bool get canSave {
     final name = currentNormalized;
     final available = isAvailable.value == true;
-    final longEnough = name.length >= 6;
+    final longEnough = name.length >= 8;
     final changed = name != _originalNickname;
     final userHasInteracted = hasUserTyped.value || changed;
 
@@ -216,9 +216,9 @@ class EditorNicknameController extends GetxController {
       statusText.value = cooldownText.value;
       return;
     }
-    if (name.length < 6) {
+    if (name.length < 8) {
       isAvailable.value = false;
-      statusText.value = 'En az 6 karakter olmalı';
+      statusText.value = 'En az 8 karakter olmalı';
       return;
     }
 
@@ -266,8 +266,8 @@ class EditorNicknameController extends GetxController {
       selection: TextSelection.collapsed(offset: normalized.length),
     );
 
-    if (normalized.length < 6) {
-      AppSnackbar('Hata', 'Kullanıcı adı en az 6 karakter olmalıdır.');
+    if (normalized.length < 8) {
+      AppSnackbar('Hata', 'Kullanıcı adı en az 8 karakter olmalıdır.');
       return;
     }
     try {

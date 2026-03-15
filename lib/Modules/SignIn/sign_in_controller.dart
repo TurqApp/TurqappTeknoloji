@@ -443,7 +443,7 @@ class SignInController extends GetxController
     final requestId = ++_nicknameAvailabilityRequestId;
     nicknameAvilable.value = false;
 
-    if (usernameLower.length < 6) return;
+    if (usernameLower.length < 8) return;
 
     final result = await _checkSignupAvailability(nickname: usernameLower);
     if (requestId != _nicknameAvailabilityRequestId) return;
@@ -479,8 +479,8 @@ class SignInController extends GetxController
       AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
       return false;
     }
-    if (nicknameText.length < 6) {
-      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 6 karakter olmalı.');
+    if (nicknameText.length < 8) {
+      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 8 karakter olmalı.');
       return false;
     }
 

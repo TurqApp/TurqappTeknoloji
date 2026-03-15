@@ -828,8 +828,8 @@ export const checkSignupAvailability = onCall(
     }
 
     if (normalizedNickname) {
-      if (normalizedNickname.length < 6) {
-        throw new HttpsError("invalid-argument", "Kullanıcı adı en az 6 karakter olmalıdır");
+      if (normalizedNickname.length < 8) {
+        throw new HttpsError("invalid-argument", "Kullanıcı adı en az 8 karakter olmalıdır");
       }
       enforceRateLimitForKey(normalizedNickname, "signup_username_check", 20, 300);
     }

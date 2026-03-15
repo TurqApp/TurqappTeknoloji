@@ -671,8 +671,8 @@ exports.checkSignupAvailability = (0, https_1.onCall)({
         (0, rateLimiter_1.enforceRateLimitForKey)(rawEmail, "signup_email_check", 20, 300);
     }
     if (normalizedNickname) {
-        if (normalizedNickname.length < 6) {
-            throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 6 karakter olmalıdır");
+        if (normalizedNickname.length < 8) {
+            throw new https_1.HttpsError("invalid-argument", "Kullanıcı adı en az 8 karakter olmalıdır");
         }
         (0, rateLimiter_1.enforceRateLimitForKey)(normalizedNickname, "signup_username_check", 20, 300);
     }

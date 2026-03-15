@@ -603,7 +603,7 @@ class SignIn extends StatelessWidget {
                               controller.nicknameFocus.value.requestFocus();
                             },
                             onChanged: (txt) {
-                              if (txt.length >= 6) {
+                              if (txt.length >= 8) {
                                 controller.scheduleNicknameAvailabilityCheck();
                               } else {
                                 controller.nicknameAvilable.value = false;
