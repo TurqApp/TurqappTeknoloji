@@ -134,9 +134,102 @@ void AppSnackbar(
 }
 
 String _normalizeSnackbarText(String value) {
-  final collapsed = value.replaceAll(RegExp(r'\s+'), ' ').trim();
-  if (collapsed.isEmpty) return '';
-  return collapsed.replaceAll(RegExp(r'[!]+$'), '');
+  var text = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (text.isEmpty) return '';
+
+  const phraseReplacements = <String, String>{
+    'Yükleme Başarısız': 'Yükleme Başarısız',
+    'Talebiniz Bize Ulaştı': 'Talebiniz Alındı',
+    'Tamam': 'İşlem Tamamlandı',
+    'Bilgi': 'Bilgilendirme',
+    'Kopyalandı': 'Panoya Kopyalandı',
+    'İletildi': 'İleti Gönderildi',
+    'Gizli hesap': 'Gizli Hesap',
+    'Boş Alanları Doldurunuz': 'Eksik Bilgi',
+    'Kod Gönderilemedi': 'Kod Gönderilemedi',
+    'Doğrulama Başarısız': 'Doğrulama Başarısız',
+    'Giriş Başarısız': 'Giriş Başarısız',
+    'Başarılı': 'İşlem Başarılı',
+  };
+
+  const wordReplacements = <String, String>{
+    'acilmis': 'açılmış',
+    'Acilmis': 'Açılmış',
+    'kullanici': 'kullanıcı',
+    'Kullanici': 'Kullanıcı',
+    'gecmis': 'geçmiş',
+    'Gecmis': 'Geçmiş',
+    'secilemez': 'seçilemez',
+    'Secilemez': 'Seçilemez',
+    'gonder': 'gönder',
+    'Gonder': 'Gönder',
+    'gonderim': 'gönderim',
+    'Gonderim': 'Gönderim',
+    'gonderilemedi': 'gönderilemedi',
+    'Gonderilemedi': 'Gönderilemedi',
+    'guncellenemedi': 'güncellenemedi',
+    'Guncellenemedi': 'Güncellenemedi',
+    'guncellendi': 'güncellendi',
+    'Guncellendi': 'Güncellendi',
+    'gorsel': 'görsel',
+    'Gorsel': 'Görsel',
+    'ogrenci': 'öğrenci',
+    'Ogrenci': 'Öğrenci',
+    'uyari': 'uyarı',
+    'Uyari': 'Uyarı',
+    'basarili': 'başarılı',
+    'Basarili': 'Başarılı',
+    'basarisiz': 'başarısız',
+    'Basarisiz': 'Başarısız',
+    'icerik': 'içerik',
+    'Icerik': 'İçerik',
+    'islenemiyor': 'işlenemiyor',
+    'Islenemiyor': 'İşlenemiyor',
+    'lutfen': 'lütfen',
+    'Lutfen': 'Lütfen',
+    'baska': 'başka',
+    'Baska': 'Başka',
+    'deneyin': 'deneyin',
+    'kaydedilemedi': 'kaydedilemedi',
+    'Kaydedilemedi': 'Kaydedilemedi',
+    'kaydedildi': 'kaydedildi',
+    'Kaydedildi': 'Kaydedildi',
+    'hikaye': 'hikâye',
+    'Hikaye': 'Hikâye',
+    'hikayeye': 'hikâyeye',
+    'Hikayeye': 'Hikâyeye',
+    'giris': 'giriş',
+    'Giris': 'Giriş',
+    'sifre': 'şifre',
+    'Sifre': 'Şifre',
+    'gecersiz': 'geçersiz',
+    'Gecersiz': 'Geçersiz',
+    'izin': 'izin',
+    'Izin': 'İzin',
+    'mikrofon izni verilmedi': 'mikrofon izni verilmedi',
+  };
+
+  phraseReplacements.forEach((source, target) {
+    text = text.replaceAll(source, target);
+  });
+
+  wordReplacements.forEach((source, target) {
+    text = text.replaceAll(source, target);
+  });
+
+  text = text.replaceAll('!', '');
+  text = text.replaceAll(' .', '.');
+  text = text.replaceAll(' ,', ',');
+  text = text.trim();
+  if (text.isEmpty) return '';
+
+  text = '${text[0].toUpperCase()}${text.substring(1)}';
+
+  if (!RegExp(r'[.!?…]$').hasMatch(text)) {
+    text = '$text.';
+  }
+
+  return text;
 }
 
 _AppSnackbarPalette _resolvePalette({
