@@ -79,6 +79,7 @@ class QueuedUpload {
 
 class UploadQueueService extends GetxController {
   static const int _maxVideoBytesForStorageRule = 35 * 1024 * 1024;
+  static const Duration _recentDuplicateWindow = Duration(minutes: 15);
   final RxList<QueuedUpload> _queue = <QueuedUpload>[].obs;
   final RxBool _isProcessing = false.obs;
   final RxBool _isPaused = false.obs;
@@ -178,6 +179,16 @@ class UploadQueueService extends GetxController {
             _queueFingerprint(item) == fingerprint);
     if (duplicateActive) {
       AppSnackbar('Bilgi', 'Bu medya zaten yükleniyor.');
+      return false;
+    }
+    final recentDuplicate = fingerprint.isNotEmpty &&
+        _queue.any((item) =>
+            item.status == UploadStatus.completed &&
+            DateTime.now().difference(item.createdAt) <=
+                _recentDuplicateWindow &&
+            _queueFingerprint(item) == fingerprint);
+    if (recentDuplicate) {
+      AppSnackbar('Bilgi', 'Bu medya kısa süre önce zaten yüklendi.');
       return false;
     }
     _queue.add(upload);
