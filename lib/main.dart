@@ -29,6 +29,7 @@ AppLifecycleListener? _appLifecycleListener;
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorWidget.builder = (FlutterErrorDetails details) {
+    _reportStartupFallbackError(details);
     return Material(
       color: Colors.white,
       child: SafeArea(
@@ -98,6 +99,24 @@ void main() {
   });
 }
 
+void _reportStartupFallbackError(FlutterErrorDetails details) {
+  final error = details.exception;
+  if (_isExpectedNonFatalNoise(error)) {
+    debugPrint('Suppressed fallback error: $error');
+    return;
+  }
+
+  FlutterError.presentError(details);
+  debugPrint('Fallback ErrorWidget triggered by: $error');
+  if (details.stack != null) {
+    debugPrintStack(stackTrace: details.stack);
+  }
+
+  try {
+    FirebaseCrashlytics.instance.recordFlutterError(details);
+  } catch (_) {}
+}
+
 void _clearConsumedCacheIfNeeded() {
   try {
     if (Get.isRegistered<SegmentCacheManager>()) {
@@ -136,7 +155,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
       debugPrint('Suppressed non-fatal: $error');
       return;
     }
+    FlutterError.presentError(details);
     FirebaseCrashlytics.instance.recordFlutterError(details);
+    debugPrint('FlutterError captured: $error');
     if (stack != null) {
       debugPrintStack(stackTrace: stack);
     }

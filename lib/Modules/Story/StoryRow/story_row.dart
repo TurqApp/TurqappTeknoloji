@@ -12,13 +12,15 @@ class StoryRow extends StatelessWidget {
   final controller = Get.isRegistered<StoryRowController>()
       ? Get.find<StoryRowController>()
       : Get.put(StoryRowController());
+  StoryInteractionOptimizer get _storyOptimizer =>
+      StoryInteractionOptimizer.to;
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       // OPTİMİZE EDİLMİŞ REACTİVE: Local cache'den dinle
-      StoryInteractionOptimizer.to.localStoryCache.length;
-      StoryInteractionOptimizer.to.localTimeCache.length;
+      _storyOptimizer.localStoryCache.length;
+      _storyOptimizer.localTimeCache.length;
 
       final hasData = controller.users.isNotEmpty;
 
@@ -55,7 +57,10 @@ class StoryRow extends StatelessWidget {
                 width: double.infinity,
                 child: Builder(
                   builder: (context) {
-                    controller.addMyUserImmediately();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!Get.isRegistered<StoryRowController>()) return;
+                      Get.find<StoryRowController>().addMyUserImmediately();
+                    });
                     return const StoryRowPlaceholder();
                   },
                 ),

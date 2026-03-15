@@ -27,6 +27,8 @@ class StoryCircle extends StatefulWidget {
 
 class _StoryCircleState extends State<StoryCircle> {
   final userService = CurrentUserService.instance;
+  StoryInteractionOptimizer get _storyOptimizer =>
+      StoryInteractionOptimizer.to;
   static const double _storyCircleSize = 74;
   static const double _storyAvatarRadius = 37;
   static const double _labelWidth = 78;
@@ -116,9 +118,10 @@ class _StoryCircleState extends State<StoryCircle> {
                   final hasStory = widget.model.stories.isNotEmpty;
 
                   // OPTİMİZE EDİLMİŞ CACHE'DEN HIZLI KONTROL
-                  final allSeen = StoryInteractionOptimizer.to
-                      .areAllStoriesSeenCached(
-                          widget.model.userID, widget.model.stories);
+                  final allSeen = _storyOptimizer.areAllStoriesSeenCached(
+                    widget.model.userID,
+                    widget.model.stories,
+                  );
 
                   final uploading =
                       StoryMakerController.isUploadingStory.value; // RxBool

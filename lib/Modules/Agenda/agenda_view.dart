@@ -39,7 +39,12 @@ class AgendaView extends StatelessWidget {
     }
   }
 
-  final loader = Get.find<GlobalLoaderController>();
+  GlobalLoaderController get loader {
+    if (Get.isRegistered<GlobalLoaderController>()) {
+      return Get.find<GlobalLoaderController>();
+    }
+    return Get.put(GlobalLoaderController(), permanent: true);
+  }
 
   // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
   UnreadMessagesController get unreadController {

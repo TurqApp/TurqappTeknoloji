@@ -14,7 +14,12 @@ import 'story_user_model.dart';
 class StoryRowController extends GetxController {
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userService = CurrentUserService.instance;
-  UserProfileCacheService get _userCache => Get.find<UserProfileCacheService>();
+  UserProfileCacheService get _userCache {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      return Get.find<UserProfileCacheService>();
+    }
+    return Get.put(UserProfileCacheService(), permanent: true);
+  }
   final int initialLimit = 30;
   final int fullLimit = 100;
   bool _backgroundScheduled = false;

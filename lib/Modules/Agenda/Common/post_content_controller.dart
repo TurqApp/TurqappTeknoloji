@@ -107,7 +107,12 @@ class PostContentController extends GetxController {
   final reSharedUsers = <String>[].obs;
   final userService = CurrentUserService.instance;
   final countManager = PostCountManager.instance;
-  late final PostInteractionService _interactionService;
+  PostInteractionService get _interactionService {
+    if (Get.isRegistered<PostInteractionService>()) {
+      return Get.find<PostInteractionService>();
+    }
+    return Get.put(PostInteractionService());
+  }
 
   // Reactive count variables using centralized manager
   RxInt get likeCount => countManager.getLikeCount(model.docID);
@@ -189,7 +194,6 @@ class PostContentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _interactionService = Get.put(PostInteractionService());
     _postRepository = PostRepository.ensure();
     _adminPushRepository = AdminPushRepository.ensure();
     currentModel.value = model;
@@ -204,8 +208,9 @@ class PostContentController extends GetxController {
         username.value = denormNick;
       }
     }
-    // Initialize counts after current build to avoid Obx update during build
-    Future.microtask(() {
+    // Delay reactive counter hydration until after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
       countManager.initializeCounts(
         model.docID,
         likeCount: model.stats.likeCount.toInt(),

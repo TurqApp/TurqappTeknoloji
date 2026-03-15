@@ -8,7 +8,9 @@ class GlobalLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<GlobalLoaderController>();
+    final controller = Get.isRegistered<GlobalLoaderController>()
+        ? Get.find<GlobalLoaderController>()
+        : Get.put(GlobalLoaderController(), permanent: true);
     return Obx(() {
       if (!controller.isOn.value) return SizedBox.shrink();
       return CupertinoActivityIndicator(

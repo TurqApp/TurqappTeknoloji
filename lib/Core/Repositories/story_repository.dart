@@ -61,8 +61,12 @@ class StoryRepository extends GetxService {
   static const Duration _deletedStoriesCacheTtl = Duration(hours: 12);
   static const int _deletedStoriesCacheLimit = 100;
 
-  final UserProfileCacheService _userCache =
-      Get.find<UserProfileCacheService>();
+  UserProfileCacheService get _userCache {
+    if (Get.isRegistered<UserProfileCacheService>()) {
+      return Get.find<UserProfileCacheService>();
+    }
+    return Get.put(UserProfileCacheService(), permanent: true);
+  }
   final UserRepository _userRepository = UserRepository.ensure();
 
   String? _storyRowCacheDirectoryPath;
