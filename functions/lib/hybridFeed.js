@@ -21,7 +21,7 @@
  *   (Bu şema CF tarafını hazır eder; client migration ayrı sprint.)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostCreate = void 0;
+exports.cleanupExpiredFeedItems = exports.onNewFollower = exports.onPostDelete = exports.onPostBecomeVisible = exports.onPostCreate = void 0;
 exports.resolveFollowerCollection = resolveFollowerCollection;
 exports.upsertPostIntoHybridFeed = upsertPostIntoHybridFeed;
 const functions = require("firebase-functions");
@@ -149,6 +149,42 @@ exports.onPostCreate = functions
     }
     catch (e) {
         console.error("[HybridFeed] onPostCreate error:", e);
+    }
+});
+exports.onPostBecomeVisible = functions
+    .region("europe-west1")
+    .firestore.document("Posts/{postId}")
+    .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    if (!after)
+        return;
+    const postId = context.params.postId;
+    const authorId = (after.userID || "").toString();
+    const timeStamp = Number(after.timeStamp) || Date.now();
+    const isVideo = !!(after.videoHLSMasterUrl || after.hlsMasterUrl || after.video);
+    const beforeVisible = before != null &&
+        before.arsiv !== true &&
+        before.deletedPost !== true &&
+        before.gizlendi !== true &&
+        before.isUploading !== true;
+    const afterVisible = after.arsiv !== true &&
+        after.deletedPost !== true &&
+        after.gizlendi !== true &&
+        after.isUploading !== true;
+    if (!authorId || beforeVisible || !afterVisible)
+        return;
+    try {
+        await upsertPostIntoHybridFeed({
+            postId,
+            authorId,
+            timeStamp,
+            isVideo,
+        });
+        console.log("[HybridFeed] Visibility upsert complete");
+    }
+    catch (e) {
+        console.error("[HybridFeed] onPostBecomeVisible error:", e);
     }
 });
 // ─────────────────────────────────────────────────────────

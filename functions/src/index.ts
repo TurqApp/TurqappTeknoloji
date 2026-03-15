@@ -29,7 +29,13 @@ export { recordViewBatch, aggregateCounterShards, initCounterShards } from "./co
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📰 HYBRID FEED FAN-OUT / FAN-IN (B4)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export { onPostCreate, onPostDelete, onNewFollower, cleanupExpiredFeedItems } from "./hybridFeed";
+export {
+  onPostCreate,
+  onPostBecomeVisible,
+  onPostDelete,
+  onNewFollower,
+  cleanupExpiredFeedItems,
+} from "./hybridFeed";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 👤 AUTHOR FIELD DENORMALIZATION (B10)
