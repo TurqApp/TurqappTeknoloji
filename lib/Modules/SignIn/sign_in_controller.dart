@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -20,6 +21,7 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/account_session_vault.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/phone_account_limiter.dart';
@@ -145,14 +147,92 @@ class SignInController extends GetxController
   Future<void> _trackCurrentAccountForDevice() async {
     final firebaseUser = FirebaseAuth.instance.currentUser;
     final currentUser = CurrentUserService.instance.currentUser;
-    if (firebaseUser == null || currentUser == null) return;
+    if (firebaseUser == null) return;
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenterTrack] start uid=${firebaseUser.uid} currentUserReady=${currentUser != null}',
+      );
+    }
     final service = AccountCenterService.ensure();
     await service.init();
-    await service.addCurrentAccount(
-      currentUser: currentUser,
-      firebaseUser: firebaseUser,
-    );
+    if (currentUser != null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[AccountCenterTrack] source=currentUser nickname=${currentUser.nickname} uid=${currentUser.userID}',
+        );
+      }
+      await service.addCurrentAccount(
+        currentUser: currentUser,
+        firebaseUser: firebaseUser,
+      );
+    } else {
+      final summary = await _userRepository.getUser(
+        firebaseUser.uid,
+        preferCache: true,
+      );
+      if (summary != null) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AccountCenterTrack] source=userSummary username=${summary.username} uid=${summary.userID}',
+          );
+        }
+        await service.addOrUpdateAccount(
+          StoredAccount.fromUserSummary(
+            user: summary,
+            firebaseUser: firebaseUser,
+          ),
+        );
+      } else {
+        if (kDebugMode) {
+          debugPrint(
+            '[AccountCenterTrack] source=firebaseUser email=${firebaseUser.email} uid=${firebaseUser.uid}',
+          );
+        }
+        await service.addOrUpdateAccount(
+          StoredAccount.fromFirebaseUser(firebaseUser),
+        );
+      }
+    }
     await service.markSuccessfulSignIn(firebaseUser.uid);
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenterTrack] done uid=${firebaseUser.uid} accounts=${service.accounts.map((e) => e.uid).toList()}',
+      );
+    }
+  }
+
+  String _resolvedSignInEmail() {
+    final raw = emailcontroller.text.trim();
+    if (raw.contains('@')) return raw.toLowerCase();
+    return signInEmail.value.trim().toLowerCase();
+  }
+
+  Future<void> _persistStoredSessionCredential({
+    String? email,
+    String? password,
+  }) async {
+    final authUser = FirebaseAuth.instance.currentUser;
+    final resolvedEmail = (email ?? authUser?.email ?? '').trim().toLowerCase();
+    final resolvedPassword = (password ?? '').trim();
+    if (authUser == null || resolvedEmail.isEmpty || resolvedPassword.isEmpty) {
+      return;
+    }
+    await AccountSessionVault.instance.saveEmailPassword(
+      uid: authUser.uid,
+      email: resolvedEmail,
+      password: resolvedPassword,
+    );
+  }
+
+  Future<String> preferredIdentifierForStoredAccount(StoredAccount account) async {
+    final emailFromAccount = account.email.trim().toLowerCase();
+    if (emailFromAccount.isNotEmpty) return emailFromAccount;
+    if (account.hasPasswordProvider) {
+      final credential = await AccountSessionVault.instance.read(account.uid);
+      final email = credential?.email.trim() ?? '';
+      if (email.isNotEmpty) return email;
+    }
+    return account.username;
   }
 
   void prepareSignInPrefill(String identifier) {
@@ -184,8 +264,12 @@ class SignInController extends GetxController
         AccountCenterService.ensure().accountByUid(normalized);
   }
 
-  void continueWithStoredAccount(StoredAccount account) {
-    prepareSignInPrefill(account.username);
+  Future<void> continueWithStoredAccount(StoredAccount account) async {
+    if (account.hasPasswordProvider) {
+      final switched = await signInWithStoredAccount(account);
+      if (switched) return;
+    }
+    prepareSignInPrefill(await preferredIdentifierForStoredAccount(account));
     selectedStoredAccount.value = account;
   }
 

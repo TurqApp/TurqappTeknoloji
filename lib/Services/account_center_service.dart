@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 import 'package:turqappv2/Models/stored_account.dart';
+import 'package:turqappv2/Services/account_session_vault.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class AccountCenterService extends GetxService {
   static const String _accountsKey = 'account_center.accounts';
@@ -13,8 +19,25 @@ class AccountCenterService extends GetxService {
   final RxString activeUid = ''.obs;
   final RxString lastUsedUid = ''.obs;
   SharedPreferences? _prefs;
+  bool _initScheduled = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    if (_initScheduled) return;
+    _initScheduled = true;
+    unawaited(init());
+  }
 
   int _compareAccounts(StoredAccount a, StoredAccount b) {
+    final active = activeUid.value.trim();
+    if (active.isNotEmpty) {
+      final aIsActive = a.uid == active;
+      final bIsActive = b.uid == active;
+      if (aIsActive != bIsActive) {
+        return aIsActive ? -1 : 1;
+      }
+    }
     if (a.isPinned != b.isPinned) {
       return a.isPinned ? -1 : 1;
     }
@@ -49,12 +72,88 @@ class AccountCenterService extends GetxService {
   Future<void> init() async {
     await _ensurePrefs();
     final raw = _prefs?.getString(_accountsKey) ?? '';
-    final restored = StoredAccount.decodeList(raw)
-      ..sort(_compareAccounts);
+    final restored = _dedupeAccounts(
+      StoredAccount.decodeList(raw).toList(growable: true),
+    )..sort(_compareAccounts);
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenter] init rawLength=${raw.length} restored=${restored.map((e) => e.uid).toList()}',
+      );
+    }
     accounts.assignAll(restored);
     activeUid.value = (_prefs?.getString(_activeUidKey) ?? '').trim();
     lastUsedUid.value = (_prefs?.getString(_lastUsedUidKey) ?? '').trim();
+    await _rehydrateMissingEmails();
     await reconcileWithAuthSession();
+  }
+
+  Future<void> _rehydrateMissingEmails() async {
+    final current = accounts.toList(growable: true);
+    var changed = false;
+    for (var i = 0; i < current.length; i++) {
+      final account = current[i];
+      if (account.email.trim().isNotEmpty) continue;
+
+      var resolvedEmail = '';
+      final storedCredential = await AccountSessionVault.instance.read(account.uid);
+      if (storedCredential != null) {
+        resolvedEmail = storedCredential.email.trim().toLowerCase();
+      }
+
+      if (resolvedEmail.isEmpty) {
+        final raw = await UserRepository.ensure().getUserRaw(
+          account.uid,
+          preferCache: true,
+        );
+        resolvedEmail = (raw?['email'] ?? '').toString().trim().toLowerCase();
+      }
+
+      if (resolvedEmail.isEmpty &&
+          FirebaseAuth.instance.currentUser?.uid == account.uid) {
+        resolvedEmail =
+            (FirebaseAuth.instance.currentUser?.email ?? '').trim().toLowerCase();
+      }
+
+      if (resolvedEmail.isEmpty) continue;
+      current[i] = account.copyWith(email: resolvedEmail);
+      changed = true;
+    }
+
+    final deduped = _dedupeAccounts(current)..sort(_compareAccounts);
+    final structurallyChanged =
+        changed || deduped.length != accounts.length;
+    if (!structurallyChanged) return;
+    accounts.assignAll(deduped);
+    await _persist();
+  }
+
+  List<StoredAccount> _dedupeAccounts(List<StoredAccount> source) {
+    final byIdentity = <String, StoredAccount>{};
+    for (final account in source) {
+      final email = account.email.trim().toLowerCase();
+      final key = email.isNotEmpty ? 'email:$email' : 'uid:${account.uid.trim()}';
+      final existing = byIdentity[key];
+      if (existing == null) {
+        byIdentity[key] = account;
+        continue;
+      }
+      final preferred = _preferAccount(existing, account);
+      byIdentity[key] = preferred;
+    }
+    return byIdentity.values.toList(growable: true);
+  }
+
+  StoredAccount _preferAccount(StoredAccount a, StoredAccount b) {
+    if (a.lastSuccessfulSignInAt != b.lastSuccessfulSignInAt) {
+      return a.lastSuccessfulSignInAt >= b.lastSuccessfulSignInAt ? a : b;
+    }
+    if (a.lastUsedAt != b.lastUsedAt) {
+      return a.lastUsedAt >= b.lastUsedAt ? a : b;
+    }
+    if (a.isSessionValid != b.isSessionValid) {
+      return a.isSessionValid ? a : b;
+    }
+    return a.sortOrder <= b.sortOrder ? a : b;
   }
 
   Future<void> reconcileWithAuthSession() async {
@@ -89,6 +188,12 @@ class AccountCenterService extends GetxService {
     bool promoteActiveUid = true,
   }) async {
     await _ensurePrefs();
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenter] addOrUpdate uid=${account.uid} username=${account.username} '
+        'sessionValid=${account.isSessionValid} promote=$promoteActiveUid before=${accounts.length}',
+      );
+    }
     final current = accounts.toList(growable: true);
     final index = current.indexWhere((item) => item.uid == account.uid);
     var shouldPromoteActiveUid = promoteActiveUid;
@@ -112,13 +217,19 @@ class AccountCenterService extends GetxService {
       current.add(account.copyWith(sortOrder: account.sortOrder == 0 ? nextSortOrder : account.sortOrder));
       shouldPromoteActiveUid = promoteActiveUid && account.isSessionValid;
     }
-    current.sort(_compareAccounts);
-    accounts.assignAll(current);
+    final deduped = _dedupeAccounts(current)..sort(_compareAccounts);
+    accounts.assignAll(deduped);
     if (shouldPromoteActiveUid) {
       activeUid.value = account.uid;
       lastUsedUid.value = account.uid;
     }
     await _persist();
+    if (kDebugMode) {
+      debugPrint(
+        '[AccountCenter] addOrUpdate persisted accounts=${accounts.map((e) => e.uid).toList()} '
+        'active=${activeUid.value} lastUsed=${lastUsedUid.value}',
+      );
+    }
   }
 
   Future<void> addCurrentAccount({
@@ -135,6 +246,38 @@ class AccountCenterService extends GetxService {
         lastSuccessfulSignInAt:
             existing?.lastSuccessfulSignInAt ?? account.lastSuccessfulSignInAt,
       ),
+    );
+  }
+
+  Future<void> refreshCurrentAccountMetadata() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (currentUser != null && currentUser.userID == firebaseUser.uid) {
+      await addCurrentAccount(
+        currentUser: currentUser,
+        firebaseUser: firebaseUser,
+      );
+      return;
+    }
+
+    final summary = await UserRepository.ensure().getUser(
+      firebaseUser.uid,
+      preferCache: true,
+    );
+    if (summary != null) {
+      await addOrUpdateAccount(
+        StoredAccount.fromUserSummary(
+          user: summary,
+          firebaseUser: firebaseUser,
+        ),
+      );
+      return;
+    }
+
+    await addOrUpdateAccount(
+      StoredAccount.fromFirebaseUser(firebaseUser),
     );
   }
 
@@ -250,6 +393,7 @@ class AccountCenterService extends GetxService {
         await _prefs?.setString(_lastUsedUidKey, fallbackUid);
       }
     }
+    await AccountSessionVault.instance.delete(normalized);
     await _prefs?.setString(_accountsKey, StoredAccount.encodeList(accounts));
   }
 
@@ -261,6 +405,7 @@ class AccountCenterService extends GetxService {
     await _prefs?.remove(_accountsKey);
     await _prefs?.remove(_activeUidKey);
     await _prefs?.remove(_lastUsedUidKey);
+    await AccountSessionVault.instance.deleteAll();
   }
 
   Future<void> _persist() async {
@@ -274,6 +419,13 @@ class AccountCenterService extends GetxService {
       await _prefs?.setString(_lastUsedUidKey, lastUsedUid.value);
     } else {
       await _prefs?.remove(_lastUsedUidKey);
+    }
+    if (kDebugMode) {
+      final stored = _prefs?.getString(_accountsKey) ?? '';
+      debugPrint(
+        '[AccountCenter] persist storedLength=${stored.length} '
+        'accounts=${accounts.map((e) => e.uid).toList()}',
+      );
     }
   }
 }

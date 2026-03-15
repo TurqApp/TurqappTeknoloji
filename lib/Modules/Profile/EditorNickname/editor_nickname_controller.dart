@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorNicknameController extends GetxController {
@@ -372,6 +373,7 @@ class EditorNicknameController extends GetxController {
 
       _originalNickname = normalized;
       await _refreshNicknameSurfaces();
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       await fetchAndSetUserData();
       Get.back();
     } catch (e) {

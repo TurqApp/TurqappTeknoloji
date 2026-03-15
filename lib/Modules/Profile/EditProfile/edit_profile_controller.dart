@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 
@@ -237,6 +238,7 @@ class EditProfileController extends GetxController {
         if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
       await _refreshAvatarNicknameSurfaces(uid);
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
 
       Get.back();
       AppSnackbar('Başarılı', 'Profil bilgilerin güncellendi!');
@@ -259,6 +261,7 @@ class EditProfileController extends GetxController {
           // 🎯 Using CurrentUserService.updateFields
           await userService.updateFields({'avatarUrl': defaultAvatarUrl});
           await _refreshAvatarNicknameSurfaces(uid);
+          await AccountCenterService.ensure().refreshCurrentAccountMetadata();
 
           // Yerel önizlemeleri temizle
           croppedImage.value = null;

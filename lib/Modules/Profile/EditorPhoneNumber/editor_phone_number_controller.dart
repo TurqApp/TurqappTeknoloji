@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 
 class EditorPhoneNumberController extends GetxController {
   final phoneController = TextEditingController();
@@ -176,6 +177,7 @@ class EditorPhoneNumberController extends GetxController {
         return;
       }
 
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       Get.back();
       AppSnackbar("Başarılı", "Telefon numaranız güncellendi.");
     } on FirebaseFunctionsException catch (e) {

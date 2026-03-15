@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
 
 class StoredAccount {
   const StoredAccount({
     required this.uid,
+    required this.email,
     required this.username,
     required this.displayName,
     required this.avatarUrl,
@@ -20,6 +22,7 @@ class StoredAccount {
   });
 
   final String uid;
+  final String email;
   final String username;
   final String displayName;
   final String avatarUrl;
@@ -42,6 +45,7 @@ class StoredAccount {
 
   StoredAccount copyWith({
     String? uid,
+    String? email,
     String? username,
     String? displayName,
     String? avatarUrl,
@@ -56,6 +60,7 @@ class StoredAccount {
   }) {
     return StoredAccount(
       uid: uid ?? this.uid,
+      email: email ?? this.email,
       username: username ?? this.username,
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -74,6 +79,7 @@ class StoredAccount {
   Map<String, dynamic> toJson() {
     return {
       'uid': uid,
+      'email': email,
       'username': username,
       'displayName': displayName,
       'avatarUrl': avatarUrl,
@@ -91,6 +97,7 @@ class StoredAccount {
   factory StoredAccount.fromJson(Map<String, dynamic> json) {
     return StoredAccount(
       uid: (json['uid'] ?? '').toString(),
+      email: (json['email'] ?? '').toString().trim().toLowerCase(),
       username: (json['username'] ?? '').toString(),
       displayName: (json['displayName'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
@@ -125,6 +132,7 @@ class StoredAccount {
         .toList(growable: false);
     return StoredAccount(
       uid: user.userID,
+      email: user.email.trim().toLowerCase(),
       username: username,
       displayName: displayName,
       avatarUrl: user.avatarUrl.trim(),
@@ -133,6 +141,70 @@ class StoredAccount {
       isSessionValid: true,
       requiresReauth: false,
       accountState: user.isBanned ? 'disabled' : 'active',
+      isPinned: false,
+      sortOrder: 0,
+      lastSuccessfulSignInAt: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  static StoredAccount fromUserSummary({
+    required UserSummary user,
+    required User firebaseUser,
+  }) {
+    final username = user.username.trim().isNotEmpty
+        ? user.username.trim()
+        : user.nickname.trim();
+    final displayName = user.displayName.trim().isNotEmpty
+        ? user.displayName.trim()
+        : (user.nickname.trim().isNotEmpty ? user.nickname.trim() : username);
+    final providers = firebaseUser.providerData
+        .map((e) => e.providerId.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    return StoredAccount(
+      uid: user.userID,
+      email: (firebaseUser.email ?? '').trim().toLowerCase(),
+      username: username,
+      displayName: displayName,
+      avatarUrl: user.avatarUrl.trim(),
+      providers: providers,
+      lastUsedAt: DateTime.now().millisecondsSinceEpoch,
+      isSessionValid: true,
+      requiresReauth: false,
+      accountState: user.isDeleted ? 'disabled' : 'active',
+      isPinned: false,
+      sortOrder: 0,
+      lastSuccessfulSignInAt: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
+  static StoredAccount fromFirebaseUser(User firebaseUser) {
+    final email = firebaseUser.email?.trim() ?? '';
+    final derivedUsername = email.isNotEmpty
+        ? email.split('@').first.trim()
+        : (firebaseUser.displayName?.trim().isNotEmpty == true
+            ? firebaseUser.displayName!.trim()
+            : firebaseUser.uid);
+    final displayName = firebaseUser.displayName?.trim().isNotEmpty == true
+        ? firebaseUser.displayName!.trim()
+        : derivedUsername;
+    final providers = firebaseUser.providerData
+        .map((e) => e.providerId.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    return StoredAccount(
+      uid: firebaseUser.uid,
+      email: email.toLowerCase(),
+      username: derivedUsername,
+      displayName: displayName,
+      avatarUrl: firebaseUser.photoURL?.trim() ?? '',
+      providers: providers,
+      lastUsedAt: DateTime.now().millisecondsSinceEpoch,
+      isSessionValid: true,
+      requiresReauth: false,
+      accountState: 'active',
       isPinned: false,
       sortOrder: 0,
       lastSuccessfulSignInAt: DateTime.now().millisecondsSinceEpoch,

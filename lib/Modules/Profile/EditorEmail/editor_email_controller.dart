@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorEmailController extends GetxController {
@@ -136,6 +137,7 @@ class EditorEmailController extends GetxController {
       await CurrentUserService.instance.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );
+      await AccountCenterService.ensure().refreshCurrentAccountMetadata();
       isEmailConfirmed.value = true;
 
       Get.back();

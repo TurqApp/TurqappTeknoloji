@@ -62,6 +62,7 @@ dependencies:
   video_compress: ^3.1.4
   dio: ^5.9.1
   shared_preferences: ^2.5.4
+  flutter_secure_storage: ^9.2.4
   flutter_local_notifications: ^20.1.0
   firebase_messaging: ^16.1.1
   google_mobile_ads: ^7.0.0
@@ -98,6 +99,7 @@ flutter:
     - assets/data/HighSchool.json
     - assets/data/HigherEducation.json
     - assets/data/Dormitory.json
+    - assets/data/market_schema.json
     - assets/bursSablonlar/
     - assets/tutorings/
     - assets/education/

@@ -1,6 +1,70 @@
 part of 'sign_in_controller.dart';
 
 extension SignInControllerAuthPart on SignInController {
+  Future<bool> signInWithStoredAccount(StoredAccount account) async {
+    if (!account.hasPasswordProvider) return false;
+    final credential = await AccountSessionVault.instance.read(account.uid);
+    if (credential == null) return false;
+
+    wait.value = true;
+    try {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      if (currentUid.isNotEmpty && currentUid != account.uid) {
+        try {
+          await _userRepository.updateUserFields(currentUid, {'token': ''});
+        } catch (_) {}
+        try {
+          await CurrentUserService.instance.logout();
+          await FirebaseAuth.instance.signOut();
+        } catch (_) {}
+      }
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: credential.email,
+        password: credential.password,
+      );
+      try {
+        TextInput.finishAutofillContext(shouldSave: true);
+      } catch (_) {}
+      await _restoreAccountIfPendingDeletion();
+      await CurrentUserService.instance.refreshEmailVerificationStatus(
+        reloadAuthUser: true,
+      );
+      unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
+      unawaited(_postLoginWarmup());
+      await _trackCurrentAccountForDevice();
+      await _persistStoredSessionCredential(
+        email: credential.email,
+        password: credential.password,
+      );
+
+      try {
+        if (Get.isRegistered<UnreadMessagesController>()) {
+          final unreadController = Get.find<UnreadMessagesController>();
+          unreadController.startListeners();
+        }
+      } catch (_) {}
+
+      wait.value = false;
+      await Future.delayed(const Duration(milliseconds: 300));
+      _ensureFeedTabSelected();
+      Get.offAll(() => NavBarView());
+      return true;
+    } on FirebaseAuthException catch (_) {
+      wait.value = false;
+      await AccountSessionVault.instance.delete(account.uid);
+      await AccountCenterService.ensure().markSessionState(
+        uid: account.uid,
+        isSessionValid: false,
+        requiresReauth: true,
+      );
+      return false;
+    } catch (_) {
+      wait.value = false;
+      return false;
+    }
+  }
+
   Future<void> sendOtpCodeForReset() async {
     if (resetOtpRequestInFlight.value) return;
     final targetEmail = resetMailController.text.trim().toLowerCase();
@@ -184,6 +248,10 @@ extension SignInControllerAuthPart on SignInController {
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
       await _trackCurrentAccountForDevice();
+      await _persistStoredSessionCredential(
+        email: resetMail.value,
+        password: newPassword,
+      );
 
       try {
         final storyController = Get.find<StoryRowController>();
@@ -248,9 +316,7 @@ extension SignInControllerAuthPart on SignInController {
     bool authSucceeded = false;
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailcontroller.text.contains("@")
-            ? emailcontroller.text
-            : signInEmail.value,
+        email: _resolvedSignInEmail(),
         password: password.value,
       );
       authSucceeded = true;
@@ -263,7 +329,11 @@ extension SignInControllerAuthPart on SignInController {
       );
       unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
       unawaited(_postLoginWarmup());
-      unawaited(_trackCurrentAccountForDevice());
+      await _trackCurrentAccountForDevice();
+      await _persistStoredSessionCredential(
+        email: _resolvedSignInEmail(),
+        password: password.value,
+      );
 
       try {
         if (Get.isRegistered<UnreadMessagesController>()) {
