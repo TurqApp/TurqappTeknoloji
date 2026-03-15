@@ -60,6 +60,9 @@ import '../../PostCreator/post_creator.dart';
 import '../TagPosts/tag_posts.dart';
 import 'classic_content_controller.dart';
 
+part 'classic_content_quote_part.dart';
+part 'classic_content_media_part.dart';
+
 class ClassicContent extends PostContentBase {
   const ClassicContent({
     super.key,
@@ -142,6 +145,24 @@ class _ClassicContentState extends State<ClassicContent>
     super.initState();
     _relativeTimeTickService = RelativeTimeTickService.ensure();
     _refreshQuotedSourceProfileFuture();
+  }
+
+  void _setCaptionExpanded(bool value) {
+    setState(() {
+      _isCaptionExpanded = value;
+    });
+  }
+
+  void _setQuoteExpanded(bool value) {
+    setState(() {
+      _isQuoteExpanded = value;
+    });
+  }
+
+  void _setFullscreen(bool value) {
+    setState(() {
+      _isFullscreen = value;
+    });
   }
 
   Future<void> _subscribeToIzBirak() async {
@@ -246,29 +267,6 @@ class _ClassicContentState extends State<ClassicContent>
     );
   }
 
-  Widget _buildVideoThumbnail({double? aspectRatio}) {
-    final thumb = widget.model.thumbnail.trim();
-    const fallback = ColoredBox(color: Colors.transparent);
-    final cacheHeight = aspectRatio != null
-        ? _feedCacheHeightForAspectRatio(aspectRatio)
-        : (_feedCacheWidth * 1.4).round();
-    final image = thumb.isNotEmpty
-        ? CachedNetworkImage(
-            imageUrl: thumb,
-            fit: BoxFit.cover,
-            memCacheWidth: _feedCacheWidth,
-            memCacheHeight: cacheHeight,
-            placeholder: (_, __) => fallback,
-            errorWidget: (_, __, ___) => fallback,
-          )
-        : fallback;
-    if (aspectRatio == null) return image;
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: image,
-    );
-  }
-
   ShortController get shortsController => Get.isRegistered<ShortController>()
       ? Get.find<ShortController>()
       : Get.put(ShortController());
@@ -283,247 +281,6 @@ class _ClassicContentState extends State<ClassicContent>
 
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
-
-  Future<void> _openMentionProfile(String mention) async {
-    final targetUid =
-        await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
-    final currentUid = FirebaseAuth.instance.currentUser?.uid;
-    if (targetUid.isNotEmpty && targetUid != currentUid) {
-      await Get.to(() => SocialProfile(userID: targetUid));
-    }
-  }
-
-  void _pauseFeedBeforeFullscreen() {
-    try {
-      videoController?.pause();
-    } catch (_) {}
-    try {
-      VideoStateManager.instance.pauseAllVideos();
-    } catch (_) {}
-  }
-
-  void _openImageMedia() {
-    _pauseFeedBeforeFullscreen();
-    final visibleList = agendaController.agendaList
-        .where((val) =>
-            val.deletedPost == false &&
-            val.arsiv == false &&
-            val.gizlendi == false &&
-            val.img.isNotEmpty)
-        .toList();
-
-    if (widget.isPreview) {
-      Get.to(() => PhotoShorts(
-            fetchedList: visibleList,
-            startModel: widget.model,
-          ));
-    } else if (widget.model.floodCount > 1) {
-      Get.to(() => FloodListing(mainModel: widget.model));
-    } else {
-      Get.to(() => PhotoShorts(
-            fetchedList: visibleList,
-            startModel: widget.model,
-          ));
-    }
-  }
-
-  bool _hasEducationFeedCta() {
-    final resolved = _ctaNavigationService.resolveMeta(widget.model.reshareMap);
-    return resolved.type.isNotEmpty && resolved.docId.isNotEmpty;
-  }
-
-  Future<void> _openImageMediaOrFeedCta() async {
-    if (_hasEducationFeedCta()) {
-      await _ctaNavigationService.openFromPostMeta(widget.model.reshareMap);
-      return;
-    }
-    _openImageMedia();
-  }
-
-  void _prepareVideoFullscreenTransition() {
-    markSkipNextPause();
-  }
-
-  Future<Duration> _resolveCurrentVideoPosition() async {
-    final vc = videoController;
-    if (vc != null) {
-      try {
-        final pos = vc.value.position;
-        if (pos > Duration.zero) return pos;
-      } catch (_) {}
-
-      try {
-        final seconds = await vc.hlsController.getCurrentTime();
-        if (seconds > 0) {
-          return Duration(milliseconds: (seconds * 1000).round());
-        }
-      } catch (_) {}
-    }
-
-    final savedState = videoStateManager.getVideoState(widget.model.docID);
-    return savedState?.position ?? Duration.zero;
-  }
-
-  Future<List<PostsModel>> _buildFullscreenStartList() async {
-    final candidates = agendaController.agendaList
-        .where((p) =>
-            p.deletedPost == false &&
-            p.arsiv == false &&
-            p.gizlendi == false &&
-            p.hasPlayableVideo)
-        .toList();
-
-    if (candidates.isEmpty) return [widget.model];
-
-    final ids = candidates.map((p) => p.docID).toList();
-    final fetched = await _postRepository.fetchPostsByIds(ids);
-    final freshById = <String, PostsModel>{};
-    fetched.forEach((key, model) {
-      if (model.deletedPost == false &&
-          model.arsiv == false &&
-          model.gizlendi == false &&
-          model.hasPlayableVideo) {
-        freshById[key] = model;
-      }
-    });
-
-    final List<PostsModel> ordered = candidates
-        .map<PostsModel>((p) => freshById[p.docID] ?? p)
-        .where((p) => p.hasPlayableVideo)
-        .toList();
-
-    if (ordered.any((p) => p.docID == widget.model.docID)) {
-      return ordered;
-    }
-    return [widget.model, ...ordered];
-  }
-
-  Future<void> _openVideoMedia() async {
-    if (_shouldBlurIzBirakPost) {
-      videoController?.pause();
-      return;
-    }
-    if (widget.model.floodCount > 1) {
-      videoController?.pause();
-      await Get.to(() => FloodListing(mainModel: widget.model));
-      if (widget.shouldPlay) {
-        videoController?.play();
-      }
-      return;
-    }
-
-    final currentPos = await _resolveCurrentVideoPosition();
-    final listForFullscreen = await _buildFullscreenStartList();
-
-    _prepareVideoFullscreenTransition();
-    _pauseFeedBeforeFullscreen();
-    setPauseBlocked(true);
-    if (mounted) {
-      setState(() => _isFullscreen = true);
-    }
-
-    final res = await Get.to(() => SingleShortView(
-          startModel: widget.model,
-          startList: listForFullscreen,
-          initialPosition: currentPos,
-          injectedController: videoController,
-        ));
-
-    setPauseBlocked(false);
-    if (mounted) {
-      setState(() => _isFullscreen = false);
-    }
-
-    if (!mounted) return;
-
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.centeredIndex.value = modelIndex;
-      agendaController.lastCenteredIndex = modelIndex;
-    }
-
-    final vc = videoController;
-    if (vc != null && vc.value.isInitialized) {
-      if (res is Map && res['docID'] == widget.model.docID) {
-        final int? ms = res['positionMs'] as int?;
-        if (ms != null) {
-          await vc.seekTo(Duration(milliseconds: ms));
-          if (widget.shouldPlay) {
-            vc.play();
-            vc.setVolume(agendaController.isMuted.value ? 0 : 1);
-          }
-          return;
-        }
-      }
-      if (widget.shouldPlay) {
-        tryAutoPlayWhenBuffered();
-      }
-    }
-  }
-
-  Widget _buildMediaTapOverlay({
-    VoidCallback? onTap,
-    VoidCallback? onDoubleTap,
-  }) {
-    return Positioned.fill(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onTap,
-        onDoubleTap: onDoubleTap,
-        child: const SizedBox.expand(),
-      ),
-    );
-  }
-
-  Widget _buildClassicReshareOverlay({required double bottom}) {
-    if (!widget.isReshared || widget.model.originalUserID.isNotEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Positioned(
-      left: 8,
-      bottom: bottom,
-      child: IgnorePointer(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.14),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    "assets/icons/reshare.webp",
-                    height: 16,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 6),
-                  ReshareAttribution(
-                    controller: controller,
-                    model: widget.model,
-                    explicitReshareUserId: widget.reshareUserID,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildClassicAvatar({
     required String userId,
@@ -760,25 +517,6 @@ class _ClassicContentState extends State<ClassicContent>
     }
   }
 
-  void _refreshQuotedSourceProfileFuture() {
-    final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
-        ? widget.model.quotedSourceUserID.trim()
-        : widget.model.originalUserID.trim();
-    _quotedSourceProfileUserId = sourceUserId;
-    if (sourceUserId.isEmpty) {
-      _quotedSourceProfileFuture = null;
-      return;
-    }
-
-    final profileCache = Get.isRegistered<UserProfileCacheService>()
-        ? Get.find<UserProfileCacheService>()
-        : Get.put(UserProfileCacheService());
-    _quotedSourceProfileFuture = profileCache.getProfile(
-      sourceUserId,
-      preferCache: true,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     // Gizli, arşivli veya silindi ise videoyu durdur
@@ -885,6 +623,7 @@ class _ClassicContentState extends State<ClassicContent>
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       fontSize: 12,
                       textColor: Colors.red,
+                      showBackdrop: true,
                     ),
                   ),
               ],
@@ -907,329 +646,6 @@ class _ClassicContentState extends State<ClassicContent>
         ),
         3.ph,
       ],
-    );
-  }
-
-  Widget _buildClassicInlineCaption({
-    required String nickname,
-    required String text,
-  }) {
-    const nameStyle = TextStyle(
-      color: Color(0xFF20252B),
-      fontSize: 14,
-      fontFamily: 'MontserratBold',
-      height: 1.35,
-    );
-    const bodyStyle = TextStyle(
-      color: Color(0xFF20252B),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
-      height: 1.35,
-    );
-    const moreStyle = TextStyle(
-      color: Color(0xFF6E7680),
-      fontSize: 14,
-      fontFamily: 'Montserrat',
-      height: 1.35,
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final span = TextSpan(
-          children: [
-            TextSpan(text: nickname, style: nameStyle),
-            const TextSpan(text: '  '),
-            ...ClickableTextController.buildSpans(
-              text: text,
-              plainStyle: bodyStyle,
-              urlStyle: bodyStyle.copyWith(color: Colors.blue),
-              hashtagStyle: bodyStyle.copyWith(color: Colors.blue),
-              mentionStyle: bodyStyle.copyWith(color: Colors.blue),
-              onUrlTap: (url) => RedirectionLink().goToLink(url),
-              onHashtagTap: (tag) {
-                if (tag.trim().isEmpty) return;
-                Get.to(() => TagPosts(tag: tag.trim()));
-              },
-              onMentionTap: (mention) {
-                unawaited(_openMentionProfile(mention));
-              },
-            ),
-          ],
-        );
-
-        final painter = TextPainter(
-          text: span,
-          textDirection: TextDirection.ltr,
-          maxLines: 2,
-        )..layout(maxWidth: constraints.maxWidth);
-
-        final exceeds = painter.didExceedMaxLines;
-
-        Widget content = RichText(
-          text: span,
-          maxLines: _isCaptionExpanded ? null : 2,
-          overflow:
-              _isCaptionExpanded ? TextOverflow.visible : TextOverflow.clip,
-        );
-
-        if (!_isCaptionExpanded && exceeds) {
-          content = Stack(
-            children: [
-              RichText(
-                text: span,
-                maxLines: 2,
-                overflow: TextOverflow.clip,
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.only(left: 8),
-                  child: const Text('...devamı', style: moreStyle),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: exceeds
-              ? () {
-                  setState(() {
-                    _isCaptionExpanded = !_isCaptionExpanded;
-                  });
-                }
-              : null,
-          child: content,
-        );
-      },
-    );
-  }
-
-  Widget _buildClassicQuotedText(
-    String text, {
-    required String sourceUserId,
-  }) {
-    const bodyStyle = TextStyle(
-      color: Color(0xFF8A9199),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
-      height: 1.35,
-    );
-    const moreStyle = TextStyle(
-      color: Color(0xFF8A9199),
-      fontSize: 13,
-      fontFamily: 'Montserrat',
-      height: 1.35,
-    );
-    const nickStyle = TextStyle(
-      color: Color(0xFF4B5561),
-      fontSize: 13,
-      fontFamily: 'MontserratBold',
-      height: 1.35,
-    );
-
-    String resolveSourceNickname(Map<String, dynamic>? profile) {
-      final raw = (profile?['nickname'] ??
-              profile?['displayName'] ??
-              profile?['username'] ??
-              '')
-          .toString()
-          .trim();
-      if (raw.isNotEmpty) return raw;
-      final fallback =
-          widget.model.quotedSourceUserID.trim() == widget.model.userID
-              ? (controller.username.value.trim().isNotEmpty
-                  ? controller.username.value.trim()
-                  : controller.nickname.value.trim())
-              : '';
-      return fallback;
-    }
-
-    final future = sourceUserId.trim() == _quotedSourceProfileUserId
-        ? _quotedSourceProfileFuture
-        : null;
-
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: future,
-      builder: (context, snapshot) {
-        final sourceNickname = resolveSourceNickname(snapshot.data);
-        final quotedSpan = <InlineSpan>[
-          if (sourceNickname.isNotEmpty)
-            TextSpan(text: '$sourceNickname ', style: nickStyle),
-          TextSpan(text: text, style: bodyStyle),
-        ];
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final painter = TextPainter(
-              text: TextSpan(children: quotedSpan),
-              textDirection: TextDirection.ltr,
-              maxLines: 2,
-            )..layout(maxWidth: constraints.maxWidth);
-
-            final exceeds = painter.didExceedMaxLines;
-
-            Widget content = RichText(
-              text: TextSpan(children: quotedSpan),
-              maxLines: _isQuoteExpanded ? null : 2,
-              overflow:
-                  _isQuoteExpanded ? TextOverflow.visible : TextOverflow.clip,
-            );
-
-            if (!_isQuoteExpanded && exceeds) {
-              content = Stack(
-                children: [
-                  RichText(
-                    text: TextSpan(children: quotedSpan),
-                    maxLines: 2,
-                    overflow: TextOverflow.clip,
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.only(left: 8),
-                      child: const Text('...devamı', style: moreStyle),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: exceeds
-                  ? () {
-                      setState(() {
-                        _isQuoteExpanded = !_isQuoteExpanded;
-                      });
-                    }
-                  : null,
-              child: content,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildClassicActionRow(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          commentButton(context),
-          likeButton(),
-          reshareButton(),
-          statButton(),
-          saveButton(),
-          sendButton(),
-        ],
-      ),
-    );
-  }
-
-  String _buildClassicBottomTimeLabel() {
-    final sourceMs = controller.editTime.value != 0
-        ? controller.editTime.value
-        : (widget.model.izBirakYayinTarihi != 0
-            ? widget.model.izBirakYayinTarihi
-            : widget.model.timeStamp);
-    final publishedAt = DateTime.fromMillisecondsSinceEpoch(sourceMs.toInt());
-    final now = DateTime.now();
-    final diff = now.difference(publishedAt);
-
-    if (diff.inMinutes < 60) {
-      final minutes = diff.inMinutes.clamp(1, 59);
-      return '$minutes dakika önce';
-    }
-    if (diff.inHours < 24) {
-      return '${diff.inHours} saat önce';
-    }
-    if (diff.inDays < 7) {
-      return '${diff.inDays} gün önce';
-    }
-
-    const months = <String>[
-      'Ocak',
-      'Şubat',
-      'Mart',
-      'Nisan',
-      'Mayıs',
-      'Haziran',
-      'Temmuz',
-      'Ağustos',
-      'Eylül',
-      'Ekim',
-      'Kasım',
-      'Aralık',
-    ];
-
-    final monthLabel = months[publishedAt.month - 1];
-    if (publishedAt.year == now.year) {
-      return '${publishedAt.day} $monthLabel';
-    }
-    return '${publishedAt.day} $monthLabel ${publishedAt.year}';
-  }
-
-  Widget _buildClassicMetaSection() {
-    final caption = _ctaNavigationService.sanitizeCaptionText(
-      widget.model.metin,
-      meta: widget.model.reshareMap,
-    );
-    final hasCaption = caption.isNotEmpty;
-    final quotedText = widget.model.quotedOriginalText.trim();
-    final hasQuotedText = widget.model.quotedPost && quotedText.isNotEmpty;
-    final captionNickname = controller.username.value.trim().isNotEmpty
-        ? controller.username.value.trim()
-        : controller.nickname.value.trim();
-    final displayTime = _buildClassicBottomTimeLabel();
-
-    if (!widget.isReshared &&
-        !hasQuotedText &&
-        !hasCaption &&
-        widget.model.poll.isEmpty &&
-        displayTime.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasQuotedText)
-            _buildClassicQuotedText(
-              quotedText,
-              sourceUserId: widget.model.quotedSourceUserID.trim(),
-            ),
-          if (hasQuotedText && hasCaption) const SizedBox(height: 4),
-          if (hasCaption)
-            _buildClassicInlineCaption(
-              nickname: captionNickname,
-              text: caption,
-            ),
-          Padding(
-            padding: EdgeInsets.only(
-              top: (hasQuotedText || hasCaption) ? 6 : 0,
-            ),
-            child: Text(
-              displayTime,
-              style: const TextStyle(
-                color: Color(0xFF8A9199),
-                fontSize: 12,
-                fontFamily: 'Montserrat',
-              ),
-            ),
-          ),
-          if (widget.model.poll.isNotEmpty) buildPollCard(),
-        ],
-      ),
     );
   }
 
@@ -1313,6 +729,16 @@ class _ClassicContentState extends State<ClassicContent>
                         const SizedBox(),
                       ],
                     ),
+                    _buildClassicReshareOverlay(
+                      bottom: widget.model.originalUserID.isNotEmpty
+                          ? (widget.model.floodCount > 1 ? 52 : 34)
+                          : (widget.model.floodCount > 1 ? 26 : 8),
+                    ),
+                    _buildFeedShareCta(),
+                    _buildMediaTapOverlay(
+                      onTap: _openImageMediaOrFeedCta,
+                      onDoubleTap: controller.like,
+                    ),
                     if (widget.model.originalUserID.isNotEmpty)
                       Positioned(
                         left: 8,
@@ -1328,16 +754,6 @@ class _ClassicContentState extends State<ClassicContent>
                           fontSize: 12,
                         ),
                       ),
-                    _buildClassicReshareOverlay(
-                      bottom: widget.model.originalUserID.isNotEmpty
-                          ? (widget.model.floodCount > 1 ? 52 : 34)
-                          : (widget.model.floodCount > 1 ? 26 : 8),
-                    ),
-                    _buildFeedShareCta(),
-                    _buildMediaTapOverlay(
-                      onTap: _openImageMediaOrFeedCta,
-                      onDoubleTap: controller.like,
-                    ),
                     _buildClassicMediaHeader(),
                   ],
                 ),
@@ -1376,21 +792,6 @@ class _ClassicContentState extends State<ClassicContent>
                           child: Texts.colorfulFlood,
                         ),
                       ),
-                    if (widget.model.originalUserID.isNotEmpty)
-                      Positioned(
-                        left: 8,
-                        bottom: widget.model.floodCount > 1 ? 34 : 8,
-                        child: SharedPostLabel(
-                          originalUserID: widget.model.originalUserID,
-                          sourceUserID: widget.model.quotedPost
-                              ? widget.model.quotedSourceUserID
-                              : '',
-                          labelSuffix:
-                              widget.model.quotedPost ? 'alıntılandı' : '',
-                          textColor: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
                     _buildClassicReshareOverlay(
                       bottom: widget.model.originalUserID.isNotEmpty
                           ? (widget.model.floodCount > 1 ? 60 : 34)
@@ -1423,6 +824,21 @@ class _ClassicContentState extends State<ClassicContent>
                       onTap: _openImageMediaOrFeedCta,
                       onDoubleTap: controller.like,
                     ),
+                    if (widget.model.originalUserID.isNotEmpty)
+                      Positioned(
+                        left: 8,
+                        bottom: widget.model.floodCount > 1 ? 34 : 8,
+                        child: SharedPostLabel(
+                          originalUserID: widget.model.originalUserID,
+                          sourceUserID: widget.model.quotedPost
+                              ? widget.model.quotedSourceUserID
+                              : '',
+                          labelSuffix:
+                              widget.model.quotedPost ? 'alıntılandı' : '',
+                          textColor: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
                     _buildClassicMediaHeader(),
                   ],
                 ),
@@ -1748,6 +1164,16 @@ class _ClassicContentState extends State<ClassicContent>
                     child: Texts.colorfulFloodForVideo,
                   ),
 
+                _buildClassicReshareOverlay(
+                  bottom: widget.model.originalUserID.isNotEmpty
+                      ? ((widget.model.floodCount > 1) ? 52 : 34)
+                      : ((widget.model.floodCount > 1) ? 26 : 8),
+                ),
+
+                _buildMediaTapOverlay(
+                  onTap: _openVideoMedia,
+                  onDoubleTap: controller.like,
+                ),
                 if (widget.model.originalUserID.isNotEmpty)
                   Positioned(
                     left: 8,
@@ -1762,16 +1188,6 @@ class _ClassicContentState extends State<ClassicContent>
                       fontSize: 12,
                     ),
                   ),
-                _buildClassicReshareOverlay(
-                  bottom: widget.model.originalUserID.isNotEmpty
-                      ? ((widget.model.floodCount > 1) ? 52 : 34)
-                      : ((widget.model.floodCount > 1) ? 26 : 8),
-                ),
-
-                _buildMediaTapOverlay(
-                  onTap: _openVideoMedia,
-                  onDoubleTap: controller.like,
-                ),
                 _buildIzBirakBlurOverlay(),
                 _buildIzBirakBottomBar(),
                 if (!_isIzBirakPost)
@@ -1812,75 +1228,6 @@ class _ClassicContentState extends State<ClassicContent>
         _buildClassicMetaSection(),
       ],
     );
-  }
-
-  Widget _buildFeedShareCta() {
-    if (_isIzBirakPost) {
-      return const SizedBox.shrink();
-    }
-    final resolvedCta =
-        _ctaNavigationService.resolveMeta(widget.model.reshareMap);
-    final label = resolvedCta.label;
-    final type = resolvedCta.type;
-    final docId = resolvedCta.docId;
-    if (label.isEmpty || type.isEmpty || docId.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final palette = _feedCtaPaletteFor(type: type, docId: docId);
-
-    return Positioned(
-      right: 10,
-      bottom: 10,
-      child: GestureDetector(
-        onTap: () =>
-            _ctaNavigationService.openFromPostMeta(widget.model.reshareMap),
-        child: Container(
-          width: 132,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: palette,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
-            boxShadow: [
-              BoxShadow(
-                color: palette.last.withValues(alpha: 0.28),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Color> _feedCtaPaletteFor({
-    required String type,
-    required String docId,
-  }) {
-    const palettes = <List<Color>>[
-      <Color>[Color(0xFF20D67B), Color(0xFF119D57)],
-      <Color>[Color(0xFFFF5CA8), Color(0xFFD81B60)],
-      <Color>[Color(0xFFFFB238), Color(0xFFF26B1D)],
-      <Color>[Color(0xFF2EC5FF), Color(0xFF0077D9)],
-      <Color>[Color(0xFFB56CFF), Color(0xFF7B2CFF)],
-    ];
-    final seed = '$type:$docId'.codeUnits.fold<int>(0, (a, b) => a + b);
-    return palettes[seed % palettes.length];
   }
 
   Widget headerUserInfoBar() {
@@ -2286,7 +1633,11 @@ class _ClassicContentState extends State<ClassicContent>
           PullDownMenuItem(
             onTap: () {
               videoController?.pause();
-              Get.to(() => PostSharers(postID: widget.model.docID))?.then((_) {
+              Get.to(() => PostSharers(
+                    postID: PostStoryShareService.resolveOriginalPostId(
+                      widget.model,
+                    ),
+                  ))?.then((_) {
                 videoController?.play();
               });
             },
