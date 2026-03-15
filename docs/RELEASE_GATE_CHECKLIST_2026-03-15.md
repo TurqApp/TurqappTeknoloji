@@ -84,7 +84,7 @@ k6 run \
   - DM açılışı
 
 ## Artefactlar
-- `tests/load/k6_results.json`
+- `tests/load/k6_results_latest.json`
 - `tests/load/k6_summary_smoke_search_only_latest.json`
 - `tests/load/k6_summary_feed_only_feed_only_latest.json`
 - `tests/load/k6_summary_smoke_interaction_only_latest.json`

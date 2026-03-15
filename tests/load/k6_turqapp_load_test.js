@@ -343,7 +343,7 @@ export function handleSummary(data) {
 
   return {
     stdout: JSON.stringify(data, null, 2),
-    "tests/load/k6_results.json": JSON.stringify(data),
+    "tests/load/k6_results_latest.json": JSON.stringify(data),
     [`tests/load/k6_summary_${PROFILE}_${MODE}_latest.json`]:
       JSON.stringify(data, null, 2),
   };

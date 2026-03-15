@@ -46,3 +46,7 @@ functions/*-debug.log
 functions/firestore-debug.log
 functions/storage-debug.log
 functions/ui-debug.log
+
+# Local load-test artefacts
+tests/load/k6_results_latest.json
+tests/load/k6_summary_*_latest.json
