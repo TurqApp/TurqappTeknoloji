@@ -6,6 +6,28 @@
 
 ## 📖 İçindekiler
 
+### 0️⃣ [Hesap Merkezi Implementation Plan](./HESAP_MERKEZI_IMPLEMENTATION_PLAN_2026-03-15.md)
+**Ayni cihazda birden fazla hesap arasinda login ekranina donmeden guvenli gecis tasarimi**
+
+**Icerik:**
+- 🔐 Hesap Merkezi urun ve guvenlik modeli
+- 📱 Device, session ve provider veri semasi
+- 🔁 Session restore ve mini re-auth akislari
+- 🧹 Hesap degisiminde state reset checklist'i
+- 🚀 Fazlandirilmis implementasyon backlog'u
+- 📝 Diger hesaptan devam edilebilmesi icin handoff notu
+
+**Kimler icin:**
+- Flutter developers
+- Backend developers
+- Tech leads
+
+**Onemli Ozellikler:**
+- ✅ User alt koleksiyon ve top-level veri ayrimi
+- ✅ Cihaz bazli abuse gorunurlugu
+- ✅ Login ekranina donmeden hesap gecisi
+- ✅ Proje ici kalici implementasyon plani
+
 ### 1️⃣ [Optimized Users Collection Schema](./OPTIMIZED_USERS_SCHEMA.md)
 **Firestore koleksiyon yapısı - Instagram/Twitter performans seviyesi**
 
