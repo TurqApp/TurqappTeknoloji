@@ -1043,7 +1043,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
         }
         final videoSize = await post.video!.length();
         if (videoSize > _maxVideoBytesForStorageRule) {
-          throw Exception('VIDEO_TOO_LARGE');
+          throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
         }
         final videoRef = FirebaseStorage.instance.ref().child(
               'Posts/$docID/video.mp4',
@@ -1998,7 +1998,7 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
               }
               final videoSize = await post.video!.length();
               if (videoSize > _maxVideoBytesForStorageRule) {
-                throw Exception('VIDEO_TOO_LARGE');
+                throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
               }
               final videoRef = FirebaseStorage.instance
                   .ref()
@@ -2051,13 +2051,14 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
                 );
               }
             } catch (e) {
-              final tooLarge = e.toString().contains('VIDEO_TOO_LARGE');
+              final tooLarge =
+                  e.toString().contains('VIDEO_NOT_REDUCED_UNDER_LIMIT');
               await _errorService.handleError(
                 e,
                 category: ErrorCategory.upload,
                 severity: ErrorSeverity.high,
                 userMessage: tooLarge
-                    ? 'Video boyutu çok büyük (maks. 35MB)'
+                    ? 'Video 35MB altına indirilemedi. 35MB altı direkt, 60MB üstü desteklenmez.'
                     : 'Video yüklenemedi',
                 metadata: {'postIndex': index},
                 isRetryable: !tooLarge,

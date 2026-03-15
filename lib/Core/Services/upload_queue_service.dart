@@ -417,7 +417,8 @@ class UploadQueueService extends GetxController {
           final videoSize = await effectiveVideoFile.length();
           if (videoSize > _maxVideoBytesForStorageRule) {
             upload.status = UploadStatus.failed;
-            upload.errorMessage = 'Video boyutu çok büyük (maks. 35MB)';
+            upload.errorMessage =
+                'Video 35MB altına indirilemedi. 35MB altı direkt, 60MB üstü desteklenmez.';
             await FirebaseFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)

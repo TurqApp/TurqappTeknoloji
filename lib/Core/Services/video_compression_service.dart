@@ -14,6 +14,15 @@ class VideoCompressionService extends GetxController {
       // Guard legacy low values persisted in old settings.
       if (targetMbps < 4.0) targetMbps = 5.0;
 
+      final originalBytes = await videoFile.length();
+      if (originalBytes <= UploadConstants.maxPassthroughVideoBytes) {
+        if (kDebugMode) {
+          debugPrint('[VideoCompression] Passthrough: '
+              'size=${(originalBytes / (1024 * 1024)).toStringAsFixed(2)} MB');
+        }
+        return videoFile;
+      }
+
       final network = Get.isRegistered<NetworkAwarenessService>()
           ? Get.find<NetworkAwarenessService>()
           : null;
@@ -27,7 +36,7 @@ class VideoCompressionService extends GetxController {
       }
 
       // Effective ceiling should match post-size policy, not the broad raw video cap.
-      final maxBytes = UploadConstants.maxTotalPostSizeBytes;
+      final maxBytes = UploadConstants.maxPassthroughVideoBytes;
 
       // First try with chosen quality
       if (kDebugMode) {
@@ -131,6 +140,15 @@ class VideoCompressionService extends GetxController {
             'bitrate=${finalMbps.toStringAsFixed(2)} Mbps '
             'targetRange=${lowerBound.toStringAsFixed(2)}-${upperBound.toStringAsFixed(2)} '
             'path=${output.path.split('/').last}');
+      }
+
+      final finalBytes = await output.length();
+      if (finalBytes >= originalBytes) {
+        if (kDebugMode) {
+          debugPrint('[VideoCompression] Reverted to original: '
+              'compressed did not reduce size');
+        }
+        return videoFile;
       }
 
       return output;
