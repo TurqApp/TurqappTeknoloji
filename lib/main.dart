@@ -149,8 +149,8 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
 }
 
 Future<void> _activateAppCheck() async {
-  if (kDebugMode && defaultTargetPlatform == TargetPlatform.iOS) {
-    debugPrint('[AppCheck] iOS debug mode: activation skipped.');
+  if (kDebugMode) {
+    debugPrint('[AppCheck] debug mode: activation skipped.');
     return;
   }
 
