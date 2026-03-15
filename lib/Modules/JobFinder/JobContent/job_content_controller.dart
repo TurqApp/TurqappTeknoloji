@@ -40,8 +40,7 @@ class JobContentController extends GetxController {
         await JobSavedStore.save(uid, docId);
         saved.value = true;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> reactivateEndedJob(JobModel model) async {
@@ -50,10 +49,10 @@ class JobContentController extends GetxController {
     if (model.userID != uid || !model.ended) return;
 
     final now = DateTime.now().millisecondsSinceEpoch;
-    final existing =
-        await _jobRepository.fetchById(model.docID, preferCache: false, forceRefresh: true);
+    final existing = await _jobRepository.fetchById(model.docID,
+        preferCache: false, forceRefresh: true);
     if (existing == null) {
-      Get.snackbar("Uyarı", "İlan bulunamadı.");
+      AppSnackbar("Uyarı", "İlan kaydına ulaşılamadı.");
       return;
     }
 
@@ -80,7 +79,7 @@ class JobContentController extends GetxController {
         finder.list.refresh();
       }
     }
-    Get.snackbar("Yenilendi", "İlan tekrar yayına alındı.");
+    AppSnackbar("İlan Yenilendi", "İlan tekrar yayına alındı.");
   }
 
   Future<void> shareJob(JobModel model) async {

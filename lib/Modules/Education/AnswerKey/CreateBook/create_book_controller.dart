@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -250,17 +251,13 @@ class CreateBookController extends GetxController {
         "coverFormat": "webp",
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Resim başarıyla yüklendi!')),
-      );
+      AppSnackbar('Kapak Güncellendi', 'Kapak görseli başarıyla yüklendi.');
       showIndicator.value = false;
       onBack?.call(true);
       Get.back();
     } catch (e) {
       showIndicator.value = false;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Bir hata oluştu')));
+      AppSnackbar('Hata', 'Kapak görseli yüklenirken bir sorun oluştu.');
     }
   }
 }

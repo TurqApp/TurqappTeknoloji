@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -285,8 +286,8 @@ class ApplicationReview extends StatelessWidget {
   void _showCvPreview(String userID, String name, BuildContext context) async {
     final cv = await controller.getApplicantCV(userID);
     if (cv == null) {
-      Get.snackbar("CV Bulunamadı", "Bu kullanıcının CV'si mevcut değil",
-          snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar(
+          "CV Bulunamadı", "Bu kullanıcı için kayıtlı bir CV bulunamadı.");
       return;
     }
 

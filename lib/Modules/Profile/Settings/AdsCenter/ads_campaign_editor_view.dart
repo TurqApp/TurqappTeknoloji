@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
@@ -454,17 +455,17 @@ class _AdsCampaignEditorViewState extends State<AdsCampaignEditorView> {
     await _attachCreativeIfFilled(id);
 
     if (!mounted) return;
-    Get.snackbar('Ads Center', 'Kampanya kaydedildi: $id');
+    AppSnackbar('Kampanya Kaydedildi', 'Kampanya kimliği: $id');
   }
 
   Future<void> _saveCreativeOnly() async {
     final campaignId = widget.initialCampaign?.id ?? '';
     if (campaignId.isEmpty) {
-      Get.snackbar('Ads Center', 'Önce kampanyayı kaydedin.');
+      AppSnackbar('Bilgilendirme', 'Lütfen önce kampanyayı kaydedin.');
       return;
     }
     await _attachCreativeIfFilled(campaignId);
-    Get.snackbar('Ads Center', 'Kreatif kaydedildi.');
+    AppSnackbar('Kreatif Kaydedildi', 'Reklam kreatifi başarıyla kaydedildi.');
   }
 
   Future<void> _attachCreativeIfFilled(String campaignId) async {

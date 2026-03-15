@@ -28,6 +28,7 @@ import 'package:saver_gallery/saver_gallery.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 
 class UserStoryContent extends StatefulWidget {
   final StoryUserModel user;
@@ -948,11 +949,10 @@ class _UserStoryContentState extends State<UserStoryContent>
                       skipIfExists: false,
                     );
                     if (result.isSuccess) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Hikaye galeriye kaydedildi'),
-                          duration: Duration(seconds: 2),
-                        ),
+                      AppSnackbar(
+                        'Kaydedildi',
+                        'Hikaye cihaz galerisine kaydedildi.',
+                        duration: const Duration(seconds: 2),
                       );
                     }
                   } catch (_) {

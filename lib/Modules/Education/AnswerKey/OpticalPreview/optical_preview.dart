@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalPreview/optical_preview_controller.dart';
 
@@ -366,38 +367,18 @@ class OpticalPreview extends StatelessWidget {
                                                 .trim()
                                                 .length <
                                             6) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Ad ve soyad en az 6 karakter olmalı.",
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                              duration: Duration(seconds: 3),
-                                            ),
+                                          AppSnackbar(
+                                            'Eksik Bilgi',
+                                            'Ad ve soyad en az 6 karakter olmalıdır.',
                                           );
                                           return;
                                         }
                                         if (controller.ogrenciNo.text
                                             .trim()
                                             .isEmpty) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                "Öğrenci numarası boş olamaz.",
-                                                style: TextStyle(
-                                                  fontFamily:
-                                                      "MontserratMedium",
-                                                ),
-                                              ),
-                                              backgroundColor: Colors.red,
-                                              duration: Duration(seconds: 3),
-                                            ),
+                                          AppSnackbar(
+                                            'Eksik Bilgi',
+                                            'Öğrenci numarası boş bırakılamaz.',
                                           );
                                           return;
                                         }

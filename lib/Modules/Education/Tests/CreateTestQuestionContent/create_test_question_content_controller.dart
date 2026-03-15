@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -59,11 +60,11 @@ class CreateTestQuestionContentController extends GetxController {
     try {
       final nsfw = await OptimizedNSFWService.checkImage(imageFile);
       if (nsfw.errorMessage != null) {
-        Get.snackbar('Hata', 'NSFW görsel kontrolü başarısız.');
+        AppSnackbar('Hata', 'Görsel güvenlik kontrolü tamamlanamadı.');
         return;
       }
       if (nsfw.isNSFW) {
-        Get.snackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+        AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(

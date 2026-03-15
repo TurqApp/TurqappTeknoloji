@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
@@ -113,12 +114,8 @@ class SearchUserContent extends StatelessWidget {
                     final isActive = await _isTargetAccountActive(targetUid);
                     if (!isActive) {
                       await _removeRecent();
-                      Get.snackbar(
-                        'Bilgi',
-                        'Bu hesap artık görüntülenemiyor.',
-                        snackPosition: SnackPosition.TOP,
-                        duration: const Duration(seconds: 2),
-                      );
+                      AppSnackbar(
+                          'Bilgilendirme', 'Bu hesap artık görüntülenemiyor.');
                       return;
                     }
                     Get.to(

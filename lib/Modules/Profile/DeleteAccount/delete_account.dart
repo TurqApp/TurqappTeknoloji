@@ -375,21 +375,15 @@ class _DeleteAccountState extends State<DeleteAccount> {
         ),
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Talebin alındı. $_deletionGraceDays gün sonunda hesabın tamamen silinir ve nickname tekrar kullanıma açılır.",
-          ),
-        ),
+      AppSnackbar(
+        'Talep Alındı',
+        'Hesabınız $_deletionGraceDays gün sonunda kalıcı olarak silinecektir.',
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Hesabınızı silerken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz",
-          ),
-        ),
+      AppSnackbar(
+        'Hata',
+        'Hesabınız silinirken bir sorun oluştu. Lütfen daha sonra tekrar deneyin.',
       );
     }
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/admin_push_repository.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 
@@ -110,10 +111,9 @@ class _AdminPushViewState extends State<AdminPushView> {
 
   Future<void> _sendPush() async {
     if (!_canManagePush) {
-      Get.snackbar(
-        "Yetki Yok",
-        "Push gondermek icin admin hesabi gerekli.",
-        snackPosition: SnackPosition.BOTTOM,
+      AppSnackbar(
+        "Yetki",
+        "Bildirim göndermek için yönetici yetkisi gereklidir.",
       );
       return;
     }
@@ -129,19 +129,12 @@ class _AdminPushViewState extends State<AdminPushView> {
     final type = _selectedType;
 
     if (title.isEmpty || body.isEmpty) {
-      Get.snackbar(
-        "Eksik Bilgi",
-        "Başlık ve mesaj zorunlu.",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppSnackbar("Eksik Bilgi", "Başlık ve mesaj alanları zorunludur.");
       return;
     }
     if (minAge != null && maxAge != null && minAge > maxAge) {
-      Get.snackbar(
-        "Yaş Aralığı Hatalı",
-        "Min yaş, max yaştan büyük olamaz.",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppSnackbar(
+          "Hatalı Aralık", "Minimum yaş, maksimum yaştan büyük olamaz.");
       return;
     }
 
@@ -161,10 +154,9 @@ class _AdminPushViewState extends State<AdminPushView> {
       final senderUid = FirebaseAuth.instance.currentUser?.uid ?? "admin";
 
       if (targetUids.isEmpty) {
-        Get.snackbar(
-          "Sonuç Yok",
-          "Bu filtreye uyan (kendi hesabın hariç) kullanıcı bulunamadı.",
-          snackPosition: SnackPosition.BOTTOM,
+        AppSnackbar(
+          "Sonuç Bulunamadı",
+          "Seçilen filtrelere uygun kullanıcı bulunamadı.",
         );
         return;
       }
@@ -208,19 +200,14 @@ class _AdminPushViewState extends State<AdminPushView> {
       } on FirebaseException catch (e) {
         if (e.code != 'permission-denied') rethrow;
       }
-      Get.snackbar(
-        "Gönderildi",
+      AppSnackbar(
+        "Gönderim Başlatıldı",
         "${targetUids.length} kullanıcı için bildirim kuyruğa alındı.",
-        snackPosition: SnackPosition.BOTTOM,
       );
       _bodyController.clear();
     } catch (e) {
       if (!mounted) return;
-      Get.snackbar(
-        "Hata",
-        "Gönderilemedi: $e",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppSnackbar("Hata", "Bildirim gönderimi tamamlanamadı: $e");
     } finally {
       if (mounted) {
         setState(() {
