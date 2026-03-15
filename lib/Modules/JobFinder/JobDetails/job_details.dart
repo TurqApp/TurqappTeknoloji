@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
@@ -58,7 +57,7 @@ class JobDetails extends StatelessWidget {
     return true;
   }
 
-  String _buildAndroidStaticMapUrl(JobModel job) {
+  String _buildStaticMapUrl(JobModel job) {
     return Uri.https(
       'static-maps.yandex.ru',
       '/1.x/',
@@ -75,13 +74,6 @@ class JobDetails extends StatelessWidget {
 
   Widget _buildLocationPreview(BuildContext context) {
     final hasLocation = _hasValidCoordinates(controller.model.value);
-    final useAndroidStaticPreview =
-        defaultTargetPlatform == TargetPlatform.android;
-    final canUseNativeMap = hasLocation && !useAndroidStaticPreview;
-    final location = LatLng(
-      controller.model.value.lat,
-      controller.model.value.long,
-    );
 
     return Stack(
       alignment: Alignment.center,
@@ -101,10 +93,9 @@ class JobDetails extends StatelessWidget {
               width: double.infinity,
               height: (MediaQuery.of(context).size.height * 0.28)
                   .clamp(180.0, 220.0),
-              child: useAndroidStaticPreview && hasLocation
+              child: hasLocation
                   ? CachedNetworkImage(
-                      imageUrl:
-                          _buildAndroidStaticMapUrl(controller.model.value),
+                      imageUrl: _buildStaticMapUrl(controller.model.value),
                       fit: BoxFit.cover,
                       errorWidget: (context, url, error) => Container(
                         color: const Color(0xFFF3F5F7),
@@ -119,74 +110,50 @@ class JobDetails extends StatelessWidget {
                         ),
                       ),
                     )
-                  : canUseNativeMap
-                      ? AbsorbPointer(
-                          child: GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target: location,
-                              zoom: 14,
+                  : Container(
+                      color: const Color(0xFFF3F5F7),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            hasLocation
+                                ? CupertinoIcons.location_solid
+                                : CupertinoIcons.location_slash,
+                            color: hasLocation ? Colors.red : Colors.grey,
+                            size: 34,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            hasLocation
+                                ? 'Haritada Aç'
+                                : 'Konum bilgisi bulunamadı',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
                             ),
-                            liteModeEnabled:
-                                defaultTargetPlatform == TargetPlatform.android,
-                            markers: {
-                              Marker(
-                                markerId: const MarkerId('job_location'),
-                                position: location,
-                              ),
-                            },
-                            zoomControlsEnabled: false,
-                            myLocationButtonEnabled: false,
-                            scrollGesturesEnabled: false,
-                            rotateGesturesEnabled: false,
-                            tiltGesturesEnabled: false,
-                            zoomGesturesEnabled: false,
-                            mapToolbarEnabled: false,
                           ),
-                        )
-                      : Container(
-                          color: const Color(0xFFF3F5F7),
-                          alignment: Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                hasLocation
-                                    ? CupertinoIcons.location_solid
-                                    : CupertinoIcons.location_slash,
-                                color: hasLocation ? Colors.red : Colors.grey,
-                                size: 34,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                hasLocation
-                                    ? 'Haritada Aç'
-                                    : 'Konum bilgisi bulunamadı',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
+                          if (hasLocation)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 6),
+                              child: Text(
+                                'Apple Haritalar veya diğer uygulamalarda aç',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.black54,
+                                  fontSize: 13,
+                                  fontFamily: "MontserratMedium",
                                 ),
                               ),
-                              if (hasLocation)
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 6),
-                                  child: Text(
-                                    'Apple Haritalar veya diğer uygulamalarda aç',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 13,
-                                      fontFamily: "MontserratMedium",
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                            ),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ),
-        if (canUseNativeMap)
+        if (hasLocation)
           const Icon(
             CupertinoIcons.location_solid,
             color: Colors.red,
