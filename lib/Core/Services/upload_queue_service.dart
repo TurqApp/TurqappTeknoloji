@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 
 enum UploadStatus {
   pending('Bekliyor'),
@@ -137,7 +138,124 @@ class UploadQueueService extends GetxController {
     _queue.add(upload);
     _notifyQueueUpdated();
     await _saveQueueToStorage();
+    await _createPendingPostShell(upload);
     _processQueue();
+  }
+
+  Future<void> _createPendingPostShell(QueuedUpload upload) async {
+    final postDataMap = jsonDecode(upload.postData) as Map<String, dynamic>;
+    final String userID =
+        (FirebaseAuth.instance.currentUser?.uid ?? postDataMap['userID'] ?? '')
+            .toString()
+            .trim();
+    if (userID.isEmpty) return;
+
+    final String text = (postDataMap['text'] ?? '')
+        .toString()
+        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+        .trim();
+    final String location = (postDataMap['location'] ?? '').toString().trim();
+    final Map<String, dynamic> yorumMap =
+        Map<String, dynamic>.from(postDataMap['yorumMap'] ?? {});
+    final Map<String, dynamic> reshareMap =
+        Map<String, dynamic>.from(postDataMap['reshareMap'] ?? {});
+    final Map<String, dynamic> poll =
+        Map<String, dynamic>.from(postDataMap['poll'] ?? {});
+    final bool sharedAsPost = (postDataMap['sharedAsPost'] ?? false) == true;
+    final String originalUserID =
+        (postDataMap['originalUserID'] ?? '').toString().trim();
+    final String originalPostID =
+        (postDataMap['originalPostID'] ?? '').toString().trim();
+    final String sourcePostID =
+        (postDataMap['sourcePostID'] ?? '').toString().trim();
+    final bool quotedPost = (postDataMap['quotedPost'] ?? false) == true;
+    final String quotedOriginalText =
+        (postDataMap['quotedOriginalText'] ?? '').toString().trim();
+    final String quotedSourceUserID =
+        (postDataMap['quotedSourceUserID'] ?? '').toString().trim();
+    final String quotedSourceDisplayName =
+        (postDataMap['quotedSourceDisplayName'] ?? '').toString().trim();
+    final String quotedSourceUsername =
+        (postDataMap['quotedSourceUsername'] ?? '').toString().trim();
+    final String quotedSourceAvatarUrl =
+        (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
+    final int scheduledAt =
+        int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
+
+    bool flood = false;
+    String mainFlood = '';
+    try {
+      final idxStr = upload.id.substring(upload.id.lastIndexOf('_') + 1);
+      final idx = int.tryParse(idxStr) ?? 0;
+      flood = idx != 0;
+      if (flood) {
+        final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
+        mainFlood = '${base}_0';
+      }
+    } catch (_) {}
+
+    int floodCount = 1;
+    try {
+      final base = upload.id.substring(0, upload.id.lastIndexOf('_'));
+      floodCount = _queue.where((q) => q.id.startsWith('${base}_')).length;
+      if (floodCount <= 0) floodCount = 1;
+    } catch (_) {}
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final publishTime = scheduledAt != 0 ? scheduledAt : nowMs;
+
+    await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
+      "arsiv": true,
+      "debugMode": false,
+      "deletedPost": false,
+      "deletedPostTime": 0,
+      "flood": flood,
+      "floodCount": floodCount,
+      "gizlendi": false,
+      "img": const <String>[],
+      "imgMap": const <Map<String, dynamic>>[],
+      "isAd": false,
+      "ad": false,
+      "izBirakYayinTarihi": publishTime,
+      "konum": location,
+      "mainFlood": mainFlood,
+      "metin": text,
+      "scheduledAt": scheduledAt,
+      "sikayetEdildi": false,
+      "stabilized": false,
+      "stats": {
+        "commentCount": 0,
+        "likeCount": 0,
+        "reportedCount": 0,
+        "retryCount": 0,
+        "savedCount": 0,
+        "statsCount": 0
+      },
+      "tags": const <String>[],
+      "thumbnail": "",
+      "timeStamp": nowMs,
+      "userID": userID,
+      "video": "",
+      "isUploading": true,
+      "yorumMap": yorumMap,
+      "reshareMap": reshareMap,
+      if (poll.isNotEmpty) "poll": poll,
+      "originalUserID": sharedAsPost ? originalUserID : "",
+      "originalPostID": sharedAsPost ? originalPostID : "",
+      "sourcePostID": sharedAsPost ? sourcePostID : "",
+      "sharedAsPost": sharedAsPost,
+      "quotedPost": sharedAsPost ? quotedPost : false,
+      "quotedOriginalText":
+          (sharedAsPost && quotedPost) ? quotedOriginalText : "",
+      "quotedSourceUserID":
+          (sharedAsPost && quotedPost) ? quotedSourceUserID : "",
+      "quotedSourceDisplayName":
+          (sharedAsPost && quotedPost) ? quotedSourceDisplayName : "",
+      "quotedSourceUsername":
+          (sharedAsPost && quotedPost) ? quotedSourceUsername : "",
+      "quotedSourceAvatarUrl":
+          (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
+    }, SetOptions(merge: true));
   }
 
   /// Start processing queue
@@ -172,6 +290,7 @@ class UploadQueueService extends GetxController {
         upload.status = UploadStatus.failed;
         upload.errorMessage = 'İnternet bağlantısı yok';
         await _saveQueueToStorage();
+        AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
         return;
       }
 
@@ -265,6 +384,7 @@ class UploadQueueService extends GetxController {
               .delete()
               .catchError((_) {});
           await _saveQueueToStorage();
+          AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
           return;
         }
         if (nsfwImage.isNSFW) {
@@ -276,6 +396,7 @@ class UploadQueueService extends GetxController {
               .delete()
               .catchError((_) {});
           await _saveQueueToStorage();
+          AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
           return;
         }
       }
@@ -303,6 +424,7 @@ class UploadQueueService extends GetxController {
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
+            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
             return;
           }
 
@@ -327,6 +449,7 @@ class UploadQueueService extends GetxController {
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
+            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
             return;
           }
           if (nsfwVideo.isNSFW) {
@@ -338,6 +461,7 @@ class UploadQueueService extends GetxController {
                 .delete()
                 .catchError((_) {});
             await _saveQueueToStorage();
+            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
             return;
           }
         }
@@ -410,12 +534,14 @@ class UploadQueueService extends GetxController {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'NSFW görsel kontrolü başarısız';
             await _saveQueueToStorage();
+            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
             return;
           }
           if (nsfwImage.isNSFW) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'Uygunsuz görsel tespit edildi';
             await _saveQueueToStorage();
+            AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
             return;
           }
           final localBytes = await file.readAsBytes();
@@ -642,54 +768,17 @@ class UploadQueueService extends GetxController {
           originalUserID.isNotEmpty &&
           originalPostID.isNotEmpty) {
         try {
-          final quoteTimestamp = DateTime.now().millisecondsSinceEpoch;
-          final originalPostRef =
-              FirebaseFirestore.instance.collection('Posts').doc(originalPostID);
-          await originalPostRef.collection('reshares').doc(userID).set({
+          final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
+          await FirebaseFirestore.instance
+              .collection('Posts')
+              .doc(originalPostID)
+              .collection('postSharers')
+              .doc(userID)
+              .set({
             'userID': userID,
-            'timeStamp': quoteTimestamp,
-            'originalUserID': originalUserID,
-            'originalPostID': originalPostID,
+            'timestamp': shareTimestamp,
             'sharedPostID': upload.id,
-            'quotedPost': quotedPost,
           }, SetOptions(merge: true));
-          if (!quotedPost) {
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(userID)
-                .collection('reshared_posts')
-                .doc(originalPostID)
-                .set({
-              'post_docID': originalPostID,
-              'timeStamp': quoteTimestamp,
-              'originalUserID': originalUserID,
-              'originalPostID': originalPostID,
-              'sharedPostID': upload.id,
-              'quotedPost': false,
-            }, SetOptions(merge: true));
-          }
-          if (quotedPost) {
-            await originalPostRef.update({
-              'stats.retryCount': FieldValue.increment(1),
-            });
-          }
-          if (sourcePostID.isNotEmpty && sourcePostID != originalPostID) {
-            final sourcePostRef =
-                FirebaseFirestore.instance.collection('Posts').doc(sourcePostID);
-            await sourcePostRef.collection('reshares').doc(userID).set({
-              'userID': userID,
-              'timeStamp': quoteTimestamp,
-              'originalUserID': originalUserID,
-              'originalPostID': originalPostID,
-              'sharedPostID': upload.id,
-              'quotedPost': quotedPost,
-            }, SetOptions(merge: true));
-            if (quotedPost) {
-              await sourcePostRef.update({
-                'stats.retryCount': FieldValue.increment(1),
-              });
-            }
-          }
         } catch (_) {}
       }
 
@@ -707,6 +796,7 @@ class UploadQueueService extends GetxController {
         upload.status = UploadStatus.failed;
         upload.errorMessage = e.toString();
         _failedCount.value++;
+        AppSnackbar('Yükleme Başarısız', upload.errorMessage!);
       } else {
         upload.status = UploadStatus.pending;
         upload.errorMessage =
