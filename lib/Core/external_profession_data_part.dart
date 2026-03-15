@@ -1,4 +1,4 @@
-part of 'External.dart';
+part of 'external.dart';
 
 List<String> tumMeslekKategoriler = [
   "Sanatçı",

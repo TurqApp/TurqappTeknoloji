@@ -1351,4 +1351,19 @@ class AgendaController extends GetxController {
       return isMine || follows;
     }).toList();
   }
+
+  Future<void> addNewReshareEntryWithoutScroll(
+    String postId,
+    String reshareUserID,
+  ) =>
+      AgendaControllerResharePart(this).addNewReshareEntryWithoutScroll(
+        postId,
+        reshareUserID,
+      );
+
+  void removeReshareEntry(String postId, String reshareUserID) =>
+      AgendaControllerResharePart(this).removeReshareEntry(
+        postId,
+        reshareUserID,
+      );
 }

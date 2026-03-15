@@ -1,4 +1,4 @@
-part of 'External.dart';
+part of 'external.dart';
 
 final sinavTurleriList2 = [
   "LGS",

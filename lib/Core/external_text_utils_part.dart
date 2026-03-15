@@ -1,4 +1,4 @@
-part of 'External.dart';
+part of 'external.dart';
 
 String getRemainingTimeText(int millis) {
   final releaseDate = DateTime.fromMillisecondsSinceEpoch(millis);

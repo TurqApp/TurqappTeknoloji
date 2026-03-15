@@ -13,6 +13,7 @@ import 'dart:ui' as ui;
 
 part 'external_text_utils_part.dart';
 part 'external_exam_data_part.dart';
+part 'external_profession_data_part.dart';
 
 List<String> bursKosullari = [
   "T.C. vatandaşı olmak.",
