@@ -194,10 +194,29 @@ class PostsModel {
   }
 
   String get playbackUrl {
-    if (isHlsReady) return CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
+    if (isHlsReady) {
+      final resolved = CdnUrlBuilder.toCdnUrl(hlsMasterUrl);
+      if (kDebugMode) {
+        debugPrint(
+          '[PostsModel][$docID] playbackUrl=HLS ready status=$hlsStatus hlsMasterUrl=$hlsMasterUrl resolved=$resolved',
+        );
+      }
+      return resolved;
+    }
     final v = video.trim();
     if (hlsStatus == 'ready' && v.toLowerCase().contains('.m3u8')) {
-      return CdnUrlBuilder.toCdnUrl(v);
+      final resolved = CdnUrlBuilder.toCdnUrl(v);
+      if (kDebugMode) {
+        debugPrint(
+          '[PostsModel][$docID] playbackUrl=legacy HLS status=$hlsStatus video=$v resolved=$resolved',
+        );
+      }
+      return resolved;
+    }
+    if (kDebugMode && v.isNotEmpty) {
+      debugPrint(
+        '[PostsModel][$docID] playbackUrl EMPTY status=$hlsStatus hlsMasterUrl=${hlsMasterUrl.trim()} video=$v thumbnail=${thumbnail.trim()}',
+      );
     }
     return '';
   }

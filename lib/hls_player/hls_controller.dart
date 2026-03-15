@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 
@@ -337,6 +338,11 @@ class HLSController {
         if (event is! Map) return;
 
         final eventType = event['event'] as String?;
+        if (kDebugMode) {
+          debugPrint(
+            '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] event=$eventType payload=$event url=$_currentUrl',
+          );
+        }
 
         switch (eventType) {
           case 'ready':
@@ -442,6 +448,11 @@ class HLSController {
         }
       },
       onError: (dynamic error) {
+        if (kDebugMode) {
+          debugPrint(
+            '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] streamError=$error url=$_currentUrl',
+          );
+        }
         _handleError('Event stream error: $error');
       },
     );
@@ -465,6 +476,11 @@ class HLSController {
   }
 
   void _handleError(String message) {
+    if (kDebugMode) {
+      debugPrint(
+        '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] error=$message url=$_currentUrl fallback=$_fallbackUrl attempted=$_fallbackAttempted',
+      );
+    }
     // Try mp4 fallback before reporting error
     if (_fallbackUrl != null && !_fallbackAttempted) {
       _fallbackAttempted = true;

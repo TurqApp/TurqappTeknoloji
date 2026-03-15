@@ -45,6 +45,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var currentUrl: String?
     private let ciContext = CIContext(options: nil)
 
+    private func log(_ message: String) {
+        print("[HLSPlayerView] \(message)")
+    }
+
     // MARK: - Observers
     private var statusObserver: NSKeyValueObservation?
     private var playbackBufferEmptyObserver: NSKeyValueObservation?
@@ -100,7 +104,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Video Loading
     func loadVideo(url: String) {
+        log("loadVideo url=\(url)")
         guard let videoURL = URL(string: url) else {
+            log("invalidUrl url=\(url)")
             sendEvent(["event": "error", "message": "Invalid URL"])
             return
         }
@@ -160,12 +166,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Player Controls
     func play() {
+        log("play url=\(currentUrl ?? "-")")
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: true)
         sendEvent(["event": "play"])
     }
 
     func pause() {
+        log("pause url=\(currentUrl ?? "-")")
         captureCurrentFrameSnapshot(showOverlay: false)
         player?.pause()
         sendEvent(["event": "pause"])
@@ -273,6 +281,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 switch item.status {
                 case .readyToPlay:
+                    self?.log("readyToPlay url=\(self?.currentUrl ?? "-") duration=\(item.duration.seconds)")
                     self?.refreshPlayerLayer(forceReattach: true)
                     self?.requestAutoplayIfNeeded(force: true)
                     self?.sendEvent([
@@ -281,8 +290,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     ])
                 case .failed:
                     let errorMessage = item.error?.localizedDescription ?? "Unknown playback error"
+                    self?.log("failed url=\(self?.currentUrl ?? "-") error=\(errorMessage)")
                     self?.sendEvent(["event": "error", "message": errorMessage])
                 case .unknown:
+                    self?.log("statusUnknown url=\(self?.currentUrl ?? "-")")
                     break
                 @unknown default:
                     break
@@ -293,12 +304,14 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Buffer observers
         playbackBufferEmptyObserver = playerItem.observe(\.isPlaybackBufferEmpty, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackBufferEmpty {
+                self?.log("bufferEmpty url=\(self?.currentUrl ?? "-")")
                 self?.sendEvent(["event": "buffering", "isBuffering": true])
             }
         }
 
         playbackLikelyToKeepUpObserver = playerItem.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackLikelyToKeepUp {
+                self?.log("likelyToKeepUp url=\(self?.currentUrl ?? "-")")
                 self?.requestAutoplayIfNeeded(force: false)
                 self?.sendEvent(["event": "buffering", "isBuffering": false])
             }
@@ -310,12 +323,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 DispatchQueue.main.async {
                     switch player.timeControlStatus {
                 case .playing:
+                        self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
                         self?.refreshPlayerLayer(forceReattach: false)
                         self?.scheduleVisualLayerStabilization(forceReattach: false)
                         self?.sendEvent(["event": "play"])
                     case .paused:
+                        self?.log("timeControlStatus=paused url=\(self?.currentUrl ?? "-")")
                         self?.sendEvent(["event": "pause"])
                     case .waitingToPlayAtSpecifiedRate:
+                        self?.log("timeControlStatus=waiting url=\(self?.currentUrl ?? "-")")
                         self?.sendEvent(["event": "buffering", "isBuffering": true])
                     @unknown default:
                         break
@@ -360,6 +376,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             queue: .main
         ) { [weak self] notification in
             let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
+            self?.log("failedToPlayToEnd url=\(self?.currentUrl ?? "-") error=\(error?.localizedDescription ?? "unknown")")
             self?.sendEvent(["event": "error", "message": error?.localizedDescription ?? "Failed to play to end"])
         }
 
@@ -368,6 +385,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             object: playerItem,
             queue: .main
         ) { [weak self] _ in
+            self?.log("playbackStalled url=\(self?.currentUrl ?? "-")")
             self?.didRequestInitialPlay = false
             self?.requestAutoplayIfNeeded(force: true)
             self?.sendEvent(["event": "buffering", "isBuffering": true])
@@ -462,6 +480,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
                 self.didRenderFirstFrame = true
+                self.log("firstFrame url=\(self.currentUrl ?? "-")")
                 self.hideFrameSnapshot()
                 self.sendEvent(["event": "firstFrame"])
             }

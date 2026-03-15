@@ -311,6 +311,21 @@ class HLSProxyServer extends GetxController {
     }
   }
 
+  NetworkAwarenessService? _getNetworkService() {
+    try {
+      return Get.find<NetworkAwarenessService>();
+    } catch (_) {
+      try {
+        final service = Get.put(NetworkAwarenessService(), permanent: true);
+        debugPrint('[HLSProxy] NetworkAwarenessService auto-registered');
+        return service;
+      } catch (e) {
+        debugPrint('[HLSProxy] Failed to auto-register network service: $e');
+        return null;
+      }
+    }
+  }
+
   void _trackDownloadBytes(int bytes) {
     if (bytes <= 0) return;
     _pendingDownloadBytes += bytes;
@@ -322,10 +337,10 @@ class HLSProxyServer extends GetxController {
 
     _pendingDownloadBytes -= downloadMb * oneMb;
 
-    try {
-      final network = Get.find<NetworkAwarenessService>();
+    final network = _getNetworkService();
+    if (network != null) {
       unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-    } catch (_) {}
+    }
   }
 
   /// Master playlist parse edip entry meta bilgisini güncelle.
@@ -376,10 +391,10 @@ class HLSProxyServer extends GetxController {
     // Kapanışta kalan byte'ları 1 MB'a yuvarlayıp kaydet.
     if (_pendingDownloadBytes > 0) {
       final int downloadMb = (_pendingDownloadBytes / (1024 * 1024)).ceil();
-      try {
-        final network = Get.find<NetworkAwarenessService>();
+      final network = _getNetworkService();
+      if (network != null) {
         unawaited(network.trackDataUsage(uploadMB: 0, downloadMB: downloadMb));
-      } catch (_) {}
+      }
       _pendingDownloadBytes = 0;
     }
     stop();

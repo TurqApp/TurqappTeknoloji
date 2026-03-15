@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
@@ -65,6 +66,9 @@ void main() {
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   if (!Get.isRegistered<VideoStateManager>()) {
     Get.put(VideoStateManager(), permanent: true);
+  }
+  if (!Get.isRegistered<NetworkAwarenessService>()) {
+    Get.put(NetworkAwarenessService(), permanent: true);
   }
 
   runApp(const MyApp());
