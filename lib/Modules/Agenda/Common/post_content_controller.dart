@@ -162,6 +162,30 @@ class PostContentController extends GetxController {
     return model.docID;
   }
 
+  @protected
+  void onPostInitialized() {}
+
+  @protected
+  void onPostFrameBound() {}
+
+  @protected
+  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
+    if (!scrollFeedToTopOnReshare) return;
+    try {
+      final controller = agendaController.scrollController;
+      if (controller.hasClients) {
+        await controller.animateTo(
+          0,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
+    } catch (_) {}
+  }
+
+  @protected
+  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}
+
   @override
   void onInit() {
     super.onInit();

@@ -254,7 +254,7 @@ extension PostContentControllerActionsPart on PostContentController {
       required String pushToken,
       required String name,
     }) {
-      _userProfileCache[uid] = _UserProfileCacheEntry(
+      PostContentController._userProfileCache[uid] = _UserProfileCacheEntry(
         nickname: nick,
         username: uname,
         avatarUrl: image,
@@ -324,10 +324,10 @@ extension PostContentControllerActionsPart on PostContentController {
     }
 
     // 0) Aynı kullanıcı için hafızadaki cache tazeyse, ağa gitmeden çık.
-    final cachedProfile = _userProfileCache[userID];
+    final cachedProfile = PostContentController._userProfileCache[userID];
     if (cachedProfile != null &&
         DateTime.now().difference(cachedProfile.updatedAt) <
-            _userProfileCacheTtl) {
+            PostContentController._userProfileCacheTtl) {
       applyProfile(
         nick: cachedProfile.nickname,
         uname: cachedProfile.username,
@@ -402,9 +402,10 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> getReSharedUsers(String docID) async {
-    final cached = _reshareUsersCache[docID];
+    final cached = PostContentController._reshareUsersCache[docID];
     if (cached != null &&
-        DateTime.now().difference(cached.updatedAt) < _reshareUsersCacheTtl) {
+        DateTime.now().difference(cached.updatedAt) <
+            PostContentController._reshareUsersCacheTtl) {
       reSharedUsers.value = cached.userIds;
       reShareUserUserID.value = cached.displayUserId;
       reShareUserNickname.value = cached.displayNickname;
@@ -426,7 +427,7 @@ extension PostContentControllerActionsPart on PostContentController {
     if (me != null && list.contains(me)) {
       reShareUserUserID.value = me;
       reShareUserNickname.value = 'Sen';
-      _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+      PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
         updatedAt: DateTime.now(),
         userIds: List<String>.from(list),
         displayUserId: me,
@@ -453,7 +454,8 @@ extension PostContentControllerActionsPart on PostContentController {
           final nick = await ReshareHelper.getUserNickname(match);
           reShareUserNickname.value = nick;
         }
-        _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+        PostContentController._reshareUsersCache[docID] =
+            _ReshareUsersCacheEntry(
           updatedAt: DateTime.now(),
           userIds: List<String>.from(list),
           displayUserId: match,
@@ -466,7 +468,7 @@ extension PostContentControllerActionsPart on PostContentController {
     // Kimse yoksa temizle
     reShareUserUserID.value = '';
     reShareUserNickname.value = '';
-    _reshareUsersCache[docID] = _ReshareUsersCacheEntry(
+    PostContentController._reshareUsersCache[docID] = _ReshareUsersCacheEntry(
       updatedAt: DateTime.now(),
       userIds: List<String>.from(list),
       displayUserId: '',
@@ -656,30 +658,6 @@ extension PostContentControllerActionsPart on PostContentController {
       print('Stats count update error: $e');
     }
   }
-
-  @protected
-  void onPostInitialized() {}
-
-  @protected
-  void onPostFrameBound() {}
-
-  @protected
-  Future<void> onReshareAdded(String? uid, {String? targetPostId}) async {
-    if (!scrollFeedToTopOnReshare) return;
-    try {
-      final controller = agendaController.scrollController;
-      if (controller.hasClients) {
-        await controller.animateTo(
-          0,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
-      }
-    } catch (_) {}
-  }
-
-  @protected
-  Future<void> onReshareRemoved(String? uid, {String? targetPostId}) async {}
 }
 
 class _UserProfileCacheEntry {

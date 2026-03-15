@@ -174,6 +174,10 @@ class CurrentUserModel {
   final Map<String, int> readStoriesTimes;
   final String mail; // Secondary email?
 
+  String get fullName => '$firstName $lastName'.trim();
+  bool get isVerified => hesapOnayi;
+  bool get isPrivate => gizliHesap;
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🏗️ Constructor
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

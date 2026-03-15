@@ -436,10 +436,11 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           child: isBlackBadge
               ? PullDownButton(
                   itemBuilder: (context) {
-                    final alreadyFlagged =
-                        _flaggedPostIds.contains(widget.model.docID);
+                    final alreadyFlagged = _PhotoShortContentState
+                        ._flaggedPostIds
+                        .contains(widget.model.docID);
                     if (alreadyFlagged) return [];
-                    return _flagReasons
+                    return _PhotoShortContentState._flagReasons
                         .map(
                           (reason) => PullDownMenuItem(
                             onTap: () async {
@@ -451,7 +452,8 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                   reason: reason,
                                 );
                                 if (result.isOk) {
-                                  _flaggedPostIds.add(widget.model.docID);
+                                  _PhotoShortContentState._flaggedPostIds
+                                      .add(widget.model.docID);
                                   if (mounted) setState(() {});
                                 }
                                 if (result.accepted) {
@@ -475,13 +477,15 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                         .toList();
                   },
                   buttonBuilder: (context, showMenu) => TextButton(
-                    onPressed: _flaggedPostIds.contains(widget.model.docID)
+                    onPressed: _PhotoShortContentState._flaggedPostIds
+                            .contains(widget.model.docID)
                         ? null
                         : showMenu,
                     style: TextButton.styleFrom(padding: EdgeInsets.zero),
                     child: Icon(
                       CupertinoIcons.exclamationmark_triangle_fill,
-                      color: _flaggedPostIds.contains(widget.model.docID)
+                      color: _PhotoShortContentState._flaggedPostIds
+                              .contains(widget.model.docID)
                           ? Colors.grey
                           : Colors.amber,
                       size: 23,

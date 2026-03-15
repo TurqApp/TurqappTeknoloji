@@ -41,7 +41,8 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   void _scheduleEngagementRescore(int page) {
     _engagementRescoreTimer?.cancel();
-    _engagementRescoreTimer = Timer(_engagementRescoreDelay, () {
+    _engagementRescoreTimer =
+        Timer(_SingleShortViewState._engagementRescoreDelay, () {
       if (!mounted || page != currentPage) return;
       if (page < 0 || page >= shorts.length) return;
       final vp = _videoControllers[page];
@@ -124,9 +125,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       final progress = (pos / dur).clamp(0.0, 1.0);
       final now = DateTime.now();
       final shouldPersistByTime = _lastProgressPersistAt == null ||
-          now.difference(_lastProgressPersistAt!) >= _progressPersistInterval;
-      final shouldPersistByDelta =
-          (progress - _lastPersistedProgress).abs() >= _progressPersistDelta;
+          now.difference(_lastProgressPersistAt!) >=
+              _SingleShortViewState._progressPersistInterval;
+      final shouldPersistByDelta = (progress - _lastPersistedProgress).abs() >=
+          _SingleShortViewState._progressPersistDelta;
       final shouldPersist =
           shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 

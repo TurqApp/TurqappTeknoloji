@@ -927,13 +927,13 @@ extension ShortsContentBodyPart on ShortsContent {
             child: _isBlackBadgeUser
                 ? Obx(() {
                     final alreadyFlagged =
-                        _flaggedPostIds.contains(model.docID);
+                        ShortsContent._flaggedPostIds.contains(model.docID);
                     return PullDownButton(
                       itemBuilder: (context) {
                         if (alreadyFlagged) {
                           return const <PullDownMenuEntry>[];
                         }
-                        return _flagReasons
+                        return ShortsContent._flagReasons
                             .map(
                               (reason) => PullDownMenuItem(
                                 onTap: () async {
@@ -945,7 +945,8 @@ extension ShortsContentBodyPart on ShortsContent {
                                       reason: reason,
                                     );
                                     if (result.isOk) {
-                                      _flaggedPostIds.add(model.docID);
+                                      ShortsContent._flaggedPostIds
+                                          .add(model.docID);
                                     }
                                     if (result.accepted) {
                                       AppSnackbar(
