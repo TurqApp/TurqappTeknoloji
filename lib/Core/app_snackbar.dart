@@ -2,6 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+String? _lastSnackbarSignature;
+DateTime? _lastSnackbarAt;
+const Duration _snackbarDedupWindow = Duration(milliseconds: 1200);
+
 class _AppSnackbarPalette {
   final Color background;
   final Color border;
@@ -33,6 +37,15 @@ void AppSnackbar(
 }) {
   final normalizedTitle = _normalizeSnackbarText(title);
   final normalizedMessage = _normalizeSnackbarText(message);
+  final signature = '$normalizedTitle|$normalizedMessage';
+  final now = DateTime.now();
+  if (_lastSnackbarSignature == signature &&
+      _lastSnackbarAt != null &&
+      now.difference(_lastSnackbarAt!) < _snackbarDedupWindow) {
+    return;
+  }
+  _lastSnackbarSignature = signature;
+  _lastSnackbarAt = now;
   final palette = _resolvePalette(
     title: normalizedTitle,
     message: normalizedMessage,
