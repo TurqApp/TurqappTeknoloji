@@ -749,7 +749,6 @@ class StoryMakerController extends GetxController {
     const height = 140.0;
     // Playground merkezine konumla (Stack'in 0,0'ı playground'ın üstü)
     final screenW = Get.width;
-    final screenH = Get.height;
     final keyboardInset = Get.mediaQuery.viewInsets.bottom;
     final playgroundHeight =
         _availablePlaygroundHeight(includeMediaLookTools: false);

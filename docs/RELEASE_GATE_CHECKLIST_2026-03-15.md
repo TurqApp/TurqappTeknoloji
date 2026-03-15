@@ -19,17 +19,27 @@ bash scripts/run_release_gate_checks.sh
 
 ### Smoke
 - Amaç: script + endpoint + threshold hattını kısa profilde doğrulamak
-- Varsayılan mod: `search_only`
+- Tüm anlamlı `k6` modları için `ID_TOKEN` gerekir
+- `ID_TOKEN` yoksa release gate script smoke turunu bilinçli olarak atlar
+
+```bash
+RUN_K6_SMOKE=1 \
+ID_TOKEN=<firebase-id-token> \
+bash scripts/run_release_gate_checks.sh
+```
+
+Auth'lu search smoke:
 
 ```bash
 RUN_K6_SMOKE=1 \
 K6_MODE=search_only \
+ID_TOKEN=<firebase-id-token> \
 bash scripts/run_release_gate_checks.sh
 ```
 
 ### Feed Only
 - Amaç: feed okuma gecikmesi ve hata oranı
-- Not: anlamlı sonuç için auth/context gerekir
+- Not: auth/context gerekir
 
 ```bash
 k6 run \

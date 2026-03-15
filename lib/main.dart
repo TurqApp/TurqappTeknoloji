@@ -205,8 +205,8 @@ class MyApp extends StatelessWidget {
         navigatorObservers: [routeObserver],
         routingCallback: (routing) {
           if (routing == null) return;
-          final current = routing.current ?? '';
-          final previous = routing.previous ?? '';
+          final current = routing.current;
+          final previous = routing.previous;
           if (current == previous) return;
           unawaited(AudioFocusCoordinator.instance.pauseAllAudioPlayers());
         },
