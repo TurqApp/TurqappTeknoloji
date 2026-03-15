@@ -73,71 +73,55 @@ class StoryMaker extends StatelessWidget {
       final presets = StoryMakerController.supportedMediaLookPresets;
       return Container(
         margin: const EdgeInsets.fromLTRB(15, 0, 15, 8),
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            const Row(
-              children: [
-                Icon(
-                  CupertinoIcons.slider_horizontal_3,
-                  size: 15,
-                  color: Colors.white70,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Görünüm',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontFamily: "MontserratBold",
+            ...presets.asMap().entries.map((entry) {
+              final index = entry.key;
+              final preset = entry.value;
+              final isSelected = media.mediaLookPreset == preset;
+              final label = _mediaLookLabels[preset] ?? preset;
+              final icon = _mediaLookIcons[preset] ?? CupertinoIcons.circle;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: index == presets.length - 1 ? 0 : 8,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: presets.map((preset) {
-                  final isSelected = media.mediaLookPreset == preset;
-                  final label = _mediaLookLabels[preset] ?? preset;
-                  final icon = _mediaLookIcons[preset] ?? CupertinoIcons.circle;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: GestureDetector(
-                      onTap: () => controller.setCurrentMediaLookPreset(preset),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 9,
+                  child: GestureDetector(
+                    onTap: () => controller.setCurrentMediaLookPreset(preset),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.white : Colors.white10,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.12),
                         ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.white : Colors.white10,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            icon,
+                            size: 14,
+                            color: isSelected ? Colors.black : Colors.white,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              icon,
-                              size: 14,
-                              color: isSelected ? Colors.black : Colors.white,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
                               label,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: isSelected ? Colors.black : Colors.white,
                                 fontSize: 12,
@@ -146,14 +130,14 @@ class StoryMaker extends StatelessWidget {
                                     : "MontserratMedium",
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
+                  ),
+                ),
+              );
+            }),
           ],
         ),
       );

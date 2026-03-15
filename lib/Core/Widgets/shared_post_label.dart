@@ -11,6 +11,7 @@ class SharedPostLabel extends StatefulWidget {
   final String labelSuffix;
   final Color textColor;
   final double fontSize;
+  final bool showBackdrop;
 
   const SharedPostLabel({
     super.key,
@@ -19,6 +20,7 @@ class SharedPostLabel extends StatefulWidget {
     this.labelSuffix = '',
     this.textColor = Colors.grey,
     this.fontSize = 12,
+    this.showBackdrop = false,
   });
 
   @override
@@ -57,7 +59,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
     }
 
     // Önce cache'ten kontrol et
-    final cachedName = ReshareHelper.getCachedDisplayName(effectiveUserID);
+    final cachedName = ReshareHelper.getCachedNickname(effectiveUserID);
 
     if (cachedName != null) {
       // Cache'te var, direkt kullan
@@ -76,7 +78,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
 
         try {
           final displayName =
-              await ReshareHelper.getUserDisplayName(effectiveUserID);
+              await ReshareHelper.getUserNickname(effectiveUserID);
           if (mounted) {
             setState(() {
               _displayName = displayName.trim().isNotEmpty &&
@@ -113,10 +115,11 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
 
     // Nickname varsa göster
     if (_displayName != null) {
-      final isLightOverlay = widget.textColor == Colors.white;
+      final useBackdrop = widget.showBackdrop || widget.textColor == Colors.white;
       final labelText =
           'Kimden: $_displayName${widget.labelSuffix.isEmpty ? '' : ' ${widget.labelSuffix.trim()}'}';
       return GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           // Kendi ID'si ise tıklanabilir olmasın
           final currentUserID = FirebaseAuth.instance.currentUser?.uid;
@@ -124,7 +127,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
             Get.to(() => SocialProfile(userID: effectiveUserID));
           }
         },
-        child: isLightOverlay
+        child: useBackdrop
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: BackdropFilter(
@@ -157,16 +160,19 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
               )
             : ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 240),
-                child: Text(
-                  labelText,
-                  style: TextStyle(
-                    color: widget.textColor,
-                    fontSize: widget.fontSize,
-                    fontWeight: FontWeight.w500,
-                    fontStyle: FontStyle.normal,
+                child: Container(
+                  color: Colors.transparent,
+                  child: Text(
+                    labelText,
+                    style: TextStyle(
+                      color: widget.textColor,
+                      fontSize: widget.fontSize,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: FontStyle.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
       );

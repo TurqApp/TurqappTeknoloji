@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -186,16 +185,6 @@ class StoryTextWidget extends StatelessWidget {
         angle: element.rotation,
         child: GestureDetector(
           onTap: () async {
-            if (isSourceBadge && element.stickerData.trim().isNotEmpty) {
-              final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-              if (element.stickerData.trim() != currentUserId) {
-                await Get.to(
-                  () => SocialProfile(userID: element.stickerData.trim()),
-                );
-              }
-              return;
-            }
-
             if (element.stickerType == 'link' &&
                 element.stickerData.isNotEmpty) {
               final uri = Uri.tryParse(element.stickerData.trim());

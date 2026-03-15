@@ -84,23 +84,24 @@ class PostStoryShareService {
     PostsModel model,
     String userId,
   ) async {
-    if (model.quotedPost && model.quotedSourceDisplayName.trim().isNotEmpty) {
-      return model.quotedSourceDisplayName.trim();
-    }
     if (userId == model.userID.trim() && model.authorNickname.trim().isNotEmpty) {
       return model.authorNickname.trim();
-    }
-
-    final displayName = await ReshareHelper.getUserDisplayName(userId);
-    if (displayName.trim().isNotEmpty &&
-        displayName.trim() != 'Bilinmeyen Kullanıcı') {
-      return displayName.trim();
     }
 
     final nickname = await ReshareHelper.getUserNickname(userId);
     if (nickname.trim().isNotEmpty &&
         nickname.trim() != 'Bilinmeyen Kullanıcı') {
       return nickname.trim();
+    }
+
+    if (model.quotedPost && model.quotedSourceDisplayName.trim().isNotEmpty) {
+      return model.quotedSourceDisplayName.trim();
+    }
+
+    final displayName = await ReshareHelper.getUserDisplayName(userId);
+    if (displayName.trim().isNotEmpty &&
+        displayName.trim() != 'Bilinmeyen Kullanıcı') {
+      return displayName.trim();
     }
 
     return model.authorNickname.trim();
