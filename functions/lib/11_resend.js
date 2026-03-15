@@ -40,7 +40,11 @@ function parsePurpose(raw) {
     return VALID_PURPOSES.includes(value) ? value : "signup";
 }
 function normalizePhone(raw) {
-    return String(raw || "").replace(/[^0-9]/g, "");
+    const digits = String(raw || "").replace(/[^0-9]/g, "");
+    if (digits.length >= 10) {
+        return digits.substring(digits.length - 10);
+    }
+    return digits;
 }
 function requiredEnv(name) {
     const value = String(process.env[name] || "").trim();
@@ -70,6 +74,45 @@ function isNetgsmSuccessResponse(rawBody) {
         return false;
     const code = Number(match[1]);
     return Number.isFinite(code) && code === 0;
+}
+function buildNetgsmOtpXml(phone, verificationCode) {
+    const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
+    const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
+    const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
+    return `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
+}
+async function sendNetgsmOtp(phone, verificationCode) {
+    const xml = buildNetgsmOtpXml(phone, verificationCode);
+    const response = await axios_1.default.post(NETGSM_ENDPOINT, xml, {
+        headers: {
+            "Content-Type": "application/xml",
+        },
+        timeout: 15000,
+    });
+    return String(response.data || "").trim();
+}
+async function isPhoneAlreadyInUse(phone) {
+    const phoneAccountSnap = await db.collection("phoneAccounts").doc(phone).get();
+    if (phoneAccountSnap.exists) {
+        const data = phoneAccountSnap.data() || {};
+        const count = Number(data.count || 0);
+        const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+        if (count > 0 || accounts.length > 0) {
+            return true;
+        }
+    }
+    const candidates = Array.from(new Set([phone, `+90${phone}`, `0${phone}`]));
+    for (const candidate of candidates) {
+        const existingUser = await db
+            .collection("users")
+            .where("phoneNumber", "==", candidate)
+            .limit(1)
+            .get();
+        if (!existingUser.empty) {
+            return true;
+        }
+    }
+    return false;
 }
 async function assertSignupIdentityAvailable(emailRaw, nicknameRaw) {
     const email = String(emailRaw || "").trim().toLowerCase();
@@ -553,17 +596,7 @@ exports.sendPasswordResetSmsCode = (0, https_1.onCall)({
             }
         }
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
-        const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
-        const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
-        const xml = `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
-        const response = await axios_1.default.post(NETGSM_ENDPOINT, xml, {
-            headers: {
-                "Content-Type": "application/xml",
-            },
-            timeout: 15000,
-        });
-        const netgsmBody = String(response.data || "").trim();
+        const netgsmBody = await sendNetgsmOtp(phone, verificationCode);
         if (!isNetgsmSuccessResponse(netgsmBody)) {
             console.error("sendPasswordResetSmsCode netgsm-error", {
                 hasUser: uid.length > 0,
@@ -613,12 +646,7 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
             throw new https_1.HttpsError("invalid-argument", "Telefon numarası 5 ile başlayan 10 hane olmalı");
         }
         (0, rateLimiter_1.enforceRateLimitForKey)(phone, "signup_sms_send", 4, 900);
-        const existingUser = await db
-            .collection("users")
-            .where("phoneNumber", "==", phone)
-            .limit(1)
-            .get();
-        if (!existingUser.empty) {
+        if (await isPhoneAlreadyInUse(phone)) {
             throw new https_1.HttpsError("already-exists", "Bu telefon numarası zaten kullanımda");
         }
         const smsRef = signupSmsRef(phone);
@@ -634,17 +662,7 @@ exports.sendSignupSmsCode = (0, https_1.onCall)({
             }
         }
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const netgsmUserCode = requiredEnv("NETGSM_USERCODE");
-        const netgsmPassword = requiredEnv("NETGSM_PASSWORD");
-        const netgsmMsgHeader = String(process.env.NETGSM_MSG_HEADER || "TurqApp").trim() || "TurqApp";
-        const xml = `<?xml version="1.0"?><mainbody><header><usercode>${netgsmUserCode}</usercode><password>${netgsmPassword}</password><msgheader>${netgsmMsgHeader}</msgheader></header><body><msg><![CDATA[${verificationCode} TurqApp hesabı doğrulama kodunuzdur.]]></msg><no>${phone}</no></body></mainbody>`;
-        const response = await axios_1.default.post(NETGSM_ENDPOINT, xml, {
-            headers: {
-                "Content-Type": "application/xml",
-            },
-            timeout: 15000,
-        });
-        const netgsmBody = String(response.data || "").trim();
+        const netgsmBody = await sendNetgsmOtp(phone, verificationCode);
         if (!isNetgsmSuccessResponse(netgsmBody)) {
             console.error("sendSignupSmsCode netgsm-error", {
                 phonePresent: phone.length > 0,
