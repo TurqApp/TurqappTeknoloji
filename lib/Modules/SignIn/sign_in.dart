@@ -760,7 +760,9 @@ class SignIn extends StatelessWidget {
                   ),
 
                   GestureDetector(
-                    onTap: () async {
+                    onTap: controller.signupIdentityCheckLoading.value
+                        ? null
+                        : () async {
                       final canContinue =
                           await controller.validateSignupIdentityStep();
                       if (!canContinue) return;
@@ -780,14 +782,18 @@ class SignIn extends StatelessWidget {
                           Radius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        "İleri",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
+                      child: controller.signupIdentityCheckLoading.value
+                          ? const CupertinoActivityIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text(
+                              "İleri",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -1081,7 +1087,9 @@ class SignIn extends StatelessWidget {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
+                    onTap: controller.otpRequestInFlight.value
+                        ? null
+                        : () {
                       final nameOk =
                           controller.firstNameController.text.trim().length >=
                               3;
@@ -1106,14 +1114,18 @@ class SignIn extends StatelessWidget {
                         color: Colors.black,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text(
-                        "İleri",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                      ),
+                      child: controller.otpRequestInFlight.value
+                          ? const CupertinoActivityIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text(
+                              "İleri",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontFamily: "MontserratMedium",
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -1217,7 +1229,9 @@ class SignIn extends StatelessWidget {
                         width: 12,
                       ),
                       Obx(() => GestureDetector(
-                            onTap: controller.otpTimer.value == 0
+                            onTap: controller.otpRequestInFlight.value
+                                ? null
+                                : controller.otpTimer.value == 0
                                 ? () => controller.sendOtpCode()
                                 : null,
                             child: Text(
@@ -1227,7 +1241,9 @@ class SignIn extends StatelessWidget {
                                       ? "Tekrar Gönder"
                                       : "Tekrar Gönder (${controller.otpTimer.value} sn)",
                               style: TextStyle(
-                                color: controller.otpTimer.value == 0
+                                color: controller.otpRequestInFlight.value
+                                    ? Colors.grey
+                                    : controller.otpTimer.value == 0
                                     ? Colors.blueAccent
                                     : Colors.grey,
                                 fontSize: 15,
@@ -1421,7 +1437,9 @@ class SignIn extends StatelessWidget {
                   ),
                   Obx(() => controller.isValidEmail(controller.resetMail.value)
                       ? GestureDetector(
-                          onTap: controller.otpTimerReset.value == 0
+                          onTap: controller.resetOtpRequestInFlight.value
+                              ? null
+                              : controller.otpTimerReset.value == 0
                               ? () => controller.sendOtpCodeForReset()
                               : null,
                           child: Text(
@@ -1431,7 +1449,9 @@ class SignIn extends StatelessWidget {
                                     ? "Tekrar Gönder"
                                     : "Tekrar Gönder (${controller.otpTimerReset.value} sn)",
                             style: TextStyle(
-                              color: controller.otpTimerReset.value == 0
+                              color: controller.resetOtpRequestInFlight.value
+                                  ? Colors.grey
+                                  : controller.otpTimerReset.value == 0
                                   ? Colors.blueAccent
                                   : Colors.grey,
                               fontSize: 15,

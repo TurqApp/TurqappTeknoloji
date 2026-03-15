@@ -74,6 +74,7 @@ class SignInController extends GetxController
   var emailAvilable = false.obs;
   var passwordAvilable = false.obs;
   var wait = false.obs;
+  var signupIdentityCheckLoading = false.obs;
   var showPassword = false.obs;
   var showNewPassword = false.obs;
   var showNewPasswordRepeat = false.obs;
@@ -93,6 +94,7 @@ class SignInController extends GetxController
   var otpTimerReset = 0.obs;
   Timer? _timerReset;
   var resetCodeRequested = false.obs;
+  var resetOtpRequestInFlight = false.obs;
 
   var signInEmail = "".obs;
   final FirebaseFunctions _functions =
@@ -107,6 +109,10 @@ class SignInController extends GetxController
   int _nicknameAvailabilityRequestId = 0;
   static const String _signupAvailabilityUrl =
       'https://europe-west3-turqappteknoloji.cloudfunctions.net/checkSignupAvailabilityHttp';
+
+  void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
+    debugPrint('[SignupOtp] $stage ${details.isEmpty ? "" : details}');
+  }
 
   void _ensureFeedTabSelected() {
     if (Get.isRegistered<NavBarController>()) {
@@ -247,6 +253,7 @@ class SignInController extends GetxController
   }
 
   void addToFirestore(BuildContext context) async {
+    if (wait.value) return;
     closeKeyboard(context);
     wait.value = true;
     var accountProvisioned = false;
@@ -479,46 +486,52 @@ class SignInController extends GetxController
   }
 
   Future<bool> validateSignupIdentityStep() async {
+    if (signupIdentityCheckLoading.value) return false;
+    signupIdentityCheckLoading.value = true;
     final emailText = emailcontroller.text.trim().toLowerCase();
     final nicknameText = nicknamecontroller.text.trim().toLowerCase();
     final pass = passwordcontroller.text;
 
-    if (!isValidEmail(emailText)) {
-      AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
-      return false;
-    }
-    if (nicknameText.length < 8) {
-      AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 8 karakter olmalı.');
-      return false;
-    }
+    try {
+      if (!isValidEmail(emailText)) {
+        AppSnackbar('Eksik Bilgi', 'Lütfen geçerli bir e-posta girin.');
+        return false;
+      }
+      if (nicknameText.length < 8) {
+        AppSnackbar('Eksik Bilgi', 'Kullanıcı adı en az 8 karakter olmalı.');
+        return false;
+      }
 
-    password.value = pass;
-    await verifyPassword();
-    if (!passwordAvilable.value) {
-      AppSnackbar(
-        'Zayıf Şifre',
-        'Şifre en az bir harf, bir sayı ve bir noktalama içermeli (min 6 karakter).',
+      password.value = pass;
+      await verifyPassword();
+      if (!passwordAvilable.value) {
+        AppSnackbar(
+          'Zayıf Şifre',
+          'Şifre en az bir harf, bir sayı ve bir noktalama içermeli (min 6 karakter).',
+        );
+        return false;
+      }
+
+      final availability = await _checkSignupAvailabilityHttp(
+        email: emailText,
+        nickname: nicknameText,
+        showServiceError: true,
       );
-      return false;
+      emailAvilable.value = availability.emailAvailable;
+      nicknameAvilable.value = availability.nicknameAvailable;
+      if (!availability.reachable) return false;
+      if (!availability.emailAvailable) {
+        AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
+        return false;
+      }
+      if (!availability.nicknameAvailable) {
+        AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
+        return false;
+      }
+      return true;
+    } finally {
+      signupIdentityCheckLoading.value = false;
     }
-
-    final availability = await _checkSignupAvailabilityHttp(
-      email: emailText,
-      nickname: nicknameText,
-      showServiceError: true,
-    );
-    emailAvilable.value = availability.emailAvailable;
-    nicknameAvilable.value = availability.nicknameAvailable;
-    if (!availability.reachable) return false;
-    if (!availability.emailAvailable) {
-      AppSnackbar('Kullanılamaz', 'Bu e-posta zaten kullanımda.');
-      return false;
-    }
-    if (!availability.nicknameAvailable) {
-      AppSnackbar('Kullanılamaz', 'Bu kullanıcı adı zaten kullanımda.');
-      return false;
-    }
-    return true;
   }
 
   Future<({
@@ -583,8 +596,22 @@ class SignInController extends GetxController
   }
 
   Future<void> sendOtpCode() async {
-    if (otpRequestInFlight.value) return;
+    _logSignupOtp('start', {
+      'selection': selection.value,
+      'phoneLength': phoneNumber.value.trim().length,
+      'hasEmail': email.value.trim().isNotEmpty,
+      'hasNickname': nickname.value.trim().isNotEmpty,
+      'timer': otpTimer.value,
+      'inFlight': otpRequestInFlight.value,
+    });
+    if (otpRequestInFlight.value) {
+      _logSignupOtp('blocked_in_flight');
+      return;
+    }
     if (signupCodeRequested.value && otpTimer.value > 0) {
+      _logSignupOtp('blocked_timer', {
+        'remainingSec': otpTimer.value,
+      });
       AppSnackbar(
         "Bekleyin",
         "Yeni kod için ${otpTimer.value} saniye bekleyin.",
@@ -594,6 +621,9 @@ class SignInController extends GetxController
 
     final phone = phoneNumber.value.trim();
     if (phone.length != 10 || !phone.startsWith('5')) {
+      _logSignupOtp('invalid_phone', {
+        'phone': phone,
+      });
       AppSnackbar(
         "Geçersiz Telefon",
         "Lütfen 5 ile başlayan 10 haneli telefon numarası girin.",
@@ -603,19 +633,36 @@ class SignInController extends GetxController
 
     otpRequestInFlight.value = true;
     try {
-      await _functions.httpsCallable('sendSignupSmsCode').call({
+      final payload = {
         "phone": phone,
         "email": email.value.trim().toLowerCase(),
         "nickname": nickname.value.trim().toLowerCase(),
+      };
+      _logSignupOtp('callable_request', {
+        'phone': phone,
+        'email': payload['email'],
+        'nickname': payload['nickname'],
+      });
+      final result = await _functions.httpsCallable('sendSignupSmsCode').call(payload);
+      _logSignupOtp('callable_success', {
+        'data': result.data,
       });
       selection.value = 4;
       startOtpTimer();
       signupCodeRequested.value = true;
+      _logSignupOtp('ui_advanced_to_otp', {
+        'selection': selection.value,
+      });
       AppSnackbar(
         "Kod Gönderildi",
-        "SMS gönderildi. Kod 5 dakika geçerli.",
+        "SMS gönderildi. Kod 120 saniye geçerli.",
       );
     } on FirebaseFunctionsException catch (e) {
+      _logSignupOtp('callable_error', {
+        'code': e.code,
+        'message': e.message,
+        'details': e.details,
+      });
       String message;
       switch (e.code) {
         case 'invalid-argument':
@@ -634,16 +681,24 @@ class SignInController extends GetxController
           message = "Kod gönderilemedi. Lütfen tekrar deneyin.";
       }
       AppSnackbar("Kod Gönderilemedi", message);
-    } catch (_) {
+    } catch (e, st) {
+      _logSignupOtp('unexpected_error', {
+        'error': e.toString(),
+        'stack': st.toString().split('\n').take(3).join(' | '),
+      });
       AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
     } finally {
+      _logSignupOtp('finish', {
+        'selection': selection.value,
+        'codeRequested': signupCodeRequested.value,
+      });
       otpRequestInFlight.value = false;
     }
   }
 
   void startOtpTimer() {
     _timer?.cancel(); // Var olan timer varsa iptal et
-    otpTimer.value = 300;
+    otpTimer.value = 120;
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (otpTimer.value > 0) {
@@ -655,6 +710,7 @@ class SignInController extends GetxController
   }
 
   Future<void> sendOtpCodeForReset() async {
+    if (resetOtpRequestInFlight.value) return;
     final targetEmail = resetMailController.text.trim().toLowerCase();
     if (!isValidEmail(targetEmail)) {
       AppSnackbar("Geçersiz E-posta", "Lütfen geçerli bir e-posta girin.");
@@ -669,6 +725,7 @@ class SignInController extends GetxController
     }
 
     wait.value = true;
+    resetOtpRequestInFlight.value = true;
     try {
       await FirebaseFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('sendPasswordResetSmsCode')
@@ -710,10 +767,12 @@ class SignInController extends GetxController
       AppSnackbar("Kod Gönderilemedi", "SMS gönderilirken bir hata oluştu.");
     } finally {
       wait.value = false;
+      resetOtpRequestInFlight.value = false;
     }
   }
 
   Future<void> verifySignupOtpAndCreateAccount(BuildContext context) async {
+    if (wait.value) return;
     final phone = phoneNumber.value.trim();
     final code = otpCode.value.trim();
 
