@@ -517,7 +517,7 @@ class JobDetails extends StatelessWidget {
                           ClickableTextContent(
                             text: controller.model.value.isTanimi,
                             startWith7line: true,
-                            fontSize: 15,
+                            fontSize: 13,
                             fontColor: Colors.black,
                             mentionColor: Colors.blue,
                             hashtagColor: Colors.blue,
@@ -651,7 +651,7 @@ class JobDetails extends StatelessWidget {
                           ClickableTextContent(
                             text: controller.model.value.about,
                             startWith7line: true,
-                            fontSize: 15,
+                            fontSize: 13,
                             fontColor: Colors.black,
                             mentionColor: Colors.blue,
                             hashtagColor: Colors.blue,

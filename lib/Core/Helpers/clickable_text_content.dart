@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class ClickableTextController extends GetxController {
+  static const double defaultCaptionFontSize = 13;
   final String text;
   final void Function(String url)? onUrlTap;
   final void Function(String hashtag)? onHashtagTap;
@@ -188,28 +189,28 @@ class ClickableTextController extends GetxController {
   }
 
   TextStyle _plainStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: fontColor ?? Colors.black,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _urlStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? urlColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _hashtagStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? hashtagColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
       );
 
   TextStyle _mentionStyle() => TextStyle(
-        fontSize: fontSize ?? 15,
+        fontSize: fontSize ?? defaultCaptionFontSize,
         color: interactiveColor ?? mentionColor ?? Colors.blue,
         fontFamily: "Montserrat",
         height: 1.4,
