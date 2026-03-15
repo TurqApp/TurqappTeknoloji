@@ -173,6 +173,30 @@ class PostCreatorController extends GetxController with WidgetsBindingObserver {
   DateTime get maxIzBirakDate =>
       DateTime.now().add(const Duration(days: _maxScheduledWindowDays));
 
+  @override
+  void onInit() {
+    super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+    _initializeServices();
+    _startAutoSave();
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveTimer?.cancel();
+    _queueRingTimer?.cancel();
+    _saveCurrentDraft();
+    super.onClose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final bottomInset = view.viewInsets.bottom;
+    isKeyboardOpen.value = bottomInset > 10;
+  }
+
   DateTime? _normalizedIzBirakDateTime() {
     final picked = izBirakDateTime.value;
     if (publishMode.value != 1 || picked == null) return null;

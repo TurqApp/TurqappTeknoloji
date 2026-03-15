@@ -276,6 +276,88 @@ class AgendaController extends GetxController {
     super.onClose();
   }
 
+  Future<void> addNewReshareEntryWithoutScroll(
+    String postId,
+    String reshareUserID,
+  ) async {
+    try {
+      final currentOffset =
+          scrollController.hasClients ? scrollController.offset : 0.0;
+      final post = agendaList.firstWhereOrNull((p) => p.docID == postId);
+      if (post == null) {
+        final fetchedPost = await _postRepository.fetchPostById(
+          postId,
+          preferCache: true,
+        );
+        if (fetchedPost == null) return;
+        if (!await _canViewerSeePost(fetchedPost)) return;
+
+        final reshareEntry = {
+          'type': 'reshare',
+          'post': fetchedPost,
+          'reshareTimestamp': DateTime.now().millisecondsSinceEpoch,
+          'reshareUserID': reshareUserID,
+          'originalUserID': fetchedPost.originalUserID.isNotEmpty
+              ? fetchedPost.originalUserID
+              : fetchedPost.userID,
+          'originalPostID': fetchedPost.originalPostID.isNotEmpty
+              ? fetchedPost.originalPostID
+              : fetchedPost.docID,
+        };
+
+        feedReshareEntries.insert(0, reshareEntry);
+      } else {
+        if (!await _canViewerSeePost(post)) return;
+        final reshareEntry = {
+          'type': 'reshare',
+          'post': post,
+          'reshareTimestamp': DateTime.now().millisecondsSinceEpoch,
+          'reshareUserID': reshareUserID,
+          'originalUserID': post.originalUserID.isNotEmpty
+              ? post.originalUserID
+              : post.userID,
+          'originalPostID':
+              post.originalPostID.isNotEmpty ? post.originalPostID : post.docID,
+        };
+
+        feedReshareEntries.insert(0, reshareEntry);
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (scrollController.hasClients) {
+          await scrollController.animateTo(
+            currentOffset,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (e) {
+      print('addNewReshareEntryWithoutScroll error: $e');
+    }
+  }
+
+  void removeReshareEntry(String postId, String reshareUserID) {
+    try {
+      feedReshareEntries.removeWhere((entry) {
+        final entryPost = entry['post'] as PostsModel;
+        final entryUserID = (entry['reshareUserID'] ?? '').toString();
+        final entryOriginalPostID =
+            (entry['originalPostID'] ?? '').toString().trim();
+        final entryPostID = entryPost.docID.trim();
+        final normalizedTarget = postId.trim();
+        final matchesPost = entryPostID == normalizedTarget ||
+            entryOriginalPostID == normalizedTarget ||
+            entryPost.originalPostID.trim() == normalizedTarget;
+        final matchesUser = entryUserID == reshareUserID;
+        return matchesPost && matchesUser;
+      });
+      feedReshareEntries.refresh();
+    } catch (e) {
+      print('removeReshareEntry error: $e');
+    }
+  }
+
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
     final prev = _visibleFractions[modelIndex];
