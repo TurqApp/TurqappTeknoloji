@@ -48,7 +48,7 @@ class PersonalizedController extends GetxController {
   final RxBool isUserDataLoaded = false.obs;
   final RxBool usedFallback = false.obs;
 
-  static const String _cacheKey = 'personalized_scholarships_cache_v1';
+  static const String _cacheKeyPrefix = 'personalized_scholarships_cache_v1';
   static const int _cacheLimit = 30;
 
   // Controllers and listeners
@@ -59,6 +59,12 @@ class PersonalizedController extends GetxController {
     super.onInit();
     _initializeData();
     _setupScrollListener();
+  }
+
+  String get _cacheKey {
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    if (uid.isEmpty) return '$_cacheKeyPrefix:guest';
+    return '$_cacheKeyPrefix:$uid';
   }
 
   @override

@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/app_snackbar.dart';
@@ -363,6 +364,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
 
       await _hideUserPosts(user.uid);
 
+      await AccountCenterService.ensure().removeAccount(user.uid);
+      await CurrentUserService.instance.logout();
       await auth.signOut();
       if (!mounted) return;
       Navigator.push(

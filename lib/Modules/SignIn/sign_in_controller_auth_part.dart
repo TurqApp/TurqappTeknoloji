@@ -183,6 +183,7 @@ extension SignInControllerAuthPart on SignInController {
       await NotificationService.instance.initialize();
       await _clearSessionCachesAfterAccountSwitch();
       await CurrentUserService.instance.forceRefresh();
+      await _trackCurrentAccountForDevice();
 
       try {
         final storyController = Get.find<StoryRowController>();
@@ -262,6 +263,7 @@ extension SignInControllerAuthPart on SignInController {
       );
       unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
       unawaited(_postLoginWarmup());
+      unawaited(_trackCurrentAccountForDevice());
 
       try {
         if (Get.isRegistered<UnreadMessagesController>()) {

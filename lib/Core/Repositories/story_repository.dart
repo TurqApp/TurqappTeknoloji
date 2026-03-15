@@ -65,7 +65,7 @@ class StoryRepository extends GetxService {
       Get.find<UserProfileCacheService>();
   final UserRepository _userRepository = UserRepository.ensure();
 
-  String? _storyRowCachePath;
+  String? _storyRowCacheDirectoryPath;
   SharedPreferences? _prefs;
 
   static DateTime get _storyExpiryCutoff =>
@@ -110,13 +110,20 @@ class StoryRepository extends GetxService {
 
   Future<void> _ensureInitialized() async {
     _prefs ??= await SharedPreferences.getInstance();
-    if (_storyRowCachePath != null) return;
+    if (_storyRowCacheDirectoryPath != null) return;
     final dir = await getApplicationSupportDirectory();
     final storyDir = Directory('${dir.path}/story_mini_cache');
     if (!await storyDir.exists()) {
       await storyDir.create(recursive: true);
     }
-    _storyRowCachePath = '${storyDir.path}/story_row_v2.json';
+    _storyRowCacheDirectoryPath = storyDir.path;
+  }
+
+  String? _storyRowCachePathForOwner(String ownerUid) {
+    final dir = _storyRowCacheDirectoryPath;
+    final normalizedUid = ownerUid.trim();
+    if (dir == null || normalizedUid.isEmpty) return null;
+    return '$dir/story_row_v2_$normalizedUid.json';
   }
 
   Future<StoryFetchResult> fetchStoryUsers({
@@ -254,7 +261,7 @@ class StoryRepository extends GetxService {
   }) async {
     if (list.isEmpty) return;
     await _ensureInitialized();
-    final path = _storyRowCachePath;
+    final path = _storyRowCachePathForOwner(ownerUid);
     if (path == null) return;
     try {
       final payload = {
@@ -274,7 +281,7 @@ class StoryRepository extends GetxService {
     bool allowExpired = false,
   }) async {
     await _ensureInitialized();
-    final path = _storyRowCachePath;
+    final path = _storyRowCachePathForOwner(ownerUid);
     if (path == null) return const <StoryUserModel>[];
     try {
       final file = File(path);
@@ -284,11 +291,7 @@ class StoryRepository extends GetxService {
       final data = jsonDecode(raw);
       if (data is! Map) return const <StoryUserModel>[];
       final cacheOwnerUid = (data['ownerUid'] ?? '').toString();
-      if (ownerUid.isNotEmpty &&
-          (cacheOwnerUid.isEmpty || cacheOwnerUid != ownerUid)) {
-        try {
-          await file.delete();
-        } catch (_) {}
+      if (cacheOwnerUid.isNotEmpty && cacheOwnerUid != ownerUid) {
         return const <StoryUserModel>[];
       }
       final savedAt = (data['savedAt'] as num?)?.toInt() ?? 0;
@@ -325,9 +328,9 @@ class StoryRepository extends GetxService {
     }
   }
 
-  Future<void> clearStoryRowCacheForCurrentUser() async {
+  Future<void> clearStoryRowCacheForCurrentUser(String ownerUid) async {
     await _ensureInitialized();
-    final path = _storyRowCachePath;
+    final path = _storyRowCachePathForOwner(ownerUid);
     if (path == null) return;
     try {
       final file = File(path);

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_controller.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../Core/Helpers/custom_nickname_formatter.dart';
@@ -13,7 +14,17 @@ part 'sign_in_auth_part.dart';
 part 'sign_in_signup_part.dart';
 
 class SignIn extends StatelessWidget {
-  SignIn({super.key});
+  SignIn({
+    super.key,
+    this.initialIdentifier = '',
+    this.storedAccountUid = '',
+  }) {
+    controller.prepareSignInPrefill(initialIdentifier);
+    controller.prepareStoredAccountContext(storedAccountUid);
+  }
+
+  final String initialIdentifier;
+  final String storedAccountUid;
 
   final controller = Get.put(SignInController());
 

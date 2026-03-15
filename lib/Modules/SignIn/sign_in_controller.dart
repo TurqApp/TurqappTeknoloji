@@ -11,15 +11,15 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
-import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/notification_service.dart';
-import 'package:turqappv2/Modules/Agenda/Common/post_content_controller.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
+import 'package:turqappv2/Models/stored_account.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/phone_account_limiter.dart';
@@ -81,6 +81,7 @@ class SignInController extends GetxController
   var showNewPasswordRepeat = false.obs;
 
   var isFormValid = false.obs;
+  final Rxn<StoredAccount> selectedStoredAccount = Rxn<StoredAccount>();
 
   var otpTimer = 0.obs;
   Timer? _timer;
@@ -132,25 +133,74 @@ class SignInController extends GetxController
   }
 
   Future<void> _clearSessionCachesAfterAccountSwitch() async {
-    try {
-      if (Get.isRegistered<UserProfileCacheService>()) {
-        await Get.find<UserProfileCacheService>().clearAll();
-      }
-      PostContentController.clearUserProfileCache();
-      if (Get.isRegistered<StoryRowController>()) {
-        await Get.find<StoryRowController>().clearSessionCache();
-      }
-      if (Get.isRegistered<AgendaController>()) {
-        final agenda = Get.find<AgendaController>();
-        agenda.agendaList.clear();
-        await agenda.refreshAgenda();
-      }
-    } catch (_) {}
+    // User switch should preserve global content caches.
+    // Warmup methods refresh user-scoped overlays and controllers afterward.
   }
 
   Future<void> _restoreAccountIfPendingDeletion() async {
     await CurrentUserService.instance
         .restorePendingDeletionIfNeededForCurrentUser();
+  }
+
+  Future<void> _trackCurrentAccountForDevice() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (firebaseUser == null || currentUser == null) return;
+    final service = AccountCenterService.ensure();
+    await service.init();
+    await service.addCurrentAccount(
+      currentUser: currentUser,
+      firebaseUser: firebaseUser,
+    );
+    await service.markSuccessfulSignIn(firebaseUser.uid);
+  }
+
+  void prepareSignInPrefill(String identifier) {
+    final normalized = identifier.trim();
+    if (normalized.isEmpty) {
+      emailcontroller.clear();
+      passwordcontroller.clear();
+      email.value = '';
+      password.value = '';
+      signInEmail.value = '';
+      selection.value = 0;
+      return;
+    }
+    emailcontroller.text = normalized;
+    email.value = normalized;
+    signInEmail.value = normalized.contains('@') ? normalized : '';
+    passwordcontroller.clear();
+    password.value = '';
+    selection.value = 1;
+  }
+
+  void prepareStoredAccountContext(String uid) {
+    final normalized = uid.trim();
+    if (normalized.isEmpty) {
+      selectedStoredAccount.value = null;
+      return;
+    }
+    selectedStoredAccount.value =
+        AccountCenterService.ensure().accountByUid(normalized);
+  }
+
+  void continueWithStoredAccount(StoredAccount account) {
+    prepareSignInPrefill(account.username);
+    selectedStoredAccount.value = account;
+  }
+
+  void clearStoredAccountContext() {
+    selectedStoredAccount.value = null;
+  }
+
+  void maybeClearStoredAccountContextForIdentifier(String identifier) {
+    final selected = selectedStoredAccount.value;
+    if (selected == null) return;
+    final normalized = identifier.trim().toLowerCase();
+    final selectedUsername = selected.username.trim().toLowerCase();
+    if (normalized.isEmpty || normalized != selectedUsername) {
+      selectedStoredAccount.value = null;
+    }
   }
 
   @override

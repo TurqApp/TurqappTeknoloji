@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import '../main.dart'; // navigatorKey için
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'NotifyReader/notify_reader_controller.dart';
 
 @pragma('vm:entry-point')
@@ -39,6 +40,7 @@ class NotificationService {
   StreamSubscription<User?>? _authStateSub;
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   bool _isHandlingTap = false;
+  static const String _fcmTokenKeyPrefix = 'fcm_token';
 
   Future<void> initialize() async {
     if (!_bgRegistered) {
@@ -75,10 +77,11 @@ class NotificationService {
 
   Future<void> _persistToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('fcm_token');
     if (token.isEmpty) return;
 
     final user = FirebaseAuth.instance.currentUser;
+    final tokenKey = _tokenPrefsKey(user?.uid);
+    final saved = prefs.getString(tokenKey);
     if (user != null) {
       await UserRepository.ensure().updateUserFields(
         user.uid,
@@ -87,7 +90,7 @@ class NotificationService {
     }
 
     if (token != saved) {
-      await prefs.setString('fcm_token', token);
+      await prefs.setString(tokenKey, token);
     }
   }
 
@@ -284,9 +287,9 @@ class NotificationService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final myToken = prefs.getString('fcm_token');
       final fromUid = FirebaseAuth.instance.currentUser?.uid ?? '';
       if (fromUid.isEmpty) return;
+      final myToken = prefs.getString(_tokenPrefsKey(fromUid));
 
       final targetUid = (targetUserID != null && targetUserID.trim().isNotEmpty)
           ? targetUserID.trim()
@@ -332,6 +335,10 @@ class NotificationService {
     _tokenRefreshSub = null;
     _authStateSub = null;
     _foregroundMessageSub = null;
+  }
+
+  String _tokenPrefsKey(String? uid) {
+    return userScopedKey(_fcmTokenKeyPrefix, uid: uid, guestFallback: '');
   }
 }
 

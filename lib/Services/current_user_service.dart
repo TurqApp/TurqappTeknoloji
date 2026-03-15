@@ -125,8 +125,9 @@ class CurrentUserService extends GetxController {
   SharedPreferences? _prefs;
   StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
 
-  static const String _cacheKey = 'cached_current_user';
-  static const String _cacheTimestampKey = 'cached_current_user_timestamp';
+  static const String _cacheKeyPrefix = 'cached_current_user';
+  static const String _cacheTimestampKeyPrefix = 'cached_current_user_timestamp';
+  static const String _activeCacheUidKey = 'cached_current_user_active_uid';
   static const String _viewSelectionPrefKeyPrefix =
       'preferred_feed_view_selection';
   static const String _emailPromptTimestampKeyPrefix =
@@ -197,10 +198,6 @@ class CurrentUserService extends GetxController {
       // Different user or first init - reload everything
       if (_currentUser != null && _currentUser!.userID != firebaseUser.uid) {
         _purgeUserScopedCaches(_currentUser!.userID);
-        await _clearCache();
-        if (Get.isRegistered<UserProfileCacheService>()) {
-          await Get.find<UserProfileCacheService>().clearAll();
-        }
       }
       // 1️⃣ Try loading from cache first (FAST - ~10ms)
       final cacheLoaded = await _loadFromCache(expectedUid: firebaseUser.uid);
@@ -817,11 +814,8 @@ class CurrentUserService extends GetxController {
     try {
       final oldUid = _currentUser?.userID;
       await _stopFirebaseSync();
-      await _clearCache();
+      await _clearCache(oldUid);
       _purgeUserScopedCaches(oldUid);
-      if (Get.isRegistered<UserProfileCacheService>()) {
-        await Get.find<UserProfileCacheService>().clearAll();
-      }
       if (Get.isRegistered<FollowRepository>()) {
         await Get.find<FollowRepository>().clearAll();
       }
@@ -875,7 +869,8 @@ class CurrentUserService extends GetxController {
       'isSyncing': _isSyncing,
       'userId': userId,
       'nickname': nickname,
-      'cacheExists': _prefs?.containsKey(_cacheKey) ?? false,
+      'cacheExists':
+          userId.isNotEmpty ? (_prefs?.containsKey(_cacheKey(userId)) ?? false) : false,
     };
   }
 
@@ -889,4 +884,5 @@ class CurrentUserService extends GetxController {
     });
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
+
 }

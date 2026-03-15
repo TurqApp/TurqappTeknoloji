@@ -59,9 +59,15 @@ class ScholarshipsController extends GetxController {
   final RxInt totalCount = 0.obs;
   Timer? _searchDebounce;
   final int minSearchLength = 2; // minimum search query length
-  static const String _scholarshipsCacheKey = 'scholarships_cache_v1';
+  static const String _scholarshipsCacheKeyPrefix = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
   int _searchRequestToken = 0;
+
+  String get _scholarshipsCacheKey {
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    if (uid.isEmpty) return '$_scholarshipsCacheKeyPrefix:guest';
+    return '$_scholarshipsCacheKeyPrefix:$uid';
+  }
 
   bool get hasActiveSearch => searchQuery.value.length >= minSearchLength;
 

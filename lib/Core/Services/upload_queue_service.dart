@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:get/get.dart';
@@ -12,6 +13,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
@@ -85,6 +87,7 @@ class UploadQueueService extends GetxController {
   final RxBool _isPaused = false.obs;
   final RxInt _failedCount = 0.obs;
   final RxInt _completedCount = 0.obs;
+  StreamSubscription<User?>? _authSub;
 
   List<QueuedUpload> get queue => _queue;
   bool get isProcessing => _isProcessing.value;
@@ -94,7 +97,7 @@ class UploadQueueService extends GetxController {
   int get pendingCount =>
       _queue.where((item) => item.status == UploadStatus.pending).length;
 
-  static const String _queueKey = 'upload_queue';
+  static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
@@ -133,6 +136,13 @@ class UploadQueueService extends GetxController {
     super.onInit();
     _loadQueueFromStorage();
     _listenToConnectivity();
+    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+      unawaited(_loadQueueFromStorage());
+    });
+  }
+
+  String get _queueKey {
+    return userScopedKey(_queueKeyPrefix);
   }
 
   String _queueFingerprintForMap(Map<String, dynamic> data) {
@@ -923,6 +933,9 @@ class UploadQueueService extends GetxController {
   Future<void> _loadQueueFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final queueString = prefs.getString(_queueKey);
+    _queue.clear();
+    _completedCount.value = 0;
+    _failedCount.value = 0;
 
     if (queueString != null) {
       final queueJson = jsonDecode(queueString) as List;
@@ -969,5 +982,11 @@ class UploadQueueService extends GetxController {
       'processing': _isProcessing.value,
       'paused': _isPaused.value,
     };
+  }
+
+  @override
+  void onClose() {
+    _authSub?.cancel();
+    super.onClose();
   }
 }

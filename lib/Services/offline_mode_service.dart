@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,15 +26,16 @@ class OfflineModeService extends GetxController {
   final RxList<PendingAction> deadLetterActions = <PendingAction>[].obs;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  StreamSubscription<User?>? _authSubscription;
   Timer? _retryTimer;
   SharedPreferences? _prefs;
   bool _isProcessing = false;
 
-  static const String _pendingActionsKey = 'pending_actions';
-  static const String _deadLetterActionsKey = 'pending_actions_dead_letter';
-  static const String _lastSyncAtKey = 'pending_actions_last_sync_at';
-  static const String _processedCountKey = 'pending_actions_processed_count';
-  static const String _failedCountKey = 'pending_actions_failed_count';
+  static const String _pendingActionsKeyPrefix = 'pending_actions';
+  static const String _deadLetterActionsKeyPrefix = 'pending_actions_dead_letter';
+  static const String _lastSyncAtKeyPrefix = 'pending_actions_last_sync_at';
+  static const String _processedCountKeyPrefix = 'pending_actions_processed_count';
+  static const String _failedCountKeyPrefix = 'pending_actions_failed_count';
 
   @override
   void onInit() {
@@ -47,7 +49,32 @@ class OfflineModeService extends GetxController {
     await _loadDeadLetterActions();
     _loadStats();
     _startConnectivityListener();
+    _authSubscription ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+      unawaited(_reloadForActiveUser());
+    });
   }
+
+  Future<void> _reloadForActiveUser() async {
+    pendingActions.clear();
+    deadLetterActions.clear();
+    processedCount.value = 0;
+    failedCount.value = 0;
+    lastSyncAt.value = null;
+    await _loadPendingActions();
+    await _loadDeadLetterActions();
+    _loadStats();
+  }
+
+  String get _activeUid {
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    return uid.isEmpty ? 'guest' : uid;
+  }
+
+  String get _pendingActionsKey => '$_pendingActionsKeyPrefix:$_activeUid';
+  String get _deadLetterActionsKey => '$_deadLetterActionsKeyPrefix:$_activeUid';
+  String get _lastSyncAtKey => '$_lastSyncAtKeyPrefix:$_activeUid';
+  String get _processedCountKey => '$_processedCountKeyPrefix:$_activeUid';
+  String get _failedCountKey => '$_failedCountKeyPrefix:$_activeUid';
 
   void _startConnectivityListener() {
     _connectivitySubscription = Connectivity()
@@ -276,6 +303,7 @@ class OfflineModeService extends GetxController {
   @override
   void onClose() {
     _connectivitySubscription?.cancel();
+    _authSubscription?.cancel();
     _retryTimer?.cancel();
     super.onClose();
   }

@@ -24,7 +24,7 @@ import 'package:turqappv2/Modules/Education/Antreman3/question_content.dart';
 part 'antreman_controller_actions_part.dart';
 
 class AntremanController extends GetxController {
-  static const String _mainCategoryPrefKey = 'antreman_main_category';
+  static const String _mainCategoryPrefKeyPrefix = 'antreman_main_category';
   static const String _categoryCachePrefix = 'antreman_category_cache_';
   static const String _categoryCacheTimePrefix =
       'antreman_category_cache_time_';
@@ -32,6 +32,12 @@ class AntremanController extends GetxController {
   static const int _mainCategoryWarmupLimit = 10;
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final UserRepository _userRepository = UserRepository.ensure();
+  String get _activeUid {
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    return uid.isEmpty ? 'guest' : uid;
+  }
+
+  String get _mainCategoryPrefKey => '$_mainCategoryPrefKeyPrefix:$_activeUid';
   final Map<String, Map<String, List<String>>> subjects = {
     "LGS": {
       "LGS": [

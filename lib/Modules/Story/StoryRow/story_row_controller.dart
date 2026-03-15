@@ -130,10 +130,12 @@ class StoryRowController extends GetxController {
   }
 
   Future<void> clearSessionCache() async {
+    final ownerUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     users.clear();
     _backgroundScheduled = false;
+    if (ownerUid.isEmpty) return;
     try {
-      await _storyRepository.clearStoryRowCacheForCurrentUser();
+      await _storyRepository.clearStoryRowCacheForCurrentUser(ownerUid);
     } catch (e) {
       debugPrint('Story mini cache clear error: $e');
     }

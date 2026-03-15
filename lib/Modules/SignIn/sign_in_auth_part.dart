@@ -2,6 +2,7 @@ part of 'sign_in.dart';
 
 extension SignInAuthPart on SignIn {
   Widget startScreen() {
+    final accountCenter = AccountCenterService.ensure();
     return Expanded(
       child: Column(
         children: [
@@ -30,8 +31,121 @@ extension SignInAuthPart on SignIn {
               ],
             ),
           ),
+          Obx(() {
+            final accounts = accountCenter.accounts.toList(growable: false);
+            if (accounts.isEmpty) return const SizedBox.shrink();
+            final visible = accounts.take(3).toList(growable: false);
+            return Column(
+              children: [
+                if (accountCenter.lastUsedAccount != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      children: const [
+                        Text(
+                          'Cihazdaki hesaplar',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 13,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                for (final account in visible) ...[
+                  GestureDetector(
+                    onTap: () => controller.continueWithStoredAccount(account),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withAlpha(16),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Colors.black12,
+                            backgroundImage: account.avatarUrl.trim().isEmpty
+                                ? null
+                                : NetworkImage(account.avatarUrl.trim()),
+                            child: account.avatarUrl.trim().isEmpty
+                                ? Text(
+                                    account.displayName.trim().isNotEmpty
+                                        ? account.displayName
+                                            .trim()[0]
+                                            .toUpperCase()
+                                        : '@',
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontFamily: 'MontserratBold',
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  account.displayName.trim().isNotEmpty
+                                      ? account.displayName
+                                      : '@${account.username}',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '@${account.username}',
+                                  style: const TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 12,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  accountCenter.lastUsedUid.value == account.uid
+                                      ? 'Son kullanilan'
+                                      : 'Kayitli hesap',
+                                  style: const TextStyle(
+                                    color: Colors.black45,
+                                    fontSize: 11,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Text(
+                            'Devam Et',
+                            style: TextStyle(
+                              color: Colors.blueAccent,
+                              fontSize: 13,
+                              fontFamily: 'MontserratBold',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 6),
+              ],
+            );
+          }),
           GestureDetector(
             onTap: () {
+              controller.clearStoredAccountContext();
               controller.selection.value = 1;
             },
             child: Container(
@@ -54,6 +168,7 @@ extension SignInAuthPart on SignIn {
           SizedBox(height: 12),
           TextButton(
             onPressed: () {
+              controller.clearStoredAccountContext();
               controller.selection.value = 2;
             },
             style: TextButton.styleFrom(
@@ -125,6 +240,43 @@ extension SignInAuthPart on SignIn {
             ],
           ),
           SizedBox(height: 12),
+          Obx(() {
+            final account = controller.selectedStoredAccount.value;
+            if (account == null) return const SizedBox.shrink();
+            String message;
+            switch (account.primaryProvider) {
+              case 'phone':
+                message =
+                    '@${account.username} telefon ile kayitli gorunuyor. Bu hesap icin manuel yeniden giris yapman gerekiyor.';
+                break;
+              case 'password':
+                message =
+                    '@${account.username} secildi. Giris bilgilerini tamamlayip devam edebilirsin.';
+                break;
+              default:
+                message =
+                    '@${account.username} icin manuel yeniden giris yapman gerekiyor.';
+                break;
+            }
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blueGrey.withAlpha(14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 13,
+                  height: 1.35,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+            );
+          }),
           AutofillGroup(
             child: Column(
               children: [
@@ -189,6 +341,9 @@ extension SignInAuthPart on SignIn {
                                     TextPosition(offset: trimmedValue.length),
                                   );
                                 }
+                                controller.maybeClearStoredAccountContextForIdentifier(
+                                  trimmedValue,
+                                );
                                 if (trimmedValue.isEmpty) {
                                   controller.signInEmail.value = "";
                                 } else if (trimmedValue.length >= 5) {
@@ -278,6 +433,7 @@ extension SignInAuthPart on SignIn {
                             onTap: () {
                               controller.resetMailController.clear();
                               controller.resetOtpController.clear();
+                              controller.clearStoredAccountContext();
                               controller.selection.value = 5;
                             },
                             child: Text(
@@ -306,6 +462,7 @@ extension SignInAuthPart on SignIn {
                   controller.passwordcontroller.text = "";
                   controller.emailFocus.value.unfocus();
                   controller.passwordFocus.value.unfocus();
+                  controller.clearStoredAccountContext();
                   controller.selection.value--;
                 },
                 child: Container(
@@ -572,6 +729,7 @@ extension SignInAuthPart on SignIn {
                 onTap: () {
                   controller.resetMailController.text = "";
                   controller.resetMailFocus.value.unfocus();
+                  controller.clearStoredAccountContext();
                   controller.selection.value = 1;
                 },
                 child: Container(

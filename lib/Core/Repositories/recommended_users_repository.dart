@@ -1,18 +1,22 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Models/recommended_user_model.dart';
 
 class RecommendedUsersRepository extends GetxService {
-  static const String _prefsKey = 'recommended_users_repository_v1';
+  static const String _prefsKeyPrefix = 'recommended_users_repository_v1';
   static const Duration _ttl = Duration(minutes: 10);
 
   List<RecommendedUserModel> _memory = const <RecommendedUserModel>[];
   DateTime? _cachedAt;
   SharedPreferences? _prefs;
   bool _initialized = false;
+  StreamSubscription<User?>? _authSub;
 
   static RecommendedUsersRepository ensure() {
     if (Get.isRegistered<RecommendedUsersRepository>()) {
@@ -25,8 +29,15 @@ class RecommendedUsersRepository extends GetxService {
     if (_initialized) return;
     _prefs = await SharedPreferences.getInstance();
     _restoreFromPrefs();
+    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+      _memory = const <RecommendedUserModel>[];
+      _cachedAt = null;
+      _restoreFromPrefs();
+    });
     _initialized = true;
   }
+
+  String get _prefsKey => userScopedKey(_prefsKeyPrefix);
 
   Future<List<RecommendedUserModel>> fetchCandidates({
     int limit = 500,
@@ -93,5 +104,11 @@ class RecommendedUsersRepository extends GetxService {
         }),
       );
     } catch (_) {}
+  }
+
+  @override
+  void onClose() {
+    _authSub?.cancel();
+    super.onClose();
   }
 }

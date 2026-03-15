@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 
 class SettingsController extends GetxController {
@@ -7,11 +8,20 @@ class SettingsController extends GetxController {
   final pasajOrder = pasajTabs.obs;
   final pasajVisibility = <String, bool>{}.obs;
 
-  static const _prefKey = "educationScreenIsOn";
-  static const _pasajOrderKey = "pasajOrder";
-  static const _pasajVisibilityKey = "pasajVisibility";
-  static const _pasajOrderVersionKey = "pasajOrderVersion";
+  static const _prefKeyPrefix = "educationScreenIsOn";
+  static const _pasajOrderKeyPrefix = "pasajOrder";
+  static const _pasajVisibilityKeyPrefix = "pasajVisibility";
+  static const _pasajOrderVersionKeyPrefix = "pasajOrderVersion";
   static const _currentPasajOrderVersion = 2;
+
+  String get _activeUid {
+    return activeUserScope();
+  }
+
+  String get _prefKey => '$_prefKeyPrefix:$_activeUid';
+  String get _pasajOrderKey => '$_pasajOrderKeyPrefix:$_activeUid';
+  String get _pasajVisibilityKey => '$_pasajVisibilityKeyPrefix:$_activeUid';
+  String get _pasajOrderVersionKey => '$_pasajOrderVersionKeyPrefix:$_activeUid';
 
   @override
   Future<void> onInit() async {

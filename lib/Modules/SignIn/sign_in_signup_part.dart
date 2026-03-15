@@ -310,6 +310,7 @@ extension SignInSignupPart on SignIn {
                       controller.emailFocus.value.unfocus();
                       controller.nicknameFocus.value.unfocus();
                       controller.passwordFocus.value.unfocus();
+                      controller.clearStoredAccountContext();
                       controller.selection.value = 0;
                     },
                     child: Container(

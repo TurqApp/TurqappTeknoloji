@@ -24,6 +24,7 @@ import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 import 'package:turqappv2/Modules/Profile/Settings/permissions_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/admin_push_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_home_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/account_center_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
@@ -31,6 +32,7 @@ import 'package:turqappv2/Modules/Profile/Settings/pasaj_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/reports_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/story_music_admin_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
+import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_health_dashboard.dart';
@@ -109,6 +111,13 @@ class SettingsView extends StatelessWidget {
                       buildRow("İlgi Alanları", CupertinoIcons.sparkles, () {
                         Get.to(() => Interests());
                       }),
+                      buildRow(
+                        "Hesap Merkezi",
+                        CupertinoIcons.person_2_square_stack,
+                        () {
+                          Get.to(() => AccountCenterView());
+                        },
+                      ),
                       buildRow("Özgeçmiş (Cv)", CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
@@ -197,6 +206,10 @@ class SettingsView extends StatelessWidget {
                               await _userRepository.updateUserFields(
                                 currentUser,
                                 {"token": ""},
+                              );
+                              await AccountCenterService.ensure().markSessionState(
+                                uid: currentUser,
+                                isSessionValid: false,
                               );
                             }
 

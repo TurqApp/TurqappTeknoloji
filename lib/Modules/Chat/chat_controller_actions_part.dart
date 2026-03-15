@@ -187,7 +187,11 @@ extension ChatControllerActionsPart on ChatController {
     unawaited(_saveLocalConversationWindow(merged));
   }
 
-  String get _localChatWindowKey => "chat_window_cache_$chatID";
+  String get _localChatWindowKey {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return "chat_window_cache_guest_$chatID";
+    return "chat_window_cache_${uid}_$chatID";
+  }
 
   Future<bool> _loadLocalConversationWindow() async {
     try {

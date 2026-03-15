@@ -68,6 +68,7 @@ extension SignInControllerSignupPart on SignInController {
         await NotificationService.instance.initialize();
         await _clearSessionCachesAfterAccountSwitch();
         await CurrentUserService.instance.forceRefresh();
+        await _trackCurrentAccountForDevice();
       } catch (_) {}
 
       try {

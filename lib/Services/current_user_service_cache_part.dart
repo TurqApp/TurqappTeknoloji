@@ -8,9 +8,13 @@ extension CurrentUserServiceCachePart on CurrentUserService {
         cacheOnly: false,
         forceServer: false,
       );
-      final cachedJson = _prefs?.getString(CurrentUserService._cacheKey);
-      final cachedTimestamp =
-          _prefs?.getInt(CurrentUserService._cacheTimestampKey);
+      final resolvedUid = _resolveCacheUid(expectedUid);
+      if (resolvedUid.isEmpty) {
+        return false;
+      }
+
+      final cachedJson = _prefs?.getString(_cacheKey(resolvedUid));
+      final cachedTimestamp = _prefs?.getInt(_cacheTimestampKey(resolvedUid));
 
       if (cachedJson == null || cachedTimestamp == null) {
         return false;
@@ -26,9 +30,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
       }
 
       final json = jsonDecode(cachedJson) as Map<String, dynamic>;
-      final cachedUid = expectedUid?.trim().isNotEmpty == true
-          ? expectedUid!.trim()
-          : (json['userID'] ?? '').toString().trim();
+      final cachedUid = (json['userID'] ?? resolvedUid).toString().trim();
       if (cachedUid.isNotEmpty) {
         _storeRootUserData(cachedUid, json);
       }
@@ -38,7 +40,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
       if (expectedUid != null &&
           expectedUid.isNotEmpty &&
           user.userID != expectedUid) {
-        await _clearCache();
+        await _clearCache(resolvedUid);
         return false;
       }
 
@@ -65,10 +67,14 @@ extension CurrentUserServiceCachePart on CurrentUserService {
       _cacheSaveTimer = Timer(const Duration(milliseconds: 300), () async {
         try {
           final json = jsonEncode(user.toCacheJson());
-          await _prefs?.setString(CurrentUserService._cacheKey, json);
+          await _prefs?.setString(_cacheKey(user.userID), json);
           await _prefs?.setInt(
-            CurrentUserService._cacheTimestampKey,
+            _cacheTimestampKey(user.userID),
             DateTime.now().millisecondsSinceEpoch,
+          );
+          await _prefs?.setString(
+            CurrentUserService._activeCacheUidKey,
+            user.userID,
           );
           await _persistViewSelection(user.userID, user.viewSelection);
           _lastCacheSignature = cacheSignature;
@@ -77,11 +83,30 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     } catch (_) {}
   }
 
-  Future<void> _clearCache() async {
+  Future<void> _clearCache([String? uid]) async {
     try {
-      await _prefs?.remove(CurrentUserService._cacheKey);
-      await _prefs?.remove(CurrentUserService._cacheTimestampKey);
+      final targetUid = _resolveCacheUid(uid);
+      if (targetUid.isNotEmpty) {
+        await _prefs?.remove(_cacheKey(targetUid));
+        await _prefs?.remove(_cacheTimestampKey(targetUid));
+      }
+      final activeUid = _prefs?.getString(CurrentUserService._activeCacheUidKey);
+      if (targetUid.isEmpty || activeUid == targetUid) {
+        await _prefs?.remove(CurrentUserService._activeCacheUidKey);
+      }
     } catch (_) {}
+  }
+
+  String _cacheKey(String uid) => '${CurrentUserService._cacheKeyPrefix}_$uid';
+
+  String _cacheTimestampKey(String uid) =>
+      '${CurrentUserService._cacheTimestampKeyPrefix}_$uid';
+
+  String _resolveCacheUid(String? uid) {
+    final trimmed = uid?.trim() ?? '';
+    if (trimmed.isNotEmpty) return trimmed;
+    return (_prefs?.getString(CurrentUserService._activeCacheUidKey) ?? '')
+        .trim();
   }
 
   String _listCacheKey(String uid, String key) => '$uid::$key';

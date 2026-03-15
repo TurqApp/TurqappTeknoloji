@@ -619,11 +619,11 @@ extension AntremanControllerActionsPart on AntremanController {
   }
 
   String _cacheKeyForCategory(String categoryKey) {
-    return '${AntremanController._categoryCachePrefix}$categoryKey';
+    return '${AntremanController._categoryCachePrefix}${_activeUid}_$categoryKey';
   }
 
   String _cacheTimeKeyForCategory(String categoryKey) {
-    return '${AntremanController._categoryCacheTimePrefix}$categoryKey';
+    return '${AntremanController._categoryCacheTimePrefix}${_activeUid}_$categoryKey';
   }
 
   Future<List<QuestionBankModel>> _loadCachedCategoryPool(

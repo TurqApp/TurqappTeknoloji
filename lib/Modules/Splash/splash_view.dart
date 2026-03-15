@@ -38,6 +38,7 @@ import '../../Modules/Story/StoryRow/story_row_controller.dart';
 import '../../Services/story_interaction_optimizer.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Services/current_user_service.dart';
+import '../../Services/account_center_service.dart';
 import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/firestore_config.dart';
 import '../../Core/Services/network_awareness_service.dart';
@@ -135,6 +136,8 @@ class _SplashViewState extends State<SplashView> {
       late final bool isFirstLaunch;
       final userService = CurrentUserService.instance;
       Get.put(userService);
+      final accountCenter = AccountCenterService.ensure();
+      await accountCenter.init();
 
       if (Platform.isIOS) {
         isFirstLaunch = await _handleFirstLaunchAuthCleanup(prefs: prefs)
@@ -159,6 +162,14 @@ class _SplashViewState extends State<SplashView> {
       // Login kullanıcıda: feed açılmadan önce minimum hazırlık (timeout'lu)
       final bool loggedIn = FirebaseAuth.instance.currentUser != null;
       if (loggedIn) {
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        final currentUser = userService.currentUser;
+        if (firebaseUser != null && currentUser != null) {
+          unawaited(accountCenter.addCurrentAccount(
+            currentUser: currentUser,
+            firebaseUser: firebaseUser,
+          ));
+        }
         if (Platform.isIOS) {
           // iOS USB/wireless launch senaryolarinda ilk acilista
           // warm-start ve medya/cache hazirligi jetsam/watchdog riskini artiriyor.
@@ -874,6 +885,7 @@ class _SplashViewState extends State<SplashView> {
 
         // Clear CurrentUserService cache
         await CurrentUserService.instance.logout();
+        await AccountCenterService.ensure().signOutAllLocal();
       }
 
       // Mark that app has launched before
@@ -886,6 +898,7 @@ class _SplashViewState extends State<SplashView> {
       try {
         await FirebaseAuth.instance.signOut();
         await CurrentUserService.instance.logout();
+        await AccountCenterService.ensure().signOutAllLocal();
       } catch (_) {}
       return true;
     }
