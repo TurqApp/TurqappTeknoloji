@@ -3,6 +3,15 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 import { upsertPostIntoHybridFeed } from "./hybridFeed";
+export { archiveOnStoryDelete, cleanupExpiredStories } from "./storyArchive";
+import {
+  normalizeAvatarUrl,
+  normalizePhone,
+  normalizeUsernameLower,
+  parseForceFollowUids,
+  parseLegacyCreatedDateToTimestamp,
+  toNonNegativeInt,
+} from "./userSchemaUtils";
 
 admin.initializeApp();
 
@@ -54,163 +63,6 @@ export * from "./20_moderationConfig";
 export * from "./22_badgeAdmin";
 export * from "./23_sharedPostCascade";
 export * from "./24_reports";
-
-// SCHEDULED CLEANUP: Move expired (older than 24h) stories to DeletedStories and delete from Stories
-export const cleanupExpiredStories = functions.pubsub
-  .schedule("every 60 minutes")
-  .onRun(async () => {
-    const now = Date.now();
-    const cutoff = now - 24 * 60 * 60 * 1000; // 24h in ms
-
-    const snap = await db
-      .collection("stories")
-      .where("createdDate", "<=", cutoff)
-      .limit(500)
-      .get();
-
-    const batch = db.batch();
-    for (const doc of snap.docs) {
-      try {
-        const data = doc.data();
-        const userId: string = data.userId;
-        const archiveRef = db
-          .collection("users")
-          .doc(userId)
-          .collection("DeletedStories")
-          .doc();
-        batch.set(archiveRef, {
-          storyId: doc.id,
-          deletedAt: now,
-          reason: "expired_cf",
-          userId: userId,
-          createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-          backgroundColor: data.backgroundColor ?? 0,
-          musicUrl: data.musicUrl ?? "",
-          elements: data.elements ?? [],
-        });
-        batch.delete(doc.ref);
-      } catch (e) {
-        console.error("cleanupExpiredStories error", e);
-      }
-    }
-    await batch.commit();
-    return null;
-  });
-
-// FIRESTORE TRIGGER: When a story is deleted without client-side archival, archive it.
-// Note: v2 onDocumentDeleted provides the old data; here we simulate with onDelete + data in value before delete.
-export const archiveOnStoryDelete = functions.firestore
-  .document("stories/{storyId}")
-  .onDelete(async (snap, context) => {
-    const data = snap.data();
-    if (!data) return;
-    try {
-      const now = Date.now();
-      const userId: string = data.userId;
-      const archiveRef = db
-        .collection("users")
-        .doc(userId)
-        .collection("DeletedStories")
-        .doc();
-      await archiveRef.set({
-        storyId: context.params.storyId,
-        deletedAt: now,
-        reason: "onDelete_trigger",
-        userId: userId,
-        createdAtOriginal: data.createdDate ?? data.createdAt ?? now,
-        backgroundColor: data.backgroundColor ?? 0,
-        musicUrl: data.musicUrl ?? "",
-        elements: data.elements ?? [],
-      });
-    } catch (e) {
-      console.error("archiveOnStoryDelete error", e);
-    }
-  });
-
-// Helper: normalize phone to last 10 digits (TR mobile format in app)
-const normalizePhone = (raw: string | undefined | null): string => {
-  if (!raw) return "";
-  const digits = String(raw).replace(/[^0-9]/g, "");
-  if (digits.length >= 10) {
-    return digits.substring(digits.length - 10);
-  }
-  return digits;
-};
-
-const normalizeUsernameLower = (raw: unknown): string => {
-  const s = String(raw ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "");
-  return s.replace(/[^a-z0-9._]/g, "");
-};
-
-const LEGACY_DEFAULT_AVATAR_URL =
-  "https://firebasestorage.googleapis.com/v0/b/turqappteknoloji.firebasestorage.app/o/profileImage.png?alt=media&token=4e8e9d1f-658b-4c34-b8da-79cfe09acef2";
-
-const normalizeAvatarUrl = (raw: unknown): string => {
-  const value = String(raw ?? "").trim();
-  if (!value) return "";
-
-  if (value === LEGACY_DEFAULT_AVATAR_URL) return "";
-
-  const lower = value.toLowerCase();
-  if (
-    lower.includes("/o/profileimage.png") ||
-    lower.endsWith("/profileimage.png") ||
-    lower.endsWith("profileimage.png")
-  ) {
-    return "";
-  }
-
-  return value;
-};
-
-const parseForceFollowUids = (data: FirebaseFirestore.DocumentData | undefined): string[] => {
-  if (!data) return [];
-  const enabled = data.enabled;
-  if (enabled === false) return [];
-
-  const out = new Set<string>();
-  const addOne = (v: unknown) => {
-    if (typeof v !== "string") return;
-    const trimmed = v.trim();
-    if (trimmed) out.add(trimmed);
-  };
-  const addMany = (arr: unknown) => {
-    if (!Array.isArray(arr)) return;
-    for (const v of arr) addOne(v);
-  };
-
-  addOne(data.requiredUserIds);
-  addMany(data.requiredUserIds);
-  addOne(data.equiredUserIds);
-  addMany(data.equiredUserIds);
-  addOne(data.requiredUserId);
-  addOne(data.uid);
-  addOne(data.userId);
-
-  return Array.from(out);
-};
-
-const parseLegacyCreatedDateToTimestamp = (raw: unknown) => {
-  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
-    return admin.firestore.Timestamp.fromMillis(Math.floor(raw));
-  }
-  if (typeof raw === "string") {
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) {
-      return admin.firestore.Timestamp.fromMillis(Math.floor(n));
-    }
-  }
-  return null;
-};
-
-const toNonNegativeInt = (raw: unknown): number => {
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.trunc(n));
-};
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore

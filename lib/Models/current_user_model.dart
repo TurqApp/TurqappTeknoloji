@@ -5,6 +5,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 
+part 'current_user_model_utils_part.dart';
+
 class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🔑 Core Identity Fields
@@ -297,14 +299,13 @@ class CurrentUserModel {
 
     return CurrentUserModel(
       userID: doc.id,
-      nickname:
-          (data['nickname'] ??
-                  data['nickName'] ??
-                  data['username'] ??
-                  data['userName'] ??
-                  data['displayName'] ??
-                  '')
-              .toString(),
+      nickname: (data['nickname'] ??
+              data['nickName'] ??
+              data['username'] ??
+              data['userName'] ??
+              data['displayName'] ??
+              '')
+          .toString(),
       firstName: data['firstName'] ?? '',
       lastName: data['lastName'] ?? '',
       avatarUrl: resolveAvatarUrl(data, profile: profile),
@@ -448,6 +449,7 @@ class CurrentUserModel {
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 💾 To JSON (for SharedPreferences cache)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   Map<String, dynamic> toJson() {
     return {
       'userID': userID,
@@ -587,14 +589,13 @@ class CurrentUserModel {
 
     return CurrentUserModel(
       userID: json['userID'] ?? '',
-      nickname:
-          (json['nickname'] ??
-                  json['nickName'] ??
-                  json['username'] ??
-                  json['userName'] ??
-                  json['displayName'] ??
-                  '')
-              .toString(),
+      nickname: (json['nickname'] ??
+              json['nickName'] ??
+              json['username'] ??
+              json['userName'] ??
+              json['displayName'] ??
+              '')
+          .toString(),
       firstName: json['firstName'] ?? '',
       lastName: json['lastName'] ?? '',
       avatarUrl: resolveAvatarUrl(json, profile: profile),
@@ -809,164 +810,6 @@ class CurrentUserModel {
     }
     return fallback;
   }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🔄 CopyWith (for immutable updates)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  CurrentUserModel copyWith({
-    String? userID,
-    String? nickname,
-    String? firstName,
-    String? lastName,
-    String? avatarUrl,
-    String? email,
-    String? phoneNumber,
-    String? bio,
-    String? rozet,
-    bool? hesapOnayi,
-    bool? gizliHesap,
-    int? viewSelection,
-    int? counterOfFollowers,
-    int? counterOfFollowings,
-    int? counterOfPosts,
-    int? counterOfLikes,
-    List<String>? blockedUsers,
-    List<String>? readStories,
-    Map<String, int>? readStoriesTimes,
-  }) {
-    return CurrentUserModel(
-      userID: userID ?? this.userID,
-      nickname: nickname ?? this.nickname,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      email: email ?? this.email,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      tc: tc,
-      dogumTarihi: dogumTarihi,
-      cinsiyet: cinsiyet,
-      bio: bio ?? this.bio,
-      rozet: rozet ?? this.rozet,
-      hesapOnayi: hesapOnayi ?? this.hesapOnayi,
-      gizliHesap: gizliHesap ?? this.gizliHesap,
-      viewSelection: viewSelection ?? this.viewSelection,
-      ilgialanlari: ilgialanlari,
-      favoriMuzikler: favoriMuzikler,
-      meslekKategori: meslekKategori,
-      calismaDurumu: calismaDurumu,
-      medeniHal: medeniHal,
-      counterOfFollowers: counterOfFollowers ?? this.counterOfFollowers,
-      counterOfFollowings: counterOfFollowings ?? this.counterOfFollowings,
-      counterOfPosts: counterOfPosts ?? this.counterOfPosts,
-      counterOfLikes: counterOfLikes ?? this.counterOfLikes,
-      antPoint: antPoint,
-      dailyDurations: dailyDurations,
-      educationLevel: educationLevel,
-      universite: universite,
-      fakulte: fakulte,
-      bolum: bolum,
-      ogrenciNo: ogrenciNo,
-      ogretimTipi: ogretimTipi,
-      sinif: sinif,
-      lise: lise,
-      ortaOkul: ortaOkul,
-      okul: okul,
-      okulSehir: okulSehir,
-      okulIlce: okulIlce,
-      ortalamaPuan: ortalamaPuan,
-      ortalamaPuan1: ortalamaPuan1,
-      ortalamaPuan2: ortalamaPuan2,
-      defAnaBaslik: defAnaBaslik,
-      defDers: defDers,
-      defSinavTuru: defSinavTuru,
-      osymPuanTuru: osymPuanTuru,
-      osysPuan: osysPuan,
-      osysPuani1: osysPuani1,
-      osysPuani2: osysPuani2,
-      yuzlukSistem: yuzlukSistem,
-      adres: adres,
-      ulke: ulke,
-      city: city,
-      town: town,
-      il: il,
-      ilce: ilce,
-      ikametSehir: ikametSehir,
-      ikametIlce: ikametIlce,
-      nufusSehir: nufusSehir,
-      nufusIlce: nufusIlce,
-      nufusaKayitliOlduguYer: nufusaKayitliOlduguYer,
-      locationSehir: locationSehir,
-      kolayAdresSelection: kolayAdresSelection,
-      familyInfo: familyInfo,
-      totalLiving: totalLiving,
-      motherName: motherName,
-      motherSurname: motherSurname,
-      motherPhone: motherPhone,
-      motherJob: motherJob,
-      motherSalary: motherSalary,
-      motherLiving: motherLiving,
-      fatherName: fatherName,
-      fatherSurname: fatherSurname,
-      fatherPhone: fatherPhone,
-      fatherJob: fatherJob,
-      fatherSalary: fatherSalary,
-      fatherLiving: fatherLiving,
-      evMulkiyeti: evMulkiyeti,
-      mulkiyet: mulkiyet,
-      yurt: yurt,
-      bursVerebilir: bursVerebilir,
-      engelliRaporu: engelliRaporu,
-      isDisabled: isDisabled,
-      bank: bank,
-      iban: iban,
-      ban: ban,
-      deletedAccount: deletedAccount,
-      bot: bot,
-      signInMethod: signInMethod,
-      sifre: sifre,
-      refCode: refCode,
-      blockedUsers: blockedUsers ?? this.blockedUsers,
-      device: device,
-      deviceID: deviceID,
-      deviceVersion: deviceVersion,
-      token: token,
-      createdDate: createdDate,
-      bildirim: bildirim,
-      aramaIzin: aramaIzin,
-      mailIzin: mailIzin,
-      whatsappIzin: whatsappIzin,
-      rehber: rehber,
-      settings: settings,
-      themeSettings: themeSettings,
-      canliYayin: canliYayin,
-      lastSearchList: lastSearchList,
-      readStories: readStories ?? this.readStories,
-      readStoriesTimes: readStoriesTimes ?? this.readStoriesTimes,
-      mail: mail,
-    );
-  }
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 🎯 Utility Getters
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  /// Full name
-  String get fullName => '$firstName $lastName'.trim();
-
-  /// Has profile image
-  bool get hasProfileImage => avatarUrl.isNotEmpty;
-
-  /// Is verified account
-  bool get isVerified => hesapOnayi;
-
-  /// Is private account
-  bool get isPrivate => gizliHesap;
-
-  /// Is banned
-  bool get isBanned => ban;
-
-  /// Has bio
-  bool get hasBio => bio.isNotEmpty;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 🛠️ Helper Methods for Type-Safe Parsing
