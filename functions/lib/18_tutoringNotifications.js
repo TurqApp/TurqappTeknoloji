@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.onTutoringApplicationUpdate = exports.onTutoringApplicationCreate = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 /**
  * Yeni başvuru oluşturulduğunda öğretmene bildirim gönder.

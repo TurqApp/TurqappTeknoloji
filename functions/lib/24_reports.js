@@ -4,6 +4,9 @@ exports.reviewReportedTarget = exports.onReporterCreate = exports.submitReport =
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 const DEFAULT_REPORT_CATEGORIES = {
     impersonation: { title: "Taklit / Sahte Hesap / Kimlik Kullanımı", enabled: true, threshold: 5 },

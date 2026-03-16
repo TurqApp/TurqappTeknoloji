@@ -16,6 +16,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncAuthorFieldsOnProfileUpdate = exports.denormAuthorOnPostWrite = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 // ─────────────────────────────────────────────────────────────────
 // 📝 TRIGGER: Post yazıldığında author alanlarını inline ekle

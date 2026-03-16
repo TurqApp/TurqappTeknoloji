@@ -1,6 +1,10 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 
 export const cleanupExpiredStories = functions.pubsub

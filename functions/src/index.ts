@@ -13,7 +13,9 @@ import {
   toNonNegativeInt,
 } from "./userSchemaUtils";
 
-admin.initializeApp();
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 
 const db = admin.firestore();
 

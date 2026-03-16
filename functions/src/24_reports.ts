@@ -2,6 +2,10 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { RateLimits } from "./rateLimiter";
 
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 
 const DEFAULT_REPORT_CATEGORIES: Record<string, { title: string; enabled: boolean; threshold: number }> = {

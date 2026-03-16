@@ -9,6 +9,9 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 const storage = admin.storage();
 const CDN_DOMAIN = "cdn.turqapp.com";

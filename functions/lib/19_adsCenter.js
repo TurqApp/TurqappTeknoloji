@@ -4,6 +4,9 @@ exports.adsAggregateDailyStats = exports.syncAdsTargetingIndex = exports.adsLogE
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 const enumValues = {
     campaignStatus: new Set(["draft", "pendingReview", "approved", "paused", "active", "ended", "rejected"]),

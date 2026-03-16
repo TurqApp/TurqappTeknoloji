@@ -24,7 +24,9 @@ var storyArchive_1 = require("./storyArchive");
 Object.defineProperty(exports, "archiveOnStoryDelete", { enumerable: true, get: function () { return storyArchive_1.archiveOnStoryDelete; } });
 Object.defineProperty(exports, "cleanupExpiredStories", { enumerable: true, get: function () { return storyArchive_1.cleanupExpiredStories; } });
 const userSchemaUtils_1 = require("./userSchemaUtils");
-admin.initializeApp();
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 📸 IMAGE THUMBNAILS

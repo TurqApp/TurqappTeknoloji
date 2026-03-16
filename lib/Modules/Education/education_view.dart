@@ -45,6 +45,7 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
+import 'package:turqappv2/Modules/Market/market_search_view.dart';
 import 'package:turqappv2/Modules/Market/market_view.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder.dart';
 import 'package:turqappv2/Modules/JobFinder/JobCreator/job_creator.dart';
@@ -207,7 +208,7 @@ class EducationView extends StatelessWidget {
           PullDownMenuItem(
             title: 'Ara',
             icon: CupertinoIcons.search,
-            onTap: _focusGlobalSearch,
+            onTap: () => Get.to(() => const MarketSearchView()),
           ),
           PullDownMenuItem(
             title: 'İlan Ekle',

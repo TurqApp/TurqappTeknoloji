@@ -4,6 +4,9 @@ exports.ensureModerationConfig = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const rateLimiter_1 = require("./rateLimiter");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 const DEFAULT_MODERATION_CONFIG = {
     enabled: true,

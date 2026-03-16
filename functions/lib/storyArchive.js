@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.archiveOnStoryDelete = exports.cleanupExpiredStories = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 exports.cleanupExpiredStories = functions.pubsub
     .schedule("every 60 minutes")

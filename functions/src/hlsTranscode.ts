@@ -8,6 +8,10 @@ import * as fs from "fs";
 
 const execFileAsync = promisify(execFile);
 
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 const storage = admin.storage();
 

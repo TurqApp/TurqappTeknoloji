@@ -22,6 +22,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initCounterShards = exports.aggregateCounterShards = exports.recordViewBatch = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 // Shard sayısı — arttırmak throughput'u artırır, agregasyon maliyetini de artırır
 const SHARD_COUNT = 5;
