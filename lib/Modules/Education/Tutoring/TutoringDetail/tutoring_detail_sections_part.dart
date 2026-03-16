@@ -352,13 +352,12 @@ extension TutoringDetailSectionsPart on TutoringDetail {
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],
-      buttonBuilder: (context, showMenu) => CupertinoButton(
-        onPressed: showMenu,
-        padding: EdgeInsets.zero,
-        minimumSize: Size.zero,
+      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+        onTap: showMenu,
         child: Icon(
           AppIcons.ellipsisVertical,
           color: Colors.black,
+          size: 20,
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_controller.dart';
@@ -40,12 +41,12 @@ class FamilyInfoView extends StatelessWidget {
               icon: CupertinoIcons.refresh,
             ),
           ],
-          buttonBuilder: (context, showMenu) => IconButton(
-            onPressed: showMenu,
-            icon: Icon(
+          buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+            onTap: showMenu,
+            child: Icon(
               AppIcons.ellipsisVertical,
               color: Colors.black,
-              size: 24,
+              size: 20,
             ),
           ),
         ),

@@ -155,13 +155,12 @@ extension JobDetailsMetaPart on JobDetails {
           icon: CupertinoIcons.exclamationmark_circle,
         ),
       ],
-      buttonBuilder: (context, showMenu) => CupertinoButton(
-        onPressed: showMenu,
-        padding: EdgeInsets.zero,
-        minimumSize: Size(0, 0),
+      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+        onTap: showMenu,
         child: Icon(
           AppIcons.ellipsisVertical,
           color: Colors.black,
+          size: 20,
         ),
       ),
     );

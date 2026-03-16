@@ -9,7 +9,9 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/container_buttons.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -49,27 +51,27 @@ class EducationInfoView extends StatelessWidget {
                             await _userRepository.updateUserFields(
                               FirebaseAuth.instance.currentUser?.uid ?? '',
                               {
-                              ...scopedUserUpdate(
-                                scope: 'education',
-                                values: {
-                                  'educationLevel': '',
-                                  'ortaOkul': '',
-                                  'lise': '',
-                                  'universite': '',
-                                  'fakulte': '',
-                                  'bolum': '',
-                                  'sinif': '',
-                                },
-                              ),
-                              ...scopedUserUpdate(
-                                scope: 'profile',
-                                values: {
-                                  'ulke': '',
-                                  'il': '',
-                                  'ilce': '',
-                                },
-                              ),
-                            },
+                                ...scopedUserUpdate(
+                                  scope: 'education',
+                                  values: {
+                                    'educationLevel': '',
+                                    'ortaOkul': '',
+                                    'lise': '',
+                                    'universite': '',
+                                    'fakulte': '',
+                                    'bolum': '',
+                                    'sinif': '',
+                                  },
+                                ),
+                                ...scopedUserUpdate(
+                                  scope: 'profile',
+                                  values: {
+                                    'ulke': '',
+                                    'il': '',
+                                    'ilce': '',
+                                  },
+                                ),
+                              },
                             );
                             await controller.loadSavedData();
                             controller.hasMiddleSchoolData.value = false;
@@ -85,9 +87,13 @@ class EducationInfoView extends StatelessWidget {
                       },
                     ),
                   ],
-                  buttonBuilder: (context, showMenu) => IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: showMenu,
+                  buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                    onTap: showMenu,
+                    child: const Icon(
+                      Icons.more_vert,
+                      color: Colors.black,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -218,13 +224,18 @@ class EducationInfoView extends StatelessWidget {
                   child: DropdownField(
                     config: FieldConfig(
                       label: "İlçe",
-                      items: controller.cityDistrictData
-                          .where(
-                            (item) => item.il == controller.selectedCity.value,
-                          )
-                          .map((item) => item.ilce)
-                          .toSet()
-                          .toList(),
+                      items: (() {
+                        final districts = controller.cityDistrictData
+                            .where(
+                              (item) =>
+                                  item.il == controller.selectedCity.value,
+                            )
+                            .map((item) => item.ilce)
+                            .toSet()
+                            .toList();
+                        sortTurkishStrings(districts);
+                        return districts;
+                      })(),
                       value: controller.selectedDistrict,
                       onSelect: (selected) {
                         controller.selectedDistrict.value = selected;
@@ -325,13 +336,18 @@ class EducationInfoView extends StatelessWidget {
                   child: DropdownField(
                     config: FieldConfig(
                       label: "İlçe",
-                      items: controller.cityDistrictData
-                          .where(
-                            (item) => item.il == controller.selectedCity.value,
-                          )
-                          .map((item) => item.ilce)
-                          .toSet()
-                          .toList(),
+                      items: (() {
+                        final districts = controller.cityDistrictData
+                            .where(
+                              (item) =>
+                                  item.il == controller.selectedCity.value,
+                            )
+                            .map((item) => item.ilce)
+                            .toSet()
+                            .toList();
+                        sortTurkishStrings(districts);
+                        return districts;
+                      })(),
                       value: controller.selectedDistrict,
                       onSelect: (selected) {
                         controller.selectedDistrict.value = selected;

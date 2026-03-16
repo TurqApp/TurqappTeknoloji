@@ -15,6 +15,7 @@ import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import '../../Themes/app_fonts.dart';
 import '../../Themes/app_colors.dart';
+import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import '../../Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import '../../Core/Widgets/app_icon_surface.dart';
@@ -605,123 +606,73 @@ class AgendaView extends StatelessWidget {
                 final userService = CurrentUserService.instance;
                 final currentSelection = userService.viewSelectionRx.value;
 
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                return AppHeaderActionButton(
                   onTap: () async {
                     final nextSelection = currentSelection == 1 ? 0 : 1;
                     await userService.updateFields({
                       "viewSelection": nextSelection,
                     });
                   },
-                  child: const AppIconSurface(
-                    child: Icon(
-                      CupertinoIcons.rectangle_grid_1x2,
-                      color: Colors.black,
-                      size: 20,
-                    ),
+                  child: const Icon(
+                    CupertinoIcons.rectangle_grid_1x2,
+                    color: Colors.black,
+                    size: AppIconSurface.kIconSize,
                   ),
                 );
               }),
               const SizedBox(width: AppIconSurface.kGap),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  final unreadChatIds = notificationsController.list
-                      .where((n) => n.postType == "Chat" && !n.isRead)
-                      .map((n) => n.docID)
-                      .toList(growable: false);
-                  if (unreadChatIds.isNotEmpty) {
-                    await notificationsController.markManyAsRead(unreadChatIds);
-                  }
-                  final prevIndex = controller.lastCenteredIndex;
-                  controller.centeredIndex.value = -1;
-                  Get.to(() => ChatListing())?.then((_) {
-                    controller.centeredIndex.value = prevIndex ?? 0;
-                    try {
-                      recommendedController.getUsers();
-                    } catch (_) {}
-                  });
-                },
-                child: AppIconSurface(
-                  child: Obx(() {
-                    final conversationUnreadCount =
-                        unreadController.totalUnreadCount.value;
-                    final hasUnread = conversationUnreadCount > 0;
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        const Icon(
-                          CupertinoIcons.mail,
-                          color: Colors.black,
-                          size: AppIconSurface.kIconSize,
-                        ),
-                        if (hasUnread)
-                          Positioned(
-                            right: -2,
-                            top: -2,
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF00C853),
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: Colors.white, width: 1.5),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  }),
-                ),
-              ),
-              const SizedBox(width: AppIconSurface.kGap),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  final prevIndex = controller.lastCenteredIndex;
-                  controller.centeredIndex.value = -1;
-                  Get.to(() => InAppNotifications())?.then((_) {
-                    controller.centeredIndex.value = prevIndex ?? 0;
-                    try {
-                      recommendedController.getUsers();
-                    } catch (_) {}
-                  });
-                },
-                child: AppIconSurface(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(
-                        CupertinoIcons.bell,
-                        color: Colors.black,
-                        size: AppIconSurface.kIconSize,
-                      ),
-                      Obx(() {
-                        final hasUnread =
-                            notificationsController.unreadCount > 0;
-                        if (!hasUnread) {
-                          return const SizedBox.shrink();
-                        }
-                        return Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00C853),
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white, width: 1.5),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
+              Obx(() {
+                final conversationUnreadCount =
+                    unreadController.totalUnreadCount.value;
+                final hasUnread = conversationUnreadCount > 0;
+                return AppHeaderActionButton(
+                  showBadge: hasUnread,
+                  onTap: () async {
+                    final unreadChatIds = notificationsController.list
+                        .where((n) => n.postType == "Chat" && !n.isRead)
+                        .map((n) => n.docID)
+                        .toList(growable: false);
+                    if (unreadChatIds.isNotEmpty) {
+                      await notificationsController.markManyAsRead(unreadChatIds);
+                    }
+                    final prevIndex = controller.lastCenteredIndex;
+                    controller.centeredIndex.value = -1;
+                    Get.to(() => ChatListing())?.then((_) {
+                      controller.centeredIndex.value = prevIndex ?? 0;
+                      try {
+                        recommendedController.getUsers();
+                      } catch (_) {}
+                    });
+                  },
+                  child: const Icon(
+                    CupertinoIcons.mail,
+                    color: Colors.black,
+                    size: AppIconSurface.kIconSize,
                   ),
-                ),
-              ),
+                );
+              }),
+              const SizedBox(width: AppIconSurface.kGap),
+              Obx(() {
+                final hasUnread = notificationsController.unreadCount > 0;
+                return AppHeaderActionButton(
+                  showBadge: hasUnread,
+                  onTap: () {
+                    final prevIndex = controller.lastCenteredIndex;
+                    controller.centeredIndex.value = -1;
+                    Get.to(() => InAppNotifications())?.then((_) {
+                      controller.centeredIndex.value = prevIndex ?? 0;
+                      try {
+                        recommendedController.getUsers();
+                      } catch (_) {}
+                    });
+                  },
+                  child: const Icon(
+                    CupertinoIcons.bell,
+                    color: Colors.black,
+                    size: AppIconSurface.kIconSize,
+                  ),
+                );
+              }),
               // 12.pw,
               // GestureDetector(
               //   onTap: () {

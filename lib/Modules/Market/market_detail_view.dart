@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -96,33 +97,41 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         ),
         actions: [
           if (!_isOwner)
-            IconButton(
-              onPressed: _isSaveLoading ? null : _toggleSaved,
-              icon: _isSaveLoading
+            Padding(
+              padding: const EdgeInsets.only(right: 2),
+              child: AppHeaderActionButton(
+                onTap: _isSaveLoading ? null : _toggleSaved,
+                opacity: _isSaveLoading ? 0.7 : 1,
+                child: _isSaveLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                        color: Colors.black,
+                        size: 22,
+                      ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: AppHeaderActionButton(
+              onTap: _isRefreshing ? null : _refreshItem,
+              opacity: _isRefreshing ? 0.7 : 1,
+              child: _isRefreshing
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Icon(
-                      _isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                  : const Icon(
+                      CupertinoIcons.refresh,
                       color: Colors.black,
-                      size: 22,
+                      size: 20,
                     ),
             ),
-          IconButton(
-            onPressed: _isRefreshing ? null : _refreshItem,
-            icon: _isRefreshing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(
-                    CupertinoIcons.refresh,
-                    color: Colors.black,
-                    size: 20,
-                  ),
           ),
         ],
       ),

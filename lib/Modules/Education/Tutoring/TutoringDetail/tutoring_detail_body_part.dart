@@ -64,7 +64,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
                       final isSaved = savedController.savedTutoringIds.contains(
                         controller.tutoring.value.docID,
                       );
-                      return EducationActionIconButton(
+                      return AppHeaderActionButton(
                         onTap: () async {
                           if (currentUserId != null) {
                             final success =
@@ -85,12 +85,13 @@ extension TutoringDetailBodyPart on TutoringDetail {
                             }
                           }
                         },
-                        icon: isSaved
-                            ? CupertinoIcons.bookmark_fill
-                            : CupertinoIcons.bookmark,
-                        size: 30,
-                        iconSize: 18,
-                        iconColor: isSaved ? Colors.orange : Colors.black87,
+                        child: Icon(
+                          isSaved
+                              ? CupertinoIcons.bookmark_fill
+                              : CupertinoIcons.bookmark,
+                          size: 18,
+                          color: isSaved ? Colors.orange : Colors.black87,
+                        ),
                       );
                     }),
                     6.pw,

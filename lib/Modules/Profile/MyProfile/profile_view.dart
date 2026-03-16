@@ -24,6 +24,7 @@ import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
@@ -106,10 +107,18 @@ class _ProfileViewState extends State<ProfileView> {
     return _myNickname;
   }
 
-  String get _myAvatarUrl => userService.avatarUrl;
+  String get _myAvatarUrl {
+    final direct = controller.headerAvatarUrl.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return userService.avatarUrl;
+  }
   String get _myFirstName => userService.currentUserRx.value?.firstName ?? '';
   String get _myLastName => userService.currentUserRx.value?.lastName ?? '';
-  String get _myRozet => userService.currentUserRx.value?.rozet ?? '';
+  String get _myRozet {
+    final direct = controller.headerRozet.value.trim();
+    if (direct.isNotEmpty) return direct;
+    return userService.currentUserRx.value?.rozet ?? '';
+  }
   bool get _hasVerifiedRozet {
     final headerRozet = controller.headerRozet.value.trim();
     if (headerRozet.isNotEmpty) return true;
@@ -120,12 +129,15 @@ class _ProfileViewState extends State<ProfileView> {
   String get _myBio => userService.currentUserRx.value?.bio ?? '';
   String get _myAdres => userService.currentUserRx.value?.adres ?? '';
   String get _myDisplayFirstName {
+    final display = controller.headerDisplayName.value.trim();
+    if (display.isNotEmpty) return display;
     final direct = controller.headerFirstName.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myFirstName.trim();
   }
 
   String get _myDisplayLastName {
+    if (controller.headerDisplayName.value.trim().isNotEmpty) return '';
     final direct = controller.headerLastName.value.trim();
     if (direct.isNotEmpty) return direct;
     return _myLastName.trim();

@@ -9,7 +9,9 @@ import 'package:turqappv2/Core/BottomSheets/date_picker_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_controller.dart';
 
 class PersonelInfoView extends StatelessWidget {
@@ -54,24 +56,24 @@ class PersonelInfoView extends StatelessWidget {
                               await _userRepository.updateUserFields(
                                 FirebaseAuth.instance.currentUser?.uid ?? '',
                                 {
-                                ...scopedUserUpdate(
-                                  scope: 'family',
-                                  values: {"engelliRaporu": "Yok"},
-                                ),
-                                ...scopedUserUpdate(
-                                  scope: 'profile',
-                                  values: {
-                                    "tc": "",
-                                    "medeniHal": "Bekar",
-                                    "ulke": "Türkiye",
-                                    "nufusSehir": "",
-                                    "nufusIlce": "",
-                                    "cinsiyet": "Seçim Yap",
-                                    "calismaDurumu": "Çalışmıyor",
-                                    "dogumTarihi": "",
-                                  },
-                                ),
-                              },
+                                  ...scopedUserUpdate(
+                                    scope: 'family',
+                                    values: {"engelliRaporu": "Yok"},
+                                  ),
+                                  ...scopedUserUpdate(
+                                    scope: 'profile',
+                                    values: {
+                                      "tc": "",
+                                      "medeniHal": "Bekar",
+                                      "ulke": "Türkiye",
+                                      "nufusSehir": "",
+                                      "nufusIlce": "",
+                                      "cinsiyet": "Seçim Yap",
+                                      "calismaDurumu": "Çalışmıyor",
+                                      "dogumTarihi": "",
+                                    },
+                                  ),
+                                },
                               );
                               // 3) Yeni veriyi çek
                               await controller.fetchData();
@@ -85,9 +87,13 @@ class PersonelInfoView extends StatelessWidget {
                         },
                       ),
                     ],
-                    buttonBuilder: (context, showMenu) => IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: showMenu,
+                    buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                      onTap: showMenu,
+                      child: const Icon(
+                        Icons.more_vert,
+                        color: Colors.black,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -142,15 +148,19 @@ class PersonelInfoView extends StatelessWidget {
                                             label: "İlçe",
                                             title: "İlçe Seç",
                                             value: controller.town,
-                                            items:
-                                                controller.sehirlerVeIlcelerData
-                                                    .where(
-                                                      (e) =>
-                                                          e.il ==
-                                                          controller.city.value,
-                                                    )
-                                                    .map((e) => e.ilce)
-                                                    .toList(),
+                                            items: (() {
+                                              final towns = controller
+                                                  .sehirlerVeIlcelerData
+                                                  .where(
+                                                    (e) =>
+                                                        e.il ==
+                                                        controller.city.value,
+                                                  )
+                                                  .map((e) => e.ilce)
+                                                  .toList();
+                                              sortTurkishStrings(towns);
+                                              return towns;
+                                            })(),
                                             onSelect: (val) =>
                                                 controller.updateTown(val),
                                             isSearchable: true,

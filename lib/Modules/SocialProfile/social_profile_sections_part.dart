@@ -143,15 +143,12 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
                     icon: CupertinoIcons.shield,
                   ),
                 ],
-                buttonBuilder: (context, showMenu) => GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                buttonBuilder: (context, showMenu) => AppHeaderActionButton(
                   onTap: showMenu,
-                  child: const AppIconSurface(
-                    child: Icon(
-                      CupertinoIcons.ellipsis_vertical,
-                      color: Colors.black,
-                      size: 20,
-                    ),
+                  child: const Icon(
+                    CupertinoIcons.ellipsis_vertical,
+                    color: Colors.black,
+                    size: AppIconSurface.kIconSize,
                   ),
                 ),
               ),
@@ -228,7 +225,10 @@ extension _SocialProfileSectionsPart on _SocialProfileState {
           Row(
             children: [
               Text(
-                "${controller.firstName.value} ${controller.lastName.value}",
+                controller.displayName.value.trim().isNotEmpty
+                    ? controller.displayName.value.trim()
+                    : "${controller.firstName.value} ${controller.lastName.value}"
+                        .trim(),
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 15,

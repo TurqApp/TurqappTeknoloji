@@ -67,13 +67,13 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                         FirebaseAuth.instance.currentUser?.uid)
                       Padding(
                         padding: const EdgeInsets.only(left: 4, right: 10),
-                        child: IconButton(
-                          icon: Icon(
+                        child: AppHeaderActionButton(
+                          child: const Icon(
                             CupertinoIcons.trash,
                             color: Colors.red,
                             size: 20,
                           ),
-                          onPressed: () {
+                          onTap: () {
                             noYesAlert(
                               title: "Bursu Sil",
                               message:

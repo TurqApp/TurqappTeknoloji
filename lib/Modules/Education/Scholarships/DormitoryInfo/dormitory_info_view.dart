@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_controller.dart';
 
 class DormitoryInfoView extends StatelessWidget {
@@ -71,9 +72,13 @@ class DormitoryInfoView extends StatelessWidget {
                       },
                     ),
                   ],
-                  buttonBuilder: (context, showMenu) => IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: showMenu,
+                  buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                    onTap: showMenu,
+                    child: const Icon(
+                      Icons.more_vert,
+                      color: Colors.black,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],

@@ -41,42 +41,35 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                     ],
                   ),
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                AppHeaderActionButton(
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => MyQRCode())?.then((_) {
                       controller.pausetheall.value = false;
                     });
                   },
-                  child: AppIconSurface(
-                    child: Icon(
-                      CupertinoIcons.qrcode,
-                      color: AppColors.textBlack,
-                      size: AppIconSurface.kIconSize,
-                    ),
+                  child: Icon(
+                    CupertinoIcons.qrcode,
+                    color: AppColors.textBlack,
+                    size: AppIconSurface.kIconSize,
                   ),
                 ),
                 AppIconSurface.kGap.pw,
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                AppHeaderActionButton(
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => ChatListing())?.then((_) {
                       controller.pausetheall.value = false;
                     });
                   },
-                  child: AppIconSurface(
-                    child: Icon(
-                      CupertinoIcons.mail,
-                      color: AppColors.textBlack,
-                      size: AppIconSurface.kIconSize,
-                    ),
+                  child: Icon(
+                    CupertinoIcons.mail,
+                    color: AppColors.textBlack,
+                    size: AppIconSurface.kIconSize,
                   ),
                 ),
                 AppIconSurface.kGap.pw,
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                AppHeaderActionButton(
                   onTap: () {
                     controller.pausetheall.value = true;
                     Get.to(() => SettingsView())?.then((_) {
@@ -84,12 +77,10 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
                       _refreshUserState();
                     });
                   },
-                  child: AppIconSurface(
-                    child: Icon(
-                      CupertinoIcons.gear,
-                      color: AppColors.textBlack,
-                      size: AppIconSurface.kIconSize,
-                    ),
+                  child: Icon(
+                    CupertinoIcons.gear,
+                    color: AppColors.textBlack,
+                    size: AppIconSurface.kIconSize,
                   ),
                 ),
               ],

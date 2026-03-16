@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 
 class EducationActionIconButton extends StatelessWidget {
   const EducationActionIconButton({
@@ -22,15 +23,11 @@ class EducationActionIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
-        ),
+      child: AppIconSurface(
+        size: size,
+        radius: 10,
         child: child ??
             Icon(
               icon,

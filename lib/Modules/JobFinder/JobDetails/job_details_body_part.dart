@@ -20,17 +20,18 @@ extension JobDetailsBodyPart on JobDetails {
                   iconSize: 18,
                 ),
                 Obx(() {
-                  return EducationActionIconButton(
+                  return AppHeaderActionButton(
                     onTap: () {
                       controller.toggleSave(controller.model.value.docID);
                     },
-                    icon: controller.saved.value
-                        ? CupertinoIcons.bookmark_fill
-                        : CupertinoIcons.bookmark,
-                    size: 30,
-                    iconSize: 18,
-                    iconColor:
-                        controller.saved.value ? Colors.orange : Colors.black87,
+                    child: Icon(
+                      controller.saved.value
+                          ? CupertinoIcons.bookmark_fill
+                          : CupertinoIcons.bookmark,
+                      size: 18,
+                      color:
+                          controller.saved.value ? Colors.orange : Colors.black87,
+                    ),
                   );
                 }),
                 pullDownMenu(),
