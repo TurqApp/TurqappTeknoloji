@@ -263,7 +263,7 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
           Row(
             children: [
               Text(
-                '${item.price.toStringAsFixed(0)} ${item.currency}',
+                '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 15,

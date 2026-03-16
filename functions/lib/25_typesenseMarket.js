@@ -188,6 +188,7 @@ function requiredFields() {
         { name: "sellerUsername", type: "string", optional: true },
         { name: "sellerPhotoUrl", type: "string", optional: true },
         { name: "sellerRozet", type: "string", optional: true },
+        { name: "sellerPhoneNumber", type: "string", optional: true },
         { name: "cover", type: "string", optional: true },
         { name: "imageUrls", type: "string[]", optional: true },
         { name: "price", type: "float", optional: true },
@@ -286,6 +287,7 @@ function buildSearchDoc(docId, data) {
     const sellerUsername = asString(seller.nickname) || asString(seller.username) || asString(data.sellerNickname) || asString(data.sellerUsername);
     const sellerPhotoUrl = asString(seller.avatarUrl) || asString(seller.photoUrl) || asString(data.sellerAvatarUrl) || asString(data.sellerPhotoUrl);
     const sellerRozet = asString(seller.rozet) || asString(data.sellerRozet);
+    const sellerPhoneNumber = asString(seller.phoneNumber) || asString(data.sellerPhoneNumber);
     const cover = asString(data.coverImageUrl) || firstString(data.imageUrls);
     const status = asString(data.status) || "draft";
     return {
@@ -304,6 +306,7 @@ function buildSearchDoc(docId, data) {
         sellerUsername,
         sellerPhotoUrl,
         sellerRozet,
+        sellerPhoneNumber,
         cover,
         imageUrls,
         price: Math.max(0, asNumber(data.price)),
@@ -394,6 +397,7 @@ function toHitOutput(hitRaw) {
         sellerUsername: String(doc.sellerUsername || ""),
         sellerPhotoUrl: String(doc.sellerPhotoUrl || ""),
         sellerRozet: String(doc.sellerRozet || ""),
+        sellerPhoneNumber: String(doc.sellerPhoneNumber || ""),
         cover: String(doc.cover || ""),
         imageUrls: asStringArray(doc.imageUrls),
         price: Number(doc.price || 0),

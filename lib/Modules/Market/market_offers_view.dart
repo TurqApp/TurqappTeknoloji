@@ -210,7 +210,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                       Row(
                         children: [
                           Text(
-                            '${offer.offerPrice.toStringAsFixed(0)} ${offer.currency}',
+                            '${offer.offerPrice.toStringAsFixed(0)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 14,

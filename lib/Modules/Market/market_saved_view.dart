@@ -52,7 +52,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
         title: const Text(
-          'Kaydettiklerim',
+          'Beğendiklerim',
           style: TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -77,7 +77,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                       SizedBox(height: 140),
                       Center(
                         child: Text(
-                          'Kaydedilmiş ilan bulunamadı.',
+                          'Beğenilen ilan bulunamadı.',
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 14,
@@ -161,7 +161,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${item.price.toStringAsFixed(0)} ${item.currency}',
+                    '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -202,7 +202,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
         _busyIds.remove(item.id);
         _reload(force: true);
       });
-      AppSnackbar('Tamam', 'Kaydedilenlerden kaldırıldı.');
+      AppSnackbar('Tamam', 'Beğenilenlerden kaldırıldı.');
     } catch (_) {
       if (!mounted) return;
       setState(() {

@@ -15,7 +15,7 @@ const String kMarketSchemaSeedJson = '''
     "recommendedRoundMenu": [
       {"key": "create", "label": "İlan Ekle", "icon": "add_circle", "accent": "#111827"},
       {"key": "my_items", "label": "İlanlarım", "icon": "inventory_2", "accent": "#2563EB"},
-      {"key": "saved", "label": "Kaydettiklerim", "icon": "bookmark", "accent": "#F59E0B"},
+      {"key": "saved", "label": "Beğendiklerim", "icon": "bookmark", "accent": "#F59E0B"},
       {"key": "offers", "label": "Tekliflerim", "icon": "local_offer", "accent": "#16A34A"},
       {"key": "categories", "label": "Kategoriler", "icon": "apps", "accent": "#7C3AED"},
       {"key": "nearby", "label": "Yakınımdakiler", "icon": "near_me", "accent": "#DC2626"}

@@ -436,8 +436,7 @@ class MarketCreateController extends GetxController {
         'photoUrl': avatarUrl,
         'verified': current?.hesapOnayi == true,
       },
-      'sellerDisplayName':
-          displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+      'sellerDisplayName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
       'sellerNickname': nickname,
       'sellerAvatarUrl': avatarUrl,
       'sellerRozet': current?.rozet ?? '',
@@ -534,13 +533,16 @@ class MarketCreateController extends GetxController {
         payload: payload,
         userId: uid,
       );
-      AppSnackbar(
-        'Tamam',
-        isEditing
-            ? (publish ? 'İlan güncellendi.' : 'Taslak güncellendi.')
-            : (publish ? 'İlan yayınlandı.' : 'Taslak kaydedildi.'),
-      );
-      Get.back(result: payload);
+      FocusManager.instance.primaryFocus?.unfocus();
+      if (Get.isSnackbarOpen) {
+        Get.closeCurrentSnackbar();
+      }
+      final context = Get.context;
+      if (context != null && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(payload);
+      } else {
+        Get.back(result: payload);
+      }
     } catch (e) {
       AppSnackbar('Hata', 'Ilan kaydedilemedi: $e');
     } finally {

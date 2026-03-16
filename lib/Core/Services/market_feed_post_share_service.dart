@@ -164,7 +164,7 @@ class MarketFeedPostShareService {
   String _caption(MarketItemModel item) {
     return <String>[
       '"${item.title}"',
-      '${item.price.toStringAsFixed(0)} ${item.currency}',
+      '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
       if (item.locationText.trim().isNotEmpty) item.locationText.trim(),
     ].join('\n');
   }

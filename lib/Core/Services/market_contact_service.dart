@@ -158,6 +158,20 @@ class MarketContactService {
     );
   }
 
+  Future<void> callPhone(MarketItemModel item) async {
+    final phone = item.sellerPhoneNumber.trim();
+    if (phone.isEmpty) {
+      AppSnackbar('Bilgi Yok', 'Satıcının telefon bilgisi bulunamadı.');
+      return;
+    }
+
+    final dialUri = Uri.parse('tel:${_dialValue(phone)}');
+    final opened = await launchUrl(dialUri);
+    if (!opened) {
+      AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
+    }
+  }
+
   Future<String> _resolvePhone(MarketItemModel item) async {
     final direct = item.sellerPhoneNumber.trim();
     if (direct.isNotEmpty) return direct;

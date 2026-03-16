@@ -77,6 +77,7 @@ class TypesenseMarketSearchService {
           sellerUsername: (hitMap['sellerUsername'] ?? '').toString(),
           sellerPhotoUrl: (hitMap['sellerPhotoUrl'] ?? '').toString(),
           sellerRozet: (hitMap['sellerRozet'] ?? '').toString(),
+          sellerPhoneNumber: (hitMap['sellerPhoneNumber'] ?? '').toString(),
           contactPreference:
               (hitMap['contactPreference'] ?? 'message_only').toString(),
           status: (hitMap['status'] ?? 'active').toString(),

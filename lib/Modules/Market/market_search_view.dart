@@ -293,7 +293,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${item.price.toStringAsFixed(0)} ${item.currency}',
+                    '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -415,7 +415,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${item.price.toStringAsFixed(0)} ${item.currency}',
+                      '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 14,

@@ -29,6 +29,22 @@ class MarketOfferService {
       throw Exception('own_item_offer_not_allowed');
     }
 
+    final nowDate = DateTime.now();
+    final startOfDay = DateTime(
+      nowDate.year,
+      nowDate.month,
+      nowDate.day,
+    ).millisecondsSinceEpoch;
+    final todayOffers = await _firestore
+        .collectionGroup('offers')
+        .where('buyerId', isEqualTo: buyerId)
+        .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
+        .limit(20)
+        .get(const GetOptions(source: Source.serverAndCache));
+    if (todayOffers.docs.length >= 20) {
+      throw Exception('daily_offer_limit_reached');
+    }
+
     final now = DateTime.now().millisecondsSinceEpoch;
     final offerId = now.toString();
     final itemRef = _firestore.collection('marketStore').doc(item.id);

@@ -24,6 +24,20 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'market_schema_service.dart';
 
 class MarketController extends GetxController {
+  static const List<String> _preferredCategoryOrder = <String>[
+    'Emlak',
+    'Telefon',
+    'Elektronik',
+    'Ev & Yaşam',
+    'Motosiklet',
+    'Giyim',
+    'Kişisel Bakım',
+    'Anne & Bebek',
+    'Hobi',
+    'Ofis',
+    'Spor',
+  ];
+
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
   final MarketRepository _repository = MarketRepository.ensure();
 
@@ -31,7 +45,7 @@ class MarketController extends GetxController {
   final TextEditingController search = TextEditingController();
 
   final RxDouble scrollOffset = 0.0.obs;
-  final RxInt listingSelection = 0.obs;
+  final RxInt listingSelection = 1.obs;
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;
   final RxString searchQuery = ''.obs;
@@ -76,7 +90,7 @@ class MarketController extends GetxController {
       final loadedCategories =
           _schemaService.categories().toList(growable: true)
             ..sort(
-              (a, b) => compareTurkishStrings(
+              (a, b) => _compareCategoryPriority(
                 (a['label'] ?? '').toString(),
                 (b['label'] ?? '').toString(),
               ),
@@ -116,6 +130,49 @@ class MarketController extends GetxController {
       searchedItems.clear();
       _applyFilters();
     }
+  }
+
+  int _compareCategoryPriority(String left, String right) {
+    final leftIndex = _preferredCategoryIndex(left);
+    final rightIndex = _preferredCategoryIndex(right);
+    if (leftIndex != rightIndex) {
+      return leftIndex.compareTo(rightIndex);
+    }
+    return compareTurkishStrings(left, right);
+  }
+
+  int _preferredCategoryIndex(String label) {
+    final normalized = _categoryOrderKey(label);
+    for (var i = 0; i < _preferredCategoryOrder.length; i++) {
+      if (_categoryOrderKey(_preferredCategoryOrder[i]) == normalized) {
+        return i;
+      }
+    }
+    return _preferredCategoryOrder.length + 100;
+  }
+
+  String _categoryOrderKey(String value) {
+    final normalized = _normalizeCategoryLabel(value);
+    switch (normalized) {
+      case 'kozmetik':
+        return _normalizeCategoryLabel('Kişisel Bakım');
+      default:
+        return normalized;
+    }
+  }
+
+  String _normalizeCategoryLabel(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll('&', 've')
+        .replaceAll('ı', 'i')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   void toggleListingSelection() {
@@ -158,7 +215,10 @@ class MarketController extends GetxController {
 
   bool isSaved(String itemId) => savedItemIds.contains(itemId);
 
-  Future<void> toggleSaved(MarketItemModel item) async {
+  Future<void> toggleSaved(
+    MarketItemModel item, {
+    bool showSnackbar = true,
+  }) async {
     final uid = _currentUid;
     if (uid.isEmpty) {
       AppSnackbar('Giriş Gerekli', 'Kaydetmek için giriş yapmalısın.');
@@ -178,10 +238,12 @@ class MarketController extends GetxController {
       } else {
         await MarketSavedStore.save(uid, item.id);
       }
-      AppSnackbar(
-        'Tamam',
-        currentlySaved ? 'Kayıt kaldırıldı.' : 'İlan kaydedildi.',
-      );
+      if (showSnackbar) {
+        AppSnackbar(
+          'Tamam',
+          currentlySaved ? 'Kayıt kaldırıldı.' : 'İlan kaydedildi.',
+        );
+      }
     } catch (e) {
       if (currentlySaved) {
         savedItemIds.add(item.id);
@@ -190,7 +252,9 @@ class MarketController extends GetxController {
         savedItemIds.remove(item.id);
         _applyLocalFavoriteDelta(item.id, -1);
       }
-      AppSnackbar('Hata', 'Kaydetme işlemi tamamlanamadı.');
+      if (showSnackbar) {
+        AppSnackbar('Hata', 'Kaydetme işlemi tamamlanamadı.');
+      }
     }
   }
 
@@ -410,8 +474,9 @@ class MarketController extends GetxController {
         city:
             selectedCityFilter.value.isEmpty ? null : selectedCityFilter.value,
       );
-      final activeFetched =
-          fetched.where((item) => item.status == 'active').toList(growable: false);
+      final activeFetched = fetched
+          .where((item) => item.status == 'active')
+          .toList(growable: false);
       items.assignAll(_mergePendingCreatedItems(activeFetched));
     } catch (_) {
       items.assignAll(_mergePendingCreatedItems(const <MarketItemModel>[]));
@@ -554,7 +619,8 @@ class MarketController extends GetxController {
     pendingCreatedItems.insert(0, item);
   }
 
-  List<MarketItemModel> _mergePendingCreatedItems(List<MarketItemModel> source) {
+  List<MarketItemModel> _mergePendingCreatedItems(
+      List<MarketItemModel> source) {
     if (pendingCreatedItems.isEmpty) return source;
     final merged = <MarketItemModel>[];
     final seenIds = <String>{};
@@ -572,7 +638,8 @@ class MarketController extends GetxController {
       merged.insert(0, pending);
     }
 
-    pendingCreatedItems.removeWhere((pending) => sourceIds.contains(pending.id));
+    pendingCreatedItems
+        .removeWhere((pending) => sourceIds.contains(pending.id));
     return merged;
   }
 

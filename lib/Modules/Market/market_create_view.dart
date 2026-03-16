@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_controller.dart';
 
@@ -19,6 +20,8 @@ class MarketCreateView extends StatefulWidget {
 class _MarketCreateViewState extends State<MarketCreateView> {
   late final String _controllerTag;
   late final MarketCreateController controller;
+  final PageController _imagePreviewController = PageController();
+  int _imagePreviewIndex = 0;
 
   @override
   void initState() {
@@ -33,6 +36,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
 
   @override
   void dispose() {
+    _imagePreviewController.dispose();
     if (Get.isRegistered<MarketCreateController>(tag: _controllerTag)) {
       Get.delete<MarketCreateController>(tag: _controllerTag, force: true);
     }
@@ -68,57 +72,15 @@ class _MarketCreateViewState extends State<MarketCreateView> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
           children: [
-            _sectionTitle('Kategori'),
+            _sectionTitle('Görseller'),
             const SizedBox(height: 8),
-            _buildTopCategories(),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: leaf?.key,
-              decoration: _inputDecoration('Alt kategori sec'),
-              items: controller.leafCategories
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item.key,
-                      child: Text(
-                        item.pathText,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value != null) controller.selectLeafCategory(value);
-              },
-            ),
-            if (leaf != null) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF6F7FB),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  leaf.pathText,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 13,
-                    fontFamily: 'MontserratMedium',
-                  ),
-                ),
-              ),
-            ],
+            _buildImagePicker(),
             const SizedBox(height: 18),
             _sectionTitle('Temel Bilgiler'),
             const SizedBox(height: 8),
             TextField(
               controller: controller.titleController,
-              decoration: _inputDecoration('Baslik'),
+              decoration: _inputDecoration('Başlık'),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -135,62 +97,44 @@ class _MarketCreateViewState extends State<MarketCreateView> {
               decoration: _inputDecoration('Fiyat (TL)'),
             ),
             const SizedBox(height: 18),
+            _sectionTitle('Konum'),
+            const SizedBox(height: 8),
+            _buildLocationSelectors(),
+            const SizedBox(height: 18),
+            _sectionTitle('Kategori'),
+            const SizedBox(height: 8),
+            _buildTopCategories(),
+            const SizedBox(height: 12),
+            _buildCategoryLevels(),
+            if (leaf != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6F7FB),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  controller.selectedCategoryPathText.isEmpty
+                      ? leaf.pathText
+                      : controller.selectedCategoryPathText,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 13,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
             _sectionTitle('İlan Özellikleri'),
             const SizedBox(height: 8),
             if (leaf == null)
-              _infoBox('Bir kategori secince bu alanlar otomatik dolacak.')
+              _infoBox('Kategori seçimlerini tamamlayınca bu alanlar açılır.')
             else if (leaf.fields.isEmpty)
-              _infoBox('Bu kategori icin ek alan tanimli degil.')
+              _infoBox('Bu kategori için ek alan tanımlı değil.')
             else
-              ...leaf.fields.map((field) => _buildDynamicField(field)),
-            const SizedBox(height: 18),
-            _sectionTitle('Konum'),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: controller.selectedCity.value.isEmpty
-                  ? null
-                  : controller.selectedCity.value,
-              decoration: _inputDecoration('Şehir'),
-              items: controller.cities
-                  .map(
-                    (city) => DropdownMenuItem<String>(
-                      value: city,
-                      child: Text(
-                        city,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: controller.setCity,
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: controller.selectedDistrict.value.isEmpty
-                  ? null
-                  : controller.selectedDistrict.value,
-              decoration: _inputDecoration('İlçe'),
-              items: controller.districtOptions
-                  .map(
-                    (district) => DropdownMenuItem<String>(
-                      value: district,
-                      child: Text(
-                        district,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: controller.setDistrict,
-            ),
+              ..._visibleDynamicFields(leaf.fields).map(_buildDynamicField),
             const SizedBox(height: 18),
             _sectionTitle('İletişim Tercihi'),
             const SizedBox(height: 8),
@@ -198,81 +142,43 @@ class _MarketCreateViewState extends State<MarketCreateView> {
               children: [
                 Expanded(
                   child: _contactChip(
-                    label: 'Mesaj ile',
+                    label: 'Mesaj',
                     value: 'message_only',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _contactChip(
-                    label: 'Telefon göster',
+                    label: 'Telefon',
                     value: 'phone',
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            _sectionTitle('Görseller'),
-            const SizedBox(height: 8),
-            _buildImagePicker(),
             const SizedBox(height: 22),
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: OutlinedButton(
-                      onPressed: controller.isSubmitting.value
-                          ? null
-                          : controller.saveDraftPreview,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0x22000000)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        controller.isSubmitting.value
-                            ? 'Bekleyin...'
-                            : controller.draftActionLabel,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: 'MontserratBold',
-                        ),
-                      ),
-                    ),
+            SizedBox(
+              height: 52,
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: controller.isSubmitting.value
+                    ? null
+                    : controller.publishPreview,
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: controller.isSubmitting.value
-                          ? null
-                          : controller.publishPreview,
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Text(
-                        controller.isSubmitting.value
-                            ? 'Yükleniyor...'
-                            : controller.publishActionLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontFamily: 'MontserratBold',
-                        ),
-                      ),
-                    ),
+                child: Text(
+                  controller.isSubmitting.value ? 'Yükleniyor...' : 'Yayınla',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'MontserratBold',
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         );
@@ -281,76 +187,261 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   }
 
   Widget _buildTopCategories() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: controller.topCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final category = controller.topCategories[index];
-          final key = (category['key'] ?? '').toString();
-          final selected = controller.selectedTopKey.value == key;
-          return GestureDetector(
-            onTap: () => controller.selectTopCategory(key),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: selected ? Colors.black : Colors.white,
-                border: Border.all(
-                  color: selected ? Colors.black : const Color(0x22000000),
-                ),
-              ),
-              alignment: Alignment.center,
+    String? selectedLabel;
+    for (final category in controller.topCategories) {
+      final key = (category['key'] ?? '').toString();
+      if (key == controller.selectedTopKey.value) {
+        selectedLabel = (category['label'] ?? '').toString();
+        break;
+      }
+    }
+
+    return GestureDetector(
+      onTap: _openTopCategorySheet,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
               child: Text(
-                (category['label'] ?? '').toString(),
+                selectedLabel ?? 'Ana kategori',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selected ? Colors.white : Colors.black,
-                  fontSize: 12,
-                  fontFamily: 'MontserratMedium',
+                  color: selectedLabel == null ? Colors.grey : Colors.black,
+                  fontSize: 15,
+                  fontFamily: selectedLabel == null
+                      ? 'MontserratMedium'
+                      : 'MontserratBold',
                 ),
               ),
             ),
-          );
-        },
+            const SizedBox(width: 8),
+            const Icon(
+              CupertinoIcons.chevron_down,
+              size: 18,
+              color: Colors.black54,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _openTopCategorySheet() async {
+    final displayToKey = <String, String>{
+      for (final category in controller.topCategories)
+        (category['label'] ?? '').toString():
+            (category['key'] ?? '').toString(),
+    };
+    String? selectedDisplay;
+    for (final entry in displayToKey.entries) {
+      if (entry.value == controller.selectedTopKey.value) {
+        selectedDisplay = entry.key;
+        break;
+      }
+    }
+
+    await ListBottomSheet.show(
+      context: context,
+      items: displayToKey.keys.toList(growable: false),
+      title: 'Ana kategori',
+      selectedItem: selectedDisplay,
+      onSelect: (selectedLabel) {
+        final key = displayToKey[selectedLabel.toString()];
+        if (key != null) {
+          controller.selectTopCategory(key);
+          Future.delayed(
+            const Duration(milliseconds: 180),
+            () => _openNextCategoryLevelSheet(fromLevel: -1),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildCategoryLevels() {
+    if (controller.categoryLevels.isEmpty) {
+      return _infoBox(
+        'Bu ana kategori altında seçim yapılabilir alt kategori yok.',
+      );
+    }
+
+    return Column(
+      children: [
+        for (var level = 0; level < controller.categoryLevels.length; level++)
+          if (controller.shouldShowLevel(level)) ...[
+            _buildCategorySelector(level),
+            const SizedBox(height: 8),
+          ],
+      ],
+    );
+  }
+
+  String _levelLabel(int level) {
+    switch (level) {
+      case 0:
+        return 'Alt kategori';
+      case 1:
+        return 'Alt grup';
+      case 2:
+        return 'Ürün tipi';
+      default:
+        return '${level + 1}. kademe';
+    }
+  }
+
+  Widget _buildCategorySelector(int level) {
+    final selected = controller.selectedNodeForLevel(level);
+    return GestureDetector(
+      onTap: () => _openCategoryLevelSheet(level),
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                selected?.label ?? _levelLabel(level),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: selected == null ? Colors.grey : Colors.black,
+                  fontSize: 15,
+                  fontFamily:
+                      selected == null ? 'MontserratMedium' : 'MontserratBold',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              CupertinoIcons.chevron_down,
+              size: 18,
+              color: Colors.black54,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCategoryLevelSheet(int level) async {
+    final nodes = controller.optionsForLevel(level);
+    if (nodes.isEmpty) return;
+
+    final displayToKey = <String, String>{};
+    final seenCounts = <String, int>{};
+    for (final node in nodes) {
+      final duplicateCount =
+          nodes.where((candidate) => candidate.label == node.label).length;
+      var display =
+          duplicateCount > 1 ? node.pathLabels.skip(1).join(' > ') : node.label;
+      if (display.trim().isEmpty) {
+        display = node.label;
+      }
+      final existing = seenCounts[display] ?? 0;
+      seenCounts[display] = existing + 1;
+      if (existing > 0) {
+        display = '$display (${existing + 1})';
+      }
+      displayToKey[display] = node.key;
+    }
+
+    final selectedNode = controller.selectedNodeForLevel(level);
+    String? selectedDisplay;
+    for (final entry in displayToKey.entries) {
+      if (entry.value == selectedNode?.key) {
+        selectedDisplay = entry.key;
+        break;
+      }
+    }
+
+    await ListBottomSheet.show(
+      context: context,
+      items: displayToKey.keys.toList(growable: false),
+      title: _levelLabel(level),
+      selectedItem: selectedDisplay,
+      onSelect: (selectedDisplayValue) {
+        final key = displayToKey[selectedDisplayValue.toString()];
+        if (key != null) {
+          controller.selectNodeAtLevel(level, key);
+          Future.delayed(
+            const Duration(milliseconds: 180),
+            () => _openNextCategoryLevelSheet(fromLevel: level),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _openNextCategoryLevelSheet({required int fromLevel}) async {
+    for (var nextLevel = fromLevel + 1;
+        nextLevel < controller.categoryLevels.length;
+        nextLevel++) {
+      if (controller.shouldShowLevel(nextLevel)) {
+        await _openCategoryLevelSheet(nextLevel);
+        return;
+      }
+    }
   }
 
   Widget _buildDynamicField(Map<String, dynamic> field) {
     final key = (field['key'] ?? '').toString();
     final label = (field['label'] ?? key).toString();
     final isSelect = !controller.fieldUsesTextInput(field);
-    final options = controller.fieldOptions(field);
     if (isSelect) {
-      final initialValue = controller.fieldValue(key).isEmpty
-          ? null
-          : controller.fieldValue(key);
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
-        child: DropdownButtonFormField<String>(
-          initialValue: initialValue,
-          decoration: _inputDecoration(
-            field['required'] == true ? '$label *' : label,
-          ),
-          items: options
-              .map(
-                (option) => DropdownMenuItem<String>(
-                  value: option,
+        child: GestureDetector(
+          onTap: () => _openDynamicFieldSheet(field),
+          child: Container(
+            height: 58,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x22000000)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
                   child: Text(
-                    option,
+                    controller.fieldValue(key).isEmpty
+                        ? (field['required'] == true ? '$label *' : label)
+                        : controller.fieldValue(key),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: 'MontserratMedium',
+                    style: TextStyle(
+                      color: controller.fieldValue(key).isEmpty
+                          ? Colors.grey
+                          : Colors.black,
+                      fontSize: 15,
+                      fontFamily: controller.fieldValue(key).isEmpty
+                          ? 'MontserratMedium'
+                          : 'MontserratBold',
                     ),
                   ),
                 ),
-              )
-              .toList(growable: false),
-          onChanged: (value) => controller.setFieldValue(key, value ?? ''),
+                const SizedBox(width: 8),
+                const Icon(
+                  CupertinoIcons.chevron_down,
+                  size: 18,
+                  color: Colors.black54,
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -358,11 +449,165 @@ class _MarketCreateViewState extends State<MarketCreateView> {
       padding: const EdgeInsets.only(bottom: 8),
       child: TextField(
         controller: controller.controllerForField(key),
+        onChanged: (_) => setState(() {}),
         decoration: _inputDecoration(
           field['required'] == true ? '$label *' : label,
         ),
       ),
     );
+  }
+
+  List<Map<String, dynamic>> _visibleDynamicFields(List<Map<String, dynamic>> fields) {
+    final visible = <Map<String, dynamic>>[];
+    for (final field in fields) {
+      visible.add(field);
+      final key = (field['key'] ?? '').toString();
+      if (controller.fieldValue(key).trim().isEmpty) {
+        break;
+      }
+    }
+    return visible;
+  }
+
+  Widget _buildLocationSelectors() {
+    return Column(
+      children: [
+        _buildLocationSelector(
+          label: 'Şehir',
+          value: controller.selectedCity.value,
+          isLoading: controller.isResolvingLocation.value,
+          onTap: _openCitySheet,
+        ),
+        const SizedBox(height: 8),
+        _buildLocationSelector(
+          label: 'İlçe',
+          value: controller.selectedDistrict.value,
+          onTap: controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationSelector({
+    required String label,
+    required String value,
+    required VoidCallback? onTap,
+    bool isLoading = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value.isEmpty ? label : value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: value.isEmpty ? Colors.grey : Colors.black,
+                  fontSize: 15,
+                  fontFamily:
+                      value.isEmpty ? 'MontserratMedium' : 'MontserratBold',
+                ),
+              ),
+            ),
+            if (isLoading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              const Icon(
+                CupertinoIcons.chevron_down,
+                size: 18,
+                color: Colors.black54,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCitySheet() async {
+    await ListBottomSheet.show(
+      context: context,
+      items: controller.cities,
+      title: 'Şehir',
+      selectedItem:
+          controller.selectedCity.value.isEmpty ? null : controller.selectedCity.value,
+      onSelect: (selectedCity) {
+        controller.setCity(selectedCity.toString());
+        Future.delayed(const Duration(milliseconds: 180), _openDistrictSheet);
+      },
+    );
+  }
+
+  Future<void> _openDistrictSheet() async {
+    final districts = controller.districtOptions;
+    if (districts.isEmpty) return;
+    await ListBottomSheet.show(
+      context: context,
+      items: districts,
+      title: 'İlçe',
+      selectedItem: controller.selectedDistrict.value.isEmpty
+          ? null
+          : controller.selectedDistrict.value,
+      onSelect: (selectedDistrict) {
+        controller.setDistrict(selectedDistrict.toString());
+      },
+    );
+  }
+
+  Future<void> _openDynamicFieldSheet(Map<String, dynamic> field) async {
+    final key = (field['key'] ?? '').toString();
+    final label = (field['label'] ?? key).toString();
+    final items = controller.fieldOptions(field);
+    if (items.isEmpty) return;
+
+    final selectedValue =
+        controller.fieldValue(key).isEmpty ? null : controller.fieldValue(key);
+
+    await ListBottomSheet.show(
+      context: context,
+      items: items,
+      title: label,
+      selectedItem: selectedValue,
+      onSelect: (selectedOption) {
+        controller.setFieldValue(key, selectedOption.toString());
+        Future.delayed(
+          const Duration(milliseconds: 180),
+          () => _openNextDynamicFieldSheet(afterKey: key),
+        );
+      },
+    );
+  }
+
+  Future<void> _openNextDynamicFieldSheet({required String afterKey}) async {
+    final leaf = controller.selectedLeaf.value;
+    if (leaf == null) return;
+    final fields = leaf.fields;
+    final currentIndex = fields.indexWhere(
+      (field) => (field['key'] ?? '').toString() == afterKey,
+    );
+    if (currentIndex == -1) return;
+
+    for (var i = currentIndex + 1; i < fields.length; i++) {
+      final field = fields[i];
+      if (controller.fieldUsesTextInput(field)) continue;
+      final key = (field['key'] ?? '').toString();
+      if (controller.fieldValue(key).isNotEmpty) continue;
+      await _openDynamicFieldSheet(field);
+      return;
+    }
   }
 
   Widget _contactChip({
@@ -395,6 +640,7 @@ class _MarketCreateViewState extends State<MarketCreateView> {
   }
 
   Widget _buildImagePicker() {
+    _syncImagePreviewIndex();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -422,92 +668,215 @@ class _MarketCreateViewState extends State<MarketCreateView> {
         ),
         const SizedBox(height: 8),
         if (controller.totalImageCount == 0)
-          _infoBox('İlk seçilen görsel kapak resmi olarak kullanılır.')
+          _buildImageFallbackCard()
         else
-          SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: controller.totalImageCount,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final isExisting = index < controller.existingImageUrls.length;
-                return Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: isExisting
-                          ? Image.network(
-                              controller.existingImageUrls[index],
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 96,
-                                height: 96,
-                                color: const Color(0xFFF3F4F6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 186,
+                child: PageView.builder(
+                  controller: _imagePreviewController,
+                  itemCount: controller.totalImageCount,
+                  onPageChanged: (index) {
+                    if (!mounted) return;
+                    setState(() {
+                      _imagePreviewIndex = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    final isExisting =
+                        index < controller.existingImageUrls.length;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: isExisting
+                                  ? Image.network(
+                                      controller.existingImageUrls[index],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _buildImageFallback(),
+                                    )
+                                  : Image.file(
+                                      controller.selectedImages[index -
+                                          controller.existingImageUrls.length],
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 10,
+                            right: 10,
+                            child: GestureDetector(
+                              onTap: () => controller.removeImageAt(index),
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.72),
+                                  shape: BoxShape.circle,
+                                ),
                                 alignment: Alignment.center,
-                                child: const Icon(Icons.image_not_supported),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
-                            )
-                          : Image.file(
-                              controller.selectedImages[
-                                  index - controller.existingImageUrls.length],
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.cover,
-                            ),
-                    ),
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: GestureDetector(
-                        onTap: () => controller.removeImageAt(index),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            color: Colors.black87,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (index == 0)
-                      Positioned(
-                        left: 6,
-                        bottom: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'Kapak',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontFamily: 'MontserratBold',
                             ),
                           ),
+                          Positioned(
+                            left: 10,
+                            bottom: 10,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.72),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                index == 0
+                                    ? 'Kapak'
+                                    : '${index + 1}/${controller.totalImageCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (controller.totalImageCount > 1) ...[
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    controller.totalImageCount,
+                    (index) => AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: _imagePreviewIndex == index ? 18 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _imagePreviewIndex == index
+                            ? Colors.black
+                            : const Color(0x22000000),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 60,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: controller.totalImageCount,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final isExisting =
+                        index < controller.existingImageUrls.length;
+                    final selected = _imagePreviewIndex == index;
+                    return GestureDetector(
+                      onTap: () {
+                        _imagePreviewController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOut,
+                        );
+                      },
+                      child: Container(
+                        width: 86,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected
+                                ? Colors.black
+                                : const Color(0x22000000),
+                            width: selected ? 1.4 : 1,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: isExisting
+                              ? Image.network(
+                                  controller.existingImageUrls[index],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _buildImageFallback(),
+                                )
+                              : Image.file(
+                                  controller.selectedImages[index -
+                                      controller.existingImageUrls.length],
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                       ),
-                  ],
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
       ],
+    );
+  }
+
+  Widget _buildImageFallbackCard() {
+    return Container(
+      height: 186,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x11000000)),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(
+        CupertinoIcons.photo_on_rectangle,
+        color: Colors.black38,
+        size: 36,
+      ),
+    );
+  }
+
+  void _syncImagePreviewIndex() {
+    final total = controller.totalImageCount;
+    if (total <= 0) {
+      _imagePreviewIndex = 0;
+      return;
+    }
+    if (_imagePreviewIndex < total) return;
+    final targetIndex = total - 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _imagePreviewController.jumpToPage(targetIndex);
+      setState(() {
+        _imagePreviewIndex = targetIndex;
+      });
+    });
+  }
+
+  Widget _buildImageFallback() {
+    return Container(
+      color: const Color(0xFFF3F4F6),
+      alignment: Alignment.center,
+      child: const Icon(Icons.image_not_supported, color: Colors.black38),
     );
   }
 
