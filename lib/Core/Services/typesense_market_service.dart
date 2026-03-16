@@ -52,6 +52,13 @@ class TypesenseMarketSearchService {
           attributes = Map<String, dynamic>.from(decoded);
         }
       } catch (_) {}
+      final sellerPhoneNumber =
+          (hitMap['sellerPhoneNumber'] ?? '').toString().trim();
+      final contactPreference =
+          (hitMap['contactPreference'] ?? 'message_only').toString();
+      final showPhone = hitMap['showPhone'] == true ||
+          sellerPhoneNumber.isNotEmpty ||
+          contactPreference == 'phone';
       items.add(
         MarketItemModel(
           id: docId,
@@ -77,9 +84,9 @@ class TypesenseMarketSearchService {
           sellerUsername: (hitMap['sellerUsername'] ?? '').toString(),
           sellerPhotoUrl: (hitMap['sellerPhotoUrl'] ?? '').toString(),
           sellerRozet: (hitMap['sellerRozet'] ?? '').toString(),
-          sellerPhoneNumber: (hitMap['sellerPhoneNumber'] ?? '').toString(),
-          contactPreference:
-              (hitMap['contactPreference'] ?? 'message_only').toString(),
+          sellerPhoneNumber: sellerPhoneNumber,
+          showPhone: showPhone,
+          contactPreference: contactPreference,
           status: (hitMap['status'] ?? 'active').toString(),
           createdAt: (hitMap['createdAt'] as num?)?.toInt() ?? 0,
           favoriteCount: (hitMap['favoriteCount'] as num?)?.toInt() ?? 0,

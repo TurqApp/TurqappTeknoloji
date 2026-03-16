@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -13,6 +14,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class MarketContactService {
   const MarketContactService();
+
+  static final ConversationRepository _conversationRepository =
+      ConversationRepository.ensure();
 
   Future<void> openChat(MarketItemModel item) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -32,6 +36,10 @@ class MarketContactService {
         .firstWhereOrNull((val) => val.userID == item.userId);
 
     if (sohbet != null) {
+      await _conversationRepository.setMarketContext(
+        chatId: sohbet.chatID,
+        item: item,
+      );
       await Get.to(
         () => ChatView(
           chatID: sohbet.chatID,
@@ -44,6 +52,7 @@ class MarketContactService {
     }
 
     final chatId = buildConversationId(currentUid, item.userId);
+    await _conversationRepository.setMarketContext(chatId: chatId, item: item);
     await Get.to(
       () => ChatView(
         chatID: chatId,
@@ -159,7 +168,7 @@ class MarketContactService {
   }
 
   Future<void> callPhone(MarketItemModel item) async {
-    final phone = item.sellerPhoneNumber.trim();
+    final phone = await _resolvePhone(item);
     if (phone.isEmpty) {
       AppSnackbar('Bilgi Yok', 'Satıcının telefon bilgisi bulunamadı.');
       return;

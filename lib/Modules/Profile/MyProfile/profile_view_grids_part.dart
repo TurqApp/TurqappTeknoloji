@@ -526,9 +526,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 0.73,
+                crossAxisSpacing: 4,
+                mainAxisSpacing: 4,
+                childAspectRatio: 0.48,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) => _buildMarketGridCard(_marketItems[index]),
@@ -552,11 +552,13 @@ extension _ProfileViewGridsPart on _ProfileViewState {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: 0.78,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -590,7 +592,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         _marketStatusLabel(item.status),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontFamily: 'MontserratBold',
                         ),
                       ),
@@ -600,7 +602,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 3),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -610,7 +612,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontFamily: 'MontserratBold',
                     ),
                   ),
@@ -622,34 +624,34 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                     style: TextStyle(
                       color: statusColor,
                       fontSize: 12,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${_formatMarketMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
                       fontFamily: 'MontserratBold',
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_formatMarketMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                    style: const TextStyle(
+                      color: Color(0xFF8B0000),
+                      fontSize: 19,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     item.locationText.isEmpty
                         ? 'Konum belirtilmedi'
                         : item.locationText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 12,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 13,
                       fontFamily: 'MontserratMedium',
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 3),
                   SizedBox(
-                    height: 34,
+                    height: 30,
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () async {
@@ -660,7 +662,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         elevation: 0,
                         backgroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         padding: EdgeInsets.zero,
                       ),
@@ -668,8 +670,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                         'İncele',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontFamily: 'MontserratBold',
+                          fontSize: 15,
+                          fontFamily: 'MontserratMedium',
                         ),
                       ),
                     ),

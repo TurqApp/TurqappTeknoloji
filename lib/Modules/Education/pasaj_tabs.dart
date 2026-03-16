@@ -1,6 +1,6 @@
 const List<String> pasajTabs = [
-  "İş Bul",
   "Market",
+  "İş Bul",
   "Burslar",
   "Soru Bankası",
   "Denemeler",

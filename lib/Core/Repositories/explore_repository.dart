@@ -209,8 +209,11 @@ class ExploreRepository extends GetxService {
       () => query.get(),
       feedMode: feedMode,
     );
-    final items = snap.docs
-        .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+    final postIds = snap.docs.map((doc) => doc.id).toList(growable: false);
+    final byId = await fetchPostsByIds(postIds, preferCache: true);
+    final items = postIds
+        .map((id) => byId[id])
+        .whereType<PostsModel>()
         .toList(growable: false);
     return ExploreQueryPage(
       items: items,

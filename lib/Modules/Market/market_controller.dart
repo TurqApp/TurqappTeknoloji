@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
@@ -26,6 +27,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'market_schema_service.dart';
 
 class MarketController extends GetxController {
+  static const String _recentSearchesKey = 'market_recent_searches_v1';
   static const List<String> _preferredCategoryOrder = <String>[
     'Emlak',
     'Telefon',
@@ -67,6 +69,7 @@ class MarketController extends GetxController {
   final RxList<String> allCityOptions = <String>[].obs;
   final RxList<String> savedItemIds = <String>[].obs;
   final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
+  final RxList<String> recentSearches = <String>[].obs;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
 
@@ -74,6 +77,7 @@ class MarketController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(_onScroll);
+    unawaited(_loadRecentSearches());
     unawaited(loadHomeData());
   }
 
@@ -136,6 +140,18 @@ class MarketController extends GetxController {
     }
   }
 
+  void applyRecentSearch(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) return;
+    setSearchQuery(normalized);
+  }
+
+  Future<void> clearRecentSearches() async {
+    recentSearches.clear();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_recentSearchesKey);
+  }
+
   int _compareCategoryPriority(String left, String right) {
     final leftIndex = _preferredCategoryIndex(left);
     final rightIndex = _preferredCategoryIndex(right);
@@ -191,7 +207,20 @@ class MarketController extends GetxController {
       setSearchQuery(searchQuery.value);
       return;
     }
-    unawaited(_reloadListingForCurrentFilters());
+    _applyFilters();
+  }
+
+  void clearCategoryFilter() {
+    if (selectedCategoryKey.value.isEmpty) {
+      _applyFilters();
+      return;
+    }
+    selectedCategoryKey.value = '';
+    if (searchQuery.value.trim().length >= 2) {
+      setSearchQuery(searchQuery.value);
+      return;
+    }
+    _applyFilters();
   }
 
   Future<void> openItem(MarketItemModel item) async {
@@ -481,18 +510,47 @@ class MarketController extends GetxController {
       final results = fetched.where((item) => item.status == 'active').toList(
             growable: false,
           );
-      searchedItems.assignAll(
-        results.isEmpty ? _searchLocally(query) : results,
-      );
+      searchedItems.assignAll(results);
+      if (results.isNotEmpty) {
+        await _storeRecentSearch(query);
+      }
     } catch (_) {
       if (!_isLatestSearch(requestId, query)) return;
-      searchedItems.assignAll(_searchLocally(query));
+      searchedItems.clear();
     } finally {
       if (_isLatestSearch(requestId, query)) {
         isSearchLoading.value = false;
         _applyFilters();
       }
     }
+  }
+
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final values = prefs.getStringList(_recentSearchesKey) ?? const <String>[];
+    recentSearches.assignAll(
+      values
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false),
+    );
+  }
+
+  Future<void> _storeRecentSearch(String query) async {
+    final normalized = query.trim();
+    if (normalized.isEmpty) return;
+    final next = <String>[
+      normalized,
+      ...recentSearches.where(
+        (item) => item.toLowerCase() != normalized.toLowerCase(),
+      ),
+    ];
+    if (next.length > 12) {
+      next.removeRange(12, next.length);
+    }
+    recentSearches.assignAll(next);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_recentSearchesKey, next);
   }
 
   Future<void> _loadListingFromTypesense() async {
@@ -547,14 +605,6 @@ class MarketController extends GetxController {
 
   bool _isLatestSearch(int requestId, String query) {
     return requestId == _searchRequestId && searchQuery.value.trim() == query;
-  }
-
-  List<MarketItemModel> _searchLocally(String query) {
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) return const <MarketItemModel>[];
-    return items
-        .where((item) => _matchesLocalQuery(item, normalized))
-        .toList(growable: false);
   }
 
   bool _matchesLocalQuery(MarketItemModel item, String query) {

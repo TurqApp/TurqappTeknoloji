@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class NotifyPostLookup {
@@ -51,6 +53,18 @@ class NotifyTutoringLookup {
   final DateTime cachedAt;
 }
 
+class NotifyMarketLookup {
+  const NotifyMarketLookup({
+    required this.exists,
+    required this.model,
+    required this.cachedAt,
+  });
+
+  final bool exists;
+  final MarketItemModel? model;
+  final DateTime cachedAt;
+}
+
 class NotifyLookupRepository extends GetxService {
   NotifyLookupRepository({
     FirebaseFirestore? firestore,
@@ -65,6 +79,7 @@ class NotifyLookupRepository extends GetxService {
   static const Duration _chatLookupTtl = Duration(seconds: 30);
   static const Duration _jobLookupTtl = Duration(seconds: 30);
   static const Duration _tutoringLookupTtl = Duration(seconds: 30);
+  static const Duration _marketLookupTtl = Duration(seconds: 30);
   static const Duration _staleRetention = Duration(minutes: 3);
   static const int _maxLookupEntries = 300;
 
@@ -76,6 +91,8 @@ class NotifyLookupRepository extends GetxService {
       <String, NotifyJobLookup>{};
   final Map<String, NotifyTutoringLookup> _tutoringLookupCache =
       <String, NotifyTutoringLookup>{};
+  final Map<String, NotifyMarketLookup> _marketLookupCache =
+      <String, NotifyMarketLookup>{};
 
   static NotifyLookupRepository ensure() {
     if (Get.isRegistered<NotifyLookupRepository>()) {
@@ -181,6 +198,27 @@ class NotifyLookupRepository extends GetxService {
     return lookup;
   }
 
+  Future<NotifyMarketLookup> getMarketLookup(String itemId) async {
+    _pruneStaleLookups();
+    final cached = _marketLookupCache[itemId];
+    if (cached != null &&
+        DateTime.now().difference(cached.cachedAt) <= _marketLookupTtl) {
+      return cached;
+    }
+    final model = await MarketRepository.ensure().fetchById(
+      itemId,
+      preferCache: true,
+      forceRefresh: false,
+    );
+    final lookup = NotifyMarketLookup(
+      exists: model != null,
+      model: model,
+      cachedAt: DateTime.now(),
+    );
+    _marketLookupCache[itemId] = lookup;
+    return lookup;
+  }
+
   void _pruneStaleLookups() {
     final now = DateTime.now();
     bool isStale(DateTime t) => now.difference(t) > _staleRetention;
@@ -188,6 +226,7 @@ class NotifyLookupRepository extends GetxService {
     _chatLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _jobLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _tutoringLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
+    _marketLookupCache.removeWhere((_, v) => isStale(v.cachedAt));
     _trimOldestIfNeeded();
   }
 
@@ -209,5 +248,6 @@ class NotifyLookupRepository extends GetxService {
     trimMap<NotifyChatLookup>(_chatLookupCache, (v) => v.cachedAt);
     trimMap<NotifyJobLookup>(_jobLookupCache, (v) => v.cachedAt);
     trimMap<NotifyTutoringLookup>(_tutoringLookupCache, (v) => v.cachedAt);
+    trimMap<NotifyMarketLookup>(_marketLookupCache, (v) => v.cachedAt);
   }
 }

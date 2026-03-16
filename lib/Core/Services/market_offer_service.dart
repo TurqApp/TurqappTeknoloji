@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -74,6 +75,10 @@ class MarketOfferService {
         SetOptions(merge: true),
       );
     });
+    await MarketNotificationService.notifyOfferCreated(
+      item: item,
+      offerPrice: offerPrice,
+    );
   }
 
   static Future<int> _countTodayOffers({
@@ -170,6 +175,10 @@ class MarketOfferService {
         SetOptions(merge: true),
       );
     });
+    await MarketNotificationService.notifyOfferStatus(
+      offer: offer,
+      status: status,
+    );
 
     if (status == 'accepted') {
       final pendingOffers = await itemRef

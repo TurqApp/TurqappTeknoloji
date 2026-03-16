@@ -273,7 +273,11 @@ class MarketCreateController extends GetxController {
   }
 
   void setContactPreference(String value) {
-    contactPreference.value = value;
+    if (value == 'phone') {
+      contactPreference.value = 'phone';
+      return;
+    }
+    contactPreference.value = 'message_only';
   }
 
   List<String> get districtOptions {
@@ -294,7 +298,11 @@ class MarketCreateController extends GetxController {
   }
 
   List<String> fieldOptions(Map<String, dynamic> field) {
-    final options = field['options'] as List<dynamic>? ?? const [];
+    final key = (field['key'] ?? '').toString();
+    var options = field['options'] as List<dynamic>? ?? const [];
+    if (key == 'model' && options.isEmpty) {
+      options = _dependentModelOptions();
+    }
     final values = options
         .map((option) {
           if (option is Map) {
@@ -314,6 +322,19 @@ class MarketCreateController extends GetxController {
   }
 
   void setFieldValue(String key, String value) {
+    if (key == 'marka') {
+      final currentModel = fieldValues['model'] ?? '';
+      final allowedModels = _dependentModelOptions()
+          .map((option) => option is Map
+              ? (option['label'] ?? option['key'] ?? '').toString()
+              : option.toString())
+          .where((option) => option.trim().isNotEmpty)
+          .toSet();
+      if (currentModel.isNotEmpty && !allowedModels.contains(currentModel)) {
+        fieldValues.remove('model');
+        _fieldControllers['model']?.clear();
+      }
+    }
     fieldValues[key] = value;
     final controller = _fieldControllers[key];
     if (controller != null && controller.text != value) {
@@ -391,6 +412,8 @@ class MarketCreateController extends GetxController {
     final nickname = (current?.nickname ?? '').trim();
     final displayName = fullName.isEmpty ? nickname : fullName;
     final avatarUrl = (current?.avatarUrl ?? '').trim();
+    final showPhone = contactPreference.value == 'phone';
+    final phoneNumber = showPhone ? _resolveSellerPhone(current) : '';
     final attributes = <String, dynamic>{};
     if (leaf != null) {
       for (final field in leaf.fields) {
@@ -421,6 +444,7 @@ class MarketCreateController extends GetxController {
           .where((value) => value.trim().isNotEmpty)
           .join(', '),
       'contactPreference': contactPreference.value,
+      'showPhone': showPhone,
       'status': _nextStatus(publish),
       'seller': {
         'userId': userId,
@@ -428,7 +452,7 @@ class MarketCreateController extends GetxController {
         'nickname': nickname,
         'avatarUrl': avatarUrl,
         'rozet': current?.rozet ?? '',
-        'phoneNumber': current?.phoneNumber ?? '',
+        'phoneNumber': phoneNumber,
         'isApproved': current?.hesapOnayi == true,
         // Geriye uyumlu alanlar
         'name': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
@@ -443,7 +467,7 @@ class MarketCreateController extends GetxController {
       'sellerName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
       'sellerUsername': nickname,
       'sellerPhotoUrl': avatarUrl,
-      'sellerPhoneNumber': current?.phoneNumber ?? '',
+      'sellerPhoneNumber': phoneNumber,
       'coverImageUrl': imageUrls.isEmpty ? '' : imageUrls.first,
       'imageUrls': imageUrls,
       'imageCount': imageUrls.length,
@@ -458,6 +482,17 @@ class MarketCreateController extends GetxController {
       if (isEditing && publish && initialItem?.status == 'draft')
         'publishedAt': now,
     };
+  }
+
+  String _resolveSellerPhone(dynamic current) {
+    final values = <String>[
+      (current?.phoneNumber ?? '').toString().trim(),
+      (FirebaseAuth.instance.currentUser?.phoneNumber ?? '').toString().trim(),
+    ];
+    for (final value in values) {
+      if (value.isNotEmpty) return value;
+    }
+    return '';
   }
 
   String? _validateBase({required bool requiredPrice}) {
@@ -831,5 +866,26 @@ class MarketCreateController extends GetxController {
         controllerForField(key).clear();
       }
     }
+  }
+
+  List<dynamic> _dependentModelOptions() {
+    final marka = fieldValues['marka']?.trim() ?? '';
+    if (marka.isEmpty) return const <dynamic>[];
+    final leaf = selectedLeaf.value;
+    if (leaf == null) return const <dynamic>[];
+    final markaField = leaf.fields.firstWhereOrNull(
+      (field) => (field['key'] ?? '').toString() == 'marka',
+    );
+    if (markaField == null) return const <dynamic>[];
+    final markaOptions =
+        markaField['options'] as List<dynamic>? ?? const <dynamic>[];
+    for (final option in markaOptions) {
+      if (option is! Map) continue;
+      final label = (option['label'] ?? option['key'] ?? '').toString().trim();
+      if (label == marka) {
+        return option['options'] as List<dynamic>? ?? const <dynamic>[];
+      }
+    }
+    return const <dynamic>[];
   }
 }

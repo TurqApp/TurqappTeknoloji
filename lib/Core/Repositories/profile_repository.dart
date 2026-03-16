@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_polic
 
 import '../../Core/Services/profile_posts_cache_service.dart';
 import '../../Models/posts_model.dart';
+import 'post_repository.dart';
 
 class ProfileBuckets {
   const ProfileBuckets({
@@ -42,6 +43,7 @@ class ProfileRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
   final ProfilePostsCacheService _cacheService;
+  final PostRepository _postRepository = PostRepository.ensure();
   final Map<String, ProfileBuckets> _memory = <String, ProfileBuckets>{};
   final Map<String, List<PostsModel>> _archiveMemory =
       <String, List<PostsModel>>{};
@@ -129,11 +131,17 @@ class ProfileRepository extends GetxService {
 
     final snapshot =
         await query.get(const GetOptions(source: Source.serverAndCache));
+    final postIds = snapshot.docs.map((doc) => doc.id).toList(growable: false);
+    final byId = await _postRepository.fetchPostCardsByIds(
+      postIds,
+      preferCache: true,
+    );
     final buckets = buildBucketsFromPosts(
-      snapshot.docs
-          .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
+      postIds
+          .map((id) => byId[id])
+          .whereType<PostsModel>()
           .where((post) => post.deletedPost != true)
-          .toList(),
+          .toList(growable: false),
     );
     return ProfilePageResult(
       all: buckets.all,
@@ -165,10 +173,10 @@ class ProfileRepository extends GetxService {
       return null;
     }
 
-    final post = PostsModel.fromMap(
-      snapshot.docs.first.data(),
-      snapshot.docs.first.id,
-    );
+    final post = (await _postRepository.fetchPostCardsByIds(
+      [snapshot.docs.first.id],
+      preferCache: true,
+    ))[snapshot.docs.first.id];
     _latestPostMemory[uid] = post;
     return post;
   }
@@ -198,17 +206,10 @@ class ProfileRepository extends GetxService {
       return null;
     }
 
-    final postDoc = await _firestore
-        .collection('Posts')
-        .doc(postId)
-        .get(const GetOptions(source: Source.serverAndCache));
-    final postData = postDoc.data();
-    if (postData == null) {
-      _latestResharePostMemory[uid] = null;
-      return null;
-    }
-
-    final post = PostsModel.fromMap(postData, postDoc.id);
+    final post = (await _postRepository.fetchPostCardsByIds(
+      [postId],
+      preferCache: true,
+    ))[postId];
     _latestResharePostMemory[uid] = post;
     return post;
   }
@@ -310,8 +311,14 @@ class ProfileRepository extends GetxService {
         .where('arsiv', isEqualTo: true)
         .orderBy('timeStamp', descending: true)
         .get(const GetOptions(source: Source.serverAndCache));
-    final posts = snapshot.docs
-        .map((d) => PostsModel.fromMap(d.data(), d.id))
+    final postIds = snapshot.docs.map((doc) => doc.id).toList(growable: false);
+    final byId = await _postRepository.fetchPostCardsByIds(
+      postIds,
+      preferCache: true,
+    );
+    final posts = postIds
+        .map((id) => byId[id])
+        .whereType<PostsModel>()
         .toList(growable: false);
     await writeArchive(uid, posts);
     return posts;

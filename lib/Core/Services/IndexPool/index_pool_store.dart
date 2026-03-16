@@ -58,7 +58,7 @@ class IndexPoolEntry {
 }
 
 class IndexPoolStore {
-  static const int _schemaVersion = 3;
+  static const int _schemaVersion = 4;
   static const int _maxEntriesPerKind = 250;
   static const Duration _poolFileTtl = Duration(hours: 24);
   static const Duration _fallbackTtl = Duration(minutes: 5);
@@ -244,9 +244,20 @@ class IndexPoolStore {
     PostsModel post,
     Map<String, dynamic>? user,
   ) {
-    final authorNickname = (user?['nickname'] ?? post.authorNickname).toString();
-    final authorAvatarUrl =
-        (user?['avatarUrl'] ?? post.authorAvatarUrl).toString();
+    final authorNickname = (post.authorNickname.isNotEmpty
+            ? post.authorNickname
+            : (user?['nickname'] ?? ''))
+        .toString();
+    final authorDisplayName = (post.authorDisplayName.isNotEmpty
+            ? post.authorDisplayName
+            : (user?['displayName'] ?? ''))
+        .toString();
+    final authorAvatarUrl = (post.authorAvatarUrl.isNotEmpty
+            ? post.authorAvatarUrl
+            : (user?['avatarUrl'] ?? ''))
+        .toString();
+    final rozet = (post.rozet.isNotEmpty ? post.rozet : (user?['rozet'] ?? ''))
+        .toString();
 
     return <String, dynamic>{
       'metin': post.metin,
@@ -259,7 +270,9 @@ class IndexPoolStore {
       'timeStamp': post.timeStamp,
       'editTime': post.editTime ?? 0,
       'authorNickname': authorNickname,
+      'authorDisplayName': authorDisplayName,
       'authorAvatarUrl': authorAvatarUrl,
+      'rozet': rozet,
       'userID': post.userID,
       'paylasGizliligi': post.paylasGizliligi,
       'arsiv': post.arsiv,

@@ -96,10 +96,12 @@ class NotificationPreferencesService {
       case 'user':
         return _readBool(prefs, 'followers.follows');
       case 'job_application':
+      case 'market_offer':
         return _readBool(prefs, 'opportunities.jobApplications');
       case 'tutoring_application':
         return _readBool(prefs, 'opportunities.tutoringApplications');
       case 'tutoring_status':
+      case 'market_offer_status':
         return _readBool(prefs, 'opportunities.applicationStatus');
       default:
         return true;

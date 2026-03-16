@@ -6,6 +6,7 @@ enum ContentScreenKind {
   shorts,
   explore,
   story,
+  profile,
 }
 
 class ContentPolicy {
@@ -46,5 +47,40 @@ class ContentPolicy {
       return isOnWiFi;
     }
     return isOnWiFi;
+  }
+
+  static bool shouldBootstrapNetwork(
+    ContentScreenKind screen, {
+    required bool hasLocalContent,
+  }) {
+    if (!isConnected) return false;
+    if (isOnWiFi) return true;
+    return !hasLocalContent;
+  }
+
+  static int initialPoolLimit(ContentScreenKind screen) {
+    if (isOnWiFi) {
+      switch (screen) {
+        case ContentScreenKind.feed:
+          return 12;
+        case ContentScreenKind.shorts:
+        case ContentScreenKind.explore:
+        case ContentScreenKind.profile:
+          return 30;
+        case ContentScreenKind.story:
+          return 10;
+      }
+    }
+
+    switch (screen) {
+      case ContentScreenKind.feed:
+        return feedInitialFromPool;
+      case ContentScreenKind.shorts:
+      case ContentScreenKind.explore:
+      case ContentScreenKind.profile:
+        return mobileWarmWindow;
+      case ContentScreenKind.story:
+        return 10;
+    }
   }
 }

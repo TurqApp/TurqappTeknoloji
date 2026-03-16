@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/typesense_user_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -29,6 +30,7 @@ class ProfileController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final SocialMediaLinksRepository _socialLinksRepository =
       SocialMediaLinksRepository.ensure();
+  final TypesenseUserService _typesenseUserService = TypesenseUserService.instance;
   Timer? _persistCacheTimer;
   Worker? _allPostsWorker;
   Worker? _photosWorker;
@@ -46,6 +48,8 @@ class ProfileController extends GetxController {
   var followingCount = 0.obs;
   final RxString headerNickname = ''.obs;
   final RxString headerRozet = ''.obs;
+  final RxString headerDisplayName = ''.obs;
+  final RxString headerAvatarUrl = ''.obs;
   final RxString headerFirstName = ''.obs;
   final RxString headerLastName = ''.obs;
   final RxString headerMeslek = ''.obs;
@@ -141,11 +145,65 @@ class ProfileController extends GetxController {
 
   Future<void> _bootstrapProfileData() async {
     await _restoreCachedListsForActiveUser();
+    await _bootstrapHeaderFromTypesense();
     getCounters();
     _listenToCounterChanges();
     _bindResharesRealtime();
     await _fetchPrimaryBuckets(initial: true);
     getReshares();
+  }
+
+  Future<void> _bootstrapHeaderFromTypesense() async {
+    final uid = _activeUid ?? FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+    try {
+      final cards = await _typesenseUserService.getUserCardsByIds(<String>[uid]);
+      final card = cards[uid];
+      if (card == null || card.isEmpty) return;
+      await _userRepository.putUserRaw(uid, card);
+      _applyHeaderCard(card);
+      if (_needsHeaderSupplementalData(card)) {
+        final raw = await _userRepository.getUserRaw(
+          uid,
+          preferCache: false,
+          forceServer: true,
+        );
+        if (raw != null && raw.isNotEmpty) {
+          await _userRepository.putUserRaw(uid, raw);
+          _applyHeaderCard(raw);
+        }
+      }
+    } catch (e) {
+      print('_bootstrapHeaderFromTypesense error: $e');
+    }
+  }
+
+  bool _needsHeaderSupplementalData(Map<String, dynamic> data) {
+    final bioText = (data['bio'] ?? '').toString().trim();
+    final addressText = (data['adres'] ?? '').toString().trim();
+    final meslekText = (data['meslekKategori'] ?? '').toString().trim();
+    return bioText.isEmpty || addressText.isEmpty || meslekText.isEmpty;
+  }
+
+  void _applyHeaderCard(Map<String, dynamic> data) {
+    headerNickname.value =
+        (data['nickname'] ?? data['username'] ?? '').toString().trim();
+    headerRozet.value =
+        (data['rozet'] ?? data['badge'] ?? '').toString().trim();
+    headerDisplayName.value = (data['displayName'] ?? '').toString().trim();
+    headerAvatarUrl.value = (data['avatarUrl'] ?? '').toString().trim();
+
+    final display = headerDisplayName.value.trim();
+    if (display.isNotEmpty) {
+      headerFirstName.value = display;
+      headerLastName.value = '';
+    } else {
+      headerFirstName.value = _preserveNonEmpty(headerFirstName, data['firstName']);
+      headerLastName.value = _preserveNonEmpty(headerLastName, data['lastName']);
+    }
+    headerMeslek.value = _preserveNonEmpty(headerMeslek, data['meslekKategori']);
+    headerBio.value = _preserveNonEmpty(headerBio, data['bio']);
+    headerAdres.value = _preserveNonEmpty(headerAdres, data['adres']);
   }
 
   void _bindCacheWorkers() {
@@ -289,36 +347,6 @@ class ProfileController extends GetxController {
     _counterSub = _userRepository.watchUserRaw(uid).listen((snapshot) {
       final data = snapshot;
       if (data != null) {
-        headerNickname.value = (data['nickname'] ??
-                data['nickName'] ??
-                data['username'] ??
-                data['userName'] ??
-                data['displayName'] ??
-                '')
-            .toString()
-            .trim();
-        headerRozet.value =
-            (data['rozet'] ?? data['badge'] ?? '').toString().trim();
-        headerFirstName.value = _preserveNonEmpty(
-          headerFirstName,
-          data['firstName'],
-        );
-        headerLastName.value = _preserveNonEmpty(
-          headerLastName,
-          data['lastName'],
-        );
-        headerMeslek.value = _preserveNonEmpty(
-          headerMeslek,
-          data['meslekKategori'],
-        );
-        headerBio.value = _preserveNonEmpty(
-          headerBio,
-          data['bio'],
-        );
-        headerAdres.value = _preserveNonEmpty(
-          headerAdres,
-          data['adres'],
-        );
         followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
             (data['followersCount'] as num?)?.toInt() ??
             (data['takipci'] as num?)?.toInt() ??
@@ -430,36 +458,6 @@ class ProfileController extends GetxController {
       final data = await _userRepository.getUserRaw(
         uid,
         preferCache: true,
-      );
-      headerNickname.value = (data?['nickname'] ??
-              data?['nickName'] ??
-              data?['username'] ??
-              data?['userName'] ??
-              data?['displayName'] ??
-              '')
-          .toString()
-          .trim();
-      headerRozet.value =
-          (data?['rozet'] ?? data?['badge'] ?? '').toString().trim();
-      headerFirstName.value = _preserveNonEmpty(
-        headerFirstName,
-        data?['firstName'],
-      );
-      headerLastName.value = _preserveNonEmpty(
-        headerLastName,
-        data?['lastName'],
-      );
-      headerMeslek.value = _preserveNonEmpty(
-        headerMeslek,
-        data?['meslekKategori'],
-      );
-      headerBio.value = _preserveNonEmpty(
-        headerBio,
-        data?['bio'],
-      );
-      headerAdres.value = _preserveNonEmpty(
-        headerAdres,
-        data?['adres'],
       );
       followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
           (data?['followersCount'] as num?)?.toInt() ??
@@ -604,6 +602,7 @@ class ProfileController extends GetxController {
 
   Future<void> refreshAll() async {
     try {
+      await _bootstrapHeaderFromTypesense();
       // Sayaçlar
       await getCounters();
 

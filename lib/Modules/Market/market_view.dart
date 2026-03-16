@@ -538,16 +538,20 @@ class MarketView extends StatelessWidget {
                               controller.isSaved(item.id)
                                   ? AppIcons.liked
                                   : AppIcons.like,
-                              color: const Color(0xFF2563EB),
-                              size: 28,
+                              color: controller.isSaved(item.id)
+                                  ? const Color(0xFF2563EB)
+                                  : Colors.grey.shade600,
+                              size: 24,
                             ),
                           ),
                           if (item.favoriteCount > 0) ...[
                             const SizedBox(height: 2),
                             Text(
                               '${item.favoriteCount}',
-                              style: const TextStyle(
-                                color: Color(0xFF2563EB),
+                              style: TextStyle(
+                                color: controller.isSaved(item.id)
+                                    ? const Color(0xFF2563EB)
+                                    : Colors.grey.shade600,
                                 fontSize: 12,
                                 fontFamily: 'MontserratBold',
                               ),
@@ -644,18 +648,34 @@ class MarketView extends StatelessWidget {
                               controller.isSaved(item.id)
                                   ? AppIcons.liked
                                   : AppIcons.like,
-                              color: Colors.white,
-                              size: 30,
+                              color: controller.isSaved(item.id)
+                                  ? const Color(0xFF2563EB)
+                                  : Colors.grey.shade600,
+                              size: 26,
+                              shadows: const [
+                                Shadow(
+                                  color: Color(0x55000000),
+                                  blurRadius: 6,
+                                ),
+                              ],
                             ),
                           ),
                           if (item.favoriteCount > 0) ...[
                             const SizedBox(height: 2),
                             Text(
                               '${item.favoriteCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: controller.isSaved(item.id)
+                                    ? const Color(0xFF2563EB)
+                                    : Colors.white,
                                 fontSize: 12,
                                 fontFamily: 'MontserratBold',
+                                shadows: const [
+                                  Shadow(
+                                    color: Color(0x55000000),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -917,7 +937,9 @@ class MarketView extends StatelessWidget {
       case 'inventory_2':
         return Icons.inventory_2_outlined;
       case 'bookmark':
-        return Icons.bookmark_outline;
+        return Icons.thumb_up_alt_outlined;
+      case 'thumb_up':
+        return Icons.thumb_up_alt_outlined;
       case 'local_offer':
         return Icons.local_offer_outlined;
       case 'apps':

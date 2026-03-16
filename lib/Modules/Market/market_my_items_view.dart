@@ -72,9 +72,8 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final visible = (snapshot.data ?? const <MarketItemModel>[])
-              .where((item) => item.status != 'sold')
-              .toList(growable: false);
+          final visible =
+              (snapshot.data ?? const <MarketItemModel>[]).toList(growable: false);
 
           return RefreshIndicator(
             onRefresh: () async {

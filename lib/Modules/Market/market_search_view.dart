@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
@@ -23,6 +24,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     controller = Get.isRegistered<MarketController>()
         ? Get.find<MarketController>()
         : Get.put(MarketController());
+    controller.listingSelection.value = 0;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _focusNode.requestFocus();
@@ -39,8 +41,8 @@ class _MarketSearchViewState extends State<MarketSearchView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        bottom: false,
         child: Column(
           children: [
             Padding(
@@ -70,6 +72,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                       focusNode: _focusNode,
                       hintText: 'İlan ara',
                       onChanged: controller.setSearchQuery,
+                      onClear: () => controller.setSearchQuery(''),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -106,18 +109,17 @@ class _MarketSearchViewState extends State<MarketSearchView> {
             Expanded(
               child: Obx(() {
                 final query = controller.searchQuery.value.trim();
+                final showRecentSearches = query.length < 2;
                 final items = controller.visibleItems;
 
-                if (query.length < 2) {
-                  return _buildInfoState(
-                    icon: CupertinoIcons.search,
-                    title: 'İlan aramaya başla',
-                    subtitle: 'En az 2 karakter yazarak market içinde ara.',
-                  );
+                if (!showRecentSearches &&
+                    controller.isSearchLoading.value &&
+                    items.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
-                if (controller.isSearchLoading.value && items.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
+                if (showRecentSearches) {
+                  return _buildRecentSearches();
                 }
 
                 if (items.isEmpty) {
@@ -142,58 +144,19 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                               fontFamily: 'MontserratBold',
                             ),
                           ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: controller.toggleListingSelection,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  controller.listingSelection.value == 0
-                                      ? Icons.grid_view_rounded
-                                      : Icons.view_agenda_outlined,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
-                                const SizedBox(width: 6),
-                                const Text(
-                                  'Görünüm',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 13,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: controller.listingSelection.value == 0
-                            ? GridView.builder(
-                                keyboardDismissBehavior:
-                                    ScrollViewKeyboardDismissBehavior.onDrag,
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 220,
-                                  mainAxisSpacing: 8,
-                                  crossAxisSpacing: 8,
-                                  childAspectRatio: 0.78,
-                                ),
-                                itemCount: items.length,
-                                itemBuilder: (context, index) =>
-                                    _buildGridCard(items[index]),
-                              )
-                            : ListView.builder(
-                                keyboardDismissBehavior:
-                                    ScrollViewKeyboardDismissBehavior.onDrag,
-                                itemCount: items.length,
-                                itemBuilder: (context, index) =>
-                                    _buildListCard(items[index]),
-                              ),
+                        child: ListView.builder(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          itemCount: items.length,
+                          itemBuilder: (context, index) =>
+                              _buildListCard(items[index]),
+                        ),
                       ),
                     ),
                   ],
@@ -206,39 +169,119 @@ class _MarketSearchViewState extends State<MarketSearchView> {
     );
   }
 
+  Widget _buildRecentSearches() {
+    return Obx(() {
+      final items = controller.recentSearches;
+      if (items.isEmpty) {
+        return _buildInfoState(
+          icon: CupertinoIcons.search,
+          title: 'İlan aramaya başla',
+          subtitle: 'Son aramaların burada görünecek.',
+        );
+      }
+
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Son Aramalar',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: controller.clearRecentSearches,
+                child: const Text(
+                  'Temizle',
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...items.map(
+            (item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(
+                CupertinoIcons.time,
+                color: Colors.black45,
+                size: 18,
+              ),
+              title: Text(
+                item,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+              trailing: const Icon(
+                CupertinoIcons.arrow_up_left,
+                color: Colors.black45,
+                size: 16,
+              ),
+              onTap: () => controller.applyRecentSearch(item),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
   Widget _buildInfoState({
     required IconData icon,
     required String title,
-    required String subtitle,
+    String? subtitle,
   }) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.black26, size: 34),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontFamily: 'MontserratBold',
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(
+          32,
+          24,
+          32,
+          MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.black26, size: 34),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontFamily: 'MontserratBold',
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 13,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          ],
+              if ((subtitle ?? '').trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 13,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -293,7 +336,7 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                    '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -308,20 +351,16 @@ class _MarketSearchViewState extends State<MarketSearchView> {
               children: [
                 GestureDetector(
                   onTap: () => controller.toggleSaved(item),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
+                  child: Transform.flip(
+                    flipX: true,
                     child: Icon(
                       controller.isSaved(item.id)
-                          ? Icons.bookmark
-                          : Icons.bookmark_outline,
-                      color: Colors.black,
-                      size: 18,
+                          ? AppIcons.liked
+                          : AppIcons.like,
+                      color: controller.isSaved(item.id)
+                          ? const Color(0xFF2563EB)
+                          : Colors.grey.shade600,
+                      size: 22,
                     ),
                   ),
                 ),
@@ -343,99 +382,6 @@ class _MarketSearchViewState extends State<MarketSearchView> {
                   ),
                 ),
               ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGridCard(MarketItemModel item) {
-    final accent = _accentForItem(item);
-    return GestureDetector(
-      onTap: () => controller.openItem(item),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
-          color: Colors.white,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                _buildItemVisual(
-                  item,
-                  accent,
-                  width: double.infinity,
-                  height: 135,
-                  radius: 12,
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => controller.toggleSaved(item),
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        controller.isSaved(item.id)
-                            ? Icons.bookmark
-                            : Icons.bookmark_outline,
-                        color: Colors.black,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      item.locationText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 11,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -497,6 +443,25 @@ class _MarketSearchViewState extends State<MarketSearchView> {
       default:
         return const Color(0xFF0F766E);
     }
+  }
+
+  String _currencyLabel(String value) {
+    final normalized = value.trim().toUpperCase();
+    if (normalized == 'TRY') return 'TL';
+    return value.trim();
+  }
+
+  String _formattedPrice(double value) {
+    final digits = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      final remaining = digits.length - i;
+      buffer.write(digits[i]);
+      if (remaining > 1 && remaining % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 
   String _statusLabel(String status) {

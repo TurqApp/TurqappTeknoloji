@@ -17,9 +17,14 @@ class MarketReviewService {
         .orderBy('timeStamp', descending: true)
         .limit(50)
         .get(const GetOptions(source: Source.serverAndCache));
-    return snapshot.docs
+    final reviews = snapshot.docs
         .map((doc) => MarketReviewModel.fromMap(doc.data(), doc.id))
         .toList(growable: false);
+    final uniqueByUser = <String, MarketReviewModel>{};
+    for (final review in reviews) {
+      uniqueByUser.putIfAbsent(review.userId, () => review);
+    }
+    return uniqueByUser.values.toList(growable: false);
   }
 
   Future<void> submitReview({

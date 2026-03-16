@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 
 class ConversationRepository extends GetxService {
   static ConversationRepository ensure() {
@@ -367,6 +368,21 @@ class ConversationRepository extends GetxService {
     final doc = await ref.get();
     if (!doc.exists) return null;
     return Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
+  }
+
+  Future<void> setMarketContext({
+    required String chatId,
+    required MarketItemModel item,
+  }) async {
+    if (chatId.trim().isEmpty || item.id.trim().isEmpty) return;
+    await _firestore.collection('conversations').doc(chatId.trim()).set({
+      'marketContext': {
+        'itemId': item.id,
+        'title': item.title,
+        'coverImageUrl': item.coverImageUrl,
+        'sellerId': item.userId,
+      },
+    }, SetOptions(merge: true));
   }
 
   Future<void> ensureConversationForPostShare({

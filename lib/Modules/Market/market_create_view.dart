@@ -252,6 +252,9 @@ class _MarketCreateViewState extends State<MarketCreateView> {
       context: context,
       items: displayToKey.keys.toList(growable: false),
       title: 'Ana kategori',
+      searchHintText: 'Ana kategori, alt kategori, marka ara',
+      searchTextBuilder: (item) =>
+          _topCategorySearchText(displayToKey[item.toString()] ?? ''),
       selectedItem: selectedDisplay,
       onSelect: (selectedLabel) {
         final key = displayToKey[selectedLabel.toString()];
@@ -264,6 +267,48 @@ class _MarketCreateViewState extends State<MarketCreateView> {
         }
       },
     );
+  }
+
+  String _topCategorySearchText(String topKey) {
+    final category = controller.topCategories.firstWhereOrNull(
+      (item) => (item['key'] ?? '').toString() == topKey,
+    );
+    if (category == null) return '';
+    final parts = <String>[];
+    void walk(dynamic node) {
+      if (node is Map) {
+        final label = (node['label'] ?? '').toString().trim();
+        final key = (node['key'] ?? '').toString().trim();
+        if (label.isNotEmpty) parts.add(label);
+        if (key.isNotEmpty) parts.add(key.replaceAll('-', ' '));
+        final options = node['options'];
+        if (options is List) {
+          for (final option in options) {
+            if (option is Map) {
+              walk(option);
+            } else {
+              final value = option.toString().trim();
+              if (value.isNotEmpty) parts.add(value);
+            }
+          }
+        }
+        final fields = node['fields'];
+        if (fields is List) {
+          for (final field in fields) {
+            walk(field);
+          }
+        }
+        final children = node['children'];
+        if (children is List) {
+          for (final child in children) {
+            walk(child);
+          }
+        }
+      }
+    }
+
+    walk(category);
+    return parts.join(' ');
   }
 
   Widget _buildCategoryLevels() {
@@ -614,7 +659,9 @@ class _MarketCreateViewState extends State<MarketCreateView> {
     required String label,
     required String value,
   }) {
-    final selected = controller.contactPreference.value == value;
+    final selected = value == 'message_only'
+        ? true
+        : controller.contactPreference.value == 'phone';
     return GestureDetector(
       onTap: () => controller.setContactPreference(value),
       child: Container(

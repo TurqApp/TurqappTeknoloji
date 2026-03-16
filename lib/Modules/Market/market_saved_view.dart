@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 
 class MarketSavedView extends StatefulWidget {
   const MarketSavedView({super.key});
@@ -126,11 +127,21 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                     ? Image.network(
                         item.coverImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.bookmark_outline,
+                        errorBuilder: (_, __, ___) => Transform.flip(
+                          flipX: true,
+                          child: Icon(
+                            AppIcons.like,
+                            color: Color(0xFF2563EB),
+                          ),
                         ),
                       )
-                    : const Icon(Icons.bookmark_outline),
+                    : Transform.flip(
+                        flipX: true,
+                        child: Icon(
+                          AppIcons.like,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -161,7 +172,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                    '${_formatMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -180,9 +191,12 @@ class _MarketSavedViewState extends State<MarketSavedView> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(
-                      Icons.bookmark_remove_outlined,
-                      color: Colors.black54,
+                  : Transform.flip(
+                      flipX: true,
+                      child: Icon(
+                        AppIcons.liked,
+                        color: Color(0xFF2563EB),
+                      ),
                     ),
             ),
           ],
@@ -210,5 +224,18 @@ class _MarketSavedViewState extends State<MarketSavedView> {
       });
       AppSnackbar('Hata', 'Kayıt kaldırılamadı.');
     }
+  }
+
+  String _formatMoney(double value) {
+    final rounded = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < rounded.length; i++) {
+      final reverseIndex = rounded.length - i;
+      buffer.write(rounded[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 }
