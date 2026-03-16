@@ -11,10 +11,10 @@ interface Env {
   SHORT_LINK_RESOLVE_URL?: string;
 }
 
-type LinkType = "p" | "s" | "u" | "e" | "i";
+type LinkType = "p" | "s" | "u" | "e" | "i" | "m";
 
 type LinkMeta = {
-  type?: "post" | "story" | "user" | "edu" | "job";
+  type?: "post" | "story" | "user" | "edu" | "job" | "market";
   entityId?: string;
   shortId?: string;
   slug?: string;
@@ -232,7 +232,7 @@ async function proxyOgImage(request: Request, url: URL, env: Env): Promise<Respo
 }
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
-  const match = pathname.match(/^\/(p|s|u|e|i)\/([A-Za-z0-9._-]{2,80})$/);
+  const match = pathname.match(/^\/(p|s|u|e|i|m)\/([A-Za-z0-9._-]{2,80})$/);
   if (!match) return null;
   return { kind: match[1] as LinkType, id: match[2] };
 }
@@ -243,6 +243,7 @@ function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {
   if (kind === "s") return `${base}://story/${id}`;
   if (kind === "e") return `${base}://e/${id}`;
   if (kind === "i") return `${base}://job/${id}`;
+  if (kind === "m") return `${base}://market/${id}`;
   return `${base}://profile/${id}`;
 }
 
@@ -264,6 +265,9 @@ function ctaLabelFor(route: { kind: LinkType; id: string }, meta?: LinkMeta): st
     return "Özel Dersi İncele";
   }
   if (entityId.startsWith("job:") || route.kind === "i") {
+    return "İlanı İncele";
+  }
+  if (route.kind === "m" || String(meta?.type || "") === "market") {
     return "İlanı İncele";
   }
   return "Uygulamada Aç";
@@ -459,6 +463,8 @@ async function resolveFromFunction(
     ? "user"
     : route.kind === "i"
     ? "job"
+    : route.kind === "m"
+    ? "market"
     : "edu";
 
   const explicitUrl = String(env.SHORT_LINK_RESOLVE_URL || "").trim();

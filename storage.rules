@@ -158,6 +158,13 @@ service firebase.storage {
                    && request.resource.size < 10 * 1024 * 1024;
     }
 
+    match /marketStore/{uid}/{itemId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && request.auth.uid == uid
+                   && request.resource.size < 15 * 1024 * 1024;
+    }
+
     // Story HLS segments - public read for CDN
     match /stories/{uid}/{storyId}/hls/{allPaths=**} {
       allow read;

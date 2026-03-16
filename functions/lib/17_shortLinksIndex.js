@@ -33,7 +33,7 @@ async function findExistingRouteForEntity(db, type, entityId) {
             status === "active" &&
             shortId &&
             isPreferredShortId(shortId) &&
-            ["p", "s", "u", "e", "i"].includes(routeKind)) {
+            ["p", "s", "u", "e", "i", "m"].includes(routeKind)) {
             return { shortId, routeKind };
         }
     }
@@ -76,9 +76,9 @@ function clampPreviewDescription(v) {
 }
 function normalizeType(v) {
     const raw = String(v || "").trim().toLowerCase();
-    if (["post", "story", "user", "edu", "job"].includes(raw))
+    if (["post", "story", "user", "edu", "job", "market"].includes(raw))
         return raw;
-    throw new https_1.HttpsError("invalid-argument", "type post/story/user/edu olmalı.");
+    throw new https_1.HttpsError("invalid-argument", "type post/story/user/edu/job/market olmalı.");
 }
 function validateShortId(shortId) {
     if (!/^[A-Za-z0-9._-]{2,80}$/.test(shortId)) {
@@ -170,6 +170,8 @@ function routeKindFor(type, entityId = "") {
         return "u";
     if (type === "job")
         return "i";
+    if (type === "market")
+        return "m";
     if (type === "edu" && (entityId.startsWith("tutoring:") || entityId.startsWith("job:"))) {
         return "i";
     }
@@ -365,6 +367,26 @@ async function buildJobMeta(db, entityId) {
         imageUrl,
     };
 }
+async function buildMarketMeta(db, entityId) {
+    const snap = await db.collection("marketStore").doc(entityId).get();
+    if (!snap.exists) {
+        return { title: "TurqApp Market İlanı", desc: "", imageUrl: "" };
+    }
+    const data = (snap.data() || {});
+    const title = normalizeText(data.title || data.name, 140);
+    const desc = normalizeText(data.description || data.desc || data.about, 280);
+    const imageUrl = normalizeText(pickBestImageFromData({
+        ...data,
+        imageUrl: data.coverImageUrl || data.imageUrl,
+        images: data.imageUrls || data.images,
+        cover: data.coverImageUrl || data.cover,
+    }), 1024);
+    return {
+        title: title || "TurqApp Market İlanı",
+        desc,
+        imageUrl,
+    };
+}
 async function syncToCloudflareKV(type, entityId, id, value) {
     const token = getEnv("CF_API_TOKEN");
     const accountId = getEnv("CF_ACCOUNT_ID");
@@ -400,6 +422,7 @@ async function findFreeShortId(db) {
             db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`u:${candidate}`).get(),
             db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`e:${candidate}`).get(),
             db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`i:${candidate}`).get(),
+            db.collection(SHORT_LINK_ROUTE_COLLECTION).doc(`m:${candidate}`).get(),
         ]);
         if (routeChecks.every((snap) => !snap.exists))
             return candidate;
@@ -422,6 +445,10 @@ function parseEntityTarget(db, type, entityId) {
     if (type === "job") {
         const cleanId = entityId.replace(/^job:/, "");
         const ref = db.collection("isBul").doc(cleanId);
+        return { ref, path: ref.path };
+    }
+    if (type === "market") {
+        const ref = db.collection("marketStore").doc(entityId);
         return { ref, path: ref.path };
     }
     if (entityId.startsWith("scholarship:")) {
@@ -565,6 +592,15 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
         if (!imageUrl)
             imageUrl = jobMeta.imageUrl;
     }
+    else if (type === "market") {
+        const marketMeta = await buildMarketMeta(db, entityId);
+        if (!title)
+            title = marketMeta.title;
+        if (!desc)
+            desc = marketMeta.desc;
+        if (!imageUrl)
+            imageUrl = marketMeta.imageUrl;
+    }
     else if (type === "edu") {
         const eduMeta = await buildEduMeta(db, entityId);
         if (!title)
@@ -660,6 +696,14 @@ exports.upsertShortLink = (0, https_1.onCall)({ region: REGION, invoker: "public
             shortLinkStatus: "active",
         }, { merge: true });
     }
+    else if (type === "market" && canPersistToEntity) {
+        await db.collection("marketStore").doc(entityId).set({
+            shortId,
+            shortUrl: publicUrl,
+            shortLinkUpdatedAt: now,
+            shortLinkStatus: "active",
+        }, { merge: true });
+    }
     else if (type === "story" && canPersistToEntity) {
         await db.collection("stories").doc(entityId).set({
             shortId,
@@ -741,8 +785,9 @@ exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "publi
     const routeKinds = type === "post" ? ["p"] :
         type === "story" ? ["s"] :
             type === "user" ? ["u"] :
-                type === "job" ? ["i"] :
-                    ["e", "i"];
+                type === "market" ? ["m"] :
+                    type === "job" ? ["i"] :
+                        ["e", "i"];
     let resolvedId = "";
     let data = null;
     for (const candidate of candidateIds) {
@@ -794,6 +839,10 @@ exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "publi
                     const jobMeta = await buildJobMeta(db, routeData.entityId);
                     entityData = { title: jobMeta.title, desc: jobMeta.desc, imageUrl: jobMeta.imageUrl, status: "active", updatedAt: routeData.updatedAt || Date.now(), expiresAt: 0 };
                 }
+                else if (routeData.type === "market") {
+                    const marketMeta = await buildMarketMeta(db, routeData.entityId);
+                    entityData = { title: marketMeta.title, desc: marketMeta.desc, imageUrl: marketMeta.imageUrl, status: "active", updatedAt: routeData.updatedAt || Date.now(), expiresAt: 0 };
+                }
                 else if (routeData.type === "edu") {
                     const eduMeta = await buildEduMeta(db, routeData.entityId);
                     entityData = { title: eduMeta.title, desc: eduMeta.desc, imageUrl: eduMeta.imageUrl, status: "active", updatedAt: routeData.updatedAt || Date.now(), expiresAt: 0 };
@@ -840,6 +889,15 @@ exports.resolveShortLink = (0, https_1.onCall)({ region: REGION, invoker: "publi
                         title: String(entityData.title || jobMeta.title || ""),
                         desc: String(entityData.desc || jobMeta.desc || ""),
                         imageUrl: String(entityData.imageUrl || jobMeta.imageUrl || ""),
+                    };
+                }
+                else if (routeData.type === "market") {
+                    const marketMeta = await buildMarketMeta(db, routeData.entityId);
+                    entityData = {
+                        ...entityData,
+                        title: String(entityData.title || marketMeta.title || ""),
+                        desc: String(entityData.desc || marketMeta.desc || ""),
+                        imageUrl: String(entityData.imageUrl || marketMeta.imageUrl || ""),
                     };
                 }
                 else if (routeData.type === "edu") {
@@ -910,7 +968,7 @@ exports.shortLinkIndexConfig = (0, https_1.onCall)({ region: REGION, invoker: "p
         ok: true,
         routeCollection: SHORT_LINK_ROUTE_COLLECTION,
         domain: SHORT_LINK_DOMAIN,
-        routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id"],
+        routes: ["/p/:id", "/s/:id", "/u/:id", "/e/:id", "/i/:id", "/m/:id"],
         cloudflareKvSyncEnabled: !!getEnv("CF_API_TOKEN") &&
             !!getEnv("CF_ACCOUNT_ID") &&
             !!getEnv("CF_KV_NAMESPACE_ID"),

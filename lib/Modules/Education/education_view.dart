@@ -45,6 +45,8 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
+import 'package:turqappv2/Modules/Market/market_create_view.dart';
+import 'package:turqappv2/Modules/Market/market_filter_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_search_view.dart';
 import 'package:turqappv2/Modules/Market/market_view.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder.dart';
@@ -65,6 +67,138 @@ class EducationView extends StatelessWidget {
   void _focusGlobalSearch() {
     controller.isSearchMode.value = true;
     controller.searchFocus.requestFocus();
+  }
+
+  MarketController? _activeMarketController() {
+    if (_titleForIndex(controller.selectedTab.value) != "Market") return null;
+    if (!Get.isRegistered<MarketController>()) {
+      Get.put(MarketController());
+    }
+    return Get.find<MarketController>();
+  }
+
+  bool _showInlineMarketActions() {
+    return _activeMarketController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
+  Widget _marketTopActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    bool active = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: active ? Colors.pink.withValues(alpha: 0.12) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active
+                ? Colors.pink.withValues(alpha: 0.35)
+                : Colors.black.withValues(alpha: 0.08),
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          size: 19,
+          color: active ? Colors.pink : Colors.black,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMarketSortSheet(
+    BuildContext context,
+    MarketController marketController,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Obx(
+              () => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Sırala',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildMarketSortOption(
+                    context,
+                    marketController,
+                    'En Yeni',
+                    'newest',
+                  ),
+                  _buildMarketSortOption(
+                    context,
+                    marketController,
+                    'Fiyat Artan',
+                    'price_asc',
+                  ),
+                  _buildMarketSortOption(
+                    context,
+                    marketController,
+                    'Fiyat Azalan',
+                    'price_desc',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMarketSortOption(
+    BuildContext context,
+    MarketController marketController,
+    String label,
+    String value,
+  ) {
+    final selected = marketController.sortSelection.value == value;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        label,
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 15,
+          fontFamily: selected ? 'MontserratBold' : 'MontserratMedium',
+        ),
+      ),
+      trailing: selected
+          ? const Icon(Icons.check_rounded, color: Colors.black)
+          : null,
+      onTap: () {
+        marketController.applyAdvancedFilters(
+          city: marketController.selectedCityFilter.value,
+          contactPreference: marketController.selectedContactFilter.value,
+          minPrice: marketController.minPriceFilter.value,
+          maxPrice: marketController.maxPriceFilter.value,
+          sortBy: value,
+        );
+        Navigator.of(context).pop();
+      },
+    );
   }
 
   ScrollController? _activeScrollController() {
@@ -215,7 +349,9 @@ class EducationView extends StatelessWidget {
             icon: CupertinoIcons.add_circled,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
-                Get.find<MarketController>().showComingSoon('İlan Ekle');
+                Get.find<MarketController>().openRoundMenu('create');
+              } else {
+                Get.to(() => const MarketCreateView());
               }
             },
           ),
@@ -229,7 +365,7 @@ class EducationView extends StatelessWidget {
             },
           ),
           PullDownMenuItem(
-            title: 'Kaydettiklerim',
+            title: 'Beğendiklerim',
             icon: CupertinoIcons.bookmark,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
@@ -245,6 +381,16 @@ class EducationView extends StatelessWidget {
                 Get.find<MarketController>().openRoundMenu('offers');
               }
             },
+          ),
+          PullDownMenuItem(
+            title: 'Slider Yönetimi',
+            icon: CupertinoIcons.slider_horizontal_3,
+            onTap: () => Get.to(
+              () => const SliderAdminView(
+                sliderId: 'market',
+                title: 'Market',
+              ),
+            ),
           ),
         ];
       case "Denemeler":
@@ -471,36 +617,72 @@ class EducationView extends StatelessWidget {
                 // ——— Arama Çubuğu ———
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TurqSearchBar(
-                          controller: controller.searchController,
-                          focusNode: controller.searchFocus,
-                          hintText: "Ara",
-                          onTap: () {
-                            controller.isSearchMode.value = true;
-                          },
-                          onChanged: (v) {
-                            controller.updateSearchText(v);
-                          },
+                  child: Obx(() {
+                    final marketController = _activeMarketController();
+                    final showMarketActions =
+                        marketController != null && _showInlineMarketActions();
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: TurqSearchBar(
+                            controller: controller.searchController,
+                            focusNode: controller.searchFocus,
+                            hintText: "Ara",
+                            onTap: () {
+                              controller.isSearchMode.value = true;
+                            },
+                            onChanged: (v) {
+                              controller.updateSearchText(v);
+                            },
+                          ),
                         ),
-                      ),
-                      Obx(() {
-                        if (controller.isKeyboardOpen.value) {
-                          return GestureDetector(
+                        if (showMarketActions) ...[
+                          const SizedBox(width: 8),
+                          _marketTopActionButton(
+                            icon: marketController.listingSelection.value == 1
+                                ? Icons.grid_view_rounded
+                                : Icons.view_agenda_outlined,
+                            onTap: marketController.toggleListingSelection,
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.swap_vert_rounded,
+                            onTap: () =>
+                                _openMarketSortSheet(context, marketController),
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.filter_alt_outlined,
+                            active: marketController.hasAdvancedFilters,
+                            onTap: () => showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.white,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20),
+                                ),
+                              ),
+                              builder: (_) => MarketFilterSheet(
+                                controller: marketController,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (controller.isKeyboardOpen.value)
+                          GestureDetector(
                             onTap: () => controller.clearSearch(context),
                             child: const Padding(
                               padding: EdgeInsets.only(left: 15),
-                              child: Icon(CupertinoIcons.xmark,
-                                  color: Colors.black),
+                              child: Icon(
+                                CupertinoIcons.xmark,
+                                color: Colors.black,
+                              ),
                             ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      }),
-                    ],
-                  ),
+                          ),
+                      ],
+                    );
+                  }),
                 ),
 
                 // ——— Yatay Kaydırılabilir Tab ———

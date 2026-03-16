@@ -80,3 +80,13 @@ test("story HLS path is publicly readable but not writable by story owner", asyn
   await assertSucceeds(getBytes(ref(unauthCtx.storage(), objectPath)));
   await assertFails(uploadString(ref(ownerCtx.storage(), objectPath), "blocked"));
 });
+
+test("market storage path allows owner write and blocks other users", async () => {
+  const uid = "market-owner";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  const otherCtx = testEnv.authenticatedContext("other-market-user");
+  const objectPath = `marketStore/${uid}/item123/cover.webp`;
+
+  await assertSucceeds(uploadString(ref(ownerCtx.storage(), objectPath), "ok"));
+  await assertFails(uploadString(ref(otherCtx.storage(), objectPath), "nope"));
+});

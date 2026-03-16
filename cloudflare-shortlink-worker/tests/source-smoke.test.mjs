@@ -11,8 +11,8 @@ const source = fs.readFileSync(sourcePath, "utf8");
 
 test("worker source contains route parser for all short link kinds", () => {
   assert.match(source, /function parseRoute\(pathname: string\)/);
-  assert.match(source, /\(p\|s\|u\|e\|i\)/);
-  assert.match(source, /type LinkType = "p" \| "s" \| "u" \| "e" \| "i"/);
+  assert.match(source, /\(p\|s\|u\|e\|i\|m\)/);
+  assert.match(source, /type LinkType = "p" \| "s" \| "u" \| "e" \| "i" \| "m"/);
 });
 
 test("worker source contains OG and well-known handlers", () => {

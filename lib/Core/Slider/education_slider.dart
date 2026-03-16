@@ -68,9 +68,6 @@ class _EducationSliderState extends State<EducationSlider> {
       _setSources(snapshot.items);
       unawaited(_cache.warmImages(snapshot.items));
     }
-
-    if (snapshot.isFresh) return;
-
     unawaited(_refreshRemote(sliderId));
   }
 

@@ -49,6 +49,8 @@ class EducationController extends GetxController {
       isKeyboardOpen.value = searchFocus.hasFocus;
       if (searchFocus.hasFocus) {
         isSearchMode.value = true;
+      } else {
+        isSearchMode.value = false;
       }
     });
 
