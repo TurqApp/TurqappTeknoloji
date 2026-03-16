@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -89,15 +90,7 @@ class MarketView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  EducationSlider(
-                    sliderId: 'market',
-                    imageList: [
-                      AppAssets.job1,
-                      AppAssets.job2,
-                      AppAssets.job3,
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  _buildAdminOnlySlider(),
                   _buildCategoryStrip(),
                   const SizedBox(height: 8),
                   if (controller.hasAdvancedFilters)
@@ -195,6 +188,36 @@ class MarketView extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _buildAdminOnlySlider() {
+    final slider = Column(
+      children: const [
+        EducationSlider(
+          sliderId: 'market',
+          imageList: [
+            AppAssets.job1,
+            AppAssets.job2,
+            AppAssets.job3,
+          ],
+        ),
+        SizedBox(height: 16),
+      ],
+    );
+
+    if (AdminAccessService.isKnownAdminSync()) {
+      return slider;
+    }
+
+    return FutureBuilder<bool>(
+      future: AdminAccessService.canManageSliders(),
+      builder: (context, snapshot) {
+        if (snapshot.data == true) {
+          return slider;
+        }
+        return const SizedBox.shrink();
+      },
+    );
   }
 
   Future<void> _openTopCategoryList(BuildContext context) async {
