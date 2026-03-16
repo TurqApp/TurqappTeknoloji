@@ -47,6 +47,7 @@ class MarketController extends GetxController {
   final RxList<MarketItemModel> items = <MarketItemModel>[].obs;
   final RxList<MarketItemModel> searchedItems = <MarketItemModel>[].obs;
   final RxList<MarketItemModel> visibleItems = <MarketItemModel>[].obs;
+  final RxList<MarketItemModel> pendingCreatedItems = <MarketItemModel>[].obs;
   final RxList<String> savedItemIds = <String>[].obs;
   final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
   Timer? _searchDebounce;
@@ -82,12 +83,7 @@ class MarketController extends GetxController {
             );
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
-      final fetchedItems = await _repository.fetchLatestItems(
-        limit: 24,
-        preferCache: !forceRefresh,
-        forceRefresh: forceRefresh,
-      );
-      items.assignAll(fetchedItems);
+      await _loadListingFromTypesense();
       await _loadSavedItems();
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
       _applyFilters();
@@ -134,7 +130,7 @@ class MarketController extends GetxController {
       setSearchQuery(searchQuery.value);
       return;
     }
-    _applyFilters();
+    unawaited(_reloadListingForCurrentFilters());
   }
 
   Future<void> openItem(MarketItemModel item) async {
@@ -203,7 +199,18 @@ class MarketController extends GetxController {
       case 'create':
         final result = await Get.to(() => const MarketCreateView());
         if (result != null) {
-          await loadHomeData(forceRefresh: true);
+          if (result is Map) {
+            final item = MarketItemModel.fromJson(
+              Map<String, dynamic>.from(result),
+            );
+            _upsertVisibleItem(item);
+            _applyFilters();
+            Future.delayed(const Duration(seconds: 2), () {
+              unawaited(loadHomeData(forceRefresh: true));
+            });
+          } else {
+            await loadHomeData(forceRefresh: true);
+          }
         }
         return;
       case 'my_items':
@@ -269,7 +276,7 @@ class MarketController extends GetxController {
       setSearchQuery(searchQuery.value);
       return;
     }
-    _applyFilters();
+    unawaited(_reloadListingForCurrentFilters());
   }
 
   Future<void> refreshHome() async {
@@ -364,7 +371,7 @@ class MarketController extends GetxController {
 
   Future<void> _searchFromTypesense(String query, int requestId) async {
     try {
-      final docIds = await TypesenseMarketSearchService.instance.searchDocIds(
+      final fetched = await TypesenseMarketSearchService.instance.searchItems(
         query: query,
         limit: 40,
         categoryKey: selectedCategoryKey.value.isEmpty
@@ -373,11 +380,6 @@ class MarketController extends GetxController {
         city:
             selectedCityFilter.value.isEmpty ? null : selectedCityFilter.value,
       );
-      if (!_isLatestSearch(requestId, query)) return;
-
-      final fetched = docIds.isEmpty
-          ? const <MarketItemModel>[]
-          : await _repository.fetchByIds(docIds);
       if (!_isLatestSearch(requestId, query)) return;
 
       final results = fetched.where((item) => item.status == 'active').toList(
@@ -394,6 +396,35 @@ class MarketController extends GetxController {
         isSearchLoading.value = false;
         _applyFilters();
       }
+    }
+  }
+
+  Future<void> _loadListingFromTypesense() async {
+    try {
+      final fetched = await TypesenseMarketSearchService.instance.searchItems(
+        query: '*',
+        limit: 60,
+        categoryKey: selectedCategoryKey.value.isEmpty
+            ? null
+            : selectedCategoryKey.value,
+        city:
+            selectedCityFilter.value.isEmpty ? null : selectedCityFilter.value,
+      );
+      final activeFetched =
+          fetched.where((item) => item.status == 'active').toList(growable: false);
+      items.assignAll(_mergePendingCreatedItems(activeFetched));
+    } catch (_) {
+      items.assignAll(_mergePendingCreatedItems(const <MarketItemModel>[]));
+    }
+  }
+
+  Future<void> _reloadListingForCurrentFilters() async {
+    isSearchLoading.value = true;
+    try {
+      await _loadListingFromTypesense();
+      _applyFilters();
+    } finally {
+      isSearchLoading.value = false;
     }
   }
 
@@ -512,6 +543,37 @@ class MarketController extends GetxController {
         favoriteCount: nextCount < 0 ? 0 : nextCount,
       );
     }).toList(growable: false);
+  }
+
+  void _upsertVisibleItem(MarketItemModel item) {
+    if (item.status != 'active') return;
+    final next = <MarketItemModel>[item];
+    next.addAll(items.where((existing) => existing.id != item.id));
+    items.assignAll(next);
+    pendingCreatedItems.removeWhere((existing) => existing.id == item.id);
+    pendingCreatedItems.insert(0, item);
+  }
+
+  List<MarketItemModel> _mergePendingCreatedItems(List<MarketItemModel> source) {
+    if (pendingCreatedItems.isEmpty) return source;
+    final merged = <MarketItemModel>[];
+    final seenIds = <String>{};
+    final sourceIds = <String>{};
+
+    for (final item in source) {
+      merged.add(item);
+      seenIds.add(item.id);
+      sourceIds.add(item.id);
+    }
+
+    for (final pending in pendingCreatedItems) {
+      if (pending.status != 'active') continue;
+      if (!seenIds.add(pending.id)) continue;
+      merged.insert(0, pending);
+    }
+
+    pendingCreatedItems.removeWhere((pending) => sourceIds.contains(pending.id));
+    return merged;
   }
 
   String get _currentUid {

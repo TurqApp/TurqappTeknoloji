@@ -175,22 +175,32 @@ function isActiveMarketDoc(data) {
 function requiredFields() {
     return [
         { name: "docId", type: "string", optional: true },
+        { name: "userId", type: "string", optional: true },
         { name: "title", type: "string", optional: true },
         { name: "description", type: "string", optional: true },
         { name: "categoryKey", type: "string", optional: true },
+        { name: "categoryLabel", type: "string", optional: true },
         { name: "categoryPath", type: "string[]", optional: true },
         { name: "city", type: "string", optional: true },
         { name: "district", type: "string", optional: true },
         { name: "locationText", type: "string", optional: true },
         { name: "sellerName", type: "string", optional: true },
+        { name: "sellerUsername", type: "string", optional: true },
+        { name: "sellerPhotoUrl", type: "string", optional: true },
+        { name: "sellerRozet", type: "string", optional: true },
         { name: "cover", type: "string", optional: true },
+        { name: "imageUrls", type: "string[]", optional: true },
         { name: "price", type: "float", optional: true },
         { name: "currency", type: "string", optional: true },
+        { name: "favoriteCount", type: "int32", optional: true },
+        { name: "offerCount", type: "int32", optional: true },
+        { name: "viewCount", type: "int32", optional: true },
         { name: "publishedAt", type: "int64", optional: false },
         { name: "createdAt", type: "int64", optional: false },
         { name: "active", type: "bool", optional: true },
         { name: "contactPreference", type: "string", optional: true },
         { name: "status", type: "string", optional: true },
+        { name: "attributesJson", type: "string", optional: true },
         { name: "attributesText", type: "string", optional: true },
         { name: "searchText", type: "string", optional: true },
     ];
@@ -261,7 +271,10 @@ function buildSearchDoc(docId, data) {
         : {};
     const categoryPath = asStringArray(data.categoryPath);
     const categoryKey = asString(data.categoryKey);
+    const categoryLabel = categoryPath.length > 0 ? categoryPath[categoryPath.length - 1] : "";
+    const imageUrls = asStringArray(data.imageUrls);
     const attributesText = buildAttributesText(data.attributes);
+    const attributesJson = truncateText(JSON.stringify(data.attributes || {}), 12000);
     const createdAt = asEpochMillis(data.createdAt) || Date.now();
     const publishedAt = asEpochMillis(data.publishedAt) || createdAt;
     const title = asString(data.title);
@@ -269,38 +282,54 @@ function buildSearchDoc(docId, data) {
     const city = asString(data.city);
     const district = asString(data.district);
     const locationText = asString(data.locationText);
-    const sellerName = asString(seller.name) || asString(data.sellerName);
+    const sellerName = asString(seller.displayName) || asString(seller.name) || asString(data.sellerDisplayName) || asString(data.sellerName);
+    const sellerUsername = asString(seller.nickname) || asString(seller.username) || asString(data.sellerNickname) || asString(data.sellerUsername);
+    const sellerPhotoUrl = asString(seller.avatarUrl) || asString(seller.photoUrl) || asString(data.sellerAvatarUrl) || asString(data.sellerPhotoUrl);
+    const sellerRozet = asString(seller.rozet) || asString(data.sellerRozet);
     const cover = asString(data.coverImageUrl) || firstString(data.imageUrls);
     const status = asString(data.status) || "draft";
     return {
         id: docId,
         docId,
+        userId: asString(data.userId),
         title,
         description,
         categoryKey,
+        categoryLabel,
         categoryPath,
         city,
         district,
         locationText,
         sellerName,
+        sellerUsername,
+        sellerPhotoUrl,
+        sellerRozet,
         cover,
+        imageUrls,
         price: Math.max(0, asNumber(data.price)),
         currency: asString(data.currency) || "TRY",
+        favoriteCount: Math.max(0, Math.floor(asNumber(data.favoriteCount))),
+        offerCount: Math.max(0, Math.floor(asNumber(data.offerCount))),
+        viewCount: Math.max(0, Math.floor(asNumber(data.viewCount))),
         publishedAt,
         createdAt,
         active: isActiveMarketDoc(data),
         contactPreference: asString(data.contactPreference) || "message_only",
         status,
+        attributesJson,
         attributesText,
         searchText: joinSearchText([
             title,
             description,
             normalizeSlugText(categoryKey),
+            categoryLabel,
             categoryPath,
             city,
             district,
             locationText,
             sellerName,
+            sellerUsername,
+            sellerRozet,
             attributesText,
         ]),
     };
@@ -325,9 +354,15 @@ function quoteFilterValue(value) {
 }
 function buildFilterBy(input) {
     const filters = ["active:=true"];
+    const docId = asString(input.docId);
+    const userId = asString(input.userId);
     const categoryKey = asString(input.categoryKey);
     const city = asString(input.city);
     const district = asString(input.district);
+    if (docId)
+        filters.push(`docId:=${quoteFilterValue(docId)}`);
+    if (userId)
+        filters.push(`userId:=${quoteFilterValue(userId)}`);
     if (categoryKey)
         filters.push(`categoryKey:=${quoteFilterValue(categoryKey)}`);
     if (city)
@@ -346,21 +381,31 @@ function toHitOutput(hitRaw) {
     return {
         id: String(doc.id || doc.docId || ""),
         docId: String(doc.docId || doc.id || ""),
+        userId: String(doc.userId || ""),
         title: String(doc.title || ""),
         description: String(doc.description || ""),
         categoryKey: String(doc.categoryKey || ""),
+        categoryLabel: String(doc.categoryLabel || ""),
         categoryPath: asStringArray(doc.categoryPath),
         city: String(doc.city || ""),
         district: String(doc.district || ""),
         locationText: String(doc.locationText || ""),
         sellerName: String(doc.sellerName || ""),
+        sellerUsername: String(doc.sellerUsername || ""),
+        sellerPhotoUrl: String(doc.sellerPhotoUrl || ""),
+        sellerRozet: String(doc.sellerRozet || ""),
         cover: String(doc.cover || ""),
+        imageUrls: asStringArray(doc.imageUrls),
         price: Number(doc.price || 0),
         currency: String(doc.currency || "TRY"),
+        favoriteCount: Number(doc.favoriteCount || 0),
+        offerCount: Number(doc.offerCount || 0),
+        viewCount: Number(doc.viewCount || 0),
         publishedAt: Number(doc.publishedAt || 0),
         createdAt: Number(doc.createdAt || 0),
         active: doc.active === true,
         status: String(doc.status || ""),
+        attributesJson: String(doc.attributesJson || ""),
         score: Number(hit.text_match || 0),
     };
 }
@@ -372,12 +417,15 @@ async function searchMarketFromTypesense(input) {
     const queryFields = [
         "title",
         "description",
+        "categoryLabel",
         "categoryPath",
         "categoryKey",
         "city",
         "district",
         "locationText",
         "sellerName",
+        "sellerUsername",
+        "sellerRozet",
         "attributesText",
         "searchText",
     ];
@@ -465,6 +513,8 @@ exports.f25_searchMarketCallable = (0, https_1.onCall)({
             q: request.data?.q,
             limit,
             page,
+            docId: request.data?.docId,
+            userId: request.data?.userId,
             categoryKey: request.data?.categoryKey,
             city: request.data?.city,
             district: request.data?.district,

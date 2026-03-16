@@ -18,6 +18,7 @@ class MarketItemModel {
     required this.sellerName,
     this.sellerUsername = '',
     this.sellerPhotoUrl = '',
+    this.sellerRozet = '',
     this.sellerPhoneNumber = '',
     required this.contactPreference,
     required this.status,
@@ -45,6 +46,7 @@ class MarketItemModel {
   final String sellerName;
   final String sellerUsername;
   final String sellerPhotoUrl;
+  final String sellerRozet;
   final String sellerPhoneNumber;
   final String contactPreference;
   final String status;
@@ -87,11 +89,27 @@ class MarketItemModel {
       district: (json['district'] ?? '').toString(),
       coverImageUrl: (json['coverImageUrl'] ?? '').toString(),
       imageUrls: imageUrls,
-      sellerName: (seller['name'] ?? json['sellerName'] ?? '').toString(),
-      sellerUsername:
-          (seller['username'] ?? json['sellerUsername'] ?? '').toString(),
-      sellerPhotoUrl:
-          (seller['photoUrl'] ?? json['sellerPhotoUrl'] ?? '').toString(),
+      sellerName: (seller['displayName'] ??
+              seller['name'] ??
+              json['sellerDisplayName'] ??
+              json['sellerName'] ??
+              '')
+          .toString(),
+      sellerUsername: (seller['nickname'] ??
+              seller['username'] ??
+              json['sellerNickname'] ??
+              json['sellerUsername'] ??
+              '')
+          .toString(),
+      sellerPhotoUrl: (seller['avatarUrl'] ??
+              seller['photoUrl'] ??
+              json['sellerAvatarUrl'] ??
+              json['sellerPhotoUrl'] ??
+              '')
+          .toString(),
+      sellerRozet:
+          (seller['rozet'] ?? json['sellerRozet'] ?? json['sellerBadge'] ?? '')
+              .toString(),
       sellerPhoneNumber: (seller['phoneNumber'] ??
               json['sellerPhoneNumber'] ??
               json['phoneNumber'] ??
@@ -133,6 +151,7 @@ class MarketItemModel {
       'sellerName': sellerName,
       'sellerUsername': sellerUsername,
       'sellerPhotoUrl': sellerPhotoUrl,
+      'sellerRozet': sellerRozet,
       'sellerPhoneNumber': sellerPhoneNumber,
       'contactPreference': contactPreference,
       'status': status,
@@ -162,6 +181,7 @@ class MarketItemModel {
     String? sellerName,
     String? sellerUsername,
     String? sellerPhotoUrl,
+    String? sellerRozet,
     String? sellerPhoneNumber,
     String? contactPreference,
     String? status,
@@ -189,6 +209,7 @@ class MarketItemModel {
       sellerName: sellerName ?? this.sellerName,
       sellerUsername: sellerUsername ?? this.sellerUsername,
       sellerPhotoUrl: sellerPhotoUrl ?? this.sellerPhotoUrl,
+      sellerRozet: sellerRozet ?? this.sellerRozet,
       sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
       contactPreference: contactPreference ?? this.contactPreference,
       status: status ?? this.status,

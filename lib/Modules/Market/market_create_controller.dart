@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:geocoding/geocoding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -32,6 +35,36 @@ class MarketLeafCategory {
   final Map<String, dynamic> meta;
 
   String get pathText => pathLabels.join(' > ');
+  String get pathTextWithoutTop =>
+      pathLabels.length <= 1 ? pathText : pathLabels.skip(1).join(' > ');
+}
+
+class MarketCategoryNode {
+  MarketCategoryNode({
+    required this.key,
+    required this.label,
+    required this.pathLabels,
+    required this.fields,
+    required this.meta,
+    required this.children,
+  });
+
+  final String key;
+  final String label;
+  final List<String> pathLabels;
+  final List<Map<String, dynamic>> fields;
+  final Map<String, dynamic> meta;
+  final List<MarketCategoryNode> children;
+
+  bool get isLeaf => children.isEmpty;
+
+  MarketLeafCategory toLeaf() => MarketLeafCategory(
+        key: key,
+        label: label,
+        pathLabels: pathLabels,
+        fields: fields,
+        meta: meta,
+      );
 }
 
 class MarketCreateController extends GetxController {
@@ -47,8 +80,13 @@ class MarketCreateController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxBool isSubmitting = false.obs;
+  final RxBool isResolvingLocation = false.obs;
   final RxList<Map<String, dynamic>> topCategories =
       <Map<String, dynamic>>[].obs;
+  final RxList<List<MarketCategoryNode>> categoryLevels =
+      <List<MarketCategoryNode>>[].obs;
+  final RxList<MarketCategoryNode> selectedCategoryNodes =
+      <MarketCategoryNode>[].obs;
   final RxList<MarketLeafCategory> leafCategories = <MarketLeafCategory>[].obs;
   final Rxn<MarketLeafCategory> selectedLeaf = Rxn<MarketLeafCategory>();
   final RxString selectedTopKey = ''.obs;
@@ -63,13 +101,16 @@ class MarketCreateController extends GetxController {
 
   final Map<String, TextEditingController> _fieldControllers =
       <String, TextEditingController>{};
-  static const int maxImages = 8;
+  static const int maxImages = 4;
+  MarketCategoryNode? _selectedTopNode;
 
   bool get isEditing => initialItem != null;
   int get totalImageCount => existingImageUrls.length + selectedImages.length;
   String get pageTitle => isEditing ? 'İlan Düzenle' : 'İlan Ekle';
   String get draftActionLabel => isEditing ? 'Taslak Güncelle' : 'Taslak';
   String get publishActionLabel => isEditing ? 'Güncelle' : 'Yayınla';
+  String get selectedCategoryPathText =>
+      selectedLeaf.value?.pathTextWithoutTop ?? '';
 
   @override
   void onInit() {
@@ -92,12 +133,21 @@ class MarketCreateController extends GetxController {
     isLoading.value = true;
     try {
       await _schemaService.loadSchema();
-      topCategories.assignAll(_schemaService.categories());
+      final loadedCategories =
+          _schemaService.categories().toList(growable: true)
+            ..sort(
+              (a, b) => compareTurkishStrings(
+                (a['label'] ?? '').toString(),
+                (b['label'] ?? '').toString(),
+              ),
+            );
+      topCategories.assignAll(loadedCategories);
       await _loadCityDistricts();
       if (isEditing) {
         _hydrateInitialItem();
       } else if (topCategories.isNotEmpty) {
         selectTopCategory((topCategories.first['key'] ?? '').toString());
+        await autoFillLocationIfNeeded();
       }
     } finally {
       isLoading.value = false;
@@ -110,21 +160,21 @@ class MarketCreateController extends GetxController {
       (item) => (item['key'] ?? '').toString() == key,
     );
     if (target == null) {
+      _selectedTopNode = null;
+      categoryLevels.clear();
+      selectedCategoryNodes.clear();
       leafCategories.clear();
       selectedLeaf.value = null;
+      _prepareDynamicFields(const []);
       return;
     }
-    final flattened = _flattenLeafCategories(
+    _selectedTopNode = _buildCategoryNode(
       target,
       [(target['label'] ?? '').toString()],
     );
+    final flattened = _flattenLeafCategories(_selectedTopNode!);
     leafCategories.assignAll(flattened);
-    if (flattened.isNotEmpty) {
-      selectLeafCategory(flattened.first.key);
-    } else {
-      selectedLeaf.value = null;
-      fieldValues.clear();
-    }
+    _rebuildCategorySelection();
   }
 
   void selectLeafCategory(String key) {
@@ -133,6 +183,31 @@ class MarketCreateController extends GetxController {
     selectedLeaf.value = leaf;
     _prepareDynamicFields(leaf.fields);
   }
+
+  void selectNodeAtLevel(int level, String key) {
+    if (level < 0 || level >= categoryLevels.length) return;
+    final node = categoryLevels[level].firstWhereOrNull(
+      (item) => item.key == key,
+    );
+    if (node == null) return;
+    final preservedPath = <String>[
+      for (var i = 0; i < level; i++) selectedCategoryNodes[i].key,
+      node.key,
+    ];
+    _rebuildCategorySelection(preferredPathKeys: preservedPath);
+  }
+
+  List<MarketCategoryNode> optionsForLevel(int level) {
+    if (level < 0 || level >= categoryLevels.length) return const [];
+    return categoryLevels[level];
+  }
+
+  MarketCategoryNode? selectedNodeForLevel(int level) {
+    if (level < 0 || level >= selectedCategoryNodes.length) return null;
+    return selectedCategoryNodes[level];
+  }
+
+  bool shouldShowLevel(int level) => optionsForLevel(level).length > 1;
 
   void setCity(String? value) {
     selectedCity.value = value?.trim() ?? '';
@@ -146,6 +221,57 @@ class MarketCreateController extends GetxController {
     selectedDistrict.value = value?.trim() ?? '';
   }
 
+  Future<void> autoFillLocationIfNeeded() async {
+    if (selectedCity.value.isNotEmpty && selectedDistrict.value.isNotEmpty) {
+      return;
+    }
+    isResolvingLocation.value = true;
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isEmpty) return;
+
+      final place = placemarks.first;
+      final cityCandidates = <String>[
+        (place.administrativeArea ?? '').trim(),
+        (place.locality ?? '').trim(),
+      ];
+      final districtCandidates = <String>[
+        (place.subAdministrativeArea ?? '').trim(),
+        (place.subLocality ?? '').trim(),
+        (place.locality ?? '').trim(),
+      ];
+
+      final matchedCity = _matchCity(cityCandidates);
+      if (matchedCity == null) return;
+      selectedCity.value = matchedCity;
+      final matchedDistrict = _matchDistrict(matchedCity, districtCandidates);
+      if (matchedDistrict != null) {
+        selectedDistrict.value = matchedDistrict;
+      }
+    } catch (_) {
+      // Konum otomatik doldurma başarısızsa formu engelleme.
+    } finally {
+      isResolvingLocation.value = false;
+    }
+  }
+
   void setContactPreference(String value) {
     contactPreference.value = value;
   }
@@ -153,12 +279,13 @@ class MarketCreateController extends GetxController {
   List<String> get districtOptions {
     final city = selectedCity.value;
     if (city.isEmpty) return const <String>[];
-    return cityDistricts
+    final districts = cityDistricts
         .where((item) => item.il == city)
         .map((item) => item.ilce)
         .toSet()
-        .toList()
-      ..sort();
+        .toList();
+    sortTurkishStrings(districts);
+    return districts;
   }
 
   bool fieldUsesTextInput(Map<String, dynamic> field) {
@@ -168,7 +295,7 @@ class MarketCreateController extends GetxController {
 
   List<String> fieldOptions(Map<String, dynamic> field) {
     final options = field['options'] as List<dynamic>? ?? const [];
-    return options
+    final values = options
         .map((option) {
           if (option is Map) {
             return (option['label'] ?? option['key'] ?? '').toString();
@@ -178,6 +305,8 @@ class MarketCreateController extends GetxController {
         .where((value) => value.trim().isNotEmpty)
         .toSet()
         .toList(growable: false);
+    sortTurkishStrings(values);
+    return values;
   }
 
   TextEditingController controllerForField(String key) {
@@ -255,10 +384,13 @@ class MarketCreateController extends GetxController {
     final leaf = selectedLeaf.value;
     final now = int.tryParse(itemId) ?? DateTime.now().millisecondsSinceEpoch;
     final current = CurrentUserService.instance.currentUser;
-    final sellerName = [
+    final fullName = [
       current?.firstName ?? '',
       current?.lastName ?? '',
     ].where((part) => part.trim().isNotEmpty).join(' ').trim();
+    final nickname = (current?.nickname ?? '').trim();
+    final displayName = fullName.isEmpty ? nickname : fullName;
+    final avatarUrl = (current?.avatarUrl ?? '').trim();
     final attributes = <String, dynamic>{};
     if (leaf != null) {
       for (final field in leaf.fields) {
@@ -292,19 +424,26 @@ class MarketCreateController extends GetxController {
       'status': _nextStatus(publish),
       'seller': {
         'userId': userId,
-        'name': sellerName.isEmpty
-            ? (current?.nickname ?? 'Turq Kullanici')
-            : sellerName,
-        'username': current?.nickname ?? '',
-        'photoUrl': current?.avatarUrl ?? '',
+        'displayName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+        'nickname': nickname,
+        'avatarUrl': avatarUrl,
+        'rozet': current?.rozet ?? '',
         'phoneNumber': current?.phoneNumber ?? '',
+        'isApproved': current?.hesapOnayi == true,
+        // Geriye uyumlu alanlar
+        'name': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+        'username': nickname,
+        'photoUrl': avatarUrl,
         'verified': current?.hesapOnayi == true,
       },
-      'sellerName': sellerName.isEmpty
-          ? (current?.nickname ?? 'Turq Kullanici')
-          : sellerName,
-      'sellerUsername': current?.nickname ?? '',
-      'sellerPhotoUrl': current?.avatarUrl ?? '',
+      'sellerDisplayName':
+          displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+      'sellerNickname': nickname,
+      'sellerAvatarUrl': avatarUrl,
+      'sellerRozet': current?.rozet ?? '',
+      'sellerName': displayName.isEmpty ? 'Turq Kullanıcı' : displayName,
+      'sellerUsername': nickname,
+      'sellerPhotoUrl': avatarUrl,
       'sellerPhoneNumber': current?.phoneNumber ?? '',
       'coverImageUrl': imageUrls.isEmpty ? '' : imageUrls.first,
       'imageUrls': imageUrls,
@@ -361,7 +500,8 @@ class MarketCreateController extends GetxController {
           .map((item) => CitiesModel.fromJson(Map<String, dynamic>.from(item)))
           .toList(growable: false);
       cityDistricts.assignAll(data);
-      final cityList = data.map((item) => item.il).toSet().toList()..sort();
+      final cityList = data.map((item) => item.il).toSet().toList();
+      sortTurkishStrings(cityList);
       cities.assignAll(cityList);
     } catch (_) {
       cities.clear();
@@ -453,8 +593,15 @@ class MarketCreateController extends GetxController {
     final match = _findLeafByKey(item.categoryKey);
     if (match != null) {
       selectedTopKey.value = match.$1;
+      _selectedTopNode = _buildCategoryNode(
+        match.$4,
+        [(match.$4['label'] ?? '').toString()],
+      );
       leafCategories.assignAll(match.$2);
-      selectLeafCategory(match.$3.key);
+      _rebuildCategorySelection(
+        preferredPathKeys:
+            _pathKeysForLeaf(_selectedTopNode!, item.categoryKey),
+      );
     } else if (topCategories.isNotEmpty) {
       selectTopCategory((topCategories.first['key'] ?? '').toString());
     }
@@ -473,19 +620,21 @@ class MarketCreateController extends GetxController {
     }
   }
 
-  (String, List<MarketLeafCategory>, MarketLeafCategory)? _findLeafByKey(
+  (String, List<MarketLeafCategory>, MarketLeafCategory, Map<String, dynamic>)?
+      _findLeafByKey(
     String categoryKey,
   ) {
     for (final category in topCategories) {
       final topKey = (category['key'] ?? '').toString();
-      final flattened = _flattenLeafCategories(
+      final node = _buildCategoryNode(
         category,
         [(category['label'] ?? '').toString()],
       );
+      final flattened = _flattenLeafCategories(node);
       final leaf =
           flattened.firstWhereOrNull((item) => item.key == categoryKey);
       if (leaf != null) {
-        return (topKey, flattened, leaf);
+        return (topKey, flattened, leaf, category);
       }
     }
     return null;
@@ -498,40 +647,167 @@ class MarketCreateController extends GetxController {
     return initialItem?.status ?? 'active';
   }
 
-  List<MarketLeafCategory> _flattenLeafCategories(
+  MarketCategoryNode _buildCategoryNode(
     Map<String, dynamic> node,
     List<String> path,
   ) {
-    final children = (node['children'] as List<dynamic>? ?? const [])
+    final rawChildren = (node['children'] as List<dynamic>? ?? const [])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList(growable: false);
-    if (children.isEmpty) {
-      final fields = (node['fields'] as List<dynamic>? ?? const [])
+    final children = <MarketCategoryNode>[];
+    final seen = <String>{};
+    for (final child in rawChildren) {
+      final label = (child['label'] ?? '').toString().trim();
+      if (label.isEmpty) continue;
+      final dedupeKey =
+          '${_normalizeNodeKey(label)}|${(child['key'] ?? '').toString().trim()}';
+      if (!seen.add(dedupeKey)) continue;
+      children.add(_buildCategoryNode(child, _appendPath(path, label)));
+    }
+    children.sort((a, b) => compareTurkishStrings(a.label, b.label));
+
+    return MarketCategoryNode(
+      key: (node['key'] ?? '').toString(),
+      label: (node['label'] ?? '').toString(),
+      pathLabels: path,
+      fields: (node['fields'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
-          .toList(growable: false);
-      return <MarketLeafCategory>[
-        MarketLeafCategory(
-          key: (node['key'] ?? '').toString(),
-          label: (node['label'] ?? '').toString(),
-          pathLabels: path,
-          fields: fields,
-          meta: Map<String, dynamic>.from(node['meta'] as Map? ?? const {}),
-        ),
-      ];
+          .toList(growable: false),
+      meta: Map<String, dynamic>.from(node['meta'] as Map? ?? const {}),
+      children: children,
+    );
+  }
+
+  List<MarketLeafCategory> _flattenLeafCategories(MarketCategoryNode node) {
+    if (node.children.isEmpty) {
+      return <MarketLeafCategory>[node.toLeaf()];
     }
 
     final result = <MarketLeafCategory>[];
-    for (final child in children) {
-      result.addAll(
-        _flattenLeafCategories(
-          child,
-          [...path, (child['label'] ?? '').toString()],
-        ),
-      );
+    for (final child in node.children) {
+      result.addAll(_flattenLeafCategories(child));
     }
     return result;
+  }
+
+  void _rebuildCategorySelection({List<String>? preferredPathKeys}) {
+    categoryLevels.clear();
+    selectedCategoryNodes.clear();
+    final topNode = _selectedTopNode;
+    if (topNode == null) {
+      selectedLeaf.value = null;
+      _prepareDynamicFields(const []);
+      return;
+    }
+
+    if (topNode.isLeaf) {
+      selectedLeaf.value = topNode.toLeaf();
+      _prepareDynamicFields(topNode.fields);
+      return;
+    }
+
+    var options = topNode.children;
+    var level = 0;
+    final selected = <MarketCategoryNode>[];
+
+    while (options.isNotEmpty) {
+      categoryLevels.add(options);
+      MarketCategoryNode? nextSelection;
+      if (preferredPathKeys != null && level < preferredPathKeys.length) {
+        nextSelection = options.firstWhereOrNull(
+          (node) => node.key == preferredPathKeys[level],
+        );
+      }
+      nextSelection ??= options.length == 1 ? options.first : null;
+      if (nextSelection == null) break;
+      selected.add(nextSelection);
+      options = nextSelection.children;
+      level++;
+    }
+
+    selectedCategoryNodes.assignAll(selected);
+    final leafNode =
+        selected.isNotEmpty && selected.last.isLeaf ? selected.last : null;
+    if (leafNode == null) {
+      selectedLeaf.value = null;
+      _prepareDynamicFields(const []);
+      return;
+    }
+    selectedLeaf.value = leafNode.toLeaf();
+    _prepareDynamicFields(leafNode.fields);
+  }
+
+  List<String>? _pathKeysForLeaf(MarketCategoryNode node, String targetKey) {
+    return _findPathKeys(node, targetKey, <String>[]);
+  }
+
+  List<String>? _findPathKeys(
+    MarketCategoryNode node,
+    String targetKey,
+    List<String> path,
+  ) {
+    for (final child in node.children) {
+      final nextPath = [...path, child.key];
+      if (child.key == targetKey) {
+        return nextPath;
+      }
+      final nested = _findPathKeys(child, targetKey, nextPath);
+      if (nested != null) return nested;
+    }
+    return null;
+  }
+
+  List<String> _appendPath(List<String> path, String label) {
+    if (path.isNotEmpty &&
+        _normalizeNodeKey(path.last) == _normalizeNodeKey(label)) {
+      return path;
+    }
+    return [...path, label];
+  }
+
+  String _normalizeNodeKey(String value) => value.trim().toLowerCase();
+
+  String? _matchCity(List<String> candidates) {
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      for (final city in cities) {
+        if (_normalizeText(city) == _normalizeText(candidate)) {
+          return city;
+        }
+      }
+    }
+    return null;
+  }
+
+  String? _matchDistrict(String city, List<String> candidates) {
+    final districts = cityDistricts
+        .where((item) => item.il == city)
+        .map((item) => item.ilce)
+        .toSet()
+        .toList(growable: false);
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      for (final district in districts) {
+        if (_normalizeText(district) == _normalizeText(candidate)) {
+          return district;
+        }
+      }
+    }
+    return null;
+  }
+
+  String _normalizeText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll('ı', 'i')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c');
   }
 
   void _prepareDynamicFields(List<Map<String, dynamic>> fields) {

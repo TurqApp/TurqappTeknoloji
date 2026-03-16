@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Services/market_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
+import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
@@ -28,6 +29,8 @@ class MarketDetailView extends StatefulWidget {
 class _MarketDetailViewState extends State<MarketDetailView> {
   static const MarketContactService _contactService = MarketContactService();
   static final MarketRepository _repository = MarketRepository.ensure();
+  static final TypesenseMarketSearchService _typesense =
+      TypesenseMarketSearchService.instance;
   late final PageController _pageController;
   late MarketItemModel _item;
   int _currentPage = 0;
@@ -367,7 +370,11 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             ),
             const SizedBox(height: 10),
             FutureBuilder<List<MarketItemModel>>(
-              future: _repository.fetchLatestItems(limit: 30),
+              future: _typesense.searchItems(
+                query: '*',
+                limit: 30,
+                categoryKey: item.categoryKey,
+              ),
               builder: (context, snapshot) {
                 final related = (snapshot.data ?? const <MarketItemModel>[])
                     .where((candidate) => candidate.id != item.id)
@@ -923,11 +930,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       _isRefreshing = true;
     }
     try {
-      final latest = await _repository.fetchById(
-        item.id,
-        preferCache: !silent,
-        forceRefresh: true,
-      );
+      final latest = await _typesense.fetchByDocId(item.id);
       if (latest != null && mounted) {
         setState(() {
           _item = latest;
