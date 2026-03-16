@@ -34,6 +34,12 @@ class SliderCatalog {
           AppAssets.job2,
           AppAssets.job3,
         ];
+      case 'market':
+        return [
+          AppAssets.job1,
+          AppAssets.job2,
+          AppAssets.job3,
+        ];
       default:
         return const [];
     }

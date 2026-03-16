@@ -1,13 +1,18 @@
 import 'dart:async';
 
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Models/market_offer_model.dart';
+import 'package:turqappv2/Modules/Market/market_category_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Market/market_my_items_view.dart';
@@ -42,6 +47,7 @@ class MarketController extends GetxController {
   final RxList<MarketItemModel> searchedItems = <MarketItemModel>[].obs;
   final RxList<MarketItemModel> visibleItems = <MarketItemModel>[].obs;
   final RxList<String> savedItemIds = <String>[].obs;
+  final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
   Timer? _searchDebounce;
   int _searchRequestId = 0;
 
@@ -61,17 +67,22 @@ class MarketController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadHomeData() async {
+  Future<void> loadHomeData({bool forceRefresh = false}) async {
     isLoading.value = true;
     try {
       await _schemaService.loadSchema();
       categories.assignAll(_schemaService.categories());
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
-      final fetchedItems = await _repository.fetchLatestItems(limit: 24);
+      final fetchedItems = await _repository.fetchLatestItems(
+        limit: 24,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
       items.assignAll(
         fetchedItems.isEmpty ? _repository.sampleItems() : fetchedItems,
       );
       await _loadSavedItems();
+      await _loadRoundMenuBadges(forceRefresh: forceRefresh);
       _applyFilters();
     } finally {
       isLoading.value = false;
@@ -119,8 +130,9 @@ class MarketController extends GetxController {
     _applyFilters();
   }
 
-  void openItem(MarketItemModel item) {
-    Get.to(() => MarketDetailView(item: item));
+  Future<void> openItem(MarketItemModel item) async {
+    await Get.to(() => MarketDetailView(item: item));
+    await loadHomeData(forceRefresh: true);
   }
 
   List<String> get availableCities {
@@ -145,14 +157,16 @@ class MarketController extends GetxController {
   Future<void> toggleSaved(MarketItemModel item) async {
     final uid = _currentUid;
     if (uid.isEmpty) {
-      AppSnackbar('Giris Gerekli', 'Kaydetmek icin giris yapmalisin.');
+      AppSnackbar('Giriş Gerekli', 'Kaydetmek için giriş yapmalısın.');
       return;
     }
     final currentlySaved = isSaved(item.id);
     if (currentlySaved) {
       savedItemIds.remove(item.id);
+      _applyLocalFavoriteDelta(item.id, -1);
     } else {
       savedItemIds.add(item.id);
+      _applyLocalFavoriteDelta(item.id, 1);
     }
     try {
       if (currentlySaved) {
@@ -162,37 +176,52 @@ class MarketController extends GetxController {
       }
       AppSnackbar(
         'Tamam',
-        currentlySaved ? 'Kayit kaldirildi.' : 'Ilan kaydedildi.',
+        currentlySaved ? 'Kayıt kaldırıldı.' : 'İlan kaydedildi.',
       );
     } catch (e) {
       if (currentlySaved) {
         savedItemIds.add(item.id);
+        _applyLocalFavoriteDelta(item.id, 1);
       } else {
         savedItemIds.remove(item.id);
+        _applyLocalFavoriteDelta(item.id, -1);
       }
-      AppSnackbar('Hata', 'Kaydetme islemi tamamlanamadi.');
+      AppSnackbar('Hata', 'Kaydetme işlemi tamamlanamadı.');
     }
   }
 
-  void openRoundMenu(String key) {
+  Future<void> openRoundMenu(String key) async {
     switch (key) {
       case 'create':
-        Get.to(() => MarketCreateView());
+        final result = await Get.to(() => const MarketCreateView());
+        if (result != null) {
+          await loadHomeData(forceRefresh: true);
+        }
         return;
       case 'my_items':
-        Get.to(() => MarketMyItemsView());
+        await Get.to(() => const MarketMyItemsView());
+        await loadHomeData(forceRefresh: true);
         return;
       case 'saved':
-        Get.to(() => MarketSavedView());
+        await Get.to(() => const MarketSavedView());
+        await loadHomeData(forceRefresh: true);
         return;
       case 'offers':
-        Get.to(() => MarketOffersView());
+        await Get.to(() => const MarketOffersView());
+        await loadHomeData(forceRefresh: true);
         return;
       case 'categories':
-        showComingSoon('Kategoriler');
+        Get.bottomSheet(
+          MarketCategorySheet(controller: this),
+          backgroundColor: Colors.white,
+          isScrollControlled: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+        );
         return;
       case 'nearby':
-        showComingSoon('Yakinimdakiler');
+        unawaited(focusNearbyItems());
         return;
       default:
         showComingSoon(key.isEmpty ? 'Market' : key);
@@ -200,7 +229,7 @@ class MarketController extends GetxController {
   }
 
   void showComingSoon(String title) {
-    AppSnackbar('Yakinda', '$title yakinda eklenecek.');
+    AppSnackbar('Yakında', '$title yakında eklenecek.');
   }
 
   void applyAdvancedFilters({
@@ -233,6 +262,56 @@ class MarketController extends GetxController {
       return;
     }
     _applyFilters();
+  }
+
+  Future<void> refreshHome() async {
+    await loadHomeData(forceRefresh: true);
+  }
+
+  Future<void> focusNearbyItems() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        AppSnackbar(
+            'İzin Gerekli', 'Yakınındaki ilanlar için konum izni gerekli.');
+        return;
+      }
+
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      final city = placemarks.isNotEmpty
+          ? (placemarks.first.administrativeArea ??
+                  placemarks.first.locality ??
+                  '')
+              .trim()
+          : '';
+      if (city.isEmpty) {
+        AppSnackbar('Konum Bulunamadı', 'Şehir bilgisi alınamadı.');
+        return;
+      }
+
+      if (!availableCities.contains(city)) {
+        AppSnackbar('Sınırlı Sonuç', '$city için ilan bulunamadı.');
+        return;
+      }
+
+      selectedCityFilter.value = city;
+      refreshFilters();
+      AppSnackbar('Hazır', '$city için yakınındaki ilanlar gösteriliyor.');
+    } catch (_) {
+      AppSnackbar('Hata', 'Yakınındaki ilanlar yüklenemedi.');
+    }
   }
 
   void _onScroll() {
@@ -362,6 +441,69 @@ class MarketController extends GetxController {
     } catch (_) {
       savedItemIds.clear();
     }
+  }
+
+  Future<void> _loadRoundMenuBadges({required bool forceRefresh}) async {
+    final uid = _currentUid;
+    if (uid.isEmpty) {
+      roundMenuBadges.assignAll(const <String, int>{});
+      return;
+    }
+
+    try {
+      final ownerFuture = _repository.fetchByOwner(
+        uid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      final sentFuture = MarketOfferService.fetchSentOffers(uid);
+      final receivedFuture = MarketOfferService.fetchReceivedOffers(uid);
+      final results = await Future.wait<dynamic>([
+        ownerFuture,
+        sentFuture,
+        receivedFuture,
+      ]);
+
+      final ownerItems = (results[0] as List<MarketItemModel>)
+          .where((item) => item.status != 'archived')
+          .length;
+      final sentOffers = results[1] as List<MarketOfferModel>;
+      final receivedOffers = results[2] as List<MarketOfferModel>;
+      final totalOffers = sentOffers.length + receivedOffers.length;
+
+      roundMenuBadges.assignAll(<String, int>{
+        'my_items': ownerItems,
+        'saved': savedItemIds.length,
+        'offers': totalOffers,
+      });
+    } catch (_) {
+      roundMenuBadges.assignAll(<String, int>{
+        'my_items': roundMenuBadges['my_items'] ?? 0,
+        'saved': savedItemIds.length,
+        'offers': roundMenuBadges['offers'] ?? 0,
+      });
+    }
+  }
+
+  void _applyLocalFavoriteDelta(String itemId, int delta) {
+    if (delta == 0) return;
+    items.assignAll(_updateFavoriteCount(items, itemId, delta));
+    searchedItems.assignAll(_updateFavoriteCount(searchedItems, itemId, delta));
+    _applyFilters();
+  }
+
+  List<MarketItemModel> _updateFavoriteCount(
+    List<MarketItemModel> source,
+    String itemId,
+    int delta,
+  ) {
+    return source.map((item) {
+      if (item.id != itemId) return item;
+      final nextCount = item.favoriteCount + delta;
+      return item.copyWith(
+        favoriteCount: nextCount < 0 ? 0 : nextCount,
+      );
+    }).toList(growable: false);
   }
 
   String get _currentUid {

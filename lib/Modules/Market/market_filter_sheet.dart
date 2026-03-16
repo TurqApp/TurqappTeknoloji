@@ -79,7 +79,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Sehir',
+                'Şehir',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -89,7 +89,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: selectedCity.isEmpty ? null : selectedCity,
-                decoration: _inputDecoration('Tum Sehirler'),
+                decoration: _inputDecoration('Tüm Şehirler'),
                 items: cities
                     .map(
                       (city) => DropdownMenuItem<String>(
@@ -113,7 +113,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Iletisim',
+                'İletişim',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -125,14 +125,14 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _choiceChip(label: 'Tum', value: ''),
+                  _choiceChip(label: 'Tüm', value: ''),
                   _choiceChip(label: 'Mesaj', value: 'message_only'),
                   _choiceChip(label: 'Telefon', value: 'phone'),
                 ],
               ),
               const SizedBox(height: 16),
               const Text(
-                'Fiyat Araligi',
+                'Fiyat Aralığı',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 14,

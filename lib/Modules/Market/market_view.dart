@@ -80,7 +80,7 @@ class MarketView extends StatelessWidget {
               permissionScope: ActionButtonPermissionScope.none,
               menuItems: [
                 PullDownMenuItem(
-                  title: 'Ilan Ekle',
+                  title: 'İlan Ekle',
                   icon: CupertinoIcons.add_circled,
                   onTap: () => controller.openRoundMenu('create'),
                 ),
@@ -92,195 +92,201 @@ class MarketView extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     return Obx(() {
-      return CustomScrollView(
-        controller: controller.scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                EducationSlider(
-                  sliderId: 'market',
-                  imageList: [
-                    AppAssets.job1,
-                    AppAssets.job2,
-                    AppAssets.job3,
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _buildRoundMenu(),
-                const SizedBox(height: 12),
-                _buildCategoryStrip(),
-                const SizedBox(height: 14),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: TurqSearchBar(
-                    controller: controller.search,
-                    hintText: 'Ne ariyorsun?',
-                    onChanged: controller.setSearchQuery,
+      return RefreshIndicator(
+        onRefresh: controller.refreshHome,
+        child: CustomScrollView(
+          controller: controller.scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  EducationSlider(
+                    sliderId: 'market',
+                    imageList: [
+                      AppAssets.job1,
+                      AppAssets.job2,
+                      AppAssets.job3,
+                    ],
                   ),
-                ),
-                const SizedBox(height: 14),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Vitrin Ilanlar',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontFamily: 'MontserratBold',
+                  const SizedBox(height: 14),
+                  _buildRoundMenu(),
+                  const SizedBox(height: 12),
+                  _buildCategoryStrip(),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: TurqSearchBar(
+                      controller: controller.search,
+                      hintText: 'Ne arıyorsun?',
+                      onChanged: controller.setSearchQuery,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Vitrin İlanlar',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 18,
+                              fontFamily: 'MontserratBold',
+                            ),
                           ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: controller.toggleListingSelection,
+                        GestureDetector(
+                          onTap: controller.toggleListingSelection,
+                          child: Row(
+                            children: [
+                              Icon(
+                                controller.listingSelection.value == 0
+                                    ? Icons.grid_view_rounded
+                                    : Icons.view_agenda_outlined,
+                                size: 19,
+                                color: Colors.black,
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Görünüm',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontFamily: 'MontserratMedium',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            minimumSize: const Size(25, 25),
+                            fixedSize: const Size(30, 30),
+                          ),
+                          onPressed: () => showModalBottomSheet<void>(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(24),
+                              ),
+                            ),
+                            builder: (_) => MarketFilterSheet(
+                              controller: controller,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.filter_alt_outlined,
+                            color: controller.hasAdvancedFilters
+                                ? Colors.pink
+                                : Colors.black,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (controller.hasAdvancedFilters)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(15, 0, 15, 10),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            Icon(
-                              controller.listingSelection.value == 0
-                                  ? Icons.grid_view_rounded
-                                  : Icons.view_agenda_outlined,
-                              size: 19,
-                              color: Colors.black,
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'Gorunum',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 14,
-                                fontFamily: 'MontserratMedium',
+                            if (controller.selectedCityFilter.value.isNotEmpty)
+                              _buildFilterPill(
+                                  controller.selectedCityFilter.value),
+                            if (controller
+                                .selectedContactFilter.value.isNotEmpty)
+                              _buildFilterPill(
+                                controller.selectedContactFilter.value ==
+                                        'phone'
+                                    ? 'Telefon'
+                                    : 'Mesaj',
+                              ),
+                            if (controller.minPriceFilter.value.isNotEmpty)
+                              _buildFilterPill(
+                                'Min ${controller.minPriceFilter.value}',
+                              ),
+                            if (controller.maxPriceFilter.value.isNotEmpty)
+                              _buildFilterPill(
+                                'Max ${controller.maxPriceFilter.value}',
+                              ),
+                            if (controller.sortSelection.value != 'newest')
+                              _buildFilterPill(
+                                controller.sortSelection.value == 'price_asc'
+                                    ? 'Fiyat Artan'
+                                    : 'Fiyat Azalan',
+                              ),
+                            GestureDetector(
+                              onTap: controller.clearAdvancedFilters,
+                              child: const Padding(
+                                padding: EdgeInsets.only(left: 6),
+                                child: Text(
+                                  'Temizle',
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 13,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          minimumSize: const Size(25, 25),
-                          fixedSize: const Size(30, 30),
-                        ),
-                        onPressed: () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.white,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(24),
-                            ),
-                          ),
-                          builder: (_) => MarketFilterSheet(
-                            controller: controller,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.filter_alt_outlined,
-                          color: controller.hasAdvancedFilters
-                              ? Colors.pink
-                              : Colors.black,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (controller.hasAdvancedFilters)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 0, 15, 10),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          if (controller.selectedCityFilter.value.isNotEmpty)
-                            _buildFilterPill(
-                                controller.selectedCityFilter.value),
-                          if (controller.selectedContactFilter.value.isNotEmpty)
-                            _buildFilterPill(
-                              controller.selectedContactFilter.value == 'phone'
-                                  ? 'Telefon'
-                                  : 'Mesaj',
-                            ),
-                          if (controller.minPriceFilter.value.isNotEmpty)
-                            _buildFilterPill(
-                              'Min ${controller.minPriceFilter.value}',
-                            ),
-                          if (controller.maxPriceFilter.value.isNotEmpty)
-                            _buildFilterPill(
-                              'Max ${controller.maxPriceFilter.value}',
-                            ),
-                          if (controller.sortSelection.value != 'newest')
-                            _buildFilterPill(
-                              controller.sortSelection.value == 'price_asc'
-                                  ? 'Fiyat Artan'
-                                  : 'Fiyat Azalan',
-                            ),
-                          GestureDetector(
-                            onTap: controller.clearAdvancedFilters,
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 6),
-                              child: Text(
-                                'Temizle',
-                                style: TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 13,
-                                  fontFamily: 'MontserratBold',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
+                ],
+              ),
+            ),
+            if ((controller.isLoading.value ||
+                    controller.isSearchLoading.value) &&
+                controller.visibleItems.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (controller.visibleItems.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState(),
+              )
+            else if (controller.listingSelection.value == 0)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                sliver: SliverList.builder(
+                  itemCount: controller.visibleItems.length,
+                  itemBuilder: (context, index) =>
+                      _buildListingCard(controller.visibleItems[index]),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(15, 0, 15, 16),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _buildGridCard(controller.visibleItems[index]),
+                    childCount: controller.visibleItems.length,
                   ),
-              ],
-            ),
-          ),
-          if ((controller.isLoading.value ||
-                  controller.isSearchLoading.value) &&
-              controller.visibleItems.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (controller.visibleItems.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _buildEmptyState(),
-            )
-          else if (controller.listingSelection.value == 0)
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              sliver: SliverList.builder(
-                itemCount: controller.visibleItems.length,
-                itemBuilder: (context, index) =>
-                    _buildListingCard(controller.visibleItems[index]),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(15, 0, 15, 16),
-              sliver: SliverGrid(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      _buildGridCard(controller.visibleItems[index]),
-                  childCount: controller.visibleItems.length,
-                ),
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 220,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 0.78,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 0.78,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       );
     });
   }
@@ -298,6 +304,8 @@ class MarketView extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = items[index];
             final color = _parseColor((item['accent'] ?? '#111827').toString());
+            final badgeCount =
+                controller.roundMenuBadges[(item['key'] ?? '').toString()] ?? 0;
             return GestureDetector(
               onTap: () =>
                   controller.openRoundMenu((item['key'] ?? '').toString()),
@@ -305,19 +313,50 @@ class MarketView extends StatelessWidget {
                 width: 72,
                 child: Column(
                   children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color.withValues(alpha: 0.12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        _iconFor((item['icon'] ?? 'apps').toString()),
-                        color: color,
-                        size: 24,
-                      ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color.withValues(alpha: 0.12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            _iconFor((item['icon'] ?? 'apps').toString()),
+                            color: color,
+                            size: 24,
+                          ),
+                        ),
+                        if (badgeCount > 0)
+                          Positioned(
+                            top: -2,
+                            right: -2,
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minWidth: 20,
+                                minHeight: 20,
+                              ),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                badgeCount > 99 ? '99+' : '$badgeCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -415,6 +454,7 @@ class MarketView extends StatelessWidget {
 
   Widget _buildListingCard(MarketItemModel item) {
     final accent = _accentForItem(item);
+    final statusColor = _statusColor(item.status);
     return GestureDetector(
       onTap: () => controller.openItem(item),
       child: Padding(
@@ -480,6 +520,27 @@ class MarketView extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (item.status != 'active') ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: statusColor.withValues(alpha: 0.12),
+                            ),
+                            child: Text(
+                              _statusLabel(item.status),
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 10,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ],
                         if (item.offerCount > 0) ...[
                           const SizedBox(width: 6),
                           Text(
@@ -491,8 +552,32 @@ class MarketView extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (item.viewCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '${item.viewCount} goruntuleme',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 11,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        ],
                       ],
                     ),
+                    if (item.sellerName.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        item.sellerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 11,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -521,7 +606,7 @@ class MarketView extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '${item.price.toStringAsFixed(0)} TL',
+                    '${item.price.toStringAsFixed(0)} ${item.currency}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 14,
@@ -545,6 +630,7 @@ class MarketView extends StatelessWidget {
 
   Widget _buildGridCard(MarketItemModel item) {
     final accent = _accentForItem(item);
+    final statusColor = _statusColor(item.status);
     return GestureDetector(
       onTap: () => controller.openItem(item),
       child: Container(
@@ -566,6 +652,34 @@ class MarketView extends StatelessWidget {
                         item,
                         accent,
                         radius: 10,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: item.status == 'active'
+                              ? accent.withValues(alpha: 0.9)
+                              : statusColor.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          item.status == 'active'
+                              ? item.categoryLabel
+                              : _statusLabel(item.status),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -618,7 +732,7 @@ class MarketView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '${item.price.toStringAsFixed(0)} TL',
+                '${item.price.toStringAsFixed(0)} ${item.currency}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -627,6 +741,25 @@ class MarketView extends StatelessWidget {
                   fontFamily: 'MontserratBold',
                 ),
               ),
+              if (item.offerCount > 0 ||
+                  item.favoriteCount > 0 ||
+                  item.viewCount > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  [
+                    if (item.offerCount > 0) '${item.offerCount} teklif',
+                    if (item.favoriteCount > 0) '${item.favoriteCount} kayit',
+                    if (item.viewCount > 0) '${item.viewCount} görüntüleme',
+                  ].join('  •  '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: 11,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -681,7 +814,7 @@ class MarketView extends StatelessWidget {
             Icon(Icons.storefront_outlined, size: 42, color: Colors.black38),
             SizedBox(height: 10),
             Text(
-              'Bu filtrede ilan bulunamadi.',
+              'Bu filtrede ilan bulunamadı.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black87,
@@ -707,6 +840,36 @@ class MarketView extends StatelessWidget {
       return const Color(0xFF16A34A);
     }
     return const Color(0xFF111827);
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'sold':
+        return const Color(0xFFB45309);
+      case 'reserved':
+        return const Color(0xFF2563EB);
+      case 'draft':
+        return const Color(0xFF7C3AED);
+      case 'archived':
+        return const Color(0xFF6B7280);
+      default:
+        return const Color(0xFF111827);
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'sold':
+        return 'Satıldı';
+      case 'reserved':
+        return 'Rezerve';
+      case 'draft':
+        return 'Taslak';
+      case 'archived':
+        return 'Arşiv';
+      default:
+        return 'Aktif';
+    }
   }
 
   IconData _marketItemIcon(MarketItemModel item) {

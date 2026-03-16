@@ -1,15 +1,43 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_controller.dart';
 
-class MarketCreateView extends StatelessWidget {
-  MarketCreateView({super.key});
+class MarketCreateView extends StatefulWidget {
+  const MarketCreateView({
+    super.key,
+    this.initialItem,
+  });
 
-  final MarketCreateController controller =
-      Get.isRegistered<MarketCreateController>()
-          ? Get.find<MarketCreateController>()
-          : Get.put(MarketCreateController());
+  final MarketItemModel? initialItem;
+
+  @override
+  State<MarketCreateView> createState() => _MarketCreateViewState();
+}
+
+class _MarketCreateViewState extends State<MarketCreateView> {
+  late final String _controllerTag;
+  late final MarketCreateController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerTag =
+        'market-create-${widget.initialItem?.id ?? DateTime.now().microsecondsSinceEpoch}';
+    controller = Get.put(
+      MarketCreateController(initialItem: widget.initialItem),
+      tag: _controllerTag,
+    );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<MarketCreateController>(tag: _controllerTag)) {
+      Get.delete<MarketCreateController>(tag: _controllerTag, force: true);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +51,9 @@ class MarketCreateView extends StatelessWidget {
           onPressed: Get.back,
           icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
         ),
-        title: const Text(
-          'Ilan Ekle',
-          style: TextStyle(
+        title: Text(
+          controller.pageTitle,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontFamily: 'MontserratBold',
@@ -97,7 +125,7 @@ class MarketCreateView extends StatelessWidget {
               controller: controller.descriptionController,
               minLines: 4,
               maxLines: 6,
-              decoration: _inputDecoration('Aciklama'),
+              decoration: _inputDecoration('Açıklama'),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -107,7 +135,7 @@ class MarketCreateView extends StatelessWidget {
               decoration: _inputDecoration('Fiyat (TL)'),
             ),
             const SizedBox(height: 18),
-            _sectionTitle('Ilan Ozellikleri'),
+            _sectionTitle('İlan Özellikleri'),
             const SizedBox(height: 8),
             if (leaf == null)
               _infoBox('Bir kategori secince bu alanlar otomatik dolacak.')
@@ -122,7 +150,7 @@ class MarketCreateView extends StatelessWidget {
               initialValue: controller.selectedCity.value.isEmpty
                   ? null
                   : controller.selectedCity.value,
-              decoration: _inputDecoration('Sehir'),
+              decoration: _inputDecoration('Şehir'),
               items: controller.cities
                   .map(
                     (city) => DropdownMenuItem<String>(
@@ -145,7 +173,7 @@ class MarketCreateView extends StatelessWidget {
               initialValue: controller.selectedDistrict.value.isEmpty
                   ? null
                   : controller.selectedDistrict.value,
-              decoration: _inputDecoration('Ilce'),
+              decoration: _inputDecoration('İlçe'),
               items: controller.districtOptions
                   .map(
                     (district) => DropdownMenuItem<String>(
@@ -164,7 +192,7 @@ class MarketCreateView extends StatelessWidget {
               onChanged: controller.setDistrict,
             ),
             const SizedBox(height: 18),
-            _sectionTitle('Iletisim Tercihi'),
+            _sectionTitle('İletişim Tercihi'),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -177,14 +205,14 @@ class MarketCreateView extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _contactChip(
-                    label: 'Telefon goster',
+                    label: 'Telefon göster',
                     value: 'phone',
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 18),
-            _sectionTitle('Gorseller'),
+            _sectionTitle('Görseller'),
             const SizedBox(height: 8),
             _buildImagePicker(),
             const SizedBox(height: 22),
@@ -206,7 +234,7 @@ class MarketCreateView extends StatelessWidget {
                       child: Text(
                         controller.isSubmitting.value
                             ? 'Bekleyin...'
-                            : 'Taslak',
+                            : controller.draftActionLabel,
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 13,
@@ -233,8 +261,8 @@ class MarketCreateView extends StatelessWidget {
                       ),
                       child: Text(
                         controller.isSubmitting.value
-                            ? 'Yukleniyor...'
-                            : 'Yayinla',
+                            ? 'Yükleniyor...'
+                            : controller.publishActionLabel,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -383,7 +411,7 @@ class MarketCreateView extends StatelessWidget {
               ),
             ),
             child: Text(
-              'Gorsel Sec (${controller.selectedImages.length}/${MarketCreateController.maxImages})',
+              'Görsel Seç (${controller.totalImageCount}/${MarketCreateController.maxImages})',
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 13,
@@ -393,27 +421,42 @@ class MarketCreateView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        if (controller.selectedImages.isEmpty)
-          _infoBox('Ilk secilen gorsel kapak resmi olarak kullanilir.')
+        if (controller.totalImageCount == 0)
+          _infoBox('İlk seçilen görsel kapak resmi olarak kullanılır.')
         else
           SizedBox(
             height: 96,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: controller.selectedImages.length,
+              itemCount: controller.totalImageCount,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final file = controller.selectedImages[index];
+                final isExisting = index < controller.existingImageUrls.length;
                 return Stack(
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        file,
-                        width: 96,
-                        height: 96,
-                        fit: BoxFit.cover,
-                      ),
+                      child: isExisting
+                          ? Image.network(
+                              controller.existingImageUrls[index],
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 96,
+                                height: 96,
+                                color: const Color(0xFFF3F4F6),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.image_not_supported),
+                              ),
+                            )
+                          : Image.file(
+                              controller.selectedImages[
+                                  index - controller.existingImageUrls.length],
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                            ),
                     ),
                     Positioned(
                       top: 6,

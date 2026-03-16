@@ -9,6 +9,8 @@ class MarketOfferModel {
     required this.currency,
     required this.status,
     required this.createdAt,
+    this.updatedAt = 0,
+    this.respondedAt = 0,
     this.message = '',
     this.coverImageUrl = '',
     this.locationText = '',
@@ -23,6 +25,8 @@ class MarketOfferModel {
   final String currency;
   final String status;
   final int createdAt;
+  final int updatedAt;
+  final int respondedAt;
   final String message;
   final String coverImageUrl;
   final String locationText;
@@ -38,6 +42,8 @@ class MarketOfferModel {
       currency: (json['currency'] ?? 'TRY').toString(),
       status: (json['status'] ?? 'pending').toString(),
       createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
+      updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
+      respondedAt: (json['respondedAt'] as num?)?.toInt() ?? 0,
       message: (json['message'] ?? '').toString(),
       coverImageUrl: (json['coverImageUrl'] ?? '').toString(),
       locationText: (json['locationText'] ?? '').toString(),

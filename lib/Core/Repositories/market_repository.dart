@@ -210,6 +210,39 @@ class MarketRepository extends GetxService {
     await _invalidateUserScopedCaches(userId: userId, docId: docId);
   }
 
+  Future<void> updateItemStatus({
+    required String docId,
+    required String userId,
+    required String status,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _itemsRef.doc(docId).set({
+      'status': status,
+      'updatedAt': now,
+      if (status == 'sold') 'soldAt': now,
+      if (status == 'active') 'publishedAt': now,
+    }, SetOptions(merge: true));
+    await _invalidateUserScopedCaches(userId: userId, docId: docId);
+  }
+
+  Future<void> invalidateItemCaches({
+    required String userId,
+    required String docId,
+  }) async {
+    await _invalidateUserScopedCaches(userId: userId, docId: docId);
+  }
+
+  Future<void> incrementViewCount({
+    required String docId,
+    required String userId,
+  }) async {
+    await _itemsRef.doc(docId).set({
+      'viewCount': FieldValue.increment(1),
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+    }, SetOptions(merge: true));
+    await _invalidateUserScopedCaches(userId: userId, docId: docId);
+  }
+
   List<MarketItemModel> sampleItems() {
     return <MarketItemModel>[
       MarketItemModel(
@@ -231,6 +264,7 @@ class MarketRepository extends GetxService {
         status: 'active',
         createdAt: 1742160000001,
         offerCount: 3,
+        viewCount: 18,
         isNegotiable: true,
       ),
       MarketItemModel(
@@ -252,6 +286,7 @@ class MarketRepository extends GetxService {
         status: 'active',
         createdAt: 1742160000002,
         offerCount: 1,
+        viewCount: 9,
       ),
       MarketItemModel(
         id: '1742160000003',
@@ -271,6 +306,7 @@ class MarketRepository extends GetxService {
         contactPreference: 'message_only',
         status: 'active',
         createdAt: 1742160000003,
+        viewCount: 6,
       ),
       MarketItemModel(
         id: '1742160000004',
@@ -291,6 +327,7 @@ class MarketRepository extends GetxService {
         status: 'active',
         createdAt: 1742160000004,
         offerCount: 2,
+        viewCount: 12,
       ),
     ];
   }

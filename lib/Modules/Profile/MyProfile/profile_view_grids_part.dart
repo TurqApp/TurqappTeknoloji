@@ -494,8 +494,9 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    final activeCount =
-        _marketItems.where((item) => item.status == 'active').length;
+    final activeCount = _marketItems
+        .where((item) => item.status == 'active' || item.status == 'reserved')
+        .length;
     final draftCount =
         _marketItems.where((item) => item.status == 'draft').length;
     final soldCount =
@@ -613,7 +614,10 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   Widget _buildMarketGridCard(MarketItemModel item) {
     final statusColor = _marketStatusColor(item.status);
     return GestureDetector(
-      onTap: () => Get.to(() => MarketDetailView(item: item)),
+      onTap: () async {
+        await Get.to(() => MarketDetailView(item: item));
+        await _loadMarketItems(force: true);
+      },
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -739,6 +743,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     switch (status) {
       case 'sold':
         return const Color(0xFFB45309);
+      case 'reserved':
+        return const Color(0xFF1D4ED8);
       case 'draft':
         return const Color(0xFF7C3AED);
       case 'archived':
@@ -752,6 +758,8 @@ extension _ProfileViewGridsPart on _ProfileViewState {
     switch (status) {
       case 'sold':
         return 'Satildi';
+      case 'reserved':
+        return 'Rezerve';
       case 'draft':
         return 'Taslak';
       case 'archived':

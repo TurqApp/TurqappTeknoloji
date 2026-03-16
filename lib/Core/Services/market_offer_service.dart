@@ -72,6 +72,79 @@ class MarketOfferService {
     return _fetchOffers(field: 'sellerId', uid: uid);
   }
 
+  static Future<void> respondToOffer({
+    required MarketOfferModel offer,
+    required String status,
+  }) async {
+    final sellerId = _currentUid;
+    if (sellerId.isEmpty) {
+      throw Exception('auth_required');
+    }
+    if (sellerId != offer.sellerId) {
+      throw Exception('not_offer_owner');
+    }
+    if (status != 'accepted' && status != 'rejected') {
+      throw Exception('invalid_offer_status');
+    }
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final itemRef = _firestore.collection('marketStore').doc(offer.itemId);
+    final offerRef = itemRef.collection('offers').doc(offer.id);
+
+    await _firestore.runTransaction((tx) async {
+      final offerSnap = await tx.get(offerRef);
+      if (!offerSnap.exists) {
+        throw Exception('offer_not_found');
+      }
+      final currentStatus =
+          (offerSnap.data()?['status'] ?? 'pending').toString().trim();
+      if (currentStatus != 'pending') {
+        throw Exception('offer_already_processed');
+      }
+
+      tx.set(
+        offerRef,
+        {
+          'status': status,
+          'updatedAt': now,
+          'respondedAt': now,
+        },
+        SetOptions(merge: true),
+      );
+
+      tx.set(
+        itemRef,
+        {
+          'status': status == 'accepted' ? 'reserved' : 'active',
+          'acceptedOfferId': status == 'accepted' ? offer.id : '',
+          'updatedAt': now,
+        },
+        SetOptions(merge: true),
+      );
+    });
+
+    if (status == 'accepted') {
+      final pendingOffers = await itemRef
+          .collection('offers')
+          .where('status', isEqualTo: 'pending')
+          .get();
+      final batch = _firestore.batch();
+      for (final doc in pendingOffers.docs) {
+        if (doc.id == offer.id) continue;
+        batch.set(
+          doc.reference,
+          {
+            'status': 'rejected',
+            'updatedAt': now,
+            'respondedAt': now,
+          },
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
+    }
+  }
+
   static Future<List<MarketOfferModel>> _fetchOffers({
     required String field,
     required String uid,

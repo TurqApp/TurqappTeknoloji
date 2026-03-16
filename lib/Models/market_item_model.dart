@@ -24,6 +24,7 @@ class MarketItemModel {
     required this.createdAt,
     this.favoriteCount = 0,
     this.offerCount = 0,
+    this.viewCount = 0,
     this.isNegotiable = false,
     this.attributes = const <String, dynamic>{},
   });
@@ -50,6 +51,7 @@ class MarketItemModel {
   final int createdAt;
   final int favoriteCount;
   final int offerCount;
+  final int viewCount;
   final bool isNegotiable;
   final Map<String, dynamic> attributes;
 
@@ -101,6 +103,7 @@ class MarketItemModel {
       createdAt: _toMillis(json['createdAt']),
       favoriteCount: (json['favoriteCount'] as num?)?.toInt() ?? 0,
       offerCount: (json['offerCount'] as num?)?.toInt() ?? 0,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
       isNegotiable: json['isNegotiable'] == true,
       attributes: Map<String, dynamic>.from(
         json['attributes'] as Map? ?? const {},
@@ -136,9 +139,66 @@ class MarketItemModel {
       'createdAt': createdAt,
       'favoriteCount': favoriteCount,
       'offerCount': offerCount,
+      'viewCount': viewCount,
       'isNegotiable': isNegotiable,
       'attributes': attributes,
     };
+  }
+
+  MarketItemModel copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    double? price,
+    String? currency,
+    String? categoryKey,
+    List<String>? categoryPath,
+    String? locationText,
+    String? city,
+    String? district,
+    String? coverImageUrl,
+    List<String>? imageUrls,
+    String? sellerName,
+    String? sellerUsername,
+    String? sellerPhotoUrl,
+    String? sellerPhoneNumber,
+    String? contactPreference,
+    String? status,
+    int? createdAt,
+    int? favoriteCount,
+    int? offerCount,
+    int? viewCount,
+    bool? isNegotiable,
+    Map<String, dynamic>? attributes,
+  }) {
+    return MarketItemModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      currency: currency ?? this.currency,
+      categoryKey: categoryKey ?? this.categoryKey,
+      categoryPath: categoryPath ?? this.categoryPath,
+      locationText: locationText ?? this.locationText,
+      city: city ?? this.city,
+      district: district ?? this.district,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
+      sellerName: sellerName ?? this.sellerName,
+      sellerUsername: sellerUsername ?? this.sellerUsername,
+      sellerPhotoUrl: sellerPhotoUrl ?? this.sellerPhotoUrl,
+      sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
+      contactPreference: contactPreference ?? this.contactPreference,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      favoriteCount: favoriteCount ?? this.favoriteCount,
+      offerCount: offerCount ?? this.offerCount,
+      viewCount: viewCount ?? this.viewCount,
+      isNegotiable: isNegotiable ?? this.isNegotiable,
+      attributes: attributes ?? this.attributes,
+    );
   }
 
   static int _toMillis(dynamic value) {

@@ -17,11 +17,11 @@ class MarketContactService {
   Future<void> openChat(MarketItemModel item) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUid.isEmpty) {
-      AppSnackbar('Giris Gerekli', 'Mesaj gondermek icin giris yapmalisin.');
+      AppSnackbar('Giriş Gerekli', 'Mesaj göndermek için giriş yapmalısın.');
       return;
     }
     if (currentUid == item.userId) {
-      AppSnackbar('Bilgi', 'Kendi ilanin icin mesaj gonderemezsin.');
+      AppSnackbar('Bilgi', 'Kendi ilanın için mesaj gönderemezsin.');
       return;
     }
 
@@ -61,7 +61,7 @@ class MarketContactService {
   ) async {
     final phone = await _resolvePhone(item);
     if (phone.isEmpty) {
-      AppSnackbar('Bilgi Yok', 'Saticinin telefon bilgisi bulunamadi.');
+      AppSnackbar('Bilgi Yok', 'Satıcının telefon bilgisi bulunamadı.');
       return;
     }
 
@@ -129,7 +129,7 @@ class MarketContactService {
                       final dialUri = Uri.parse('tel:${_dialValue(phone)}');
                       final opened = await launchUrl(dialUri);
                       if (!opened) {
-                        AppSnackbar('Hata', 'Telefon uygulamasi acilamadi.');
+                        AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
                       }
                       if (context.mounted) Navigator.of(context).pop();
                     },

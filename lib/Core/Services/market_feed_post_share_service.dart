@@ -18,11 +18,11 @@ class MarketFeedPostShareService {
   Future<void> shareItem(MarketItemModel item) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      AppSnackbar('Hata', 'Paylasim icin giris yapmalisin.');
+      AppSnackbar('Hata', 'Paylaşım için giriş yapmalısın.');
       return;
     }
     if (item.coverImageUrl.trim().isEmpty) {
-      AppSnackbar('Hata', 'Paylasim icin kapak gorseli gerekli.');
+      AppSnackbar('Hata', 'Paylaşım için kapak görseli gerekli.');
       return;
     }
 
@@ -38,7 +38,7 @@ class MarketFeedPostShareService {
         final imageUrls = [item.coverImageUrl.trim()];
         final reshareMap = {
           'visibility': 0,
-          'ctaLabel': 'Ilani Incele',
+          'ctaLabel': 'İlanı İncele',
           'ctaUrl': const MarketShareService().buildInternalUrl(item.id),
           'ctaType': 'market',
           'ctaDocId': item.id,
@@ -146,9 +146,9 @@ class MarketFeedPostShareService {
           Get.find<ProfileController>().getLastPostAndAddToAllPosts();
         }
 
-        AppSnackbar('Basarili', 'Ana sayfada paylasildi.');
+        AppSnackbar('Başarılı', 'Ana sayfada paylaşıldı.');
       } catch (_) {
-        AppSnackbar('Hata', 'Paylasim tamamlanamadi.');
+        AppSnackbar('Hata', 'Paylaşım tamamlanamadı.');
       } finally {
         loader.isOn.value = false;
       }

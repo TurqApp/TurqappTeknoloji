@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/market_repository.dart';
 
 class MarketSavedStore {
   MarketSavedStore._();
@@ -25,6 +26,10 @@ class MarketSavedStore {
         .doc(itemId)
         .collection('favorites')
         .doc(uid);
+  }
+
+  static DocumentReference<Map<String, dynamic>> _itemDoc(String itemId) {
+    return _firestore.collection('marketStore').doc(itemId);
   }
 
   static Future<bool> isSaved(String uid, String itemId) async {
@@ -56,24 +61,57 @@ class MarketSavedStore {
 
   static Future<void> save(String uid, String itemId) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final batch = _firestore.batch();
-    batch.set(_userSavedDoc(uid, itemId), {
-      'itemId': itemId,
-      'userId': uid,
-      'createdAt': now,
+    await _firestore.runTransaction((transaction) async {
+      final savedRef = _userSavedDoc(uid, itemId);
+      final favoriteRef = _favoriteDoc(itemId, uid);
+      final itemRef = _itemDoc(itemId);
+      final savedSnap = await transaction.get(savedRef);
+      if (savedSnap.exists) return;
+      transaction.set(savedRef, {
+        'itemId': itemId,
+        'userId': uid,
+        'createdAt': now,
+      });
+      transaction.set(favoriteRef, {
+        'itemId': itemId,
+        'userId': uid,
+        'createdAt': now,
+      });
+      transaction.set(
+          itemRef,
+          {
+            'favoriteCount': FieldValue.increment(1),
+            'updatedAt': now,
+          },
+          SetOptions(merge: true));
     });
-    batch.set(_favoriteDoc(itemId, uid), {
-      'itemId': itemId,
-      'userId': uid,
-      'createdAt': now,
-    });
-    await batch.commit();
+    await MarketRepository.ensure().invalidateItemCaches(
+      userId: uid,
+      docId: itemId,
+    );
   }
 
   static Future<void> unsave(String uid, String itemId) async {
-    final batch = _firestore.batch();
-    batch.delete(_userSavedDoc(uid, itemId));
-    batch.delete(_favoriteDoc(itemId, uid));
-    await batch.commit();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _firestore.runTransaction((transaction) async {
+      final savedRef = _userSavedDoc(uid, itemId);
+      final favoriteRef = _favoriteDoc(itemId, uid);
+      final itemRef = _itemDoc(itemId);
+      final savedSnap = await transaction.get(savedRef);
+      if (!savedSnap.exists) return;
+      transaction.delete(savedRef);
+      transaction.delete(favoriteRef);
+      transaction.set(
+          itemRef,
+          {
+            'favoriteCount': FieldValue.increment(-1),
+            'updatedAt': now,
+          },
+          SetOptions(merge: true));
+    });
+    await MarketRepository.ensure().invalidateItemCaches(
+      userId: uid,
+      docId: itemId,
+    );
   }
 }

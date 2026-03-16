@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/cities_model.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'market_schema_service.dart';
@@ -34,8 +35,11 @@ class MarketLeafCategory {
 }
 
 class MarketCreateController extends GetxController {
+  MarketCreateController({this.initialItem});
+
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
   final MarketRepository _repository = MarketRepository.ensure();
+  final MarketItemModel? initialItem;
 
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
@@ -55,10 +59,17 @@ class MarketCreateController extends GetxController {
   final RxList<CitiesModel> cityDistricts = <CitiesModel>[].obs;
   final RxList<String> cities = <String>[].obs;
   final RxList<File> selectedImages = <File>[].obs;
+  final RxList<String> existingImageUrls = <String>[].obs;
 
   final Map<String, TextEditingController> _fieldControllers =
       <String, TextEditingController>{};
   static const int maxImages = 8;
+
+  bool get isEditing => initialItem != null;
+  int get totalImageCount => existingImageUrls.length + selectedImages.length;
+  String get pageTitle => isEditing ? 'İlan Düzenle' : 'İlan Ekle';
+  String get draftActionLabel => isEditing ? 'Taslak Güncelle' : 'Taslak';
+  String get publishActionLabel => isEditing ? 'Güncelle' : 'Yayınla';
 
   @override
   void onInit() {
@@ -83,7 +94,9 @@ class MarketCreateController extends GetxController {
       await _schemaService.loadSchema();
       topCategories.assignAll(_schemaService.categories());
       await _loadCityDistricts();
-      if (topCategories.isNotEmpty) {
+      if (isEditing) {
+        _hydrateInitialItem();
+      } else if (topCategories.isNotEmpty) {
         selectTopCategory((topCategories.first['key'] ?? '').toString());
       }
     } finally {
@@ -189,9 +202,9 @@ class MarketCreateController extends GetxController {
   Future<void> pickImages() async {
     final ctx = Get.context;
     if (ctx == null) return;
-    final remaining = maxImages - selectedImages.length;
+    final remaining = maxImages - totalImageCount;
     if (remaining <= 0) {
-      AppSnackbar('Sinir', 'En fazla $maxImages gorsel ekleyebilirsin.');
+      AppSnackbar('Sınır', 'En fazla $maxImages görsel ekleyebilirsin.');
       return;
     }
     final files = await AppImagePickerService.pickImages(
@@ -203,8 +216,12 @@ class MarketCreateController extends GetxController {
   }
 
   void removeImageAt(int index) {
-    if (index < 0 || index >= selectedImages.length) return;
-    selectedImages.removeAt(index);
+    if (index < 0 || index >= totalImageCount) return;
+    if (index < existingImageUrls.length) {
+      existingImageUrls.removeAt(index);
+      return;
+    }
+    selectedImages.removeAt(index - existingImageUrls.length);
   }
 
   Future<void> saveDraftPreview() async {
@@ -222,8 +239,8 @@ class MarketCreateController extends GetxController {
       AppSnackbar('Eksik Bilgi', issue);
       return;
     }
-    if (selectedImages.isEmpty) {
-      AppSnackbar('Eksik Bilgi', 'Yayinlamak icin en az bir gorsel ekle.');
+    if (totalImageCount == 0) {
+      AppSnackbar('Eksik Bilgi', 'Yayınlamak için en az bir görsel ekle.');
       return;
     }
     await _submit(publish: true);
@@ -272,7 +289,7 @@ class MarketCreateController extends GetxController {
           .where((value) => value.trim().isNotEmpty)
           .join(', '),
       'contactPreference': contactPreference.value,
-      'status': publish ? 'active' : 'draft',
+      'status': _nextStatus(publish),
       'seller': {
         'userId': userId,
         'name': sellerName.isEmpty
@@ -292,14 +309,16 @@ class MarketCreateController extends GetxController {
       'coverImageUrl': imageUrls.isEmpty ? '' : imageUrls.first,
       'imageUrls': imageUrls,
       'imageCount': imageUrls.length,
-      'offerCount': 0,
-      'favoriteCount': 0,
-      'reportCount': 0,
-      'viewCount': 0,
       'isNegotiable': true,
-      'publishedAt': publish ? now : 0,
-      'createdAt': now,
       'updatedAt': now,
+      'createdAt': initialItem?.createdAt ?? now,
+      if (!isEditing) 'offerCount': 0,
+      if (!isEditing) 'favoriteCount': 0,
+      if (!isEditing) 'reportCount': 0,
+      if (!isEditing) 'viewCount': 0,
+      if (!isEditing) 'publishedAt': publish ? now : 0,
+      if (isEditing && publish && initialItem?.status == 'draft')
+        'publishedAt': now,
     };
   }
 
@@ -315,11 +334,11 @@ class MarketCreateController extends GetxController {
         priceController.text.trim().replaceAll(',', '.'),
       );
       if (price == null || price <= 0) {
-        return 'Gecerli bir fiyat gir.';
+        return 'Geçerli bir fiyat gir.';
       }
     }
     if (selectedCity.value.isEmpty || selectedDistrict.value.isEmpty) {
-      return 'Sehir ve ilce secimi gerekli.';
+      return 'Şehir ve ilçe seçimi gerekli.';
     }
     final leaf = selectedLeaf.value;
     if (leaf != null) {
@@ -355,11 +374,12 @@ class MarketCreateController extends GetxController {
         ? CurrentUserService.instance.userId
         : (FirebaseAuth.instance.currentUser?.uid ?? '');
     if (uid.isEmpty) {
-      AppSnackbar('Hata', 'Kullanici oturumu bulunamadi.');
+      AppSnackbar('Hata', 'Kullanıcı oturumu bulunamadı.');
       return;
     }
 
-    final itemId = DateTime.now().millisecondsSinceEpoch.toString();
+    final itemId =
+        initialItem?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
     isSubmitting.value = true;
     try {
       final imageUrls = await _uploadImages(uid: uid, itemId: itemId);
@@ -376,7 +396,9 @@ class MarketCreateController extends GetxController {
       );
       AppSnackbar(
         'Tamam',
-        publish ? 'Ilan yayinlandi.' : 'Taslak kaydedildi.',
+        isEditing
+            ? (publish ? 'İlan güncellendi.' : 'Taslak güncellendi.')
+            : (publish ? 'İlan yayınlandı.' : 'Taslak kaydedildi.'),
       );
       Get.back(result: payload);
     } catch (e) {
@@ -390,13 +412,15 @@ class MarketCreateController extends GetxController {
     required String uid,
     required String itemId,
   }) async {
-    if (selectedImages.isEmpty) return const <String>[];
-    final urls = <String>[];
+    if (selectedImages.isEmpty)
+      return existingImageUrls.toList(growable: false);
+    final urls = existingImageUrls.toList(growable: true);
     for (var i = 0; i < selectedImages.length; i++) {
       final file = selectedImages[i];
-      final path = i == 0
+      final imageIndex = existingImageUrls.length + i;
+      final path = imageIndex == 0
           ? 'marketStore/$uid/$itemId/cover'
-          : 'marketStore/$uid/$itemId/image_$i';
+          : 'marketStore/$uid/$itemId/image_$imageIndex';
       final url = await WebpUploadService.uploadFileAsWebp(
         storage: FirebaseStorage.instance,
         file: file,
@@ -405,6 +429,73 @@ class MarketCreateController extends GetxController {
       urls.add(url);
     }
     return urls;
+  }
+
+  void _hydrateInitialItem() {
+    final item = initialItem;
+    if (item == null) return;
+    titleController.text = item.title;
+    descriptionController.text = item.description;
+    if (item.price > 0) {
+      priceController.text = item.price.toStringAsFixed(0);
+    }
+    selectedCity.value = item.city;
+    selectedDistrict.value = item.district;
+    contactPreference.value = item.contactPreference;
+    final initialUrls = item.imageUrls
+        .where((url) => url.trim().isNotEmpty)
+        .toList(growable: true);
+    if (initialUrls.isEmpty && item.coverImageUrl.trim().isNotEmpty) {
+      initialUrls.add(item.coverImageUrl);
+    }
+    existingImageUrls.assignAll(initialUrls);
+
+    final match = _findLeafByKey(item.categoryKey);
+    if (match != null) {
+      selectedTopKey.value = match.$1;
+      leafCategories.assignAll(match.$2);
+      selectLeafCategory(match.$3.key);
+    } else if (topCategories.isNotEmpty) {
+      selectTopCategory((topCategories.first['key'] ?? '').toString());
+    }
+
+    final leaf = selectedLeaf.value;
+    if (leaf != null) {
+      for (final field in leaf.fields) {
+        final fieldKey = (field['key'] ?? '').toString();
+        final label = (field['label'] ?? fieldKey).toString();
+        final value =
+            (item.attributes[label] ?? item.attributes[fieldKey] ?? '')
+                .toString();
+        if (value.trim().isEmpty) continue;
+        setFieldValue(fieldKey, value);
+      }
+    }
+  }
+
+  (String, List<MarketLeafCategory>, MarketLeafCategory)? _findLeafByKey(
+    String categoryKey,
+  ) {
+    for (final category in topCategories) {
+      final topKey = (category['key'] ?? '').toString();
+      final flattened = _flattenLeafCategories(
+        category,
+        [(category['label'] ?? '').toString()],
+      );
+      final leaf =
+          flattened.firstWhereOrNull((item) => item.key == categoryKey);
+      if (leaf != null) {
+        return (topKey, flattened, leaf);
+      }
+    }
+    return null;
+  }
+
+  String _nextStatus(bool publish) {
+    if (!publish) return 'draft';
+    if (!isEditing) return 'active';
+    if (initialItem?.status == 'draft') return 'active';
+    return initialItem?.status ?? 'active';
   }
 
   List<MarketLeafCategory> _flattenLeafCategories(
