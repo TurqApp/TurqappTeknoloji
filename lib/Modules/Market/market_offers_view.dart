@@ -26,9 +26,9 @@ class _MarketOffersViewState extends State<MarketOffersView> {
   @override
   void initState() {
     super.initState();
-    uid = CurrentUserService.instance.userId.isNotEmpty
-        ? CurrentUserService.instance.userId
-        : (FirebaseAuth.instance.currentUser?.uid ?? '');
+    uid = (FirebaseAuth.instance.currentUser?.uid ?? '').isNotEmpty
+        ? (FirebaseAuth.instance.currentUser?.uid ?? '')
+        : CurrentUserService.instance.userId;
     _reload();
   }
 
@@ -64,8 +64,8 @@ class _MarketOffersViewState extends State<MarketOffersView> {
             labelColor: Colors.black,
             unselectedLabelColor: Colors.black54,
             tabs: [
-              Tab(text: 'Verdigim'),
-              Tab(text: 'Aldigim'),
+              Tab(text: 'Verdiğim'),
+              Tab(text: 'Aldığım'),
             ],
           ),
         ),
@@ -73,12 +73,12 @@ class _MarketOffersViewState extends State<MarketOffersView> {
           children: [
             _buildOfferFuture(
               future: sentFuture,
-              subtitle: 'Verdigim teklif',
+              subtitle: 'Verdiğim teklif',
               showActions: false,
             ),
             _buildOfferFuture(
               future: receivedFuture,
-              subtitle: 'Aldigim teklif',
+              subtitle: 'Aldığım teklif',
               showActions: true,
             ),
           ],
@@ -102,7 +102,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
         if (offers.isEmpty) {
           return Center(
             child: Text(
-              '$subtitle bulunamadi.',
+              '$subtitle bulunamadı.',
               style: const TextStyle(
                 color: Colors.black54,
                 fontSize: 14,
@@ -210,7 +210,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
                       Row(
                         children: [
                           Text(
-                            '${offer.offerPrice.toStringAsFixed(0)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
+                            '${_formatMoney(offer.offerPrice)} ${offer.currency.toUpperCase() == 'TRY' ? 'TL' : offer.currency}',
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 14,
@@ -329,7 +329,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
         _processingIds.remove(offer.id);
       });
       final text = e.toString().contains('offer_already_processed')
-          ? 'Bu teklif daha once isleme alinmis.'
+          ? 'Bu teklif daha önce işleme alınmış.'
           : 'Teklif güncellenemedi.';
       AppSnackbar('Hata', text);
     }
@@ -342,7 +342,7 @@ class _MarketOffersViewState extends State<MarketOffersView> {
       case 'rejected':
         return 'Reddedildi';
       case 'cancelled':
-        return 'Iptal Edildi';
+        return 'İptal Edildi';
       default:
         return 'Bekliyor';
     }
@@ -386,5 +386,18 @@ class _MarketOffersViewState extends State<MarketOffersView> {
       return;
     }
     await Get.to(() => MarketDetailView(item: item));
+  }
+
+  String _formatMoney(double value) {
+    final rounded = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < rounded.length; i++) {
+      final reverseIndex = rounded.length - i;
+      buffer.write(rounded[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 }

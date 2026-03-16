@@ -40,6 +40,10 @@ class NotifyReader extends StatelessWidget {
       controller.goToChat(docID);
       return;
     }
+    if (normalized == "market_offer" || normalized == "market_offer_status") {
+      controller.goToMarket(docID);
+      return;
+    }
     Get.back();
   }
 

@@ -16,6 +16,8 @@ class GlobalHLSPlayerManager {
     private var currentURL: String?
     private var isPlaying: Bool = false
     private var wasPlayingBeforeBackground: Bool = false
+    private var wasMutedBeforeBackground: Bool = false
+    private var volumeBeforeBackground: Float = 1.0
 
     // Player pool for pre-loading (optional future enhancement)
     private var preloadPlayers: [String: AVPlayer] = [:]
@@ -48,7 +50,7 @@ class GlobalHLSPlayerManager {
     private func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .moviePlayback, options: [.mixWithOthers])
+            try session.setCategory(.playback, mode: .moviePlayback, options: [])
             try session.setActive(true)
         } catch {
             print("[GlobalPlayerManager] Audio session setup failed: \(error)")
@@ -352,6 +354,13 @@ class GlobalHLSPlayerManager {
     private func setupLifecycleObservers() {
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(appDidEnterBackground),
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
@@ -372,19 +381,25 @@ class GlobalHLSPlayerManager {
         )
     }
 
+    @objc private func appWillResignActive() {
+        forceBackgroundSilence()
+    }
+
     @objc private func appDidEnterBackground() {
-        wasPlayingBeforeBackground = isPlaying
-        if isPlaying {
-            pause()
-        }
+        forceBackgroundSilence()
     }
 
     @objc private func appWillEnterForeground() {
-        // Resume playback if it was playing before background
-        if wasPlayingBeforeBackground {
-            play()
-            wasPlayingBeforeBackground = false
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(true)
+        } catch {
+            print("[GlobalPlayerManager] Audio session reactivate failed: \(error)")
         }
+
+        player?.isMuted = wasMutedBeforeBackground
+        player?.volume = volumeBeforeBackground
+        wasPlayingBeforeBackground = false
     }
 
     @objc private func handleAudioInterruption(_ notification: Notification) {
@@ -397,17 +412,31 @@ class GlobalHLSPlayerManager {
         switch type {
         case .began:
             // Interruption began (phone call, alarm, etc.)
-            pause()
+            forceBackgroundSilence()
         case .ended:
-            // Interruption ended
-            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
-                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-                if options.contains(.shouldResume) {
-                    play()
-                }
-            }
+            appWillEnterForeground()
         @unknown default:
             break
+        }
+    }
+
+    private func forceBackgroundSilence() {
+        wasPlayingBeforeBackground = isPlaying
+        wasMutedBeforeBackground = player?.isMuted ?? false
+        volumeBeforeBackground = player?.volume ?? 1.0
+
+        player?.pause()
+        player?.isMuted = true
+        player?.volume = 0
+        player?.rate = 0
+        isPlaying = false
+        onStateChange?(.paused)
+
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            print("[GlobalPlayerManager] Audio session deactivate failed: \(error)")
         }
     }
 }

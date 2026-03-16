@@ -195,13 +195,17 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
                 children: [
-                  _sortChip(label: 'En Yeni', value: 'newest'),
-                  _sortChip(label: 'Fiyat Artan', value: 'price_asc'),
-                  _sortChip(label: 'Fiyat Azalan', value: 'price_desc'),
+                  Expanded(child: _sortChip(label: 'Yeni', value: 'newest')),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _sortChip(label: 'Artan', value: 'price_asc'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _sortChip(label: 'Azalan', value: 'price_desc'),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -209,7 +213,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 50,
+                      height: 40,
                       child: OutlinedButton(
                         onPressed: () {
                           controller.clearAdvancedFilters();
@@ -235,7 +239,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: SizedBox(
-                      height: 50,
+                      height: 40,
                       child: ElevatedButton(
                         onPressed: () {
                           controller.applyAdvancedFilters(
@@ -287,7 +291,8 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        height: 34,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? Colors.black : Colors.grey.withAlpha(40),
           borderRadius: BorderRadius.circular(999),

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
 
 import '../../Modules/Agenda/FloodListing/flood_listing.dart';
@@ -53,6 +54,16 @@ class NotifyReaderController extends GetxController {
         return;
       }
       await goToChat(targetId);
+      return;
+    }
+
+    if (normalizedType == "market_offer" ||
+        normalizedType == "market_offer_status") {
+      if (targetId.isEmpty) {
+        AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+        return;
+      }
+      await goToMarket(targetId);
       return;
     }
 
@@ -159,6 +170,16 @@ class NotifyReaderController extends GetxController {
     final model = lookup.model!;
     Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model)
         ?.then((_) => toNavbar());
+  }
+
+  Future<void> goToMarket(String itemId) async {
+    final lookup = await _lookupRepository.getMarketLookup(itemId);
+    if (!lookup.exists || lookup.model == null) {
+      AppSnackbar('Bilgi', 'İlan bulunamadı veya kaldırılmış.');
+      return toNavbar();
+    }
+    final model = lookup.model!;
+    Get.to(() => MarketDetailView(item: model))?.then((_) => toNavbar());
   }
 
   /// NavBarView'e geç ve önceki sayfaları stack'ten at

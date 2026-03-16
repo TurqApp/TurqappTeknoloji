@@ -111,7 +111,7 @@ class MarketNotificationService {
         .add({
       'type': type,
       'fromUserID': fromUid,
-      'userID': fromUid,
+      'userID': targetUid,
       'postID': docId,
       'postType': postType,
       'thumbnail': thumbnail,

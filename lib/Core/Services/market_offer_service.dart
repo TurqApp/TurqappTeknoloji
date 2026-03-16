@@ -11,10 +11,11 @@ class MarketOfferService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static String get _currentUid {
-    if (CurrentUserService.instance.userId.isNotEmpty) {
-      return CurrentUserService.instance.userId;
+    final authUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (authUid.isNotEmpty) {
+      return authUid;
     }
-    return FirebaseAuth.instance.currentUser?.uid ?? '';
+    return CurrentUserService.instance.userId;
   }
 
   static Future<void> createOffer({
@@ -48,23 +49,36 @@ class MarketOfferService {
     final offerId = now.toString();
     final itemRef = _firestore.collection('marketStore').doc(item.id);
     final offerRef = itemRef.collection('offers').doc(offerId);
+    final sentRef = _firestore
+        .collection('users')
+        .doc(buyerId)
+        .collection('marketOffersSent')
+        .doc(offerId);
+    final receivedRef = _firestore
+        .collection('users')
+        .doc(item.userId)
+        .collection('marketOffersReceived')
+        .doc(offerId);
+    final offerPayload = <String, dynamic>{
+      'id': offerId,
+      'itemId': item.id,
+      'itemTitle': item.title,
+      'coverImageUrl': item.coverImageUrl,
+      'locationText': item.locationText,
+      'buyerId': buyerId,
+      'sellerId': item.userId,
+      'offerPrice': offerPrice,
+      'currency': item.currency,
+      'message': message.trim(),
+      'status': 'pending',
+      'createdAt': now,
+      'updatedAt': now,
+    };
 
     await _firestore.runTransaction((tx) async {
-      tx.set(offerRef, {
-        'id': offerId,
-        'itemId': item.id,
-        'itemTitle': item.title,
-        'coverImageUrl': item.coverImageUrl,
-        'locationText': item.locationText,
-        'buyerId': buyerId,
-        'sellerId': item.userId,
-        'offerPrice': offerPrice,
-        'currency': item.currency,
-        'message': message.trim(),
-        'status': 'pending',
-        'createdAt': now,
-        'updatedAt': now,
-      });
+      tx.set(offerRef, offerPayload);
+      tx.set(sentRef, offerPayload);
+      tx.set(receivedRef, offerPayload);
       tx.set(
         itemRef,
         {
@@ -75,10 +89,12 @@ class MarketOfferService {
         SetOptions(merge: true),
       );
     });
-    await MarketNotificationService.notifyOfferCreated(
-      item: item,
-      offerPrice: offerPrice,
-    );
+    try {
+      await MarketNotificationService.notifyOfferCreated(
+        item: item,
+        offerPrice: offerPrice,
+      );
+    } catch (_) {}
   }
 
   static Future<int> _countTodayOffers({
@@ -117,12 +133,12 @@ class MarketOfferService {
 
   static Future<List<MarketOfferModel>> fetchSentOffers(String uid) async {
     if (uid.trim().isEmpty) return const <MarketOfferModel>[];
-    return _fetchOffers(field: 'buyerId', uid: uid);
+    return _fetchSentOffers(uid);
   }
 
   static Future<List<MarketOfferModel>> fetchReceivedOffers(String uid) async {
     if (uid.trim().isEmpty) return const <MarketOfferModel>[];
-    return _fetchOffers(field: 'sellerId', uid: uid);
+    return _fetchReceivedOffers(uid);
   }
 
   static Future<void> respondToOffer({
@@ -143,6 +159,32 @@ class MarketOfferService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final itemRef = _firestore.collection('marketStore').doc(offer.itemId);
     final offerRef = itemRef.collection('offers').doc(offer.id);
+    final sentRef = _firestore
+        .collection('users')
+        .doc(offer.buyerId)
+        .collection('marketOffersSent')
+        .doc(offer.id);
+    final receivedRef = _firestore
+        .collection('users')
+        .doc(offer.sellerId)
+        .collection('marketOffersReceived')
+        .doc(offer.id);
+    final mirrorPayload = <String, dynamic>{
+      'id': offer.id,
+      'itemId': offer.itemId,
+      'itemTitle': offer.itemTitle,
+      'coverImageUrl': offer.coverImageUrl,
+      'locationText': offer.locationText,
+      'buyerId': offer.buyerId,
+      'sellerId': offer.sellerId,
+      'offerPrice': offer.offerPrice,
+      'currency': offer.currency,
+      'message': offer.message,
+      'status': status,
+      'createdAt': offer.createdAt,
+      'updatedAt': now,
+      'respondedAt': now,
+    };
 
     await _firestore.runTransaction((tx) async {
       final offerSnap = await tx.get(offerRef);
@@ -174,11 +216,23 @@ class MarketOfferService {
         },
         SetOptions(merge: true),
       );
+      tx.set(
+        sentRef,
+        mirrorPayload,
+        SetOptions(merge: true),
+      );
+      tx.set(
+        receivedRef,
+        mirrorPayload,
+        SetOptions(merge: true),
+      );
     });
-    await MarketNotificationService.notifyOfferStatus(
-      offer: offer,
-      status: status,
-    );
+    try {
+      await MarketNotificationService.notifyOfferStatus(
+        offer: offer,
+        status: status,
+      );
+    } catch (_) {}
 
     if (status == 'accepted') {
       final pendingOffers = await itemRef
@@ -229,5 +283,177 @@ class MarketOfferService {
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return items;
     }
+  }
+
+  static Future<List<MarketOfferModel>> _fetchReceivedOffers(String uid) async {
+    final merged = <String, MarketOfferModel>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('marketOffersReceived')
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .get(const GetOptions(source: Source.serverAndCache));
+      for (final doc in userSnap.docs) {
+        merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
+      }
+    } on FirebaseException {
+      try {
+        final userSnap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('marketOffersReceived')
+            .limit(100)
+            .get(const GetOptions(source: Source.serverAndCache));
+        for (final doc in userSnap.docs) {
+          merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
+        }
+      } on FirebaseException {
+        // Fallbackler aşağıda devam eder.
+      }
+    }
+
+    try {
+      final direct = await _fetchOffers(field: 'sellerId', uid: uid);
+      for (final offer in direct) {
+        merged[offer.id] = offer;
+      }
+    } on FirebaseException {
+      // sellerId index/permission tarafı düşerse item bazlı fallback aşağıda çalışır.
+    } catch (_) {}
+
+    try {
+      final ownedItemOffers = await _fetchReceivedOffersByOwnedItems(uid);
+      for (final offer in ownedItemOffers) {
+        merged[offer.id] = offer;
+      }
+    } on FirebaseException {
+      // İki kaynak da düşerse eldeki veriyle devam et.
+    } catch (_) {}
+
+    final items = merged.values.toList(growable: false)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
+
+  static Future<List<MarketOfferModel>> _fetchSentOffers(String uid) async {
+    final merged = <String, MarketOfferModel>{};
+
+    try {
+      final userSnap = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('marketOffersSent')
+          .orderBy('createdAt', descending: true)
+          .limit(100)
+          .get(const GetOptions(source: Source.serverAndCache));
+      for (final doc in userSnap.docs) {
+        merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
+      }
+    } on FirebaseException {
+      try {
+        final userSnap = await _firestore
+            .collection('users')
+            .doc(uid)
+            .collection('marketOffersSent')
+            .limit(100)
+            .get(const GetOptions(source: Source.serverAndCache));
+        for (final doc in userSnap.docs) {
+          merged[doc.id] = MarketOfferModel.fromMap(doc.data(), doc.id);
+        }
+      } on FirebaseException {
+        // Fallbackler aşağıda devam eder.
+      }
+    }
+
+    try {
+      final direct = await _fetchOffers(field: 'buyerId', uid: uid);
+      for (final offer in direct) {
+        merged[offer.id] = offer;
+      }
+    } on FirebaseException {
+      // buyerId index/permission düşerse item bazlı fallback aşağıda çalışır.
+    } catch (_) {}
+
+    try {
+      final scanned = await _scanAllOffersForUser(uid, matchBuyer: true);
+      for (final offer in scanned) {
+        merged[offer.id] = offer;
+      }
+    } on FirebaseException {
+      // Elimizdeki veriyle devam et.
+    } catch (_) {}
+
+    final items = merged.values.toList(growable: false)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
+
+  static Future<List<MarketOfferModel>> _fetchReceivedOffersByOwnedItems(
+    String uid,
+  ) async {
+    const options = GetOptions(source: Source.serverAndCache);
+    final itemSnap = await _firestore
+        .collection('marketStore')
+        .where('userId', isEqualTo: uid)
+        .limit(100)
+        .get(options);
+
+    final offers = <MarketOfferModel>[];
+    for (final itemDoc in itemSnap.docs) {
+      try {
+        final offerSnap = await itemDoc.reference
+            .collection('offers')
+            .limit(100)
+            .get(options);
+        offers.addAll(
+          offerSnap.docs.map(
+            (doc) => MarketOfferModel.fromMap(doc.data(), doc.id),
+          ),
+        );
+      } on FirebaseException {
+        continue;
+      }
+    }
+
+    offers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return offers;
+  }
+
+  static Future<List<MarketOfferModel>> _scanAllOffersForUser(
+    String uid, {
+    required bool matchBuyer,
+  }) async {
+    const options = GetOptions(source: Source.serverAndCache);
+    final itemSnap = await _firestore
+        .collection('marketStore')
+        .limit(200)
+        .get(options);
+
+    final offers = <MarketOfferModel>[];
+    for (final itemDoc in itemSnap.docs) {
+      try {
+        final offerSnap = await itemDoc.reference
+            .collection('offers')
+            .limit(100)
+            .get(options);
+        for (final doc in offerSnap.docs) {
+          final offer = MarketOfferModel.fromMap(doc.data(), doc.id);
+          final matches = matchBuyer
+              ? offer.buyerId.trim() == uid
+              : offer.sellerId.trim() == uid;
+          if (matches) {
+            offers.add(offer);
+          }
+        }
+      } on FirebaseException {
+        continue;
+      }
+    }
+
+    offers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return offers;
   }
 }

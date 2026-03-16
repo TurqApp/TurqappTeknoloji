@@ -268,6 +268,11 @@ class NotificationService {
           await controller.goToTutoring(docID.toString());
           return;
         }
+        if (normalized == "market_offer" ||
+            normalized == "market_offer_status") {
+          await controller.goToMarket(docID.toString());
+          return;
+        }
         if (normalized == "chat" || normalized == "message") {
           await controller.goToChat(docID.toString());
         }

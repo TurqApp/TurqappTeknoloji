@@ -20,6 +20,7 @@ class MarketItemModel {
     this.sellerPhotoUrl = '',
     this.sellerRozet = '',
     this.sellerPhoneNumber = '',
+    this.showPhone = false,
     required this.contactPreference,
     required this.status,
     required this.createdAt,
@@ -48,6 +49,7 @@ class MarketItemModel {
   final String sellerPhotoUrl;
   final String sellerRozet;
   final String sellerPhoneNumber;
+  final bool showPhone;
   final String contactPreference;
   final String status;
   final int createdAt;
@@ -62,7 +64,10 @@ class MarketItemModel {
     return '';
   }
 
-  bool get canShowPhone => contactPreference == 'phone';
+  bool get canShowPhone =>
+      sellerPhoneNumber.trim().isNotEmpty ||
+      showPhone ||
+      contactPreference == 'phone';
 
   factory MarketItemModel.fromMap(Map<String, dynamic> json, String docId) {
     final seller =
@@ -115,6 +120,7 @@ class MarketItemModel {
               json['phoneNumber'] ??
               '')
           .toString(),
+      showPhone: json['showPhone'] == true,
       contactPreference:
           (json['contactPreference'] ?? 'message_only').toString(),
       status: (json['status'] ?? 'active').toString(),
@@ -153,6 +159,7 @@ class MarketItemModel {
       'sellerPhotoUrl': sellerPhotoUrl,
       'sellerRozet': sellerRozet,
       'sellerPhoneNumber': sellerPhoneNumber,
+      'showPhone': showPhone,
       'contactPreference': contactPreference,
       'status': status,
       'createdAt': createdAt,
@@ -183,6 +190,7 @@ class MarketItemModel {
     String? sellerPhotoUrl,
     String? sellerRozet,
     String? sellerPhoneNumber,
+    bool? showPhone,
     String? contactPreference,
     String? status,
     int? createdAt,
@@ -211,6 +219,7 @@ class MarketItemModel {
       sellerPhotoUrl: sellerPhotoUrl ?? this.sellerPhotoUrl,
       sellerRozet: sellerRozet ?? this.sellerRozet,
       sellerPhoneNumber: sellerPhoneNumber ?? this.sellerPhoneNumber,
+      showPhone: showPhone ?? this.showPhone,
       contactPreference: contactPreference ?? this.contactPreference,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

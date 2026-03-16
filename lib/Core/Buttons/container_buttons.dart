@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 
 class SaveButton extends StatelessWidget {
   final RxBool isLoading;
@@ -24,21 +25,17 @@ class SaveButton extends StatelessWidget {
       () => GestureDetector(
         onTap: isLoading.value ? null : onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12),
+          height: TurqButtonTokens.height,
           decoration: BoxDecoration(
             color: isLoading.value ? Colors.grey.shade300 : Colors.black,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           ),
           child: Center(
             child: isLoading.value
                 ? CupertinoActivityIndicator()
                 : Text(
                     text,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontFamily: "MontserratMedium",
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
           ),
         ),

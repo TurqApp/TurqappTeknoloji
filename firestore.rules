@@ -559,7 +559,8 @@ service cloud.firestore {
         'Posts', 'posts', 'Comment', 'comment',
         'like', 'reshared_posts', 'shared_as_posts',
         'job_application', 'tutoring_application', 'tutoring_status',
-        'chat', 'message', 'follow', 'user', 'User', 'Chat'
+        'chat', 'message', 'follow', 'user', 'User', 'Chat',
+        'market_offer', 'market_offer_status'
       ];
     }
     function isActiveSender(uid) {
@@ -582,7 +583,8 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly([
           'type', 'fromUserID', 'postID', 'timeStamp', 'read',
           'title', 'body', 'imageUrl', 'adminPush', 'hideInAppInbox',
-          'isRead', 'postType', 'thumbnail', 'userID', 'desc'
+          'isRead', 'postType', 'thumbnail', 'userID', 'desc',
+          'marketItemId', 'marketSellerId'
         ])
         && request.resource.data.keys().hasAll(['type', 'fromUserID', 'timeStamp'])
         && request.resource.data.type is string
@@ -620,7 +622,13 @@ service cloud.firestore {
           || (request.resource.data.userID is string && request.resource.data.userID == uid))
         && (!request.resource.data.keys().hasAny(['desc'])
           || (request.resource.data.desc is string
-            && request.resource.data.desc.size() <= 4000));
+            && request.resource.data.desc.size() <= 4000))
+        && (!request.resource.data.keys().hasAny(['marketItemId'])
+          || (request.resource.data.marketItemId is string
+            && request.resource.data.marketItemId.size() <= 256))
+        && (!request.resource.data.keys().hasAny(['marketSellerId'])
+          || (request.resource.data.marketSellerId is string
+            && request.resource.data.marketSellerId.size() <= 128));
     }
     function isValidUsernameLower(v) {
       return v is string
@@ -783,6 +791,32 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow create: if canCreateNotification(uid) && isValidNotificationPayload(uid);
         allow update, delete: if isOwner(uid);
+      }
+
+      match /marketOffersSent/{offerId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isAuth()
+          && request.resource.data.buyerId is string
+          && request.resource.data.buyerId == uid
+          && request.resource.data.sellerId is string
+          && request.auth.uid in [
+            request.resource.data.buyerId,
+            request.resource.data.sellerId
+          ];
+        allow delete: if isOwner(uid);
+      }
+
+      match /marketOffersReceived/{offerId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isAuth()
+          && request.resource.data.sellerId is string
+          && request.resource.data.sellerId == uid
+          && request.resource.data.buyerId is string
+          && request.auth.uid in [
+            request.resource.data.buyerId,
+            request.resource.data.sellerId
+          ];
+        allow delete: if isOwner(uid);
       }
 
       // Canonical user sub-docs

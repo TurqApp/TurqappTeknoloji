@@ -11,6 +11,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
@@ -232,6 +233,11 @@ class MyApp extends StatelessWidget {
           final current = routing.current;
           final previous = routing.previous;
           if (current == previous) return;
+          try {
+            if (Get.isRegistered<VideoStateManager>()) {
+              Get.find<VideoStateManager>().pauseAllVideos(force: true);
+            }
+          } catch (_) {}
           unawaited(AudioFocusCoordinator.instance.pauseAllAudioPlayers());
         },
         defaultTransition: Transition.fade,
@@ -302,31 +308,69 @@ class MyApp extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
+              minimumSize: const Size(0, TurqButtonTokens.height),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TurqButtonTokens.horizontalPadding,
+              ),
               textStyle: const TextStyle(
                 fontSize: 15,
                 fontFamily: AppFontFamilies.mmedium,
               ),
               disabledBackgroundColor: Colors.black26,
               disabledForegroundColor: Colors.white70,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+              ),
+            ),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, TurqButtonTokens.height),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TurqButtonTokens.horizontalPadding,
+              ),
+              textStyle: const TextStyle(
+                fontSize: 15,
+                fontFamily: AppFontFamilies.mmedium,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+              ),
             ),
           ),
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
               foregroundColor: Colors.black,
+              minimumSize: const Size(0, TurqButtonTokens.height),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TurqButtonTokens.horizontalPadding,
+              ),
               textStyle: const TextStyle(
                 fontSize: 15,
                 fontFamily: AppFontFamilies.mmedium,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
             ),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.black,
+              minimumSize: const Size(0, TurqButtonTokens.height),
+              padding: const EdgeInsets.symmetric(
+                horizontal: TurqButtonTokens.horizontalPadding,
+              ),
               textStyle: const TextStyle(
                 fontSize: 15,
                 fontFamily: AppFontFamilies.mmedium,
               ),
               side: const BorderSide(color: Colors.black),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
+              ),
             ),
           ),
           floatingActionButtonTheme: const FloatingActionButtonThemeData(
