@@ -411,6 +411,23 @@ class ShortContentController extends GetxController {
     final postLevelAvatar = model.authorAvatarUrl.trim();
     final postLevelNickname = model.authorNickname.trim();
     final postLevelDisplayName = model.authorDisplayName.trim();
+    final hasPostLevelIdentity = postLevelAvatar.isNotEmpty &&
+        postLevelNickname.isNotEmpty &&
+        postLevelDisplayName.isNotEmpty;
+
+    if (hasPostLevelIdentity) {
+      avatarUrl.value = postLevelAvatar;
+      nickname.value = postLevelNickname;
+      fullName.value = postLevelDisplayName;
+      token.value = '';
+      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+        userID,
+        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      return;
+    }
+
     final data =
         await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
     final resolvedAvatar = (data["avatarUrl"] ?? "").toString().trim();

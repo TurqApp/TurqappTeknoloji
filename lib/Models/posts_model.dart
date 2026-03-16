@@ -280,24 +280,16 @@ class PostsModel {
         : (data['author'] is Map
             ? Map<String, dynamic>.from(data['author'] as Map)
             : const <String, dynamic>{});
-    final resolvedAuthorNickname = (data['authorNickname'] ??
-            authorMap['nickname'] ??
-            authorMap['username'] ??
-            data['nickname'] ??
-            '')
-        .toString();
+    final resolvedAuthorNickname =
+        (data['authorNickname'] ?? authorMap['nickname'] ?? authorMap['username'] ?? '')
+            .toString();
     final resolvedAuthorDisplayName = (data['authorDisplayName'] ??
-            data['displayName'] ??
-            data['fullName'] ??
             authorMap['displayName'] ??
             authorMap['fullName'] ??
             resolvedAuthorNickname)
         .toString();
-    final resolvedAuthorAvatarUrl = (data['authorAvatarUrl'] ??
-            authorMap['avatarUrl'] ??
-            data['avatarUrl'] ??
-            '')
-        .toString();
+    final resolvedAuthorAvatarUrl =
+        (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '').toString();
     final resolvedRozet = (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
             data['userId'] ??

@@ -267,15 +267,10 @@ class UploadQueueService extends GetxController {
     final String authorNickname = _firstNonEmptyValue([
       _normalizeHandleValue(postDataMap['nickname']),
       _normalizeHandleValue(postDataMap['authorNickname']),
-      _normalizeHandleValue(postDataMap['username']),
       _normalizeHandleValue(currentUser.nickname),
     ]);
     final String username = _firstNonEmptyValue([
       _normalizeHandleValue(postDataMap['username']),
-      _normalizeHandleValue(postDataMap['nickname']),
-      _normalizeHandleValue(postDataMap['authorNickname']),
-      _normalizeHandleValue(currentUser.nickname),
-      authorNickname,
     ]);
     final String fullName = _firstNonEmptyValue([
       postDataMap['fullName'],
@@ -283,14 +278,12 @@ class UploadQueueService extends GetxController {
       postDataMap['displayName'],
       currentUser.fullName,
       authorNickname,
-      username,
     ]);
     final String authorDisplayName = _firstNonEmptyValue([
       postDataMap['authorDisplayName'],
       postDataMap['displayName'],
       fullName,
       authorNickname,
-      username,
     ]);
     final String authorAvatarUrl =
         (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
@@ -470,15 +463,10 @@ class UploadQueueService extends GetxController {
       final String authorNickname = _firstNonEmptyValue([
         _normalizeHandleValue(postDataMap['nickname']),
         _normalizeHandleValue(postDataMap['authorNickname']),
-        _normalizeHandleValue(postDataMap['username']),
         _normalizeHandleValue(currentUser.nickname),
       ]);
       final String username = _firstNonEmptyValue([
         _normalizeHandleValue(postDataMap['username']),
-        _normalizeHandleValue(postDataMap['nickname']),
-        _normalizeHandleValue(postDataMap['authorNickname']),
-        _normalizeHandleValue(currentUser.nickname),
-        authorNickname,
       ]);
       final String fullName = _firstNonEmptyValue([
         postDataMap['fullName'],
@@ -486,14 +474,12 @@ class UploadQueueService extends GetxController {
         postDataMap['displayName'],
         currentUser.fullName,
         authorNickname,
-        username,
       ]);
       final String authorDisplayName = _firstNonEmptyValue([
         postDataMap['authorDisplayName'],
         postDataMap['displayName'],
         fullName,
         authorNickname,
-        username,
       ]);
       final String authorAvatarUrl =
           (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)

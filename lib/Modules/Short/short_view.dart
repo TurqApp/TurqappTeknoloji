@@ -762,7 +762,7 @@ class _ShortViewState extends State<ShortView> {
                   } else {
                     // Dikey — ekranı doldur
                     videoWidget = SizedBox.expand(
-                      child: vp.buildPlayer(),
+                      child: vp.buildPlayer(useAspectRatio: false),
                     );
                   }
 

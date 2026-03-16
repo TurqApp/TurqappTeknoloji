@@ -227,6 +227,9 @@ extension PostContentControllerActionsPart on PostContentController {
     final postLevelNickname = model.authorNickname.trim();
     final postLevelDisplayName = model.authorDisplayName.trim();
     final postLevelAvatarFallback = model.authorAvatarUrl.trim();
+    final hasPostLevelIdentity = postLevelNickname.isNotEmpty &&
+        postLevelDisplayName.isNotEmpty &&
+        postLevelAvatarFallback.isNotEmpty;
 
     void applyProfile({
       required String nick,
@@ -325,6 +328,17 @@ extension PostContentControllerActionsPart on PostContentController {
     if (currentUserId != userID) {
       _currentUserStreamSub?.cancel();
       _currentUserStreamSub = null;
+    }
+
+    if (hasPostLevelIdentity) {
+      applyProfile(
+        nick: postLevelNickname,
+        uname: postLevelNickname,
+        image: postLevelAvatarFallback,
+        pushToken: '',
+        name: postLevelDisplayName,
+      );
+      return;
     }
 
     // 0) Aynı kullanıcı için hafızadaki cache tazeyse, ağa gitmeden çık.

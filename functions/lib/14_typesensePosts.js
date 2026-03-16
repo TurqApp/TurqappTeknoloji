@@ -372,7 +372,7 @@ function buildSearchDoc(postId, data) {
     const arsiv = asBool(data.arsiv) || asBool(data.isArchived);
     const gizlendi = asBool(data.gizlendi) || asBool(data.isHidden);
     const isUploading = asBool(data.isUploading);
-    const metin = asString(data.metin) || asString(data.caption);
+    const metin = asString(data.metin);
     const imgList = asStringArray(data.img);
     const hlsMasterUrl = asString(data.hlsMasterUrl);
     const thumbnailUrl = asString(data.thumbnail);
@@ -408,16 +408,9 @@ function buildSearchDoc(postId, data) {
     })();
     const createdAtTs = timeStamp;
     const userID = asString(data.userID);
-    const authorNickname = resolveHandle(data.authorNickname || data.nickname, data.username, data.usernameLower);
-    const firstName = asString(data.firstName);
-    const lastName = asString(data.lastName);
-    const joinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
-    const authorDisplayName = asString(data.authorDisplayName) ||
-        asString(data.displayName) ||
-        asString(data.fullName) ||
-        joinedName ||
-        authorNickname;
-    const authorAvatarUrl = asString(data.authorAvatarUrl) || asString(data.avatarUrl);
+    const authorNickname = asString(data.authorNickname);
+    const authorDisplayName = asString(data.authorDisplayName) || authorNickname;
+    const authorAvatarUrl = asString(data.authorAvatarUrl);
     const rozet = asString(data.rozet);
     return {
         id: postId,
@@ -470,7 +463,7 @@ async function fetchAuthorSummary(authorId) {
             return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
         }
         const data = (snap.data() || {});
-        const authorNickname = resolveHandle(data.nickname, data.username, data.usernameLower);
+        const authorNickname = asString(data.nickname);
         const authorDisplayName = asString(data.displayName) ||
             asString(data.fullName) ||
             [asString(data.firstName), asString(data.lastName)]

@@ -140,7 +140,9 @@ extension ShortsContentBodyPart on ShortsContent {
                               ],
                             ),
                             Text(
-                              controller.nickname.value,
+                              controller.nickname.value.trim().isEmpty
+                                  ? ''
+                                  : '@${controller.nickname.value.trim()}',
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,

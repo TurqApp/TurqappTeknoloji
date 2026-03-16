@@ -2,8 +2,10 @@ part of 'classic_content.dart';
 
 extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget headerUserInfoBar() {
-    final primaryName = controller.fullName.value.trim().isNotEmpty
-        ? controller.fullName.value.replaceAll("  ", " ")
+    final primaryName = widget.model.authorDisplayName.trim().isNotEmpty
+        ? widget.model.authorDisplayName.trim().replaceAll("  ", " ")
+        : controller.fullName.value.trim().isNotEmpty
+            ? controller.fullName.value.replaceAll("  ", " ")
         : controller.nickname.value.trim();
     final handle = controller.nickname.value.trim().isNotEmpty
         ? controller.nickname.value.trim()

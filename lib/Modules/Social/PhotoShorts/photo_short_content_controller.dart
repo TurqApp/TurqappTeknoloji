@@ -510,6 +510,26 @@ class PhotoShortsContentController extends GetxController {
   }
 
   Future<void> fetchUserData(String userID) async {
+    final postLevelAvatar = model.authorAvatarUrl.trim();
+    final postLevelNickname = model.authorNickname.trim();
+    final postLevelDisplayName = model.authorDisplayName.trim();
+    final hasPostLevelIdentity = postLevelAvatar.isNotEmpty &&
+        postLevelNickname.isNotEmpty &&
+        postLevelDisplayName.isNotEmpty;
+
+    if (hasPostLevelIdentity) {
+      avatarUrl.value = postLevelAvatar;
+      nickname.value = postLevelNickname;
+      token.value = '';
+      fullName.value = postLevelDisplayName;
+      takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
+        userID,
+        currentUid: FirebaseAuth.instance.currentUser!.uid,
+        preferCache: true,
+      );
+      return;
+    }
+
     final summary = await UserRepository.ensure().getUser(
       userID,
       preferCache: true,

@@ -36,8 +36,8 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
         }
         const postsSnapshot = await admin
             .firestore()
-            .collection("posts")
-            .where("authorId", "==", userId)
+            .collection("Posts")
+            .where("userID", "==", userId)
             .limit(MAX_POSTS_PER_EXECUTION)
             .get();
         if (postsSnapshot.empty) {
@@ -45,14 +45,16 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
             return null;
         }
         const updateData = {};
+        if (beforeProfile.nickname !== afterProfile.nickname)
+            updateData.nickname = afterProfile.nickname;
         if (beforeProfile.username !== afterProfile.username)
             updateData.username = afterProfile.username;
         if (beforeProfile.displayName !== afterProfile.displayName)
             updateData.displayName = afterProfile.displayName;
         if (beforeProfile.avatarUrl !== afterProfile.avatarUrl)
             updateData.avatarUrl = afterProfile.avatarUrl;
-        if (beforeProfile.isVerified !== afterProfile.isVerified)
-            updateData.isVerified = afterProfile.isVerified;
+        if (beforeProfile.rozet !== afterProfile.rozet)
+            updateData.rozet = afterProfile.rozet;
         const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
         result.duration = Date.now() - startTime;
         await logSyncMetrics(userId, result);
@@ -71,16 +73,18 @@ function extractProfileFields(data) {
         data.fullName ??
         combined ??
         "";
+    const nickname = data.nickname ?? "";
     const username = data.username ?? "";
     const avatarUrl = data.avatarUrl ?? null;
-    const isVerified = data.isVerified ?? false;
-    return { username, displayName, avatarUrl, isVerified };
+    const rozet = data.rozet ?? "";
+    return { nickname, username, displayName, avatarUrl, rozet };
 }
 function shouldSyncUserProfile(before, after) {
-    return (before.username !== after.username ||
+    return (before.nickname !== after.nickname ||
+        before.username !== after.username ||
         before.displayName !== after.displayName ||
         before.avatarUrl !== after.avatarUrl ||
-        before.isVerified !== after.isVerified);
+        before.rozet !== after.rozet);
 }
 async function updatePostsInBatches(posts, updateData, userId) {
     const result = {
@@ -98,14 +102,25 @@ async function updatePostsInBatches(posts, updateData, userId) {
                 const update = {
                     updatedAt: Date.now(),
                 };
-                if (updateData.username !== undefined)
-                    update["author.username"] = updateData.username;
-                if (updateData.displayName !== undefined)
-                    update["author.displayName"] = updateData.displayName;
-                if (updateData.avatarUrl !== undefined)
-                    update["author.avatarUrl"] = updateData.avatarUrl;
-                if (updateData.isVerified !== undefined)
-                    update["author.isVerified"] = updateData.isVerified;
+                if (updateData.nickname !== undefined) {
+                    update.authorNickname = updateData.nickname;
+                    update.nickname = updateData.nickname;
+                }
+                if (updateData.username !== undefined) {
+                    update.username = updateData.username;
+                }
+                if (updateData.displayName !== undefined) {
+                    update.authorDisplayName = updateData.displayName;
+                    update.displayName = updateData.displayName;
+                    update.fullName = updateData.displayName;
+                }
+                if (updateData.avatarUrl !== undefined) {
+                    update.authorAvatarUrl = updateData.avatarUrl;
+                    update.avatarUrl = updateData.avatarUrl;
+                }
+                if (updateData.rozet !== undefined) {
+                    update.rozet = updateData.rozet;
+                }
                 batch.update(postDoc.ref, update);
             });
             await batch.commit();
@@ -184,8 +199,8 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
         const userData = userDoc.data();
         const postsSnapshot = await admin
             .firestore()
-            .collection("posts")
-            .where("authorId", "==", userId)
+            .collection("Posts")
+            .where("userID", "==", userId)
             .limit(MAX_POSTS_PER_EXECUTION)
             .get();
         if (postsSnapshot.empty) {
@@ -197,10 +212,11 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
         }
         const profile = extractProfileFields(userData);
         const updateData = {
+            nickname: profile.nickname,
             username: profile.username,
             displayName: profile.displayName,
             avatarUrl: profile.avatarUrl,
-            isVerified: profile.isVerified,
+            rozet: profile.rozet,
         };
         const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
         await logSyncMetrics(userId, result);

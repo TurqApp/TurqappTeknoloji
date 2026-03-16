@@ -32,16 +32,11 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
     final nickname = _firstNonEmptyValue([
       _normalizeHandleValue(userRaw['nickname']),
       _normalizeHandleValue(current.nickname),
-      _normalizeHandleValue(userRaw['username']),
-      _normalizeHandleValue(userRaw['usernameLower']),
     ]);
 
     final username = _firstNonEmptyValue([
       _normalizeHandleValue(userRaw['username']),
-      _normalizeHandleValue(userRaw['nickname']),
-      _normalizeHandleValue(current.nickname),
       _normalizeHandleValue(userRaw['usernameLower']),
-      nickname,
     ]);
 
     final displayName = _firstNonEmptyValue([
@@ -53,7 +48,6 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       ].where((e) => e.isNotEmpty).join(' ').trim(),
       current.fullName.trim(),
       nickname,
-      username,
     ]);
 
     final fullName = _firstNonEmptyValue([
@@ -66,7 +60,6 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
       ].where((e) => e.isNotEmpty).join(' ').trim(),
       current.fullName.trim(),
       nickname,
-      username,
     ]);
 
     final avatarUrl = _firstNonEmptyValue([

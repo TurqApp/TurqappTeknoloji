@@ -451,7 +451,7 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
   const arsiv = asBool((data as any).arsiv) || asBool((data as any).isArchived);
   const gizlendi = asBool((data as any).gizlendi) || asBool((data as any).isHidden);
   const isUploading = asBool((data as any).isUploading);
-  const metin = asString((data as any).metin) || asString(data.caption);
+  const metin = asString((data as any).metin);
   const imgList = asStringArray((data as any).img);
   const hlsMasterUrl = asString((data as any).hlsMasterUrl);
   const thumbnailUrl = asString((data as any).thumbnail);
@@ -484,22 +484,9 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
   })();
   const createdAtTs = timeStamp;
   const userID = asString((data as any).userID);
-  const authorNickname = resolveHandle(
-    (data as any).authorNickname || (data as any).nickname,
-    (data as any).username,
-    (data as any).usernameLower
-  );
-  const firstName = asString((data as any).firstName);
-  const lastName = asString((data as any).lastName);
-  const joinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
-  const authorDisplayName =
-    asString((data as any).authorDisplayName) ||
-    asString((data as any).displayName) ||
-    asString((data as any).fullName) ||
-    joinedName ||
-    authorNickname;
-  const authorAvatarUrl =
-    asString((data as any).authorAvatarUrl) || asString((data as any).avatarUrl);
+  const authorNickname = asString((data as any).authorNickname);
+  const authorDisplayName = asString((data as any).authorDisplayName) || authorNickname;
+  const authorAvatarUrl = asString((data as any).authorAvatarUrl);
   const rozet = asString((data as any).rozet);
 
   return {
@@ -555,7 +542,7 @@ async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
       return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
     }
     const data = (snap.data() || {}) as Record<string, unknown>;
-    const authorNickname = resolveHandle(data.nickname, data.username, (data as any).usernameLower);
+    const authorNickname = asString((data as any).nickname);
     const authorDisplayName =
       asString((data as any).displayName) ||
       asString((data as any).fullName) ||
