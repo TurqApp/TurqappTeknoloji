@@ -35,13 +35,11 @@ class MarketOfferService {
       nowDate.month,
       nowDate.day,
     ).millisecondsSinceEpoch;
-    final todayOffers = await _firestore
-        .collectionGroup('offers')
-        .where('buyerId', isEqualTo: buyerId)
-        .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
-        .limit(20)
-        .get(const GetOptions(source: Source.serverAndCache));
-    if (todayOffers.docs.length >= 20) {
+    final todayOfferCount = await _countTodayOffers(
+      buyerId: buyerId,
+      startOfDay: startOfDay,
+    );
+    if (todayOfferCount >= 20) {
       throw Exception('daily_offer_limit_reached');
     }
 
@@ -76,6 +74,40 @@ class MarketOfferService {
         SetOptions(merge: true),
       );
     });
+  }
+
+  static Future<int> _countTodayOffers({
+    required String buyerId,
+    required int startOfDay,
+  }) async {
+    const options = GetOptions(source: Source.serverAndCache);
+    try {
+      final todayOffers = await _firestore
+          .collectionGroup('offers')
+          .where('buyerId', isEqualTo: buyerId)
+          .where('createdAt', isGreaterThanOrEqualTo: startOfDay)
+          .limit(20)
+          .get(options);
+      return todayOffers.docs.length;
+    } on FirebaseException {
+      try {
+        final buyerOffers = await _firestore
+            .collectionGroup('offers')
+            .where('buyerId', isEqualTo: buyerId)
+            .limit(100)
+            .get(options);
+        return buyerOffers.docs
+            .where(
+              (doc) =>
+                  ((doc.data()['createdAt'] as num?)?.toInt() ?? 0) >=
+                  startOfDay,
+            )
+            .length;
+      } on FirebaseException {
+        // Teklif göndermeyi index eksikliği yüzünden bloklamayalım.
+        return 0;
+      }
+    }
   }
 
   static Future<List<MarketOfferModel>> fetchSentOffers(String uid) async {

@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
@@ -62,6 +64,7 @@ class MarketController extends GetxController {
   final RxList<MarketItemModel> searchedItems = <MarketItemModel>[].obs;
   final RxList<MarketItemModel> visibleItems = <MarketItemModel>[].obs;
   final RxList<MarketItemModel> pendingCreatedItems = <MarketItemModel>[].obs;
+  final RxList<String> allCityOptions = <String>[].obs;
   final RxList<String> savedItemIds = <String>[].obs;
   final RxMap<String, int> roundMenuBadges = <String, int>{}.obs;
   Timer? _searchDebounce;
@@ -98,6 +101,7 @@ class MarketController extends GetxController {
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
       await _loadListingFromTypesense();
+      await _loadAllCityOptions();
       await _loadSavedItems();
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
       _applyFilters();
@@ -196,10 +200,20 @@ class MarketController extends GetxController {
   }
 
   List<String> get availableCities {
+    if (allCityOptions.isNotEmpty) {
+      return allCityOptions.toList(growable: false);
+    }
     final out = <String>{};
-    for (final item in items) {
-      final city = item.city.trim();
-      if (city.isNotEmpty) out.add(city);
+    for (final collection in <List<MarketItemModel>>[
+      items,
+      searchedItems,
+      visibleItems,
+      pendingCreatedItems,
+    ]) {
+      for (final item in collection) {
+        final city = item.city.trim();
+        if (city.isNotEmpty) out.add(city);
+      }
     }
     final list = out.toList();
     sortTurkishStrings(list);
@@ -412,9 +426,8 @@ class MarketController extends GetxController {
     final useRemoteResults = query.length >= 2;
     final source = useRemoteResults ? searchedItems : items;
     final filtered = source.where((item) {
-      final matchesCategory = categoryKey.isEmpty ||
-          item.categoryKey == categoryKey ||
-          item.categoryKey.startsWith('$categoryKey/');
+      if (item.status != 'active') return false;
+      final matchesCategory = _matchesCategory(item, categoryKey);
       if (!matchesCategory) return false;
       if (cityFilter.isNotEmpty && item.city.toLowerCase() != cityFilter) {
         return false;
@@ -433,16 +446,35 @@ class MarketController extends GetxController {
     visibleItems.assignAll(filtered);
   }
 
+  bool _matchesCategory(MarketItemModel item, String categoryKey) {
+    if (categoryKey.isEmpty) return true;
+    if (item.categoryKey == categoryKey ||
+        item.categoryKey.startsWith('$categoryKey/')) {
+      return true;
+    }
+
+    final selectedCategory = categories.firstWhereOrNull(
+      (category) => (category['key'] ?? '').toString() == categoryKey,
+    );
+    final selectedLabel =
+        (selectedCategory?['label'] ?? '').toString().trim().toLowerCase();
+    if (selectedLabel.isEmpty) return false;
+
+    final topLabel = item.categoryPath.isEmpty
+        ? ''
+        : item.categoryPath.first.trim().toLowerCase();
+    if (topLabel == selectedLabel) return true;
+
+    final fullPath = item.categoryPath.join(' ').toLowerCase();
+    final keyWords = categoryKey.replaceAll('-', ' ').toLowerCase();
+    return fullPath.contains(selectedLabel) || fullPath.contains(keyWords);
+  }
+
   Future<void> _searchFromTypesense(String query, int requestId) async {
     try {
       final fetched = await TypesenseMarketSearchService.instance.searchItems(
         query: query,
         limit: 40,
-        categoryKey: selectedCategoryKey.value.isEmpty
-            ? null
-            : selectedCategoryKey.value,
-        city:
-            selectedCityFilter.value.isEmpty ? null : selectedCityFilter.value,
       );
       if (!_isLatestSearch(requestId, query)) return;
 
@@ -467,12 +499,7 @@ class MarketController extends GetxController {
     try {
       final fetched = await TypesenseMarketSearchService.instance.searchItems(
         query: '*',
-        limit: 60,
-        categoryKey: selectedCategoryKey.value.isEmpty
-            ? null
-            : selectedCategoryKey.value,
-        city:
-            selectedCityFilter.value.isEmpty ? null : selectedCityFilter.value,
+        limit: 120,
       );
       final activeFetched = fetched
           .where((item) => item.status == 'active')
@@ -487,9 +514,34 @@ class MarketController extends GetxController {
     isSearchLoading.value = true;
     try {
       await _loadListingFromTypesense();
+      await _loadAllCityOptions();
       _applyFilters();
     } finally {
       isSearchLoading.value = false;
+    }
+  }
+
+  Future<void> _loadAllCityOptions() async {
+    try {
+      final response =
+          await rootBundle.loadString('assets/data/CityDistrict.json');
+      final data = (json.decode(response) as List<dynamic>)
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList(growable: false);
+      final cities = data
+          .map((item) => (item['il'] ?? '').toString().trim())
+          .where((city) => city.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+      final sorted = cities.toList(growable: true);
+      sortTurkishStrings(sorted);
+      allCityOptions.assignAll(sorted);
+    } catch (_) {
+      final fallback = <String>{
+        ...availableCities,
+      }.toList(growable: true);
+      sortTurkishStrings(fallback);
+      allCityOptions.assignAll(fallback);
     }
   }
 
@@ -624,12 +676,23 @@ class MarketController extends GetxController {
     if (pendingCreatedItems.isEmpty) return source;
     final merged = <MarketItemModel>[];
     final seenIds = <String>{};
-    final sourceIds = <String>{};
+    final syncedIds = <String>{};
+    final pendingById = <String, MarketItemModel>{
+      for (final pending in pendingCreatedItems) pending.id: pending,
+    };
 
     for (final item in source) {
-      merged.add(item);
+      final pending = pendingById[item.id];
+      if (pending != null && pending.status == 'active') {
+        final protected = _preserveProtectedFields(item, pending);
+        merged.add(protected);
+        if (_isSyncedWithPending(protected, pending)) {
+          syncedIds.add(item.id);
+        }
+      } else {
+        merged.add(item);
+      }
       seenIds.add(item.id);
-      sourceIds.add(item.id);
     }
 
     for (final pending in pendingCreatedItems) {
@@ -638,9 +701,39 @@ class MarketController extends GetxController {
       merged.insert(0, pending);
     }
 
-    pendingCreatedItems
-        .removeWhere((pending) => sourceIds.contains(pending.id));
+    pendingCreatedItems.removeWhere((pending) => syncedIds.contains(pending.id));
     return merged;
+  }
+
+  MarketItemModel _preserveProtectedFields(
+    MarketItemModel remote,
+    MarketItemModel local,
+  ) {
+    final shouldKeepPhone =
+        !remote.canShowPhone &&
+        local.canShowPhone &&
+        local.sellerPhoneNumber.trim().isNotEmpty;
+
+    if (!shouldKeepPhone) return remote;
+
+    return remote.copyWith(
+      showPhone: true,
+      contactPreference: 'phone',
+      sellerPhoneNumber: local.sellerPhoneNumber,
+    );
+  }
+
+  bool _isSyncedWithPending(
+    MarketItemModel remote,
+    MarketItemModel local,
+  ) {
+    if (local.canShowPhone &&
+        local.sellerPhoneNumber.trim().isNotEmpty &&
+        (!remote.canShowPhone ||
+            remote.sellerPhoneNumber.trim() != local.sellerPhoneNumber.trim())) {
+      return false;
+    }
+    return true;
   }
 
   String get _currentUid {

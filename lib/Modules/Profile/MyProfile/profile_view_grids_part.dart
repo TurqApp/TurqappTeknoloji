@@ -494,52 +494,18 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   }
 
   Widget buildMarkets(BuildContext context) {
-    final activeCount = _marketItems
-        .where((item) => item.status == 'active' || item.status == 'reserved')
-        .length;
-    final draftCount =
-        _marketItems.where((item) => item.status == 'draft').length;
-    final soldCount =
-        _marketItems.where((item) => item.status == 'sold').length;
-
+    if (!_marketLoading && _marketItems.isEmpty && _myUserId.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _marketLoading) return;
+        unawaited(_loadMarketItems(force: true));
+      });
+    }
     return CustomScrollView(
       controller: controller.scrollController,
       physics:
           const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       slivers: [
         SliverToBoxAdapter(child: header()),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(15, 12, 15, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _marketSummaryChip(
-                    label: 'Aktif',
-                    count: activeCount,
-                    color: const Color(0xFF111827),
-                  ),
-                ),
-                8.pw,
-                Expanded(
-                  child: _marketSummaryChip(
-                    label: 'Taslak',
-                    count: draftCount,
-                    color: const Color(0xFF7C3AED),
-                  ),
-                ),
-                8.pw,
-                Expanded(
-                  child: _marketSummaryChip(
-                    label: 'Satildi',
-                    count: soldCount,
-                    color: const Color(0xFFB45309),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
         if (_marketLoading)
           const SliverToBoxAdapter(
             child: Padding(
@@ -551,7 +517,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.only(top: 10),
-              child: EmptyRow(text: 'Ilan Yok'),
+              child: EmptyRow(text: 'İlan Yok'),
             ),
           )
         else
@@ -571,43 +537,6 @@ extension _ProfileViewGridsPart on _ProfileViewState {
             ),
           ),
       ],
-    );
-  }
-
-  Widget _marketSummaryChip({
-    required String label,
-    required int count,
-    required Color color,
-  }) {
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            NumberFormatter.format(count),
-            style: TextStyle(
-              color: color,
-              fontSize: 16,
-              fontFamily: 'MontserratBold',
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontFamily: 'MontserratMedium',
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -698,7 +627,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${item.price.toStringAsFixed(0)} ${item.currency}',
+                    '${_formatMarketMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
@@ -716,6 +645,33 @@ extension _ProfileViewGridsPart on _ProfileViewState {
                       color: Colors.grey,
                       fontSize: 12,
                       fontFamily: 'MontserratMedium',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 34,
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        await Get.to(() => MarketDetailView(item: item));
+                        await _loadMarketItems(force: true);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'İncele',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontFamily: 'MontserratBold',
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -742,7 +698,7 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   Color _marketStatusColor(String status) {
     switch (status) {
       case 'sold':
-        return const Color(0xFFB45309);
+        return const Color(0xFFB91C1C);
       case 'reserved':
         return const Color(0xFF1D4ED8);
       case 'draft':
@@ -757,16 +713,27 @@ extension _ProfileViewGridsPart on _ProfileViewState {
   String _marketStatusLabel(String status) {
     switch (status) {
       case 'sold':
-        return 'Satildi';
+        return 'Satıldı';
       case 'reserved':
-        return 'Rezerve';
       case 'draft':
-        return 'Taslak';
       case 'archived':
-        return 'Arsiv';
+        return 'Pasif';
       default:
         return 'Aktif';
     }
+  }
+
+  String _formatMarketMoney(double value) {
+    final rounded = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < rounded.length; i++) {
+      final reverseIndex = rounded.length - i;
+      buffer.write(rounded[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 
   Widget buildIzbiraklar(BuildContext context) {

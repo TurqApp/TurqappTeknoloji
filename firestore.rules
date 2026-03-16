@@ -663,22 +663,22 @@ service cloud.firestore {
     function marketIntFieldUnchangedOrDeltaOne(field) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
         || (
-          resource.data[field] is int
+          (!(field in resource.data) || resource.data[field] is int)
           && request.resource.data[field] is int
           && request.resource.data[field] >= 0
           && (
-            request.resource.data[field] == resource.data[field] + 1
-            || request.resource.data[field] == resource.data[field] - 1
+            request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
+            || request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) - 1
           )
         );
     }
     function marketIntFieldUnchangedOrIncrement(field) {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
         || (
-          resource.data[field] is int
+          (!(field in resource.data) || resource.data[field] is int)
           && request.resource.data[field] is int
-          && request.resource.data[field] >= resource.data[field]
-          && request.resource.data[field] == resource.data[field] + 1
+          && request.resource.data[field] >= ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0)
+          && request.resource.data[field] == ((field in resource.data && resource.data[field] is int) ? resource.data[field] : 0) + 1
         );
     }
     function canClientUpdateMarketCounters() {

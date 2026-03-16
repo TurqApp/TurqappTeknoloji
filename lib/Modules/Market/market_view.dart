@@ -15,14 +15,16 @@ class MarketView extends StatelessWidget {
     super.key,
     this.embedded = false,
     this.showEmbeddedControls = true,
-  });
+    MarketController? controller,
+  }) : controller = controller ??
+            (Get.isRegistered<MarketController>()
+                ? Get.find<MarketController>()
+                : Get.put(MarketController()));
 
   final bool embedded;
   final bool showEmbeddedControls;
   static const MarketContactService _contactService = MarketContactService();
-  final MarketController controller = Get.isRegistered<MarketController>()
-      ? Get.find<MarketController>()
-      : Get.put(MarketController());
+  final MarketController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +162,7 @@ class MarketView extends StatelessWidget {
               )
             else if (controller.listingSelection.value == 0)
               SliverPadding(
+                key: const ValueKey<String>('market-listing-list'),
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 sliver: SliverList.builder(
                   itemCount: controller.visibleItems.length,
@@ -169,6 +172,7 @@ class MarketView extends StatelessWidget {
               )
             else
               SliverPadding(
+                key: const ValueKey<String>('market-listing-grid'),
                 padding: const EdgeInsets.fromLTRB(15, 0, 15, 16),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
@@ -243,6 +247,8 @@ class MarketView extends StatelessWidget {
       items: displayToKey.keys.toList(growable: false),
       title: 'Ana kategoriler',
       searchHintText: 'Ana kategori, alt kategori, marka ara',
+      searchTextBuilder: (item) =>
+          _topCategorySearchText(displayToKey[item.toString()] ?? ''),
       selectedItem: selectedDisplay,
       onSelect: (selectedLabel) {
         final key = displayToKey[selectedLabel.toString()];
@@ -250,6 +256,48 @@ class MarketView extends StatelessWidget {
         controller.selectCategory(key);
       },
     );
+  }
+
+  String _topCategorySearchText(String topKey) {
+    final category = controller.categories.firstWhereOrNull(
+      (item) => (item['key'] ?? '').toString() == topKey,
+    );
+    if (category == null) return '';
+    final parts = <String>[];
+    void walk(dynamic node) {
+      if (node is Map) {
+        final label = (node['label'] ?? '').toString().trim();
+        final key = (node['key'] ?? '').toString().trim();
+        if (label.isNotEmpty) parts.add(label);
+        if (key.isNotEmpty) parts.add(key.replaceAll('-', ' '));
+        final options = node['options'];
+        if (options is List) {
+          for (final option in options) {
+            if (option is Map) {
+              walk(option);
+            } else {
+              final value = option.toString().trim();
+              if (value.isNotEmpty) parts.add(value);
+            }
+          }
+        }
+        final fields = node['fields'];
+        if (fields is List) {
+          for (final field in fields) {
+            walk(field);
+          }
+        }
+        final children = node['children'];
+        if (children is List) {
+          for (final child in children) {
+            walk(child);
+          }
+        }
+      }
+    }
+
+    walk(category);
+    return parts.join(' ');
   }
 
   Widget _buildFilterPill(String label) {
@@ -396,8 +444,7 @@ class MarketView extends StatelessWidget {
   Widget _buildListingCard(MarketItemModel item) {
     final accent = _accentForItem(item);
     final statusColor = _statusColor(item.status);
-    final canCall =
-        item.canShowPhone && item.sellerPhoneNumber.trim().isNotEmpty;
+    final canCall = item.canShowPhone;
     return GestureDetector(
       onTap: () => controller.openItem(item),
       child: Padding(
@@ -474,77 +521,79 @@ class MarketView extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () =>
-                        controller.toggleSaved(item, showSnackbar: false),
-                    child: Column(
-                      children: [
-                        Transform.flip(
-                          flipX: true,
-                          child: Icon(
-                            controller.isSaved(item.id)
-                                ? AppIcons.liked
-                                : AppIcons.like,
-                            color: const Color(0xFF111827),
-                            size: 28,
-                          ),
-                        ),
-                        if (item.favoriteCount > 0) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '${item.favoriteCount}',
-                            style: const TextStyle(
-                              color: Color(0xFF111827),
-                              fontSize: 12,
-                              fontFamily: 'MontserratBold',
+              SizedBox(
+                height: 108,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () =>
+                          controller.toggleSaved(item, showSnackbar: false),
+                      child: Column(
+                        children: [
+                          Transform.flip(
+                            flipX: true,
+                            child: Icon(
+                              controller.isSaved(item.id)
+                                  ? AppIcons.liked
+                                  : AppIcons.like,
+                              color: const Color(0xFF2563EB),
+                              size: 28,
                             ),
                           ),
+                          if (item.favoriteCount > 0) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              '${item.favoriteCount}',
+                              style: const TextStyle(
+                                color: Color(0xFF2563EB),
+                                fontSize: 12,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
-                    style: const TextStyle(
-                      color: Color(0xFF8B0000),
-                      fontSize: 20,
-                      fontFamily: 'MontserratBold',
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      if (canCall) {
-                        _contactService.callPhone(item);
-                      } else {
-                        controller.openItem(item);
-                      }
-                    },
-                    child: Container(
-                      height: 30,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: canCall ? Colors.green : Colors.black,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        canCall ? 'Hemen Ara' : 'İncele',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontFamily: 'MontserratMedium',
-                        ),
                       ),
                     ),
-                  ),
-                ],
+                    Text(
+                      '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
+                      style: const TextStyle(
+                        color: Color(0xFF8B0000),
+                        fontSize: 20,
+                        fontFamily: 'MontserratBold',
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        if (canCall) {
+                          _contactService.callPhone(item);
+                        } else {
+                          controller.openItem(item);
+                        }
+                      },
+                      child: Container(
+                        height: 30,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: canCall ? Colors.green : Colors.black,
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          canCall ? 'Hemen Ara' : 'İncele',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -556,8 +605,7 @@ class MarketView extends StatelessWidget {
   Widget _buildGridCard(MarketItemModel item) {
     final accent = _accentForItem(item);
     final statusColor = _statusColor(item.status);
-    final canCall =
-        item.canShowPhone && item.sellerPhoneNumber.trim().isNotEmpty;
+    final canCall = item.canShowPhone;
     return GestureDetector(
       onTap: () => controller.openItem(item),
       child: Container(
@@ -793,7 +841,7 @@ class MarketView extends StatelessWidget {
   Color _statusColor(String status) {
     switch (status) {
       case 'sold':
-        return const Color(0xFFB45309);
+        return const Color(0xFFB91C1C);
       case 'reserved':
         return const Color(0xFF2563EB);
       case 'draft':

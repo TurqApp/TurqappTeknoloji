@@ -658,6 +658,7 @@ extension _ProfileViewHeaderPart on _ProfileViewState {
               child: GestureDetector(
                 onTap: () {
                   controller.setPostSelection(4);
+                  unawaited(_loadMarketItems(force: true));
                 },
                 child: Container(
                   color: Colors.white,

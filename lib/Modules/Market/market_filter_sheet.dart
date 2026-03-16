@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
 
 class MarketFilterSheet extends StatefulWidget {
@@ -15,7 +16,6 @@ class MarketFilterSheet extends StatefulWidget {
 
 class _MarketFilterSheetState extends State<MarketFilterSheet> {
   late String selectedCity;
-  late String selectedContact;
   late String selectedSort;
   late final TextEditingController minPriceController;
   late final TextEditingController maxPriceController;
@@ -26,7 +26,6 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   void initState() {
     super.initState();
     selectedCity = controller.selectedCityFilter.value;
-    selectedContact = controller.selectedContactFilter.value;
     selectedSort = controller.sortSelection.value;
     minPriceController =
         TextEditingController(text: controller.minPriceFilter.value);
@@ -44,6 +43,32 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
   @override
   Widget build(BuildContext context) {
     final cities = controller.availableCities;
+    final cityItems = <DropdownMenuItem<String>>[
+      const DropdownMenuItem<String>(
+        value: '',
+        child: Text(
+          'Tüm Şehirler',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            fontFamily: 'MontserratMedium',
+          ),
+        ),
+      ),
+      ...cities.map(
+        (city) => DropdownMenuItem<String>(
+          value: city,
+          child: Text(
+            city,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontFamily: 'MontserratMedium',
+            ),
+          ),
+        ),
+      ),
+    ];
     return SafeArea(
       top: false,
       child: Padding(
@@ -87,48 +112,49 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: selectedCity.isEmpty ? null : selectedCity,
-                decoration: _inputDecoration('Tüm Şehirler'),
-                items: cities
-                    .map(
-                      (city) => DropdownMenuItem<String>(
-                        value: city,
-                        child: Text(
-                          city,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                            fontFamily: 'MontserratMedium',
+              GestureDetector(
+                onTap: () async {
+                  await ListBottomSheet.show(
+                    context: context,
+                    items: cityItems.map((item) => item.value!).toList(),
+                    title: 'Şehir',
+                    searchHintText: 'Şehir ara',
+                    selectedItem: selectedCity,
+                    onSelect: (value) {
+                      setState(() {
+                        selectedCity = value?.toString() ?? '';
+                      });
+                    },
+                  );
+                },
+                child: AbsorbPointer(
+                  child: Container(
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F6F8),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            selectedCity.isEmpty ? 'Tüm Şehirler' : selectedCity,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                              fontFamily: 'MontserratMedium',
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedCity = value ?? '';
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'İletişim',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontFamily: 'MontserratBold',
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.black45,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _choiceChip(label: 'Tüm', value: ''),
-                  _choiceChip(label: 'Mesaj', value: 'message_only'),
-                  _choiceChip(label: 'Telefon', value: 'phone'),
-                ],
               ),
               const SizedBox(height: 16),
               const Text(
@@ -161,7 +187,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Siralama',
+                'Sıralama',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 14,
@@ -214,7 +240,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                         onPressed: () {
                           controller.applyAdvancedFilters(
                             city: selectedCity,
-                            contactPreference: selectedContact,
+                            contactPreference: '',
                             minPrice: minPriceController.text,
                             maxPrice: maxPriceController.text,
                             sortBy: selectedSort,
@@ -242,36 +268,6 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                 ],
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _choiceChip({
-    required String label,
-    required String value,
-  }) {
-    final selected = selectedContact == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedContact = value;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? Colors.black : Colors.grey.withAlpha(40),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
           ),
         ),
       ),

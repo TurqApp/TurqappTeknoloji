@@ -2,13 +2,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Themes/app_icons.dart';
 
 class MarketMyItemsView extends StatefulWidget {
   const MarketMyItemsView({super.key});
@@ -22,7 +25,6 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   final MarketShareService _shareService = const MarketShareService();
   late final String uid;
   late Future<List<MarketItemModel>> _itemsFuture;
-  String _selectedStatus = 'all';
   final Set<String> _busyIds = <String>{};
 
   @override
@@ -70,8 +72,9 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final allItems = snapshot.data ?? const <MarketItemModel>[];
-          final visible = _filterItems(allItems);
+          final visible = (snapshot.data ?? const <MarketItemModel>[])
+              .where((item) => item.status != 'sold')
+              .toList(growable: false);
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -80,8 +83,6 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
               children: [
-                _buildStatusTabs(allItems),
-                const SizedBox(height: 14),
                 if (visible.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 60),
@@ -102,63 +103,6 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  List<MarketItemModel> _filterItems(List<MarketItemModel> items) {
-    if (_selectedStatus == 'all') return items;
-    return items.where((item) => item.status == _selectedStatus).toList();
-  }
-
-  Widget _buildStatusTabs(List<MarketItemModel> items) {
-    final counts = <String, int>{
-      'all': items.length,
-      'active': items.where((item) => item.status == 'active').length,
-      'reserved': items.where((item) => item.status == 'reserved').length,
-      'sold': items.where((item) => item.status == 'sold').length,
-      'draft': items.where((item) => item.status == 'draft').length,
-      'archived': items.where((item) => item.status == 'archived').length,
-    };
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _statusTab('Tüm', 'all', counts['all'] ?? 0),
-          _statusTab('Aktif', 'active', counts['active'] ?? 0),
-          _statusTab('Rezerve', 'reserved', counts['reserved'] ?? 0),
-          _statusTab('Satildi', 'sold', counts['sold'] ?? 0),
-          _statusTab('Taslak', 'draft', counts['draft'] ?? 0),
-          _statusTab('Arsiv', 'archived', counts['archived'] ?? 0),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusTab(String label, String value, int count) {
-    final selected = _selectedStatus == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedStatus = value;
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? Colors.black : Colors.grey.withAlpha(35),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          '$label ($count)',
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black,
-            fontSize: 12,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
       ),
     );
   }
@@ -210,68 +154,69 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
                 ),
               ),
               const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                onSelected: busy ? null : (value) => _onMenuAction(item, value),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Düzenle'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'share',
-                    child: Text('Paylaş'),
-                  ),
-                  if (item.status != 'active')
-                    const PopupMenuItem(
-                      value: 'active',
-                      child: Text('Aktif Yap'),
-                    ),
-                  if (item.status != 'sold')
-                    const PopupMenuItem(
-                      value: 'sold',
-                      child: Text('Satıldı Yap'),
-                    ),
-                  if (item.status != 'reserved')
-                    const PopupMenuItem(
-                      value: 'reserved',
-                      child: Text('Rezerve Yap'),
-                    ),
-                  if (item.status != 'archived')
-                    const PopupMenuItem(
-                      value: 'archived',
-                      child: Text('Arşivle'),
-                    ),
-                ],
-                child: busy
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(
-                        CupertinoIcons.ellipsis_vertical,
-                        color: Colors.black54,
-                        size: 20,
+              busy
+                  ? const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       ),
-              ),
+                    )
+                  : PullDownButton(
+                      itemBuilder: (context) => [
+                        PullDownMenuItem(
+                          onTap: () => _onMenuAction(item, 'edit'),
+                          title: 'Düzenle',
+                          icon: CupertinoIcons.pencil,
+                        ),
+                        PullDownMenuItem(
+                          onTap: () => _onMenuAction(item, 'share'),
+                          title: 'Paylaş',
+                          icon: CupertinoIcons.share,
+                        ),
+                        if (item.status != 'active')
+                          PullDownMenuItem(
+                            onTap: () => _onMenuAction(item, 'active'),
+                            title: 'Aktif Yap',
+                            icon: CupertinoIcons.check_mark_circled,
+                          ),
+                        if (item.status != 'sold')
+                          PullDownMenuItem(
+                            onTap: () => _onMenuAction(item, 'sold'),
+                            title: 'Satıldı Yap',
+                            icon: CupertinoIcons.check_mark,
+                          ),
+                      ],
+                      buttonBuilder: (context, showMenu) => AppHeaderActionButton(
+                        onTap: showMenu,
+                        child: Icon(
+                          AppIcons.ellipsisVertical,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                      ),
+                    ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Text(
-                '${item.price.toStringAsFixed(0)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
+                '${_formatMoney(item.price)} ${item.currency.toUpperCase() == 'TRY' ? 'TL' : item.currency}',
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 15,
                   fontFamily: 'MontserratBold',
                 ),
               ),
-              const Spacer(),
-              _statusChip(item.status),
+              if (_shouldShowStatusChip(item.status)) ...[
+                const Spacer(),
+                _statusChip(item.status),
+              ],
             ],
           ),
         ],
@@ -320,13 +265,13 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
     switch (action) {
       case 'sold':
         return 'İlan satıldı olarak işaretlendi.';
-      case 'reserved':
-        return 'İlan rezerve olarak işaretlendi.';
-      case 'archived':
-        return 'İlan arşive alındı.';
       default:
         return 'İlan aktif duruma alındı.';
     }
+  }
+
+  bool _shouldShowStatusChip(String status) {
+    return status == 'active' || status == 'sold';
   }
 
   Widget _statusChip(String status) {
@@ -366,7 +311,7 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   Color _statusColor(String status) {
     switch (status) {
       case 'sold':
-        return const Color(0xFF946200);
+        return const Color(0xFFB91C1C);
       case 'reserved':
         return const Color(0xFF1D4ED8);
       case 'draft':
@@ -376,5 +321,18 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
       default:
         return const Color(0xFF267A2F);
     }
+  }
+
+  String _formatMoney(double value) {
+    final rounded = value.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < rounded.length; i++) {
+      final reverseIndex = rounded.length - i;
+      buffer.write(rounded[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+    return buffer.toString();
   }
 }

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
@@ -16,6 +17,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_review_model.dart';
+import 'package:turqappv2/Models/report_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Modules/Market/market_offers_view.dart';
@@ -40,6 +42,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   static const MarketContactService _contactService = MarketContactService();
   static const MarketReviewService _reviewService = MarketReviewService();
   static final MarketRepository _repository = MarketRepository.ensure();
+  static final ReportRepository _reportRepository = ReportRepository.ensure();
   static final UserRepository _userRepository = UserRepository.ensure();
   static final TypesenseMarketSearchService _typesense =
       TypesenseMarketSearchService.instance;
@@ -47,8 +50,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   late MarketItemModel _item;
   int _currentPage = 0;
   bool _isRefreshing = false;
-  bool _isUpdatingStatus = false;
   bool _isLoadingReviews = false;
+  bool _isSubmittingReport = false;
   List<MarketReviewModel> _reviews = const <MarketReviewModel>[];
   Map<String, Map<String, dynamic>> _reviewUsers =
       const <String, Map<String, dynamic>>{};
@@ -132,12 +135,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               itemBuilder: (context) => [
                 if (!_isOwner)
                   PullDownMenuItem(
-                    onTap: () {
-                      AppSnackbar(
-                        'Bilgi',
-                        'İlan bildirimi yakında aktif olacak.',
-                      );
-                    },
+                    onTap: _showReportSheet,
                     title: 'İlanı Bildir',
                     icon: CupertinoIcons.exclamationmark_circle,
                   ),
@@ -254,7 +252,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: item.userId.trim().isEmpty
+                    onTap: _isOwner || item.userId.trim().isEmpty
                         ? null
                         : () => Get.to(() => SocialProfile(userID: item.userId)),
                     child: Row(
@@ -316,11 +314,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                             ],
                           ),
                         ),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          color: Colors.black38,
-                          size: 18,
-                        ),
+                        if (!_isOwner)
+                          const Icon(
+                            CupertinoIcons.chevron_right,
+                            color: Colors.black38,
+                            size: 18,
+                          ),
                       ],
                     ),
                   ),
@@ -352,7 +351,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Bu ilan sana ait. Buradan düzenleyebilir, durumunu güncelleyebilir veya paylaşabilirsin.',
+                        'Bu ilan sana ait. Buradan duzenleyebilir veya paylasabilirsin.',
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 13,
@@ -363,8 +362,6 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              _buildOwnerStatusActions(),
               const SizedBox(height: 12),
             ],
             if (_isOwner)
@@ -397,7 +394,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 children: [
                   Expanded(
                     child: _primaryButton(
-                      label: 'Mesaj Gönder',
+                      label: 'Mesaj',
                       onTap: () => _contactService.openChat(item),
                     ),
                   ),
@@ -491,6 +488,64 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         ),
       ),
     );
+  }
+
+  Future<void> _showReportSheet() async {
+    if (_isSubmittingReport) return;
+    final selections = await _reportRepository.fetchSelections();
+    final selected = await showCupertinoModalPopup<ReportModel>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: const Text('İlanı Bildir'),
+        message: const Text('Lütfen bir neden seç.'),
+        actions: selections
+            .map(
+              (selection) => CupertinoActionSheetAction(
+                onPressed: () => Navigator.of(sheetContext).pop(selection),
+                child: Text(selection.title),
+              ),
+            )
+            .toList(growable: false),
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(sheetContext).pop(),
+          isDefaultAction: true,
+          child: const Text('Vazgeç'),
+        ),
+      ),
+    );
+
+    if (selected == null || !mounted) return;
+    await _submitReport(selected);
+  }
+
+  Future<void> _submitReport(ReportModel selection) async {
+    if (_isSubmittingReport) return;
+    setState(() {
+      _isSubmittingReport = true;
+    });
+    try {
+      await _reportRepository.submitReport(
+        targetUserId: item.userId,
+        postId: item.id,
+        commentId: '',
+        selection: selection,
+        targetType: 'market',
+      );
+      if (!mounted) return;
+      AppSnackbar(
+        'Talebiniz Bize Ulaştı!',
+        'İlan inceleme altına alındı. Teşekkür ederiz.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackbar('Hata', 'İlan bildirimi gönderilemedi.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingReport = false;
+        });
+      }
+    }
   }
 
   Widget _buildGallery(List<String> images) {
@@ -804,6 +859,11 @@ class _MarketDetailViewState extends State<MarketDetailView> {
 
   Widget _buildReviewsSection() {
     final canReview = !_isOwner;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final existingReview = _reviews
+        .where((review) => review.userId == currentUserId)
+        .cast<MarketReviewModel?>()
+        .firstOrNull;
     final totalReviews = _reviews.length;
     final ratingCounts = <int, int>{
       for (var star = 1; star <= 5; star++) star: 0,
@@ -830,7 +890,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             ),
             if (canReview)
               GestureDetector(
-                onTap: _showReviewSheet,
+                onTap: () => _showReviewSheet(existingReview: existingReview),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -840,9 +900,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Değerlendir',
-                    style: TextStyle(
+                  child: Text(
+                    existingReview == null ? 'Değerlendir' : 'Düzenle',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontFamily: 'MontserratBold',
@@ -993,16 +1053,16 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Row(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 4,
                   children: [
-                    Expanded(
-                      child: Text(
-                        name.isEmpty ? 'Kullanıcı' : name,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                          fontFamily: 'MontserratBold',
-                        ),
+                    Text(
+                      name.isEmpty ? 'Kullanici' : name,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: 'MontserratBold',
                       ),
                     ),
                     if (rozet.isNotEmpty)
@@ -1026,6 +1086,14 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 ),
               ),
               if (isOwn) ...[
+                GestureDetector(
+                  onTap: () => _showReviewSheet(existingReview: review),
+                  child: const Icon(
+                    CupertinoIcons.pencil,
+                    size: 16,
+                    color: Colors.black54,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () => _deleteReview(review.reviewId),
@@ -1087,16 +1155,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     }
   }
 
-  Future<void> _showReviewSheet() async {
+  Future<void> _showReviewSheet({MarketReviewModel? existingReview}) async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (currentUserId.isEmpty) {
       AppSnackbar('Bilgi', 'Değerlendirme yapmak için giriş yapmalısın.');
       return;
     }
-    final existingReview = _reviews
-        .where((review) => review.userId == currentUserId)
-        .cast<MarketReviewModel?>()
-        .firstOrNull;
     final selectedRating = ValueNotifier<int>(existingReview?.rating ?? 5);
     final commentController = TextEditingController();
     commentController.text = existingReview?.comment ?? '';
@@ -1189,7 +1253,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                                 await _loadReviews();
                                 AppSnackbar(
                                   'Başarılı',
-                                  'Değerlendirmeniz kaydedildi.',
+                                  existingReview == null
+                                      ? 'Değerlendirmeniz kaydedildi.'
+                                      : 'Değerlendirmeniz güncellendi.',
                                 );
                               } catch (e) {
                                 final message = e.toString().contains(
@@ -1469,81 +1535,6 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     );
   }
 
-  Widget _buildOwnerStatusActions() {
-    final actions = <Map<String, String>>[
-      {'key': 'draft', 'label': 'Taslak'},
-      {'key': 'active', 'label': 'Aktif'},
-      {'key': 'reserved', 'label': 'Rezerve'},
-      {'key': 'sold', 'label': 'Satildi'},
-      {'key': 'archived', 'label': 'Arsiv'},
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'İlan Durumu',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 15,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: actions.map((action) {
-            final statusKey = action['key']!;
-            final selected = item.status == statusKey;
-            final color = _statusColor(statusKey);
-            return GestureDetector(
-              onTap: _isUpdatingStatus || selected
-                  ? null
-                  : () => _updateStatus(statusKey),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      selected ? color.withValues(alpha: 0.12) : Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: selected
-                        ? color.withValues(alpha: 0.35)
-                        : const Color(0x22000000),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isUpdatingStatus && selected) ...[
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Text(
-                      action['label']!,
-                      style: TextStyle(
-                        color: selected ? color : Colors.black87,
-                        fontSize: 12,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(growable: false),
-        ),
-      ],
-    );
-  }
-
   String _statusLabel(String status) {
     switch (status) {
       case 'sold':
@@ -1556,21 +1547,6 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         return 'Rezerve';
       default:
         return 'Aktif';
-    }
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'sold':
-        return const Color(0xFF946200);
-      case 'reserved':
-        return const Color(0xFF1D4ED8);
-      case 'draft':
-        return const Color(0xFF6D28D9);
-      case 'archived':
-        return const Color(0xFF6B7280);
-      default:
-        return const Color(0xFF267A2F);
     }
   }
 
@@ -1612,8 +1588,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     try {
       final latest = await _typesense.fetchByDocId(item.id);
       if (latest != null && mounted) {
+        final preserved = _preserveProtectedFields(
+          latest,
+          _item,
+        );
         setState(() {
-          _item = latest;
+          _item = preserved;
         });
       }
     } finally {
@@ -1625,6 +1605,24 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         _isRefreshing = false;
       }
     }
+  }
+
+  MarketItemModel _preserveProtectedFields(
+    MarketItemModel remote,
+    MarketItemModel local,
+  ) {
+    final shouldKeepPhone =
+        !remote.canShowPhone &&
+        local.canShowPhone &&
+        local.sellerPhoneNumber.trim().isNotEmpty;
+
+    if (!shouldKeepPhone) return remote;
+
+    return remote.copyWith(
+      showPhone: true,
+      contactPreference: 'phone',
+      sellerPhoneNumber: local.sellerPhoneNumber,
+    );
   }
 
   Future<void> _incrementViewCount() async {
@@ -1648,33 +1646,4 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     await _refreshItem();
   }
 
-  Future<void> _updateStatus(String status) async {
-    if (_isUpdatingStatus) return;
-    setState(() {
-      _isUpdatingStatus = true;
-    });
-    try {
-      await _repository.updateItemStatus(
-        docId: item.id,
-        userId: item.userId,
-        status: status,
-      );
-      if (!mounted) return;
-      setState(() {
-        _item = item.copyWith(status: status);
-      });
-      AppSnackbar('Tamam', 'Ilan durumu guncellendi.');
-      await _refreshItem(silent: true);
-    } catch (_) {
-      AppSnackbar('Hata', 'Ilan durumu guncellenemedi.');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUpdatingStatus = false;
-        });
-      } else {
-        _isUpdatingStatus = false;
-      }
-    }
-  }
 }

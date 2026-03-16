@@ -155,7 +155,7 @@ export const submitReport = functions
     if (!targetType || !targetId) {
       throw new functions.https.HttpsError("invalid-argument", "target_required");
     }
-    if (!["user", "post", "comment"].includes(targetType)) {
+    if (!["user", "post", "comment", "market"].includes(targetType)) {
       throw new functions.https.HttpsError("invalid-argument", "invalid_target_type");
     }
 
@@ -248,6 +248,7 @@ export const onReporterCreate = functions.firestore
     const aggregateRef = db.collection("reportAggregates").doc(targetKey);
     const reasonRef = aggregateRef.collection("reasons").doc(categoryKey);
     const postRef = targetType === "post" ? db.collection("Posts").doc(targetId) : null;
+    const marketRef = targetType === "market" ? db.collection("marketStore").doc(targetId) : null;
 
     await snap.ref.set({
       reporterUserId,
@@ -321,9 +322,24 @@ export const onReporterCreate = functions.firestore
             "moderation.reportReviewState": "pending",
             "moderation.reportCount": admin.firestore.FieldValue.increment(1),
           }, { merge: true });
+        } else if (marketRef) {
+          tx.set(marketRef, {
+            reportStatus: "auto_hidden",
+            "moderation.status": "shadow_hidden",
+            "moderation.reportAutoHiddenAt": nowMs,
+            "moderation.reportThresholdCategory": categoryKey,
+            "moderation.lastReportAt": createdAt,
+            "moderation.reportReviewState": "pending",
+            "moderation.reportCount": admin.firestore.FieldValue.increment(1),
+          }, { merge: true });
         }
       } else if (postRef) {
         tx.set(postRef, {
+          "moderation.lastReportAt": createdAt,
+          "moderation.reportCount": admin.firestore.FieldValue.increment(1),
+        }, { merge: true });
+      } else if (marketRef) {
+        tx.set(marketRef, {
           "moderation.lastReportAt": createdAt,
           "moderation.reportCount": admin.firestore.FieldValue.increment(1),
         }, { merge: true });

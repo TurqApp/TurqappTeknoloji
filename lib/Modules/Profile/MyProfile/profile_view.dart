@@ -90,11 +90,14 @@ class _ProfileViewState extends State<ProfileView> {
   final MarketRepository _marketRepository = MarketRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
+  Worker? _marketUserWorker;
 
-  String get _myUserId =>
-      userService.currentUserRx.value?.userID ??
-      FirebaseAuth.instance.currentUser?.uid ??
-      '';
+  String get _myUserId {
+    final serviceUserId =
+        (userService.currentUserRx.value?.userID ?? '').trim();
+    if (serviceUserId.isNotEmpty) return serviceUserId;
+    return FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  }
   String get _myNickname => userService.currentUserRx.value?.nickname ?? '';
   String get _myIosSafeNickname {
     final controllerNickname = controller.headerNickname.value.trim();
@@ -191,6 +194,9 @@ class _ProfileViewState extends State<ProfileView> {
       socialMediaController.getData();
     });
     unawaited(_loadMarketItems());
+    _marketUserWorker = ever(userService.currentUserRx, (_) {
+      unawaited(_loadMarketItems(force: true));
+    });
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null && uid.isNotEmpty) {
@@ -294,6 +300,7 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void dispose() {
     controller.scrollController.removeListener(_onScroll);
+    _marketUserWorker?.dispose();
     super.dispose();
   }
 

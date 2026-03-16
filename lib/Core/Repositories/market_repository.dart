@@ -53,7 +53,7 @@ class MarketRepository extends GetxService {
     final snapshot = await _fetchLatestSnapshot(limit);
     final items = snapshot.docs
         .map((doc) => MarketItemModel.fromMap(doc.data(), doc.id))
-        .where((item) => item.status != 'archived')
+        .where((item) => item.status == 'active')
         .toList(growable: false);
     await _store(cacheKey, items);
     return items;

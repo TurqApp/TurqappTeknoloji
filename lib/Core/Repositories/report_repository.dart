@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/strings.dart';
 import 'package:turqappv2/Models/report_model.dart';
 
 class ReportAggregateItem {
@@ -39,16 +40,17 @@ class ReportRepository extends GetxService {
     required String postId,
     required String commentId,
     required ReportModel selection,
+    String targetType = 'post',
   }) async {
     final reporterUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (reporterUserId.isEmpty) {
       throw StateError('auth_required');
     }
 
-    final targetType = commentId.trim().isNotEmpty
+    targetType = commentId.trim().isNotEmpty
         ? 'comment'
         : postId.trim().isNotEmpty
-            ? 'post'
+            ? targetType
             : 'user';
     final targetId = commentId.trim().isNotEmpty
         ? commentId.trim()
@@ -152,5 +154,41 @@ class ReportRepository extends GetxService {
     if (raw is int) return raw;
     if (raw is num) return raw.toInt();
     return int.tryParse(raw?.toString() ?? '') ?? 0;
+  }
+
+  Future<List<ReportModel>> fetchSelections() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .doc('adminConfig/reports')
+          .get(const GetOptions(source: Source.serverAndCache));
+      final data = snap.data();
+      if (data == null) return reportSelections;
+      final rawCategories = data['categories'];
+      if (rawCategories is! Map) return reportSelections;
+
+      final items = <ReportModel>[];
+      for (final entry in rawCategories.entries) {
+        final key = entry.key.toString().trim();
+        final raw = entry.value;
+        if (key.isEmpty || raw is! Map) continue;
+        final category = Map<String, dynamic>.from(raw);
+        if (category['enabled'] == false) continue;
+        final title = (category['title'] ?? '').toString().trim();
+        if (title.isEmpty) continue;
+        items.add(
+          ReportModel(
+            key: key,
+            title: title,
+            description: (category['description'] ?? title).toString().trim(),
+          ),
+        );
+      }
+
+      if (items.isEmpty) return reportSelections;
+      items.sort((a, b) => a.title.compareTo(b.title));
+      return items;
+    } catch (_) {
+      return reportSelections;
+    }
   }
 }
