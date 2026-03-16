@@ -118,7 +118,7 @@ class ShortRepository extends GetxService {
     String docId, {
     bool preferCache = true,
   }) async {
-    final map = await PostRepository.ensure().fetchPostsByIds(
+    final map = await PostRepository.ensure().fetchPostCardsByIds(
       <String>[docId],
       preferCache: preferCache,
     );
@@ -129,7 +129,7 @@ class ShortRepository extends GetxService {
     List<String> postIds, {
     bool preferCache = true,
   }) {
-    return PostRepository.ensure().fetchPostsByIds(
+    return PostRepository.ensure().fetchPostCardsByIds(
       postIds,
       preferCache: preferCache,
     );

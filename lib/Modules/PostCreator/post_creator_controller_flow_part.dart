@@ -1,6 +1,97 @@
 part of 'post_creator_controller.dart';
 
 extension PostCreatorControllerFlowPart on PostCreatorController {
+  String _normalizeHandleValue(dynamic raw) {
+    final value = raw?.toString().trim() ?? '';
+    if (value.isEmpty) return '';
+    if (value.contains(RegExp(r'\s'))) return '';
+    return value.replaceFirst(RegExp(r'^@+'), '');
+  }
+
+  String _firstNonEmptyValue(Iterable<dynamic> candidates) {
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  Future<({String nickname, String username, String fullName, String displayName, String avatarUrl, String rozet})>
+      _resolveAuthorSummary() async {
+    final current = CurrentUserService.instance;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? current.userId;
+    final userRaw = uid.isNotEmpty
+        ? await UserRepository.ensure().getUserRaw(
+              uid,
+              preferCache: true,
+              cacheOnly: false,
+            ) ??
+            const <String, dynamic>{}
+        : const <String, dynamic>{};
+
+    final nickname = _firstNonEmptyValue([
+      _normalizeHandleValue(userRaw['nickname']),
+      _normalizeHandleValue(current.nickname),
+      _normalizeHandleValue(userRaw['username']),
+      _normalizeHandleValue(userRaw['usernameLower']),
+    ]);
+
+    final username = _firstNonEmptyValue([
+      _normalizeHandleValue(userRaw['username']),
+      _normalizeHandleValue(userRaw['nickname']),
+      _normalizeHandleValue(current.nickname),
+      _normalizeHandleValue(userRaw['usernameLower']),
+      nickname,
+    ]);
+
+    final displayName = _firstNonEmptyValue([
+      (userRaw['displayName'] ?? '').toString().trim(),
+      (userRaw['fullName'] ?? '').toString().trim(),
+      [
+        (userRaw['firstName'] ?? '').toString().trim(),
+        (userRaw['lastName'] ?? '').toString().trim(),
+      ].where((e) => e.isNotEmpty).join(' ').trim(),
+      current.fullName.trim(),
+      nickname,
+      username,
+    ]);
+
+    final fullName = _firstNonEmptyValue([
+      displayName,
+      (userRaw['displayName'] ?? '').toString().trim(),
+      (userRaw['fullName'] ?? '').toString().trim(),
+      [
+        (userRaw['firstName'] ?? '').toString().trim(),
+        (userRaw['lastName'] ?? '').toString().trim(),
+      ].where((e) => e.isNotEmpty).join(' ').trim(),
+      current.fullName.trim(),
+      nickname,
+      username,
+    ]);
+
+    final avatarUrl = _firstNonEmptyValue([
+      (userRaw['avatarUrl'] ?? '').toString().trim(),
+      (userRaw['profileImage'] ?? '').toString().trim(),
+      (userRaw['photoUrl'] ?? '').toString().trim(),
+      (userRaw['imageUrl'] ?? '').toString().trim(),
+      current.avatarUrl.trim(),
+    ]);
+
+    final rozet = _firstNonEmptyValue([
+      (userRaw['rozet'] ?? '').toString().trim(),
+      current.currentUser?.rozet.trim() ?? '',
+    ]);
+
+    return (
+      nickname: nickname,
+      username: username,
+      fullName: fullName,
+      displayName: displayName,
+      avatarUrl: avatarUrl,
+      rozet: rozet,
+    );
+  }
+
   void _initializeServices() {
     try {
       _errorService = Get.put(ErrorHandlingService());
@@ -299,12 +390,22 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         final uuid = const Uuid().v4();
         final docID = '${uuid}_$index';
 
+        final authorSummary = await _resolveAuthorSummary();
         final postData = {
           'id': docID,
           'text': controller.textEdit.text.trim(),
           'location': controller.adres.value,
           'gif': controller.gif.value,
           'userID': FirebaseAuth.instance.currentUser!.uid,
+          'authorNickname': authorSummary.nickname,
+          'authorDisplayName': authorSummary.displayName,
+          'authorAvatarUrl': authorSummary.avatarUrl,
+          'nickname': authorSummary.nickname,
+          'username': authorSummary.username,
+          'fullName': authorSummary.fullName,
+          'displayName': authorSummary.displayName,
+          'avatarUrl': authorSummary.avatarUrl,
+          'rozet': authorSummary.rozet,
           'sourceImagePaths':
               controller.selectedImages.map((f) => f.path).toList(),
           'sourceVideoPath': controller.selectedVideo.value?.path ?? '',

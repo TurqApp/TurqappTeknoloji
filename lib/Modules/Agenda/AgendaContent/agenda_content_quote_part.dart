@@ -27,7 +27,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
         cacheOnly: false,
       ),
       if (sourcePostId.isNotEmpty)
-        postRepository.fetchPostsByIds([sourcePostId])
+        postRepository.fetchPostCardsByIds([sourcePostId])
       else
         Future.value(null),
     ]);

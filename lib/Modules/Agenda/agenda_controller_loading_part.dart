@@ -447,7 +447,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final preferCache = !ContentPolicy.isConnected;
     final cacheOnly = !ContentPolicy.isConnected;
     for (final chunk in _chunkList(postIds.toList(), 10)) {
-      final postsById = await _postRepository.fetchPostsByIds(
+      final postsById = await _postRepository.fetchPostCardsByIds(
         chunk,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
@@ -595,7 +595,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final postIds = refs.map((item) => item.postId).toList(growable: false);
     final postsById = postIds.isEmpty
         ? const <String, PostsModel>{}
-        : await _postRepository.fetchPostsByIds(
+        : await _postRepository.fetchPostCardsByIds(
             postIds,
             preferCache: preferCache,
             cacheOnly: cacheOnly,

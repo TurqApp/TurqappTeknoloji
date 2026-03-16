@@ -66,7 +66,10 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                     ),
                                     const SizedBox(width: 4),
                                     RozetContent(
-                                        size: 13, userID: widget.model.userID),
+                                      size: 13,
+                                      userID: widget.model.userID,
+                                      rozetValue: widget.model.rozet,
+                                    ),
                                     Padding(
                                       padding: const EdgeInsets.only(
                                           left: 6, right: 12),

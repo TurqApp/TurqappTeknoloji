@@ -100,7 +100,9 @@ class PostsModel {
   // B10: Denormalize author alanları — her post için ayrı users/{uid} okuması önlenir.
   // Cloud Function (hybridFeed.ts / user profile update trigger) bu alanları senkronize tutar.
   String authorNickname;
+  String authorDisplayName;
   String authorAvatarUrl;
+  String rozet;
   String video;
   Map<String, dynamic> videoLook;
   String hlsMasterUrl;
@@ -149,7 +151,9 @@ class PostsModel {
     required this.timeStamp,
     required this.userID,
     this.authorNickname = '',
+    this.authorDisplayName = '',
     this.authorAvatarUrl = '',
+    this.rozet = '',
     required this.video,
     this.videoLook = const {
       'preset': 'original',
@@ -282,11 +286,19 @@ class PostsModel {
             data['nickname'] ??
             '')
         .toString();
+    final resolvedAuthorDisplayName = (data['authorDisplayName'] ??
+            data['displayName'] ??
+            data['fullName'] ??
+            authorMap['displayName'] ??
+            authorMap['fullName'] ??
+            resolvedAuthorNickname)
+        .toString();
     final resolvedAuthorAvatarUrl = (data['authorAvatarUrl'] ??
             authorMap['avatarUrl'] ??
             data['avatarUrl'] ??
             '')
         .toString();
+    final resolvedRozet = (data['rozet'] ?? authorMap['rozet'] ?? '').toString();
     final resolvedUserId = (data['userID'] ??
             data['userId'] ??
             authorMap['userID'] ??
@@ -334,7 +346,9 @@ class PostsModel {
       timeStamp: parseNum(data['timeStamp']),
       userID: resolvedUserId,
       authorNickname: resolvedAuthorNickname,
+      authorDisplayName: resolvedAuthorDisplayName,
       authorAvatarUrl: resolvedAuthorAvatarUrl,
+      rozet: resolvedRozet,
       video: data['video'] ?? '',
       videoLook: data['videoLook'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(data['videoLook'] as Map<String, dynamic>)
@@ -393,7 +407,9 @@ class PostsModel {
       'timeStamp': timeStamp,
       'userID': userID,
       if (authorNickname.isNotEmpty) 'authorNickname': authorNickname,
+      if (authorDisplayName.isNotEmpty) 'authorDisplayName': authorDisplayName,
       if (authorAvatarUrl.isNotEmpty) 'authorAvatarUrl': authorAvatarUrl,
+      if (rozet.isNotEmpty) 'rozet': rozet,
       'video': video,
       'videoLook': videoLook,
       'hlsMasterUrl': hlsMasterUrl,
@@ -441,6 +457,10 @@ class PostsModel {
       thumbnail: '',
       timeStamp: 0,
       userID: '',
+      authorNickname: '',
+      authorDisplayName: '',
+      authorAvatarUrl: '',
+      rozet: '',
       video: '',
       videoLook: const {
         'preset': 'original',
@@ -494,6 +514,10 @@ class PostsModel {
     String? thumbnail,
     num? timeStamp,
     String? userID,
+    String? authorNickname,
+    String? authorDisplayName,
+    String? authorAvatarUrl,
+    String? rozet,
     String? video,
     Map<String, dynamic>? videoLook,
     String? hlsMasterUrl,
@@ -543,6 +567,10 @@ class PostsModel {
       thumbnail: thumbnail ?? this.thumbnail,
       timeStamp: timeStamp ?? this.timeStamp,
       userID: userID ?? this.userID,
+      authorNickname: authorNickname ?? this.authorNickname,
+      authorDisplayName: authorDisplayName ?? this.authorDisplayName,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      rozet: rozet ?? this.rozet,
       video: video ?? this.video,
       videoLook: videoLook ?? this.videoLook,
       hlsMasterUrl: hlsMasterUrl ?? this.hlsMasterUrl,

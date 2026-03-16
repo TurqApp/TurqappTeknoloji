@@ -450,7 +450,7 @@ extension PostRepositorySharingPart on PostRepository {
         continue;
       }
 
-      final sharedPosts = await fetchPostsByIds(
+      final sharedPosts = await fetchPostCardsByIds(
         deferredSharedPostIds,
         preferCache: true,
       );

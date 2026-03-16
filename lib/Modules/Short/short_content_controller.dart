@@ -82,6 +82,9 @@ class ShortContentController extends GetxController {
 
     // Initialize other data
     getGizleArsivSikayetEdildi();
+    avatarUrl.value = model.authorAvatarUrl.trim();
+    nickname.value = model.authorNickname.trim();
+    fullName.value = model.authorDisplayName.trim();
     fetchUserData(model.userID);
 
     // Record view and load user interaction status
@@ -405,21 +408,26 @@ class ShortContentController extends GetxController {
   }
 
   Future<void> fetchUserData(String userID) async {
+    final postLevelAvatar = model.authorAvatarUrl.trim();
+    final postLevelNickname = model.authorNickname.trim();
+    final postLevelDisplayName = model.authorDisplayName.trim();
     final data =
         await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
-    avatarUrl.value = (data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            data["avatarUrl"] ??
-            "")
-        .toString();
-    nickname.value =
-        (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
+    final resolvedAvatar = (data["avatarUrl"] ?? "").toString().trim();
+    avatarUrl.value = postLevelAvatar.isNotEmpty ? postLevelAvatar : resolvedAvatar;
+    nickname.value = postLevelNickname.isNotEmpty
+        ? postLevelNickname
+        : (data["nickname"] ?? data["username"] ?? data["displayName"] ?? "")
             .toString();
     token.value = (data["token"] ?? "").toString();
-    fullName.value =
+    final fetchedFullName =
         "${(data["firstName"] ?? "").toString()} ${(data["lastName"] ?? "").toString()}"
             .trim();
+    fullName.value = postLevelDisplayName.isNotEmpty
+        ? postLevelDisplayName
+        : (fetchedFullName.isNotEmpty
+            ? fetchedFullName
+            : (data["displayName"] ?? nickname.value).toString());
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
       userID,

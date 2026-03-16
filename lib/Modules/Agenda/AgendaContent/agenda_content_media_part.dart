@@ -73,7 +73,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     }
 
     final ids = candidates.map((p) => p.docID).toSet().toList();
-    final freshById = await PostRepository.ensure().fetchPostsByIds(
+    final freshById = await PostRepository.ensure().fetchPostCardsByIds(
       ids,
       preferCache: true,
     );

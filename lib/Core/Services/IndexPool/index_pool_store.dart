@@ -14,7 +14,7 @@ enum IndexPoolKind {
 class IndexPoolEntry {
   final String docID;
   final String kind;
-  final Map<String, dynamic> postData;
+  final Map<String, dynamic> cardData;
   final String userID;
   final String nickname;
   final String avatarUrl;
@@ -24,7 +24,7 @@ class IndexPoolEntry {
   IndexPoolEntry({
     required this.docID,
     required this.kind,
-    required this.postData,
+    required this.cardData,
     required this.userID,
     required this.nickname,
     required this.avatarUrl,
@@ -35,7 +35,7 @@ class IndexPoolEntry {
   Map<String, dynamic> toJson() => {
         'docID': docID,
         'kind': kind,
-        'postData': postData,
+        'cardData': cardData,
         'userID': userID,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
@@ -47,7 +47,7 @@ class IndexPoolEntry {
     return IndexPoolEntry(
       docID: (json['docID'] ?? '').toString(),
       kind: (json['kind'] ?? '').toString(),
-      postData: (json['postData'] as Map?)?.cast<String, dynamic>() ?? {},
+      cardData: (json['cardData'] as Map?)?.cast<String, dynamic>() ?? {},
       userID: (json['userID'] ?? '').toString(),
       nickname: (json['nickname'] ?? '').toString(),
       avatarUrl: (json['avatarUrl'] ?? '').toString(),
@@ -58,7 +58,7 @@ class IndexPoolEntry {
 }
 
 class IndexPoolStore {
-  static const int _schemaVersion = 2;
+  static const int _schemaVersion = 3;
   static const int _maxEntriesPerKind = 250;
   static const Duration _poolFileTtl = Duration(hours: 24);
   static const Duration _fallbackTtl = Duration(minutes: 5);
@@ -179,7 +179,7 @@ class IndexPoolStore {
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return filtered
         .take(limit)
-        .map((e) => PostsModel.fromMap(e.postData, e.docID))
+        .map((e) => PostsModel.fromMap(e.cardData, e.docID))
         .toList();
   }
 
@@ -204,7 +204,7 @@ class IndexPoolStore {
       final e = IndexPoolEntry(
         docID: post.docID,
         kind: k,
-        postData: post.toMap(),
+        cardData: _buildCardData(post, userMeta[post.userID]),
         userID: post.userID,
         nickname: (user['nickname'] ?? '').toString(),
         avatarUrl: (user['avatarUrl'] ?? '').toString(),
@@ -238,5 +238,65 @@ class IndexPoolStore {
         .where((e) => !(e.kind == k && removeSet.contains(e.docID)))
         .toList();
     await _persistAll(filtered);
+  }
+
+  Map<String, dynamic> _buildCardData(
+    PostsModel post,
+    Map<String, dynamic>? user,
+  ) {
+    final authorNickname = (user?['nickname'] ?? post.authorNickname).toString();
+    final authorAvatarUrl =
+        (user?['avatarUrl'] ?? post.authorAvatarUrl).toString();
+
+    return <String, dynamic>{
+      'metin': post.metin,
+      'img': post.img,
+      'thumbnail': post.thumbnail,
+      'video': post.video,
+      'hlsMasterUrl': post.hlsMasterUrl,
+      'hlsStatus': post.hlsStatus,
+      'hlsUpdatedAt': post.hlsUpdatedAt,
+      'timeStamp': post.timeStamp,
+      'editTime': post.editTime ?? 0,
+      'authorNickname': authorNickname,
+      'authorAvatarUrl': authorAvatarUrl,
+      'userID': post.userID,
+      'paylasGizliligi': post.paylasGizliligi,
+      'arsiv': post.arsiv,
+      'deletedPost': post.deletedPost,
+      'gizlendi': post.gizlendi,
+      'isUploading': post.isUploading,
+      'aspectRatio': post.aspectRatio,
+      'flood': post.flood,
+      'floodCount': post.floodCount,
+      'mainFlood': post.mainFlood,
+      'locationCity': post.locationCity,
+      'konum': post.konum,
+      'originalPostID': post.originalPostID,
+      'originalUserID': post.originalUserID,
+      'quotedPost': post.quotedPost,
+      'tags': post.tags,
+      'yorum': post.yorum,
+      'yorumMap': post.yorumMap,
+      'reshareMap': post.reshareMap,
+      'poll': post.poll,
+      'ad': post.ad,
+      'isAd': post.isAd,
+      'debugMode': false,
+      'deletedPostTime': post.deletedPostTime,
+      'izBirakYayinTarihi': post.izBirakYayinTarihi,
+      'scheduledAt': post.scheduledAt,
+      'sikayetEdildi': post.sikayetEdildi,
+      'stabilized': post.stabilized,
+      'videoLook': post.videoLook,
+      'stats': <String, dynamic>{
+        'commentCount': post.stats.commentCount,
+        'likeCount': post.stats.likeCount,
+        'reportedCount': post.stats.reportedCount,
+        'retryCount': post.stats.retryCount,
+        'savedCount': post.stats.savedCount,
+        'statsCount': post.stats.statsCount,
+      },
+    };
   }
 }

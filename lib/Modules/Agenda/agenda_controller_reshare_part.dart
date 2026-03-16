@@ -372,7 +372,7 @@ extension AgendaControllerResharePart on AgendaController {
       final postsById = <String, PostsModel>{};
       for (final batch in _chunkList(visiblePostIds, 10)) {
         try {
-          final batchPosts = await _postRepository.fetchPostsByIds(
+          final batchPosts = await _postRepository.fetchPostCardsByIds(
             batch,
             preferCache: true,
           );

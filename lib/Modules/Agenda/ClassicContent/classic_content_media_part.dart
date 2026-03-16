@@ -111,7 +111,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     if (candidates.isEmpty) return [widget.model];
 
     final ids = candidates.map((p) => p.docID).toList();
-    final fetched = await _postRepository.fetchPostsByIds(ids);
+    final fetched = await _postRepository.fetchPostCardsByIds(ids);
     final freshById = <String, PostsModel>{};
     fetched.forEach((key, model) {
       if (model.deletedPost == false &&

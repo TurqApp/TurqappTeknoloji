@@ -53,7 +53,7 @@ class DeepLinkService extends GetxService {
       return cached;
     }
     final doc =
-        (await PostRepository.ensure().fetchPostsByIds([postId]))[postId];
+        (await PostRepository.ensure().fetchPostCardsByIds([postId]))[postId];
     final lookup = _PostLookupCache(
       model: doc,
       cachedAt: DateTime.now(),

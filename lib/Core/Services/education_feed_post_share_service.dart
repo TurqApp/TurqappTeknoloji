@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -232,6 +235,9 @@ class EducationFeedPostShareService {
           'originalPostID': '',
           'sharedAsPost': false,
         });
+        unawaited(
+          TypesensePostService.instance.syncPostById(postId).catchError((_) {}),
+        );
 
         final newPost = PostsModel(
           ad: false,

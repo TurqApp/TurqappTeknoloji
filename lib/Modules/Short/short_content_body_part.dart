@@ -135,6 +135,7 @@ extension ShortsContentBodyPart on ShortsContent {
                                 RozetContent(
                                   size: 14,
                                   userID: model.userID,
+                                  rozetValue: model.rozet,
                                 ),
                               ],
                             ),

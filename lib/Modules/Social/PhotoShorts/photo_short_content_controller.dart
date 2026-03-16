@@ -23,6 +23,7 @@ import '../../../Core/Repositories/user_repository.dart';
 import '../../../Core/Services/admin_access_service.dart';
 import '../../../Core/Repositories/post_repository.dart';
 import '../../../Core/Repositories/admin_push_repository.dart';
+import '../../../Core/Services/typesense_post_service.dart';
 
 class PhotoShortsContentController extends GetxController {
   PostsModel model;
@@ -131,6 +132,9 @@ class PhotoShortsContentController extends GetxController {
     });
 
     getGizleArsivSikayetEdildi();
+    avatarUrl.value = model.authorAvatarUrl.trim();
+    nickname.value = model.authorNickname.trim();
+    fullName.value = model.authorDisplayName.trim();
     fetchUserData(model.userID);
     getReSharedUsers(model.docID);
     getYenidenPaylasBilgisi();
@@ -512,12 +516,18 @@ class PhotoShortsContentController extends GetxController {
       cacheOnly: false,
     );
     if (summary != null) {
-      avatarUrl.value = summary.avatarUrl;
-      nickname.value = summary.nickname.isNotEmpty
-          ? summary.nickname
-          : summary.preferredName;
+      avatarUrl.value = model.authorAvatarUrl.trim().isNotEmpty
+          ? model.authorAvatarUrl.trim()
+          : summary.avatarUrl;
+      nickname.value = model.authorNickname.trim().isNotEmpty
+          ? model.authorNickname.trim()
+          : (summary.nickname.isNotEmpty
+              ? summary.nickname
+              : summary.preferredName);
       token.value = summary.token;
-      fullName.value = summary.displayName;
+      fullName.value = model.authorDisplayName.trim().isNotEmpty
+          ? model.authorDisplayName.trim()
+          : summary.displayName;
     }
 
     takipEdiyorum.value = await FollowRepository.ensure().isFollowing(
@@ -752,6 +762,11 @@ class PhotoShortsContentController extends GetxController {
         "originalUserID": originalUserInfo['userID'],
         "originalPostID": originalUserInfo['originalPostID'],
       });
+      unawaited(
+        TypesensePostService.instance
+            .syncPostById(newPostID)
+            .catchError((_) {}),
+      );
 
       // Kök ve görünür bir gönderi olarak say (counterOfPosts +=1)
       try {

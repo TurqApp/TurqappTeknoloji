@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
@@ -155,6 +158,9 @@ class UrlPostMakerController extends GetxController {
         "originalPostID": finalOriginalPostID,
         "sharedAsPost": sharedAsPost,
       });
+      unawaited(
+        TypesensePostService.instance.syncPostById(uuid).catchError((_) {}),
+      );
       print(
           'UrlPostMakerController: Post saved with originalUserID: $originalUserID, originalPostID: $originalPostID');
 

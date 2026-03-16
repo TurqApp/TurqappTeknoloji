@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 
 import '../../Models/posts_model.dart';
 import '../../Models/post_sharers_model.dart';
@@ -118,6 +119,7 @@ class PostRepository extends GetxService {
   final FirebaseAuth _auth;
   final PostInteractionService _interactionService;
   final PostCountManager _countManager;
+  final TypesensePostService _typesensePostService = TypesensePostService.instance;
 
   static const Duration _interactionTtl = Duration(seconds: 30);
   final Map<String, PostRepositoryState> _states =
@@ -370,6 +372,82 @@ class PostRepository extends GetxService {
             _states.putIfAbsent(doc.id, () => PostRepositoryState(doc.id));
         state.latestPostData.value = Map<String, dynamic>.from(data);
         _seedCounts(state, model);
+      }
+    }
+
+    return result;
+  }
+
+  Future<Map<String, PostsModel>> fetchPostCardsByIds(
+    List<String> postIds, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
+    final cleaned = postIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (cleaned.isEmpty) return const <String, PostsModel>{};
+
+    final result = <String, PostsModel>{};
+    final missing = <String>[];
+
+    for (final id in cleaned) {
+      final state = _states[id];
+      final cached = preferCache ? state?.latestPostData.value : null;
+      if (cached != null) {
+        result[id] = PostsModel.fromMap(cached, id);
+      } else {
+        missing.add(id);
+      }
+    }
+
+    if (missing.isEmpty || cacheOnly) {
+      return result;
+    }
+
+    Map<String, Map<String, dynamic>> typesenseDocs =
+        <String, Map<String, dynamic>>{};
+    try {
+      typesenseDocs = await _typesensePostService.getPostCardsByIds(missing);
+    } catch (_) {
+      typesenseDocs = const <String, Map<String, dynamic>>{};
+    }
+    final fallbackIds = <String>[];
+
+    for (final id in missing) {
+      final doc = typesenseDocs[id];
+      if (doc == null) {
+        fallbackIds.add(id);
+        continue;
+      }
+
+      final raw = _typesenseDocToPostMap(doc, id);
+      final model = PostsModel.fromMap(raw, id);
+      result[id] = model;
+      final state = _states.putIfAbsent(id, () => PostRepositoryState(id));
+      state.latestPostData.value = raw;
+      _countManager.initializeCounts(
+        model.docID,
+        likeCount: model.stats.likeCount.toInt(),
+        commentCount: model.stats.commentCount.toInt(),
+        savedCount: model.stats.savedCount.toInt(),
+        retryCount: model.stats.retryCount.toInt(),
+        statsCount: model.stats.statsCount.toInt(),
+      );
+    }
+
+    if (fallbackIds.isNotEmpty) {
+      final firestoreModels = await fetchPostsByIds(
+        fallbackIds,
+        preferCache: preferCache,
+        cacheOnly: false,
+      );
+      for (final entry in firestoreModels.entries) {
+        if (_isRenderableCard(entry.value)) {
+          result[entry.key] = entry.value;
+        }
       }
     }
 
@@ -680,6 +758,107 @@ class PostRepository extends GetxService {
       retryCount: model.stats.retryCount.toInt(),
       statsCount: model.stats.statsCount.toInt(),
     );
+  }
+
+  bool _isRenderableCard(PostsModel model) {
+    if (model.deletedPost || model.gizlendi || model.isUploading) {
+      return false;
+    }
+    final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
+    final hasVideoSignal =
+        model.video.trim().isNotEmpty || model.hlsMasterUrl.trim().isNotEmpty;
+    if (hasVideoSignal) {
+      return model.hasPlayableVideo && hasVisual;
+    }
+    return model.metin.trim().isNotEmpty || hasVisual || model.floodCount > 1;
+  }
+
+  Map<String, dynamic> _typesenseDocToPostMap(
+    Map<String, dynamic> doc,
+    String docId,
+  ) {
+    List<String> asStringList(dynamic value) {
+      if (value is! List) return const <String>[];
+      return value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+
+    num asNum(dynamic value, [num fallback = 0]) {
+      if (value is num) return value;
+      if (value is String) return num.tryParse(value) ?? fallback;
+      return fallback;
+    }
+
+    bool asBool(dynamic value) => value == true;
+
+    final imageUrls = asStringList(doc['img']);
+    final thumbnail = (doc['thumbnail'] ?? '').toString();
+    final video = (doc['video'] ?? '').toString();
+    final hlsMasterUrl = (doc['hlsMasterUrl'] ?? '').toString();
+
+    return <String, dynamic>{
+      'metin': (doc['metin'] ?? '').toString(),
+      'img': imageUrls,
+      'thumbnail': thumbnail,
+      'video': video,
+      'hlsMasterUrl': hlsMasterUrl,
+      'hlsStatus': (doc['hlsStatus'] ?? 'none').toString(),
+      'hlsUpdatedAt': 0,
+      'timeStamp': asNum(doc['timeStamp']),
+      'editTime': asNum(doc['editTime']),
+      'authorNickname': (doc['authorNickname'] ?? doc['nickname'] ?? '').toString(),
+      'authorDisplayName': (doc['authorDisplayName'] ?? doc['fullName'] ?? doc['displayName'] ?? '').toString(),
+      'authorAvatarUrl': (doc['authorAvatarUrl'] ?? doc['avatarUrl'] ?? '').toString(),
+      'rozet': (doc['rozet'] ?? '').toString(),
+      'nickname': (doc['authorNickname'] ?? doc['nickname'] ?? '').toString(),
+      'username': (doc['username'] ?? '').toString(),
+      'displayName': (doc['fullName'] ?? doc['authorDisplayName'] ?? '').toString(),
+      'fullName': (doc['fullName'] ?? doc['authorDisplayName'] ?? '').toString(),
+      'userID': (doc['userID'] ?? doc['authorId'] ?? '').toString(),
+      'paylasGizliligi': asNum(doc['paylasGizliligi'], 0),
+      'arsiv': asBool(doc['arsiv']),
+      'deletedPost': asBool(doc['deletedPost']),
+      'gizlendi': asBool(doc['gizlendi']),
+      'isUploading': asBool(doc['isUploading']),
+      'aspectRatio': asNum(doc['aspectRatio'], 1.77),
+      'flood': asBool(doc['flood']),
+      'floodCount': asNum(doc['floodCount'], 1),
+      'mainFlood': (doc['mainFlood'] ?? '').toString(),
+      'locationCity': (doc['locationCity'] ?? '').toString(),
+      'originalPostID': (doc['originalPostID'] ?? '').toString(),
+      'originalUserID': (doc['originalUserID'] ?? '').toString(),
+      'quotedPost': asBool(doc['quotedPost']),
+      'tags': asStringList(doc['hashtags']),
+      'yorum': true,
+      'yorumMap': const <String, dynamic>{},
+      'reshareMap': const <String, dynamic>{},
+      'poll': const <String, dynamic>{},
+      'ad': false,
+      'isAd': false,
+      'debugMode': false,
+      'deletedPostTime': 0,
+      'izBirakYayinTarihi': 0,
+      'konum': (doc['locationCity'] ?? '').toString(),
+      'scheduledAt': 0,
+      'sikayetEdildi': false,
+      'stabilized': true,
+      'videoLook': const <String, dynamic>{
+        'preset': 'original',
+        'version': 1,
+        'intensity': 1.0,
+      },
+      'stats': <String, dynamic>{
+        'likeCount': asNum(doc['likeCount']),
+        'commentCount': asNum(doc['commentCount']),
+        'savedCount': asNum(doc['savedCount']),
+        'retryCount': asNum(doc['retryCount']),
+        'statsCount': asNum(doc['statsCount']),
+        'reportedCount': 0,
+      },
+      'docID': docId,
+    };
   }
 
   void _startPostStream(PostRepositoryState state) {

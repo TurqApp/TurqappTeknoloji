@@ -90,7 +90,7 @@ class FloodListingController extends GetxController {
     // “foo_17” → baseID = “foo”
     final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
     final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
-    final fetched = await _postRepository.fetchPostsByIds(ids);
+    final fetched = await _postRepository.fetchPostCardsByIds(ids);
 
     // 1️⃣ Kök flood her zaman "_0"
     final rootID = '${baseID}_0';

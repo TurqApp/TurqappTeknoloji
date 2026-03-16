@@ -164,7 +164,11 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                               ),
                             ),
                             const SizedBox(width: 2),
-                            RozetContent(size: 13, userID: widget.model.userID),
+                            RozetContent(
+                              size: 13,
+                              userID: widget.model.userID,
+                              rozetValue: widget.model.rozet,
+                            ),
                             Padding(
                               padding:
                                   const EdgeInsets.only(left: 6, right: 12),

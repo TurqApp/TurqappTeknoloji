@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f15_getLatestPostIdsCallable = exports.f14_reindexPostsToTypesenseCallable = exports.f14_searchPostsCallable = exports.f14_searchPosts = exports.f14_syncPostsToTypesense = void 0;
+exports.f15_getPostCardsByIdsCallable = exports.f15_getLatestPostIdsCallable = exports.f15_syncPostToTypesenseCallable = exports.f14_reindexPostsToTypesenseCallable = exports.f14_searchPostsCallable = exports.f14_searchPosts = exports.f14_syncPostsToTypesense = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
@@ -65,6 +65,38 @@ function asStringArray(x) {
         return [];
     return x.map((v) => String(v || "").trim()).filter(Boolean);
 }
+function asNumber(x, fallback = 0) {
+    if (typeof x === "number" && Number.isFinite(x))
+        return x;
+    if (typeof x === "string") {
+        const parsed = Number(x);
+        if (Number.isFinite(parsed))
+            return parsed;
+    }
+    return fallback;
+}
+function clipText(value, maxLen) {
+    const text = String(value || "").trim();
+    if (text.length <= maxLen)
+        return text;
+    return `${text.slice(0, Math.max(0, maxLen - 1)).trimEnd()}…`;
+}
+function resolveHandle(nickname, username, usernameLower) {
+    const n = asString(nickname).trim();
+    const u = asString(username).trim();
+    const ul = asString(usernameLower).trim();
+    const hasSpace = /\s/.test(n);
+    if (n && !hasSpace)
+        return n;
+    if (u)
+        return u;
+    if (ul)
+        return ul;
+    return n;
+}
+function typesenseStringLiteral(value) {
+    return `\`${String(value || "").replace(/`/g, "\\`")}\``;
+}
 function asEpochSeconds(x) {
     if (!x)
         return 0;
@@ -115,14 +147,42 @@ async function ensurePostsCollection() {
             });
             const fields = Array.isArray(existing.data?.fields) ? existing.data.fields : [];
             const required = [
+                { name: "userID", type: "string", optional: true },
+                { name: "authorNickname", type: "string", optional: true },
+                { name: "authorDisplayName", type: "string", optional: true },
+                { name: "authorAvatarUrl", type: "string", optional: true },
+                { name: "rozet", type: "string", optional: true },
+                { name: "metin", type: "string", optional: true },
+                { name: "hashtags", type: "string[]", optional: true },
+                { name: "mentions", type: "string[]", optional: true },
+                { name: "img", type: "string[]", optional: true },
+                { name: "thumbnail", type: "string", optional: true },
+                { name: "video", type: "string", optional: true },
+                { name: "hlsMasterUrl", type: "string", optional: true },
                 { name: "paylasGizliligi", type: "int32", optional: true },
                 { name: "arsiv", type: "bool", optional: true },
                 { name: "deletedPost", type: "bool", optional: true },
                 { name: "gizlendi", type: "bool", optional: true },
                 { name: "isUploading", type: "bool", optional: true },
                 { name: "hlsStatus", type: "string", optional: true },
-                { name: "imageURL", type: "string", optional: true },
-                { name: "timeStamp", type: "int64", optional: true },
+                { name: "hasPlayableVideo", type: "bool", optional: true },
+                { name: "aspectRatio", type: "float", optional: true },
+                { name: "likeCount", type: "int32", optional: true },
+                { name: "commentCount", type: "int32", optional: true },
+                { name: "savedCount", type: "int32", optional: true },
+                { name: "retryCount", type: "int32", optional: true },
+                { name: "statsCount", type: "int32", optional: true },
+                { name: "flood", type: "bool", optional: true },
+                { name: "floodCount", type: "int32", optional: true },
+                { name: "locationCity", type: "string", optional: true },
+                { name: "originalPostID", type: "string", optional: true },
+                { name: "originalUserID", type: "string", optional: true },
+                { name: "quotedPost", type: "bool", optional: true },
+                { name: "mainFlood", type: "string", optional: true },
+                { name: "contentType", type: "string", optional: true },
+                { name: "editTime", type: "int64", optional: true },
+                { name: "timeStamp", type: "int64" },
+                { name: "createdAtTs", type: "int64" },
             ];
             const missing = required.filter((rf) => !fields.some((f) => f?.name === rf.name));
             if (missing.length) {
@@ -139,22 +199,42 @@ async function ensurePostsCollection() {
             name: POSTS_COLLECTION,
             fields: [
                 { name: "id", type: "string" },
-                { name: "authorId", type: "string", optional: true },
-                { name: "caption", type: "string", optional: true },
+                { name: "userID", type: "string", optional: true },
+                { name: "authorNickname", type: "string", optional: true },
+                { name: "authorDisplayName", type: "string", optional: true },
+                { name: "authorAvatarUrl", type: "string", optional: true },
+                { name: "rozet", type: "string", optional: true },
+                { name: "metin", type: "string", optional: true },
                 { name: "hashtags", type: "string[]", optional: true },
                 { name: "mentions", type: "string[]", optional: true },
-                { name: "hlsUrl", type: "string", optional: true },
-                { name: "hlsThumbnailUrl", type: "string", optional: true },
-                { name: "rawVideoUrl", type: "string", optional: true },
-                { name: "imageURL", type: "string", optional: true },
-                { name: "previewUrl", type: "string", optional: true },
+                { name: "img", type: "string[]", optional: true },
+                { name: "thumbnail", type: "string", optional: true },
+                { name: "video", type: "string", optional: true },
+                { name: "hlsMasterUrl", type: "string", optional: true },
                 { name: "paylasGizliligi", type: "int32", optional: true },
                 { name: "arsiv", type: "bool", optional: true },
                 { name: "deletedPost", type: "bool", optional: true },
                 { name: "gizlendi", type: "bool", optional: true },
                 { name: "isUploading", type: "bool", optional: true },
                 { name: "hlsStatus", type: "string", optional: true },
-                { name: "timeStamp", type: "int64", optional: true },
+                { name: "hasPlayableVideo", type: "bool", optional: true },
+                { name: "aspectRatio", type: "float", optional: true },
+                { name: "likeCount", type: "int32", optional: true },
+                { name: "commentCount", type: "int32", optional: true },
+                { name: "savedCount", type: "int32", optional: true },
+                { name: "retryCount", type: "int32", optional: true },
+                { name: "statsCount", type: "int32", optional: true },
+                { name: "flood", type: "bool", optional: true },
+                { name: "floodCount", type: "int32", optional: true },
+                { name: "locationCity", type: "string", optional: true },
+                { name: "originalPostID", type: "string", optional: true },
+                { name: "originalUserID", type: "string", optional: true },
+                { name: "quotedPost", type: "bool", optional: true },
+                { name: "mainFlood", type: "string", optional: true },
+                { name: "contentType", type: "string", optional: true },
+                { name: "editTime", type: "int64", optional: true },
+                { name: "timeStamp", type: "int64" },
+                { name: "createdAtTs", type: "int64" },
             ],
             default_sorting_field: "timeStamp",
         }, {
@@ -285,51 +365,189 @@ async function ensureTagsCollection() {
 }
 function buildSearchDoc(postId, data) {
     const analysis = data.analysis || {};
+    const stats = data.stats || {};
     const paylas = Number(data.paylasGizliligi);
     const paylasGizliligi = Number.isFinite(paylas) ? paylas : 0;
     const deletedPost = asBool(data.deletedPost) || asBool(data.isDeleted);
     const arsiv = asBool(data.arsiv) || asBool(data.isArchived);
     const gizlendi = asBool(data.gizlendi) || asBool(data.isHidden);
     const isUploading = asBool(data.isUploading);
-    const caption = asString(data.metin) || asString(data.caption);
-    const imgList = Array.isArray(data.img) ? data.img : [];
-    const firstImg = imgList.length ? String(imgList[0] || "") : "";
-    const hlsMasterUrl = asString(data.hlsMasterUrl) || asString(data.hlsUrl);
-    const thumbnailUrl = asString(data.thumbnail) || asString(data.hlsThumbnailUrl);
-    const rawVideoUrl = asString(data.rawVideoUrl) || asString(data.video);
+    const metin = asString(data.metin) || asString(data.caption);
+    const imgList = asStringArray(data.img);
+    const hlsMasterUrl = asString(data.hlsMasterUrl);
+    const thumbnailUrl = asString(data.thumbnail);
+    const videoUrl = asString(data.video);
     const hlsStatusRaw = asString(data.hlsStatus).toLowerCase();
     const hlsStatus = hlsStatusRaw || (asBool(data.hlsReady) ? "ready" : "none");
+    const hasPlayableVideo = hlsStatus === "ready" && hlsMasterUrl.length > 0;
     const timeStamp = Number(data.timeStamp || 0) ||
         asEpochMillis(data.createdAt) ||
         Date.now();
+    const aspectRatio = asNumber(data.aspectRatio) ||
+        asNumber(data.imgAspectRatio) ||
+        1.77;
+    const flood = asBool(data.flood);
+    const floodCount = Math.max(0, Math.floor(asNumber(data.floodCount)));
+    const likeCount = Math.max(0, Math.floor(asNumber(stats.likeCount ?? data.likeCount ?? data.begeniSayisi)));
+    const commentCount = Math.max(0, Math.floor(asNumber(stats.commentCount ?? data.commentCount ?? data.yorumSayisi)));
+    const savedCount = Math.max(0, Math.floor(asNumber(stats.savedCount ?? data.savedCount)));
+    const retryCount = Math.max(0, Math.floor(asNumber(stats.retryCount ?? data.retryCount ?? data.reshareCount)));
+    const statsCount = Math.max(0, Math.floor(asNumber(stats.statsCount ?? data.statsCount)));
+    const contentType = (() => {
+        if (flood)
+            return "flood";
+        if (hasPlayableVideo && metin)
+            return "video_text";
+        if (hasPlayableVideo)
+            return "video";
+        if (imgList.length > 0 && metin)
+            return "photo_text";
+        if (imgList.length > 0)
+            return "photo";
+        return "text";
+    })();
     const createdAtTs = timeStamp;
+    const userID = asString(data.userID);
+    const authorNickname = resolveHandle(data.authorNickname || data.nickname, data.username, data.usernameLower);
+    const firstName = asString(data.firstName);
+    const lastName = asString(data.lastName);
+    const joinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    const authorDisplayName = asString(data.authorDisplayName) ||
+        asString(data.displayName) ||
+        asString(data.fullName) ||
+        joinedName ||
+        authorNickname;
+    const authorAvatarUrl = asString(data.authorAvatarUrl) || asString(data.avatarUrl);
+    const rozet = asString(data.rozet);
     return {
         id: postId,
-        authorId: asString(data.authorId) || asString(data.userID),
-        caption,
+        userID,
+        authorNickname,
+        authorDisplayName,
+        authorAvatarUrl,
+        rozet,
+        metin,
         hashtags: extractPostTags(data).map((x) => x.tag),
         mentions: asStringArray(analysis.mentions),
-        hlsUrl: hlsMasterUrl,
-        hlsThumbnailUrl: thumbnailUrl,
-        rawVideoUrl,
-        imageURL: asString(data.imageURL) || firstImg,
-        previewUrl: thumbnailUrl ||
-            asString(data.imageURL) ||
-            firstImg ||
-            asString((Array.isArray(data.images) ? data.images[0] : "")) ||
-            "",
+        img: imgList,
+        thumbnail: thumbnailUrl,
+        video: videoUrl,
+        hlsMasterUrl,
         paylasGizliligi,
         arsiv,
         deletedPost,
         gizlendi,
         isUploading,
         hlsStatus,
+        hasPlayableVideo,
+        aspectRatio,
+        likeCount,
+        commentCount,
+        savedCount,
+        retryCount,
+        statsCount,
+        flood,
+        floodCount,
+        locationCity: asString(data.locationCity) || asString(data.konum),
+        originalPostID: asString(data.originalPostID),
+        originalUserID: asString(data.originalUserID),
+        quotedPost: asBool(data.quotedPost),
+        mainFlood: asString(data.mainFlood),
+        contentType,
+        editTime: asEpochMillis(data.editTime),
         timeStamp,
         createdAtTs,
     };
 }
+async function fetchAuthorSummary(authorId) {
+    const normalizedAuthorId = String(authorId || "").trim();
+    if (!normalizedAuthorId) {
+        return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+    }
+    try {
+        const snap = await (0, firestore_2.getFirestore)().collection("users").doc(normalizedAuthorId).get();
+        if (!snap.exists) {
+            return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+        }
+        const data = (snap.data() || {});
+        const authorNickname = resolveHandle(data.nickname, data.username, data.usernameLower);
+        const authorDisplayName = asString(data.displayName) ||
+            asString(data.fullName) ||
+            [asString(data.firstName), asString(data.lastName)]
+                .filter(Boolean)
+                .join(" ")
+                .trim() ||
+            authorNickname;
+        return {
+            authorNickname,
+            authorDisplayName,
+            authorAvatarUrl: asString(data.avatarUrl) ||
+                asString(data.profileImage) ||
+                asString(data.photoUrl) ||
+                asString(data.imageUrl),
+            rozet: asString(data.rozet),
+        };
+    }
+    catch (err) {
+        console.error("typesense_author_summary_fetch_failed", normalizedAuthorId, err);
+        return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+    }
+}
+async function buildSearchDocForIndexing(postId, data) {
+    const doc = buildSearchDoc(postId, data);
+    const summary = await fetchAuthorSummary(doc.userID);
+    if (!summary.authorNickname && !summary.authorDisplayName && !summary.authorAvatarUrl && !summary.rozet) {
+        return doc;
+    }
+    return {
+        ...doc,
+        userID: doc.userID,
+        authorNickname: doc.authorNickname || summary.authorNickname,
+        authorDisplayName: doc.authorDisplayName || summary.authorDisplayName,
+        authorAvatarUrl: doc.authorAvatarUrl || summary.authorAvatarUrl,
+        rozet: doc.rozet || summary.rozet,
+    };
+}
 function shouldIndex(doc) {
-    return true;
+    if (!doc.id || !doc.userID)
+        return false;
+    if (doc.deletedPost || doc.gizlendi || doc.isUploading)
+        return false;
+    if (doc.timeStamp <= 0)
+        return false;
+    const hasVisual = doc.thumbnail.length > 0 || doc.img.length > 0;
+    const hasVideoSignal = doc.video.length > 0 || doc.hlsMasterUrl.length > 0;
+    if (hasVideoSignal) {
+        return doc.hasPlayableVideo && hasVisual;
+    }
+    return doc.metin.length > 0 || hasVisual || doc.floodCount > 1;
+}
+function collectSkipReasons(doc) {
+    const reasons = [];
+    if (!doc.id)
+        reasons.push("missing_id");
+    if (!doc.userID)
+        reasons.push("missing_author");
+    if (doc.deletedPost)
+        reasons.push("deleted");
+    if (doc.gizlendi)
+        reasons.push("hidden");
+    if (doc.isUploading)
+        reasons.push("uploading");
+    if (doc.timeStamp <= 0)
+        reasons.push("invalid_timestamp");
+    const hasVisual = doc.thumbnail.length > 0 || doc.img.length > 0;
+    const hasVideoSignal = doc.video.length > 0 || doc.hlsMasterUrl.length > 0;
+    if (hasVideoSignal) {
+        if (!doc.hasPlayableVideo)
+            reasons.push("video_not_playable");
+        if (!hasVisual)
+            reasons.push("video_missing_visual");
+    }
+    else if (!(doc.metin.length > 0 || hasVisual || doc.floodCount > 1)) {
+        reasons.push("empty_card");
+    }
+    return reasons;
 }
 function normalizeTag(tag) {
     const t = String(tag || "").trim().toLocaleLowerCase("tr-TR");
@@ -508,12 +726,12 @@ async function searchPostsFromTypesense(q, limit, page) {
         timeout: 10000,
         params: {
             q,
-            query_by: "caption,hashtags,mentions",
+            query_by: "metin,hashtags,mentions,authorNickname,authorDisplayName",
             per_page: limit,
             page,
             sort_by: "timeStamp:desc",
             filter_by: "paylasGizliligi:=0 && arsiv:=false && deletedPost:=false && gizlendi:=false && isUploading:=false",
-            prefix: "true,true,true",
+            prefix: "true,true,true,true,true",
             typo_tokens_threshold: 1,
         },
     });
@@ -527,19 +745,46 @@ async function searchPostsFromTypesense(q, limit, page) {
         out_of: Number(body.out_of || 0),
         search_time_ms: Number(body.search_time_ms || 0),
         hits: hits.map((h) => ({
-            id: h?.document?.id,
-            authorId: h?.document?.authorId,
-            caption: h?.document?.caption,
-            hashtags: h?.document?.hashtags || [],
-            mentions: h?.document?.mentions || [],
-            hlsUrl: h?.document?.hlsUrl || "",
-            hlsThumbnailUrl: h?.document?.hlsThumbnailUrl || "",
-            rawVideoUrl: h?.document?.rawVideoUrl || "",
-            imageURL: h?.document?.imageURL || "",
-            previewUrl: h?.document?.previewUrl || "",
-            timeStamp: h?.document?.timeStamp || 0,
+            ...(h?.document || {}),
             text_match: h?.text_match || 0,
         })),
+    };
+}
+async function getPostCardsByIdsFromTypesense(ids) {
+    await ensurePostsCollection();
+    const uniqueIds = Array.from(new Set(ids.map((x) => String(x || "").trim()).filter(Boolean)));
+    if (uniqueIds.length === 0) {
+        return {
+            requested: 0,
+            found: 0,
+            search_time_ms: 0,
+            missingIds: [],
+            hits: [],
+        };
+    }
+    const baseUrl = getTypesenseBaseUrl();
+    const resp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
+        headers: headers(),
+        timeout: 10000,
+        params: {
+            q: "*",
+            query_by: "metin",
+            per_page: uniqueIds.length,
+            page: 1,
+            filter_by: `id:=[${uniqueIds.map(typesenseStringLiteral).join(",")}]`,
+            sort_by: "timeStamp:desc",
+        },
+    });
+    const body = resp.data || {};
+    const hits = Array.isArray(body.hits) ? body.hits : [];
+    const docs = hits.map((h) => h?.document || {}).filter((doc) => !!doc?.id);
+    const foundIds = new Set(docs.map((doc) => String(doc.id)));
+    return {
+        requested: uniqueIds.length,
+        found: docs.length,
+        search_time_ms: Number(body.search_time_ms || 0),
+        missingIds: uniqueIds.filter((id) => !foundIds.has(id)),
+        hits: docs,
     };
 }
 async function getLatestPostIdsFromTypesense(limit, page) {
@@ -550,7 +795,7 @@ async function getLatestPostIdsFromTypesense(limit, page) {
         timeout: 10000,
         params: {
             q: "*",
-            query_by: "caption",
+            query_by: "metin",
             per_page: limit,
             page,
             sort_by: "timeStamp:desc",
@@ -658,8 +903,8 @@ exports.f14_syncPostsToTypesense = (0, firestore_1.onDocumentWritten)({
     const postId = event.params.postId;
     const beforeData = event.data?.before?.data();
     const afterData = event.data?.after?.data();
-    const beforeDoc = beforeData ? buildSearchDoc(postId, beforeData) : null;
-    const afterDoc = afterData ? buildSearchDoc(postId, afterData) : null;
+    const beforeDoc = beforeData ? await buildSearchDocForIndexing(postId, beforeData) : null;
+    const afterDoc = afterData ? await buildSearchDocForIndexing(postId, afterData) : null;
     const beforeIndexed = !!beforeDoc && shouldIndex(beforeDoc);
     const afterIndexed = !!afterDoc && shouldIndex(afterDoc);
     const beforeTagEntries = beforeIndexed && beforeData ? extractPostTags(beforeData) : [];
@@ -667,12 +912,42 @@ exports.f14_syncPostsToTypesense = (0, firestore_1.onDocumentWritten)({
     const beforeTags = beforeTagEntries.map((x) => x.tag);
     const afterTags = afterTagEntries.map((x) => x.tag);
     if (!afterData || !afterIndexed || !afterDoc) {
+        if (!afterData) {
+            console.log("post_sync_delete", { postId });
+        }
+        else if (afterDoc) {
+            console.log("post_sync_skip", {
+                postId,
+                reasons: collectSkipReasons(afterDoc),
+                hlsStatus: afterDoc.hlsStatus,
+                hasPlayableVideo: afterDoc.hasPlayableVideo,
+                thumbnail: !!afterDoc.thumbnail,
+                imgCount: afterDoc.img.length,
+                video: !!afterDoc.video,
+                hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+                arsiv: afterDoc.arsiv,
+                deletedPost: afterDoc.deletedPost,
+                gizlendi: afterDoc.gizlendi,
+                isUploading: afterDoc.isUploading,
+            });
+        }
         await deleteDoc(postId);
         if (beforeTags.length)
             await deleteTagDocs(postId, beforeTags);
         return;
     }
     await upsertDoc(afterDoc);
+    console.log("post_sync_upsert", {
+        postId,
+        hlsStatus: afterDoc.hlsStatus,
+        hasPlayableVideo: afterDoc.hasPlayableVideo,
+        thumbnail: !!afterDoc.thumbnail,
+        imgCount: afterDoc.img.length,
+        video: !!afterDoc.video,
+        hlsMasterUrl: !!afterDoc.hlsMasterUrl,
+        flood: afterDoc.flood,
+        floodCount: afterDoc.floodCount,
+    });
     const beforeSet = new Set(beforeTags);
     const afterSet = new Set(afterTags);
     const toDelete = beforeTags.filter((t) => !afterSet.has(t));
@@ -685,7 +960,7 @@ exports.f14_syncPostsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (toDelete.length)
         await deleteTagDocs(postId, toDelete);
     if (toUpsertEntries.length) {
-        await upsertTagDocs(postId, afterDoc.authorId || "", Number(afterDoc.timeStamp || Date.now()), toUpsertEntries);
+        await upsertTagDocs(postId, afterDoc.userID || "", Number(afterDoc.timeStamp || Date.now()), toUpsertEntries);
     }
 });
 const f14_syncUsersToTypesense = (0, firestore_1.onDocumentWritten)({
@@ -854,7 +1129,7 @@ exports.f14_reindexPostsToTypesenseCallable = (0, https_1.onCall)({
         scanned += 1;
         const postId = docSnap.id;
         const data = docSnap.data();
-        const doc = buildSearchDoc(postId, data);
+        const doc = await buildSearchDocForIndexing(postId, data);
         const tags = extractPostTags(data);
         if (!shouldIndex(doc)) {
             if (!dryRun) {
@@ -865,14 +1140,10 @@ exports.f14_reindexPostsToTypesenseCallable = (0, https_1.onCall)({
             deleted += 1;
             continue;
         }
-        if (!doc.caption && (!doc.hashtags || doc.hashtags.length === 0)) {
-            skipped += 1;
-            continue;
-        }
         if (!dryRun) {
             await upsertDoc(doc);
             if (tags.length) {
-                await upsertTagDocs(postId, doc.authorId || "", Number(doc.timeStamp || Date.now()), tags);
+                await upsertTagDocs(postId, doc.userID || "", Number(doc.timeStamp || Date.now()), tags);
             }
         }
         upserted += 1;
@@ -881,6 +1152,66 @@ exports.f14_reindexPostsToTypesenseCallable = (0, https_1.onCall)({
     const nextCursor = last ? last.id : null;
     const done = snap.docs.length < limit;
     return { scanned, upserted, deleted, skipped, nextCursor, done };
+});
+exports.f15_syncPostToTypesenseCallable = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+}, async (request) => {
+    ensureAdmin();
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
+    if (!typesenseReady()) {
+        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
+    }
+    const postId = String(request.data?.postId || "").trim();
+    if (!postId) {
+        throw new https_1.HttpsError("invalid-argument", "post_id_required");
+    }
+    const db = (0, firestore_2.getFirestore)();
+    const snap = await db.collection("Posts").doc(postId).get();
+    if (!snap.exists) {
+        await deleteDoc(postId);
+        return {
+            postId,
+            found: false,
+            indexed: false,
+            deleted: true,
+            reasons: ["missing_post"],
+        };
+    }
+    const data = snap.data();
+    const ownerId = asString(data.userID) || asString(data.authorId);
+    const isAdmin = request.auth?.token?.admin === true;
+    if (!isAdmin && ownerId && ownerId !== uid) {
+        throw new https_1.HttpsError("permission-denied", "post_owner_required");
+    }
+    const doc = await buildSearchDocForIndexing(postId, data);
+    const tags = extractPostTags(data);
+    if (!shouldIndex(doc)) {
+        await deleteDoc(postId);
+        if (tags.length)
+            await deleteTagDocs(postId, tags.map((x) => x.tag));
+        return {
+            postId,
+            found: true,
+            indexed: false,
+            deleted: true,
+            reasons: collectSkipReasons(doc),
+        };
+    }
+    await upsertDoc(doc);
+    if (tags.length) {
+        await upsertTagDocs(postId, doc.userID || "", Number(doc.timeStamp || Date.now()), tags);
+    }
+    return {
+        postId,
+        found: true,
+        indexed: true,
+        deleted: false,
+        reasons: [],
+    };
 });
 exports.f15_getLatestPostIdsCallable = (0, https_1.onCall)({
     region: REGION,
@@ -897,6 +1228,33 @@ exports.f15_getLatestPostIdsCallable = (0, https_1.onCall)({
     const page = Math.max(1, Number(request.data?.page || 1));
     try {
         return await getLatestPostIdsFromTypesense(limit, page);
+    }
+    catch (err) {
+        const detail = err?.response?.data || err?.message || "unknown_error";
+        throw new https_1.HttpsError("internal", "typesense_search_failed", detail);
+    }
+});
+exports.f15_getPostCardsByIdsCallable = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+}, async (request) => {
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
+    if (!typesenseReady()) {
+        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
+    }
+    const idsRaw = Array.isArray(request.data?.ids) ? request.data?.ids : [];
+    const ids = idsRaw.map((x) => String(x || "").trim()).filter(Boolean);
+    if (ids.length === 0) {
+        throw new https_1.HttpsError("invalid-argument", "ids_required");
+    }
+    if (ids.length > MAX_LIMIT) {
+        throw new https_1.HttpsError("invalid-argument", "too_many_ids");
+    }
+    try {
+        return await getPostCardsByIdsFromTypesense(ids);
     }
     catch (err) {
         const detail = err?.response?.data || err?.message || "unknown_error";

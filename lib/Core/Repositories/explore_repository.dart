@@ -194,7 +194,7 @@ class ExploreRepository extends GetxService {
     List<String> postIds, {
     bool preferCache = true,
   }) {
-    return PostRepository.ensure().fetchPostsByIds(
+    return PostRepository.ensure().fetchPostCardsByIds(
       postIds,
       preferCache: preferCache,
     );

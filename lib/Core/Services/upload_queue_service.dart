@@ -17,8 +17,10 @@ import 'package:turqappv2/Core/Utils/user_scoped_key.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/video_compression_service.dart';
+import 'package:turqappv2/Core/Services/typesense_post_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 enum UploadStatus {
   pending('Bekliyor'),
@@ -99,6 +101,21 @@ class UploadQueueService extends GetxController {
 
   static const String _queueKeyPrefix = 'upload_queue';
   static const int _maxRetries = 3;
+
+  String _normalizeHandleValue(dynamic raw) {
+    final value = raw?.toString().trim() ?? '';
+    if (value.isEmpty) return '';
+    if (value.contains(RegExp(r'\s'))) return '';
+    return value.replaceFirst(RegExp(r'^@+'), '');
+  }
+
+  String _firstNonEmptyValue(Iterable<dynamic> candidates) {
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
 
   bool _isAuthRetryableStorageError(FirebaseException e) {
     final code = e.code.toLowerCase();
@@ -246,6 +263,43 @@ class UploadQueueService extends GetxController {
         (postDataMap['quotedSourceUsername'] ?? '').toString().trim();
     final String quotedSourceAvatarUrl =
         (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
+    final currentUser = CurrentUserService.instance;
+    final String authorNickname = _firstNonEmptyValue([
+      _normalizeHandleValue(postDataMap['nickname']),
+      _normalizeHandleValue(postDataMap['authorNickname']),
+      _normalizeHandleValue(postDataMap['username']),
+      _normalizeHandleValue(currentUser.nickname),
+    ]);
+    final String username = _firstNonEmptyValue([
+      _normalizeHandleValue(postDataMap['username']),
+      _normalizeHandleValue(postDataMap['nickname']),
+      _normalizeHandleValue(postDataMap['authorNickname']),
+      _normalizeHandleValue(currentUser.nickname),
+      authorNickname,
+    ]);
+    final String fullName = _firstNonEmptyValue([
+      postDataMap['fullName'],
+      postDataMap['authorDisplayName'],
+      postDataMap['displayName'],
+      currentUser.fullName,
+      authorNickname,
+      username,
+    ]);
+    final String authorDisplayName = _firstNonEmptyValue([
+      postDataMap['authorDisplayName'],
+      postDataMap['displayName'],
+      fullName,
+      authorNickname,
+      username,
+    ]);
+    final String authorAvatarUrl =
+        (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
+            .toString()
+            .trim();
+    final String authorRozet = _firstNonEmptyValue([
+      postDataMap['rozet'],
+      currentUser.currentUser?.rozet.trim() ?? '',
+    ]);
     final int scheduledAt =
         int.tryParse('${postDataMap['scheduledAt'] ?? 0}') ?? 0;
 
@@ -302,6 +356,15 @@ class UploadQueueService extends GetxController {
       "thumbnail": "",
       "timeStamp": nowMs,
       "userID": userID,
+      "authorNickname": authorNickname,
+      "authorDisplayName": authorDisplayName,
+      "authorAvatarUrl": authorAvatarUrl,
+      "nickname": authorNickname,
+      "username": username,
+      "fullName": fullName,
+      "displayName": authorDisplayName,
+      "avatarUrl": authorAvatarUrl,
+      "rozet": authorRozet,
       "video": "",
       "isUploading": true,
       "yorumMap": yorumMap,
@@ -403,6 +466,43 @@ class UploadQueueService extends GetxController {
           (postDataMap['quotedSourceUsername'] ?? '').toString().trim();
       final String quotedSourceAvatarUrl =
           (postDataMap['quotedSourceAvatarUrl'] ?? '').toString().trim();
+      final currentUser = CurrentUserService.instance;
+      final String authorNickname = _firstNonEmptyValue([
+        _normalizeHandleValue(postDataMap['nickname']),
+        _normalizeHandleValue(postDataMap['authorNickname']),
+        _normalizeHandleValue(postDataMap['username']),
+        _normalizeHandleValue(currentUser.nickname),
+      ]);
+      final String username = _firstNonEmptyValue([
+        _normalizeHandleValue(postDataMap['username']),
+        _normalizeHandleValue(postDataMap['nickname']),
+        _normalizeHandleValue(postDataMap['authorNickname']),
+        _normalizeHandleValue(currentUser.nickname),
+        authorNickname,
+      ]);
+      final String fullName = _firstNonEmptyValue([
+        postDataMap['fullName'],
+        postDataMap['authorDisplayName'],
+        postDataMap['displayName'],
+        currentUser.fullName,
+        authorNickname,
+        username,
+      ]);
+      final String authorDisplayName = _firstNonEmptyValue([
+        postDataMap['authorDisplayName'],
+        postDataMap['displayName'],
+        fullName,
+        authorNickname,
+        username,
+      ]);
+      final String authorAvatarUrl =
+          (postDataMap['authorAvatarUrl'] ?? currentUser.avatarUrl)
+              .toString()
+              .trim();
+      final String authorRozet = _firstNonEmptyValue([
+        postDataMap['rozet'],
+        currentUser.currentUser?.rozet.trim() ?? '',
+      ]);
       if (yorumMap.isEmpty) {
         final bool comment = (postDataMap['comment'] ?? true) == true;
         yorumMap['visibility'] = comment ? 0 : 3;
@@ -568,6 +668,15 @@ class UploadQueueService extends GetxController {
         "thumbnail": "",
         "timeStamp": nowMs,
         "userID": userID,
+        "authorNickname": authorNickname,
+        "authorDisplayName": authorDisplayName,
+        "authorAvatarUrl": authorAvatarUrl,
+        "nickname": authorNickname,
+        "username": username,
+        "fullName": fullName,
+        "displayName": authorDisplayName,
+        "avatarUrl": authorAvatarUrl,
+        "rozet": authorRozet,
         "video": "",
         "isUploading": true,
         "yorumMap": yorumMap,
@@ -832,6 +941,11 @@ class UploadQueueService extends GetxController {
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
       PostRepository.ensure().mergeCachedPostData(upload.id, data);
+      unawaited(
+        TypesensePostService.instance
+            .syncPostById(upload.id)
+            .catchError((_) {}),
+      );
 
       if (sharedAsPost &&
           originalUserID.isNotEmpty &&

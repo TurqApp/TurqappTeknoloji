@@ -181,7 +181,7 @@ extension CreatorContentQuotedPart on CreatorContent {
           cacheOnly: false,
         ),
         if (sourcePostId.isNotEmpty)
-          postRepository.fetchPostsByIds([sourcePostId])
+          postRepository.fetchPostCardsByIds([sourcePostId])
         else
           Future.value(null),
       ]),

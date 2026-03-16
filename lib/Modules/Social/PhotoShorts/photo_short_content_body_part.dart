@@ -140,6 +140,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                       RozetContent(
                                         size: 14,
                                         userID: widget.model.userID,
+                                        rozetValue: widget.model.rozet,
                                       ),
                                     ],
                                   ),

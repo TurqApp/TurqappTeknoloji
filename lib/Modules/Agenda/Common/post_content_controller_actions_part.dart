@@ -224,6 +224,8 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> getUserData(String userID) async {
+    final postLevelNickname = model.authorNickname.trim();
+    final postLevelDisplayName = model.authorDisplayName.trim();
     final postLevelAvatarFallback = model.authorAvatarUrl.trim();
 
     void applyProfile({
@@ -239,11 +241,13 @@ extension PostContentControllerActionsPart on PostContentController {
       final normalizedImage = shouldUsePostFallback
           ? postLevelAvatarFallback
           : (rawImage.isEmpty ? kDefaultAvatarUrl : rawImage);
-      nickname.value = nick;
-      username.value = uname;
+      final effectiveNick = postLevelNickname.isNotEmpty ? postLevelNickname : nick;
+      final effectiveName = postLevelDisplayName.isNotEmpty ? postLevelDisplayName : name;
+      nickname.value = effectiveNick;
+      username.value = uname.isNotEmpty ? uname : effectiveNick;
       avatarUrl.value = normalizedImage;
       token.value = pushToken;
-      fullName.value = name;
+      fullName.value = effectiveName;
     }
 
     void cacheProfile({

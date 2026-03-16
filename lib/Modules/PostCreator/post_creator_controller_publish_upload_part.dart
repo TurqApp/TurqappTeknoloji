@@ -100,6 +100,13 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
     final allPosts = <PreparedPostModel>[];
     final uploadedPosts = <PostsModel>[];
     final uuid = const Uuid().v4();
+    final authorSummary = await _resolveAuthorSummary();
+    final authorNickname = authorSummary.nickname;
+    final authorUsername = authorSummary.username;
+    final authorFullName = authorSummary.fullName;
+    final authorDisplayName = authorSummary.displayName;
+    final authorAvatarUrl = authorSummary.avatarUrl;
+    final authorRozet = authorSummary.rozet;
 
     try {
       // Prepare all posts
@@ -408,6 +415,15 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "thumbnail": thumbnailUrl,
               "timeStamp": nowMs + index,
               "userID": FirebaseAuth.instance.currentUser!.uid,
+              "authorNickname": authorNickname,
+              "authorDisplayName": authorDisplayName,
+              "authorAvatarUrl": authorAvatarUrl,
+              "nickname": authorNickname,
+              "username": authorUsername,
+              "fullName": authorFullName,
+              "displayName": authorDisplayName,
+              "avatarUrl": authorAvatarUrl,
+              "rozet": authorRozet,
               "video": videoUrl,
               "videoLook": {
                 "preset": post.videoLookPreset,
@@ -440,6 +456,11 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                   ? _quotedSourceAvatarUrl
                   : "",
             });
+            unawaited(
+              TypesensePostService.instance
+                  .syncPostById(docID)
+                  .catchError((_) {}),
+            );
 
             if (_isSharedAsPost &&
                 _sharedOriginalUserID.isNotEmpty &&
@@ -495,6 +516,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 thumbnail: thumbnailUrl,
                 timeStamp: nowMs + index,
                 userID: FirebaseAuth.instance.currentUser!.uid,
+                authorNickname: authorNickname,
+                authorAvatarUrl: authorAvatarUrl,
                 video: videoUrl,
                 videoLook: {
                   "preset": post.videoLookPreset,

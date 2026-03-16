@@ -101,7 +101,7 @@ class UserPostLinkService {
         i + 10 > limitedRefs.length ? limitedRefs.length : i + 10,
       );
       final ids = chunk.map((e) => e.postId).toSet().toList();
-      final query = await _postRepository.fetchPostsByIds(ids);
+      final query = await _postRepository.fetchPostCardsByIds(ids);
 
       final foundIds = <String>{};
       for (final entry in query.entries) {

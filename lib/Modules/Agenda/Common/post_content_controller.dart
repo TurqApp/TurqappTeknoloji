@@ -208,6 +208,10 @@ class PostContentController extends GetxController {
         username.value = denormNick;
       }
     }
+    final denormDisplayName = model.authorDisplayName.trim();
+    if (denormDisplayName.isNotEmpty) {
+      fullName.value = denormDisplayName;
+    }
     // Delay reactive counter hydration until after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed) return;
