@@ -247,6 +247,63 @@ test("market offers allow buyer create and seller respond", async () => {
   );
 });
 
+test("market reviews allow non-owner create and update", async () => {
+  const sellerUid = "market-review-seller";
+  const reviewerUid = "market-review-user";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000006"), {
+      id: "1742160000006",
+      userId: sellerUid,
+      title: "İlan",
+      description: "",
+      price: 500,
+      currency: "TRY",
+      categoryKey: "antika/aydinlatma",
+      categoryPath: ["Antika", "Aydınlatma"],
+      attributes: {},
+      city: "Ankara",
+      district: "Çankaya",
+      locationText: "Çankaya, Ankara",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000006,
+      updatedAt: 1742160000006,
+      offerCount: 0,
+      favoriteCount: 0,
+      viewCount: 0,
+    });
+  });
+
+  const reviewerCtx = testEnv.authenticatedContext(reviewerUid);
+  const reviewRef = doc(
+    reviewerCtx.firestore(),
+    "marketStore/1742160000006/Reviews/" + reviewerUid,
+  );
+
+  await assertSucceeds(
+    setDoc(reviewRef, {
+      userID: reviewerUid,
+      itemId: "1742160000006",
+      rating: 4,
+      comment: "Gayet iyi",
+      timeStamp: 1742160000600,
+    }),
+  );
+
+  await assertSucceeds(
+    setDoc(reviewRef, {
+      userID: reviewerUid,
+      itemId: "1742160000006",
+      rating: 5,
+      comment: "Harika",
+      timeStamp: 1742160000700,
+    }),
+  );
+});
+
 test("posts collection allows admin to update another user's post", async () => {
   const ownerUid = "post-owner";
   const adminUid = "admin-user";

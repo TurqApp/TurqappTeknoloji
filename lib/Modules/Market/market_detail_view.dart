@@ -1,18 +1,24 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
+import 'package:turqappv2/Core/Services/market_review_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Models/market_review_model.dart';
+import 'package:turqappv2/Modules/Chat/ChatListing/chat_listing.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
+import 'package:turqappv2/Modules/Market/market_offers_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -32,7 +38,9 @@ class MarketDetailView extends StatefulWidget {
 
 class _MarketDetailViewState extends State<MarketDetailView> {
   static const MarketContactService _contactService = MarketContactService();
+  static const MarketReviewService _reviewService = MarketReviewService();
   static final MarketRepository _repository = MarketRepository.ensure();
+  static final UserRepository _userRepository = UserRepository.ensure();
   static final TypesenseMarketSearchService _typesense =
       TypesenseMarketSearchService.instance;
   late final PageController _pageController;
@@ -40,10 +48,14 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   int _currentPage = 0;
   bool _isRefreshing = false;
   bool _isUpdatingStatus = false;
+  bool _isLoadingReviews = false;
+  List<MarketReviewModel> _reviews = const <MarketReviewModel>[];
+  Map<String, Map<String, dynamic>> _reviewUsers =
+      const <String, Map<String, dynamic>>{};
 
   MarketItemModel get item => _item;
   bool get _isOwner {
-    final uid = CurrentUserService.instance.userId.trim();
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
     return uid.isNotEmpty && uid == item.userId;
   }
 
@@ -66,6 +78,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     _pageController = PageController();
     _incrementViewCount();
     _refreshItem(silent: true);
+    _loadReviews();
   }
 
   @override
@@ -153,7 +166,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             ],
             const SizedBox(height: 14),
             Text(
-              '${item.price.toStringAsFixed(0)} ${_currencyLabel(item.currency)}',
+              '${_formattedMoney(item.price)} ${_currencyLabel(item.currency)}',
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 24,
@@ -190,7 +203,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
             const SizedBox(height: 8),
             Text(
               item.description.isEmpty
-                  ? 'Bu ilan icin aciklama eklenmemis.'
+                  ? 'Bu ilan için açıklama eklenmemiş.'
                   : item.description,
               style: const TextStyle(
                 color: Colors.black87,
@@ -200,22 +213,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               ),
             ),
             const SizedBox(height: 18),
-            _infoCard(
-              title: 'İlan Bilgileri',
-              children: [
-                _infoRow('Kategori', item.categoryPath.join(' > ')),
-                _infoRow('Durum', _statusLabel(item.status)),
-                _infoRow(
-                  'İletişim',
-                  item.canShowPhone ? 'Telefon + Mesaj' : 'Sadece Mesaj',
-                ),
-                _infoRow('Goruntulenme', item.viewCount.toString()),
-                _infoRow('Kaydeden', item.favoriteCount.toString()),
-                _infoRow('Teklif', item.offerCount.toString()),
-              ],
-            ),
             if (item.attributes.isNotEmpty) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
               _infoCard(
                 title: 'Özellikler',
                 children: item.attributes.entries
@@ -231,81 +230,108 @@ class _MarketDetailViewState extends State<MarketDetailView> {
               ),
             ],
             const SizedBox(height: 18),
+            _infoCard(
+              title: 'İlan Bilgileri',
+              children: [
+                _infoRow('Kategori', item.categoryPath.join(' > ')),
+                _infoRow('Durum', _statusLabel(item.status)),
+                _infoRow(
+                  'İletişim',
+                  item.canShowPhone ? 'Telefon + Mesaj' : 'Sadece Mesaj',
+                ),
+                _infoRow('Görüntülenme', item.viewCount.toString()),
+                _infoRow('Kaydeden', item.favoriteCount.toString()),
+                _infoRow('Teklif', item.offerCount.toString()),
+              ],
+            ),
+            const SizedBox(height: 18),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 color: const Color(0xFFF6F7FB),
               ),
-              child: GestureDetector(
-                onTap: item.userId.trim().isEmpty
-                    ? null
-                    : () => Get.to(() => SocialProfile(userID: item.userId)),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFFE5E7EB),
-                      backgroundImage: item.sellerPhotoUrl.trim().isNotEmpty
-                          ? NetworkImage(item.sellerPhotoUrl)
-                          : null,
-                      child: item.sellerPhotoUrl.trim().isEmpty
-                          ? const Icon(
-                              CupertinoIcons.person_fill,
-                              color: Colors.black54,
-                              size: 18,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: item.userId.trim().isEmpty
+                        ? null
+                        : () => Get.to(() => SocialProfile(userID: item.userId)),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFFE5E7EB),
+                          backgroundImage: item.sellerPhotoUrl.trim().isNotEmpty
+                              ? NetworkImage(item.sellerPhotoUrl)
+                              : null,
+                          child: item.sellerPhotoUrl.trim().isEmpty
+                              ? const Icon(
+                                  CupertinoIcons.person_fill,
+                                  color: Colors.black54,
+                                  size: 18,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Flexible(
-                                child: Text(
-                                  item.sellerName.isEmpty
-                                      ? 'Turq Kullanıcı'
-                                      : item.sellerName,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      item.sellerName.isEmpty
+                                          ? 'Turq Kullanıcı'
+                                          : item.sellerName,
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 16,
+                                        fontFamily: 'MontserratBold',
+                                      ),
+                                    ),
+                                  ),
+                                  if (item.sellerRozet.trim().isNotEmpty)
+                                    RozetContent(
+                                      size: 14,
+                                      userID: item.userId,
+                                      rozetValue: item.sellerRozet,
+                                      leftSpacing: 1,
+                                    ),
+                                ],
+                              ),
+                              if (item.sellerUsername.trim().isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '@${item.sellerUsername}',
                                   style: const TextStyle(
-                                    color: Colors.black87,
-                                    fontSize: 14,
-                                    fontFamily: 'MontserratBold',
+                                    color: Colors.black54,
+                                    fontSize: 13,
+                                    fontFamily: 'MontserratMedium',
                                   ),
                                 ),
-                              ),
-                              if (item.sellerRozet.trim().isNotEmpty)
-                                RozetContent(
-                                  size: 16,
-                                  userID: '',
-                                  rozetValue: item.sellerRozet,
-                                  leftSpacing: 4,
-                                ),
+                              ],
                             ],
                           ),
-                          if (item.sellerUsername.trim().isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              '@${item.sellerUsername}',
-                              style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 13,
-                                fontFamily: 'MontserratMedium',
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                        const Icon(
+                          CupertinoIcons.chevron_right,
+                          color: Colors.black38,
+                          size: 18,
+                        ),
+                      ],
                     ),
-                    const Icon(
-                      CupertinoIcons.chevron_right,
-                      color: Colors.black38,
-                      size: 18,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(
+                    height: 1,
+                    color: Colors.black.withValues(alpha: 0.06),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildReviewsSection(),
+                ],
               ),
             ),
             const SizedBox(height: 18),
@@ -346,15 +372,22 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 children: [
                   Expanded(
                     child: _primaryButton(
-                      label: 'İlanı Düzenle',
+                      label: 'Düzenle',
                       onTap: _openEdit,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _secondaryButton(
-                      label: 'İlanı Paylaş',
-                      onTap: () => const MarketShareService().shareItem(item),
+                      label: 'Mesajlar',
+                      onTap: () => Get.to(() => ChatListing()),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _secondaryButton(
+                      label: 'Teklifler',
+                      onTap: () => Get.to(() => const MarketOffersView()),
                     ),
                   ),
                 ],
@@ -432,7 +465,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                       color: const Color(0xFFF6F7FB),
                     ),
                     child: const Text(
-                      'Bu kategori icin baska ilan bulunamadi.',
+                      'Bu kategori için başka ilan bulunamadı.',
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 13,
@@ -769,6 +802,451 @@ class _MarketDetailViewState extends State<MarketDetailView> {
     );
   }
 
+  Widget _buildReviewsSection() {
+    final canReview = !_isOwner;
+    final totalReviews = _reviews.length;
+    final ratingCounts = <int, int>{
+      for (var star = 1; star <= 5; star++) star: 0,
+    };
+    for (final review in _reviews) {
+      final rating = review.rating.clamp(1, 5);
+      ratingCounts[rating] = (ratingCounts[rating] ?? 0) + 1;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Değerlendirmeler',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 15,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+            ),
+            if (canReview)
+              GestureDetector(
+                onTap: _showReviewSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Değerlendir',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_isLoadingReviews)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: CupertinoActivityIndicator(),
+          )
+        else if (_reviews.isEmpty)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: List.generate(
+                  5,
+                  (index) => const Padding(
+                    padding: EdgeInsets.only(right: 2),
+                    child: Icon(
+                      Icons.star_border_rounded,
+                      size: 18,
+                      color: Colors.amber,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Henüz değerlendirme yok.',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+            ],
+          )
+        else ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: List.generate(5, (index) {
+                final star = 5 - index;
+                final count = ratingCounts[star] ?? 0;
+                final percent = totalReviews == 0 ? 0.0 : count / totalReviews;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: index == 4 ? 0 : 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        child: Text(
+                          '$star',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: percent,
+                            minHeight: 8,
+                            backgroundColor: Colors.grey.shade300,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.amber,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 42,
+                        child: Text(
+                          '%${(percent * 100).round()}',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            color: Colors.black54,
+                            fontSize: 12,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ..._reviews.map(_buildReviewCard),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildReviewCard(MarketReviewModel review) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final user = _reviewUsers[review.userId] ?? const <String, dynamic>{};
+    final name = (user['nickname'] ??
+            user['username'] ??
+            user['displayName'] ??
+            user['fullName'] ??
+            '')
+        .toString()
+        .trim();
+    final avatarUrl = (user['avatarUrl'] ?? '').toString().trim();
+    final rozet = (user['rozet'] ?? '').toString().trim();
+    final isOwn = currentUserId == review.userId;
+    final shouldHide = name.isEmpty && avatarUrl.isEmpty && review.comment.isEmpty;
+    if (shouldHide) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: const Color(0xFFE5E7EB),
+                backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                child: avatarUrl.isEmpty
+                    ? const Icon(Icons.person, size: 16, color: Colors.black54)
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name.isEmpty ? 'Kullanıcı' : name,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontFamily: 'MontserratBold',
+                        ),
+                      ),
+                    ),
+                    if (rozet.isNotEmpty)
+                      RozetContent(
+                        size: 12,
+                        userID: review.userId,
+                        rozetValue: rozet,
+                        leftSpacing: 1,
+                      ),
+                  ],
+                ),
+              ),
+              Row(
+                children: List.generate(
+                  5,
+                  (index) => Icon(
+                    index < review.rating ? Icons.star : Icons.star_border,
+                    size: 16,
+                    color: Colors.amber,
+                  ),
+                ),
+              ),
+              if (isOwn) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => _deleteReview(review.reviewId),
+                  child: const Icon(
+                    CupertinoIcons.trash,
+                    size: 16,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (review.comment.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              review.comment,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadReviews() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingReviews = true;
+    });
+    try {
+      final reviews = await _reviewService.fetchReviews(item.id);
+      final userIds = reviews.map((e) => e.userId).toSet().toList(growable: false);
+      final summaries = userIds.isEmpty
+          ? const <String, dynamic>{}
+          : await _userRepository.getUsers(userIds);
+      if (!mounted) return;
+      setState(() {
+        _reviews = reviews;
+        _reviewUsers = {
+          for (final entry in summaries.entries) entry.key: entry.value.toMap(),
+        };
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _reviews = const <MarketReviewModel>[];
+        _reviewUsers = const <String, Map<String, dynamic>>{};
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingReviews = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showReviewSheet() async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (currentUserId.isEmpty) {
+      AppSnackbar('Bilgi', 'Değerlendirme yapmak için giriş yapmalısın.');
+      return;
+    }
+    final existingReview = _reviews
+        .where((review) => review.userId == currentUserId)
+        .cast<MarketReviewModel?>()
+        .firstOrNull;
+    final selectedRating = ValueNotifier<int>(existingReview?.rating ?? 5);
+    final commentController = TextEditingController();
+    commentController.text = existingReview?.comment ?? '';
+    final isSubmitting = ValueNotifier<bool>(false);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+          ),
+          child: ValueListenableBuilder<bool>(
+            valueListenable: isSubmitting,
+            builder: (context, submitting, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Değerlendir',
+                    style: TextStyle(
+                      fontFamily: 'MontserratBold',
+                      fontSize: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: selectedRating,
+                      builder: (context, rating, _) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            return GestureDetector(
+                              onTap: () => selectedRating.value = index + 1,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  index < rating ? Icons.star : Icons.star_border,
+                                  size: 28,
+                                  color: index < rating
+                                      ? Colors.amber
+                                      : Colors.grey,
+                                ),
+                              ),
+                            );
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    decoration: _inputDecoration('Yorumunuzu yazın'),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: submitting
+                          ? null
+                          : () async {
+                              if (selectedRating.value == 0) {
+                                AppSnackbar('Hata', 'Lütfen bir puan seçin.');
+                                return;
+                              }
+                              isSubmitting.value = true;
+                              try {
+                                await _reviewService.submitReview(
+                                  itemId: item.id,
+                                  ownerId: item.userId,
+                                  rating: selectedRating.value,
+                                  comment: commentController.text.trim(),
+                                );
+                                if (sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
+                                }
+                                await _loadReviews();
+                                AppSnackbar(
+                                  'Başarılı',
+                                  'Değerlendirmeniz kaydedildi.',
+                                );
+                              } catch (e) {
+                                final message = e.toString().contains(
+                                      'own_item_review_not_allowed',
+                                    )
+                                    ? 'Kendi ilanını değerlendiremezsin.'
+                                    : 'Değerlendirme gönderilemedi.';
+                                AppSnackbar('Hata', message);
+                              } finally {
+                                isSubmitting.value = false;
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                          ),
+                      child: submitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'Kaydet',
+                              style: TextStyle(
+                                fontFamily: 'MontserratBold',
+                                fontSize: 15,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteReview(String reviewId) async {
+    try {
+      await _reviewService.deleteReview(itemId: item.id, reviewId: reviewId);
+      await _loadReviews();
+      AppSnackbar('Başarılı', 'Değerlendirmeniz kaldırıldı.');
+    } catch (_) {
+      AppSnackbar('Hata', 'Değerlendirme kaldırılamadı.');
+    }
+  }
+
   double _normalizeOfferPrice(double value) {
     if (value <= 0) return 0;
     if (value < 100) return value.roundToDouble();
@@ -845,9 +1323,11 @@ class _MarketDetailViewState extends State<MarketDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 86,
+            width: 110,
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.black54,
                 fontSize: 13,
@@ -858,6 +1338,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
           Expanded(
             child: Text(
               value.trim().isEmpty ? '-' : value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.black87,
                 fontSize: 13,

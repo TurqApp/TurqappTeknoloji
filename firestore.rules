@@ -683,11 +683,25 @@ service cloud.firestore {
     }
     function canClientUpdateMarketCounters() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'favoriteCount', 'offerCount', 'viewCount', 'lastOfferAt', 'updatedAt'
+          'favoriteCount', 'offerCount', 'viewCount', 'lastOfferAt', 'updatedAt',
+          'averageRating', 'reviewCount'
         ])
         && marketIntFieldUnchangedOrDeltaOne('favoriteCount')
         && marketIntFieldUnchangedOrIncrement('offerCount')
         && marketIntFieldUnchangedOrIncrement('viewCount')
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount'])
+          || (request.resource.data.reviewCount is int && request.resource.data.reviewCount >= 0)
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['averageRating'])
+          || request.resource.data.averageRating == null
+          || (
+            request.resource.data.averageRating is number
+            && request.resource.data.averageRating >= 0
+            && request.resource.data.averageRating <= 5
+          )
+        )
         && (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastOfferAt'])
           || request.resource.data.lastOfferAt is int
@@ -1082,6 +1096,29 @@ service cloud.firestore {
         allow create: if canCreateMarketOffer(itemId);
         allow update: if canSellerRespondToMarketOffer(itemId);
         allow delete: if false;
+      }
+
+      match /Reviews/{reviewerId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && reviewerId == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            'userID', 'itemId', 'rating', 'comment', 'timeStamp'
+          ])
+          && request.resource.data.userID is string
+          && request.resource.data.userID == request.auth.uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.rating is int
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() <= 1000
+          && request.resource.data.timeStamp is int
+          && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+          && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId is string
+          && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId != request.auth.uid;
+        allow delete: if isAuth() && reviewerId == request.auth.uid;
       }
 
       match /reports/{reportId} {
