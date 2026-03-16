@@ -628,6 +628,106 @@ service cloud.firestore {
         && v.size() <= 30
         && v.matches('^[a-z0-9._]+$');
     }
+    function isMarketContactPreference(v) {
+      return v in ['message_only', 'phone'];
+    }
+    function isMarketStatus(v) {
+      return v in ['draft', 'active', 'reserved', 'sold', 'archived'];
+    }
+    function isValidMarketItemPayload() {
+      return request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 20000
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0
+        && request.resource.data.currency is string
+        && request.resource.data.categoryKey is string
+        && request.resource.data.categoryPath is list
+        && request.resource.data.city is string
+        && request.resource.data.district is string
+        && request.resource.data.locationText is string
+        && request.resource.data.contactPreference is string
+        && isMarketContactPreference(request.resource.data.contactPreference)
+        && request.resource.data.status is string
+        && isMarketStatus(request.resource.data.status)
+        && request.resource.data.imageUrls is list
+        && request.resource.data.coverImageUrl is string
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int
+        && request.resource.data.attributes is map;
+    }
+    function marketIntFieldUnchangedOrDeltaOne(field) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
+        || (
+          resource.data[field] is int
+          && request.resource.data[field] is int
+          && request.resource.data[field] >= 0
+          && (
+            request.resource.data[field] == resource.data[field] + 1
+            || request.resource.data[field] == resource.data[field] - 1
+          )
+        );
+    }
+    function marketIntFieldUnchangedOrIncrement(field) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([field])
+        || (
+          resource.data[field] is int
+          && request.resource.data[field] is int
+          && request.resource.data[field] >= resource.data[field]
+          && request.resource.data[field] == resource.data[field] + 1
+        );
+    }
+    function canClientUpdateMarketCounters() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'favoriteCount', 'offerCount', 'viewCount', 'lastOfferAt', 'updatedAt'
+        ])
+        && marketIntFieldUnchangedOrDeltaOne('favoriteCount')
+        && marketIntFieldUnchangedOrIncrement('offerCount')
+        && marketIntFieldUnchangedOrIncrement('viewCount')
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastOfferAt'])
+          || request.resource.data.lastOfferAt is int
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['updatedAt'])
+          || request.resource.data.updatedAt is int
+        );
+    }
+    function canSellerRespondToMarketOffer(itemId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/marketStore/$(itemId))
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId == request.auth.uid
+        && resource.data.sellerId == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'updatedAt', 'respondedAt'
+        ])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.updatedAt is int
+        && request.resource.data.respondedAt is int;
+    }
+    function canCreateMarketOffer(itemId) {
+      return isAuth()
+        && exists(/databases/$(database)/documents/marketStore/$(itemId))
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId is string
+        && get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId != request.auth.uid
+        && request.resource.data.buyerId is string
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId is string
+        && request.resource.data.sellerId
+            == get(/databases/$(database)/documents/marketStore/$(itemId)).data.userId
+        && request.resource.data.itemId is string
+        && request.resource.data.itemId == itemId
+        && request.resource.data.offerPrice is number
+        && request.resource.data.offerPrice > 0
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int;
+    }
 
     // ──────────────────────────────────────────────
     // USERS
@@ -723,6 +823,16 @@ service cloud.firestore {
       match /saved_posts/{postId} {
         allow read: if isOwner(uid);
         allow write: if isOwner(uid);
+      }
+      match /savedMarket/{itemId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.userId is string
+          && request.resource.data.userId == uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.createdAt is int;
+        allow delete: if isOwner(uid);
       }
       match /saved_practice_exams/{examId} {
         allow read, write: if isOwner(uid);
@@ -935,6 +1045,50 @@ service cloud.firestore {
 
     match /users/{uid}/savedMusic/{musicId} {
       allow read, write: if isOwner(uid);
+    }
+
+    // ──────────────────────────────────────────────
+    // MARKET
+    // ──────────────────────────────────────────────
+    match /marketStore/{itemId} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && isValidMarketItemPayload();
+      allow update: if isAuth() && (
+        resource.data.userId == request.auth.uid
+        || canClientUpdateMarketCounters()
+      );
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+
+      match /favorites/{favoriteId} {
+        allow read: if isAuth();
+        allow create, update: if isAuth()
+          && request.auth.uid == favoriteId
+          && request.resource.data.userId is string
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.itemId is string
+          && request.resource.data.itemId == itemId
+          && request.resource.data.createdAt is int;
+        allow delete: if isAuth() && request.auth.uid == favoriteId;
+      }
+
+      match /offers/{offerId} {
+        allow read: if isAuth()
+          && (
+            resource.data.buyerId == request.auth.uid
+            || resource.data.sellerId == request.auth.uid
+          );
+        allow create: if canCreateMarketOffer(itemId);
+        allow update: if canSellerRespondToMarketOffer(itemId);
+        allow delete: if false;
+      }
+
+      match /reports/{reportId} {
+        allow read: if false;
+        allow create: if isAuth();
+        allow update, delete: if false;
+      }
     }
 
     // ──────────────────────────────────────────────

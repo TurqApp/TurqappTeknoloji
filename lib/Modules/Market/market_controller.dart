@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
@@ -71,16 +72,22 @@ class MarketController extends GetxController {
     isLoading.value = true;
     try {
       await _schemaService.loadSchema();
-      categories.assignAll(_schemaService.categories());
+      final loadedCategories =
+          _schemaService.categories().toList(growable: true)
+            ..sort(
+              (a, b) => compareTurkishStrings(
+                (a['label'] ?? '').toString(),
+                (b['label'] ?? '').toString(),
+              ),
+            );
+      categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
       final fetchedItems = await _repository.fetchLatestItems(
         limit: 24,
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
-      items.assignAll(
-        fetchedItems.isEmpty ? _repository.sampleItems() : fetchedItems,
-      );
+      items.assignAll(fetchedItems);
       await _loadSavedItems();
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
       _applyFilters();
@@ -141,7 +148,8 @@ class MarketController extends GetxController {
       final city = item.city.trim();
       if (city.isNotEmpty) out.add(city);
     }
-    final list = out.toList()..sort();
+    final list = out.toList();
+    sortTurkishStrings(list);
     return list;
   }
 

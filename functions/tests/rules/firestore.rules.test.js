@@ -67,6 +67,186 @@ test("users collection blocks owner from writing moderation fields", async () =>
   );
 });
 
+test("marketStore allows owner to create item", async () => {
+  const uid = "market-owner";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  const itemRef = doc(ownerCtx.firestore(), "marketStore/1742160000001");
+
+  await assertSucceeds(
+    setDoc(itemRef, {
+      id: "1742160000001",
+      userId: uid,
+      title: "iPhone 13",
+      description: "Temiz kullanıldı",
+      price: 28500,
+      currency: "TRY",
+      categoryKey: "elektronik/telefon/iphone-ios-telefon",
+      categoryPath: ["Elektronik", "Telefon", "iPhone iOS Telefon"],
+      attributes: { Durum: "İyi" },
+      city: "İstanbul",
+      district: "Kadıköy",
+      locationText: "Kadıköy, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "https://example.com/cover.webp",
+      imageUrls: ["https://example.com/cover.webp"],
+      createdAt: 1742160000001,
+      updatedAt: 1742160000001,
+    }),
+  );
+});
+
+test("marketStore blocks creating item for another user", async () => {
+  const uid = "market-actor";
+  const actorCtx = testEnv.authenticatedContext(uid);
+  const itemRef = doc(actorCtx.firestore(), "marketStore/1742160000002");
+
+  await assertFails(
+    setDoc(itemRef, {
+      id: "1742160000002",
+      userId: "someone-else",
+      title: "Yetkisiz ilan",
+      description: "",
+      price: 0,
+      currency: "TRY",
+      categoryKey: "antika/aydinlatma",
+      categoryPath: ["Antika", "Aydınlatma"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Kadıköy",
+      locationText: "Kadıköy, İstanbul",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000002,
+      updatedAt: 1742160000002,
+    }),
+  );
+});
+
+test("marketStore allows authenticated single-step view increments", async () => {
+  const ownerUid = "market-owner-view";
+  const viewerUid = "market-viewer";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000003"), {
+      id: "1742160000003",
+      userId: ownerUid,
+      title: "MacBook Air",
+      description: "Temiz",
+      price: 100,
+      currency: "TRY",
+      categoryKey: "elektronik/bilgisayar",
+      categoryPath: ["Elektronik", "Bilgisayar"],
+      attributes: {},
+      city: "İstanbul",
+      district: "Beşiktaş",
+      locationText: "Beşiktaş, İstanbul",
+      contactPreference: "phone",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000003,
+      updatedAt: 1742160000003,
+      viewCount: 1,
+      offerCount: 0,
+      favoriteCount: 0,
+    });
+  });
+
+  const viewerCtx = testEnv.authenticatedContext(viewerUid);
+  await assertSucceeds(
+    updateDoc(doc(viewerCtx.firestore(), "marketStore/1742160000003"), {
+      viewCount: 2,
+      updatedAt: 1742160000100,
+    }),
+  );
+});
+
+test("savedMarket allows owner write", async () => {
+  const uid = "market-saver";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+
+  await assertSucceeds(
+    setDoc(doc(ownerCtx.firestore(), `users/${uid}/savedMarket/1742160000004`), {
+      itemId: "1742160000004",
+      userId: uid,
+      createdAt: 1742160000200,
+    }),
+  );
+});
+
+test("market offers allow buyer create and seller respond", async () => {
+  const sellerUid = "market-seller";
+  const buyerUid = "market-buyer";
+  const offerId = "1742160000300";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "marketStore/1742160000005"), {
+      id: "1742160000005",
+      userId: sellerUid,
+      title: "İlan",
+      description: "",
+      price: 500,
+      currency: "TRY",
+      categoryKey: "antika/aydinlatma",
+      categoryPath: ["Antika", "Aydınlatma"],
+      attributes: {},
+      city: "Ankara",
+      district: "Çankaya",
+      locationText: "Çankaya, Ankara",
+      contactPreference: "message_only",
+      status: "active",
+      coverImageUrl: "",
+      imageUrls: [],
+      createdAt: 1742160000005,
+      updatedAt: 1742160000005,
+      offerCount: 0,
+      favoriteCount: 0,
+      viewCount: 0,
+    });
+  });
+
+  const buyerCtx = testEnv.authenticatedContext(buyerUid);
+  const offerRef = doc(
+    buyerCtx.firestore(),
+    `marketStore/1742160000005/offers/${offerId}`,
+  );
+  await assertSucceeds(
+    setDoc(offerRef, {
+      id: offerId,
+      itemId: "1742160000005",
+      itemTitle: "İlan",
+      coverImageUrl: "",
+      locationText: "Çankaya, Ankara",
+      buyerId: buyerUid,
+      sellerId: sellerUid,
+      offerPrice: 450,
+      currency: "TRY",
+      message: "",
+      status: "pending",
+      createdAt: 1742160000300,
+      updatedAt: 1742160000300,
+    }),
+  );
+
+  const sellerCtx = testEnv.authenticatedContext(sellerUid);
+  await assertSucceeds(
+    updateDoc(
+      doc(
+        sellerCtx.firestore(),
+        `marketStore/1742160000005/offers/${offerId}`,
+      ),
+      {
+        status: "accepted",
+        updatedAt: 1742160000400,
+        respondedAt: 1742160000400,
+      },
+    ),
+  );
+});
+
 test("posts collection allows admin to update another user's post", async () => {
   const ownerUid = "post-owner";
   const adminUid = "admin-user";
