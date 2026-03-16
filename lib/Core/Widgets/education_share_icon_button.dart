@@ -44,7 +44,7 @@ class EducationShareIconButton extends StatelessWidget {
     super.key,
     required this.onTap,
     this.size = 28,
-    this.iconSize = 17,
+    this.iconSize = 18,
   });
 
   final VoidCallback onTap;
@@ -67,7 +67,7 @@ class EducationFeedShareIconButton extends StatelessWidget {
     super.key,
     required this.onTap,
     this.size = 28,
-    this.iconSize = 17,
+    this.iconSize = 18,
     this.iconColor = Colors.black87,
   });
 
@@ -102,22 +102,28 @@ class _EducationFeedSharePainter extends CustomPainter {
     final stroke = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.12
-      ..strokeCap = StrokeCap.round;
-    final fill = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
+      ..strokeWidth = size.width * 0.08
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final left = Offset(size.width * 0.28, size.height * 0.56);
-    final topRight = Offset(size.width * 0.74, size.height * 0.28);
-    final bottomRight = Offset(size.width * 0.74, size.height * 0.78);
-    final radius = size.width * 0.16;
+    final nodeRadius = size.width * 0.12;
+    final left = Offset(size.width * 0.26, size.height * 0.56);
+    final topRight = Offset(size.width * 0.72, size.height * 0.30);
+    final bottomRight = Offset(size.width * 0.72, size.height * 0.78);
 
-    canvas.drawLine(left, topRight, stroke);
-    canvas.drawLine(left, bottomRight, stroke);
-    canvas.drawCircle(left, radius, fill);
-    canvas.drawCircle(topRight, radius, fill);
-    canvas.drawCircle(bottomRight, radius, fill);
+    canvas.drawLine(
+      Offset(left.dx + nodeRadius * 0.85, left.dy - nodeRadius * 0.55),
+      Offset(topRight.dx - nodeRadius * 0.95, topRight.dy + nodeRadius * 0.45),
+      stroke,
+    );
+    canvas.drawLine(
+      Offset(left.dx + nodeRadius * 0.85, left.dy + nodeRadius * 0.55),
+      Offset(bottomRight.dx - nodeRadius * 0.95, bottomRight.dy - nodeRadius * 0.45),
+      stroke,
+    );
+    canvas.drawCircle(left, nodeRadius, stroke);
+    canvas.drawCircle(topRight, nodeRadius, stroke);
+    canvas.drawCircle(bottomRight, nodeRadius, stroke);
   }
 
   @override
