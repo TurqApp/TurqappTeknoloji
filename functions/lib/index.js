@@ -73,6 +73,7 @@ __exportStar(require("./17_shortLinksIndex"), exports);
 __exportStar(require("./18_tutoringNotifications"), exports);
 __exportStar(require("./19_adsCenter"), exports);
 __exportStar(require("./20_moderationConfig"), exports);
+__exportStar(require("./21_typesenseEducation"), exports);
 __exportStar(require("./22_badgeAdmin"), exports);
 __exportStar(require("./23_sharedPostCascade"), exports);
 __exportStar(require("./24_reports"), exports);

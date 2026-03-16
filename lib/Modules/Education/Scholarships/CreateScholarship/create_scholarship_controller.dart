@@ -9,8 +9,10 @@ import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/scholarship_preview_view.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
@@ -22,6 +24,7 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 
 class CreateScholarshipController extends GetxController {
+  final UserRepository _userRepository = UserRepository.ensure();
   var isLoading = false.obs;
   var isEditing = false.obs;
   var scholarshipId = ''.obs;
@@ -129,6 +132,33 @@ class CreateScholarshipController extends GetxController {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final GlobalKey templateKey = GlobalKey();
+
+  Future<Map<String, dynamic>> _authorFieldsForCurrentUser() async {
+    final uid = currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      return const <String, dynamic>{
+        'authorNickname': '',
+        'authorDisplayName': '',
+        'authorAvatarUrl': '',
+        'rozet': '',
+      };
+    }
+    final raw = await _userRepository.getUserRaw(
+      uid,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    final nickname = (raw?['nickname'] ?? '').toString().trim();
+    final displayName = (raw?['displayName'] ?? '').toString().trim();
+    final avatarUrl = (raw?['avatarUrl'] ?? '').toString().trim();
+    final rozet = (raw?['rozet'] ?? '').toString().trim();
+    return <String, dynamic>{
+      'authorNickname': nickname,
+      'authorDisplayName': displayName.isNotEmpty ? displayName : nickname,
+      'authorAvatarUrl': avatarUrl,
+      'rozet': rozet,
+    };
+  }
 
   Future<Uint8List?> _compressFileToWebp(File file, {int quality = 85}) async {
     try {
@@ -281,7 +311,9 @@ class CreateScholarshipController extends GetxController {
         tempMap[il]!.add(ilce);
       }
 
-      iller.assignAll(tempIller.toList()..sort());
+      final sortedCities = tempIller.toList();
+      sortTurkishStrings(sortedCities);
+      iller.assignAll(sortedCities);
       ilIlceMap.assignAll(tempMap);
     } catch (e) {
       AppSnackbar('Hata', 'İl-ilçe verisi yüklenemedi.');
@@ -309,7 +341,9 @@ class CreateScholarshipController extends GetxController {
         }
       }
 
-      tumUniversiteler.assignAll(tempUniversiteler.toList()..sort());
+      final sortedUniversities = tempUniversiteler.toList();
+      sortTurkishStrings(sortedUniversities);
+      tumUniversiteler.assignAll(sortedUniversities);
       universiteMap.assignAll(tempMap);
       higherEducationData.assignAll(data);
     } catch (e) {
@@ -322,7 +356,8 @@ class CreateScholarshipController extends GetxController {
     for (var il in sehirler) {
       districts.addAll(ilIlceMap[il] ?? []);
     }
-    return districts..sort();
+    sortTurkishStrings(districts);
+    return districts;
   }
 
   List<String> getUniversitiesForSelectedCities() {
@@ -396,7 +431,7 @@ class CreateScholarshipController extends GetxController {
             ? -1
             : b == 'Tüm Üniversiteler'
                 ? 1
-                : a.compareTo(b),
+                : compareTurkishStrings(a, b),
       );
   }
 
@@ -650,10 +685,14 @@ class CreateScholarshipController extends GetxController {
           template: template.value,
           ulke: ulke.value,
         );
+        final authorFields = await _authorFieldsForCurrentUser();
 
         final docRef = await ScholarshipFirestorePath.collection(
           firestore: _firestore,
-        ).add(scholarship.toJson());
+        ).add(<String, dynamic>{
+          ...scholarship.toJson(),
+          ...authorFields,
+        });
 
         await ScholarshipFirestorePath.doc(
           docRef.id,
@@ -774,11 +813,15 @@ class CreateScholarshipController extends GetxController {
           template: template.value,
           ulke: ulke.value,
         );
+        final authorFields = await _authorFieldsForCurrentUser();
 
         await ScholarshipFirestorePath.doc(
           scholarshipId.value,
           firestore: _firestore,
-        ).update(scholarship.toJson());
+        ).update(<String, dynamic>{
+          ...scholarship.toJson(),
+          ...authorFields,
+        });
 
         // Refresh scholarships after successful update
         final scholarshipsController = Get.find<ScholarshipsController>();

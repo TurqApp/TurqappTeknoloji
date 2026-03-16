@@ -6,11 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
-import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -22,7 +20,6 @@ import 'package:turqappv2/Modules/Education/Scholarships/SavedItems/saved_items_
 import 'package:turqappv2/Modules/Education/Scholarships/Applications/applications_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_view.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -52,10 +49,6 @@ class ScholarshipsView extends StatefulWidget {
 
 class _ScholarshipsViewState extends State<ScholarshipsView> {
   final ScholarshipsController controller = Get.put(ScholarshipsController());
-  final ScholarshipDetailController detailController = Get.put(
-    ScholarshipDetailController(),
-  );
-  final FollowRepository _followRepository = FollowRepository.ensure();
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 

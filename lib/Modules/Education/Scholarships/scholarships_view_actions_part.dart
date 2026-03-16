@@ -53,6 +53,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                       size: 13,
                       userID: userId,
                       leftSpacing: 0,
+                      rozetValue: userData?['rozet']?.toString(),
                     ),
                 ],
               ),
@@ -65,11 +66,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
 
   Widget _buildUserAvatar(String type, Map<String, dynamic>? userData,
       Map<String, dynamic>? firmaData) {
-    final imageUrl = (userData?['avatarUrl'] ??
-            userData?['avatarUrl'] ??
-            userData?['avatarUrl'] ??
-            '')
-        .toString();
+    final imageUrl = (userData?['avatarUrl'] ?? '').toString();
     return CircleAvatar(
       radius: 15,
       child: imageUrl.isNotEmpty
@@ -92,14 +89,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     final uid = userData?['userID']?.toString() ?? '';
     if (uid != FirebaseAuth.instance.currentUser?.uid) {
       return () {
-        Get.to(() => SocialProfile(userID: uid))?.then((_) async {
-          final isNowFollowing = await _followRepository.isFollowing(
-            uid,
-            preferCache: true,
-          );
-          controller.followedUsers[uid] = isNowFollowing;
-          controller.allScholarships.refresh();
-        });
+        Get.to(() => SocialProfile(userID: uid));
       };
     }
     return null;
@@ -157,7 +147,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                            _getFollowButtonTextColor(userData)),
+                          _getFollowButtonTextColor(userData),
+                        ),
                       ),
                     )
                   : Text(
@@ -197,21 +188,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Future<void> _handleFollowTap(Map<String, dynamic>? userData) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      AppSnackbar("Hata", "Lütfen oturum açın.");
-      return;
-    }
-
     final followedId = userData?['userID']?.toString() ?? '';
-    if (followedId.isNotEmpty) {
-      controller.followLoading[followedId] = true;
-      await detailController.toggleFollowStatus(followedId);
-      controller.followedUsers[followedId] = detailController.isFollowing.value;
-      controller.followLoading[followedId] = false;
-    } else {
-      AppSnackbar("Hata", "Takip edilecek kullanıcı bulunamadı.");
-    }
+    if (followedId.isEmpty) return;
+    await controller.toggleFollow(followedId);
+    controller.allScholarships.refresh();
+    controller.visibleScholarships.refresh();
   }
 
   Widget _buildScholarshipImage(int index, String type, dynamic burs,

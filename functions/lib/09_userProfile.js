@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.manualSyncUserProfile = exports.syncUserProfileToPosts = void 0;
+exports.manualBackfillScholarshipAuthors = exports.manualSyncUserProfile = exports.syncUserProfileToPosts = void 0;
 const admin = require("firebase-admin");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
@@ -56,6 +56,11 @@ exports.syncUserProfileToPosts = (0, firestore_1.onDocumentUpdated)({
         if (beforeProfile.rozet !== afterProfile.rozet)
             updateData.rozet = afterProfile.rozet;
         const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
+        const scholarshipResult = await updateScholarshipsInBatches(userId, updateData);
+        result.scholarshipsFound = scholarshipResult.found;
+        result.scholarshipsUpdated = scholarshipResult.updated;
+        result.batchesExecuted += scholarshipResult.batchesExecuted;
+        result.errors.push(...scholarshipResult.errors);
         result.duration = Date.now() - startTime;
         await logSyncMetrics(userId, result);
         return result;
@@ -148,6 +153,71 @@ async function updatePostsInBatches(posts, updateData, userId) {
     });
     return result;
 }
+async function updateScholarshipsInBatches(userId, updateData) {
+    const snapshot = await admin
+        .firestore()
+        .collection("catalog")
+        .doc("education")
+        .collection("scholarships")
+        .where("userID", "==", userId)
+        .limit(MAX_POSTS_PER_EXECUTION)
+        .get();
+    if (snapshot.empty) {
+        return { found: 0, updated: 0, batchesExecuted: 0, errors: [] };
+    }
+    let updated = 0;
+    let batchesExecuted = 0;
+    const errors = [];
+    const chunks = chunkArray(snapshot.docs, BATCH_SIZE);
+    const batchResults = await Promise.all(chunks.map(async (chunk, index) => {
+        try {
+            const batch = admin.firestore().batch();
+            chunk.forEach((docSnap) => {
+                const update = {
+                    updatedAt: Date.now(),
+                };
+                if (updateData.nickname !== undefined) {
+                    update.authorNickname = updateData.nickname;
+                }
+                if (updateData.displayName !== undefined) {
+                    update.authorDisplayName = updateData.displayName;
+                }
+                if (updateData.avatarUrl !== undefined) {
+                    update.authorAvatarUrl = updateData.avatarUrl;
+                }
+                if (updateData.rozet !== undefined) {
+                    update.rozet = updateData.rozet;
+                }
+                batch.update(docSnap.ref, update);
+            });
+            await batch.commit();
+            return { success: true, count: chunk.length, batchIndex: index };
+        }
+        catch (error) {
+            return {
+                success: false,
+                count: 0,
+                batchIndex: index,
+                error: String(error),
+            };
+        }
+    }));
+    for (const batchResult of batchResults) {
+        if (batchResult.success) {
+            updated += batchResult.count;
+            batchesExecuted += 1;
+        }
+        else {
+            errors.push(`Scholarship batch ${batchResult.batchIndex}: ${batchResult.error}`);
+        }
+    }
+    return {
+        found: snapshot.size,
+        updated,
+        batchesExecuted,
+        errors,
+    };
+}
 function chunkArray(array, size) {
     const chunks = [];
     for (let i = 0; i < array.length; i += size) {
@@ -219,10 +289,16 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
             rozet: profile.rozet,
         };
         const result = await updatePostsInBatches(postsSnapshot.docs, updateData, userId);
+        const scholarshipResult = await updateScholarshipsInBatches(userId, updateData);
+        result.scholarshipsFound = scholarshipResult.found;
+        result.scholarshipsUpdated = scholarshipResult.updated;
+        result.batchesExecuted += scholarshipResult.batchesExecuted;
+        result.errors.push(...scholarshipResult.errors);
         await logSyncMetrics(userId, result);
         return {
             success: true,
-            message: `Successfully synced ${result.postsUpdated} posts`,
+            message: `Successfully synced ${result.postsUpdated} posts and ` +
+                `${result.scholarshipsUpdated ?? 0} scholarships`,
             result,
         };
     }
@@ -230,5 +306,83 @@ exports.manualSyncUserProfile = (0, https_1.onCall)({
         console.error("[Manual Sync] Failed", error);
         throw new https_1.HttpsError("internal", `Manual sync failed: ${error}`);
     }
+});
+exports.manualBackfillScholarshipAuthors = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    enforceAppCheck: true,
+}, async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "User must be authenticated");
+    }
+    if (request.auth.token?.admin !== true) {
+        throw new https_1.HttpsError("permission-denied", "Admin privileges required");
+    }
+    rateLimiter_1.RateLimits.admin(request.auth.uid);
+    const limitRaw = Number(request.data?.limit || 300);
+    const limit = Math.max(1, Math.min(500, limitRaw));
+    const cursor = String(request.data?.cursor || "").trim();
+    let query = admin
+        .firestore()
+        .collection("catalog")
+        .doc("education")
+        .collection("scholarships")
+        .orderBy(admin.firestore.FieldPath.documentId())
+        .limit(limit);
+    if (cursor) {
+        query = query.startAfter(cursor);
+    }
+    const snap = await query.get();
+    let updated = 0;
+    const errors = [];
+    const chunks = chunkArray(snap.docs, BATCH_SIZE);
+    for (const [index, chunk] of chunks.entries()) {
+        const batch = admin.firestore().batch();
+        for (const docSnap of chunk) {
+            try {
+                const data = docSnap.data();
+                const uid = String(data.userID || "").trim();
+                if (!uid)
+                    continue;
+                const userSnap = await admin.firestore().collection("users").doc(uid).get();
+                const user = userSnap.data() || {};
+                const nickname = String(user.nickname || "").trim();
+                const displayName = String(user.displayName ||
+                    user.fullName ||
+                    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+                    nickname ||
+                    "").trim();
+                const avatarUrl = String(user.avatarUrl || "").trim();
+                const rozet = String(user.rozet || "").trim();
+                batch.update(docSnap.ref, {
+                    authorNickname: nickname,
+                    authorDisplayName: displayName,
+                    authorAvatarUrl: avatarUrl,
+                    rozet,
+                    updatedAt: Date.now(),
+                });
+                updated += 1;
+            }
+            catch (error) {
+                errors.push(`doc ${docSnap.id}: ${String(error)}`);
+            }
+        }
+        try {
+            await batch.commit();
+        }
+        catch (error) {
+            errors.push(`batch ${index}: ${String(error)}`);
+        }
+    }
+    const last = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1].id : null;
+    return {
+        success: true,
+        scanned: snap.size,
+        updated,
+        nextCursor: last,
+        done: snap.size < limit,
+        errors,
+    };
 });
 //# sourceMappingURL=09_userProfile.js.map

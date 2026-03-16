@@ -35,8 +35,31 @@ class ScholarshipDetailController extends GetxController {
     checkUserApplicationReadiness();
     final scholarshipData = Get.arguments as Map<String, dynamic>?;
     if (scholarshipData != null) {
+      final scholarshipId =
+          (scholarshipData['docId'] ?? scholarshipData['scholarshipId'] ?? '')
+              .toString();
+      if (scholarshipId.isNotEmpty) {
+        _loadFullScholarship(scholarshipId);
+      }
       checkIfUserAlreadyApplied(scholarshipData);
       _incrementViewCount(scholarshipData);
+    }
+  }
+
+  Future<void> _loadFullScholarship(String scholarshipId) async {
+    try {
+      detailLoading.value = true;
+      final model = await _scholarshipRepository.fetchById(
+        scholarshipId,
+        preferCache: true,
+      );
+      if (model != null) {
+        resolvedModel.value = model;
+      }
+    } catch (_) {
+      // keep summary model from list
+    } finally {
+      detailLoading.value = false;
     }
   }
 

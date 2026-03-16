@@ -62,6 +62,7 @@ export * from "./17_shortLinksIndex";
 export * from "./18_tutoringNotifications";
 export * from "./19_adsCenter";
 export * from "./20_moderationConfig";
+export * from "./21_typesenseEducation";
 export * from "./22_badgeAdmin";
 export * from "./23_sharedPostCascade";
 export * from "./24_reports";

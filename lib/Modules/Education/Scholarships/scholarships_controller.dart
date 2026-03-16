@@ -15,7 +15,6 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
-import 'package:turqappv2/Core/Repositories/user_repository.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
@@ -24,7 +23,6 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
 
 class ScholarshipsController extends GetxController {
-  final UserRepository _userRepository = UserRepository.ensure();
   final FollowRepository _followRepository = FollowRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
@@ -62,6 +60,7 @@ class ScholarshipsController extends GetxController {
   static const String _scholarshipsCacheKeyPrefix = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
   int _searchRequestToken = 0;
+  int _typesensePage = 0;
 
   String get _scholarshipsCacheKey {
     final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
@@ -78,7 +77,6 @@ class ScholarshipsController extends GetxController {
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
-    refreshTotalCount();
     fetchScholarships();
   }
 
@@ -90,13 +88,21 @@ class ScholarshipsController extends GetxController {
   }
 
   Future<void> refreshTotalCount() async {
-    try {
-      totalCount.value = await _scholarshipRepository.fetchTotalCount(
-        preferCache: true,
-      );
-    } catch (e) {
-      // ignore silently; keep last known count
+    if (allScholarships.isNotEmpty) {
+      totalCount.value = totalCount.value < allScholarships.length
+          ? allScholarships.length
+          : totalCount.value;
+      return;
     }
+    try {
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.scholarship,
+        query: '',
+        limit: 1,
+        page: 1,
+      );
+      totalCount.value = result.found;
+    } catch (_) {}
   }
 
   void setSearchQuery(String q) {
@@ -210,8 +216,8 @@ class ScholarshipsController extends GetxController {
     }
 
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
+      final result =
+          await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.scholarship,
         query: normalized,
         limit: 40,
@@ -221,7 +227,7 @@ class ScholarshipsController extends GetxController {
         return;
       }
 
-      final items = await _fetchScholarshipItemsByDocIds(docIds);
+      final items = await _fetchScholarshipItemsFromHits(result.hits);
       if (requestToken != _searchRequestToken ||
           searchQuery.value.trim() != normalized) {
         return;
@@ -238,90 +244,165 @@ class ScholarshipsController extends GetxController {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchScholarshipItemsByDocIds(
-    List<String> docIds,
+  Future<List<Map<String, dynamic>>> _fetchScholarshipItemsFromHits(
+    List<Map<String, dynamic>> hits,
   ) async {
-    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
-    if (orderedIds.isEmpty) return const [];
+    final orderedHits = hits
+        .where((hit) =>
+            ((hit['docId'] ?? hit['id'])?.toString().trim().isNotEmpty ?? false))
+        .toList(growable: false);
+    if (orderedHits.isEmpty) return const [];
 
-    final docs = await _scholarshipRepository.fetchByIdsRaw(orderedIds);
-    final userIds = docs
-        .map((doc) => doc['userID'] as String? ?? '')
-        .where((id) => id.isNotEmpty)
-        .toList();
-    final userDocsById = await _fetchUsersByIds(userIds);
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     final items = <Map<String, dynamic>>[];
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
-    for (final doc in docs) {
-      final data = Map<String, dynamic>.from(doc);
-      final currentDocId = (data['docId'] ?? '').toString();
-      final userID = data['userID'] as String? ?? '';
-      final userData = _buildUserDataFromDoc(userID, userDocsById[userID]);
-      final begeniler = data['begeniler'] as List<dynamic>? ?? [];
-      final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-      final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
-      final bookmarksCount =
-          (data['bookmarksCount'] as int?) ?? kaydedenler.length;
+    for (final hit in orderedHits) {
+      final docId = ((hit['docId'] ?? hit['id']) ?? '').toString().trim();
+      final userID =
+          ((hit['ownerId'] ?? hit['userID']) ?? '').toString().trim();
+      final userData = _buildUserDataFromHit(hit);
+      final model = _buildScholarshipModelFromHit(hit);
+      final likesCount = (hit['likeCount'] as num?)?.toInt() ?? 0;
+      final bookmarksCount = (hit['bookmarkCount'] as num?)?.toInt() ?? 0;
 
       items.add({
-        'model': IndividualScholarshipsModel.fromJson(data),
+        'model': model,
         'type': 'bireysel',
         'userData': userData,
-        'docId': (data['docId'] ?? '').toString(),
+        'docId': docId,
         'likesCount': likesCount,
         'bookmarksCount': bookmarksCount,
-        'timeStamp': data['timeStamp'] as int? ?? 0,
-        'isSummary': false,
+        'timeStamp': model.timeStamp,
+        'isSummary': true,
       });
 
-      if (currentUserId.isNotEmpty) {
-        likedScholarships[currentDocId] = begeniler.contains(currentUserId) ||
-            _likedByCurrentUser.contains(currentDocId);
-        bookmarkedScholarships[currentDocId] =
-            kaydedenler.contains(currentUserId) ||
-                _bookmarkedByCurrentUser.contains(currentDocId);
-        if (userID.isNotEmpty && !followedUsers.containsKey(userID)) {
-          followedUsers[userID] =
-              await _checkFollowStatus(userID, currentUserId);
-        }
+      likedScholarships.putIfAbsent(
+        docId,
+        () => _likedByCurrentUser.contains(docId),
+      );
+      bookmarkedScholarships.putIfAbsent(
+        docId,
+        () => _bookmarkedByCurrentUser.contains(docId),
+      );
+      if (currentUserId.isNotEmpty &&
+          userID.isNotEmpty &&
+          !followedUsers.containsKey(userID)) {
+        followedUsers[userID] =
+            await _checkFollowStatus(userID, currentUserId);
       }
     }
 
     return items;
   }
 
-  Future<Map<String, Map<String, dynamic>>> _fetchUsersByIds(
-      List<String> userIds) async {
-    final uniqueIds = userIds.where((id) => id.isNotEmpty).toSet().toList();
-    if (uniqueIds.isEmpty) return {};
-
-    return _userRepository.getUsersRaw(uniqueIds);
+  IndividualScholarshipsModel _buildScholarshipModelFromHit(
+    Map<String, dynamic> hit,
+  ) {
+    final cover = (hit['cover'] ?? '').toString().trim();
+    final raw = <String, dynamic>{
+      'aciklama': (hit['aciklama'] ?? hit['description'] ?? '').toString(),
+      'shortDescription':
+          (hit['shortDescription'] ?? '').toString().trim(),
+      'altEgitimKitlesi': List<String>.from(
+        (hit['altEgitimKitlesi'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'aylar': List<String>.from(
+        (hit['aylar'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'basvurular': const <String>[],
+      'baslangicTarihi': (hit['baslangicTarihi'] ?? '').toString(),
+      'baslik': (hit['title'] ?? '').toString(),
+      'basvuruKosullari': (hit['basvuruKosullari'] ?? '').toString(),
+      'basvuruURL': (hit['basvuruURL'] ?? '').toString(),
+      'basvuruYapilacakYer':
+          (hit['basvuruYapilacakYer'] ?? '').toString(),
+      'begeniler': const <String>[],
+      'belgeler': List<String>.from(
+        (hit['belgeler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'bitisTarihi': (hit['bitisTarihi'] ?? '').toString(),
+      'bursVeren':
+          (hit['bursVeren'] ?? hit['subtitle'] ?? '').toString(),
+      'egitimKitlesi': (hit['egitimKitlesi'] ?? '').toString(),
+      'geriOdemeli': (hit['geriOdemeli'] ?? '').toString(),
+      'goruntuleme': const <String>[],
+      'hedefKitle': (hit['hedefKitle'] ?? '').toString(),
+      'ilceler': List<String>.from(
+        (hit['ilceler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'img': (hit['img'] ?? cover).toString(),
+      'img2': (hit['img2'] ?? '').toString(),
+      'kaydedenler': const <String>[],
+      'kaydedilenler': const <String>[],
+      'liseOrtaOkulIlceler': List<String>.from(
+        (hit['liseOrtaOkulIlceler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'liseOrtaOkulSehirler': List<String>.from(
+        (hit['liseOrtaOkulSehirler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'logo': (hit['logo'] ?? '').toString(),
+      'mukerrerDurumu': (hit['mukerrerDurumu'] ?? '').toString(),
+      'ogrenciSayisi': (hit['ogrenciSayisi'] ?? '').toString(),
+      'sehirler': List<String>.from(
+        (hit['sehirler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'timeStamp': (hit['timeStamp'] as num?)?.toInt() ?? 0,
+      'tutar': (hit['tutar'] ?? '').toString(),
+      'universiteler': List<String>.from(
+        (hit['universiteler'] as List<dynamic>? ?? const <dynamic>[]),
+      ),
+      'userID': ((hit['ownerId'] ?? hit['userID']) ?? '').toString(),
+      'website': (hit['website'] ?? '').toString(),
+      'lisansTuru': (hit['lisansTuru'] ?? '').toString(),
+      'template': (hit['template'] ?? '').toString(),
+      'ulke': (hit['ulke'] ?? hit['country'] ?? '').toString(),
+    };
+    return IndividualScholarshipsModel.fromJson(raw);
   }
 
-  Map<String, dynamic> _buildUserDataFromDoc(
-    String userId,
-    dynamic userDoc,
-  ) {
-    if (userId.isEmpty || userDoc == null) {
-      return {'avatarUrl': '', 'nickname': '', 'userID': userId};
-    }
-    final data = userDoc is Map<String, dynamic>
-        ? userDoc
-        : (userDoc.data() as Map<String, dynamic>? ?? {});
-    final profileName =
-        (data['displayName'] ?? data['username'] ?? data['nickname'] ?? '')
-            .toString();
-    final profileImage = (data['avatarUrl'] ?? '').toString();
+  Map<String, dynamic> _buildUserDataFromHit(Map<String, dynamic> hit) {
+    final userId = ((hit['ownerId'] ?? hit['userID']) ?? '').toString().trim();
+    final authorNickname = (hit['authorNickname'] ?? '').toString().trim();
+    final authorDisplayName =
+        (hit['authorDisplayName'] ?? '').toString().trim();
+    final authorAvatarUrl =
+        (hit['authorAvatarUrl'] ?? '').toString().trim();
+    final rozet = (hit['rozet'] ?? '').toString().trim();
     return {
-      'avatarUrl': profileImage,
-      'nickname': profileName,
-      'displayName': profileName,
+      'avatarUrl': authorAvatarUrl,
+      'nickname': authorNickname,
+      'displayName':
+          authorDisplayName.isNotEmpty ? authorDisplayName : authorNickname,
+      'rozet': rozet,
       'userID': userId,
-      'meslekKategori': data['meslekKategori'] as String? ?? '',
-      'firstName': data['firstName'] as String? ?? '',
-      'lastName': data['lastName'] as String? ?? '',
     };
+  }
+
+  Future<bool> _checkFollowStatus(String followedId, String followerId) async {
+    return _followRepository.isFollowing(
+      followedId,
+      currentUid: followerId,
+      preferCache: true,
+    );
+  }
+
+  Future<void> toggleFollow(String followedId) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    followLoading[followedId] = true;
+    try {
+      final outcome = await FollowService.toggleFollow(followedId);
+      if (outcome.limitReached) {
+        AppSnackbar(
+          "Limit",
+          "Günlük takip limitine ulaştınız.",
+        );
+        return;
+      }
+      followedUsers[followedId] = outcome.nowFollowing;
+    } finally {
+      followLoading[followedId] = false;
+    }
   }
 
   Future<void> fetchScholarships() async {
@@ -341,75 +422,16 @@ class ScholarshipsController extends GetxController {
           _applyScholarshipStateFromCombined(cached);
         }
       }
-
-      final snapshot = await _scholarshipRepository.fetchLatestPage(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.scholarship,
+        query: '',
         limit: initialBatchSize,
+        page: 1,
       );
+      _typesensePage = 1;
+      totalCount.value = result.found;
+      final combined = await _fetchScholarshipItemsFromHits(result.hits);
 
-      final bireyselSnapshot = snapshot;
-
-      // Store last documents for pagination
-      lastBireyselDoc =
-          bireyselSnapshot.docs.isNotEmpty ? bireyselSnapshot.docs.last : null;
-      // Kurumsal burslar kaldırıldı
-
-      final combined = <Map<String, dynamic>>[];
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid ?? '';
-
-      isExpandedList.clear();
-      isExpandedList.addAll(
-        List<RxBool>.generate(
-          bireyselSnapshot.docs.length,
-          (_) => false.obs,
-        ),
-      );
-
-      // Bireysel burslar için kullanıcı verileri (batch getAll)
-      final bireyselDocs = bireyselSnapshot.docs;
-      final bireyselUserIds = bireyselDocs
-          .map((doc) => doc.data()['userID'] as String? ?? '')
-          .where((id) => id.isNotEmpty)
-          .toList();
-      final userDocsById = await _fetchUsersByIds(bireyselUserIds);
-
-      for (var doc in bireyselDocs) {
-        final data = doc.data();
-        final userID = data['userID'] as String? ?? '';
-        final userData = _buildUserDataFromDoc(userID, userDocsById[userID]);
-
-        final begeniler = data['begeniler'] as List<dynamic>? ?? [];
-        final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-        final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
-        final bookmarksCount =
-            (data['bookmarksCount'] as int?) ?? kaydedenler.length;
-        combined.add({
-          'model': IndividualScholarshipsModel.fromJson(data),
-          'type': 'bireysel',
-          'userData': userData,
-          'docId': doc.id,
-          'likesCount': likesCount,
-          'bookmarksCount': bookmarksCount,
-          'timeStamp': data['timeStamp'] as int? ?? 0, // Include timeStamp
-          'isSummary': false,
-        });
-
-        if (userId.isNotEmpty) {
-          final liked = begeniler.contains(userId) ||
-              _likedByCurrentUser.contains(doc.id);
-          final bookmarked = kaydedenler.contains(userId) ||
-              _bookmarkedByCurrentUser.contains(doc.id);
-          likedScholarships[doc.id] = liked;
-          bookmarkedScholarships[doc.id] = bookmarked;
-          if (userID.isNotEmpty && !followedUsers.containsKey(userID)) {
-            followedUsers[userID] = await _checkFollowStatus(userID, userId);
-          }
-        }
-      }
-
-      // Kurumsal burslar kaldırıldı
-
-      // Sort combined list - only creation time
       _applyScholarshipStateFromCombined(combined);
       if (hasActiveSearch) {
         unawaited(
@@ -417,8 +439,8 @@ class ScholarshipsController extends GetxController {
       }
       await _saveScholarshipsCache(combined);
       _prefetchShortLinksForList(allScholarships);
-      // İlk partiden sonra devam var mı? (toplam sayıya göre)
-      hasMoreData.value = allScholarships.length < totalCount.value;
+      hasMoreData.value =
+          combined.length >= initialBatchSize && allScholarships.length < totalCount.value;
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -429,95 +451,28 @@ class ScholarshipsController extends GetxController {
     if (isLoadingMore.value || !hasMoreData.value) {
       return;
     }
-    if (lastBireyselDoc == null) {
-      hasMoreData.value = false;
-      return;
-    }
 
     try {
       isLoadingMore.value = true;
-
-      final snapshot = await _scholarshipRepository.fetchLatestPage(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.scholarship,
+        query: '',
         limit: batchSize,
-        startAfter: lastBireyselDoc,
+        page: _typesensePage + 1,
       );
+      _typesensePage += 1;
+      totalCount.value = result.found;
+      final combined = await _fetchScholarshipItemsFromHits(result.hits);
 
-      final bireyselSnapshot = snapshot;
-
-      // Update last documents for next pagination
-      lastBireyselDoc = bireyselSnapshot.docs.isNotEmpty
-          ? bireyselSnapshot.docs.last
-          : lastBireyselDoc;
-      // Kurumsal burslar kaldırıldı
-
-      final combined = <Map<String, dynamic>>[];
-      final user = FirebaseAuth.instance.currentUser;
-      final userId = user?.uid ?? '';
-
-      // Update isExpandedList and pageIndices
       isExpandedList.addAll(
-        List<RxBool>.generate(
-          bireyselSnapshot.docs.length,
-          (_) => false.obs,
-        ),
+        List<RxBool>.generate(combined.length, (_) => false.obs),
       );
       final newPageIndices = Map.fromIterables(
-        List.generate(
-          bireyselSnapshot.docs.length,
-          (i) => allScholarships.length + i,
-        ),
-        List.generate(
-          bireyselSnapshot.docs.length,
-          (_) => 0.obs,
-        ),
+        List.generate(combined.length, (i) => allScholarships.length + i),
+        List.generate(combined.length, (_) => 0.obs),
       );
       pageIndices.addAll(newPageIndices);
 
-      // Bireysel burslar için kullanıcı verileri (batch getAll)
-      final bireyselDocs = bireyselSnapshot.docs;
-      final bireyselUserIds = bireyselDocs
-          .map((doc) => doc.data()['userID'] as String? ?? '')
-          .where((id) => id.isNotEmpty)
-          .toList();
-      final userDocsById = await _fetchUsersByIds(bireyselUserIds);
-
-      for (var doc in bireyselDocs) {
-        final data = doc.data();
-        final userID = data['userID'] as String? ?? '';
-        final userData = _buildUserDataFromDoc(userID, userDocsById[userID]);
-
-        final begeniler = data['begeniler'] as List<dynamic>? ?? [];
-        final kaydedenler = data['kaydedenler'] as List<dynamic>? ?? [];
-        final likesCount = (data['likesCount'] as int?) ?? begeniler.length;
-        final bookmarksCount =
-            (data['bookmarksCount'] as int?) ?? kaydedenler.length;
-        combined.add({
-          'model': IndividualScholarshipsModel.fromJson(data),
-          'type': 'bireysel',
-          'userData': userData,
-          'docId': doc.id,
-          'likesCount': likesCount,
-          'bookmarksCount': bookmarksCount,
-          'timeStamp': data['timeStamp'] as int? ?? 0, // Include timeStamp
-          'isSummary': false,
-        });
-
-        if (userId.isNotEmpty) {
-          final liked = begeniler.contains(userId) ||
-              _likedByCurrentUser.contains(doc.id);
-          final bookmarked = kaydedenler.contains(userId) ||
-              _bookmarkedByCurrentUser.contains(doc.id);
-          likedScholarships[doc.id] = liked;
-          bookmarkedScholarships[doc.id] = bookmarked;
-          if (userID.isNotEmpty && !followedUsers.containsKey(userID)) {
-            followedUsers[userID] = await _checkFollowStatus(userID, userId);
-          }
-        }
-      }
-
-      // Kurumsal burslar kaldırıldı
-
-      // Yeni eklenen bursları mevcut listeye ekle (orderBy zaten doğru sırada)
       allScholarships.addAll(combined);
       if (hasActiveSearch) {
         unawaited(
@@ -526,8 +481,8 @@ class ScholarshipsController extends GetxController {
         _setVisibleScholarships(allScholarships);
       }
       _prefetchShortLinksForList(allScholarships);
-      // Toplam sayıya göre devam kontrolü
-      hasMoreData.value = allScholarships.length < totalCount.value;
+      hasMoreData.value =
+          combined.length >= batchSize && allScholarships.length < totalCount.value;
     } catch (_) {
       AppSnackbar('Hata', 'Daha fazla burs yüklenemedi.');
     } finally {
@@ -915,33 +870,6 @@ class ScholarshipsController extends GetxController {
         );
       },
     );
-  }
-
-  Future<bool> _checkFollowStatus(String followedId, String followerId) async {
-    return _followRepository.isFollowing(
-      followedId,
-      currentUid: followerId,
-      preferCache: true,
-    );
-  }
-
-  Future<void> toggleFollow(String followedId) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
-    followLoading[followedId] = true;
-    try {
-      final outcome = await FollowService.toggleFollow(followedId);
-      if (outcome.limitReached) {
-        AppSnackbar(
-          "Limit",
-          "Günlük takip limitine ulaştınız.",
-        );
-        return;
-      }
-      followedUsers[followedId] = outcome.nowFollowing;
-    } finally {
-      followLoading[followedId] = false;
-    }
   }
 
   final List<InformationModel> informations = [

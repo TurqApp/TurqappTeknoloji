@@ -370,11 +370,16 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
 
   int _calculateDaysDiff(String type, dynamic burs) {
     if (type != 'bireysel' || burs is! IndividualScholarshipsModel) return -1;
-
-    final endDate = DateFormat('dd.MM.yyyy').parse(burs.bitisTarihi);
-    final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
-    final today = DateTime.now();
-    final todayOnly = DateTime(today.year, today.month, today.day);
-    return endDateOnly.difference(todayOnly).inDays;
+    final rawEndDate = burs.bitisTarihi.trim();
+    if (rawEndDate.isEmpty) return -1;
+    try {
+      final endDate = DateFormat('dd.MM.yyyy').parseStrict(rawEndDate);
+      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
+      final today = DateTime.now();
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      return endDateOnly.difference(todayOnly).inDays;
+    } catch (_) {
+      return -1;
+    }
   }
 }

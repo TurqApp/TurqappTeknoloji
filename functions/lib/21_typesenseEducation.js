@@ -139,6 +139,16 @@ function asEpochMillis(x) {
     }
     return 0;
 }
+function asInt(x) {
+    if (typeof x === "number" && Number.isFinite(x))
+        return Math.floor(x);
+    if (typeof x === "string") {
+        const n = Number(x);
+        if (Number.isFinite(n))
+            return Math.floor(n);
+    }
+    return 0;
+}
 function dedupe(values) {
     const out = new Set();
     for (const value of values) {
@@ -276,6 +286,41 @@ function requiredFields() {
         { name: "country", type: "string", optional: true },
         { name: "tags", type: "string[]", optional: true },
         { name: "cover", type: "string", optional: true },
+        { name: "authorNickname", type: "string", optional: true },
+        { name: "authorDisplayName", type: "string", optional: true },
+        { name: "authorAvatarUrl", type: "string", optional: true },
+        { name: "rozet", type: "string", optional: true },
+        { name: "shortDescription", type: "string", optional: true },
+        { name: "aciklama", type: "string", optional: true },
+        { name: "img", type: "string", optional: true },
+        { name: "img2", type: "string", optional: true },
+        { name: "logo", type: "string", optional: true },
+        { name: "baslangicTarihi", type: "string", optional: true },
+        { name: "bitisTarihi", type: "string", optional: true },
+        { name: "basvuruKosullari", type: "string", optional: true },
+        { name: "basvuruURL", type: "string", optional: true },
+        { name: "basvuruYapilacakYer", type: "string", optional: true },
+        { name: "bursVeren", type: "string", optional: true },
+        { name: "egitimKitlesi", type: "string", optional: true },
+        { name: "geriOdemeli", type: "string", optional: true },
+        { name: "hedefKitle", type: "string", optional: true },
+        { name: "mukerrerDurumu", type: "string", optional: true },
+        { name: "ogrenciSayisi", type: "string", optional: true },
+        { name: "tutar", type: "string", optional: true },
+        { name: "website", type: "string", optional: true },
+        { name: "lisansTuru", type: "string", optional: true },
+        { name: "template", type: "string", optional: true },
+        { name: "ulke", type: "string", optional: true },
+        { name: "altEgitimKitlesi", type: "string[]", optional: true },
+        { name: "aylar", type: "string[]", optional: true },
+        { name: "belgeler", type: "string[]", optional: true },
+        { name: "sehirler", type: "string[]", optional: true },
+        { name: "ilceler", type: "string[]", optional: true },
+        { name: "universiteler", type: "string[]", optional: true },
+        { name: "liseOrtaOkulIlceler", type: "string[]", optional: true },
+        { name: "liseOrtaOkulSehirler", type: "string[]", optional: true },
+        { name: "likeCount", type: "int32", optional: true },
+        { name: "bookmarkCount", type: "int32", optional: true },
         { name: "detailsText", type: "string", optional: true },
         { name: "detailsJson", type: "string", optional: true },
     ];
@@ -368,7 +413,7 @@ function baseDoc(entity, docId, data, partial) {
 }
 function buildScholarshipDoc(docId, data) {
     const description = composeDescription(asString(data.shortDescription), asString(data.aciklama), asString(data.basvuruKosullari), asString(data.basvuruYapilacakYer), asString(data.basvuruURL), asString(data.website), asString(data.baslangicTarihi), asString(data.bitisTarihi));
-    return baseDoc("scholarship", docId, data, {
+    const base = baseDoc("scholarship", docId, data, {
         title: asString(data.baslik),
         subtitle: asString(data.bursVeren),
         description,
@@ -389,6 +434,46 @@ function buildScholarshipDoc(docId, data) {
         ]),
         cover: asString(data.img) || asString(data.logo),
     });
+    const begeniler = asStringArray(data.begeniler);
+    const kaydedenler = asStringArray(data.kaydedenler);
+    return {
+        ...base,
+        authorNickname: asString(data.authorNickname),
+        authorDisplayName: asString(data.authorDisplayName),
+        authorAvatarUrl: asString(data.authorAvatarUrl),
+        rozet: asString(data.rozet),
+        shortDescription: asString(data.shortDescription),
+        aciklama: asString(data.aciklama),
+        img: asString(data.img),
+        img2: asString(data.img2),
+        logo: asString(data.logo),
+        baslangicTarihi: asString(data.baslangicTarihi),
+        bitisTarihi: asString(data.bitisTarihi),
+        basvuruKosullari: asString(data.basvuruKosullari),
+        basvuruURL: asString(data.basvuruURL),
+        basvuruYapilacakYer: asString(data.basvuruYapilacakYer),
+        bursVeren: asString(data.bursVeren),
+        egitimKitlesi: asString(data.egitimKitlesi),
+        geriOdemeli: asString(data.geriOdemeli),
+        hedefKitle: asString(data.hedefKitle),
+        mukerrerDurumu: asString(data.mukerrerDurumu),
+        ogrenciSayisi: asString(data.ogrenciSayisi),
+        tutar: asString(data.tutar),
+        website: asString(data.website),
+        lisansTuru: asString(data.lisansTuru),
+        template: asString(data.template),
+        ulke: asString(data.ulke),
+        altEgitimKitlesi: asStringArray(data.altEgitimKitlesi),
+        aylar: asStringArray(data.aylar),
+        belgeler: asStringArray(data.belgeler),
+        sehirler: asStringArray(data.sehirler),
+        ilceler: asStringArray(data.ilceler),
+        universiteler: asStringArray(data.universiteler),
+        liseOrtaOkulIlceler: asStringArray(data.liseOrtaOkulIlceler),
+        liseOrtaOkulSehirler: asStringArray(data.liseOrtaOkulSehirler),
+        likeCount: asInt(data.likesCount) || begeniler.length,
+        bookmarkCount: asInt(data.bookmarksCount) || kaydedenler.length,
+    };
 }
 function buildPracticeExamDoc(docId, data) {
     const isPublic = data.public === undefined ? true : asBool(data.public);
@@ -561,6 +646,41 @@ function toHitOutput(hitRaw, collection) {
         country: String(doc.country || ""),
         cover: String(doc.cover || ""),
         tags,
+        authorNickname: String(doc.authorNickname || ""),
+        authorDisplayName: String(doc.authorDisplayName || ""),
+        authorAvatarUrl: String(doc.authorAvatarUrl || ""),
+        rozet: String(doc.rozet || ""),
+        shortDescription: String(doc.shortDescription || ""),
+        aciklama: String(doc.aciklama || ""),
+        img: String(doc.img || ""),
+        img2: String(doc.img2 || ""),
+        logo: String(doc.logo || ""),
+        baslangicTarihi: String(doc.baslangicTarihi || ""),
+        bitisTarihi: String(doc.bitisTarihi || ""),
+        basvuruKosullari: String(doc.basvuruKosullari || ""),
+        basvuruURL: String(doc.basvuruURL || ""),
+        basvuruYapilacakYer: String(doc.basvuruYapilacakYer || ""),
+        bursVeren: String(doc.bursVeren || ""),
+        egitimKitlesi: String(doc.egitimKitlesi || ""),
+        geriOdemeli: String(doc.geriOdemeli || ""),
+        hedefKitle: String(doc.hedefKitle || ""),
+        mukerrerDurumu: String(doc.mukerrerDurumu || ""),
+        ogrenciSayisi: String(doc.ogrenciSayisi || ""),
+        tutar: String(doc.tutar || ""),
+        website: String(doc.website || ""),
+        lisansTuru: String(doc.lisansTuru || ""),
+        template: String(doc.template || ""),
+        ulke: String(doc.ulke || ""),
+        altEgitimKitlesi: Array.isArray(doc.altEgitimKitlesi) ? doc.altEgitimKitlesi.map((x) => String(x || "")) : [],
+        aylar: Array.isArray(doc.aylar) ? doc.aylar.map((x) => String(x || "")) : [],
+        belgeler: Array.isArray(doc.belgeler) ? doc.belgeler.map((x) => String(x || "")) : [],
+        sehirler: Array.isArray(doc.sehirler) ? doc.sehirler.map((x) => String(x || "")) : [],
+        ilceler: Array.isArray(doc.ilceler) ? doc.ilceler.map((x) => String(x || "")) : [],
+        universiteler: Array.isArray(doc.universiteler) ? doc.universiteler.map((x) => String(x || "")) : [],
+        liseOrtaOkulIlceler: Array.isArray(doc.liseOrtaOkulIlceler) ? doc.liseOrtaOkulIlceler.map((x) => String(x || "")) : [],
+        liseOrtaOkulSehirler: Array.isArray(doc.liseOrtaOkulSehirler) ? doc.liseOrtaOkulSehirler.map((x) => String(x || "")) : [],
+        likeCount: Number(doc.likeCount || 0),
+        bookmarkCount: Number(doc.bookmarkCount || 0),
         detailsText: String(doc.detailsText || ""),
         detailsJson: String(doc.detailsJson || ""),
         score: Number(hit.text_match || 0),
