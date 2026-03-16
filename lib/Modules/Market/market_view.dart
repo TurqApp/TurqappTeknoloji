@@ -92,7 +92,7 @@ class MarketView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildAdminOnlySlider(),
+                  _buildMarketSlider(),
                   _buildCategoryStrip(),
                   const SizedBox(height: 8),
                   if (controller.hasAdvancedFilters)
@@ -194,9 +194,9 @@ class MarketView extends StatelessWidget {
     });
   }
 
-  Widget _buildAdminOnlySlider() {
-    final slider = Column(
-      children: const [
+  Widget _buildMarketSlider() {
+    const slider = Column(
+      children: [
         EducationSlider(
           sliderId: 'market',
           imageList: [
@@ -568,30 +568,32 @@ class MarketView extends StatelessWidget {
                         fontFamily: 'MontserratBold',
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        if (canCall) {
-                          _contactService.callPhone(item);
-                        } else {
-                          controller.openItem(item);
-                        }
-                      },
-                      child: Container(
-                        height: 30,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: canCall ? Colors.green : Colors.black,
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(8),
+                    SizedBox(
+                      width: 128,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (canCall) {
+                            _contactService.callPhone(item);
+                          } else {
+                            controller.openItem(item);
+                          }
+                        },
+                        child: Container(
+                          height: 30,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: canCall ? Colors.green : Colors.black,
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          canCall ? 'Hemen Ara' : 'İncele',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontFamily: 'MontserratMedium',
+                          child: Text(
+                            canCall ? 'Hemen Ara' : 'İncele',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontFamily: 'MontserratMedium',
+                            ),
                           ),
                         ),
                       ),
@@ -648,9 +650,7 @@ class MarketView extends StatelessWidget {
                               controller.isSaved(item.id)
                                   ? AppIcons.liked
                                   : AppIcons.like,
-                              color: controller.isSaved(item.id)
-                                  ? const Color(0xFF2563EB)
-                                  : Colors.grey.shade600,
+                              color: Colors.white,
                               size: 26,
                               shadows: const [
                                 Shadow(
@@ -664,13 +664,11 @@ class MarketView extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               '${item.favoriteCount}',
-                              style: TextStyle(
-                                color: controller.isSaved(item.id)
-                                    ? const Color(0xFF2563EB)
-                                    : Colors.white,
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 12,
                                 fontFamily: 'MontserratBold',
-                                shadows: const [
+                                shadows: [
                                   Shadow(
                                     color: Color(0x55000000),
                                     blurRadius: 6,
