@@ -132,9 +132,11 @@ class _ShortsContentState extends State<ShortsContent> {
       final showOverlay =
           widget.onToggleOverlay == null ? controller.fullscreen.value : widget.showOverlayControls;
       return Stack(
+        fit: StackFit.expand,
         alignment: Alignment.center,
         children: [
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () {
               if (widget.onToggleOverlay != null) {
                 widget.onToggleOverlay!();
@@ -168,9 +170,7 @@ class _ShortsContentState extends State<ShortsContent> {
                 resumeIfActive();
               }
             },
-            child: Container(
-              color: Colors.transparent,
-            ),
+            child: const SizedBox.expand(),
           ),
           if (showOverlay) userInfoBar(context),
           if (controller.gizlendi.value) gonderiGizlendi(context),
