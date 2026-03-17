@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final UserRepository _userRepository = UserRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final FocusNode focusNode = FocusNode();
@@ -56,7 +59,12 @@ class TutoringController extends GetxController {
         await _batchFetchUsers(userIds);
         tutoringList.value = _applyPersonalization(items);
         isLoading.value = false;
-        await listenToTutoringData(forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'tutoring:home',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(listenToTutoringData(forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -120,6 +128,7 @@ class TutoringController extends GetxController {
       final userIds = items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       await _batchFetchUsers(userIds);
       tutoringList.value = _applyPersonalization(items);
+      SilentRefreshGate.markRefreshed('tutoring:home');
     } catch (_) {
       tutoringList.value = [];
     } finally {

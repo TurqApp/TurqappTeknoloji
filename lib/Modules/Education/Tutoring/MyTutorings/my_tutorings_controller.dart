@@ -6,10 +6,13 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:flutter/material.dart';
 
 class MyTutoringsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final UserRepository _userRepository = UserRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
@@ -53,11 +56,16 @@ class MyTutoringsController extends GetxController {
         await fetchUsers(userIds, cacheOnly: true);
       }
       isLoading.value = false;
-      await fetchMyTutorings(
-        currentUserId,
-        silent: true,
-        forceRefresh: true,
-      );
+      if (SilentRefreshGate.shouldRefresh(
+        'tutoring:owner:$currentUserId',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchMyTutorings(
+          currentUserId,
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
       return;
     }
     await fetchMyTutorings(currentUserId);
@@ -91,6 +99,7 @@ class MyTutoringsController extends GetxController {
       if (userIds.isNotEmpty) {
         await fetchUsers(userIds);
       }
+      SilentRefreshGate.markRefreshed('tutoring:owner:$currentUserId');
     } catch (e) {
       errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
     } finally {

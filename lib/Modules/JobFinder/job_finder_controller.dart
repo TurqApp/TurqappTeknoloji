@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -13,6 +14,8 @@ import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
 class JobFinderController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final JobRepository _jobRepository = JobRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
@@ -136,7 +139,12 @@ class JobFinderController extends GetxController {
         allJobs.assignAll(cachedJobs);
         isLoading.value = false;
         unawaited(_hydrateLocationAndResort(cachedJobs));
-        await getStartData(silent: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'jobs:home',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(getStartData(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -162,6 +170,7 @@ class JobFinderController extends GetxController {
       final fetchedJobs = _jobsFromTypesenseHits(result.hits);
       list.assignAll(fetchedJobs);
       allJobs.assignAll(fetchedJobs);
+      SilentRefreshGate.markRefreshed('jobs:home');
       if (shouldShowLoader) {
         isLoading.value = false;
       }
