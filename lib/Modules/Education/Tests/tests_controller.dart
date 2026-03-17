@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,7 +23,7 @@ class TestsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
     _scrollControl();
   }
 
@@ -58,12 +59,36 @@ class TestsController extends GetxController {
     });
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final cachedPage = await _testRepository.fetchSharedPage(
+      limit: _pageSize,
+      cacheOnly: true,
+    );
+    if (cachedPage.items.isNotEmpty) {
+      list.assignAll(cachedPage.items);
+      hasMore.value = cachedPage.hasMore;
+      isLoading.value = false;
+      await getData(silent: true, forceRefresh: true);
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
     hasMore.value = true;
     _lastDocument = null;
     try {
-      final page = await _testRepository.fetchSharedPage(limit: _pageSize);
+      final page = await _testRepository.fetchSharedPage(
+        limit: _pageSize,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
       list.assignAll(page.items);
       _lastDocument = page.lastDocument;
       hasMore.value = page.hasMore;

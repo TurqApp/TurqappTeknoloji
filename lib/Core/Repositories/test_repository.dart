@@ -111,6 +111,7 @@ class TestRepository extends GetxService {
   Future<List<TestsModel>> fetchByIds(
     List<String> ids, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final wanted = ids.where((e) => e.trim().isNotEmpty).toSet().toList();
     if (wanted.isEmpty) return const <TestsModel>[];
@@ -124,16 +125,23 @@ class TestRepository extends GetxService {
           resolved[id] = memory.first;
           continue;
         }
-        final disk = await _getFromPrefs('doc:$id');
-        if (disk != null && disk.isNotEmpty) {
-          _memory['doc:$id'] = _TimedTests(items: disk, cachedAt: DateTime.now());
-          resolved[id] = disk.first;
+        final disk = await _getTimedFromPrefs('doc:$id');
+        if (disk != null && disk.items.isNotEmpty) {
+          _memory['doc:$id'] = disk;
+          resolved[id] = disk.items.first;
           continue;
         }
         missing.add(id);
       }
     } else {
       missing.addAll(wanted);
+    }
+
+    if (cacheOnly) {
+      return wanted
+          .map((id) => resolved[id])
+          .whereType<TestsModel>()
+          .toList(growable: false);
     }
 
     for (final chunk in _chunkIds(missing, 10)) {
@@ -158,17 +166,20 @@ class TestRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'owner:$userId';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedTests(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.items;
       }
     }
+
+    if (cacheOnly) return const <TestsModel>[];
 
     final snap = await _firestore
         .collection('Testler')
@@ -186,17 +197,20 @@ class TestRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'answered:$userId';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedTests(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.items;
       }
     }
+
+    if (cacheOnly) return const <TestsModel>[];
 
     final snap = await _firestore
         .collectionGroup('Yanitlar')
@@ -215,6 +229,7 @@ class TestRepository extends GetxService {
     final items = await fetchByIds(
       testIds,
       preferCache: preferCache,
+      cacheOnly: cacheOnly,
     );
     items.sort((a, b) {
       final aTs = int.tryParse(a.timeStamp) ?? 0;
@@ -229,17 +244,20 @@ class TestRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'favorites:$userId';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedTests(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.items;
       }
     }
+
+    if (cacheOnly) return const <TestsModel>[];
 
     final snap = await _firestore
         .collection('Testler')
@@ -255,17 +273,19 @@ class TestRepository extends GetxService {
   Future<List<TestsModel>> fetchAll({
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     const cacheKey = 'all';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedTests(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.items;
       }
     }
+    if (cacheOnly) return const <TestsModel>[];
     final snap = await _firestore.collection('Testler').get();
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
@@ -278,17 +298,19 @@ class TestRepository extends GetxService {
     String testTuru, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'type:${testTuru.trim().toLowerCase()}';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getTimedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedTests(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.items;
       }
     }
+    if (cacheOnly) return const <TestsModel>[];
     final snap = await _firestore
         .collection('Testler')
         .where('testTuru', isEqualTo: testTuru)
@@ -303,7 +325,39 @@ class TestRepository extends GetxService {
   Future<TestPageResult> fetchSharedPage({
     DocumentSnapshot? startAfter,
     int limit = 30,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
+    final canUseCache = startAfter == null;
+    final cacheKey = 'shared:first:$limit';
+    if (canUseCache && !forceRefresh && preferCache) {
+      final memory = _getFromMemory(cacheKey);
+      if (memory != null) {
+        return TestPageResult(
+          items: memory,
+          lastDocument: null,
+          hasMore: memory.length >= limit,
+        );
+      }
+      final disk = await _getTimedFromPrefs(cacheKey);
+      if (disk != null) {
+        _memory[cacheKey] = disk;
+        return TestPageResult(
+          items: disk.items,
+          lastDocument: null,
+          hasMore: disk.items.length >= limit,
+        );
+      }
+    }
+    if (canUseCache && cacheOnly) {
+      return const TestPageResult(
+        items: <TestsModel>[],
+        lastDocument: null,
+        hasMore: false,
+      );
+    }
+
     Query<Map<String, dynamic>> query = _firestore
         .collection('Testler')
         .where('paylasilabilir', isEqualTo: true)
@@ -313,10 +367,14 @@ class TestRepository extends GetxService {
       query = query.startAfterDocument(startAfter);
     }
     final snap = await query.get();
+    final items = snap.docs
+        .map((doc) => _fromDoc(doc.id, doc.data()))
+        .toList(growable: false);
+    if (canUseCache) {
+      await _store(cacheKey, items);
+    }
     return TestPageResult(
-      items: snap.docs
-          .map((doc) => _fromDoc(doc.id, doc.data()))
-          .toList(growable: false),
+      items: items,
       lastDocument: snap.docs.isNotEmpty ? snap.docs.last : null,
       hasMore: snap.docs.length >= limit,
     );
@@ -482,7 +540,7 @@ class TestRepository extends GetxService {
     return entry.items.toList(growable: false);
   }
 
-  Future<List<TestsModel>?> _getFromPrefs(String cacheKey) async {
+  Future<_TimedTests?> _getTimedFromPrefs(String cacheKey) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw = _prefs?.getString('$_prefsPrefix:$cacheKey');
     if (raw == null || raw.isEmpty) return null;
@@ -495,15 +553,18 @@ class TestRepository extends GetxService {
               _ttl;
       if (!fresh) return null;
       final items = (decoded['items'] as List?) ?? const [];
-      return items
-          .map((e) => e as Map)
-          .map(
-            (e) => _fromDoc(
-              (e['id'] ?? '').toString(),
-              Map<String, dynamic>.from((e['d'] as Map?) ?? const {}),
-            ),
-          )
-          .toList(growable: false);
+      return _TimedTests(
+        items: items
+            .map((e) => e as Map)
+            .map(
+              (e) => _fromDoc(
+                (e['id'] ?? '').toString(),
+                Map<String, dynamic>.from((e['d'] as Map?) ?? const {}),
+              ),
+            )
+            .toList(growable: false),
+        cachedAt: DateTime.fromMillisecondsSinceEpoch(ts),
+      );
     } catch (_) {
       return null;
     }
