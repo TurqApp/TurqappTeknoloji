@@ -55,14 +55,11 @@ class TypesenseMarketSearchService {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getCachedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _CachedMarketSearchResult(
-          items: disk,
-          cachedAt: DateTime.now(),
-        );
-        _seedDocCaches(disk);
-        return disk;
+        _memory[cacheKey] = disk;
+        _seedDocCaches(disk.items, cachedAt: disk.cachedAt);
+        return List<MarketItemModel>.from(disk.items);
       }
     }
 
@@ -159,13 +156,10 @@ class TypesenseMarketSearchService {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null && memory.isNotEmpty) return memory.first;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null && disk.isNotEmpty) {
-        _memory[cacheKey] = _CachedMarketSearchResult(
-          items: disk,
-          cachedAt: DateTime.now(),
-        );
-        return disk.first;
+      final disk = await _getCachedFromPrefs(cacheKey);
+      if (disk != null && disk.items.isNotEmpty) {
+        _memory[cacheKey] = disk;
+        return disk.items.first;
       }
     }
 
@@ -245,6 +239,66 @@ class TypesenseMarketSearchService {
     );
   }
 
+  Future<void> invalidateAll() async {
+    _memory.clear();
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('$_prefsPrefix:'))
+        .toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<void> invalidateForMutation({
+    String? docId,
+    String? userId,
+  }) async {
+    final normalizedDocId = (docId ?? '').trim();
+    final normalizedUserId = (userId ?? '').trim();
+    _memory.removeWhere((key, _) {
+      if (normalizedDocId.isNotEmpty && key == 'doc:$normalizedDocId') {
+        return true;
+      }
+      if (key.startsWith('doc:')) return false;
+      if (normalizedDocId.isNotEmpty && key.contains('docId=$normalizedDocId')) {
+        return true;
+      }
+      if (normalizedUserId.isNotEmpty &&
+          key.contains('userId=$normalizedUserId')) {
+        return true;
+      }
+      return true;
+    });
+
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs.getKeys().where((key) {
+      if (!key.startsWith('$_prefsPrefix:')) return false;
+      final scopedKey = key.substring('$_prefsPrefix:'.length);
+      if (normalizedDocId.isNotEmpty && scopedKey == 'doc:$normalizedDocId') {
+        return true;
+      }
+      if (scopedKey.startsWith('doc:')) return false;
+      if (normalizedDocId.isNotEmpty &&
+          scopedKey.contains('docId=$normalizedDocId')) {
+        return true;
+      }
+      if (normalizedUserId.isNotEmpty &&
+          scopedKey.contains('userId=$normalizedUserId')) {
+        return true;
+      }
+      return true;
+    }).toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
   List<MarketItemModel>? _getFromMemory(String key) {
     final entry = _memory[key];
     if (entry == null) return null;
@@ -255,7 +309,7 @@ class TypesenseMarketSearchService {
     return List<MarketItemModel>.from(entry.items);
   }
 
-  Future<List<MarketItemModel>?> _getFromPrefs(String key) async {
+  Future<_CachedMarketSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw = _prefs?.getString(_prefsKey(key));
     if (raw == null || raw.isEmpty) return null;
@@ -266,10 +320,14 @@ class TypesenseMarketSearchService {
       if (ts <= 0) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) > _ttl) return null;
-      return payload
+      final items = payload
           .whereType<Map>()
           .map((raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
           .toList(growable: false);
+      return _CachedMarketSearchResult(
+        items: items,
+        cachedAt: cachedAt,
+      );
     } catch (_) {
       return null;
     }
@@ -292,12 +350,15 @@ class TypesenseMarketSearchService {
     );
   }
 
-  void _seedDocCaches(List<MarketItemModel> items) {
-    final now = DateTime.now();
+  void _seedDocCaches(
+    List<MarketItemModel> items, {
+    DateTime? cachedAt,
+  }) {
+    final effectiveCachedAt = cachedAt ?? DateTime.now();
     for (final item in items) {
       _memory['doc:${item.id}'] = _CachedMarketSearchResult(
         items: <MarketItemModel>[item],
-        cachedAt: now,
+        cachedAt: effectiveCachedAt,
       );
     }
   }

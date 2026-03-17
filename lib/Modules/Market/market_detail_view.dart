@@ -1592,9 +1592,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       _isRefreshing = true;
     }
     try {
-      final latest = await _typesense.fetchByDocId(
+      final latest = await _repository.fetchById(
         item.id,
-        preferCache: true,
+        preferCache: false,
         forceRefresh: true,
       );
       if (latest != null && mounted) {

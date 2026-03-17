@@ -24,6 +24,14 @@ class ThenSolve extends StatelessWidget {
 
   final AntremanController controller = Get.find<AntremanController>();
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
+
+  int _fallbackAntPoint() {
+    final current = CurrentUserService.instance.currentUser;
+    if (current?.userID == controller.userID) {
+      return current?.antPoint ?? 100;
+    }
+    return 100;
+  }
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -62,25 +70,11 @@ class ThenSolve extends StatelessWidget {
                               controller.userID,
                             ),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                      ConnectionState.waiting ||
-                                  snapshot.hasError ||
-                                  !snapshot.hasData ||
-                                  snapshot.data == null) {
-                                return Obx(() {
-                                  final current =
-                                      CurrentUserService.instance.currentUser;
-                                  final antPoint =
-                                      current?.userID == controller.userID
-                                          ? current?.antPoint ?? 100
-                                          : 100;
-                                  return Text(
-                                    antPoint.toString(),
-                                    style: TextStyles.textFieldTitle,
-                                  );
-                                });
-                              }
-                              final antPoint = snapshot.data ?? 0;
+                              final antPoint = snapshot.hasError ||
+                                      !snapshot.hasData ||
+                                      snapshot.data == null
+                                  ? _fallbackAntPoint()
+                                  : snapshot.data!;
                               return Text(
                                 antPoint.toString(),
                                 style: TextStyles.textFieldTitle,

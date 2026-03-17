@@ -94,6 +94,7 @@ class TypesensePostService {
   Future<void> syncPostById(String postId) async {
     final cleaned = postId.trim();
     if (cleaned.isEmpty) return;
+    await invalidatePostId(cleaned);
 
     Object? lastError;
     for (final target in _targets) {
@@ -120,6 +121,37 @@ class TypesensePostService {
       '[TypesensePostService] syncPostById giving up postId=$cleaned error=$lastError',
     );
     throw lastError ?? Exception('typesense_post_sync_failed');
+  }
+
+  Future<void> invalidatePostId(String postId) async {
+    final cleaned = postId.trim();
+    if (cleaned.isEmpty) return;
+    _memory.removeWhere((cacheKey, _) => cacheKey.split('|').contains(cleaned));
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs.getKeys().where((key) {
+      if (!key.startsWith('$_prefsPrefix:')) return false;
+      final scopedKey = key.substring('$_prefsPrefix:'.length);
+      return scopedKey.split('|').contains(cleaned);
+    }).toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<void> invalidateAll() async {
+    _memory.clear();
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('$_prefsPrefix:'))
+        .toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 
   _CachedPostCardsResult? _getFromMemory(String cacheKey) {

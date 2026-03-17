@@ -25,6 +25,14 @@ class AntremanView2 extends StatelessWidget {
   final AntremanController controller = Get.put(AntremanController());
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
 
+  int _fallbackAntPoint() {
+    final current = CurrentUserService.instance.currentUser;
+    if (current?.userID == controller.userID) {
+      return current?.antPoint ?? 100;
+    }
+    return 100;
+  }
+
   BoxDecoration _sectionCardDecoration({
     required Color color,
     bool elevated = false,
@@ -660,28 +668,15 @@ class AntremanView2 extends StatelessWidget {
                   controller.userID,
                 ),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Text("0");
-                  } else if (snapshot.hasError) {
-                    return const Text("0");
-                  } else if (!snapshot.hasData || snapshot.data == null) {
-                    return Obx(() {
-                      final current = CurrentUserService.instance.currentUser;
-                      final antPoint = current?.userID == controller.userID
-                          ? current?.antPoint ?? 100
-                          : 100;
-                      return Text(
-                        antPoint.toString(),
-                        style: TextStyles.bold20Black,
-                      );
-                    });
-                  } else {
-                    final antPoint = snapshot.data ?? 100;
-                    return Text(
-                      antPoint.toString(),
-                      style: TextStyles.bold20Black,
-                    );
-                  }
+                  final antPoint = snapshot.hasError ||
+                          !snapshot.hasData ||
+                          snapshot.data == null
+                      ? _fallbackAntPoint()
+                      : snapshot.data!;
+                  return Text(
+                    antPoint.toString(),
+                    style: TextStyles.bold20Black,
+                  );
                 },
               ),
               Image.asset(

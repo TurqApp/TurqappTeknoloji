@@ -23,11 +23,16 @@ class Archives extends StatelessWidget {
               child: Obx(() {
                 final centeredIndex = controller.centeredIndex.value;
                 controller.lastCenteredIndex = centeredIndex;
+                if (controller.isLoading.value && controller.list.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.black),
+                  );
+                }
                 return controller.list.isNotEmpty
                     ? RefreshIndicator(
                         backgroundColor: Colors.black,
                         color: Colors.white,
-                        onRefresh: () => controller.fetchData(initial: true),
+                        onRefresh: controller.fetchData,
                         child: ListView.builder(
                           controller: controller.scrollController,
                           itemCount: controller.list.length + 1,

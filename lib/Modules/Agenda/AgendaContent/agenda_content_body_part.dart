@@ -542,6 +542,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
       hashtagColor: Colors.blue,
       urlColor: Colors.blue,
       interactiveColor: Colors.blue,
+      expandButtonColor: AppColors.primaryColor,
       onUrlTap: _handleFeedUrlTap,
       onHashtagTap: (tag) {
         if (tag.trim().isEmpty) return;

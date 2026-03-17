@@ -85,13 +85,10 @@ class TypesenseEducationSearchService {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getCachedFromPrefs(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _CachedEducationSearchResult(
-          result: disk,
-          cachedAt: DateTime.now(),
-        );
-        return disk;
+        _memory[cacheKey] = disk;
+        return disk.result;
       }
     }
 
@@ -161,6 +158,36 @@ class TypesenseEducationSearchService {
     return ids;
   }
 
+  Future<void> invalidateEntity(EducationTypesenseEntity entity) async {
+    final entityPrefix = 'entity=${entity.apiLabel}|';
+    _memory.removeWhere((key, _) => key.startsWith(entityPrefix));
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs.getKeys().where((key) {
+      if (!key.startsWith('$_prefsPrefix:')) return false;
+      final scopedKey = key.substring('$_prefsPrefix:'.length);
+      return scopedKey.startsWith(entityPrefix);
+    }).toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
+  Future<void> invalidateAll() async {
+    _memory.clear();
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('$_prefsPrefix:'))
+        .toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+  }
+
   EducationTypesenseSearchResult? _getFromMemory(String key) {
     final entry = _memory[key];
     if (entry == null) return null;
@@ -171,7 +198,7 @@ class TypesenseEducationSearchService {
     return entry.result;
   }
 
-  Future<EducationTypesenseSearchResult?> _getFromPrefs(String key) async {
+  Future<_CachedEducationSearchResult?> _getCachedFromPrefs(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw = _prefs?.getString(_prefsKey(key));
     if (raw == null || raw.isEmpty) return null;
@@ -188,11 +215,14 @@ class TypesenseEducationSearchService {
           .whereType<Map>()
           .map((raw) => Map<String, dynamic>.from(raw))
           .toList(growable: false);
-      return EducationTypesenseSearchResult(
-        hits: hits,
-        found: (data['found'] as num?)?.toInt() ?? hits.length,
-        page: (data['page'] as num?)?.toInt() ?? 1,
-        limit: (data['limit'] as num?)?.toInt() ?? hits.length,
+      return _CachedEducationSearchResult(
+        result: EducationTypesenseSearchResult(
+          hits: hits,
+          found: (data['found'] as num?)?.toInt() ?? hits.length,
+          page: (data['page'] as num?)?.toInt() ?? 1,
+          limit: (data['limit'] as num?)?.toInt() ?? hits.length,
+        ),
+        cachedAt: cachedAt,
       );
     } catch (_) {
       return null;

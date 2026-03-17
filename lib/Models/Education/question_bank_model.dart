@@ -78,6 +78,37 @@ class QuestionBankModel {
     );
   }
 
+  factory QuestionBankModel.fromTypesenseHit(Map<String, dynamic> json) {
+    final docID =
+        (json['docId'] as String?)?.trim() ?? (json['id'] as String?)?.trim() ?? '';
+    if (docID.isEmpty) {
+      throw Exception("Geçersiz docID: Typesense hit boş");
+    }
+    return QuestionBankModel(
+      docID: docID,
+      anaBaslik: json['anaBaslik'] as String? ?? '',
+      begeniler: const [],
+      categoryKey: json['categoryKey'] as String? ?? '',
+      ders: json['ders'] as String? ?? '',
+      diger1: json['diger1'] as String? ?? '',
+      diger2: json['diger2'] as bool? ?? false,
+      diger3: json['diger3'] as num? ?? 0,
+      dogruCevap: json['dogruCevap'] as String? ?? '',
+      correctCount: (json['correctCount'] as num?)?.toInt() ?? 0,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? 0,
+      iptal: !(json['active'] as bool? ?? true),
+      kacCevap: json['kacCevap'] as num? ?? 0,
+      paylasanlar: const [],
+      seq: (json['seq'] as num?)?.toInt() ?? 0,
+      sinavTuru: json['sinavTuru'] as String? ?? '',
+      soru: json['soru'] as String? ?? (json['cover'] as String? ?? ''),
+      soruNo: json['soruNo'] as String? ?? '',
+      wrongCount: (json['wrongCount'] as num?)?.toInt() ?? 0,
+      yil: json['yil'] as String? ?? '',
+      active: json['active'] as bool? ?? true,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'docID': docID,

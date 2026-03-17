@@ -243,6 +243,7 @@ class ClickableTextContent extends StatelessWidget {
   final bool showEllipsisOverlay; // YENİ: 7 satır kısaltmada sağ-altta '…'
   final bool toggleExpandOnTextTap;
   final Color? expandButtonColor;
+  final double? expandButtonFontSize;
 
   const ClickableTextContent({
     super.key,
@@ -261,6 +262,7 @@ class ClickableTextContent extends StatelessWidget {
     this.showEllipsisOverlay = false,
     this.toggleExpandOnTextTap = false,
     this.expandButtonColor,
+    this.expandButtonFontSize,
   });
 
   @override
@@ -362,7 +364,7 @@ class ClickableTextContent extends StatelessWidget {
                         ? 'Daha az göster'
                         : 'Daha fazla göster',
                     style: TextStyle(
-                      fontSize: (fontSize ?? 15) - 1,
+                      fontSize: expandButtonFontSize ?? ((fontSize ?? 15) - 1),
                       color: expandButtonColor ??
                           interactiveColor ??
                           urlColor ??

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
-import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -23,8 +22,6 @@ class MarketMyItemsView extends StatefulWidget {
 
 class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   final MarketRepository _repository = MarketRepository.ensure();
-  final TypesenseMarketSearchService _typesense =
-      TypesenseMarketSearchService.instance;
   final MarketShareService _shareService = const MarketShareService();
   late final String uid;
   late Future<List<MarketItemModel>> _itemsFuture;
@@ -40,7 +37,7 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
   }
 
   void _reload({bool force = false}) {
-    _itemsFuture = _typesense.fetchByUserId(
+    _itemsFuture = _repository.fetchByOwner(
       uid,
       preferCache: !force,
       forceRefresh: force,

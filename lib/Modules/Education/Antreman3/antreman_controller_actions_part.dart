@@ -55,8 +55,7 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.workout,
         query: normalized,
         limit: 40,
@@ -65,11 +64,14 @@ extension AntremanControllerActionsPart on AntremanController {
         return;
       }
 
-      final results = await _fetchQuestionModelsByIds(docIds);
+      final results = result.hits
+          .map(QuestionBankModel.fromTypesenseHit)
+          .where((item) => item.active)
+          .toList(growable: false);
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
-      searchResults.assignAll(results.where((item) => item.active));
+      searchResults.assignAll(results);
     } catch (e) {
       log('Workout typesense search error: $e');
       if (token == _searchToken) {
@@ -443,6 +445,12 @@ extension AntremanControllerActionsPart on AntremanController {
     return '$anaBaslik|$sinavTuru|$ders';
   }
 
+  String _typesenseFilterValue(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return '';
+    return '`${value.replaceAll('`', '\\`')}`';
+  }
+
   int _gcd(int a, int b) {
     while (b != 0) {
       final t = b;
@@ -478,12 +486,36 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<List<QuestionBankModel>> _fetchCategoryPoolDocs(
       String anaBaslik, String sinavTuru, String ders,
       {int? limit}) async {
-    return _antremanRepository.fetchCategoryQuestions(
-      anaBaslik,
-      sinavTuru,
-      ders,
-      limit: limit,
-    );
+    final filterBy = [
+      'active:=true',
+      'anaBaslik:=${_typesenseFilterValue(anaBaslik)}',
+      'sinavTuru:=${_typesenseFilterValue(sinavTuru)}',
+      'ders:=${_typesenseFilterValue(ders)}',
+    ].join(' && ');
+    final docs = <QuestionBankModel>[];
+    final perPage = limit == null ? 250 : limit.clamp(1, 250);
+    var page = 1;
+
+    while (true) {
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.workout,
+        query: '*',
+        limit: perPage,
+        page: page,
+        filterBy: filterBy,
+        sortBy: 'seq:asc',
+      );
+      docs.addAll(result.hits.map(QuestionBankModel.fromTypesenseHit));
+      if (limit != null && docs.length >= limit) {
+        break;
+      }
+      if (result.hits.length < perPage) {
+        break;
+      }
+      page += 1;
+    }
+
+    return limit == null ? docs : docs.take(limit).toList(growable: false);
   }
 
   Future<void> _fillCategoryPoolInBackground(

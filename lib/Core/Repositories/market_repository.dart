@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 
 class MarketRepository extends GetxService {
   MarketRepository({FirebaseFirestore? firestore})
@@ -208,6 +209,10 @@ class MarketRepository extends GetxService {
   }) async {
     await _itemsRef.doc(docId).set(payload, SetOptions(merge: true));
     await _invalidateUserScopedCaches(userId: userId, docId: docId);
+    await TypesenseMarketSearchService.instance.invalidateForMutation(
+      docId: docId,
+      userId: userId,
+    );
   }
 
   Future<void> updateItemStatus({
@@ -223,6 +228,10 @@ class MarketRepository extends GetxService {
       if (status == 'active') 'publishedAt': now,
     }, SetOptions(merge: true));
     await _invalidateUserScopedCaches(userId: userId, docId: docId);
+    await TypesenseMarketSearchService.instance.invalidateForMutation(
+      docId: docId,
+      userId: userId,
+    );
   }
 
   Future<void> invalidateItemCaches({
@@ -230,6 +239,10 @@ class MarketRepository extends GetxService {
     required String docId,
   }) async {
     await _invalidateUserScopedCaches(userId: userId, docId: docId);
+    await TypesenseMarketSearchService.instance.invalidateForMutation(
+      docId: docId,
+      userId: userId,
+    );
   }
 
   Future<void> incrementViewCount({
@@ -241,6 +254,10 @@ class MarketRepository extends GetxService {
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     }, SetOptions(merge: true));
     await _invalidateUserScopedCaches(userId: userId, docId: docId);
+    await TypesenseMarketSearchService.instance.invalidateForMutation(
+      docId: docId,
+      userId: userId,
+    );
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _fetchLatestSnapshot(

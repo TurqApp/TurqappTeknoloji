@@ -24,6 +24,14 @@ class QuestionContent extends StatelessWidget {
   final AntremanRepository _antremanRepository = AntremanRepository.ensure();
   final ScrollController _scrollController = ScrollController();
 
+  int _fallbackAntPoint() {
+    final current = CurrentUserService.instance.currentUser;
+    if (current?.userID == controller.userID) {
+      return current?.antPoint ?? 100;
+    }
+    return 100;
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,62 +82,19 @@ class QuestionContent extends StatelessWidget {
                               controller.userID,
                             ),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Text("0");
-                              } else if (snapshot.hasError) {
-                                return const Text("0");
-                              } else if (!snapshot.hasData ||
-                                  snapshot.data == null) {
-                                return Obx(() {
-                                  final current =
-                                      CurrentUserService.instance.currentUser;
-                                  final antPoint =
-                                      current?.userID == controller.userID
-                                          ? current?.antPoint ?? 100
-                                          : 100;
-                                  return Text(
-                                    antPoint.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 25,
-                                      fontFamily: "MontserratMedium",
-                                    ),
-                                  );
-                                });
-                              } else {
-                                final antPoint = snapshot.data ?? 0;
-                                return AnimatedContainer(
-                                  duration: Duration(milliseconds: 500),
-                                  curve: Curves.easeInOut,
-                                  child: Obx(() {
-                                    Color textColor = Colors.black;
-                                    // Check if the answer was just submitted
-                                    if (controller.justAnswered.isNotEmpty) {
-                                      textColor =
-                                          controller.justAnswered.value ==
-                                                  'correct'
-                                              ? Colors.green
-                                              : controller.justAnswered.value ==
-                                                      'incorrect'
-                                                  ? Colors.red
-                                                  : Colors.black;
-                                      // Reset the justAnswered state after animation
-                                      Future.delayed(
-                                          Duration(milliseconds: 500), () {
-                                        controller.justAnswered.value = '';
-                                      });
-                                    }
-                                    return Text(
-                                      antPoint.toString(),
-                                      style: TextStyle(
-                                          color: textColor,
-                                          fontSize: 25,
-                                          fontFamily: "MontserratMedium"),
-                                    );
-                                  }),
-                                );
-                              }
+                              final antPoint = snapshot.hasError ||
+                                      !snapshot.hasData ||
+                                      snapshot.data == null
+                                  ? _fallbackAntPoint()
+                                  : snapshot.data!;
+                              return Text(
+                                antPoint.toString(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 25,
+                                  fontFamily: "MontserratMedium",
+                                ),
+                              );
                             },
                           ),
                           Image.asset(

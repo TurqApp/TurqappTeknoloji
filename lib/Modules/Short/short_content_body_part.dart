@@ -18,7 +18,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                         videoPlayerController.pause();
                         volumeOff(false); // Manual pause bildirimi
                       } else {
-                        videoPlayerController.play();
+                        resumeIfActive();
                         volumeOff(true); // Manual play bildirimi
                       }
                     },
@@ -211,16 +211,17 @@ extension ShortsContentBodyPart on _ShortsContentState {
                     toggleExpandOnTextTap: true,
                     // SHORT SAYFASINA ÖZEL: Normal metin beyaz
                     fontColor: Colors.white,
-                    // SHORT SAYFASINA ÖZEL: # ve @ beyaz olacak
-                    hashtagColor: Colors.white,
-                    mentionColor: Colors.white,
-                    // SHORT SAYFASINA ÖZEL: #/@/link beyaz; buton mavi
-                    interactiveColor: Colors.white,
-                    expandButtonColor: Colors.blue,
+                    // SHORT SAYFASINA ÖZEL: #/@/link mavi ve tıklanabilir kalsın
+                    hashtagColor: Colors.blue,
+                    mentionColor: Colors.blue,
+                    urlColor: Colors.blue,
+                    interactiveColor: Colors.blue,
+                    expandButtonColor: Colors.white,
+                    expandButtonFontSize: 13,
                     onHashtagTap: (tag) {
                       videoPlayerController.pause();
                       Get.to(() => TagPosts(tag: tag))?.then((_) {
-                        videoPlayerController.play();
+                        resumeIfActive();
                       });
                     },
                     onUrlTap: (v) async {
@@ -313,7 +314,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 GestureDetector(
                   onTap: () {
                     controller.gizlemeyiGeriAl();
-                    videoPlayerController.play();
+                    resumeIfActive();
                   },
                   child: const Text(
                     "Geri Al",
@@ -408,7 +409,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 GestureDetector(
                   onTap: () {
                     controller.arsivdenCikart();
-                    videoPlayerController.play();
+                    resumeIfActive();
                   },
                   child: const Text(
                     "Geri Al",
@@ -551,7 +552,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                       PostStoryShareService.resolveOriginalPostId(model),
                   sharedAsPost: true,
                 ))?.then((_) {
-              videoPlayerController.play();
+              resumeIfActive();
             });
           },
           title: 'Gönderi olarak yayınla',
@@ -561,7 +562,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           onTap: () async {
             videoPlayerController.pause();
             await PostStoryShareService.openStoryMakerForPost(model);
-            videoPlayerController.play();
+            resumeIfActive();
           },
           title: 'Hikayene ekle',
           icon: CupertinoIcons.sparkles,
@@ -572,9 +573,9 @@ extension ShortsContentBodyPart on _ShortsContentState {
             onTap: () {
               videoPlayerController.pause();
               Get.to(() => PostSharers(
-                    postID: PostStoryShareService.resolveOriginalPostId(model),
-                  ))?.then((_) {
-                videoPlayerController.play();
+                  postID: PostStoryShareService.resolveOriginalPostId(model),
+                ))?.then((_) {
+                resumeIfActive();
               });
             },
             title: 'Gönderi olarak paylaşanlar',
@@ -650,7 +651,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                 },
               ).then((_) {
                 if (!controller.silindi.value) {
-                  videoPlayerController.play();
+                  resumeIfActive();
                 }
               });
             },
@@ -676,7 +677,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
           PullDownMenuItem(
             onTap: () {
               controller.arsivdenCikart();
-              videoPlayerController.play();
+              resumeIfActive();
             },
             title: "Arşivden Çıkart",
             icon: CupertinoIcons.doc_text_viewfinder,

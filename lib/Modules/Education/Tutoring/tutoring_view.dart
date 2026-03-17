@@ -53,7 +53,7 @@ class TutoringView extends StatelessWidget {
         color: Colors.white,
         backgroundColor: Colors.black,
         onRefresh: () async {
-          tutoringController.listenToTutoringData();
+          await tutoringController.listenToTutoringData(forceRefresh: true);
           applyFilterTrigger.value = false;
         },
         child: SingleChildScrollView(

@@ -348,6 +348,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     double aspectRatio = 16 / 9,
     bool useAspectRatio = true,
     bool? overrideAutoPlay,
+    bool forceFullscreenOnAndroid = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
@@ -360,6 +361,7 @@ class HLSVideoAdapter extends ChangeNotifier {
       showControls: false,
       aspectRatio: aspectRatio,
       useAspectRatio: useAspectRatio,
+      forceFullscreenOnAndroid: forceFullscreenOnAndroid,
     );
   }
 
