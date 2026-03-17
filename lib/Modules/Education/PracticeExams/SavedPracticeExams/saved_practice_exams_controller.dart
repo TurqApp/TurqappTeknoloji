@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
@@ -16,22 +18,54 @@ class SavedPracticeExamsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadSavedExams();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> loadSavedExams() async {
+  Future<void> _bootstrapData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    isLoading.value = true;
+    final savedEntries = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'saved_practice_exams',
+      orderByField: 'timeStamp',
+      descending: true,
+      cacheOnly: true,
+    );
+    savedExamIds.assignAll(savedEntries.map((doc) => doc.id));
+    if (savedEntries.isNotEmpty) {
+      final exams = await _practiceExamRepository.fetchByIds(
+        savedEntries.map((doc) => doc.id).toList(growable: false),
+        cacheOnly: true,
+      );
+      if (exams.isNotEmpty) {
+        savedExams.assignAll(exams);
+        isLoading.value = false;
+        await loadSavedExams(silent: true, forceRefresh: true);
+        return;
+      }
+    }
+    await loadSavedExams();
+  }
+
+  Future<void> loadSavedExams({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    if (!silent || savedExams.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       final savedEntries = await _subcollectionRepository.getEntries(
         uid,
         subcollection: 'saved_practice_exams',
         orderByField: 'timeStamp',
         descending: true,
-        preferCache: true,
-        forceRefresh: false,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
 
       savedExamIds.assignAll(savedEntries.map((doc) => doc.id));
@@ -42,7 +76,7 @@ class SavedPracticeExamsController extends GetxController {
 
       final exams = await _practiceExamRepository.fetchByIds(
         savedEntries.map((doc) => doc.id).toList(growable: false),
-        preferCache: true,
+        preferCache: !forceRefresh,
       );
       savedExams.assignAll(exams);
     } finally {

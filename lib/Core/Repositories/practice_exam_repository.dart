@@ -205,6 +205,7 @@ class PracticeExamRepository extends GetxService {
   Future<List<SinavModel>> fetchByIds(
     List<String> docIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final ids = docIds.where((e) => e.trim().isNotEmpty).toSet().toList();
     if (ids.isEmpty) return const <SinavModel>[];
@@ -234,6 +235,13 @@ class PracticeExamRepository extends GetxService {
       missing.addAll(ids);
     }
 
+    if (cacheOnly) {
+      return ids
+          .map((id) => resolved[id])
+          .whereType<SinavModel>()
+          .toList(growable: false);
+    }
+
     for (final chunk in _chunkIds(missing, 10)) {
       final snap = await _firestore
           .collection('practiceExams')
@@ -256,6 +264,7 @@ class PracticeExamRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return const <SinavModel>[];
@@ -272,6 +281,8 @@ class PracticeExamRepository extends GetxService {
         return disk;
       }
     }
+
+    if (cacheOnly) return const <SinavModel>[];
 
     final yanitlarSnap = await _firestore
         .collectionGroup('Yanitlar')
@@ -294,6 +305,7 @@ class PracticeExamRepository extends GetxService {
     final models = await fetchByIds(
       examDocIds.toList(growable: false),
       preferCache: preferCache,
+      cacheOnly: cacheOnly,
     );
     final sorted = models.toList(growable: false)
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));

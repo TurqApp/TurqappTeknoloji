@@ -54,14 +54,40 @@ class TutoringRepository extends GetxService {
     );
   }
 
-  Future<List<TutoringModel>> fetchByIds(List<String> docIds) async {
+  Future<List<TutoringModel>> fetchByIds(
+    List<String> docIds, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
     final ids = docIds.where((id) => id.trim().isNotEmpty).toList(growable: false);
     if (ids.isEmpty) return const <TutoringModel>[];
     final byId = <String, TutoringModel>{};
+    final missing = <String>[];
+
+    if (preferCache) {
+      for (final id in ids) {
+        final cached = await _getCachedMap('doc:$id');
+        if (cached != null) {
+          final model = TutoringModel.fromJson(cached, id);
+          if (!_isExpired(model)) {
+            byId[id] = model;
+          }
+          continue;
+        }
+        missing.add(id);
+      }
+    } else {
+      missing.addAll(ids);
+    }
+
+    if (cacheOnly) {
+      return ids.where(byId.containsKey).map((id) => byId[id]!).toList();
+    }
+
     const chunkSize = 10;
-    for (var i = 0; i < ids.length; i += chunkSize) {
-      final end = (i + chunkSize > ids.length) ? ids.length : i + chunkSize;
-      final chunk = ids.sublist(i, end);
+    for (var i = 0; i < missing.length; i += chunkSize) {
+      final end = (i + chunkSize > missing.length) ? missing.length : i + chunkSize;
+      final chunk = missing.sublist(i, end);
       final snapshot = await _firestore
           .collection('educators')
           .where(FieldPath.documentId, whereIn: chunk)
@@ -101,7 +127,27 @@ class TutoringRepository extends GetxService {
   Future<List<TutoringModel>> fetchByOwner(
     String userId, {
     int limit = 100,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
+    final cacheKey = 'owner:$userId:$limit';
+    if (!forceRefresh && preferCache) {
+      final cached = await _getCachedList(cacheKey);
+      if (cached != null) {
+        return cached
+            .map(
+              (e) => TutoringModel.fromJson(
+                Map<String, dynamic>.from((e['data'] as Map?) ?? const {}),
+                (e['id'] ?? '').toString(),
+              ),
+            )
+            .toList(growable: false);
+      }
+    }
+
+    if (cacheOnly) return const <TutoringModel>[];
+
     final snapshot = await _firestore
         .collection('educators')
         .where('userID', isEqualTo: userId)
@@ -110,6 +156,12 @@ class TutoringRepository extends GetxService {
     final items = snapshot.docs
         .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
         .toList(growable: false);
+    await _storeValue(
+      cacheKey,
+      snapshot.docs
+          .map((doc) => <String, dynamic>{'id': doc.id, 'data': doc.data()})
+          .toList(growable: false),
+    );
     return items;
   }
 

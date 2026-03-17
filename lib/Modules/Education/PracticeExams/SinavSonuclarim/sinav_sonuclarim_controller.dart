@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,7 +20,7 @@ class SinavSonuclarimController extends GetxController {
   void onInit() {
     super.onInit();
     scrolControlcu();
-    findAndGetSinavlar();
+    unawaited(_bootstrapData());
   }
 
   void scrolControlcu() {
@@ -36,13 +37,35 @@ class SinavSonuclarimController extends GetxController {
     });
   }
 
-  Future<void> findAndGetSinavlar() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final currentUserID = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserID == null || currentUserID.isEmpty) return;
+    final cached = await _practiceExamRepository.fetchAnsweredByUser(
+      currentUserID,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      isLoading.value = false;
+      await findAndGetSinavlar(silent: true, forceRefresh: true);
+      return;
+    }
+    await findAndGetSinavlar();
+  }
+
+  Future<void> findAndGetSinavlar({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       final currentUserID = FirebaseAuth.instance.currentUser!.uid;
       final exams = await _practiceExamRepository.fetchAnsweredByUser(
         currentUserID,
-        preferCache: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
       list.assignAll(exams);
     } catch (e) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -18,15 +20,17 @@ class MyTutoringsController extends GetxController {
   final RxList<TutoringModel> expiredTutorings = <TutoringModel>[].obs;
   final PageController pageController = PageController();
   final RxInt selection = 0.obs;
+  final RxBool isLoading = true.obs;
 
   @override
   void onInit() {
     super.onInit();
     final uid = getCurrentUserId();
     if (uid != null) {
-      fetchMyTutorings(uid);
+      unawaited(_bootstrapData(uid));
     } else {
       errorMessage.value = "Kullanıcı kimliği bulunamadı.";
+      isLoading.value = false;
     }
   }
 
@@ -36,11 +40,49 @@ class MyTutoringsController extends GetxController {
     super.onClose();
   }
 
-  Future<void> fetchMyTutorings(String currentUserId) async {
+  Future<void> _bootstrapData(String currentUserId) async {
+    final cached = await _tutoringRepository.fetchByOwner(
+      currentUserId,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      myTutorings.assignAll(cached);
+      updateTutoringsStatus();
+      final userIds = cached.map((t) => t.userID).toSet();
+      if (userIds.isNotEmpty) {
+        await fetchUsers(userIds, cacheOnly: true);
+      }
+      isLoading.value = false;
+      await fetchMyTutorings(
+        currentUserId,
+        silent: true,
+        forceRefresh: true,
+      );
+      return;
+    }
+    await fetchMyTutorings(currentUserId);
+  }
+
+  Future<void> fetchMyTutorings(
+    String currentUserId, {
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || myTutorings.isEmpty) {
+      isLoading.value = true;
+    }
     try {
-      final tutorings = await _tutoringRepository.fetchByOwner(currentUserId);
+      final tutorings = await _tutoringRepository.fetchByOwner(
+        currentUserId,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
       await _archiveExpiredTutorings(tutorings);
-      final refreshed = await _tutoringRepository.fetchByOwner(currentUserId);
+      final refreshed = await _tutoringRepository.fetchByOwner(
+        currentUserId,
+        preferCache: false,
+        forceRefresh: true,
+      );
       myTutorings.assignAll(refreshed);
 
       updateTutoringsStatus();
@@ -51,6 +93,8 @@ class MyTutoringsController extends GetxController {
       }
     } catch (e) {
       errorMessage.value = "İlanlar yüklenirken hata oluştu: $e";
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -110,7 +154,10 @@ class MyTutoringsController extends GetxController {
     AppSnackbar("İlan Yenilendi", "İlan tekrar yayına alındı.");
   }
 
-  Future<void> fetchUsers(Set<String> userIds) async {
+  Future<void> fetchUsers(
+    Set<String> userIds, {
+    bool cacheOnly = false,
+  }) async {
     final toFetch = userIds.where((id) => !users.containsKey(id)).toList();
     if (toFetch.isEmpty) return;
 
@@ -118,6 +165,7 @@ class MyTutoringsController extends GetxController {
       final rawUsers = await _userRepository.getUsersRaw(
         toFetch,
         preferCache: true,
+        cacheOnly: cacheOnly,
       );
       for (final entry in rawUsers.entries) {
         users[entry.key] = entry.value;

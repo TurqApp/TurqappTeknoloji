@@ -11,14 +11,6 @@ import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 class MyTutorings extends StatelessWidget {
   const MyTutorings({super.key});
 
-  Future<void> _initializeData() async {
-    final MyTutoringsController controller = Get.find<MyTutoringsController>();
-    final uid = controller.getCurrentUserId();
-    if (controller.myTutorings.isEmpty && uid != null) {
-      await controller.fetchMyTutorings(uid);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final ViewModeController viewModeController = Get.put(ViewModeController());
@@ -30,25 +22,23 @@ class MyTutorings extends StatelessWidget {
     );
 
     final MyTutoringsController controller = Get.find<MyTutoringsController>();
+    final PageLineBarController pageLineBarController =
+        Get.find<PageLineBarController>(tag: "MyTutorings");
 
-    return FutureBuilder(
-      future: _initializeData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CupertinoActivityIndicator());
-        } else if (snapshot.hasError ||
-            controller.errorMessage.value.isNotEmpty) {
+    return Obx(
+      () {
+        if (controller.isLoading.value && controller.myTutorings.isEmpty) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        if (controller.errorMessage.value.isNotEmpty &&
+            controller.myTutorings.isEmpty) {
           return Center(
             child: Text(
-              controller.errorMessage.value.isNotEmpty
-                  ? controller.errorMessage.value
-                  : "Veri yüklenirken hata oluştu",
+              controller.errorMessage.value,
               style: TextStyles.textFieldTitle,
             ),
           );
         }
-        final PageLineBarController pageLineBarController =
-            Get.find<PageLineBarController>(tag: "MyTutorings");
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -85,7 +75,6 @@ class MyTutorings extends StatelessWidget {
                     onPageChanged: (index) {
                       controller.selection.value = index;
                       pageLineBarController.selection.value = index;
-                      // Avoid recursive animate here; only reflect selection
                     },
                     children: [
                       Obx(

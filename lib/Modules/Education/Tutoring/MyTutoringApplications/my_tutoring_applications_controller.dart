@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
@@ -15,11 +17,37 @@ class MyTutoringApplicationsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadApplications();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> loadApplications() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final cached = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'myTutoringApplications',
+      orderByField: 'timeStamp',
+      descending: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      applications.value = cached
+          .map((doc) => TutoringApplicationModel.fromMap(doc.data, doc.id))
+          .toList();
+      isLoading.value = false;
+      await loadApplications(silent: true, forceRefresh: true);
+      return;
+    }
+    await loadApplications();
+  }
+
+  Future<void> loadApplications({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || applications.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
@@ -28,8 +56,8 @@ class MyTutoringApplicationsController extends GetxController {
         subcollection: 'myTutoringApplications',
         orderByField: 'timeStamp',
         descending: true,
-        preferCache: true,
-        forceRefresh: false,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
 
       applications.value = items
