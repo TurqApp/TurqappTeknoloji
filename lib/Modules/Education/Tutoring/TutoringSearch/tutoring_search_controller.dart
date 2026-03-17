@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -17,7 +19,7 @@ class TutoringSearchController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchInitialData();
+    unawaited(_bootstrapInitialData());
     debounce(searchQuery, (query) {
       if (query.isNotEmpty) {
         performSearch(query);
@@ -44,14 +46,47 @@ class TutoringSearchController extends GetxController {
     }
   }
 
-  Future<void> fetchInitialData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapInitialData() async {
+    try {
+      final cached = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
+        limit: 60,
+        page: 1,
+        cacheOnly: true,
+      );
+      final cachedItems = cached.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      if (cachedItems.isNotEmpty) {
+        _initialTutorings = cachedItems;
+        await _batchFetchUsers(cachedItems.map((t) => t.userID).toSet());
+        searchResults.value = cachedItems;
+        isLoading.value = false;
+        await fetchInitialData(silent: true);
+        return;
+      }
+    } catch (_) {}
+
+    await fetchInitialData();
+  }
+
+  Future<void> fetchInitialData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && searchResults.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.tutoring,
         query: '*',
         limit: 60,
         page: 1,
+        forceRefresh: forceRefresh,
       );
       _initialTutorings = result.hits
           .map(TutoringModel.fromTypesenseHit)
@@ -64,7 +99,9 @@ class TutoringSearchController extends GetxController {
       searchResults.value = _initialTutorings;
     } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || searchResults.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 
