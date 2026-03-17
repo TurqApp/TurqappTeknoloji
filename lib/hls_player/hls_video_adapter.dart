@@ -278,6 +278,22 @@ class HLSVideoAdapter extends ChangeNotifier {
     return Future.value();
   }
 
+  Future<void> forceSilence() async {
+    if (_disposed) return;
+    _wantPlay = false;
+    _wantPause = true;
+    _pendingVolume = 0.0;
+    _hasPendingVolume = true;
+    _hls.cancelPendingResume();
+
+    try {
+      if (_viewReady) {
+        await _hls.setVolume(0.0);
+        await _hls.pause();
+      }
+    } catch (_) {}
+  }
+
   Future<void> setVolume(double v) {
     if (_disposed) return Future.value();
     if (_viewReady) return _hls.setVolume(v);
@@ -306,6 +322,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     _isStopped = true;
     _wantPlay = false;
     _wantPause = false;
+    _hls.cancelPendingResume();
     if (_viewReady) {
       return _hls.stopPlayback();
     }

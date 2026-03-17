@@ -231,7 +231,7 @@ class _ShortViewState extends State<ShortView> {
 
     setState(() {
       currentPage = page;
-      _showOverlayControls = false;
+      _showOverlayControls = true;
     });
     isManuallyPaused = false;
     _isTransitioning = false;

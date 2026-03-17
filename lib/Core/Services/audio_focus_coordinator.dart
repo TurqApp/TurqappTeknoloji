@@ -105,8 +105,7 @@ class AudioFocusCoordinator extends GetxService {
     final others = _players.where((p) => !identical(p, except)).toList();
     for (final p in others) {
       try {
-        await p.pause();
-        await p.setVolume(0.0);
+        await p.forceSilence();
       } catch (_) {}
     }
   }

@@ -234,7 +234,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     // 2) Yeni sayfayı ata
     currentPage = page;
-    showControls = false;
+    showControls = true;
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {

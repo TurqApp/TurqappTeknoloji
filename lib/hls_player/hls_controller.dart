@@ -64,6 +64,11 @@ class HLSController {
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
 
+  void cancelPendingResume() {
+    _pendingReattachSeekSeconds = null;
+    _pendingReattachShouldPlay = false;
+  }
+
   // Streams
   Stream<PlayerState> get onStateChanged => _stateController.stream;
   Stream<Duration> get onPositionChanged => _positionController.stream;
@@ -192,6 +197,7 @@ class HLSController {
   // Pause
   Future<void> pause() async {
     if (_viewId == null) return;
+    cancelPendingResume();
 
     try {
       await _methodChannel.invokeMethod('pause', {'viewId': _viewId});
@@ -250,6 +256,7 @@ class HLSController {
   // Stop playback — network ve decoder serbest, controller hayatta kalır
   Future<void> stopPlayback() async {
     if (_viewId == null) return;
+    cancelPendingResume();
     try {
       await _methodChannel.invokeMethod('stopPlayback', {'viewId': _viewId});
     } on PlatformException catch (e) {
