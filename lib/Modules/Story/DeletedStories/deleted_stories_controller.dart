@@ -51,7 +51,9 @@ class DeletedStoriesController extends GetxController {
 
   Future<void> fetch({bool initial = false, bool forceRemote = false}) async {
     if (isLoading.value) return;
-    isLoading.value = true;
+    if (!forceRemote) {
+      isLoading.value = true;
+    }
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
@@ -59,14 +61,12 @@ class DeletedStoriesController extends GetxController {
       if (initial) {
         final restored = await _restoreFromCache(uid);
         if (restored && !forceRemote) {
+          isLoading.value = false;
           Future<void>.delayed(Duration.zero, () => fetch(forceRemote: true));
           return;
         }
       }
 
-      list.clear();
-      deletedAtById.clear();
-      deleteReasonById.clear();
       final payload = await _storyRepository.fetchDeletedStories(uid);
       debugPrint(
         'DeletedStoriesController.fetch: items=${payload.stories.length} '
@@ -84,8 +84,9 @@ class DeletedStoriesController extends GetxController {
   }
 
   Future<void> restore(String storyId) async {
-    final data = await _storyRepository.getStoryRaw(storyId, preferCache: true) ??
-        const <String, dynamic>{};
+    final data =
+        await _storyRepository.getStoryRaw(storyId, preferCache: true) ??
+            const <String, dynamic>{};
     await _storyRepository.restoreDeletedStory(storyId);
     final musicId = (data['musicId'] ?? '').toString().trim();
     if (musicId.isNotEmpty) {

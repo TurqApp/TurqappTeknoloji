@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -16,11 +18,41 @@ class MyApplicationsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadApplications();
+    unawaited(_bootstrapApplications());
   }
 
-  Future<void> loadApplications() async {
-    isLoading.value = true;
+  Future<void> _bootstrapApplications() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      isLoading.value = false;
+      return;
+    }
+    final cached = await _subcollectionRepository.getEntries(
+      uid,
+      subcollection: 'myApplications',
+      orderByField: 'timeStamp',
+      descending: true,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      applications.value = cached
+          .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
+          .toList(growable: false);
+      isLoading.value = false;
+      unawaited(loadApplications(silent: true, forceRefresh: true));
+      return;
+    }
+    await loadApplications();
+  }
+
+  Future<void> loadApplications({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
@@ -29,13 +61,13 @@ class MyApplicationsController extends GetxController {
         subcollection: 'myApplications',
         orderByField: 'timeStamp',
         descending: true,
-        preferCache: true,
-        forceRefresh: false,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
 
       applications.value = items
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
-          .toList();
+          .toList(growable: false);
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -85,7 +117,6 @@ class MyApplicationsController extends GetxController {
             )
             .toList(growable: false),
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 }
