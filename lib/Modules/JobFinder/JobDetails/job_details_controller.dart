@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -39,18 +40,18 @@ class JobDetailsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initialize();
+    unawaited(_initialize());
   }
 
   Future<void> _initialize() async {
-    await _refreshJob();
-    await cvCheck();
-    await getUserData(model.value.userID);
-    await checkSaved(model.value.docID);
-    await checkBasvuru(model.value.docID);
-    await getSimilar(model.value.meslek);
-    await fetchReviews(model.value.docID);
-    _incrementViewCount();
+    unawaited(_refreshJob());
+    unawaited(cvCheck());
+    unawaited(getUserData(model.value.userID));
+    unawaited(checkSaved(model.value.docID));
+    unawaited(checkBasvuru(model.value.docID));
+    unawaited(_bootstrapSimilar());
+    unawaited(_bootstrapReviews());
+    unawaited(_incrementViewCount());
   }
 
   Future<void> _refreshJob() async {
@@ -86,9 +87,8 @@ class JobDetailsController extends GetxController {
       nickname.value = summary.nickname.isNotEmpty
           ? summary.nickname
           : summary.preferredName;
-      avatarUrl.value = summary.avatarUrl.isNotEmpty
-          ? summary.avatarUrl
-          : kDefaultAvatarUrl;
+      avatarUrl.value =
+          summary.avatarUrl.isNotEmpty ? summary.avatarUrl : kDefaultAvatarUrl;
     } catch (_) {
       avatarUrl.value = kDefaultAvatarUrl;
     }
@@ -103,8 +103,7 @@ class JobDetailsController extends GetxController {
       }
       final cv = await _cvRepository.getCv(uid, preferCache: true);
       cvVar.value = cv != null;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> checkSaved(String docId) async {
@@ -207,6 +206,38 @@ class JobDetailsController extends GetxController {
     }
   }
 
+  Future<void> _bootstrapSimilar() async {
+    try {
+      final current = model.value;
+      final query = [
+        current.meslek.trim(),
+        current.brand.trim(),
+        current.ilanBasligi.trim(),
+      ].firstWhere(
+        (value) => value.isNotEmpty,
+        orElse: () => current.meslek.trim(),
+      );
+      if (query.isEmpty) return;
+      final cached = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: query,
+        limit: 20,
+        cacheOnly: true,
+      );
+      if (cached.hits.isNotEmpty) {
+        final jobs = cached.hits
+            .map(JobModel.fromTypesenseHit)
+            .where((job) => _isSimilarJob(current, job))
+            .take(8)
+            .toList(growable: false);
+        if (jobs.isNotEmpty) {
+          list.assignAll(jobs);
+        }
+      }
+    } catch (_) {}
+    await getSimilar(model.value.meslek);
+  }
+
   bool _isSimilarJob(JobModel current, JobModel other) {
     if (other.docID.isEmpty || other.docID == current.docID || other.ended) {
       return false;
@@ -244,9 +275,24 @@ class JobDetailsController extends GetxController {
     }
   }
 
+  Future<void> _bootstrapReviews() async {
+    final docId = model.value.docID;
+    final cached = await _jobRepository.fetchReviews(
+      docId,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      reviews.assignAll(cached);
+      unawaited(_fetchReviewUsers(reviews.map((e) => e.userID)));
+    }
+    await fetchReviews(docId);
+  }
+
   Future<void> _fetchReviewUsers(Iterable<String> userIDs) async {
     final uniqueIds = userIDs.where((e) => e.trim().isNotEmpty).toSet();
-    final toFetch = uniqueIds.where((userID) => !reviewUsers.containsKey(userID));
+    final toFetch =
+        uniqueIds.where((userID) => !reviewUsers.containsKey(userID));
     if (toFetch.isEmpty) return;
     final summaries = await _userRepository.getUsers(toFetch.toList());
     for (final entry in summaries.entries) {
@@ -472,8 +518,7 @@ class JobDetailsController extends GetxController {
         if (refreshed != null) {
           model.value = refreshed;
         }
-      } catch (_) {
-      }
+      } catch (_) {}
     }
   }
 
@@ -487,15 +532,15 @@ class JobDetailsController extends GetxController {
 
   Future<void> unpublishAd() async {
     final docId = model.value.docID;
-    final existing =
-        await _jobRepository.fetchById(docId, preferCache: false, forceRefresh: true);
+    final existing = await _jobRepository.fetchById(docId,
+        preferCache: false, forceRefresh: true);
 
     if (existing == null) throw Exception('İlan bulunamadı');
 
     await _jobRepository.unpublishJob(docId);
 
-    final refreshed =
-        await _jobRepository.fetchById(docId, preferCache: false, forceRefresh: true);
+    final refreshed = await _jobRepository.fetchById(docId,
+        preferCache: false, forceRefresh: true);
     if (refreshed != null) {
       model.value = refreshed;
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,13 +12,15 @@ import '../../../Models/job_model.dart';
 class MyJobAdsController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
   final pageController = PageController();
+  final isLoadingActive = true.obs;
+  final isLoadingDeactive = true.obs;
   RxList<JobModel> active = <JobModel>[].obs;
   RxList<JobModel> deactive = <JobModel>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    getActive();
+    unawaited(_bootstrap());
   }
 
   void goToPage(int index) {
@@ -27,46 +31,105 @@ class MyJobAdsController extends GetxController {
     );
   }
 
-  Future<void> getActive() async {
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+  Future<void> _bootstrap() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      isLoadingActive.value = false;
+      isLoadingDeactive.value = false;
+      return;
+    }
 
-      final jobs = await _jobRepository.fetchByOwnerAndEnded(
-        uid,
-        ended: false,
-      );
+    final cachedActive = await _jobRepository.fetchByOwnerAndEnded(
+      uid,
+      ended: false,
+      cacheOnly: true,
+    );
+    if (cachedActive.isNotEmpty) {
+      active.assignAll(_filterAndNormalizeExpired(cachedActive));
+      isLoadingActive.value = false;
+      unawaited(getActive(silent: true, forceRefresh: true));
+    } else {
+      await getActive();
+    }
 
-      List<JobModel> validJobs = [];
+    final cachedEnded = await _jobRepository.fetchByOwnerAndEnded(
+      uid,
+      ended: true,
+      cacheOnly: true,
+    );
+    if (cachedEnded.isNotEmpty) {
+      deactive.assignAll(cachedEnded);
+      isLoadingDeactive.value = false;
+      unawaited(getDeactive(silent: true, forceRefresh: true));
+      return;
+    }
 
-      for (final job in jobs) {
-        if (job.timeStamp < thirtyDaysAgo) {
-          await FirebaseFirestore.instance
-              .collection(JobCollection.name)
-              .doc(job.docID)
-              .update({"ended": true});
-        } else {
-          validJobs.add(job);
-        }
-      }
-
-      active.value = validJobs;
-      getDeactive();
-    } catch (_) {
+    if (deactive.isEmpty) {
+      await getDeactive();
     }
   }
 
-  Future<void> getDeactive() async {
+  Future<void> getActive({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoadingActive.value = true;
+    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      final jobs = await _jobRepository.fetchByOwnerAndEnded(
+        uid,
+        ended: false,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      active.assignAll(_filterAndNormalizeExpired(jobs));
+    } catch (_) {
+    } finally {
+      isLoadingActive.value = false;
+    }
+  }
+
+  Future<void> getDeactive({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoadingDeactive.value = true;
+    }
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
       deactive.value = await _jobRepository.fetchByOwnerAndEnded(
         uid,
         ended: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
     } catch (_) {
+    } finally {
+      isLoadingDeactive.value = false;
     }
+  }
+
+  List<JobModel> _filterAndNormalizeExpired(List<JobModel> jobs) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    final validJobs = <JobModel>[];
+
+    for (final job in jobs) {
+      if (job.timeStamp < thirtyDaysAgo) {
+        unawaited(FirebaseFirestore.instance
+            .collection(JobCollection.name)
+            .doc(job.docID)
+            .update({"ended": true}));
+      } else {
+        validJobs.add(job);
+      }
+    }
+
+    return validJobs;
   }
 }

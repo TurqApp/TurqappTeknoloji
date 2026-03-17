@@ -40,6 +40,7 @@ class CvRepository extends GetxService {
     String uid, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty) return null;
 
@@ -48,17 +49,17 @@ class CvRepository extends GetxService {
       if (memory != null) return memory;
       final disk = await _getFromPrefs(uid);
       if (disk != null) {
-        _memory[uid] = _CachedCv(
-          data: Map<String, dynamic>.from(disk),
-          cachedAt: DateTime.now(),
-        );
         return Map<String, dynamic>.from(disk);
       }
     }
 
-    final snap = await FirebaseFirestore.instance.collection('CV').doc(uid).get();
-    final data =
-        snap.exists && snap.data() != null ? Map<String, dynamic>.from(snap.data()!) : null;
+    if (cacheOnly) return null;
+
+    final snap =
+        await FirebaseFirestore.instance.collection('CV').doc(uid).get();
+    final data = snap.exists && snap.data() != null
+        ? Map<String, dynamic>.from(snap.data()!)
+        : null;
     await setCv(uid, data);
     return data == null ? null : Map<String, dynamic>.from(data);
   }
@@ -115,13 +116,15 @@ class CvRepository extends GetxService {
       final fresh = DateTime.now().difference(cachedAt) <= _ttl;
       if (!fresh) return null;
       final data = decoded['data'];
+      Map<String, dynamic>? mapped;
       if (data is Map<String, dynamic>) {
-        return Map<String, dynamic>.from(data);
+        mapped = Map<String, dynamic>.from(data);
+      } else if (data is Map) {
+        mapped = data.map((key, value) => MapEntry(key.toString(), value));
       }
-      if (data is Map) {
-        return data.map((key, value) => MapEntry(key.toString(), value));
-      }
-      return null;
+      if (mapped == null) return null;
+      _memory[uid] = _CachedCv(data: mapped, cachedAt: cachedAt);
+      return Map<String, dynamic>.from(mapped);
     } catch (_) {
       return null;
     }

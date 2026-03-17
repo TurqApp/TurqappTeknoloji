@@ -34,7 +34,7 @@ class CareerProfile extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: Obx(() {
-          if (controller.isLoading.value) {
+          if (controller.isLoading.value && !controller.cvVar.value) {
             return const Center(child: CupertinoActivityIndicator());
           }
 
@@ -43,7 +43,7 @@ class CareerProfile extends StatelessWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: controller.loadCvData,
+            onRefresh: () => controller.loadCvData(forceRefresh: true),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
               children: [

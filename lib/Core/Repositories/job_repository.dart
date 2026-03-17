@@ -36,17 +36,23 @@ class JobRepository extends GetxService {
     String docId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'doc:$docId';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null && memory.isNotEmpty) return memory.first;
-      final disk = await _getFromPrefs(cacheKey);
-      if (disk != null && disk.isNotEmpty) {
-        _memory[cacheKey] = _TimedJobs(items: disk, cachedAt: DateTime.now());
-        return disk.first;
+      final disk = await _getFromPrefsEntry(cacheKey);
+      if (disk != null && disk.items.isNotEmpty) {
+        _memory[cacheKey] = _TimedJobs(
+          items: List<JobModel>.from(disk.items),
+          cachedAt: disk.cachedAt,
+        );
+        return disk.items.first;
       }
     }
+
+    if (cacheOnly) return null;
 
     final doc =
         await _firestore.collection(JobCollection.name).doc(docId).get();
@@ -65,10 +71,13 @@ class JobRepository extends GetxService {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedJobs(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = _TimedJobs(
+          items: List<JobModel>.from(disk.items),
+          cachedAt: disk.cachedAt,
+        );
+        return List<JobModel>.from(disk.items);
       }
     }
 
@@ -102,13 +111,13 @@ class JobRepository extends GetxService {
           resolved[id] = memory.first;
           continue;
         }
-        final disk = await _getFromPrefs('doc:$id');
-        if (disk != null && disk.isNotEmpty) {
+        final disk = await _getFromPrefsEntry('doc:$id');
+        if (disk != null && disk.items.isNotEmpty) {
           _memory['doc:$id'] = _TimedJobs(
-            items: disk,
-            cachedAt: DateTime.now(),
+            items: List<JobModel>.from(disk.items),
+            cachedAt: disk.cachedAt,
           );
-          resolved[id] = disk.first;
+          resolved[id] = disk.items.first;
           continue;
         }
         missing.add(id);
@@ -147,17 +156,23 @@ class JobRepository extends GetxService {
     required bool ended,
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'owner:$uid:ended:$ended';
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedJobs(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = _TimedJobs(
+          items: List<JobModel>.from(disk.items),
+          cachedAt: disk.cachedAt,
+        );
+        return List<JobModel>.from(disk.items);
       }
     }
+
+    if (cacheOnly) return const <JobModel>[];
 
     final snapshot = await _firestore
         .collection(JobCollection.name)
@@ -182,10 +197,13 @@ class JobRepository extends GetxService {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(cacheKey);
+      final disk = await _getFromPrefsEntry(cacheKey);
       if (disk != null) {
-        _memory[cacheKey] = _TimedJobs(items: disk, cachedAt: DateTime.now());
-        return disk;
+        _memory[cacheKey] = _TimedJobs(
+          items: List<JobModel>.from(disk.items),
+          cachedAt: disk.cachedAt,
+        );
+        return List<JobModel>.from(disk.items);
       }
     }
 
@@ -244,8 +262,7 @@ class JobRepository extends GetxService {
                   applicantName: (data['applicantName'] ?? '').toString(),
                   applicantNickname:
                       (data['applicantNickname'] ?? '').toString(),
-                  applicantPfImage:
-                      (data['applicantPfImage'] ?? '').toString(),
+                  applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
                   status: (data['status'] ?? 'pending').toString(),
                   timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
                   statusUpdatedAt:
@@ -274,13 +291,11 @@ class JobRepository extends GetxService {
               companyName: (data['companyName'] ?? '').toString(),
               companyLogo: (data['companyLogo'] ?? '').toString(),
               applicantName: (data['applicantName'] ?? '').toString(),
-              applicantNickname:
-                  (data['applicantNickname'] ?? '').toString(),
+              applicantNickname: (data['applicantNickname'] ?? '').toString(),
               applicantPfImage: (data['applicantPfImage'] ?? '').toString(),
               status: (data['status'] ?? 'pending').toString(),
               timeStamp: (data['timeStamp'] as num?)?.toInt() ?? 0,
-              statusUpdatedAt:
-                  (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
+              statusUpdatedAt: (data['statusUpdatedAt'] as num?)?.toInt() ?? 0,
               note: (data['note'] ?? '').toString(),
             ))
         .toList(growable: false);
@@ -290,6 +305,7 @@ class JobRepository extends GetxService {
     String jobDocId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'reviews:$jobDocId';
     if (!forceRefresh && preferCache) {
@@ -303,6 +319,8 @@ class JobRepository extends GetxService {
             .toList(growable: false);
       }
     }
+
+    if (cacheOnly) return const <JobReviewModel>[];
 
     final snapshot = await _firestore
         .collection(JobCollection.name)
@@ -514,8 +532,7 @@ class JobRepository extends GetxService {
       throw Exception('application_not_found');
     }
 
-    final applicationData =
-        applicationSnap.data() ?? const <String, dynamic>{};
+    final applicationData = applicationSnap.data() ?? const <String, dynamic>{};
     final title = (applicationData['jobTitle'] ?? '').toString().trim();
     final companyName =
         (applicationData['companyName'] ?? '').toString().trim();
@@ -590,7 +607,7 @@ class JobRepository extends GetxService {
     return List<JobModel>.from(entry.items);
   }
 
-  Future<List<JobModel>?> _getFromPrefs(String key) async {
+  Future<_TimedJobs?> _getFromPrefsEntry(String key) async {
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     final raw = prefs.getString('$_prefsPrefix::$key');
     if (raw == null || raw.isEmpty) return null;
@@ -600,20 +617,20 @@ class JobRepository extends GetxService {
       await prefs.remove('$_prefsPrefix::$key');
       return null;
     }
-    final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
-        .map((item) {
-          final map = Map<String, dynamic>.from(item as Map);
-          return JobModel.fromMap(
-            Map<String, dynamic>.from(map['data'] as Map),
-            map['docID'] as String? ?? '',
-          );
-        })
-        .toList(growable: false);
-    return items;
+    final items =
+        (decoded['items'] as List<dynamic>? ?? const <dynamic>[]).map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      return JobModel.fromMap(
+        Map<String, dynamic>.from(map['data'] as Map),
+        map['docID'] as String? ?? '',
+      );
+    }).toList(growable: false);
+    return _TimedJobs(items: items, cachedAt: cachedAt);
   }
 
   Future<void> _store(String key, List<JobModel> items) async {
-    _memory[key] = _TimedJobs(items: List<JobModel>.from(items), cachedAt: DateTime.now());
+    _memory[key] =
+        _TimedJobs(items: List<JobModel>.from(items), cachedAt: DateTime.now());
     final prefs = _prefs ??= await SharedPreferences.getInstance();
     final payload = jsonEncode(<String, dynamic>{
       'cachedAt': DateTime.now().toIso8601String(),

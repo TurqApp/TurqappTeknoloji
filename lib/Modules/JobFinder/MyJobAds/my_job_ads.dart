@@ -37,6 +37,12 @@ class MyJobAds extends StatelessWidget {
                 },
                 children: [
                   Obx(() {
+                    if (controller.isLoadingActive.value &&
+                        controller.active.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      );
+                    }
                     return controller.active.isNotEmpty
                         ? ListView.builder(
                             itemCount: controller.active.length,
@@ -56,6 +62,12 @@ class MyJobAds extends StatelessWidget {
                         : EmptyRow(text: "İlan Bulunamadı");
                   }),
                   Obx(() {
+                    if (controller.isLoadingDeactive.value &&
+                        controller.deactive.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      );
+                    }
                     return controller.deactive.isNotEmpty
                         ? ListView.builder(
                             itemCount: controller.deactive.length,
