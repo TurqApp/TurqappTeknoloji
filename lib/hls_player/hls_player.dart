@@ -83,6 +83,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
     final playerBody = Container(
       color: widget.backgroundColor ?? Colors.transparent,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           // Platform view
           if (Platform.isIOS)

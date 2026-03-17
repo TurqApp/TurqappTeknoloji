@@ -1,6 +1,6 @@
 part of 'short_content.dart';
 
-extension ShortsContentBodyPart on ShortsContent {
+extension ShortsContentBodyPart on _ShortsContentState {
   Widget userInfoBar(BuildContext context) {
     return Obx(() {
       return Container(

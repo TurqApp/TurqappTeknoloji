@@ -570,6 +570,39 @@ class _ShortViewState extends State<ShortView> {
     );
   }
 
+  Widget _buildFullscreenVideoSurface(
+    HLSVideoAdapter adapter,
+    String keyId, {
+    double? modelAspectRatio,
+  }) {
+    final ar = (modelAspectRatio != null && modelAspectRatio > 0)
+        ? modelAspectRatio
+        : (9 / 16);
+
+    final player = adapter.buildPlayer(
+      key: ValueKey(keyId),
+      useAspectRatio: false,
+    );
+
+    if (ar > 1.2) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: ar,
+          child: player,
+        ),
+      );
+    } else if (ar >= 0.8) {
+      return Center(
+        child: AspectRatio(
+          aspectRatio: 1.0,
+          child: player,
+        ),
+      );
+    }
+
+    return SizedBox.expand(child: player);
+  }
+
   @override
   void dispose() {
     _scrollDebounce?.cancel();
@@ -740,74 +773,61 @@ class _ShortViewState extends State<ShortView> {
                     );
                   }
 
-                  // PURE BUILD — side effect yok, sadece widget döndür
-                  // 3-tier: portrait (<0.8) → fill, square (0.8-1.2) → kare frame, landscape (>1.2) → yatay frame
-                  Widget videoWidget;
-                  if (modelAr > 1.2) {
-                    // Yatay dikdörtgen
-                    videoWidget = Center(
-                      child: AspectRatio(
-                        aspectRatio: modelAr,
-                        child: vp.buildPlayer(useAspectRatio: false),
-                      ),
-                    );
-                  } else if (modelAr >= 0.8) {
-                    // Kare frame
-                    videoWidget = Center(
-                      child: AspectRatio(
-                        aspectRatio: 1.0,
-                        child: vp.buildPlayer(useAspectRatio: false),
-                      ),
-                    );
-                  } else {
-                    // Dikey — ekranı doldur
-                    videoWidget = SizedBox.expand(
-                      child: vp.buildPlayer(useAspectRatio: false),
-                    );
-                  }
+                  final shouldRenderPlayer = idx == currentPage;
+                  final videoWidget = shouldRenderPlayer
+                      ? _buildFullscreenVideoSurface(
+                          vp,
+                          'vp-${list[idx].docID}-${vp.hashCode}',
+                          modelAspectRatio: modelAr,
+                        )
+                      : const SizedBox.shrink();
 
                   return RepaintBoundary(
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
+                        _buildThumbOverlay(thumb, modelAr),
                         // Video layer
-                        GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onDoubleTap: () {
-                            // Çift dokunma: ses aç/kapa
-                            setState(() => volume = !volume);
-                            vp.setVolume(volume ? 1 : 0);
-                            if (idx == currentPage) {
-                              VideoTelemetryService.instance.updateRuntimeHints(
-                                list[idx].docID,
-                                isAudible: volume,
+                        if (shouldRenderPlayer)
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onDoubleTap: () {
+                              setState(() => volume = !volume);
+                              vp.setVolume(volume ? 1 : 0);
+                              if (idx == currentPage) {
+                                VideoTelemetryService.instance
+                                    .updateRuntimeHints(
+                                  list[idx].docID,
+                                  isAudible: volume,
+                                );
+                              }
+                            },
+                            child: videoWidget,
+                          ),
+                        if (shouldRenderPlayer)
+                          AnimatedBuilder(
+                            animation: vp,
+                            builder: (_, __) {
+                              if (vp.value.hasRenderedFirstFrame) {
+                                return const SizedBox.shrink();
+                              }
+                              return _buildThumbOverlay(thumb, modelAr);
+                            },
+                          ),
+                        if (shouldRenderPlayer)
+                          AnimatedBuilder(
+                            animation: vp,
+                            builder: (_, __) {
+                              if (vp.value.isInitialized) {
+                                return const SizedBox.shrink();
+                              }
+                              return const Center(
+                                child: CupertinoActivityIndicator(
+                                  color: Colors.white,
+                                ),
                               );
-                            }
-                          },
-                          child: videoWidget,
-                        ),
-                        AnimatedBuilder(
-                          animation: vp,
-                          builder: (_, __) {
-                            if (vp.value.hasRenderedFirstFrame) {
-                              return const SizedBox.shrink();
-                            }
-                            return _buildThumbOverlay(thumb, modelAr);
-                          },
-                        ),
-                        AnimatedBuilder(
-                          animation: vp,
-                          builder: (_, __) {
-                            if (vp.value.isInitialized) {
-                              return const SizedBox.shrink();
-                            }
-                            return const Center(
-                              child: CupertinoActivityIndicator(
-                                color: Colors.white,
-                              ),
-                            );
-                          },
-                        ),
+                            },
+                          ),
                         ShortsContent(
                           model: list[idx],
                           volumeOff: (v) {

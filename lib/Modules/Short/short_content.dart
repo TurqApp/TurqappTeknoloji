@@ -36,7 +36,7 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 
 part 'short_content_body_part.dart';
 
-class ShortsContent extends StatelessWidget {
+class ShortsContent extends StatefulWidget {
   static const List<String> _flagReasons = <String>[
     'Uyuşturucu',
     'Kumar',
@@ -52,7 +52,7 @@ class ShortsContent extends StatelessWidget {
   final Function(bool) volumeOff;
   final void Function(String updatedDocId)? onEdited;
 
-  ShortsContent({
+  const ShortsContent({
     super.key,
     required this.model,
     required this.videoPlayerController,
@@ -60,7 +60,36 @@ class ShortsContent extends StatelessWidget {
     this.onEdited, // <-- yeni parametre
   });
 
+  @override
+  State<ShortsContent> createState() => _ShortsContentState();
+}
+
+class _ShortsContentState extends State<ShortsContent> {
   late final ShortContentController controller;
+
+  PostsModel get model => widget.model;
+  HLSVideoAdapter get videoPlayerController => widget.videoPlayerController;
+  Function(bool) get volumeOff => widget.volumeOff;
+  void Function(String updatedDocId)? get onEdited => widget.onEdited;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.isRegistered<ShortContentController>(tag: model.docID)
+        ? Get.find<ShortContentController>(tag: model.docID)
+        : Get.put(
+            ShortContentController(postID: model.docID, model: model),
+            tag: model.docID,
+          );
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<ShortContentController>(tag: model.docID)) {
+      Get.delete<ShortContentController>(tag: model.docID, force: true);
+    }
+    super.dispose();
+  }
 
   bool get _isBlackBadgeUser {
     final rozet = (CurrentUserService.instance.currentUser?.rozet ?? '')
@@ -72,11 +101,6 @@ class ShortsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller = Get.put(
-      ShortContentController(postID: model.docID, model: model),
-      tag: model.docID,
-    );
-    controller.fullscreen.value = true;
     if (controller.gizlendi.value) {
       videoPlayerController.pause();
     }

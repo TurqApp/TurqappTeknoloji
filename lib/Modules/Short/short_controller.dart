@@ -37,13 +37,13 @@ class ShortController extends GetxController {
 
   // +5/-5 kuralı: önündeki 5 video HOT, gerideki 5 video WARM (cache korumalı)
   static final int _hotAhead =
-      defaultTargetPlatform == TargetPlatform.android ? 3 : 5;
+      defaultTargetPlatform == TargetPlatform.android ? 1 : 5;
   static final int _hotBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 1 : 2;
+      defaultTargetPlatform == TargetPlatform.android ? 0 : 2;
   static final int _warmBehind =
-      defaultTargetPlatform == TargetPlatform.android ? 4 : 5;
+      defaultTargetPlatform == TargetPlatform.android ? 1 : 5;
   static final int _maxPlayers =
-      defaultTargetPlatform == TargetPlatform.android ? 5 : 11;
+      defaultTargetPlatform == TargetPlatform.android ? 2 : 11;
   static final double _activeBufferSeconds =
       defaultTargetPlatform == TargetPlatform.android ? 2.4 : 3.0;
   static final double _neighborBufferSeconds =
@@ -77,6 +77,10 @@ class ShortController extends GetxController {
   static bool _globalShuffleCompleted = false;
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await adapter.stopPlayback();
+      return;
+    }
     await adapter.pause();
   }
 
