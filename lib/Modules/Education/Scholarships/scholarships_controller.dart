@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
@@ -23,6 +24,7 @@ import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_
 import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
 
 class ScholarshipsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final FollowRepository _followRepository = FollowRepository.ensure();
   final ScholarshipRepository _scholarshipRepository =
       ScholarshipRepository.ensure();
@@ -93,7 +95,12 @@ class ScholarshipsController extends GetxController {
       if (cached.isFresh) {
         return;
       }
-      await fetchScholarships(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'scholarships:home',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchScholarships(silent: true, forceRefresh: true));
+      }
       return;
     }
     await fetchScholarships();
@@ -254,8 +261,7 @@ class ScholarshipsController extends GetxController {
     }
 
     try {
-      final result =
-          await TypesenseEducationSearchService.instance.searchHits(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.scholarship,
         query: normalized,
         limit: 40,
@@ -287,7 +293,8 @@ class ScholarshipsController extends GetxController {
   ) async {
     final orderedHits = hits
         .where((hit) =>
-            ((hit['docId'] ?? hit['id'])?.toString().trim().isNotEmpty ?? false))
+            ((hit['docId'] ?? hit['id'])?.toString().trim().isNotEmpty ??
+                false))
         .toList(growable: false);
     if (orderedHits.isEmpty) return const [];
 
@@ -325,8 +332,7 @@ class ScholarshipsController extends GetxController {
       if (currentUserId.isNotEmpty &&
           userID.isNotEmpty &&
           !followedUsers.containsKey(userID)) {
-        followedUsers[userID] =
-            await _checkFollowStatus(userID, currentUserId);
+        followedUsers[userID] = await _checkFollowStatus(userID, currentUserId);
       }
     }
 
@@ -339,8 +345,7 @@ class ScholarshipsController extends GetxController {
     final cover = (hit['cover'] ?? '').toString().trim();
     final raw = <String, dynamic>{
       'aciklama': (hit['aciklama'] ?? hit['description'] ?? '').toString(),
-      'shortDescription':
-          (hit['shortDescription'] ?? '').toString().trim(),
+      'shortDescription': (hit['shortDescription'] ?? '').toString().trim(),
       'altEgitimKitlesi': List<String>.from(
         (hit['altEgitimKitlesi'] as List<dynamic>? ?? const <dynamic>[]),
       ),
@@ -352,15 +357,13 @@ class ScholarshipsController extends GetxController {
       'baslik': (hit['title'] ?? '').toString(),
       'basvuruKosullari': (hit['basvuruKosullari'] ?? '').toString(),
       'basvuruURL': (hit['basvuruURL'] ?? '').toString(),
-      'basvuruYapilacakYer':
-          (hit['basvuruYapilacakYer'] ?? '').toString(),
+      'basvuruYapilacakYer': (hit['basvuruYapilacakYer'] ?? '').toString(),
       'begeniler': const <String>[],
       'belgeler': List<String>.from(
         (hit['belgeler'] as List<dynamic>? ?? const <dynamic>[]),
       ),
       'bitisTarihi': (hit['bitisTarihi'] ?? '').toString(),
-      'bursVeren':
-          (hit['bursVeren'] ?? hit['subtitle'] ?? '').toString(),
+      'bursVeren': (hit['bursVeren'] ?? hit['subtitle'] ?? '').toString(),
       'egitimKitlesi': (hit['egitimKitlesi'] ?? '').toString(),
       'geriOdemeli': (hit['geriOdemeli'] ?? '').toString(),
       'goruntuleme': const <String>[],
@@ -407,9 +410,7 @@ class ScholarshipsController extends GetxController {
             .toString()
             .trim();
     final authorAvatarUrl =
-        ((hit['avatarUrl'] ?? hit['authorAvatarUrl']) ?? '')
-            .toString()
-            .trim();
+        ((hit['avatarUrl'] ?? hit['authorAvatarUrl']) ?? '').toString().trim();
     final rozet = (hit['rozet'] ?? '').toString().trim();
     return {
       'avatarUrl': authorAvatarUrl,
@@ -489,8 +490,9 @@ class ScholarshipsController extends GetxController {
       }
       await _saveScholarshipsCache(combined);
       _prefetchShortLinksForList(allScholarships);
-      hasMoreData.value =
-          combined.length >= initialBatchSize && allScholarships.length < totalCount.value;
+      SilentRefreshGate.markRefreshed('scholarships:home');
+      hasMoreData.value = combined.length >= initialBatchSize &&
+          allScholarships.length < totalCount.value;
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -531,8 +533,8 @@ class ScholarshipsController extends GetxController {
         _setVisibleScholarships(allScholarships);
       }
       _prefetchShortLinksForList(allScholarships);
-      hasMoreData.value =
-          combined.length >= batchSize && allScholarships.length < totalCount.value;
+      hasMoreData.value = combined.length >= batchSize &&
+          allScholarships.length < totalCount.value;
     } catch (_) {
       AppSnackbar('Hata', 'Daha fazla burs yüklenemedi.');
     } finally {

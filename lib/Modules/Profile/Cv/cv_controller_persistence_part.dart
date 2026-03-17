@@ -326,6 +326,7 @@ extension CvControllerPersistencePart on CvController {
         _applyCvData(data);
       }
       ensureDefaultPhoto();
+      SilentRefreshGate.markRefreshed('profile:cv:$uid');
     } catch (_) {}
   }
 
