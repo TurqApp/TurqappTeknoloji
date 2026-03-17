@@ -313,34 +313,17 @@ extension CvControllerPersistencePart on CvController {
     }
   }
 
-  Future<void> loadDataFromFirestore() async {
+  Future<void> loadDataFromFirestore({bool forceRefresh = false}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     try {
-      final data = await _cvRepository.getCv(uid, preferCache: true);
+      final data = await _cvRepository.getCv(
+        uid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
       if (data != null) {
-        firstName.text = data["firstName"] ?? "";
-        lastName.text = data["lastName"] ?? "";
-        mail.text = data["mail"] ?? "";
-        phoneNumber.text = data["phone"] ?? "";
-        onYazi.text = data["about"] ?? "";
-        photoUrl.value = (data["photoUrl"] ?? "").toString().trim();
-
-        okullar.value = (data["okullar"] as List<dynamic>? ?? [])
-            .map((e) => CvSchoolModel.fromMap(e))
-            .toList();
-        diler.value = (data["diller"] as List<dynamic>? ?? [])
-            .map((e) => CVLanguegeModel.fromMap(e))
-            .toList();
-        isDeneyimleri.value = (data["deneyim"] as List<dynamic>? ?? [])
-            .map((e) => CVExperinceModel.fromMap(e))
-            .toList();
-        referanslar.value = (data["referans"] as List<dynamic>? ?? [])
-            .map((e) => CVReferenceHumans.fromMap(e))
-            .toList();
-        skills.value = (data["skills"] as List<dynamic>? ?? [])
-            .map((e) => e.toString())
-            .toList();
+        _applyCvData(data);
       }
       ensureDefaultPhoto();
     } catch (_) {}

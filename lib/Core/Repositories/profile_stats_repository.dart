@@ -39,6 +39,7 @@ class ProfileStatsRepository extends GetxService {
   Future<Map<String, dynamic>?> getStats(
     String uid, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty) return null;
     final key = _cacheKey(uid);
@@ -46,15 +47,17 @@ class ProfileStatsRepository extends GetxService {
     if (preferCache) {
       final memory = _getFromMemory(key);
       if (memory != null) return memory;
-      final disk = await _getFromPrefs(key);
+      final disk = await _getFromPrefsEntry(key);
       if (disk != null) {
         _memory[key] = _CachedProfileStats(
-          data: Map<String, dynamic>.from(disk),
-          cachedAt: DateTime.now(),
+          data: Map<String, dynamic>.from(disk.data),
+          cachedAt: disk.cachedAt,
         );
-        return disk;
+        return Map<String, dynamic>.from(disk.data);
       }
     }
+
+    if (cacheOnly) return null;
 
     return null;
   }
@@ -93,7 +96,7 @@ class ProfileStatsRepository extends GetxService {
     return Map<String, dynamic>.from(entry.data);
   }
 
-  Future<Map<String, dynamic>?> _getFromPrefs(String key) async {
+  Future<_CachedProfileStats?> _getFromPrefsEntry(String key) async {
     _prefs ??= await SharedPreferences.getInstance();
     final raw = _prefs?.getString(_prefsKey(key));
     if (raw == null || raw.isEmpty) return null;
@@ -104,7 +107,10 @@ class ProfileStatsRepository extends GetxService {
       if (ts <= 0 || data == null) return null;
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) > _ttl) return null;
-      return data;
+      return _CachedProfileStats(
+        data: Map<String, dynamic>.from(data),
+        cachedAt: cachedAt,
+      );
     } catch (_) {
       return null;
     }

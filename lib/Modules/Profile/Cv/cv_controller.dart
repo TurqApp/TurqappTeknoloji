@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -40,8 +41,9 @@ class CvController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _seedFromCurrentUser();
     ensureDefaultPhoto();
-    loadDataFromFirestore();
+    unawaited(_bootstrapCvData());
   }
 
   @override
@@ -97,7 +99,8 @@ class CvController extends GetxController {
     try {
       final nsfwResult = await OptimizedNSFWService.checkImage(file);
       if (nsfwResult.isNSFW) {
-        AppSnackbar('Uygun Değil', 'Profil fotoğrafı uygunsuz içerik içeriyor.');
+        AppSnackbar(
+            'Uygun Değil', 'Profil fotoğrafı uygunsuz içerik içeriyor.');
         return;
       }
 
@@ -123,5 +126,65 @@ class CvController extends GetxController {
     if (currentAvatar.isNotEmpty) {
       photoUrl.value = currentAvatar;
     }
+  }
+
+  void _seedFromCurrentUser() {
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (currentUser == null) return;
+
+    if (firstName.text.trim().isEmpty) {
+      firstName.text = currentUser.firstName.trim();
+    }
+    if (lastName.text.trim().isEmpty) {
+      lastName.text = currentUser.lastName.trim();
+    }
+    if (mail.text.trim().isEmpty) {
+      mail.text = currentUser.email.trim();
+    }
+    if (phoneNumber.text.trim().isEmpty) {
+      phoneNumber.text = currentUser.phoneNumber.trim();
+    }
+  }
+
+  Future<void> _bootstrapCvData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final cached = await _cvRepository.getCv(
+      uid,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached != null) {
+      _applyCvData(cached);
+      ensureDefaultPhoto();
+      unawaited(loadDataFromFirestore(forceRefresh: true));
+      return;
+    }
+    await loadDataFromFirestore();
+  }
+
+  void _applyCvData(Map<String, dynamic> data) {
+    firstName.text = data["firstName"] ?? firstName.text;
+    lastName.text = data["lastName"] ?? lastName.text;
+    mail.text = data["mail"] ?? data["email"] ?? mail.text;
+    phoneNumber.text = data["phone"] ?? data["phoneNumber"] ?? phoneNumber.text;
+    onYazi.text = data["about"] ?? onYazi.text;
+    photoUrl.value = (data["photoUrl"] ?? photoUrl.value).toString().trim();
+
+    okullar.value = (data["okullar"] as List<dynamic>? ?? [])
+        .map((e) => CvSchoolModel.fromMap(e))
+        .toList(growable: false);
+    diler.value = (data["diller"] as List<dynamic>? ?? [])
+        .map((e) => CVLanguegeModel.fromMap(e))
+        .toList(growable: false);
+    isDeneyimleri.value = (data["deneyim"] as List<dynamic>? ?? [])
+        .map((e) => CVExperinceModel.fromMap(e))
+        .toList(growable: false);
+    referanslar.value = (data["referans"] as List<dynamic>? ?? [])
+        .map((e) => CVReferenceHumans.fromMap(e))
+        .toList(growable: false);
+    skills.value = (data["skills"] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList(growable: false);
   }
 }
