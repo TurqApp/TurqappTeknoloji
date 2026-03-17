@@ -708,69 +708,65 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         ),
         if (showControls)
           SafeArea(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.arrow_left,
-                          color: Colors.white),
-                      onPressed: () async {
-                        // Pop'tan önce tüm video seslerini durdur
-                        try {
-                          VideoStateManager.instance.exitExclusiveMode();
-                        } catch (_) {}
-                        await _pauseAllControllers();
-                        // Geri dönerken pozisyonu ilet
-                        final idx0 = widget.startModel != null
-                            ? shorts.indexWhere(
-                                (p) => p.docID == widget.startModel!.docID)
-                            : currentPage;
-                        final ctrl = idx0 >= 0 ? _videoControllers[idx0] : null;
-                        final docID = widget.startModel?.docID ??
-                            (shorts.isNotEmpty
-                                ? shorts[currentPage].docID
-                                : null);
-                        final pos = (ctrl != null && ctrl.value.isInitialized)
-                            ? ctrl.value.position
-                            : Duration.zero;
-                        Navigator.of(context).pop({
-                          'docID': docID,
-                          'positionMs': pos.inMilliseconds,
-                        });
-                      },
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: Icon(volume
-                              ? CupertinoIcons.volume_up
-                              : CupertinoIcons.volume_off),
-                          color: Colors.white,
-                          iconSize: 22,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints.tightFor(
-                              width: 36, height: 36),
-                          onPressed: () => setState(() {
-                            volume = !volume;
-                            final ctrl = _videoControllers[currentPage];
-                            if (ctrl != null) {
-                              ctrl.setVolume(volume ? 1 : 0);
-                              if (_externallyOwned.contains(currentPage) &&
-                                  widget.injectedController != null) {
-                                widget.injectedController!
-                                    .setVolume(volume ? 1 : 0);
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _buildTopCircleButton(
+                        icon: CupertinoIcons.arrow_left,
+                        onTap: () async {
+                          try {
+                            VideoStateManager.instance.exitExclusiveMode();
+                          } catch (_) {}
+                          await _pauseAllControllers();
+                          final idx0 = widget.startModel != null
+                              ? shorts.indexWhere(
+                                  (p) => p.docID == widget.startModel!.docID)
+                              : currentPage;
+                          final ctrl =
+                              idx0 >= 0 ? _videoControllers[idx0] : null;
+                          final docID = widget.startModel?.docID ??
+                              (shorts.isNotEmpty
+                                  ? shorts[currentPage].docID
+                                  : null);
+                          final pos =
+                              (ctrl != null && ctrl.value.isInitialized)
+                                  ? ctrl.value.position
+                                  : Duration.zero;
+                          Navigator.of(context).pop({
+                            'docID': docID,
+                            'positionMs': pos.inMilliseconds,
+                          });
+                        },
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _buildTopCircleButton(
+                            icon: volume
+                                ? CupertinoIcons.volume_up
+                                : CupertinoIcons.volume_off,
+                            onTap: () => setState(() {
+                              volume = !volume;
+                              final ctrl = _videoControllers[currentPage];
+                              if (ctrl != null) {
+                                ctrl.setVolume(volume ? 1 : 0);
+                                if (_externallyOwned.contains(currentPage) &&
+                                    widget.injectedController != null) {
+                                  widget.injectedController!
+                                      .setVolume(volume ? 1 : 0);
+                                }
                               }
-                            }
-                            _updateTelemetryHintsForCurrentPage(
-                              isAudible: volume,
-                            );
-                          }),
-                        ),
+                              _updateTelemetryHintsForCurrentPage(
+                                isAudible: volume,
+                              );
+                            }),
+                          ),
                         if (shorts[idx].floodCount > 1)
                           IconButton(
                             style: TextButton.styleFrom(
@@ -823,14 +819,38 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
                               ),
                             ),
                           ),
-                      ],
-                    )
-                  ],
-                ),
-              ],
+                        ],
+                      )
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildTopCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.black.withAlpha(50),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 22,
+        ),
+      ),
     );
   }
 }
