@@ -410,15 +410,18 @@ class _CikmisSorularPreviewState extends State<CikmisSorularPreview> {
             GestureDetector(
               onTap: () {
                 _repository.saveResult(
-                  uid: FirebaseAuth.instance.currentUser!.uid,
+                  uid: FirebaseAuth.instance.currentUser?.uid ?? "local",
                   anaBaslik: widget.anaBaslik,
                   sinavTuru: widget.sinavTuru,
                   yil: widget.yil,
                   baslik2: widget.baslik2,
                   baslik3: widget.baslik3,
                   cikmisSoruID: docIDCopy,
-                  cevaplar: selectedAnswers,
-                  dogruCevaplar: dogruCevaplarList,
+                  soruSayisi: list.length,
+                  dogruSayisi: _correctCount,
+                  yanlisSayisi: _wrongCount,
+                  bosSayisi: _emptyCount,
+                  net: _netScore,
                 );
 
                 if (mounted) {

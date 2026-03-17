@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -111,13 +112,14 @@ class AntremanCommentsController extends GetxController {
   final RxString editingCommentDocID = ''.obs;
   final RxString editingReplyDocID = ''.obs;
   final RxBool isTextFieldNotEmpty = false.obs;
+  final RxBool isLoading = true.obs;
   final Rx<File?> selectedImage = Rx<File?>(null);
   final ImagePicker picker = ImagePicker();
 
   @override
   void onInit() {
     super.onInit();
-    fetchComments();
+    unawaited(_bootstrapComments());
     commentController.addListener(() {
       isTextFieldNotEmpty.value = commentController.text.isNotEmpty;
     });
@@ -132,6 +134,10 @@ class AntremanCommentsController extends GetxController {
         Get.back();
       }
     });
+  }
+
+  Future<void> _bootstrapComments() async {
+    await fetchComments();
   }
 
   @override
@@ -171,23 +177,32 @@ class AntremanCommentsController extends GetxController {
     }
   }
 
-  Future<void> fetchComments() async {
+  Future<void> fetchComments({bool silent = false}) async {
+    if (!silent || comments.isEmpty) {
+      isLoading.value = true;
+    }
     try {
-      comments.clear();
       final fetchedComments = await _antremanRepository.fetchComments(
         question.docID,
       );
+      final fetchedReplies = <String, List<Reply>>{};
       for (final comment in fetchedComments) {
-        comments.add(comment);
-        fetchReplies(comment.docID);
-        repliesVisible[comment.docID] = false;
+        fetchedReplies[comment.docID] = await _antremanRepository.fetchReplies(
+          question.docID,
+          comment.docID,
+        );
+        repliesVisible[comment.docID] = repliesVisible[comment.docID] ?? false;
       }
+      comments.assignAll(fetchedComments);
+      replies.assignAll(fetchedReplies);
     } catch (e) {
       log("Yorumlar çekilirken hata: $e");
       AppSnackbar(
         "Hata",
         "Yorumlar yüklenirken bir hata oluştu. Lütfen tekrar deneyin!",
       );
+    } finally {
+      isLoading.value = false;
     }
   }
 

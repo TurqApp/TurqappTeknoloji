@@ -64,6 +64,10 @@ class AntremanComments extends StatelessWidget {
             SizedBox(height: 10),
             Expanded(
               child: Obx(() {
+                if (controller.isLoading.value &&
+                    controller.comments.isEmpty) {
+                  return Center(child: CupertinoActivityIndicator());
+                }
                 if (controller.comments.isEmpty) {
                   return Center(child: Text("Henüz yorum yok."));
                 }

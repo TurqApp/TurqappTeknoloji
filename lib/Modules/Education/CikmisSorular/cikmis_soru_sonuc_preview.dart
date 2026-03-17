@@ -1,11 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
-import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Models/Education/cikmis_soru_sonuc_model.dart';
-
-import '../CikmisSorular/cikmis_sorular_cover_model.dart';
 
 class CikmisSoruSonucPreview extends StatefulWidget {
   final CikmisSoruSonucModel model;
@@ -18,35 +13,6 @@ class CikmisSoruSonucPreview extends StatefulWidget {
 }
 
 class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
-  final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
-  List<CikmisSorularinModeli> list = []; //icerisinde dogruCevap == String
-  List<String> cevaplar = [];
-  String? selectedSubject;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    _getData(widget.model.cikmisSoruID);
-    cevaplar = widget.model.cevaplar;
-  }
-
-  void _getData(String docID) {
-    _repository.fetchQuestionItems(docID).then((questions) {
-      if (!mounted) return;
-      final localDersler = <String>[];
-      for (final question in questions) {
-        if (!localDersler.contains(question.ders)) {
-          localDersler.add(question.ders);
-        }
-      }
-      setState(() {
-        list = questions;
-        dersler = localDersler;
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,113 +21,53 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
         child: Column(
           children: [
             BackButtons(text: "${widget.title} Sonuçlarım"),
-            Divider(),
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: ListView.builder(
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final soru = list[index];
-                    return Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 15,
-                            vertical: 10,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "${soru.soruNo}. Soru", // Sorunun index değeri
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 20,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                              Text(
-                                soru.ders, // Dersin adı
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 20,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                            ],
-                          ),
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: CachedNetworkImage(imageUrl: soru.soru),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _summaryItem("Doğru", widget.model.dogruSayisi.toString()),
+                            _summaryItem("Yanlış", widget.model.yanlisSayisi.toString()),
+                            _summaryItem("Boş", widget.model.bosSayisi.toString()),
+                            _summaryItem("Net", widget.model.net.toStringAsFixed(2)),
+                          ],
                         ),
-                        SizedBox(height: 10),
-                        Container(
-                          color: Colors.pinkAccent.withValues(alpha: 0.5),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: widget.model.anaBaslik == "LGS"
-                                  ? MainAxisAlignment.spaceAround
-                                  : MainAxisAlignment.spaceBetween,
-                              children: [
-                                for (var secim
-                                    in (widget.model.anaBaslik == "LGS"
-                                            ? ['A', 'B', 'C', 'D']
-                                            : ['A', 'B', 'C', 'D', 'E'])
-                                        .asMap()
-                                        .entries)
-                                  GestureDetector(
-                                    onTap: () {},
-                                    child: Container(
-                                      width: 45,
-                                      height: 45,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        // Boş cevap durumunda
-                                        color: (cevaplar[index] == "")
-                                            ? Colors.orange // Boş cevap
-                                            : (secim.value == soru.dogruCevap
-                                                ? Colors.green // Doğru cevap
-                                                : (cevaplar[index] ==
-                                                        secim.value
-                                                    ? Colors.red // Yanlış cevap
-                                                    : Colors
-                                                        .white)), // Varsayılan
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.black),
-                                      ),
-                                      child: Text(
-                                        secim.value, // secim değeri
-                                        style: TextStyle(
-                                          color: (cevaplar[index] ==
-                                                      secim.value &&
-                                                  secim.value !=
-                                                      soru.dogruCevap)
-                                              ? Colors
-                                                  .white // Yanlış cevapsa beyaz
-                                              : (secim.value == soru.dogruCevap
-                                                  ? Colors
-                                                      .white // Doğru cevaptaysa beyaz
-                                                  : Colors
-                                                      .black), // Varsayılan durumda siyah
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (widget.model.anaBaslik.isNotEmpty)
+                        Text(
+                          widget.model.anaBaslik,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 22,
+                            fontFamily: "MontserratBold",
                           ),
                         ),
-                      ],
-                    );
-                  },
+                      const SizedBox(height: 8),
+                      Text(
+                        "${widget.model.soruSayisi} soru cozuldu. Sonuc local olarak tutuluyor; bu ekranda sadece net ozeti gosteriliyor.",
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 15,
+                          fontFamily: "MontserratMedium",
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -170,4 +76,27 @@ class _CikmisSoruSonucPreviewState extends State<CikmisSoruSonucPreview> {
       ),
     );
   }
+}
+
+Widget _summaryItem(String label, String value) {
+  return Column(
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          color: Colors.black,
+          fontSize: 20,
+          fontFamily: "MontserratBold",
+        ),
+      ),
+      Text(
+        label,
+        style: TextStyle(
+          color: Colors.black54,
+          fontSize: 13,
+          fontFamily: "MontserratMedium",
+        ),
+      ),
+    ],
+  );
 }

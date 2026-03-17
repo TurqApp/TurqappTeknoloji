@@ -24,8 +24,7 @@ class _CikmisSoruSonuclarState extends State<CikmisSoruSonuclar> {
   }
 
   Future<void> getData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null || uid.isEmpty) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? "local";
     final tempList = await _repository.fetchUserResults(uid);
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     if (mounted) {
