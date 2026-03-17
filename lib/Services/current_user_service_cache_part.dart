@@ -255,6 +255,10 @@ extension CurrentUserServiceCachePart on CurrentUserService {
   Future<void> _primeViewSelectionFromFirestore(String uid) async {
     if (uid.isEmpty) return;
     try {
+      final hasLocalSelection = _lastKnownViewSelection != null;
+      if (hasLocalSelection) {
+        return;
+      }
       final data = await _readRootUserData(uid, preferCache: true);
       if (data.isEmpty) return;
       final raw = data['viewSelection'];
