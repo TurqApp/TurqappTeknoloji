@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:uuid/uuid.dart';
 import '../../Agenda/AgendaContent/agenda_content_controller.dart';
 
 class ArchiveController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
   final scrollController = ScrollController();
 
@@ -105,7 +108,12 @@ class ArchiveController extends GetxController {
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
-      unawaited(fetchData(silent: true));
+      if (SilentRefreshGate.shouldRefresh(
+        'archive:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(fetchData(silent: true));
+      }
       return;
     }
     await fetchData();
@@ -120,6 +128,7 @@ class ArchiveController extends GetxController {
     try {
       final posts = await _profileRepository.fetchArchive(uid);
       list.assignAll(posts);
+      SilentRefreshGate.markRefreshed('archive:$uid');
     } finally {
       isLoading.value = false;
     }

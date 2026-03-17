@@ -4,11 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
 import 'package:turqappv2/Services/user_post_link_service.dart';
 
 class SavedPostsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final RxList<PostsModel> savedPhotos = <PostsModel>[].obs;
   final RxList<PostsModel> savedVideos = <PostsModel>[].obs;
   final RxList<PostsModel> savedAgendas = <PostsModel>[].obs;
@@ -69,12 +72,17 @@ class SavedPostsController extends GetxController {
     if (cached.isNotEmpty) {
       _applySavedPosts(cached);
       isLoading.value = false;
-      unawaited(_hydrateSavedPosts(
-        userId,
-        refs,
-        silent: true,
-        forceRefresh: true,
-      ));
+      if (SilentRefreshGate.shouldRefresh(
+        'saved_posts:$userId',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(_hydrateSavedPosts(
+          userId,
+          refs,
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
       return;
     }
 
@@ -99,6 +107,7 @@ class SavedPostsController extends GetxController {
         preferCache: !forceRefresh,
       );
       _applySavedPosts(posts);
+      SilentRefreshGate.markRefreshed('saved_posts:$userId');
     } catch (_) {
     } finally {
       isLoading.value = false;

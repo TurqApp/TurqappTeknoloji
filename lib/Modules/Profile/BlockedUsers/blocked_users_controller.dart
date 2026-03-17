@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import '../../../Models/ogrenci_model.dart';
 
 class BlockedUsersController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   RxList<String> blockedUsers = <String>[].obs;
   RxList<OgrenciModel> blockedUserDetails = <OgrenciModel>[].obs;
   RxBool isLoading = true.obs;
@@ -26,10 +29,17 @@ class BlockedUsersController extends GetxController {
     final hasLocal = await _hydrateBlockedUsersFromCache();
     if (hasLocal) {
       isLoading.value = false;
-      unawaited(fetchBlockedUserIDsAndDetails(
-        silent: true,
-        forceRefresh: true,
-      ));
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null &&
+          SilentRefreshGate.shouldRefresh(
+            'blocked_users:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+        unawaited(fetchBlockedUserIDsAndDetails(
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
       return;
     }
     await fetchBlockedUserIDsAndDetails();
@@ -79,6 +89,7 @@ class BlockedUsersController extends GetxController {
           cacheOnly: false,
           preferCache: !forceRefresh,
         );
+        SilentRefreshGate.markRefreshed('blocked_users:$uid');
         return;
       }
 
@@ -95,10 +106,12 @@ class BlockedUsersController extends GetxController {
           cacheOnly: false,
           preferCache: !forceRefresh,
         );
+        SilentRefreshGate.markRefreshed('blocked_users:$uid');
         return;
       }
       blockedUsers.clear();
       blockedUserDetails.clear();
+      SilentRefreshGate.markRefreshed('blocked_users:$uid');
     } finally {
       isLoading.value = false;
     }
