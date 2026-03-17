@@ -4,11 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
 import 'package:turqappv2/Services/user_post_link_service.dart';
 
 class LikedPostControllers extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   final RxList<PostsModel> all = <PostsModel>[].obs;
   final selection = 0.obs;
   PageController pageController = PageController(initialPage: 0);
@@ -63,12 +66,17 @@ class LikedPostControllers extends GetxController {
     if (cached.isNotEmpty) {
       _applyPosts(cached);
       isLoading.value = false;
-      unawaited(_hydrate(
-        userId,
-        refs,
-        silent: true,
-        forceRefresh: true,
-      ));
+      if (SilentRefreshGate.shouldRefresh(
+        'liked_posts:$userId',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(_hydrate(
+          userId,
+          refs,
+          silent: true,
+          forceRefresh: true,
+        ));
+      }
       return;
     }
 
@@ -93,6 +101,7 @@ class LikedPostControllers extends GetxController {
         preferCache: !forceRefresh,
       );
       _applyPosts(posts);
+      SilentRefreshGate.markRefreshed('liked_posts:$userId');
     } catch (_) {
     } finally {
       isLoading.value = false;
