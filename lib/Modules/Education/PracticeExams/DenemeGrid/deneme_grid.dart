@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
@@ -24,35 +25,38 @@ class DenemeGrid extends StatelessWidget {
   const DenemeGrid({super.key, required this.model, required this.getData});
 
   Future<void> _shareExternally() async {
-    final shareId = 'practice-exam:${model.docID}';
-    final shortTail =
-        model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
-    final fallbackId = 'practice-exam-$shortTail';
-    final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
+    await ShareActionGuard.run(() async {
+      final shareId = 'practice-exam:${model.docID}';
+      final shortTail =
+          model.docID.length >= 8 ? model.docID.substring(0, 8) : model.docID;
+      final fallbackId = 'practice-exam-$shortTail';
+      final fallbackUrl = 'https://turqapp.com/e/$fallbackId';
 
-    String shortUrl = fallbackUrl;
-    try {
-      shortUrl = await ShortLinkService().getEducationPublicUrl(
-        shareId: shareId,
+      String shortUrl = fallbackUrl;
+      try {
+        shortUrl = await ShortLinkService().getEducationPublicUrl(
+          shareId: shareId,
+          title: model.sinavAdi,
+          desc: model.sinavAciklama.isNotEmpty
+              ? model.sinavAciklama
+              : model.sinavTuru,
+          imageUrl: model.cover.isNotEmpty ? model.cover : null,
+        );
+      } catch (_) {
+        shortUrl = fallbackUrl;
+      }
+
+      if (shortUrl.trim().isEmpty ||
+          shortUrl.trim() == 'https://turqapp.com') {
+        shortUrl = fallbackUrl;
+      }
+
+      await ShareLinkService.shareUrl(
+        url: shortUrl,
         title: model.sinavAdi,
-        desc: model.sinavAciklama.isNotEmpty
-            ? model.sinavAciklama
-            : model.sinavTuru,
-        imageUrl: model.cover.isNotEmpty ? model.cover : null,
+        subject: model.sinavAdi,
       );
-    } catch (_) {
-      shortUrl = fallbackUrl;
-    }
-
-    if (shortUrl.trim().isEmpty || shortUrl.trim() == 'https://turqapp.com') {
-      shortUrl = fallbackUrl;
-    }
-
-    await ShareLinkService.shareUrl(
-      url: shortUrl,
-      title: model.sinavAdi,
-      subject: model.sinavAdi,
-    );
+    });
   }
 
   @override
