@@ -7,14 +7,18 @@ class ListBottomSheet extends StatefulWidget {
   final Function(dynamic) onBackData;
   final Function(List<dynamic>)? onBackUpdatedList;
   final String title;
+  final String searchHintText;
   final dynamic startSelection;
+  final String Function(dynamic item)? searchTextBuilder;
 
   const ListBottomSheet({
     required this.list,
     required this.onBackData,
     required this.title,
+    this.searchHintText = "Ara",
     required this.startSelection,
     this.onBackUpdatedList,
+    this.searchTextBuilder,
     super.key,
   });
 
@@ -25,20 +29,34 @@ class ListBottomSheet extends StatefulWidget {
     required Function(dynamic) onSelect,
     dynamic selectedItem,
     bool isSearchable = false,
+    String searchHintText = "Ara",
+    String Function(dynamic item)? searchTextBuilder,
   }) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
       builder: (BuildContext context) {
-        return ListBottomSheet(
-          list: items,
-          title: title,
-          startSelection: selectedItem,
-          onBackData: onSelect,
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: FractionallySizedBox(
+            heightFactor: bottomInset > 0 ? 0.88 : 0.72,
+            child: ListBottomSheet(
+              list: items,
+              title: title,
+              searchHintText: searchHintText,
+              startSelection: selectedItem,
+              onBackData: onSelect,
+              searchTextBuilder: searchTextBuilder,
+            ),
+          ),
         );
       },
     );
@@ -52,10 +70,16 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   final TextEditingController searchController = TextEditingController();
   final FocusNode searchFocusNode = FocusNode();
   late ValueNotifier<bool> focusNotifier;
+  late final ListBottomSheetController controller;
 
   @override
   void initState() {
     super.initState();
+    controller = Get.put(
+      ListBottomSheetController(),
+      tag: '${widget.title}_${identityHashCode(this)}',
+    );
+    controller.initSingleSelection(widget.list, widget.startSelection);
     // ValueNotifier'ı başlat
     focusNotifier = ValueNotifier<bool>(searchFocusNode.hasFocus);
     // FocusNode'a listener ekle
@@ -67,6 +91,10 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   @override
   void dispose() {
     // Temizlik
+    Get.delete<ListBottomSheetController>(
+      tag: '${widget.title}_${identityHashCode(this)}',
+      force: true,
+    );
     searchController.dispose();
     searchFocusNode.dispose();
     focusNotifier.dispose();
@@ -74,173 +102,192 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(ListBottomSheetController());
-    controller.initSingleSelection(widget.list, widget.startSelection);
+  void didUpdateWidget(covariant ListBottomSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.list != widget.list ||
+        oldWidget.startSelection != widget.startSelection) {
+      controller.initSingleSelection(widget.list, widget.startSelection);
+      if (searchController.text.isNotEmpty) {
+        controller.filterList(
+          searchController.text,
+          widget.list,
+          searchTextBuilder: widget.searchTextBuilder,
+        );
+      }
+    }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontFamily: "MontserratBold",
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<bool>(
+            valueListenable: focusNotifier,
+            builder: (context, hasFocus, child) {
+              return Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                ),
+                child: TextField(
+                  cursorColor: Colors.black,
+                  controller: searchController,
+                  focusNode: searchFocusNode,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHintText,
+                    hintStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontFamily: "MontserratMedium",
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Obx(
+                      () => controller.searchQuery.value.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                searchController.clear();
+                                controller.filterList(
+                                  "",
+                                  widget.list,
+                                  searchTextBuilder: widget.searchTextBuilder,
+                                );
+                              },
+                            )
+                          : const Icon(
+                              AppIcons.search,
+                              color: Colors.pinkAccent,
+                            ),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 0),
+                  ),
                   style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: "MontserratBold",
+                    fontSize: 15,
+                    fontFamily: "Montserrat",
+                  ),
+                  textAlignVertical: TextAlignVertical.center,
+                  onChanged: (value) => controller.filterList(
+                    value,
+                    widget.list,
+                    searchTextBuilder: widget.searchTextBuilder,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Search TextField
-            ValueListenableBuilder<bool>(
-              valueListenable: focusNotifier,
-              builder: (context, hasFocus, child) {
-                return Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: TextField(
-                    cursorColor: Colors.black,
-                    controller: searchController,
-                    focusNode: searchFocusNode,
-                    decoration: InputDecoration(
-                      hintText: "Ara",
-                      hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontFamily: "MontserratMedium",
-                      ),
-                      border: InputBorder.none,
-                      prefixIcon: Obx(
-                        () => controller.searchQuery.value.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () {
-                                  searchController.clear();
-                                  controller.filterList("", widget.list);
-                                },
-                              )
-                            : const Icon(
-                                AppIcons.search,
-                                color: Colors.pinkAccent,
-                              ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "Montserrat",
-                    ),
-                    textAlignVertical: TextAlignVertical.center,
-                    onChanged: (value) =>
-                        controller.filterList(value, widget.list),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: MediaQuery.of(context).size.width,
-              child: Obx(
-                () => controller.list.isEmpty
-                    ? const Center(
-                        child: Text(
-                          "Sonuç bulunamadı",
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                            fontFamily: "MontserratMedium",
-                          ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Obx(
+              () => controller.list.isEmpty
+                  ? const Center(
+                      child: Text(
+                        "Sonuç bulunamadı",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                          fontFamily: "MontserratMedium",
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: controller.list.length,
-                        itemBuilder: (context, index) {
-                          final item = controller.list[index];
-                          return GestureDetector(
-                            onTap: () {
-                              controller.selectItem(item, widget.onBackData);
-                              if (widget.onBackUpdatedList != null) {
-                                widget.onBackUpdatedList!(
-                                  controller.list.toList(),
-                                );
-                              }
-                            },
-                            child: Container(
-                              color: Colors.transparent,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item.toString(),
-                                          style: TextStyle(
-                                            color: controller
-                                                        .startSelection.value ==
-                                                    item
-                                                ? Colors.pinkAccent
-                                                : Colors.black,
-                                            fontSize: 16,
-                                            fontFamily: controller
-                                                        .startSelection.value ==
-                                                    item
-                                                ? "MontserratBold"
-                                                : "MontserratMedium",
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Container(
-                                        width: 25,
-                                        height: 25,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(3),
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: controller.startSelection
-                                                          .value ==
-                                                      item
-                                                  ? Colors.black
-                                                  : Colors.transparent,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Divider(color: Colors.grey.withAlpha(20)),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
                       ),
-              ),
+                    )
+                  : ListView.builder(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      itemCount: controller.list.length,
+                      itemBuilder: (context, index) {
+                        final item = controller.list[index];
+                        return GestureDetector(
+                          onTap: () {
+                            controller.selectItem(item, widget.onBackData);
+                            if (widget.onBackUpdatedList != null) {
+                              widget.onBackUpdatedList!(
+                                controller.list.toList(),
+                              );
+                            }
+                          },
+                          child: Container(
+                            color: Colors.transparent,
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item.toString(),
+                                        style: TextStyle(
+                                          color:
+                                              controller.startSelection.value ==
+                                                      item
+                                                  ? Colors.pinkAccent
+                                                  : Colors.black,
+                                          fontSize: 16,
+                                          fontFamily:
+                                              controller.startSelection.value ==
+                                                      item
+                                                  ? "MontserratBold"
+                                                  : "MontserratMedium",
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      width: 25,
+                                      height: 25,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(3),
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: controller.startSelection
+                                                        .value ==
+                                                    item
+                                                ? Colors.black
+                                                : Colors.transparent,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Divider(color: Colors.grey.withAlpha(20)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -281,15 +328,21 @@ class ListBottomSheetController extends GetxController {
     Get.back();
   }
 
-  void filterList(String query, List<dynamic> originalList) {
+  void filterList(
+    String query,
+    List<dynamic> originalList, {
+    String Function(dynamic item)? searchTextBuilder,
+  }) {
     searchQuery.value = query;
     if (query.isEmpty) {
       list.value = originalList;
     } else {
+      final normalizedQuery = query.toLowerCase();
       list.value = originalList
           .where(
-            (item) =>
-                item.toString().toLowerCase().contains(query.toLowerCase()),
+            (item) => (searchTextBuilder?.call(item) ?? item.toString())
+                .toLowerCase()
+                .contains(normalizedQuery),
           )
           .toList();
     }

@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
@@ -22,9 +23,7 @@ List<String> _parseCountryNames(String response) {
 
 List<Map<String, dynamic>> _decodeJsonObjectList(String response) {
   final List<dynamic> data = json.decode(response) as List<dynamic>;
-  return data
-      .map((item) => Map<String, dynamic>.from(item as Map))
-      .toList();
+  return data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
 }
 
 class EducationInfoController extends GetxController
@@ -138,7 +137,10 @@ class EducationInfoController extends GetxController
       final data = await compute(_decodeJsonObjectList, response);
       cityDistrictData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      cities.value = cityDistrictData.map((item) => item.il).toSet().toList();
+      final sortedCities =
+          cityDistrictData.map((item) => item.il).toSet().toList();
+      sortTurkishStrings(sortedCities);
+      cities.value = sortedCities;
     } catch (e) {
       AppSnackbar("Hata", "İl-ilçe verileri yüklenemedi.");
     }

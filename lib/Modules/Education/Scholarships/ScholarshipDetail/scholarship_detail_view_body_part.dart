@@ -60,8 +60,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                       onTap: () => shareService.shareScholarship(
                         scholarshipData,
                       ),
-                      size: 30,
-                      iconSize: 18,
+                      size: AppIconSurface.kSize,
+                      iconSize: AppIconSurface.kIconSize,
                     ),
                     if (userData['userID']?.toString() ==
                         FirebaseAuth.instance.currentUser?.uid)

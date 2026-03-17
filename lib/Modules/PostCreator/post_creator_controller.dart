@@ -36,6 +36,7 @@ import '../../Core/Services/upload_queue_service.dart';
 import '../../Core/Services/draft_service.dart';
 import '../../Core/Widgets/progress_indicators.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
+import '../../Core/Services/typesense_post_service.dart';
 import '../../Core/Services/webp_upload_service.dart';
 
 part 'post_creator_controller_upload_support.dart';

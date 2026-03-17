@@ -256,8 +256,13 @@ class ExploreController extends GetxController {
     await _tryQuickFillExploreFromPool();
     _scheduleExplorePrefetchFromPosts(explorePosts);
     if (explorePosts.isEmpty) {
-      await fetchExplorePosts();
-    } else {
+      if (ContentPolicy.shouldBootstrapNetwork(
+        ContentScreenKind.explore,
+        hasLocalContent: false,
+      )) {
+        await fetchExplorePosts();
+      }
+    } else if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore)) {
       unawaited(fetchExplorePosts());
     }
   }
@@ -267,7 +272,7 @@ class ExploreController extends GetxController {
     final pool = Get.find<IndexPoolStore>();
     final fromPool = await pool.loadPosts(
       IndexPoolKind.explore,
-      limit: ContentPolicy.mobileWarmWindow,
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.explore),
       allowStale: true,
     );
     if (fromPool.isEmpty) return;
@@ -299,7 +304,9 @@ class ExploreController extends GetxController {
     if (valid.isEmpty) return;
     explorePosts.assignAll(valid);
     _scheduleExplorePrefetchFromPosts(explorePosts);
-    unawaited(_cleanupExplorePoolFill(valid));
+    if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore)) {
+      unawaited(_cleanupExplorePoolFill(valid));
+    }
   }
 
   Future<void> _cleanupExplorePoolFill(List<PostsModel> shown) async {

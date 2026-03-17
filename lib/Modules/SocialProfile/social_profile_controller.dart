@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
+import 'package:turqappv2/Core/Services/typesense_user_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
@@ -55,6 +56,7 @@ class SocialProfileController extends GetxController {
   String userID;
   SocialProfileController({required this.userID});
   var nickname = "".obs;
+  var displayName = "".obs;
   var avatarUrl = "".obs;
   var firstName = "".obs;
   var lastName = "".obs;
@@ -94,6 +96,7 @@ class SocialProfileController extends GetxController {
   DocumentSnapshot? lastPostDoc;
   final int pageSize = 12;
   final ProfileRepository _profileRepository = ProfileRepository.ensure();
+  final TypesenseUserService _typesenseUserService = TypesenseUserService.instance;
   DocumentSnapshot<Map<String, dynamic>>? _lastPrimaryDoc;
   bool _hasMorePrimary = true;
   bool _isLoadingPrimary = false;
@@ -429,66 +432,124 @@ class SocialProfileController extends GetxController {
 
   Future<void> getUserData() async {
     _userDocSub?.cancel();
-    _userDocSub = _userRepository
-        .watchUserRaw(userID)
-        .listen((doc) {
-      final raw = doc ?? <String, dynamic>{};
-      final profile = (raw["profile"] is Map)
-          ? Map<String, dynamic>.from(raw["profile"] as Map)
-          : const <String, dynamic>{};
-      final preferences = (raw["preferences"] is Map)
-          ? Map<String, dynamic>.from(raw["preferences"] as Map)
-          : const <String, dynamic>{};
-      final stats = (raw["stats"] is Map)
-          ? Map<String, dynamic>.from(raw["stats"] as Map)
-          : const <String, dynamic>{};
+    try {
+      final cards = await _typesenseUserService.getUserCardsByIds(<String>[userID]);
+      final card = cards[userID];
+      if (card != null && card.isNotEmpty) {
+        await _userRepository.putUserRaw(userID, card);
+        _applyUserData(card);
+        if (_needsHeaderSupplementalData(card)) {
+          final raw = await _userRepository.getUserRaw(
+            userID,
+            preferCache: false,
+            forceServer: true,
+          );
+          if (raw != null && raw.isNotEmpty) {
+            await _userRepository.putUserRaw(userID, raw);
+            _applyUserData(raw);
+          }
+        } else {
+          final raw = await _userRepository.getUserRaw(userID, preferCache: true);
+          if (raw != null && raw.isNotEmpty) {
+            _applySupplementalUserData(raw);
+          }
+        }
+        return;
+      }
+    } catch (e) {
+      print('SocialProfile.getUserData typesense error: $e');
+    }
 
-      nickname.value = _resolveNickname(raw, profile);
-      avatarUrl.value = resolveAvatarUrl(raw, profile: profile);
+    try {
+      final raw = await _userRepository.getUserRaw(userID, preferCache: true);
+      _applyUserData(raw ?? const <String, dynamic>{});
+    } catch (e) {
+      print("SocialProfile.getUserData fallback error: $e");
+    }
+  }
+
+  bool _needsHeaderSupplementalData(Map<String, dynamic> raw) {
+    final profile = (raw["profile"] is Map)
+        ? Map<String, dynamic>.from(raw["profile"] as Map)
+        : const <String, dynamic>{};
+    final bioText = (raw["bio"] ?? profile["bio"] ?? "").toString().trim();
+    final addressText = (raw["adres"] ?? profile["adres"] ?? "").toString().trim();
+    final meslekText =
+        (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString().trim();
+    return bioText.isEmpty || addressText.isEmpty || meslekText.isEmpty;
+  }
+
+  void _applyUserData(Map<String, dynamic> raw) {
+    final profile = (raw["profile"] is Map)
+        ? Map<String, dynamic>.from(raw["profile"] as Map)
+        : const <String, dynamic>{};
+    final stats = (raw["stats"] is Map)
+        ? Map<String, dynamic>.from(raw["stats"] as Map)
+        : const <String, dynamic>{};
+
+    nickname.value = _resolveNickname(raw, profile);
+    displayName.value =
+        (raw["displayName"] ?? profile["displayName"] ?? "").toString().trim();
+    avatarUrl.value = resolveAvatarUrl(raw, profile: profile);
+    final nextDisplay = displayName.value;
+    if (nextDisplay.isNotEmpty) {
+      firstName.value = nextDisplay;
+      lastName.value = "";
+    } else {
       firstName.value =
           (raw["firstName"] ?? profile["firstName"] ?? "").toString();
       lastName.value =
           (raw["lastName"] ?? profile["lastName"] ?? "").toString();
-      email.value = (raw["email"] ?? profile["email"] ?? "").toString();
-      rozet.value = (raw["rozet"] ?? profile["rozet"] ?? "").toString();
-      bio.value = (raw["bio"] ?? profile["bio"] ?? "").toString();
-      adres.value = (raw["adres"] ?? profile["adres"] ?? "").toString();
-      token.value = (raw["token"] ?? "").toString();
-      phoneNumber.value =
-          (raw["phoneNumber"] ?? profile["phoneNumber"] ?? "").toString();
+    }
+    email.value = (raw["email"] ?? profile["email"] ?? "").toString();
+    rozet.value = (raw["rozet"] ?? profile["rozet"] ?? "").toString();
+    bio.value = (raw["bio"] ?? profile["bio"] ?? "").toString();
+    adres.value = (raw["adres"] ?? profile["adres"] ?? "").toString();
+    meslek.value =
+        (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
 
-      // İletişim izinleri (root yoksa preferences fallback)
-      mailIzin.value =
-          (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
-      aramaIzin.value =
-          (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
+    totalMarket.value = 0;
+    final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
+    final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
+    totalPosts.value = (postsCount is num) ? postsCount.toInt() : 0;
+    totalLikes.value = (likesCount is num) ? likesCount.toInt() : 0;
+    _applySupplementalUserData(raw);
+  }
 
-      ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
-      gizliHesap.value =
-          (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
-      hesapOnayi.value =
-          (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
-      meslek.value =
-          (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
+  void _applySupplementalUserData(Map<String, dynamic> raw) {
+    final profile = (raw["profile"] is Map)
+        ? Map<String, dynamic>.from(raw["profile"] as Map)
+        : const <String, dynamic>{};
+    final preferences = (raw["preferences"] is Map)
+        ? Map<String, dynamic>.from(raw["preferences"] as Map)
+        : const <String, dynamic>{};
+    final stats = (raw["stats"] is Map)
+        ? Map<String, dynamic>.from(raw["stats"] as Map)
+        : const <String, dynamic>{};
 
-      final blocked = raw["blockedUsers"];
-      if (blocked is List) {
-        blockedUsers.value = blocked.map((e) => e.toString()).toList();
-      } else {
-        blockedUsers.clear();
-      }
-
-      totalMarket.value = 0; // when end of the market coding
-
-      // Gönderi / beğeni sayaçlarında root -> stats fallback
-      final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
-      final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
-      totalPosts.value = (postsCount is num) ? postsCount.toInt() : 0;
-      totalLikes.value = (likesCount is num) ? likesCount.toInt() : 0;
-    }, onError: (e) {
-      // ignore: avoid_print
-      print("SocialProfile.getUserData listener error: $e");
-    });
+    email.value = (raw["email"] ?? profile["email"] ?? "").toString();
+    token.value = (raw["token"] ?? "").toString();
+    phoneNumber.value =
+        (raw["phoneNumber"] ?? profile["phoneNumber"] ?? "").toString();
+    mailIzin.value =
+        (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
+    aramaIzin.value =
+        (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
+    ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
+    gizliHesap.value =
+        (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
+    hesapOnayi.value =
+        (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
+    final blocked = raw["blockedUsers"];
+    if (blocked is List) {
+      blockedUsers.value = blocked.map((e) => e.toString()).toList();
+    } else {
+      blockedUsers.clear();
+    }
+    final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
+    final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
+    totalPosts.value = (postsCount is num) ? postsCount.toInt() : totalPosts.value;
+    totalLikes.value = (likesCount is num) ? likesCount.toInt() : totalLikes.value;
   }
 
   Future<void> toggleFollowStatus() async {

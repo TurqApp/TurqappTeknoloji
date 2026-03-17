@@ -384,6 +384,9 @@ class ShortController extends GetxController {
       await _tryQuickFillFromPool();
       if (shorts.isNotEmpty) {
         await preloadRange(0, range: 0);
+        if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
+          unawaited(_loadNextPage());
+        }
         return;
       }
       _log('[Shorts] Liste boş - sıfırlama yapılıyor');
@@ -702,7 +705,7 @@ class ShortController extends GetxController {
     final pool = Get.find<IndexPoolStore>();
     final fromPool = await pool.loadPosts(
       IndexPoolKind.shortFullscreen,
-      limit: ContentPolicy.mobileWarmWindow,
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
       allowStale: false,
     );
     if (fromPool.isEmpty) return;
@@ -713,7 +716,9 @@ class ShortController extends GetxController {
         .toList();
     if (filtered.isEmpty) return;
 
-    final valid = await _validatePoolPostsAndPrune(filtered);
+    final valid = ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)
+        ? await _validatePoolPostsAndPrune(filtered)
+        : filtered;
     if (valid.isEmpty) return;
 
     shorts.assignAll(valid);

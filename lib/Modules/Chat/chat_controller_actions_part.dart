@@ -749,14 +749,45 @@ extension ChatControllerActionsPart on ChatController {
             resolvedTargetUid.isNotEmpty &&
             resolvedTargetUid != currentUid) {
           try {
-            NotificationService.instance.sendNotification(
-              token: "",
-              title: nickname.value,
-              body: notifBody,
-              docID: chatID,
-              type: "Chat",
-              targetUserID: resolvedTargetUid,
+            final convMeta = await _conversationRepository.getConversation(
+              chatID,
+              preferCache: true,
+              cacheOnly: false,
             );
+            final marketContext = Map<String, dynamic>.from(
+              convMeta?['marketContext'] as Map? ?? const <String, dynamic>{},
+            );
+            final senderLabel = (() {
+              final full = CurrentUserService.instance.fullName.trim();
+              if (full.isNotEmpty) return full;
+              final nick = CurrentUserService.instance.nickname.trim();
+              if (nick.isNotEmpty) return nick;
+              final authName =
+                  FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+              if (authName.isNotEmpty) return authName;
+              return 'TurqApp';
+            })();
+            final marketItemId = (marketContext['itemId'] ?? '').toString();
+            if (marketItemId.isNotEmpty) {
+              await MarketNotificationService.notifyMarketMessage(
+                targetUserId: resolvedTargetUid,
+                chatId: chatID,
+                sellerId: (marketContext['sellerId'] ?? '').toString(),
+                itemId: marketItemId,
+                itemTitle: (marketContext['title'] ?? '').toString(),
+                coverImageUrl:
+                    (marketContext['coverImageUrl'] ?? '').toString(),
+              );
+            } else {
+              NotificationService.instance.sendNotification(
+                token: "",
+                title: senderLabel,
+                body: notifBody,
+                docID: chatID,
+                type: "Chat",
+                targetUserID: resolvedTargetUid,
+              );
+            }
           } catch (_) {}
         }
       } catch (_) {

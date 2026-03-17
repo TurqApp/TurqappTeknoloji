@@ -32,6 +32,30 @@ const headers = {
   'Content-Type': 'application/json',
 };
 
+const NOISY_DETAIL_KEYS = new Set([
+  'kaydedenler',
+  'kaydedilenler',
+  'begeniler',
+  'goruntuleme',
+  'basvurular',
+  'authorAvatarUrl',
+  'authorDisplayName',
+  'authorNickname',
+  'avatarUrl',
+  'displayName',
+  'nickname',
+  'logo',
+  'cover',
+  'updatedAt',
+  'timeStamp',
+  'userID',
+  'viewCount',
+  'applicationCount',
+  'endedAt',
+  'lat',
+  'long',
+]);
+
 async function httpJson(url, init = {}) {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -98,7 +122,11 @@ function flattenForSearch(value, out, depth = 0) {
   }
   if (typeof value === 'object') {
     for (const [k, v] of Object.entries(value).slice(0, 120)) {
-      if (k.trim()) out.push(k.trim());
+      const key = k.trim();
+      if (!key) continue;
+      if (NOISY_DETAIL_KEYS.has(key)) continue;
+      if (/^(img\d+|image\d+|photo\d+)$/i.test(key)) continue;
+      out.push(key);
       flattenForSearch(v, out, depth + 1);
     }
   }
@@ -108,14 +136,6 @@ function buildDetailsText(data) {
   const out = [];
   flattenForSearch(data, out);
   return truncateText(dedupe(out).join(' '), 24000);
-}
-
-function safeStringify(value) {
-  try {
-    return truncateText(JSON.stringify(value) || '', 32000);
-  } catch {
-    return '';
-  }
 }
 
 function requiredFields() {
@@ -133,15 +153,13 @@ function requiredFields() {
     { name: 'country', type: 'string', optional: true },
     { name: 'tags', type: 'string[]', optional: true },
     { name: 'cover', type: 'string', optional: true },
-    { name: 'authorNickname', type: 'string', optional: true },
-    { name: 'authorDisplayName', type: 'string', optional: true },
-    { name: 'authorAvatarUrl', type: 'string', optional: true },
+    { name: 'nickname', type: 'string', optional: true },
+    { name: 'displayName', type: 'string', optional: true },
+    { name: 'avatarUrl', type: 'string', optional: true },
     { name: 'rozet', type: 'string', optional: true },
     { name: 'shortDescription', type: 'string', optional: true },
     { name: 'aciklama', type: 'string', optional: true },
-    { name: 'img', type: 'string', optional: true },
     { name: 'img2', type: 'string', optional: true },
-    { name: 'logo', type: 'string', optional: true },
     { name: 'baslangicTarihi', type: 'string', optional: true },
     { name: 'bitisTarihi', type: 'string', optional: true },
     { name: 'basvuruKosullari', type: 'string', optional: true },
@@ -169,7 +187,6 @@ function requiredFields() {
     { name: 'likeCount', type: 'int32', optional: true },
     { name: 'bookmarkCount', type: 'int32', optional: true },
     { name: 'detailsText', type: 'string', optional: true },
-    { name: 'detailsJson', type: 'string', optional: true },
   ];
 }
 
@@ -213,15 +230,17 @@ function buildScholarshipDoc(docId, data) {
       ...asStringArray(data.tags),
     ]),
     cover: asString(data.img) || asString(data.logo),
-    authorNickname: asString(data.authorNickname),
-    authorDisplayName: asString(data.authorDisplayName),
-    authorAvatarUrl: asString(data.authorAvatarUrl),
+    nickname: asString(data.nickname) || asString(data.authorNickname),
+    displayName:
+      asString(data.displayName) ||
+      asString(data.authorDisplayName) ||
+      asString(data.nickname) ||
+      asString(data.authorNickname),
+    avatarUrl: asString(data.avatarUrl) || asString(data.authorAvatarUrl),
     rozet: asString(data.rozet),
     shortDescription: asString(data.shortDescription),
     aciklama: asString(data.aciklama),
-    img: asString(data.img),
     img2: asString(data.img2),
-    logo: asString(data.logo),
     baslangicTarihi: asString(data.baslangicTarihi),
     bitisTarihi: asString(data.bitisTarihi),
     basvuruKosullari: asString(data.basvuruKosullari),
@@ -249,7 +268,6 @@ function buildScholarshipDoc(docId, data) {
     likeCount: asInt(data.likesCount) || begeniler.length,
     bookmarkCount: asInt(data.bookmarksCount) || kaydedenler.length,
     detailsText: buildDetailsText(data),
-    detailsJson: safeStringify(data),
   };
 }
 

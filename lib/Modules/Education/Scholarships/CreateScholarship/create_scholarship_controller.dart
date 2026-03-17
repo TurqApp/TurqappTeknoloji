@@ -137,6 +137,9 @@ class CreateScholarshipController extends GetxController {
     final uid = currentUser?.uid ?? '';
     if (uid.isEmpty) {
       return const <String, dynamic>{
+        'nickname': '',
+        'displayName': '',
+        'avatarUrl': '',
         'authorNickname': '',
         'authorDisplayName': '',
         'authorAvatarUrl': '',
@@ -153,6 +156,9 @@ class CreateScholarshipController extends GetxController {
     final avatarUrl = (raw?['avatarUrl'] ?? '').toString().trim();
     final rozet = (raw?['rozet'] ?? '').toString().trim();
     return <String, dynamic>{
+      'nickname': nickname,
+      'displayName': displayName.isNotEmpty ? displayName : nickname,
+      'avatarUrl': avatarUrl,
       'authorNickname': nickname,
       'authorDisplayName': displayName.isNotEmpty ? displayName : nickname,
       'authorAvatarUrl': avatarUrl,

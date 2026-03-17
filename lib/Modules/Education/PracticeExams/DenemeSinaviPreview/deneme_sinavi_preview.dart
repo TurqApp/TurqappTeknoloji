@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
@@ -422,8 +423,8 @@ class DenemeSinaviPreview extends StatelessWidget {
                     Expanded(child: BackButtons(text: "Sınav Hakkında")),
                     EducationFeedShareIconButton(
                       onTap: () => shareService.sharePracticeExam(model),
-                      size: 30,
-                      iconSize: 18,
+                      size: AppIconSurface.kSize,
+                      iconSize: AppIconSurface.kIconSize,
                     ),
                     6.pw,
                     Obx(
@@ -433,7 +434,7 @@ class DenemeSinaviPreview extends StatelessWidget {
                           controller.isSaved.value
                               ? CupertinoIcons.bookmark_fill
                               : CupertinoIcons.bookmark,
-                          size: 18,
+                          size: AppIconSurface.kIconSize,
                           color: controller.isSaved.value
                               ? Colors.orange
                               : Colors.black87,

@@ -38,6 +38,14 @@ extension AgendaControllerLoadingPart on AgendaController {
 
       // İlk yüklemede reshare eventlerini arka planda getir (feed'i bloklamasın)
       unawaited(_fetchAndMergeReshareEvents(eventLimit: 200));
+
+      if (agendaList.isNotEmpty &&
+          !ContentPolicy.shouldBootstrapNetwork(
+            ContentScreenKind.feed,
+            hasLocalContent: true,
+          )) {
+        return;
+      }
     }
 
     // Eğer shuffle edilmiş postlar varsa onlardan devam et
@@ -290,7 +298,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final pool = Get.find<IndexPoolStore>();
     final fromPool = await pool.loadPosts(
       IndexPoolKind.feed,
-      limit: ContentPolicy.feedInitialFromPool,
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
       allowStale: true,
     );
     if (fromPool.isEmpty) return;
@@ -300,7 +308,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: ContentPolicy.feedInitialFromPool,
+      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.feed),
       preferCache: true,
       cacheOnly: true,
     );
@@ -342,7 +350,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     _addUniqueToAgenda(quickFiltered);
 
     // Arka planda: validasyon + gizlilik kontrolü + reshare
-    unawaited(_postPoolFillCleanup(sourcePosts, quickFiltered));
+    if (ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+      unawaited(_postPoolFillCleanup(sourcePosts, quickFiltered));
+    }
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -355,7 +365,10 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<void> _revalidateQuickFilledAgenda(List<PostsModel> shown) async {
-    if (shown.isEmpty || !ContentPolicy.isConnected) return;
+    if (shown.isEmpty ||
+        !ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+      return;
+    }
     try {
       final valid = await _validatePoolPostsAndPrune(shown);
       final validIds = valid.map((p) => p.docID).toSet();

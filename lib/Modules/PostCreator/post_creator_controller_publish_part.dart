@@ -515,6 +515,9 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "quotedSourceAvatarUrl":
             (_isSharedAsPost && _isQuotedPost) ? _quotedSourceAvatarUrl : "",
       });
+      unawaited(
+        TypesensePostService.instance.syncPostById(docID).catchError((_) {}),
+      );
 
       if (_isSharedAsPost &&
           _sharedOriginalUserID.isNotEmpty &&

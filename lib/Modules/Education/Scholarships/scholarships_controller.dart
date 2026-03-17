@@ -330,7 +330,7 @@ class ScholarshipsController extends GetxController {
       'ilceler': List<String>.from(
         (hit['ilceler'] as List<dynamic>? ?? const <dynamic>[]),
       ),
-      'img': (hit['img'] ?? cover).toString(),
+      'img': cover,
       'img2': (hit['img2'] ?? '').toString(),
       'kaydedenler': const <String>[],
       'kaydedilenler': const <String>[],
@@ -340,7 +340,7 @@ class ScholarshipsController extends GetxController {
       'liseOrtaOkulSehirler': List<String>.from(
         (hit['liseOrtaOkulSehirler'] as List<dynamic>? ?? const <dynamic>[]),
       ),
-      'logo': (hit['logo'] ?? '').toString(),
+      'logo': '',
       'mukerrerDurumu': (hit['mukerrerDurumu'] ?? '').toString(),
       'ogrenciSayisi': (hit['ogrenciSayisi'] ?? '').toString(),
       'sehirler': List<String>.from(
@@ -362,11 +362,16 @@ class ScholarshipsController extends GetxController {
 
   Map<String, dynamic> _buildUserDataFromHit(Map<String, dynamic> hit) {
     final userId = ((hit['ownerId'] ?? hit['userID']) ?? '').toString().trim();
-    final authorNickname = (hit['authorNickname'] ?? '').toString().trim();
+    final authorNickname =
+        ((hit['nickname'] ?? hit['authorNickname']) ?? '').toString().trim();
     final authorDisplayName =
-        (hit['authorDisplayName'] ?? '').toString().trim();
+        ((hit['displayName'] ?? hit['authorDisplayName']) ?? '')
+            .toString()
+            .trim();
     final authorAvatarUrl =
-        (hit['authorAvatarUrl'] ?? '').toString().trim();
+        ((hit['avatarUrl'] ?? hit['authorAvatarUrl']) ?? '')
+            .toString()
+            .trim();
     final rozet = (hit['rozet'] ?? '').toString().trim();
     return {
       'avatarUrl': authorAvatarUrl,

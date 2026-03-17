@@ -895,8 +895,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         width: 20,
         height: AnimatedActionButton.actionHeight,
         child: Center(
-          child: Icon(
-            CupertinoIcons.paperplane,
+          child: SlimSendIcon(
             color: _AgendaContentState._actionColor,
             size: _AgendaContentState._actionStyle.sendIconSize,
           ),

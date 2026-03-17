@@ -998,8 +998,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         width: 20,
         height: AnimatedActionButton.actionHeight,
         child: Center(
-          child: Icon(
-            CupertinoIcons.paperplane,
+          child: SlimSendIcon(
             color: _ClassicContentState._actionColor,
             size: _ClassicContentState._actionStyle.sendIconSize,
           ),

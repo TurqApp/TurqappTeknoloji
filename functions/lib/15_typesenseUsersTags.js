@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f15_reindexUsersToTypesenseScheduled = exports.f15_reindexUsersToTypesenseCallable = exports.f15_syncUsersToTypesense = exports.f15_getTrendingTagsCallable = exports.f15_getPostIdsByTagCallable = exports.f15_searchTagsCallable = exports.f15_searchUsersCallable = exports.f14_syncUsersToTypesense = exports.f15_syncTagsToTypesense = void 0;
+exports.f15_reindexUsersToTypesenseScheduled = exports.f15_reindexUsersToTypesenseCallable = exports.f15_syncUsersToTypesense = exports.f15_getTrendingTagsCallable = exports.f15_getPostIdsByTagCallable = exports.f15_searchTagsCallable = exports.f15_getUserCardsByIdsCallable = exports.f15_searchUsersCallable = exports.f14_syncUsersToTypesense = exports.f15_syncTagsToTypesense = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const scheduler_1 = require("firebase-functions/v2/scheduler");
@@ -65,6 +65,9 @@ function asStringArray(x) {
     if (!Array.isArray(x))
         return [];
     return x.map((v) => String(v || "").trim()).filter(Boolean);
+}
+function typesenseStringLiteral(value) {
+    return `\`${String(value || "").replace(/`/g, "\\`")}\``;
 }
 function asEpochSeconds(x) {
     if (!x)
@@ -185,8 +188,12 @@ async function ensureUsersCollection() {
                 { name: "nickname", type: "string", optional: true },
                 { name: "firstName", type: "string", optional: true },
                 { name: "lastName", type: "string", optional: true },
+                { name: "displayName", type: "string", optional: true },
                 { name: "avatarUrl", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
+                { name: "bio", type: "string", optional: true },
+                { name: "adres", type: "string", optional: true },
+                { name: "meslekKategori", type: "string", optional: true },
                 { name: "isPrivate", type: "bool", optional: true },
                 { name: "isDeleted", type: "bool", optional: true },
                 { name: "isApproved", type: "bool", optional: true },
@@ -209,8 +216,12 @@ async function ensureUsersCollection() {
                 { name: "nickname", type: "string", optional: true },
                 { name: "firstName", type: "string", optional: true },
                 { name: "lastName", type: "string", optional: true },
+                { name: "displayName", type: "string", optional: true },
                 { name: "avatarUrl", type: "string", optional: true },
                 { name: "rozet", type: "string", optional: true },
+                { name: "bio", type: "string", optional: true },
+                { name: "adres", type: "string", optional: true },
+                { name: "meslekKategori", type: "string", optional: true },
                 { name: "isPrivate", type: "bool", optional: true },
                 { name: "isDeleted", type: "bool", optional: true },
                 { name: "isApproved", type: "bool", optional: true },
@@ -359,6 +370,7 @@ async function deleteDoc(postId) {
     }
 }
 function buildUserSearchDoc(userId, data) {
+    const profile = data.profile || {};
     const createdDateRaw = Number(data.createdDate || 0);
     const createdDateTs = Number.isFinite(createdDateRaw) && createdDateRaw > 0
         ? Math.floor(createdDateRaw / 1000)
@@ -367,11 +379,17 @@ function buildUserSearchDoc(userId, data) {
     const isPendingOrDeleted = accountStatus === "pending_deletion" || accountStatus === "deleted";
     return {
         id: userId,
-        nickname: asString(data.nickname) || asString(data.username),
-        firstName: asString(data.firstName),
-        lastName: asString(data.lastName),
-        avatarUrl: asString(data.avatarUrl),
-        rozet: asString(data.rozet),
+        nickname: asString(data.nickname),
+        firstName: asString(data.firstName) || asString(profile.firstName),
+        lastName: asString(data.lastName) || asString(profile.lastName),
+        displayName: asString(data.displayName) ||
+            asString(profile.displayName) ||
+            asString(data.fullName),
+        avatarUrl: asString(data.avatarUrl) || asString(profile.avatarUrl),
+        rozet: asString(data.rozet) || asString(profile.rozet),
+        bio: asString(data.bio) || asString(profile.bio),
+        adres: asString(data.adres) || asString(profile.adres),
+        meslekKategori: asString(data.meslekKategori) || asString(profile.meslekKategori),
         isPrivate: asBool(data.isPrivate),
         isDeleted: asBool(data.isDeleted) ||
             isPendingOrDeleted,
@@ -513,12 +531,12 @@ async function searchUsersFromTypesense(q, limit, page) {
         timeout: 10000,
         params: {
             q,
-            query_by: "nickname,firstName,lastName",
+            query_by: "nickname,displayName,firstName,lastName,meslekKategori",
             per_page: limit,
             page,
             sort_by: "updatedAtTs:desc",
             filter_by: "isDeleted:=false && isPrivate:=false",
-            prefix: "true,true,true",
+            prefix: "true,true,true,true,true",
             typo_tokens_threshold: 1,
         },
     });
@@ -538,13 +556,54 @@ async function searchUsersFromTypesense(q, limit, page) {
             nickname: h?.document?.nickname || "",
             firstName: h?.document?.firstName || "",
             lastName: h?.document?.lastName || "",
+            displayName: h?.document?.displayName || "",
             avatarUrl: h?.document?.avatarUrl || "",
             rozet: h?.document?.rozet || "",
+            bio: h?.document?.bio || "",
+            adres: h?.document?.adres || "",
+            meslekKategori: h?.document?.meslekKategori || "",
             isPrivate: h?.document?.isPrivate === true,
             isDeleted: h?.document?.isDeleted === true,
             isApproved: h?.document?.isApproved === true,
             text_match: h?.text_match || 0,
         })),
+    };
+}
+async function getUserCardsByIdsFromTypesense(ids) {
+    await ensureUsersCollection();
+    const uniqueIds = Array.from(new Set(ids.map((x) => String(x || "").trim()).filter(Boolean)));
+    if (uniqueIds.length === 0) {
+        return {
+            requested: 0,
+            found: 0,
+            search_time_ms: 0,
+            missingIds: [],
+            hits: [],
+        };
+    }
+    const baseUrl = getTypesenseBaseUrl();
+    const resp = await axios_1.default.get(`${baseUrl}/collections/${USERS_COLLECTION}/documents/search`, {
+        headers: headers(),
+        timeout: 10000,
+        params: {
+            q: "*",
+            query_by: "nickname",
+            per_page: uniqueIds.length,
+            page: 1,
+            filter_by: `id:=[${uniqueIds.map(typesenseStringLiteral).join(",")}]`,
+            sort_by: "updatedAtTs:desc",
+        },
+    });
+    const body = resp.data || {};
+    const hits = Array.isArray(body.hits) ? body.hits : [];
+    const docs = hits.map((h) => h?.document || {}).filter((doc) => !!doc?.id);
+    const foundIds = new Set(docs.map((doc) => String(doc.id)));
+    return {
+        requested: uniqueIds.length,
+        found: docs.length,
+        search_time_ms: Number(body.search_time_ms || 0),
+        missingIds: uniqueIds.filter((id) => !foundIds.has(id)),
+        hits: docs,
     };
 }
 async function searchTagsFromTypesense(q, limit, page) {
@@ -814,6 +873,33 @@ exports.f15_searchUsersCallable = (0, https_1.onCall)({
     const page = Math.max(1, Number(request.data?.page || 1));
     try {
         return await searchUsersFromTypesense(q, limit, page);
+    }
+    catch (err) {
+        const detail = err?.response?.data || err?.message || "unknown_error";
+        throw new https_1.HttpsError("internal", "typesense_search_failed", detail);
+    }
+});
+exports.f15_getUserCardsByIdsCallable = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+}, async (request) => {
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
+    if (!typesenseReady()) {
+        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
+    }
+    const idsRaw = Array.isArray(request.data?.ids) ? request.data?.ids : [];
+    const ids = idsRaw.map((x) => String(x || "").trim()).filter(Boolean);
+    if (ids.length === 0) {
+        throw new https_1.HttpsError("invalid-argument", "ids_required");
+    }
+    if (ids.length > MAX_LIMIT) {
+        throw new https_1.HttpsError("invalid-argument", "too_many_ids");
+    }
+    try {
+        return await getUserCardsByIdsFromTypesense(ids);
     }
     catch (err) {
         const detail = err?.response?.data || err?.message || "unknown_error";

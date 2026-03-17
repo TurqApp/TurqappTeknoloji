@@ -1,6 +1,9 @@
 class JobModel {
   final String docID;
   final String brand;
+  final List<String> calismaGunleri;
+  final String calismaSaatiBaslangic;
+  final String calismaSaatiBitis;
   final List<String> calismaTuru;
   final bool ended;
   final String isTanimi;
@@ -20,14 +23,22 @@ class JobModel {
   final String about;
   final String ilanBasligi;
   final String deneyimSeviyesi;
+  final int basvuruSayisi;
   final int pozisyonSayisi;
   final int viewCount;
   final int applicationCount;
   final int endedAt;
+  final String authorAvatarUrl;
+  final String authorDisplayName;
+  final String authorNickname;
+  final String rozet;
 
   JobModel({
     required this.docID,
     required this.brand,
+    required this.calismaGunleri,
+    required this.calismaSaatiBaslangic,
+    required this.calismaSaatiBitis,
     required this.calismaTuru,
     required this.ended,
     required this.isTanimi,
@@ -47,16 +58,24 @@ class JobModel {
     this.about = "",
     this.ilanBasligi = "",
     this.deneyimSeviyesi = "",
+    this.basvuruSayisi = 0,
     this.pozisyonSayisi = 1,
     this.viewCount = 0,
     this.applicationCount = 0,
     this.endedAt = 0,
+    this.authorAvatarUrl = "",
+    this.authorDisplayName = "",
+    this.authorNickname = "",
+    this.rozet = "",
   });
 
   factory JobModel.fromMap(Map<String, dynamic> map, String docID) {
     return JobModel(
       docID: docID,
       brand: map['brand'] ?? '',
+      calismaGunleri: List<String>.from(map['calismaGunleri'] ?? []),
+      calismaSaatiBaslangic: map['calismaSaatiBaslangic'] ?? '',
+      calismaSaatiBitis: map['calismaSaatiBitis'] ?? '',
       calismaTuru: List<String>.from(map['calismaTuru'] ?? []),
       ended: map['ended'] ?? false,
       isTanimi: map['isTanimi'] ?? '',
@@ -75,16 +94,90 @@ class JobModel {
       about: map['about'] ?? '',
       ilanBasligi: map['ilanBasligi'] ?? '',
       deneyimSeviyesi: map['deneyimSeviyesi'] ?? '',
+      basvuruSayisi: map['basvuruSayisi'] ?? 0,
       pozisyonSayisi: map['pozisyonSayisi'] ?? 1,
       viewCount: map['viewCount'] ?? 0,
       applicationCount: map['applicationCount'] ?? 0,
       endedAt: map['endedAt'] ?? 0,
+      authorAvatarUrl: map['authorAvatarUrl'] ?? map['avatarUrl'] ?? '',
+      authorDisplayName: map['authorDisplayName'] ?? map['displayName'] ?? '',
+      authorNickname: map['authorNickname'] ?? map['nickname'] ?? '',
+      rozet: map['rozet'] ?? '',
+    );
+  }
+
+  factory JobModel.fromTypesenseHit(Map<String, dynamic> hit) {
+    int asInt(dynamic value) {
+      if (value is num) return value.toInt();
+      return int.tryParse('$value') ?? 0;
+    }
+
+    double asDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      return double.tryParse('$value') ?? 0.0;
+    }
+
+    List<String> asStringList(dynamic value) {
+      if (value is List) return value.map((e) => '$e').toList(growable: false);
+      return const <String>[];
+    }
+
+    String firstNonEmpty(dynamic a, dynamic b, [dynamic c]) {
+      final values = [a, b, c];
+      for (final value in values) {
+        final text = (value ?? '').toString().trim();
+        if (text.isNotEmpty) return text;
+      }
+      return '';
+    }
+
+    return JobModel(
+      docID: (hit['docId'] ?? hit['id'] ?? '').toString(),
+      brand: (hit['brand'] ?? hit['subtitle'] ?? '').toString(),
+      calismaGunleri: asStringList(hit['calismaGunleri']),
+      calismaSaatiBaslangic: (hit['calismaSaatiBaslangic'] ?? '').toString(),
+      calismaSaatiBitis: (hit['calismaSaatiBitis'] ?? '').toString(),
+      calismaTuru: asStringList(hit['calismaTuru']),
+      ended: hit['ended'] == true || hit['active'] == false,
+      isTanimi: (hit['isTanimi'] ?? hit['description'] ?? '').toString(),
+      lat: asDouble(hit['lat']),
+      long: asDouble(hit['long']),
+      adres: (hit['adres'] ?? '').toString(),
+      logo: firstNonEmpty(hit['logo'], hit['cover']),
+      maas1: asInt(hit['maas1']),
+      maas2: asInt(hit['maas2']),
+      meslek: (hit['meslek'] ?? hit['subtitle'] ?? '').toString(),
+      timeStamp: asInt(hit['timeStamp']),
+      userID: (hit['ownerId'] ?? '').toString(),
+      yanHaklar: asStringList(hit['yanHaklar']),
+      city: (hit['city'] ?? '').toString(),
+      town: (hit['town'] ?? '').toString(),
+      about: (hit['about'] ?? '').toString(),
+      ilanBasligi: (hit['ilanBasligi'] ?? hit['title'] ?? '').toString(),
+      deneyimSeviyesi: (hit['deneyimSeviyesi'] ?? '').toString(),
+      basvuruSayisi: asInt(hit['basvuruSayisi']),
+      pozisyonSayisi: asInt(hit['pozisyonSayisi']) == 0
+          ? 1
+          : asInt(hit['pozisyonSayisi']),
+      viewCount: asInt(hit['viewCount']),
+      applicationCount: asInt(hit['applicationCount']),
+      endedAt: asInt(hit['endedAt']),
+      authorAvatarUrl:
+          firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
+      authorDisplayName:
+          firstNonEmpty(hit['displayName'], hit['authorDisplayName']),
+      authorNickname:
+          firstNonEmpty(hit['nickname'], hit['authorNickname']),
+      rozet: (hit['rozet'] ?? '').toString(),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'brand': brand,
+      'calismaGunleri': calismaGunleri,
+      'calismaSaatiBaslangic': calismaSaatiBaslangic,
+      'calismaSaatiBitis': calismaSaatiBitis,
       'calismaTuru': calismaTuru,
       'ended': ended,
       'isTanimi': isTanimi,
@@ -103,10 +196,15 @@ class JobModel {
       'about': about,
       'ilanBasligi': ilanBasligi,
       'deneyimSeviyesi': deneyimSeviyesi,
+      'basvuruSayisi': basvuruSayisi,
       'pozisyonSayisi': pozisyonSayisi,
       'viewCount': viewCount,
       'applicationCount': applicationCount,
       'endedAt': endedAt,
+      'authorAvatarUrl': authorAvatarUrl,
+      'authorDisplayName': authorDisplayName,
+      'authorNickname': authorNickname,
+      'rozet': rozet,
     };
   }
 
@@ -115,14 +213,25 @@ class JobModel {
     String? about,
     String? ilanBasligi,
     String? deneyimSeviyesi,
+    int? basvuruSayisi,
+    String? calismaSaatiBaslangic,
+    String? calismaSaatiBitis,
     int? pozisyonSayisi,
     int? viewCount,
     int? applicationCount,
     int? endedAt,
+    String? authorAvatarUrl,
+    String? authorDisplayName,
+    String? authorNickname,
+    String? rozet,
   }) {
     return JobModel(
       docID: docID,
       brand: brand,
+      calismaGunleri: calismaGunleri,
+      calismaSaatiBaslangic:
+          calismaSaatiBaslangic ?? this.calismaSaatiBaslangic,
+      calismaSaatiBitis: calismaSaatiBitis ?? this.calismaSaatiBitis,
       calismaTuru: calismaTuru,
       ended: ended,
       isTanimi: isTanimi,
@@ -142,10 +251,15 @@ class JobModel {
       about: about ?? this.about,
       ilanBasligi: ilanBasligi ?? this.ilanBasligi,
       deneyimSeviyesi: deneyimSeviyesi ?? this.deneyimSeviyesi,
+      basvuruSayisi: basvuruSayisi ?? this.basvuruSayisi,
       pozisyonSayisi: pozisyonSayisi ?? this.pozisyonSayisi,
       viewCount: viewCount ?? this.viewCount,
       applicationCount: applicationCount ?? this.applicationCount,
       endedAt: endedAt ?? this.endedAt,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      authorDisplayName: authorDisplayName ?? this.authorDisplayName,
+      authorNickname: authorNickname ?? this.authorNickname,
+      rozet: rozet ?? this.rozet,
     );
   }
 }

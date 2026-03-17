@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
@@ -56,10 +57,11 @@ class DormitoryInfoController extends GetxController {
       final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (_) {
-    }
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
+    } catch (_) {}
   }
 
   Future<void> fetchYurtData() async {
@@ -88,8 +90,7 @@ class DormitoryInfoController extends GetxController {
           scope: "family",
         );
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void showIdariSec() {

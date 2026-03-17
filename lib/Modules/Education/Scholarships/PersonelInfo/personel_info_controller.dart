@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 
 class FieldConfig {
@@ -299,8 +300,10 @@ class PersonelInfoController extends GetxController
       );
       sehirlerVeIlcelerData.value =
           data.map((e) => CitiesModel.fromJson(e)).toList();
-      sehirler.value = sehirlerVeIlcelerData.map((e) => e.il).toSet().toList()
-        ..sort();
+      final sortedCities =
+          sehirlerVeIlcelerData.map((e) => e.il).toSet().toList();
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
     } catch (e, stackTrace) {
       print("Şehir ve ilçe verileri yüklenirken hata: $e\n$stackTrace");
       AppSnackbar("Hata", "Şehir ve ilçe verileri yüklenemedi.");

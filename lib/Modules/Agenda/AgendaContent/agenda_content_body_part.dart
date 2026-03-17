@@ -1,6 +1,9 @@
 part of 'agenda_content.dart';
 
 extension AgendaContentBodyPart on _AgendaContentState {
+  double get _feedCaptionFontSize =>
+      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+
   Widget mainbody() {
     final hasHeaderSubline =
         widget.model.konum != "" || widget.model.metin.trim().isNotEmpty;
@@ -533,7 +536,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
       text: cleanedText,
       startWith7line: true,
       toggleExpandOnTextTap: true,
-      fontSize: 13,
+      fontSize: _feedCaptionFontSize,
       fontColor: color,
       mentionColor: Colors.blue,
       hashtagColor: Colors.blue,

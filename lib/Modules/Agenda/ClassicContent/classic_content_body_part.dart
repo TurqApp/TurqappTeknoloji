@@ -1,6 +1,9 @@
 part of 'classic_content.dart';
 
 extension ClassicContentBodyPart on _ClassicContentState {
+  double get _captionFontSize =>
+      Theme.of(context).platform == TargetPlatform.iOS ? 14 : 13;
+
   Widget textOnlyBody(BuildContext context) {
     final sanitizedCaption =
         _ClassicContentState._ctaNavigationService.sanitizeCaptionText(
@@ -39,9 +42,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Text(
                     sanitizedCaption,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.black,
-                      fontSize: 13,
+                      fontSize: _captionFontSize,
                       height: 1.5,
                       fontFamily: 'Montserrat',
                     ),

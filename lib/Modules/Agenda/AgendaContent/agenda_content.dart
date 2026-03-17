@@ -25,6 +25,7 @@ import 'package:turqappv2/Core/Widgets/animated_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/ring_upload_progress_indicator.dart';
+import 'package:turqappv2/Core/Widgets/slim_send_icon.dart';
 import 'package:turqappv2/Core/Services/education_feed_cta_navigation_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/redirection_link.dart';

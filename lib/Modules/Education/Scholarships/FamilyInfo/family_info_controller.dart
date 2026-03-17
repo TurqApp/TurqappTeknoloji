@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 
 class FamilyInfoController extends GetxController {
@@ -69,8 +70,10 @@ class FamilyInfoController extends GetxController {
       final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -83,69 +86,67 @@ class FamilyInfoController extends GetxController {
         FirebaseAuth.instance.currentUser!.uid,
       );
       if (data != null) {
-          familyInfo.value =
-              userString(data, key: 'familyInfo', scope: 'family');
-          fatherName.value.text =
-              userString(data, key: 'fatherName', scope: 'family');
-          fatherSurname.value.text =
-              userString(data, key: 'fatherSurname', scope: 'family');
-          fatherSalary.value.text =
-              userString(data, key: 'fatherSalary', scope: 'family');
-          fatherPhoneNumber.value.text =
-              userString(data, key: 'fatherPhone', scope: 'family');
-          fatherLiving.value = userString(
-            data,
-            key: 'fatherLiving',
-            scope: 'family',
-            fallback: "Seçiniz",
-          );
-          fatherJob.value = userString(
-            data,
-            key: 'fatherJob',
-            scope: 'family',
-            fallback: "Meslek Seç",
-          );
-          motherName.value.text =
-              userString(data, key: 'motherName', scope: 'family');
-          motherSurname.value.text =
-              userString(data, key: 'motherSurname', scope: 'family');
-          motherSalary.value.text =
-              userString(data, key: 'motherSalary', scope: 'family');
-          motherPhoneNumber.value.text =
-              userString(data, key: 'motherPhone', scope: 'family');
-          motherLiving.value = userString(
-            data,
-            key: 'motherLiving',
-            scope: 'family',
-            fallback: "Seçiniz",
-          );
-          motherJob.value = userString(
-            data,
-            key: 'motherJob',
-            scope: 'family',
-            fallback: "Meslek Seç",
-          );
-          totalLiving.value.text = userInt(
-            data,
-            key: 'totalLiving',
-            scope: 'family',
-          ).toString();
-          if (totalLiving.value.text == '0') {
-            totalLiving.value.clear();
-          }
-          evMulkiyeti.value = userString(
-            data,
-            key: 'evMulkiyeti',
-            scope: 'family',
-            fallback: "Seçim Yap",
-          );
-          city.value = userString(data, key: 'ikametSehir', scope: 'profile');
-          town.value = userString(data, key: 'ikametIlce', scope: 'profile');
+        familyInfo.value = userString(data, key: 'familyInfo', scope: 'family');
+        fatherName.value.text =
+            userString(data, key: 'fatherName', scope: 'family');
+        fatherSurname.value.text =
+            userString(data, key: 'fatherSurname', scope: 'family');
+        fatherSalary.value.text =
+            userString(data, key: 'fatherSalary', scope: 'family');
+        fatherPhoneNumber.value.text =
+            userString(data, key: 'fatherPhone', scope: 'family');
+        fatherLiving.value = userString(
+          data,
+          key: 'fatherLiving',
+          scope: 'family',
+          fallback: "Seçiniz",
+        );
+        fatherJob.value = userString(
+          data,
+          key: 'fatherJob',
+          scope: 'family',
+          fallback: "Meslek Seç",
+        );
+        motherName.value.text =
+            userString(data, key: 'motherName', scope: 'family');
+        motherSurname.value.text =
+            userString(data, key: 'motherSurname', scope: 'family');
+        motherSalary.value.text =
+            userString(data, key: 'motherSalary', scope: 'family');
+        motherPhoneNumber.value.text =
+            userString(data, key: 'motherPhone', scope: 'family');
+        motherLiving.value = userString(
+          data,
+          key: 'motherLiving',
+          scope: 'family',
+          fallback: "Seçiniz",
+        );
+        motherJob.value = userString(
+          data,
+          key: 'motherJob',
+          scope: 'family',
+          fallback: "Meslek Seç",
+        );
+        totalLiving.value.text = userInt(
+          data,
+          key: 'totalLiving',
+          scope: 'family',
+        ).toString();
+        if (totalLiving.value.text == '0') {
+          totalLiving.value.clear();
+        }
+        evMulkiyeti.value = userString(
+          data,
+          key: 'evMulkiyeti',
+          scope: 'family',
+          fallback: "Seçim Yap",
+        );
+        city.value = userString(data, key: 'ikametSehir', scope: 'profile');
+        town.value = userString(data, key: 'ikametIlce', scope: 'profile');
       } else {
         _resetToDefaults();
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _resetToDefaults() {
@@ -351,44 +352,44 @@ class FamilyInfoController extends GetxController {
       await _userRepository.updateUserFields(
         FirebaseAuth.instance.currentUser!.uid,
         {
-        ...scopedUserUpdate(
-          scope: 'family',
-          values: {
-            "familyInfo": familyInfo.value,
-            "fatherName":
-                fatherLiving.value == "Evet" ? fatherName.value.text : "",
-            "fatherSurname":
-                fatherLiving.value == "Evet" ? fatherSurname.value.text : "",
-            "fatherJob": fatherLiving.value == "Evet" ? fatherJob.value : "",
-            "fatherPhone": fatherLiving.value == "Evet"
-                ? fatherPhoneNumber.value.text
-                : "",
-            "fatherLiving": fatherLiving.value,
-            "fatherSalary":
-                fatherLiving.value == "Evet" ? fatherSalary.value.text : "",
-            "motherName":
-                motherLiving.value == "Evet" ? motherName.value.text : "",
-            "motherSurname":
-                motherLiving.value == "Evet" ? motherSurname.value.text : "",
-            "motherJob": motherLiving.value == "Evet" ? motherJob.value : "",
-            "motherPhone": motherLiving.value == "Evet"
-                ? motherPhoneNumber.value.text
-                : "",
-            "motherLiving": motherLiving.value,
-            "motherSalary":
-                motherLiving.value == "Evet" ? motherSalary.value.text : "",
-            "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
-            "evMulkiyeti": evMulkiyeti.value,
-          },
-        ),
-        ...scopedUserUpdate(
-          scope: 'profile',
-          values: {
-            "ikametSehir": city.value,
-            "ikametIlce": town.value,
-          },
-        ),
-      },
+          ...scopedUserUpdate(
+            scope: 'family',
+            values: {
+              "familyInfo": familyInfo.value,
+              "fatherName":
+                  fatherLiving.value == "Evet" ? fatherName.value.text : "",
+              "fatherSurname":
+                  fatherLiving.value == "Evet" ? fatherSurname.value.text : "",
+              "fatherJob": fatherLiving.value == "Evet" ? fatherJob.value : "",
+              "fatherPhone": fatherLiving.value == "Evet"
+                  ? fatherPhoneNumber.value.text
+                  : "",
+              "fatherLiving": fatherLiving.value,
+              "fatherSalary":
+                  fatherLiving.value == "Evet" ? fatherSalary.value.text : "",
+              "motherName":
+                  motherLiving.value == "Evet" ? motherName.value.text : "",
+              "motherSurname":
+                  motherLiving.value == "Evet" ? motherSurname.value.text : "",
+              "motherJob": motherLiving.value == "Evet" ? motherJob.value : "",
+              "motherPhone": motherLiving.value == "Evet"
+                  ? motherPhoneNumber.value.text
+                  : "",
+              "motherLiving": motherLiving.value,
+              "motherSalary":
+                  motherLiving.value == "Evet" ? motherSalary.value.text : "",
+              "totalLiving": int.tryParse(totalLiving.value.text) ?? 0,
+              "evMulkiyeti": evMulkiyeti.value,
+            },
+          ),
+          ...scopedUserUpdate(
+            scope: 'profile',
+            values: {
+              "ikametSehir": city.value,
+              "ikametIlce": town.value,
+            },
+          ),
+        },
       );
 
       Get.back();
@@ -405,34 +406,34 @@ class FamilyInfoController extends GetxController {
       await _userRepository.updateUserFields(
         FirebaseAuth.instance.currentUser!.uid,
         {
-        ...scopedUserUpdate(
-          scope: 'family',
-          values: {
-            "familyInfo": "",
-            "fatherName": "",
-            "fatherSurname": "",
-            "fatherJob": "",
-            "fatherPhone": "",
-            "fatherLiving": "Seçiniz",
-            "fatherSalary": "",
-            "motherName": "",
-            "motherSurname": "",
-            "motherJob": "",
-            "motherPhone": "",
-            "motherLiving": "Seçiniz",
-            "motherSalary": "",
-            "totalLiving": 0,
-            "evMulkiyeti": "Seçim Yap",
-          },
-        ),
-        ...scopedUserUpdate(
-          scope: 'profile',
-          values: {
-            "ikametSehir": "",
-            "ikametIlce": "",
-          },
-        ),
-      },
+          ...scopedUserUpdate(
+            scope: 'family',
+            values: {
+              "familyInfo": "",
+              "fatherName": "",
+              "fatherSurname": "",
+              "fatherJob": "",
+              "fatherPhone": "",
+              "fatherLiving": "Seçiniz",
+              "fatherSalary": "",
+              "motherName": "",
+              "motherSurname": "",
+              "motherJob": "",
+              "motherPhone": "",
+              "motherLiving": "Seçiniz",
+              "motherSalary": "",
+              "totalLiving": 0,
+              "evMulkiyeti": "Seçim Yap",
+            },
+          ),
+          ...scopedUserUpdate(
+            scope: 'profile',
+            values: {
+              "ikametSehir": "",
+              "ikametIlce": "",
+            },
+          ),
+        },
       );
 
       // UI'yi hemen güncelle
