@@ -11,6 +11,8 @@ class CareerProfileController extends GetxController {
   var cvVar = false.obs;
   var isFindingJob = false.obs;
   var isLoading = false.obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static final Map<String, DateTime> _lastRefreshAtByUid = <String, DateTime>{};
 
   // CV summary fields
   var fullName = ''.obs;
@@ -42,7 +44,9 @@ class CareerProfileController extends GetxController {
     if (cached != null) {
       _applyCv(cached);
       isLoading.value = false;
-      unawaited(loadCvData(silent: true, forceRefresh: true));
+      if (_shouldRefresh(uid)) {
+        unawaited(loadCvData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await loadCvData();
@@ -66,6 +70,7 @@ class CareerProfileController extends GetxController {
 
       if (data != null) {
         _applyCv(data);
+        _markRefreshed(uid);
       } else {
         cvVar.value = false;
         fullName.value = '';
@@ -127,5 +132,15 @@ class CareerProfileController extends GetxController {
     } catch (_) {
       isFindingJob.value = !isFindingJob.value;
     }
+  }
+
+  bool _shouldRefresh(String uid) {
+    final last = _lastRefreshAtByUid[uid];
+    if (last == null) return true;
+    return DateTime.now().difference(last) >= _silentRefreshInterval;
+  }
+
+  void _markRefreshed(String uid) {
+    _lastRefreshAtByUid[uid] = DateTime.now();
   }
 }

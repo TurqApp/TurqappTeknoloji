@@ -17,6 +17,8 @@ class ApplicationReviewController extends GetxController {
 
   RxList<JobApplicationModel> applicants = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 3);
+  static final Map<String, DateTime> _lastRefreshAtByJob = <String, DateTime>{};
 
   final RxMap<String, Map<String, dynamic>> cvCache =
       <String, Map<String, dynamic>>{}.obs;
@@ -36,7 +38,9 @@ class ApplicationReviewController extends GetxController {
     if (cached.isNotEmpty) {
       applicants.assignAll(cached);
       isLoading.value = false;
-      unawaited(loadApplicants(silent: true, forceRefresh: true));
+      if (_shouldRefresh(jobDocID)) {
+        unawaited(loadApplicants(silent: true, forceRefresh: true));
+      }
       return;
     }
     await loadApplicants();
@@ -55,6 +59,7 @@ class ApplicationReviewController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      _markRefreshed(jobDocID);
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -126,5 +131,15 @@ class ApplicationReviewController extends GetxController {
     } catch (_) {
       AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
     }
+  }
+
+  bool _shouldRefresh(String jobDocId) {
+    final last = _lastRefreshAtByJob[jobDocId];
+    if (last == null) return true;
+    return DateTime.now().difference(last) >= _silentRefreshInterval;
+  }
+
+  void _markRefreshed(String jobDocId) {
+    _lastRefreshAtByJob[jobDocId] = DateTime.now();
   }
 }

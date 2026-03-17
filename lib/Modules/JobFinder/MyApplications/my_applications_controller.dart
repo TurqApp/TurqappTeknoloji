@@ -14,6 +14,8 @@ class MyApplicationsController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
   RxList<JobApplicationModel> applications = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static final Map<String, DateTime> _lastRefreshAtByUid = <String, DateTime>{};
 
   @override
   void onInit() {
@@ -40,7 +42,9 @@ class MyApplicationsController extends GetxController {
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList(growable: false);
       isLoading.value = false;
-      unawaited(loadApplications(silent: true, forceRefresh: true));
+      if (_shouldRefresh(uid)) {
+        unawaited(loadApplications(silent: true, forceRefresh: true));
+      }
       return;
     }
     await loadApplications();
@@ -68,6 +72,7 @@ class MyApplicationsController extends GetxController {
       applications.value = items
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList(growable: false);
+      _markRefreshed(uid);
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -118,5 +123,15 @@ class MyApplicationsController extends GetxController {
             .toList(growable: false),
       );
     } catch (_) {}
+  }
+
+  bool _shouldRefresh(String uid) {
+    final last = _lastRefreshAtByUid[uid];
+    if (last == null) return true;
+    return DateTime.now().difference(last) >= _silentRefreshInterval;
+  }
+
+  void _markRefreshed(String uid) {
+    _lastRefreshAtByUid[uid] = DateTime.now();
   }
 }

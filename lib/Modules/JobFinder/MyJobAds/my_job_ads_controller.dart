@@ -16,6 +16,8 @@ class MyJobAdsController extends GetxController {
   final isLoadingDeactive = true.obs;
   RxList<JobModel> active = <JobModel>[].obs;
   RxList<JobModel> deactive = <JobModel>[].obs;
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static final Map<String, DateTime> _lastRefreshAtByUid = <String, DateTime>{};
 
   @override
   void onInit() {
@@ -47,7 +49,9 @@ class MyJobAdsController extends GetxController {
     if (cachedActive.isNotEmpty) {
       active.assignAll(_filterAndNormalizeExpired(cachedActive));
       isLoadingActive.value = false;
-      unawaited(getActive(silent: true, forceRefresh: true));
+      if (_shouldRefresh(uid)) {
+        unawaited(getActive(silent: true, forceRefresh: true));
+      }
     } else {
       await getActive();
     }
@@ -60,7 +64,9 @@ class MyJobAdsController extends GetxController {
     if (cachedEnded.isNotEmpty) {
       deactive.assignAll(cachedEnded);
       isLoadingDeactive.value = false;
-      unawaited(getDeactive(silent: true, forceRefresh: true));
+      if (_shouldRefresh(uid)) {
+        unawaited(getDeactive(silent: true, forceRefresh: true));
+      }
       return;
     }
 
@@ -86,6 +92,7 @@ class MyJobAdsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       active.assignAll(_filterAndNormalizeExpired(jobs));
+      _markRefreshed(uid);
     } catch (_) {
     } finally {
       isLoadingActive.value = false;
@@ -108,6 +115,7 @@ class MyJobAdsController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      _markRefreshed(uid);
     } catch (_) {
     } finally {
       isLoadingDeactive.value = false;
@@ -131,5 +139,15 @@ class MyJobAdsController extends GetxController {
     }
 
     return validJobs;
+  }
+
+  bool _shouldRefresh(String uid) {
+    final last = _lastRefreshAtByUid[uid];
+    if (last == null) return true;
+    return DateTime.now().difference(last) >= _silentRefreshInterval;
+  }
+
+  void _markRefreshed(String uid) {
+    _lastRefreshAtByUid[uid] = DateTime.now();
   }
 }
