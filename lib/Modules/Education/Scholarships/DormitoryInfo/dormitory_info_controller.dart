@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
@@ -16,6 +15,8 @@ class DormitoryInfoController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
+  final EducationReferenceDataService _referenceDataService =
+      EducationReferenceDataService.ensure();
   final isLoading = true.obs;
   final sehir = "Şehir Seç".obs;
   final ilce = "İlçe Seç".obs;
@@ -61,12 +62,7 @@ class DormitoryInfoController extends GetxController {
 
   Future<void> fetchYurtData() async {
     try {
-      String jsonString = await rootBundle.loadString(
-        'assets/data/Dormitory.json',
-      );
-      List<dynamic> jsonResponse = jsonDecode(jsonString);
-      yurtList.value =
-          jsonResponse.map((data) => DormitoryModel.fromJson(data)).toList();
+      yurtList.value = await _referenceDataService.getDormitories();
     } catch (_) {
     } finally {
       isLoading.value = false;

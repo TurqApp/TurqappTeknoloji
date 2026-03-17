@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
@@ -28,6 +28,8 @@ class CreateScholarshipController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
+  final EducationReferenceDataService _referenceDataService =
+      EducationReferenceDataService.ensure();
   var isLoading = false.obs;
   var isEditing = false.obs;
   var scholarshipId = ''.obs;
@@ -323,14 +325,11 @@ class CreateScholarshipController extends GetxController {
 
   Future<void> loadHigherEducationData() async {
     try {
-      final String response = await DefaultAssetBundle.of(
-        Get.context!,
-      ).loadString('assets/data/HigherEducation.json');
-      final List<dynamic> data = jsonDecode(response);
+      final data = await _referenceDataService.getHigherEducationEntries();
       final Map<String, List<String>> tempMap = {};
       final Set<String> tempUniversiteler = {};
 
-      for (var item in data) {
+      for (final item in data) {
         final String il = item['il'];
         final String universite = item['universite'];
         tempUniversiteler.add(universite);

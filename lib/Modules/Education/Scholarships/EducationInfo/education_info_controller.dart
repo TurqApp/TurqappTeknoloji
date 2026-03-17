@@ -1,36 +1,24 @@
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
+import 'package:turqappv2/Core/Services/education_reference_data_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
 import 'package:turqappv2/Models/Education/higher_education_model.dart';
 import 'package:turqappv2/Models/middle_school_model.dart';
 
-List<String> _parseCountryNames(String response) {
-  final List<dynamic> data = json.decode(response) as List<dynamic>;
-  return data
-      .map((item) => (item as Map<String, dynamic>)['name'] as String)
-      .toList();
-}
-
-List<Map<String, dynamic>> _decodeJsonObjectList(String response) {
-  final List<dynamic> data = json.decode(response) as List<dynamic>;
-  return data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-}
-
 class EducationInfoController extends GetxController
     with GetTickerProviderStateMixin {
   final UserRepository _userRepository = UserRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
       CityDirectoryService.ensure();
+  final EducationReferenceDataService _referenceDataService =
+      EducationReferenceDataService.ensure();
   RxString selectedEducationLevel = ''.obs;
   RxString content = ''.obs;
   RxBool isLoading = false.obs;
@@ -122,10 +110,7 @@ class EducationInfoController extends GetxController
 
   Future<void> loadCountriesData() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/Countries.json',
-      );
-      countries.value = await compute(_parseCountryNames, response);
+      countries.value = await _referenceDataService.getCountries();
     } catch (e) {
       AppSnackbar("Hata", "Ülkeler yüklenemedi.");
     }
@@ -143,12 +128,7 @@ class EducationInfoController extends GetxController
 
   Future<void> loadMiddleSchools() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/MiddleSchool.json',
-      );
-      final data = await compute(_decodeJsonObjectList, response);
-      middleSchools.value =
-          data.map((json) => MiddleSchoolModel.fromJson(json)).toList();
+      middleSchools.value = await _referenceDataService.getMiddleSchools();
     } catch (e) {
       AppSnackbar("Hata", "Okul verileri yüklenemedi.");
     }
@@ -156,12 +136,7 @@ class EducationInfoController extends GetxController
 
   Future<void> loadHighSchools() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/HighSchool.json',
-      );
-      final data = await compute(_decodeJsonObjectList, response);
-      highSchools.value =
-          data.map((json) => HighSchoolModel.fromJson(json)).toList();
+      highSchools.value = await _referenceDataService.getHighSchools();
     } catch (e) {
       AppSnackbar("Hata", "Lise verileri yüklenemedi.");
     }
@@ -169,12 +144,8 @@ class EducationInfoController extends GetxController
 
   Future<void> loadHigherEducations() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/HigherEducation.json',
-      );
-      final data = await compute(_decodeJsonObjectList, response);
       higherEducations.value =
-          data.map((json) => HigherEducationModel.fromJson(json)).toList();
+          await _referenceDataService.getHigherEducations();
     } catch (e) {
       AppSnackbar("Hata", "Yükseköğretim verileri yüklenemedi.");
     }
