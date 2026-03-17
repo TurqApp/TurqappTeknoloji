@@ -12,7 +12,7 @@ class SettingsController extends GetxController {
   static const _pasajOrderKeyPrefix = "pasajOrder";
   static const _pasajVisibilityKeyPrefix = "pasajVisibility";
   static const _pasajOrderVersionKeyPrefix = "pasajOrderVersion";
-  static const _currentPasajOrderVersion = 2;
+  static const _currentPasajOrderVersion = 4;
 
   String get _activeUid {
     return activeUserScope();
@@ -60,13 +60,7 @@ class SettingsController extends GetxController {
   Future<void> loadPasajPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final storedVersion = prefs.getInt(_pasajOrderVersionKey) ?? 0;
-    final storedOrder = storedVersion >= _currentPasajOrderVersion
-        ? (prefs.getStringList(_pasajOrderKey) ?? const [])
-        : const <String>[];
-    final normalizedOrder = <String>[
-      ...storedOrder.where(pasajTabs.contains),
-      ...pasajTabs.where((title) => !storedOrder.contains(title)),
-    ];
+    final normalizedOrder = pasajTabs.toList(growable: false);
     pasajOrder.assignAll(normalizedOrder);
     if (storedVersion < _currentPasajOrderVersion) {
       await prefs.setStringList(_pasajOrderKey, normalizedOrder);
@@ -74,8 +68,18 @@ class SettingsController extends GetxController {
     }
 
     final storedHidden = prefs.getStringList(_pasajVisibilityKey) ?? const [];
+    final normalizedHidden = storedHidden
+        .map((title) => switch (title) {
+              "Market" => "Mabil Pazar",
+              "İş Bul" => "İş Veren",
+              "Deneme Sınavı" => "Denemeler",
+              "Deneme Sınavları" => "Denemeler",
+              _ => title,
+            })
+        .where(pasajTabs.contains)
+        .toSet();
     pasajVisibility.assignAll({
-      for (final title in pasajTabs) title: !storedHidden.contains(title),
+      for (final title in pasajTabs) title: !normalizedHidden.contains(title),
     });
   }
 
@@ -86,24 +90,15 @@ class SettingsController extends GetxController {
   }
 
   Future<void> reorderPasajTabs(int oldIndex, int newIndex) async {
-    final items = pasajOrder.toList();
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    final item = items.removeAt(oldIndex);
-    items.insert(newIndex, item);
-    pasajOrder.assignAll(items);
-    await _persistPasajPrefs();
+    pasajOrder.assignAll(pasajTabs);
   }
 
   Future<void> movePasajTabUp(int index) async {
-    if (index <= 0 || index >= pasajOrder.length) return;
-    await reorderPasajTabs(index, index - 1);
+    pasajOrder.assignAll(pasajTabs);
   }
 
   Future<void> movePasajTabDown(int index) async {
-    if (index < 0 || index >= pasajOrder.length - 1) return;
-    await reorderPasajTabs(index, index + 2);
+    pasajOrder.assignAll(pasajTabs);
   }
 
   Future<void> _persistPasajPrefs() async {
