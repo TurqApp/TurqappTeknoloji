@@ -33,7 +33,34 @@ class TutoringController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(_onScroll);
-    listenToTutoringData();
+    unawaited(_bootstrapTutoringData());
+  }
+
+  Future<void> _bootstrapTutoringData() async {
+    try {
+      final cached = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
+        limit: _pageSize,
+        page: 1,
+        cacheOnly: true,
+      );
+      final items = cached.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      if (items.isNotEmpty) {
+        hasMore.value = (_currentPage * _pageSize) < cached.found;
+        final userIds =
+            items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
+        await _batchFetchUsers(userIds);
+        tutoringList.value = _applyPersonalization(items);
+        isLoading.value = false;
+        await listenToTutoringData(forceRefresh: true);
+        return;
+      }
+    } catch (_) {}
+    await listenToTutoringData();
   }
 
   @override
@@ -68,8 +95,13 @@ class TutoringController extends GetxController {
     }
   }
 
-  Future<void> listenToTutoringData() async {
-    isLoading.value = true;
+  Future<void> listenToTutoringData({
+    bool forceRefresh = false,
+  }) async {
+    final hadLocalItems = tutoringList.isNotEmpty;
+    if (!hadLocalItems) {
+      isLoading.value = true;
+    }
     hasMore.value = true;
     _currentPage = 1;
     try {
@@ -78,6 +110,7 @@ class TutoringController extends GetxController {
         query: '*',
         limit: _pageSize,
         page: _currentPage,
+        forceRefresh: forceRefresh,
       );
       final items = result.hits
           .map(TutoringModel.fromTypesenseHit)

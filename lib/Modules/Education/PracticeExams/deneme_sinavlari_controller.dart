@@ -39,9 +39,27 @@ class DenemeSinavlariController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
     scrolControlcu();
     getOkulBilgisi();
+    unawaited(_bootstrapInitialData());
+  }
+
+  Future<void> _bootstrapInitialData() async {
+    try {
+      final cached = await _practiceExamRepository.fetchPage(
+        limit: _pageSize,
+        cacheOnly: true,
+      );
+      if (cached.items.isNotEmpty) {
+        list.assignAll(cached.items);
+        _lastDocument = cached.lastDocument;
+        hasMore.value = cached.hasMore;
+        isLoading.value = false;
+        await getData();
+        return;
+      }
+    } catch (_) {}
+    await getData();
   }
 
   void scrolControlcu() {
@@ -83,7 +101,10 @@ class DenemeSinavlariController extends GetxController {
   }
 
   Future<void> getData() async {
-    isLoading.value = true;
+    final hadLocalItems = list.isNotEmpty;
+    if (!hadLocalItems) {
+      isLoading.value = true;
+    }
     hasMore.value = true;
     _lastDocument = null;
     try {

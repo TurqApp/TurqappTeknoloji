@@ -59,6 +59,7 @@ class ScholarshipsController extends GetxController {
   final int minSearchLength = 2; // minimum search query length
   static const String _scholarshipsCacheKeyPrefix = 'scholarships_cache_v1';
   static const int _scholarshipsCacheLimit = 30;
+  static const Duration _scholarshipsWarmCacheTtl = Duration(minutes: 15);
   int _searchRequestToken = 0;
   int _typesensePage = 0;
 
@@ -77,7 +78,25 @@ class ScholarshipsController extends GetxController {
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
-    fetchScholarships();
+    unawaited(_bootstrapScholarships());
+  }
+
+  Future<void> _bootstrapScholarships() async {
+    final cached = await _loadScholarshipsCache();
+    if (cached.items.isNotEmpty) {
+      _applyScholarshipStateFromCombined(cached.items);
+      isLoading.value = false;
+      totalCount.value = totalCount.value < cached.items.length
+          ? cached.items.length
+          : totalCount.value;
+      _prefetchShortLinksForList(allScholarships);
+      if (cached.isFresh) {
+        return;
+      }
+      await fetchScholarships(silent: true, forceRefresh: true);
+      return;
+    }
+    await fetchScholarships();
   }
 
   @override
@@ -151,18 +170,32 @@ class ScholarshipsController extends GetxController {
           'isSummary': item['isSummary'] ?? false,
         };
       }).toList();
-      await prefs.setString(_scholarshipsCacheKey, jsonEncode(payload));
+      await prefs.setString(
+        _scholarshipsCacheKey,
+        jsonEncode(<String, dynamic>{
+          'savedAt': DateTime.now().millisecondsSinceEpoch,
+          'items': payload,
+        }),
+      );
     } catch (_) {}
   }
 
-  Future<List<Map<String, dynamic>>> _loadScholarshipsCache() async {
+  Future<_ScholarshipsCacheSnapshot> _loadScholarshipsCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_scholarshipsCacheKey);
-      if (raw == null || raw.isEmpty) return const [];
-      final decoded = jsonDecode(raw) as List<dynamic>;
+      if (raw == null || raw.isEmpty) {
+        return const _ScholarshipsCacheSnapshot();
+      }
+      final decoded = jsonDecode(raw);
+      final savedAtMs = decoded is Map<String, dynamic>
+          ? (decoded['savedAt'] as num?)?.toInt() ?? 0
+          : 0;
+      final itemsRaw = decoded is Map<String, dynamic>
+          ? (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
+          : (decoded is List<dynamic> ? decoded : const <dynamic>[]);
       final list = <Map<String, dynamic>>[];
-      for (final e in decoded) {
+      for (final e in itemsRaw) {
         if (e is! Map) continue;
         final map = Map<String, dynamic>.from(e);
         final modelMap = Map<String, dynamic>.from(map['model'] as Map? ?? {});
@@ -178,9 +211,14 @@ class ScholarshipsController extends GetxController {
         });
       }
       _sortByTimestamp(list);
-      return list;
+      return _ScholarshipsCacheSnapshot(
+        items: list,
+        savedAt: savedAtMs > 0
+            ? DateTime.fromMillisecondsSinceEpoch(savedAtMs)
+            : null,
+      );
     } catch (_) {
-      return const [];
+      return const _ScholarshipsCacheSnapshot();
     }
   }
 
@@ -410,21 +448,27 @@ class ScholarshipsController extends GetxController {
     }
   }
 
-  Future<void> fetchScholarships() async {
-    if (lastRefresh != null &&
+  Future<void> fetchScholarships({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        lastRefresh != null &&
         DateTime.now().difference(lastRefresh!).inSeconds < 2) {
       return;
     }
     lastRefresh = DateTime.now();
 
     try {
-      isLoading.value = true;
+      if (!silent) {
+        isLoading.value = true;
+      }
 
       // Önce local cache'ten son 30 bursu göster, sonra ağdan tazele
       if (allScholarships.isEmpty) {
         final cached = await _loadScholarshipsCache();
-        if (cached.isNotEmpty) {
-          _applyScholarshipStateFromCombined(cached);
+        if (cached.items.isNotEmpty) {
+          _applyScholarshipStateFromCombined(cached.items);
         }
       }
       final result = await TypesenseEducationSearchService.instance.searchHits(
@@ -432,6 +476,7 @@ class ScholarshipsController extends GetxController {
         query: '',
         limit: initialBatchSize,
         page: 1,
+        forceRefresh: forceRefresh,
       );
       _typesensePage = 1;
       totalCount.value = result.found;
@@ -910,3 +955,18 @@ List<IconData> icons = [
   CupertinoIcons.person_2,
   CupertinoIcons.house_fill,
 ];
+
+class _ScholarshipsCacheSnapshot {
+  const _ScholarshipsCacheSnapshot({
+    this.items = const <Map<String, dynamic>>[],
+    this.savedAt,
+  });
+
+  final List<Map<String, dynamic>> items;
+  final DateTime? savedAt;
+
+  bool get isFresh =>
+      savedAt != null &&
+      DateTime.now().difference(savedAt!) <
+          ScholarshipsController._scholarshipsWarmCacheTtl;
+}

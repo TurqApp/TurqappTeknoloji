@@ -133,6 +133,7 @@ class PracticeExamRepository extends GetxService {
   Future<PracticeExamPage> fetchPage({
     DocumentSnapshot? startAfter,
     int limit = 30,
+    bool cacheOnly = false,
   }) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection('practiceExams')
@@ -141,7 +142,9 @@ class PracticeExamRepository extends GetxService {
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
-    final snap = await query.get(const GetOptions(source: Source.serverAndCache));
+    final snap = await query.get(
+      GetOptions(source: cacheOnly ? Source.cache : Source.serverAndCache),
+    );
     final items = snap.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .toList(growable: false);
