@@ -8,10 +8,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.hls.HlsMediaSource
@@ -28,7 +28,22 @@ class ExoPlayerView(
     private val eventChannel: EventChannel
 ) : PlatformView, EventChannel.StreamHandler {
 
-    private val container = FrameLayout(context)
+    private val forceFullscreen = args?.get("forceFullscreen") as? Boolean ?: false
+    private val container = object : FrameLayout(context) {
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            if (forceFullscreen) {
+                val root = rootView
+                val targetWidth = if (root.width > 0) root.width else MeasureSpec.getSize(widthMeasureSpec)
+                val targetHeight = if (root.height > 0) root.height else MeasureSpec.getSize(heightMeasureSpec)
+                super.onMeasure(
+                    MeasureSpec.makeMeasureSpec(targetWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
+                )
+                return
+            }
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        }
+    }
     private val playerView: PlayerView
     private var player: ExoPlayer? = null
     private var eventSink: EventChannel.EventSink? = null
@@ -40,21 +55,53 @@ class ExoPlayerView(
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
     private var didRenderFirstFrame = false
+    private var isPlayerReady = false
+    private var hasVideoSize = false
+    private var hasStableSurfaceLayout = false
+    private var pendingRevealRunnable: Runnable? = null
+    private var lastSurfaceWidth = 0
+    private var lastSurfaceHeight = 0
+    private var stableSurfacePasses = 0
 
     init {
+        val layoutRes = R.layout.turq_texture_player_view
         playerView = (LayoutInflater.from(context)
-            .inflate(R.layout.turq_texture_player_view, container, false) as PlayerView).apply {
+            .inflate(layoutRes, container, false) as PlayerView).apply {
             useController = false
             resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            setShutterBackgroundColor(Color.TRANSPARENT)
-            setBackgroundColor(Color.TRANSPARENT)
-            setKeepContentOnPlayerReset(true)
+            setShutterBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
+            setBackgroundColor(if (forceFullscreen) Color.BLACK else Color.TRANSPARENT)
+            setKeepContentOnPlayerReset(false)
+            alpha = if (forceFullscreen) 0f else 1f
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         }
         container.addView(playerView)
+        playerView.videoSurfaceView?.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            val width = (right - left).coerceAtLeast(0)
+            val height = (bottom - top).coerceAtLeast(0)
+            if (width == 0 || height == 0) {
+                stableSurfacePasses = 0
+                hasStableSurfaceLayout = false
+                return@addOnLayoutChangeListener
+            }
+
+            if (width == lastSurfaceWidth && height == lastSurfaceHeight) {
+                stableSurfacePasses += 1
+            } else {
+                lastSurfaceWidth = width
+                lastSurfaceHeight = height
+                stableSurfacePasses = 1
+                hasStableSurfaceLayout = false
+            }
+
+            if (stableSurfacePasses >= 2) {
+                hasStableSurfaceLayout = true
+                scheduleSurfaceReveal()
+            }
+        }
         container.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
                 player?.let { existing ->
@@ -114,6 +161,7 @@ class ExoPlayerView(
                 .setLoadControl(loadControl)
                 .build()
                 .apply {
+                    setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING)
                     val audioAttributes = AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
                         .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
@@ -130,12 +178,25 @@ class ExoPlayerView(
         activePlayer.playWhenReady = autoPlay
         isSoftHeld = false
         didRenderFirstFrame = false
+        isPlayerReady = false
+        hasVideoSize = false
+        hasStableSurfaceLayout = false
+        lastSurfaceWidth = 0
+        lastSurfaceHeight = 0
+        stableSurfacePasses = 0
+        if (forceFullscreen) {
+            resetSurfaceVisibility()
+        } else {
+            revealSurface(immediate = true)
+        }
 
         if (existing == null) {
             activePlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_READY -> {
+                        isPlayerReady = true
+                        scheduleSurfaceReveal()
                         sendEvent(mapOf(
                             "event" to "ready",
                             "duration" to (activePlayer.duration / 1000.0)
@@ -166,6 +227,7 @@ class ExoPlayerView(
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                revealSurface()
                 sendEvent(mapOf(
                     "event" to "error",
                     "message" to (error.message ?: "Unknown playback error")
@@ -173,8 +235,14 @@ class ExoPlayerView(
                 stopPositionUpdates()
             }
 
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                hasVideoSize = videoSize.width > 0 && videoSize.height > 0
+                scheduleSurfaceReveal()
+            }
+
             override fun onRenderedFirstFrame() {
                 didRenderFirstFrame = true
+                scheduleSurfaceReveal()
                 sendEvent(mapOf("event" to "firstFrame"))
             }
             })
@@ -320,9 +388,59 @@ class ExoPlayerView(
         }
     }
 
+    private fun resetSurfaceVisibility() {
+        handler.post {
+            pendingRevealRunnable?.let(handler::removeCallbacks)
+            pendingRevealRunnable = null
+            playerView.animate().cancel()
+            playerView.alpha = if (forceFullscreen) 0f else 1f
+        }
+    }
+
+    private fun scheduleSurfaceReveal() {
+        if (!forceFullscreen) {
+            if (hasVideoSize || isPlayerReady || didRenderFirstFrame) {
+                revealSurface(immediate = true)
+            }
+            return
+        }
+        if (!hasVideoSize || (!didRenderFirstFrame && !isPlayerReady)) {
+            return
+        }
+        handler.post {
+            pendingRevealRunnable?.let(handler::removeCallbacks)
+            val revealRunnable = Runnable {
+                pendingRevealRunnable = null
+                revealSurface()
+            }
+            pendingRevealRunnable = revealRunnable
+            // Stabil yüzey yakalanırsa hızlı aç; gelmezse READY fallback ile beyaz ekranı bırakma.
+            val revealDelayMs = if (hasStableSurfaceLayout) 32L else 120L
+            handler.postDelayed(revealRunnable, revealDelayMs)
+        }
+    }
+
+    private fun revealSurface(immediate: Boolean = false) {
+        handler.post {
+            pendingRevealRunnable = null
+            if (playerView.alpha < 1f) {
+                if (immediate) {
+                    playerView.animate().cancel()
+                    playerView.alpha = 1f
+                } else {
+                    playerView.animate()
+                        .alpha(1f)
+                        .setDuration(90)
+                        .start()
+                }
+            }
+        }
+    }
+
     private fun releasePlayer(fully: Boolean) {
         stopPositionUpdates()
         player?.pause()
+        resetSurfaceVisibility()
         if (fully) {
             player?.release()
             player = null

@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Themes/app_colors.dart';
 
 class ClickableTextController extends GetxController {
   static const double defaultCaptionFontSize = 13;
@@ -365,7 +366,7 @@ class ClickableTextContent extends StatelessWidget {
                       color: expandButtonColor ??
                           interactiveColor ??
                           urlColor ??
-                          Colors.white,
+                          AppColors.primaryColor,
                       fontFamily: "Montserrat",
                     ),
                   ),

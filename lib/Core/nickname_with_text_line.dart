@@ -49,7 +49,7 @@ class _NicknameWithTextLineState extends State<NicknameWithTextLine> {
   static const TextStyle _buttonStyle = TextStyle(
     fontSize: 12,
     fontFamily: "Montserrat",
-    color: Colors.blue,
+    color: Color(0xFF4F718E),
   );
 
   @override

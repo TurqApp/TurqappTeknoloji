@@ -74,7 +74,8 @@ class HLSController {
 
   // Initialize controller with view ID
   void initialize(int viewId) {
-    final hadBoundView = _viewId != null;
+    final previousViewId = _viewId;
+    final hadBoundView = previousViewId != null;
     if (hadBoundView) {
       final previousPosition =
           _currentPosition.isFinite ? _currentPosition : 0.0;
@@ -85,6 +86,10 @@ class HLSController {
         _pendingReattachSeekSeconds = previousPosition;
         _pendingReattachShouldPlay = shouldResumePlay;
       }
+    }
+
+    if (previousViewId != null && previousViewId != viewId) {
+      unawaited(_silencePreviousView(previousViewId));
     }
 
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
@@ -99,6 +104,27 @@ class HLSController {
     if (_pendingReattachSeekSeconds != null || _pendingReattachShouldPlay) {
       unawaited(pause());
     }
+  }
+
+  Future<void> _silencePreviousView(int previousViewId) async {
+    try {
+      await _methodChannel.invokeMethod('setVolume', {
+        'viewId': previousViewId,
+        'volume': 0.0,
+      });
+    } catch (_) {}
+
+    try {
+      await _methodChannel.invokeMethod('pause', {
+        'viewId': previousViewId,
+      });
+    } catch (_) {}
+
+    try {
+      await _methodChannel.invokeMethod('stopPlayback', {
+        'viewId': previousViewId,
+      });
+    } catch (_) {}
   }
 
   // Load video with mp4 fallback on HLS failure

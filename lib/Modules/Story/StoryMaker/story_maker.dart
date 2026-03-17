@@ -394,8 +394,8 @@ class StoryMaker extends StatelessWidget {
                   ),
                   child: Icon(
                     e.isMuted
-                        ? CupertinoIcons.speaker_slash
-                        : CupertinoIcons.speaker_2,
+                        ? CupertinoIcons.volume_off
+                        : CupertinoIcons.volume_up,
                     color: Colors.white,
                     size: 16,
                   ),

@@ -557,14 +557,6 @@ class _ShortViewState extends State<ShortView> {
         ),
       );
     }
-    if (modelAr >= 0.8) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: 1.0,
-          child: _cachedThumb(thumb),
-        ),
-      );
-    }
     return SizedBox.expand(
       child: _cachedThumb(thumb),
     );
@@ -582,19 +574,13 @@ class _ShortViewState extends State<ShortView> {
     final player = adapter.buildPlayer(
       key: ValueKey(keyId),
       useAspectRatio: false,
+      forceFullscreenOnAndroid: true,
     );
 
     if (ar > 1.2) {
       return Center(
         child: AspectRatio(
           aspectRatio: ar,
-          child: player,
-        ),
-      );
-    } else if (ar >= 0.8) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: 1.0,
           child: player,
         ),
       );
@@ -736,42 +722,36 @@ class _ShortViewState extends State<ShortView> {
             _didInitialAttach = true;
           }
 
-          final content = RefreshIndicator(
-            onRefresh: _handleRefresh,
-            backgroundColor: Colors.transparent,
-            color: Colors.white,
-            strokeWidth: 3.0,
-            displacement: 50.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onVerticalDragStart: _handleManualVerticalDragStart,
-              onVerticalDragUpdate: _handleManualVerticalDragUpdate,
-              onVerticalDragEnd: _handleManualVerticalDragEnd,
-              child: PageView.builder(
-                controller: pageController,
-                scrollDirection: Axis.vertical,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: list.length,
-                onPageChanged: _onPageChanged,
-                itemBuilder: (_, idx) {
-                  final vp = controller.cache[idx];
-                  final thumb = list[idx].thumbnail;
-                  final modelAr = list[idx].aspectRatio > 0
-                      ? list[idx].aspectRatio.toDouble()
-                      : (9 / 16);
+          final pager = GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onVerticalDragStart: _handleManualVerticalDragStart,
+            onVerticalDragUpdate: _handleManualVerticalDragUpdate,
+            onVerticalDragEnd: _handleManualVerticalDragEnd,
+            child: PageView.builder(
+              controller: pageController,
+              scrollDirection: Axis.vertical,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: list.length,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (_, idx) {
+                final vp = controller.cache[idx];
+                final thumb = list[idx].thumbnail;
+                final modelAr = list[idx].aspectRatio > 0
+                    ? list[idx].aspectRatio.toDouble()
+                    : (9 / 16);
 
-                  if (vp == null) {
-                    return Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _buildThumbOverlay(thumb, modelAr),
-                        const Center(
-                          child:
-                              CupertinoActivityIndicator(color: Colors.white),
-                        ),
-                      ],
-                    );
-                  }
+                if (vp == null) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildThumbOverlay(thumb, modelAr),
+                      const Center(
+                        child:
+                            CupertinoActivityIndicator(color: Colors.white),
+                      ),
+                    ],
+                  );
+                }
 
                   final shouldRenderPlayer = idx == currentPage;
                   final videoWidget = shouldRenderPlayer
@@ -828,31 +808,34 @@ class _ShortViewState extends State<ShortView> {
                               );
                             },
                           ),
-                        ShortsContent(
-                          model: list[idx],
-                          volumeOff: (v) {
-                            if (v) {
-                              vp.play();
-                              isManuallyPaused = false;
-                            } else {
-                              vp.pause();
-                              isManuallyPaused = true;
-                            }
-                            if (idx == currentPage) {
-                              VideoTelemetryService.instance.updateRuntimeHints(
-                                list[idx].docID,
-                                isAudible: volume,
-                                hasStableFocus: v,
-                              );
-                            }
-                          },
-                          videoPlayerController: vp,
-                          onEdited: (updatedDocId) async {
-                            await controller.updateShort(updatedDocId);
-                            await controller.refreshVideoController(idx);
-                            setState(() {});
-                          },
-                        ),
+                        if (shouldRenderPlayer)
+                          ShortsContent(
+                            model: list[idx],
+                            isActive: shouldRenderPlayer,
+                            volumeOff: (v) {
+                              if (v) {
+                                vp.play();
+                                isManuallyPaused = false;
+                              } else {
+                                vp.pause();
+                                isManuallyPaused = true;
+                              }
+                              if (idx == currentPage) {
+                                VideoTelemetryService.instance
+                                    .updateRuntimeHints(
+                                  list[idx].docID,
+                                  isAudible: volume,
+                                  hasStableFocus: v,
+                                );
+                              }
+                            },
+                            videoPlayerController: vp,
+                            onEdited: (updatedDocId) async {
+                              await controller.updateShort(updatedDocId);
+                              await controller.refreshVideoController(idx);
+                              setState(() {});
+                            },
+                          ),
                         // İnce progress bar — altta
                         if (idx == currentPage)
                           Positioned(
@@ -899,10 +882,19 @@ class _ShortViewState extends State<ShortView> {
                       ],
                     ),
                   );
-                },
-              ),
+              },
             ),
           );
+          final content = currentPage == 0
+              ? RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  backgroundColor: Colors.transparent,
+                  color: Colors.white,
+                  strokeWidth: 3.0,
+                  displacement: 50.0,
+                  child: pager,
+                )
+              : pager;
 
           return Stack(
             children: [

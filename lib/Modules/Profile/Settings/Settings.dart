@@ -148,7 +148,7 @@ class SettingsView extends StatelessWidget {
                         buildSectionTitle("Sistem ve Tanı"),
                         buildRow(
                           "Yönetim / Reklam Merkezi",
-                          CupertinoIcons.speaker_2,
+                          CupertinoIcons.volume_up,
                           () => Get.to(() => const AdsCenterHomeView()),
                         ),
                         buildRow(
