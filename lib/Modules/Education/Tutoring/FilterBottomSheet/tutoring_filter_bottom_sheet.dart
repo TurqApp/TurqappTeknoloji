@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -65,44 +66,25 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                         'Fotoğrafçılık',
                       ].map((String value) {
                         return Obx(
-                          () => GestureDetector(
+                          () => PasajSelectionChip(
+                            label: value,
+                            selected:
+                                filterController.selectedBranch.value == value,
                             onTap: () {
                               filterController.selectedBranch.value =
                                   filterController.selectedBranch.value == value
                                       ? null
                                       : value;
                             },
-                            child: Container(
-                              width: (MediaQuery.of(context).size.width -
-                                      32 -
-                                      16) /
-                                  3,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: filterController.selectedBranch.value ==
-                                        value
-                                    ? Colors.black
-                                    : Colors.white,
-                                border:
-                                    Border.all(color: Colors.black, width: 1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                value,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color:
-                                      filterController.selectedBranch.value ==
-                                              value
-                                          ? Colors.white
-                                          : Colors.black,
-                                  fontSize: 14,
-                                ),
-                              ),
+                            width:
+                                (MediaQuery.of(context).size.width - 32 - 16) /
+                                    3,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
+                            borderRadius: BorderRadius.circular(12),
+                            fontSize: 14,
                           ),
                         );
                       }).toList(),
@@ -133,10 +115,11 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 18,
-                                  color: filterController.selectedGender.value ==
-                                          value
-                                      ? Colors.green
-                                      : Colors.grey,
+                                  color:
+                                      filterController.selectedGender.value ==
+                                              value
+                                          ? Colors.green
+                                          : Colors.grey,
                                 ),
                                 4.pw,
                                 Text(value, style: TextStyles.textFieldTitle),

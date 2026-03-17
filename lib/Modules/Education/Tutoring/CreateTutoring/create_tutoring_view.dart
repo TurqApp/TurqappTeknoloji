@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 import 'create_tutoring_controller.dart';
@@ -118,9 +119,7 @@ class CreateTutoringView extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _selectionField(
-                      label: controller.town.isEmpty
-                          ? 'İlçe'
-                          : controller.town,
+                      label: controller.town.isEmpty ? 'İlçe' : controller.town,
                       onTap: controller.city.value.isEmpty
                           ? null
                           : controller.showIlcelerSec,
@@ -146,7 +145,8 @@ class CreateTutoringView extends StatelessWidget {
                     'Ders Verme Alanı',
                   ],
                   selected: controller.selectedLessonPlace.value,
-                  onSelect: (value) => controller.selectedLessonPlace.value = value,
+                  onSelect: (value) =>
+                      controller.selectedLessonPlace.value = value,
                 ),
               ),
               const SizedBox(height: 8),
@@ -281,9 +281,8 @@ class CreateTutoringView extends StatelessWidget {
     CreateTutoringController controller,
     TutoringModel? initialData,
   ) {
-    final String? imagePath = controller.images.isNotEmpty
-        ? controller.images.first
-        : null;
+    final String? imagePath =
+        controller.images.isNotEmpty ? controller.images.first : null;
 
     Widget preview;
     if (imagePath != null) {
@@ -515,31 +514,16 @@ class CreateTutoringView extends StatelessWidget {
                     runSpacing: 6,
                     children: CreateTutoringController.timeSlots.map((slot) {
                       final isSelected = selectedSlots.contains(slot);
-                      return GestureDetector(
+                      return PasajSelectionChip(
+                        label: slot,
+                        selected: isSelected,
                         onTap: () => controller.toggleTimeSlot(day, slot),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.black : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.black
-                                  : const Color(0x22000000),
-                            ),
-                          ),
-                          child: Text(
-                            slot,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontSize: 11,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
+                        borderRadius: BorderRadius.circular(8),
+                        fontSize: 11,
                       );
                     }).toList(),
                   ),

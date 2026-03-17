@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateAnswerKey/create_answer_key_controller.dart';
 
@@ -150,54 +151,26 @@ class CreateAnswerKey extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: GestureDetector(
-                onTap: () => controller.setSelection(5),
-                child: Obx(
-                  () => Container(
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: controller.selection.value == 5
-                          ? Colors.black
-                          : Colors.white,
-                    ),
-                    child: Text(
-                      "5 Cevap",
-                      style: TextStyle(
-                        color: controller.selection.value == 5
-                            ? Colors.white
-                            : Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                  ),
+              child: Obx(
+                () => PasajSelectionChip(
+                  label: "5 Cevap",
+                  selected: controller.selection.value == 5,
+                  onTap: () => controller.setSelection(5),
+                  height: 50,
+                  borderRadius: BorderRadius.zero,
+                  fontSize: 15,
                 ),
               ),
             ),
             Expanded(
-              child: GestureDetector(
-                onTap: () => controller.setSelection(4),
-                child: Obx(
-                  () => Container(
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: controller.selection.value == 4
-                          ? Colors.black
-                          : Colors.white,
-                    ),
-                    child: Text(
-                      "4 Cevap",
-                      style: TextStyle(
-                        color: controller.selection.value == 4
-                            ? Colors.white
-                            : Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                  ),
+              child: Obx(
+                () => PasajSelectionChip(
+                  label: "4 Cevap",
+                  selected: controller.selection.value == 4,
+                  onTap: () => controller.setSelection(4),
+                  height: 50,
+                  borderRadius: BorderRadius.zero,
+                  fontSize: 15,
                 ),
               ),
             ),
