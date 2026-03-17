@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class MyTestResultsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;
   final isLoading = true.obs;
   final TestRepository _testRepository = TestRepository.ensure();
@@ -25,7 +27,12 @@ class MyTestResultsController extends GetxController {
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
-      await findAndGetTestler(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:answered:$currentUserID',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(findAndGetTestler(silent: true, forceRefresh: true));
+      }
       return;
     }
     await findAndGetTestler();
@@ -46,6 +53,7 @@ class MyTestResultsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       list.assignAll(items);
+      SilentRefreshGate.markRefreshed('tests:answered:$currentUserID');
     } catch (_) {
     } finally {
       isLoading.value = false;

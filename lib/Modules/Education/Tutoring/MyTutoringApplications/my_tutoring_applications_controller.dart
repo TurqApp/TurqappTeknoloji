@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 
@@ -10,6 +11,7 @@ class MyTutoringApplicationsController extends GetxController {
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<TutoringApplicationModel> applications =
       <TutoringApplicationModel>[].obs;
   var isLoading = false.obs;
@@ -35,7 +37,12 @@ class MyTutoringApplicationsController extends GetxController {
           .map((doc) => TutoringApplicationModel.fromMap(doc.data, doc.id))
           .toList();
       isLoading.value = false;
-      await loadApplications(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tutoring:applications:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(loadApplications(silent: true, forceRefresh: true));
+      }
       return;
     }
     await loadApplications();
@@ -63,6 +70,7 @@ class MyTutoringApplicationsController extends GetxController {
       applications.value = items
           .map((doc) => TutoringApplicationModel.fromMap(doc.data, doc.id))
           .toList();
+      SilentRefreshGate.markRefreshed('tutoring:applications:$uid');
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -92,7 +100,6 @@ class MyTutoringApplicationsController extends GetxController {
             )
             .toList(growable: false),
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 }

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class TestPastResultContentController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final count = 0.obs;
   final isLoading = true.obs;
@@ -28,7 +30,12 @@ class TestPastResultContentController extends GetxController {
     if (cached.isNotEmpty) {
       _applySnapshot(cached);
       isLoading.value = false;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:past_result:${model.docID}',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -48,6 +55,7 @@ class TestPastResultContentController extends GetxController {
         forceRefresh: forceRefresh,
       );
       _applySnapshot(snapshot);
+      SilentRefreshGate.markRefreshed('tests:past_result:${model.docID}');
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -65,8 +73,8 @@ class TestPastResultContentController extends GetxController {
         )
         .toList(growable: false)
       ..sort(
-        (a, b) =>
-            ((b["timeStamp"] ?? 0) as num).compareTo((a["timeStamp"] ?? 0) as num),
+        (a, b) => ((b["timeStamp"] ?? 0) as num)
+            .compareTo((a["timeStamp"] ?? 0) as num),
       );
 
     if (filtered.isNotEmpty) {

@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/test_readiness_model.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class MyPastTestResultsPreviewController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final TestsModel model;
   final yanitlar = <String>[].obs;
   final timeStamp = 0.obs;
@@ -40,7 +42,12 @@ class MyPastTestResultsPreviewController extends GetxController {
       soruList.assignAll(cachedQuestions);
       updateStats();
       isLoading.value = false;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:preview:${model.docID}',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -69,6 +76,7 @@ class MyPastTestResultsPreviewController extends GetxController {
       soruList.assignAll(soruSnapshot);
 
       updateStats();
+      SilentRefreshGate.markRefreshed('tests:preview:${model.docID}');
     } catch (_) {
     } finally {
       isLoading.value = false;

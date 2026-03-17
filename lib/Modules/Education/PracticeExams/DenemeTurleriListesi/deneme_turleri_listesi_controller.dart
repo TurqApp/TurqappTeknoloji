@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeTurleriListesiController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var list = <SinavModel>[].obs;
   var isLoading = false.obs;
   var isInitialized = false.obs;
@@ -31,7 +33,12 @@ class DenemeTurleriListesiController extends GetxController {
       list.assignAll(cached);
       isLoading.value = false;
       isInitialized.value = true;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'practice_exams:type:$sinavTuru',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -51,6 +58,7 @@ class DenemeTurleriListesiController extends GetxController {
         forceRefresh: forceRefresh,
       );
       list.assignAll(items);
+      SilentRefreshGate.markRefreshed('practice_exams:type:$sinavTuru');
     } catch (error) {
       AppSnackbar("Hata", "Sınavlar yüklenemedi.");
     } finally {

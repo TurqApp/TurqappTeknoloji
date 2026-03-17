@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 
 class SearchTestsController extends GetxController {
   final TestRepository _testRepository = TestRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <TestsModel>[].obs;
   final filteredList = <TestsModel>[].obs;
   final isLoading = true.obs;
@@ -35,7 +37,12 @@ class SearchTestsController extends GetxController {
       list.assignAll(cached);
       filteredList.assignAll(cached);
       isLoading.value = false;
-      await getData(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'tests:search_all',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -54,6 +61,7 @@ class SearchTestsController extends GetxController {
     );
     list.assignAll(items);
     filterSearchResults(searchController.text);
+    SilentRefreshGate.markRefreshed('tests:search_all');
     isLoading.value = false;
   }
 
