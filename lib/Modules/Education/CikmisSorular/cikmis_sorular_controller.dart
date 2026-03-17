@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
+import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_cover_model.dart';
 
 class CikmisSorularController extends GetxController {
   final CikmisSorularRepository _repository = CikmisSorularRepository.ensure();
@@ -22,44 +23,68 @@ class CikmisSorularController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    refreshData();
+    unawaited(_bootstrapInitialData());
   }
 
-  Future<void> refreshData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapInitialData() async {
     try {
-      const baslikSirasi = <String>[
-        'LGS',
-        'YKS',
-        'KPSS',
-        'ALES',
-        'YDS',
-        'DGS',
-        'TUS',
-        'DUS',
-      ];
-      final items = await _repository.fetchCovers();
-      items.sort((a, b) {
-        var indexA = baslikSirasi.indexOf(a.anaBaslik);
-        var indexB = baslikSirasi.indexOf(b.anaBaslik);
-        if (indexA == -1) indexA = baslikSirasi.length;
-        if (indexB == -1) indexB = baslikSirasi.length;
-        return indexA.compareTo(indexB);
-      });
-      covers.assignAll(
-        items
-            .map(
-              (item) => <String, dynamic>{
-                '_docId': item.docID,
-                'anaBaslik': item.anaBaslik,
-                'sinavTuru': item.sinavTuru,
-              },
-            )
-            .toList(growable: false),
-      );
-    } finally {
-      isLoading.value = false;
+      final cachedItems = await _repository.fetchCovers(cacheOnly: true);
+      if (cachedItems.isNotEmpty) {
+        _assignCovers(cachedItems);
+        isLoading.value = false;
+        await refreshData(silent: true);
+        return;
+      }
+    } catch (_) {}
+
+    await refreshData();
+  }
+
+  Future<void> refreshData({bool silent = false}) async {
+    final shouldShowLoader = !silent && covers.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
     }
+    try {
+      final items = await _repository.fetchCovers();
+      _assignCovers(items);
+    } finally {
+      if (shouldShowLoader || covers.isEmpty) {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  void _assignCovers(List<CikmisSorularCoverModel> rawItems) {
+    const baslikSirasi = <String>[
+      'LGS',
+      'YKS',
+      'KPSS',
+      'ALES',
+      'YDS',
+      'DGS',
+      'TUS',
+      'DUS',
+    ];
+    final items = rawItems.toList(growable: true);
+    items.sort((a, b) {
+      var indexA = baslikSirasi.indexOf(a.anaBaslik);
+      var indexB = baslikSirasi.indexOf(b.anaBaslik);
+      if (indexA == -1) indexA = baslikSirasi.length;
+      if (indexB == -1) indexB = baslikSirasi.length;
+      return indexA.compareTo(indexB);
+    });
+    covers.assignAll(
+      items
+          .map(
+            (item) => <String, dynamic>{
+              '_docId': item.docID,
+              'anaBaslik': item.anaBaslik,
+              'sinavTuru': item.sinavTuru,
+            },
+          )
+          .toList(growable: false),
+    );
   }
 
   void setSearchQuery(String query) {

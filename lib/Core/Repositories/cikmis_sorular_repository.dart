@@ -38,6 +38,7 @@ class CikmisSorularRepository extends GetxService {
       final cached = await _readList(cacheKey);
       if (cached != null) return cached;
     }
+    bool cacheOnly = false,
 
     final snap = await _firestore
         .collection('questions')
@@ -46,12 +47,22 @@ class CikmisSorularRepository extends GetxService {
     final docs = snap.docs
         .map((doc) => <String, dynamic>{'_docId': doc.id, ...doc.data()})
         .toList(growable: false);
+    if (cacheOnly) return const <Map<String, dynamic>>[];
+
     await _writeList(cacheKey, docs);
     return docs;
   }
 
-  Future<List<CikmisSorularCoverModel>> fetchCovers() async {
-    final docs = await fetchRootDocs();
+  Future<List<CikmisSorularCoverModel>> fetchCovers({
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
+  }) async {
+    final docs = await fetchRootDocs(
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+      cacheOnly: cacheOnly,
+    );
     final seen = <String>{};
     final items = <CikmisSorularCoverModel>[];
     for (final doc in docs) {

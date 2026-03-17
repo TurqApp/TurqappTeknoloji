@@ -58,7 +58,7 @@ class JobFinderController extends GetxController {
   void onInit() {
     super.onInit();
     loadSehirler();
-    getStartData();
+    unawaited(_bootstrapStartData());
     search.addListener(_searchListener);
   }
 
@@ -127,23 +127,54 @@ class JobFinderController extends GetxController {
     }
   }
 
-  Future<void> getStartData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapStartData() async {
+    try {
+      final cached = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: '*',
+        limit: 150,
+        cacheOnly: true,
+      );
+      final cachedJobs = _jobsFromTypesenseHits(cached.hits);
+      if (cachedJobs.isNotEmpty) {
+        list.assignAll(cachedJobs);
+        allJobs.assignAll(cachedJobs);
+        isLoading.value = false;
+        unawaited(_hydrateLocationAndResort(cachedJobs));
+        await getStartData(silent: true);
+        return;
+      }
+    } catch (_) {}
+
+    await getStartData();
+  }
+
+  Future<void> getStartData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.job,
         query: '*',
         limit: 150,
+        forceRefresh: forceRefresh,
       );
       final fetchedJobs = _jobsFromTypesenseHits(result.hits);
       list.assignAll(fetchedJobs);
       allJobs.assignAll(fetchedJobs);
-      isLoading.value = false;
+      if (shouldShowLoader) {
+        isLoading.value = false;
+      }
 
       unawaited(_hydrateLocationAndResort(fetchedJobs));
     } catch (_) {
     } finally {
-      if (list.isEmpty) {
+      if (shouldShowLoader || list.isEmpty) {
         isLoading.value = false;
       }
     }

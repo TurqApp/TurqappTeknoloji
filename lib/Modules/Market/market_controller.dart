@@ -78,7 +78,7 @@ class MarketController extends GetxController {
     super.onInit();
     scrollController.addListener(_onScroll);
     unawaited(_loadRecentSearches());
-    unawaited(loadHomeData());
+    unawaited(_bootstrapHomeData());
   }
 
   @override
@@ -90,8 +90,51 @@ class MarketController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadHomeData({bool forceRefresh = false}) async {
-    isLoading.value = true;
+  Future<void> _bootstrapHomeData() async {
+    try {
+      await _schemaService.loadSchema();
+      final loadedCategories =
+          _schemaService.categories().toList(growable: true)
+            ..sort(
+              (a, b) => _compareCategoryPriority(
+                (a['label'] ?? '').toString(),
+                (b['label'] ?? '').toString(),
+              ),
+            );
+      categories.assignAll(loadedCategories);
+      roundMenuItems.assignAll(_schemaService.roundMenuItems());
+
+      final cached = await TypesenseMarketSearchService.instance.searchItems(
+        query: '*',
+        limit: 120,
+        cacheOnly: true,
+      );
+      final activeCached = cached
+          .where((item) => item.status == 'active')
+          .toList(growable: false);
+      if (activeCached.isNotEmpty) {
+        items.assignAll(_mergePendingCreatedItems(activeCached));
+        await _loadAllCityOptions();
+        await _loadSavedItems();
+        await _loadRoundMenuBadges(forceRefresh: false);
+        _applyFilters();
+        isLoading.value = false;
+        await loadHomeData(silent: true);
+        return;
+      }
+    } catch (_) {}
+
+    await loadHomeData();
+  }
+
+  Future<void> loadHomeData({
+    bool forceRefresh = false,
+    bool silent = false,
+  }) async {
+    final shouldShowLoader = !silent && items.isEmpty && visibleItems.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       await _schemaService.loadSchema();
       final loadedCategories =
@@ -110,7 +153,9 @@ class MarketController extends GetxController {
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
       _applyFilters();
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader) {
+        isLoading.value = false;
+      }
     }
   }
 
