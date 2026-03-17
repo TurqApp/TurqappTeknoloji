@@ -882,6 +882,16 @@ service cloud.firestore {
           && request.resource.data.createdAt is int;
         allow delete: if isOwner(uid);
       }
+      match /savedJobs/{jobId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.userID is string
+          && request.resource.data.userID == uid
+          && request.resource.data.jobID is string
+          && request.resource.data.jobID == jobId
+          && request.resource.data.timeStamp is int;
+        allow delete: if isOwner(uid);
+      }
       match /saved_practice_exams/{examId} {
         allow read, write: if isOwner(uid);
       }

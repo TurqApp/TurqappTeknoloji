@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
+import 'package:turqappv2/Core/Services/market_share_service.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
@@ -450,7 +452,7 @@ class MarketView extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
@@ -468,137 +470,177 @@ class MarketView extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.status == 'active'
-                          ? item.categoryLabel
-                          : _statusLabel(item.status),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: item.status == 'active' ? accent : statusColor,
-                        fontSize: 12,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.location_solid,
-                          size: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            item.locationText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 13,
-                              fontFamily: 'MontserratMedium',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                height: 108,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () =>
-                          controller.toggleSaved(item, showSnackbar: false),
-                      child: Column(
+                child: SizedBox(
+                  height: 108,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Transform.flip(
-                            flipX: true,
-                            child: Icon(
-                              controller.isSaved(item.id)
-                                  ? AppIcons.liked
-                                  : AppIcons.like,
-                              color: controller.isSaved(item.id)
-                                  ? const Color(0xFF2563EB)
-                                  : Colors.grey.shade600,
-                              size: 24,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  item.status == 'active'
+                                      ? item.categoryLabel
+                                      : _statusLabel(item.status),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: item.status == 'active'
+                                        ? accent
+                                        : statusColor,
+                                    fontSize: 12,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                                if (item.description.trim().isNotEmpty) ...[
+                                const SizedBox(height: 1),
+                                Text(
+                                  item.description.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 12,
+                                    height: 1.1,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
+                                ),
+                              ],
+                              ],
                             ),
                           ),
-                          if (item.favoriteCount > 0) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              '${item.favoriteCount}',
-                              style: TextStyle(
-                                color: controller.isSaved(item.id)
-                                    ? const Color(0xFF2563EB)
-                                    : Colors.grey.shade600,
-                                fontSize: 12,
-                                fontFamily: 'MontserratBold',
+                          const SizedBox(width: 10),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              AppHeaderActionButton(
+                                onTap: () =>
+                                    const MarketShareService().shareItem(item),
+                                size: 36,
+                                child: Icon(
+                                  AppIcons.share,
+                                  color: Colors.black.withValues(alpha: 0.85),
+                                  size: 18,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              AppHeaderActionButton(
+                                onTap: () => controller.toggleSaved(
+                                  item,
+                                  showSnackbar: false,
+                                ),
+                                size: 36,
+                                child: Transform.flip(
+                                  flipX: true,
+                                  child: Icon(
+                                    controller.isSaved(item.id)
+                                        ? AppIcons.liked
+                                        : AppIcons.like,
+                                    color: controller.isSaved(item.id)
+                                        ? const Color(0xFF2563EB)
+                                        : Colors.grey.shade600,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                    Text(
-                      '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
-                      style: const TextStyle(
-                        color: Color(0xFF8B0000),
-                        fontSize: 20,
-                        fontFamily: 'MontserratBold',
-                      ),
-                    ),
-                    SizedBox(
-                      width: 128,
-                      child: GestureDetector(
-                        onTap: () {
-                          if (canCall) {
-                            _contactService.callPhone(item);
-                          } else {
-                            controller.openItem(item);
-                          }
-                        },
-                        child: Container(
-                          height: 30,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: canCall ? Colors.green : Colors.black,
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
+                      const SizedBox(height: 0),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  CupertinoIcons.location_solid,
+                                  size: 14,
+                                  color: Colors.grey.shade500,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    item.locationText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 12,
+                                      fontFamily: 'MontserratMedium',
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Text(
-                            canCall ? 'Hemen Ara' : 'İncele',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontFamily: 'MontserratMedium',
-                            ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${_formattedPrice(item.price)} ${_currencyLabel(item.currency)}',
+                                style: const TextStyle(
+                                  color: Color(0xFF8B0000),
+                                  fontSize: 17,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              SizedBox(
+                                width: 128,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    if (canCall) {
+                                      _contactService.callPhone(item);
+                                    } else {
+                                      controller.openItem(item);
+                                    }
+                                  },
+                                  child: Container(
+                                    height: 26,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color:
+                                          canCall ? Colors.green : Colors.black,
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      canCall ? 'Hemen Ara' : 'İncele',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontFamily: 'MontserratMedium',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

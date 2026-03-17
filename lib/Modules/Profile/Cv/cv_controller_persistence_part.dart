@@ -292,8 +292,8 @@ extension CvControllerPersistencePart on CvController {
         "lastName": lastName.text.trim(),
         "mail": mail.text.trim(),
         "phone": phoneNumber.text.trim(),
-        "linkedin": linkedin.text.trim(),
         "about": onYazi.text.trim(),
+        "photoUrl": photoUrl.value.trim(),
         "okullar": okullar.map((e) => e.toMap()).toList(),
         "diller": diler.map((e) => e.toMap()).toList(),
         "deneyim": isDeneyimleri.map((e) => e.toMap()).toList(),
@@ -303,7 +303,6 @@ extension CvControllerPersistencePart on CvController {
       };
       await FirebaseFirestore.instance.collection("CV").doc(uid).set(payload);
       await _cvRepository.setCv(uid, payload);
-      selection.value = 0;
       Get.back();
       AppSnackbar("CV Oluşturuldu!",
           "Şimdi iş başvurusu yaparken daha hızlı bir şekilde başvurabilirsin");
@@ -324,8 +323,8 @@ extension CvControllerPersistencePart on CvController {
         lastName.text = data["lastName"] ?? "";
         mail.text = data["mail"] ?? "";
         phoneNumber.text = data["phone"] ?? "";
-        linkedin.text = data["linkedin"] ?? "";
         onYazi.text = data["about"] ?? "";
+        photoUrl.value = (data["photoUrl"] ?? "").toString().trim();
 
         okullar.value = (data["okullar"] as List<dynamic>? ?? [])
             .map((e) => CvSchoolModel.fromMap(e))
@@ -343,6 +342,7 @@ extension CvControllerPersistencePart on CvController {
             .map((e) => e.toString())
             .toList();
       }
+      ensureDefaultPhoto();
     } catch (_) {}
   }
 
@@ -351,8 +351,8 @@ extension CvControllerPersistencePart on CvController {
     lastName.text = model.lastName;
     mail.text = model.mail;
     phoneNumber.text = model.phone;
-    linkedin.text = model.linkedin;
     onYazi.text = model.about;
+    ensureDefaultPhoto();
 
     okullar.value = model.schools;
     diler.value = model.languages;

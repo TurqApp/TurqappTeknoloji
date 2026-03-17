@@ -10,9 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -20,17 +21,22 @@ import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dar
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../../Models/cities_model.dart';
 import '../../../Models/job_model.dart';
 
 class JobCreatorController extends GetxController {
   var selection = 0.obs;
+  final isSubmitting = false.obs;
   TextEditingController brand = TextEditingController();
   TextEditingController about = TextEditingController();
   TextEditingController isTanimi = TextEditingController();
   TextEditingController maas1 = TextEditingController();
   TextEditingController maas2 = TextEditingController();
+  TextEditingController calismaSaatiBaslangic = TextEditingController();
+  TextEditingController calismaSaatiBitis = TextEditingController();
+  TextEditingController basvuruSayisi = TextEditingController(text: "0");
   List<String> calismaTuruList = [
     "Tam Zamanlı",
     "Yarı Zamanlı",
@@ -38,46 +44,33 @@ class JobCreatorController extends GetxController {
     "Uzaktan",
     "Hibrit"
   ];
+  List<String> calismaGunleriList = [
+    "Pazartesi",
+    "Salı",
+    "Çarşamba",
+    "Perşembe",
+    "Cuma",
+    "Cumartesi",
+    "Pazar",
+  ];
   List<String> yanHaklarList = [
-    "Prim Sistemi",
     "Yemek",
     "Yol Ücreti",
     "Servis",
-    "Personel İndirimi",
+    "Prim",
     "Özel Sağlık Sigortası",
     "Bireysel Emeklilik",
     "Esnek Çalışma Saatleri",
-    "Uzaktan Çalışma İmkanı",
-    "Şirket Aracı",
-    "Şirket Hattı / Telefonu",
-    "Şirket Bilgisayarı",
-    "Doğum Günü İzni",
-    "Evlilik İzni",
-    "Yıllık Bonus",
-    "Performans Bonusu",
-    "Kariyer Eğitimleri",
-    "Yabancı Dil Eğitimi",
-    "Spor Salonu Üyeliği",
-    "Etkinlik ve Sosyal Faaliyetler",
-    "Çocuk Yardımı",
-    "Bayram Harçlığı / Bayram Yardımı",
-    "Kıyafet Desteği",
-    "İkramiye",
+    "Uzaktan Çalışma",
   ];
 
   RxList<String> selectedCalismaTuruList = <String>[].obs;
+  RxList<String> selectedCalismaGunleri = <String>[].obs;
   RxList<String> selectedYanHaklar = <String>[].obs;
   final sehirlerVeIlcelerData = <CitiesModel>[].obs;
   var meslek = "".obs;
   TextEditingController ilanBasligi = TextEditingController();
-  var deneyimSeviyesi = "".obs;
   TextEditingController pozisyonSayisi = TextEditingController(text: "1");
-  final List<String> deneyimSeviyeleri = [
-    "Deneyimsiz",
-    "Junior",
-    "Mid-Level",
-    "Senior",
-  ];
   var sehir = "".obs;
   var ilce = "".obs;
   var adres = "".obs;
@@ -91,13 +84,31 @@ class JobCreatorController extends GetxController {
   final Rx<File?> selectedImage = Rx<File?>(null);
   final Rx<Uint8List?> croppedImage = Rx<Uint8List?>(null);
   final RxBool isCropping = false.obs;
-  GoogleMapController? mapController;
 
   final String loaderTag = "job_creator_loader";
   final timeStamp = DateTime.now().millisecondsSinceEpoch;
 
   final JobModel? existingJob;
   JobCreatorController({this.existingJob});
+
+  int parseMoneyInput(String value) {
+    return int.tryParse(value.replaceAll('.', '').trim()) ?? 0;
+  }
+
+  String _formatMoneyInput(int value) {
+    final raw = value.toString();
+    final reversed = raw.split('').reversed.join();
+    final chunks = <String>[];
+    for (var i = 0; i < reversed.length; i += 3) {
+      final end = (i + 3 < reversed.length) ? i + 3 : reversed.length;
+      chunks.add(reversed.substring(i, end));
+    }
+    return chunks
+        .map((chunk) => chunk.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.');
+  }
 
   @override
   void onInit() {
@@ -110,8 +121,10 @@ class JobCreatorController extends GetxController {
       brand.text = existingJob!.brand;
       about.text = existingJob!.about;
       isTanimi.text = existingJob!.isTanimi;
-      maas1.text = existingJob!.maas1.toString();
-      maas2.text = existingJob!.maas2.toString();
+      maas1.text = existingJob!.maas1 > 0 ? _formatMoneyInput(existingJob!.maas1) : '';
+      maas2.text = existingJob!.maas2 > 0 ? _formatMoneyInput(existingJob!.maas2) : '';
+      calismaSaatiBaslangic.text = existingJob!.calismaSaatiBaslangic;
+      calismaSaatiBitis.text = existingJob!.calismaSaatiBitis;
       meslek.value = existingJob!.meslek;
       sehir.value = existingJob!.city;
       ilce.value = existingJob!.town;
@@ -120,37 +133,27 @@ class JobCreatorController extends GetxController {
       long.value = existingJob!.long;
       selectedCalismaTuruList.value =
           existingJob!.calismaTuru.cast<String>().toList();
+      selectedCalismaGunleri.value =
+          existingJob!.calismaGunleri.cast<String>().toList();
       selectedYanHaklar.value = existingJob!.yanHaklar.cast<String>().toList();
       ilanBasligi.text = existingJob!.ilanBasligi;
-      deneyimSeviyesi.value = existingJob!.deneyimSeviyesi;
+      basvuruSayisi.text = existingJob!.applicationCount.toString();
       pozisyonSayisi.text = existingJob!.pozisyonSayisi.toString();
+    } else {
+      selectedCalismaGunleri.assignAll(
+        calismaGunleriList.take(5).toList(growable: false),
+      );
     }
 
     loadSehirler();
 
     if (existingJob == null || (lat.value == 0 && long.value == 0)) {
-      Future.microtask(getKonumVeAdres);
-    }
-
-    everAll([lat, long], (_) {
-      moveCameraToPosition();
-    });
-  }
-
-  void onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-  }
-
-  void moveCameraToPosition() {
-    if (mapController != null && lat.value != 0 && long.value != 0) {
-      mapController!.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(lat.value, long.value),
-            zoom: 15,
-          ),
-        ),
-      );
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(
+          const Duration(milliseconds: 250),
+          () => autoFillLocationIfNeeded(allowPermissionPrompt: !Platform.isIOS),
+        );
+      });
     }
   }
 
@@ -270,10 +273,7 @@ class JobCreatorController extends GetxController {
                                 child: Text(
                                   item,
                                   style: TextStyle(
-                                    color:
-                                        selectedCalismaTuruList.contains(item)
-                                            ? Colors.pinkAccent
-                                            : Colors.black,
+                                    color: Colors.black,
                                     fontSize: 15,
                                     fontFamily: "MontserratMedium",
                                   ),
@@ -323,7 +323,7 @@ class JobCreatorController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Yan Hak Seç",
+                    "Ek İmkanlar",
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -363,9 +363,7 @@ class JobCreatorController extends GetxController {
                               child: Text(
                                 item,
                                 style: TextStyle(
-                                  color: isSelected
-                                      ? Colors.pinkAccent
-                                      : Colors.black,
+                                  color: Colors.black,
                                   fontSize: 15,
                                   fontFamily: "MontserratMedium",
                                 ),
@@ -407,7 +405,7 @@ class JobCreatorController extends GetxController {
     });
   }
 
-  Future<void> selectDeneyimSeviyesi() async {
+  Future<void> selectCalismaGunleri() async {
     Get.bottomSheet(
       Container(
         padding: const EdgeInsets.all(20),
@@ -420,7 +418,7 @@ class JobCreatorController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Deneyim Seviyesi Seç",
+              "Çalışma Günleri",
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -428,42 +426,53 @@ class JobCreatorController extends GetxController {
               ),
             ),
             SizedBox(height: 12),
-            ...deneyimSeviyeleri.map((item) {
+            ...calismaGunleriList.map((item) {
               return Obx(() => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
-                      onTap: () {
-                        deneyimSeviyesi.value = item;
-                        Get.back();
+                    child: TextButton(
+                      style: ButtonStyle(
+                        padding:
+                            WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
+                        minimumSize: WidgetStateProperty.all<Size>(Size.zero),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        overlayColor:
+                            WidgetStateProperty.all(Colors.transparent),
+                      ),
+                      onPressed: () {
+                        if (selectedCalismaGunleri.contains(item)) {
+                          selectedCalismaGunleri.remove(item);
+                        } else {
+                          selectedCalismaGunleri.add(item);
+                        }
                       },
                       child: Row(
                         children: [
-                          Container(
-                            width: 22,
-                            height: 22,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey),
-                            ),
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: deneyimSeviyesi.value == item
-                                    ? Colors.black
-                                    : Colors.white,
+                          Expanded(
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.black,
+                                fontFamily: "MontserratMedium",
                               ),
                             ),
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            item,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black,
-                              fontFamily: "MontserratMedium",
+                          Container(
+                            width: 25,
+                            height: 25,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(4)),
+                              color: selectedCalismaGunleri.contains(item)
+                                  ? Colors.black
+                                  : Colors.transparent,
+                              border: Border.all(color: Colors.black),
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.checkmark,
+                              color: Colors.white,
+                              size: 20,
                             ),
                           ),
                         ],
@@ -563,8 +572,14 @@ class JobCreatorController extends GetxController {
     );
   }
 
-  Future<void> getKonumVeAdres() async {
+  Future<void> autoFillLocationIfNeeded({
+    bool allowPermissionPrompt = true,
+  }) async {
     try {
+      if (sehir.value.isNotEmpty && ilce.value.isNotEmpty) {
+        return;
+      }
+
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         return;
@@ -572,6 +587,9 @@ class JobCreatorController extends GetxController {
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        if (!allowPermissionPrompt) {
+          return;
+        }
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied ||
             permission == LocationPermission.deniedForever) {
@@ -579,135 +597,218 @@ class JobCreatorController extends GetxController {
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      List<Placemark> placemarks = await placemarkFromCoordinates(
+      final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
       );
 
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
-        sehir.value = place.administrativeArea ?? "";
-        ilce.value = place.subAdministrativeArea ?? "";
+        final cityCandidates = <String>[
+          (place.administrativeArea ?? '').trim(),
+          (place.locality ?? '').trim(),
+        ];
+        final districtCandidates = <String>[
+          (place.subAdministrativeArea ?? '').trim(),
+          (place.subLocality ?? '').trim(),
+          (place.locality ?? '').trim(),
+        ];
+
+        final matchedCity = _matchCity(cityCandidates);
+        if (matchedCity != null) {
+          sehir.value = matchedCity;
+          final matchedDistrict =
+              _matchDistrict(matchedCity, districtCandidates);
+          if (matchedDistrict != null) {
+            ilce.value = matchedDistrict;
+          }
+        }
         lat.value = position.latitude.toDouble();
         long.value = position.longitude.toDouble();
-        mapController?.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(lat.value, long.value),
-              zoom: 15,
-            ),
-          ),
-        );
-        refresh();
-        if (placemarks.isNotEmpty) {
-          final place = placemarks.first;
-
-          adres.value = [
-            place.street, // Sokak adı (örneğin: Atatürk Caddesi)
-            place.name, // Bina adı veya ekstra detay
-            place.subLocality, // Mahalle / semt
-            place.subAdministrativeArea, // İlçe
-            place.administrativeArea, // İl
-            place.country // Ülke
-          ].where((e) => e != null && e.isNotEmpty).join(', ');
-        }
+        adres.value = [
+          place.street,
+          place.name,
+          place.subLocality,
+          place.subAdministrativeArea,
+          place.administrativeArea,
+          place.country,
+        ].where((e) => e != null && e.isNotEmpty).join(', ');
       }
     } catch (_) {}
   }
 
-  Future<void> uploadCroppedImageToFirebase(String docID) async {
-    try {
-      final bytes = croppedImage.value;
-      if (bytes == null) return;
+  String? _matchCity(List<String> candidates) {
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      final exact = sehirler.firstWhereOrNull((city) => city == candidate);
+      if (exact != null) return exact;
+      final normalizedCandidate = _normalizeLocation(candidate);
+      final fuzzy = sehirler.firstWhereOrNull(
+        (city) => _normalizeLocation(city) == normalizedCandidate,
+      );
+      if (fuzzy != null) return fuzzy;
+    }
+    return null;
+  }
 
-      final String fileName = const Uuid().v4();
+  String? _matchDistrict(String city, List<String> candidates) {
+    final districts = sehirlerVeIlcelerData
+        .where((item) => item.il == city)
+        .map((item) => item.ilce)
+        .toSet()
+        .toList();
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      final exact =
+          districts.firstWhereOrNull((district) => district == candidate);
+      if (exact != null) return exact;
+      final normalizedCandidate = _normalizeLocation(candidate);
+      final fuzzy = districts.firstWhereOrNull(
+        (district) => _normalizeLocation(district) == normalizedCandidate,
+      );
+      if (fuzzy != null) return fuzzy;
+    }
+    return null;
+  }
+
+  String _normalizeLocation(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('ı', 'i')
+        .replaceAll('i̇', 'i')
+        .replaceAll('ş', 's')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .trim();
+  }
+
+  Future<void> uploadCroppedImageToFirebase(String docID) async {
+    final bytes = croppedImage.value;
+    if (bytes == null) return;
+
+    final tempDir = await Directory.systemTemp.createTemp('job_logo_');
+    final tempFile = File('${tempDir.path}/logo_check.webp');
+    try {
+      await tempFile.writeAsBytes(bytes, flush: true);
+      final nsfw = await OptimizedNSFWService.checkImage(tempFile);
+      if (nsfw.errorMessage != null) {
+        throw Exception('Görsel güvenlik kontrolü tamamlanamadı');
+      }
+      if (nsfw.isNSFW) {
+        throw Exception('Uygunsuz görsel tespit edildi');
+      }
 
       final downloadUrl = await WebpUploadService.uploadBytesAsWebp(
         storage: FirebaseStorage.instance,
         bytes: bytes,
-        storagePathWithoutExt:
-            "${FirebaseAuth.instance.currentUser?.uid ?? ''}/isBul/$docID/$fileName",
+        storagePathWithoutExt: "isBul/$docID/logo",
       );
 
       await FirebaseFirestore.instance
           .collection("isBul")
           .doc(docID)
           .set({"logo": downloadUrl}, SetOptions(merge: true));
-    } catch (_) {}
+    } finally {
+      try {
+        if (await tempFile.exists()) await tempFile.delete();
+        if (await tempDir.exists()) await tempDir.delete(recursive: true);
+      } catch (_) {}
+    }
   }
 
   Future<void> setData() async {
+    if (isSubmitting.value) return;
     final docID =
         existingJob?.docID ?? Uuid().v4(); // düzenleme veya yeni kayıt
     final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
+    isSubmitting.value = true;
     loader.isOn.value = true;
-    final current = CurrentUserService.instance.currentUser;
-    final nickname = (current?.nickname ?? '').trim();
-    final fullName = [
-      current?.firstName ?? '',
-      current?.lastName ?? '',
-    ].where((part) => part.trim().isNotEmpty).join(' ').trim();
-    final displayName = fullName.isEmpty ? nickname : fullName;
-    final avatarUrl = (current?.avatarUrl ?? '').trim();
-    final rozet = (current?.rozet ?? '').trim();
+    try {
+      final current = CurrentUserService.instance.currentUser;
+      final nickname = (current?.nickname ?? '').trim();
+      final fullName = [
+        current?.firstName ?? '',
+        current?.lastName ?? '',
+      ].where((part) => part.trim().isNotEmpty).join(' ').trim();
+      final displayName = fullName.isEmpty ? nickname : fullName;
+      final avatarUrl = (current?.avatarUrl ?? '').trim();
+      final rozet = (current?.rozet ?? '').trim();
 
-    final jobData = <String, dynamic>{
-      "about": about.text,
-      "adres": adres.value,
-      "avatarUrl": avatarUrl,
-      "brand": brand.text,
-      "calismaTuru": selectedCalismaTuruList.toList(),
-      "city": sehir.value,
-      "displayName": displayName,
-      "town": ilce.value,
-      "ended": false,
-      "isTanimi": isTanimi.text,
-      "lat": lat.value,
-      "long": long.value,
-      "logo": existingJob?.logo ?? "",
-      "maas1": maasOpen.value ? int.tryParse(maas1.text) ?? 0 : 0,
-      "maas2": maasOpen.value ? int.tryParse(maas2.text) ?? 0 : 0,
-      "meslek": meslek.value,
-      "nickname": nickname,
-      "authorAvatarUrl": avatarUrl,
-      "authorDisplayName": displayName,
-      "authorNickname": nickname,
-      "userID": FirebaseAuth.instance.currentUser?.uid ?? '',
-      "rozet": rozet,
-      "yanHaklar": selectedYanHaklar.toList(),
-      "ilanBasligi": ilanBasligi.text,
-      "deneyimSeviyesi": deneyimSeviyesi.value,
-      "pozisyonSayisi": int.tryParse(pozisyonSayisi.text) ?? 1,
-    };
+      final jobData = <String, dynamic>{
+        "about": about.text,
+        "adres": adres.value,
+        "avatarUrl": avatarUrl,
+        "brand": brand.text,
+        "calismaGunleri": selectedCalismaGunleri.toList(),
+        "calismaSaatiBaslangic": calismaSaatiBaslangic.text.trim(),
+        "calismaSaatiBitis": calismaSaatiBitis.text.trim(),
+        "calismaTuru": selectedCalismaTuruList.toList(),
+        "city": sehir.value,
+        "displayName": displayName,
+        "town": ilce.value,
+        "ended": false,
+        "isTanimi": isTanimi.text,
+        "lat": lat.value,
+        "long": long.value,
+        "logo": existingJob?.logo ?? "",
+        "maas1": maasOpen.value ? parseMoneyInput(maas1.text) : 0,
+        "maas2": maasOpen.value ? parseMoneyInput(maas2.text) : 0,
+        "meslek": meslek.value,
+        "nickname": nickname,
+        "authorAvatarUrl": avatarUrl,
+        "authorDisplayName": displayName,
+        "authorNickname": nickname,
+        "userID": FirebaseAuth.instance.currentUser?.uid ?? '',
+        "rozet": rozet,
+        "yanHaklar": selectedYanHaklar.toList(),
+        "ilanBasligi": ilanBasligi.text,
+        "basvuruSayisi": int.tryParse(basvuruSayisi.text) ?? 0,
+        "pozisyonSayisi": int.tryParse(pozisyonSayisi.text) ?? 1,
+      };
 
-    if (existingJob != null) {
-      // Düzenleme: counter'lara dokunma, timeStamp güncelleme
-      jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseFirestore.instance
-          .collection("isBul")
-          .doc(docID)
-          .update(jobData);
-    } else {
-      // Yeni ilan: counter'ları sıfırdan başlat
-      jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
-      jobData["viewCount"] = 0;
-      jobData["applicationCount"] = 0;
-      await FirebaseFirestore.instance
-          .collection("isBul")
-          .doc(docID)
-          .set(jobData);
+      if (existingJob != null) {
+        jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
+        await FirebaseFirestore.instance
+            .collection("isBul")
+            .doc(docID)
+            .update(jobData);
+      } else {
+        jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
+        jobData["viewCount"] = 0;
+        jobData["applicationCount"] = 0;
+        await FirebaseFirestore.instance
+            .collection("isBul")
+            .doc(docID)
+            .set(jobData);
+      }
+
+      selection.value = 0;
+      final shouldUploadLogo = croppedImage.value != null;
+      if (shouldUploadLogo) {
+        try {
+          await uploadCroppedImageToFirebase(docID);
+        } catch (e) {
+          AppSnackbar('Hata', e.toString().replaceFirst('Exception: ', ''));
+          return;
+        }
+      }
+      loader.isOn.value = false;
+      isSubmitting.value = false;
+      Get.back();
+    } finally {
+      if (loader.isOn.value) {
+        loader.isOn.value = false;
+      }
+      if (isSubmitting.value) {
+        isSubmitting.value = false;
+      }
     }
-
-    // Yeni fotoğraf varsa yükle
-    if (croppedImage.value != null) {
-      await uploadCroppedImageToFirebase(docID);
-    }
-    loader.isOn.value = false;
-    selection.value = 0;
-    Get.back();
   }
 }

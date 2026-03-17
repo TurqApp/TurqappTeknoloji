@@ -1,12 +1,19 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'cv_controller_sections_part.dart';
 part 'cv_controller_persistence_part.dart';
@@ -27,10 +34,13 @@ class CvController extends GetxController {
   RxList<CVReferenceHumans> referanslar = <CVReferenceHumans>[].obs;
   RxList<String> skills = <String>[].obs;
   RxBool isSaving = false.obs;
+  RxBool isUploadingPhoto = false.obs;
+  RxString photoUrl = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
+    ensureDefaultPhoto();
     loadDataFromFirestore();
   }
 
@@ -71,4 +81,47 @@ class CvController extends GetxController {
   }
 
   // ── School ──
+
+  Future<void> pickCvPhoto(BuildContext context) async {
+    if (isUploadingPhoto.value) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      AppSnackbar('Hata', 'Oturum açık değil.');
+      return;
+    }
+
+    final File? file = await AppImagePickerService.pickSingleImage(context);
+    if (file == null) return;
+
+    isUploadingPhoto.value = true;
+    try {
+      final nsfwResult = await OptimizedNSFWService.checkImage(file);
+      if (nsfwResult.isNSFW) {
+        AppSnackbar('Uygun Değil', 'Profil fotoğrafı uygunsuz içerik içeriyor.');
+        return;
+      }
+
+      final url = await WebpUploadService.uploadFileAsWebp(
+        storage: FirebaseStorage.instance,
+        file: file,
+        storagePathWithoutExt: 'users/$uid/cv/profile_photo',
+        quality: 88,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+      photoUrl.value = url;
+    } catch (_) {
+      AppSnackbar('Hata', 'Profil fotoğrafı yüklenemedi.');
+    } finally {
+      isUploadingPhoto.value = false;
+    }
+  }
+
+  void ensureDefaultPhoto() {
+    if (photoUrl.value.trim().isNotEmpty) return;
+    final currentAvatar = CurrentUserService.instance.avatarUrl.trim();
+    if (currentAvatar.isNotEmpty) {
+      photoUrl.value = currentAvatar;
+    }
+  }
 }

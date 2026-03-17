@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
@@ -27,48 +26,51 @@ class ApplicationReview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        bottom: false,
-        child: ColoredBox(
-          color: Colors.white,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Row(
-                  children: [BackButtons(text: "Başvuranlar")],
-                ),
-              ),
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return const Center(child: CupertinoActivityIndicator());
-                  }
-                  if (controller.applicants.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "Henüz başvuru yok",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 15,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    );
-                  }
-                  return ListView.builder(
-                    itemCount: controller.applicants.length,
-                    padding: const EdgeInsets.only(top: 5, bottom: 20),
-                    itemBuilder: (context, index) {
-                      final app = controller.applicants[index];
-                      return _applicantCard(app, context);
-                    },
-                  );
-                }),
-              ),
-            ],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          "Başvuranlar",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: "MontserratBold",
           ),
         ),
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(child: CupertinoActivityIndicator());
+          }
+          if (controller.applicants.isEmpty) {
+            return const Center(
+              child: Text(
+                "Henüz başvuru yok",
+                style: TextStyle(
+                  fontFamily: "MontserratMedium",
+                  fontSize: 15,
+                  color: Colors.grey,
+                ),
+              ),
+            );
+          }
+          return ListView.builder(
+            itemCount: controller.applicants.length,
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+            itemBuilder: (context, index) {
+              final app = controller.applicants[index];
+              return _applicantCard(app, context);
+            },
+          );
+        }),
       ),
     );
   }
@@ -110,18 +112,19 @@ class ApplicationReview extends StatelessWidget {
             : app.applicantPfImage;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+          padding: const EdgeInsets.only(bottom: 10),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withAlpha(40)),
+              border: Border.all(color: const Color(0x14000000)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     GestureDetector(
                       onTap: () =>
@@ -138,7 +141,7 @@ class ApplicationReview extends StatelessWidget {
                                   color: Colors.grey.withAlpha(30),
                                   child: const Icon(CupertinoIcons.person_fill,
                                       color: Colors.grey, size: 20),
-                                ),
+                          ),
                         ),
                       ),
                     ),
@@ -158,7 +161,7 @@ class ApplicationReview extends StatelessWidget {
                           Text(
                             _formatDate(app.timeStamp),
                             style: TextStyle(
-                              fontFamily: "Montserrat",
+                              fontFamily: "MontserratMedium",
                               fontSize: 12,
                               color: Colors.grey.shade600,
                             ),
@@ -169,52 +172,121 @@ class ApplicationReview extends StatelessWidget {
                     _statusChip(app.status),
                   ],
                 ),
-                const SizedBox(height: 10),
-                // CV preview button
-                GestureDetector(
-                  onTap: () => _showCvPreview(app.userID, name, context),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(20),
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showCvPreview(app.userID, name, context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0x14000000)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(CupertinoIcons.doc_text,
-                            size: 16, color: Colors.blueAccent),
-                        SizedBox(width: 6),
-                        Text("CV Görüntüle",
-                            style: TextStyle(
-                                fontFamily: "MontserratMedium",
-                                fontSize: 13,
-                                color: Colors.blueAccent)),
-                      ],
+                    icon: const Icon(
+                      CupertinoIcons.doc_text,
+                      size: 16,
+                      color: Colors.black,
+                    ),
+                    label: const Text(
+                      "CV Görüntüle",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontFamily: "MontserratBold",
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                // Status actions
-                Row(
-                  children: [
-                    if (app.status != 'accepted')
-                      _actionButton("Kabul Et", Colors.green, () {
-                        controller.updateStatus(app.userID, 'accepted');
-                      }),
-                    const SizedBox(width: 8),
-                    if (app.status != 'reviewing' && app.status != 'accepted')
-                      _actionButton("İncele", Colors.blue, () {
-                        controller.updateStatus(app.userID, 'reviewing');
-                      }),
-                    const SizedBox(width: 8),
-                    if (app.status != 'rejected')
-                      _actionButton("Reddet", Colors.red, () {
-                        controller.updateStatus(app.userID, 'rejected');
-                      }),
-                  ],
-                ),
+                if (app.status == 'pending' || app.status == 'reviewing') ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              controller.updateStatus(app.userID, 'rejected');
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Colors.grey.withAlpha(120),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Reddet',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (app.status != 'reviewing') ...[
+                        Expanded(
+                          child: SizedBox(
+                            height: 40,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                controller.updateStatus(app.userID, 'reviewing');
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: Colors.grey.withAlpha(120),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'İncele',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 13,
+                                  fontFamily: 'MontserratBold',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: SizedBox(
+                          height: 40,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              controller.updateStatus(app.userID, 'accepted');
+                            },
+                            style: ElevatedButton.styleFrom(
+                              elevation: 0,
+                              backgroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Kabul Et',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontFamily: 'MontserratBold',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -223,47 +295,25 @@ class ApplicationReview extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(String text, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withAlpha(80)),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontFamily: "MontserratMedium",
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _statusChip(String status) {
     Color bgColor;
     Color textColor;
     switch (status) {
       case 'reviewing':
-        bgColor = Colors.blue.withAlpha(25);
-        textColor = Colors.blue;
+        bgColor = const Color(0xFFEAF2FF);
+        textColor = const Color(0xFF2F6FED);
         break;
       case 'accepted':
-        bgColor = Colors.green.withAlpha(25);
-        textColor = Colors.green;
+        bgColor = const Color(0xFFEAF7EE);
+        textColor = const Color(0xFF2D8A45);
         break;
       case 'rejected':
-        bgColor = Colors.red.withAlpha(25);
-        textColor = Colors.red;
+        bgColor = const Color(0xFFFCECEC);
+        textColor = const Color(0xFFC64242);
         break;
       default:
-        bgColor = Colors.orange.withAlpha(25);
-        textColor = Colors.orange;
+        bgColor = const Color(0xFFFCF4E4);
+        textColor = const Color(0xFFB57911);
     }
 
     return Container(
@@ -333,15 +383,6 @@ class ApplicationReview extends StatelessWidget {
                 Text("Telefon: ${cv['phone']}",
                     style: const TextStyle(
                         fontFamily: "MontserratMedium", fontSize: 13)),
-              ],
-              if (cv['linkedin'] != null &&
-                  cv['linkedin'].toString().isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text("LinkedIn: ${cv['linkedin']}",
-                    style: const TextStyle(
-                        fontFamily: "MontserratMedium",
-                        fontSize: 13,
-                        color: Colors.blueAccent)),
               ],
               // Schools
               if (cv['okullar'] != null &&

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
@@ -483,6 +484,10 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 12),
+            const AdmobKare(
+              key: ValueKey('market-detail-ad-end'),
             ),
           ],
         ),

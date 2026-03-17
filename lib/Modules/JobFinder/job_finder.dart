@@ -56,7 +56,7 @@ class JobFinder extends StatelessWidget {
                     onTap: () => Get.to(
                       () => const SliderAdminView(
                         sliderId: 'is_bul',
-                        title: 'İş Bul',
+                        title: 'İş Veren',
                       ),
                     ),
                   ),
@@ -92,7 +92,7 @@ class JobFinder extends StatelessWidget {
                             color: Colors.black, size: 25),
                       ),
                     ),
-                    TypewriterText(text: "İş Bul"),
+                    TypewriterText(text: "İş Veren"),
                   ],
                 ),
                 Obx(() {
@@ -141,7 +141,7 @@ class JobFinder extends StatelessWidget {
                   onTap: () => Get.to(
                     () => const SliderAdminView(
                       sliderId: 'is_bul',
-                      title: 'İş Bul',
+                        title: 'İş Veren',
                     ),
                   ),
                 ),
@@ -268,7 +268,7 @@ class JobFinder extends StatelessWidget {
             ),
           ),
         ],
-        if (!isSearching)
+        if (!isSearching && !embedded)
           Obx(() {
             return Padding(
               padding: const EdgeInsets.only(

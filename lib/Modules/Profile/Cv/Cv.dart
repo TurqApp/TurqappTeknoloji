@@ -12,133 +12,154 @@ class Cv extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          "Kariyer Profili",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: "MontserratBold",
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         bottom: false,
-        child: SingleChildScrollView(
-          child: Obx(() {
-            return Column(
+        child: Obx(() {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            if (controller.selection.value == 0) {
-                              Get.back();
-                            } else {
-                              controller.selection.value--;
-                            }
-                          },
-                          icon: Icon(
-                            CupertinoIcons.arrow_left,
-                            color: Colors.black,
-                          ),
-                        ),
-                        Text(
-                          controller.selection.value == 0
-                              ? "Kişisel Bilgiler"
-                              : controller.selection.value == 1
-                                  ? "Eğitim Bilgileri"
-                                  : "Diğer Bilgiler",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontFamily: "MontserratBold"),
-                        )
-                      ],
+                _sectionTitle("Kişisel Bilgiler"),
+                const SizedBox(height: 12),
+                step1(),
+                const SizedBox(height: 24),
+                _sectionTitle("Eğitim Bilgileri"),
+                const SizedBox(height: 12),
+                step2(),
+                const SizedBox(height: 24),
+                _sectionTitle("Diğer Bilgiler"),
+                const SizedBox(height: 12),
+                step3(),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () {
+                    if (controller.isSaving.value) return;
+                    if (controller.firstName.text.trim().isEmpty) {
+                      AppSnackbar("Eksik Alan", "İsim girmeden kaydedemezsiniz");
+                    } else if (controller.lastName.text.trim().isEmpty) {
+                      AppSnackbar(
+                          "Eksik Alan", "Soyisim girmeden kaydedemezsiniz");
+                    } else if (controller.mail.text.trim().isEmpty) {
+                      AppSnackbar(
+                          "Eksik Alan", "Mail adresi girmeden kaydedemezsiniz");
+                    } else if (!controller
+                        .validateEmail(controller.mail.text.trim())) {
+                      AppSnackbar(
+                          "Hatalı Format", "Geçerli bir e-posta adresi girin");
+                    } else if (controller.phoneNumber.text.trim().isEmpty) {
+                      AppSnackbar("Eksik Alan",
+                          "Telefon numarası girmeden kaydedemezsiniz");
+                    } else if (!controller
+                        .validatePhone(controller.phoneNumber.text)) {
+                      AppSnackbar("Hatalı Format",
+                          "Geçerli bir telefon numarası girin");
+                    } else if (controller.onYazi.text.trim().isEmpty) {
+                      AppSnackbar("Eksik Alan",
+                          "Kendiniz hakkında kısa bilgi vermek zorundasınız");
+                    } else if (controller.okullar.isEmpty) {
+                      AppSnackbar("Eksik Alan",
+                          "En az bir okul bilgisi girmeden kaydedemezsiniz");
+                    } else {
+                      controller.setData();
+                    }
+                  },
+                  child: Container(
+                    height: 48,
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    Obx(() {
-                      return TextButton(
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        onPressed: () {
-                          if (controller.selection.value == 0) {
-                            if (controller.firstName.text.trim().isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "İsim girmeden devam edemezsiniz");
-                            } else if (controller.lastName.text
-                                .trim()
-                                .isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "Soyisim girmeden devam edemezsiniz");
-                            } else if (controller.mail.text.trim().isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "Mail adresi girmeden devam edemezsiniz");
-                            } else if (!controller
-                                .validateEmail(controller.mail.text.trim())) {
-                              AppSnackbar("Hatalı Format",
-                                  "Geçerli bir e-posta adresi girin");
-                            } else if (controller.phoneNumber.text
-                                .trim()
-                                .isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "Telefon numarası girmeden devam edemezsiniz");
-                            } else if (!controller
-                                .validatePhone(controller.phoneNumber.text)) {
-                              AppSnackbar("Hatalı Format",
-                                  "Geçerli bir telefon numarası girin");
-                            } else if (controller.onYazi.text.trim().isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "Kendiniz hakkında kısa bilgi vermek zorundasınız");
-                            } else {
-                              controller.selection.value++;
-                            }
-                          } else if (controller.selection.value == 1) {
-                            if (controller.okullar.isEmpty) {
-                              AppSnackbar("Eksik Alan",
-                                  "En az bir okul bilgisi girmeden devam edemezsiniz");
-                            } else {
-                              controller.selection.value++;
-                            }
-                          } else {
-                            if (!controller.isSaving.value) {
-                              controller.setData();
-                            }
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            children: [
-                              if (controller.isSaving.value)
-                                const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              else
-                                Text(
-                                  controller.selection.value != 2
-                                      ? "Devam"
-                                      : "Tamamla",
-                                  style: TextStyle(
-                                    color: Colors.blueAccent,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                            ],
+                    child: controller.isSaving.value
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            "Kaydet",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
+                            ),
                           ),
-                        ),
-                      );
-                    }),
-                  ],
+                  ),
                 ),
-                Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: controller.selection.value == 0
-                        ? step1()
-                        : controller.selection.value == 1
-                            ? step2()
-                            : step3())
               ],
-            );
-          }),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 20,
+        fontFamily: "MontserratBold",
+      ),
+    );
+  }
+
+  Widget _buildAddRow({
+    required String text,
+    required VoidCallback onTap,
+    EdgeInsetsGeometry? margin,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: margin,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.withAlpha(24),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              CupertinoIcons.add,
+              color: Colors.black,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: "MontserratMedium",
+                fontSize: 13,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -147,6 +168,99 @@ class Cv extends StatelessWidget {
   Widget step1() {
     return Column(
       children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F6FB),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0x14000000)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Obx(() {
+                final photoUrl = controller.photoUrl.value.trim();
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => controller.pickCvPhoto(Get.context!),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0x14000000)),
+                          image: photoUrl.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(photoUrl),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: photoUrl.isEmpty
+                            ? const Icon(
+                                CupertinoIcons.person_crop_circle_badge_plus,
+                                color: Colors.black54,
+                                size: 34,
+                              )
+                            : null,
+                      ),
+                      if (controller.isUploadingPhoto.value)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.24),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Kariyer Profili",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 18,
+                        fontFamily: "MontserratBold",
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      "Profil fotoğrafı ve temel bilgilerle kariyer profilinizi daha güçlü gösterin.",
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                        height: 1.4,
+                        fontFamily: "MontserratMedium",
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 15),
         Row(
           children: [
             Expanded(
@@ -274,32 +388,6 @@ class Cv extends StatelessWidget {
         ),
         SizedBox(height: 15),
         Container(
-          height: 50,
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: TextField(
-              controller: controller.linkedin,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                hintText: "LinkedIn adresi (opsiyonel)",
-                hintStyle: TextStyle(
-                    color: Colors.grey, fontFamily: "MontserratMedium"),
-                border: InputBorder.none,
-              ),
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium"),
-            ),
-          ),
-        ),
-        SizedBox(height: 15),
-        Container(
           height: (Get.height * 0.2).clamp(120.0, 150.0),
           alignment: Alignment.topLeft,
           padding: const EdgeInsets.all(15),
@@ -344,30 +432,10 @@ class Cv extends StatelessWidget {
           itemCount: controller.okullar.length + 1,
           itemBuilder: (context, index) {
             if (index == controller.okullar.length) {
-              return GestureDetector(
+              return _buildAddRow(
+                text: "Yeni okul ekle",
                 onTap: () => controller.okulEkle(),
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: Colors.black),
-                      SizedBox(width: 8),
-                      Text("Yeni okul ekle",
-                          style: TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 14,
-                              color: Colors.black)),
-                    ],
-                  ),
-                ),
+                margin: const EdgeInsets.only(top: 12),
               );
             }
 
@@ -508,7 +576,7 @@ class Cv extends StatelessWidget {
                     onTap: () => controller.beceriEkle(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                          horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
                         color: Colors.grey.withAlpha(30),
                         borderRadius: BorderRadius.circular(20),
@@ -517,11 +585,15 @@ class Cv extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.add, size: 16, color: Colors.black),
+                          const Icon(
+                            CupertinoIcons.add,
+                            size: 15,
+                            color: Colors.black,
+                          ),
                           SizedBox(width: 4),
                           Text("Ekle",
-                              style: TextStyle(
-                                  fontSize: 13,
+                              style: const TextStyle(
+                                  fontSize: 12.5,
                                   fontFamily: "MontserratMedium",
                                   color: Colors.black)),
                         ],
@@ -554,29 +626,10 @@ class Cv extends StatelessWidget {
           itemBuilder: (context, index) {
             if (index == controller.diler.length &&
                 controller.diler.length < 5) {
-              return GestureDetector(
+              return _buildAddRow(
+                text: "Yeni dil ekle",
                 onTap: () => controller.dilEkle(),
-                child: Container(
-                  margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: Colors.black),
-                      SizedBox(width: 8),
-                      Text("Yeni dil ekle",
-                          style: TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 14,
-                              color: Colors.black)),
-                    ],
-                  ),
-                ),
+                margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );
             }
 
@@ -655,29 +708,10 @@ class Cv extends StatelessWidget {
           itemBuilder: (context, index) {
             if (index == controller.isDeneyimleri.length &&
                 controller.isDeneyimleri.length < 5) {
-              return GestureDetector(
+              return _buildAddRow(
+                text: "Yeni iş deneyimi ekle",
                 onTap: () => controller.isDeneyimiEkle(),
-                child: Container(
-                  margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: Colors.black),
-                      SizedBox(width: 8),
-                      Text("Yeni iş deneyimi ekle",
-                          style: TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 14,
-                              color: Colors.black)),
-                    ],
-                  ),
-                ),
+                margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );
             }
 
@@ -764,29 +798,10 @@ class Cv extends StatelessWidget {
           itemBuilder: (context, index) {
             if (index == controller.referanslar.length &&
                 controller.referanslar.length < 5) {
-              return GestureDetector(
+              return _buildAddRow(
+                text: "Yeni referans ekle",
                 onTap: () => controller.referansEkle(),
-                child: Container(
-                  margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(30),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: Colors.black),
-                      SizedBox(width: 8),
-                      Text("Yeni referans ekle",
-                          style: TextStyle(
-                              fontFamily: "MontserratMedium",
-                              fontSize: 14,
-                              color: Colors.black)),
-                    ],
-                  ),
-                ),
+                margin: EdgeInsets.only(top: index == 0 ? 0 : 12),
               );
             }
 

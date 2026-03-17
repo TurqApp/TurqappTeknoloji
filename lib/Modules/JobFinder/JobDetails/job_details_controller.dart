@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
@@ -42,6 +43,7 @@ class JobDetailsController extends GetxController {
   }
 
   Future<void> _initialize() async {
+    await _refreshJob();
     await cvCheck();
     await getUserData(model.value.userID);
     await checkSaved(model.value.docID);
@@ -49,6 +51,19 @@ class JobDetailsController extends GetxController {
     await getSimilar(model.value.meslek);
     await fetchReviews(model.value.docID);
     _incrementViewCount();
+  }
+
+  Future<void> _refreshJob() async {
+    try {
+      final fresh = await _jobRepository.fetchById(
+        model.value.docID,
+        preferCache: true,
+        forceRefresh: true,
+      );
+      if (fresh != null) {
+        model.value = fresh;
+      }
+    } catch (_) {}
   }
 
   Future<void> _incrementViewCount() async {
@@ -164,10 +179,56 @@ class JobDetailsController extends GetxController {
 
   Future<void> getSimilar(String meslek) async {
     try {
-      final jobs = await _jobRepository.fetchSimilarByProfession(meslek);
+      final current = model.value;
+      final query = [
+        current.meslek.trim(),
+        current.brand.trim(),
+        current.ilanBasligi.trim(),
+      ].firstWhere((value) => value.isNotEmpty, orElse: () => meslek.trim());
+      if (query.isEmpty) {
+        list.clear();
+        return;
+      }
+
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: query,
+        limit: 20,
+      );
+
+      final jobs = result.hits
+          .map(JobModel.fromTypesenseHit)
+          .where((job) => _isSimilarJob(current, job))
+          .take(8)
+          .toList(growable: false);
       list.assignAll(jobs);
     } catch (_) {
+      list.clear();
     }
+  }
+
+  bool _isSimilarJob(JobModel current, JobModel other) {
+    if (other.docID.isEmpty || other.docID == current.docID || other.ended) {
+      return false;
+    }
+
+    final currentMeslek = current.meslek.trim().toLowerCase();
+    final otherMeslek = other.meslek.trim().toLowerCase();
+    if (currentMeslek.isNotEmpty && currentMeslek == otherMeslek) {
+      return true;
+    }
+
+    final currentBrand = current.brand.trim().toLowerCase();
+    final otherBrand = other.brand.trim().toLowerCase();
+    if (currentBrand.isNotEmpty && currentBrand == otherBrand) {
+      return true;
+    }
+
+    final currentTypes =
+        current.calismaTuru.map((e) => e.trim().toLowerCase()).toSet();
+    final otherTypes =
+        other.calismaTuru.map((e) => e.trim().toLowerCase()).toSet();
+    return currentTypes.intersection(otherTypes).isNotEmpty;
   }
 
   Future<void> fetchReviews(String docID) async {

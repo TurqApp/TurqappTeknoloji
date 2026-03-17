@@ -165,6 +165,18 @@ service firebase.storage {
                    && request.resource.size < 15 * 1024 * 1024;
     }
 
+    match /isBul/{jobId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && (
+                     !firestore.exists(/databases/(default)/documents/isBul/$(jobId))
+                     || firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid
+                     || hasMatchingUploaderMetadata()
+                     || isStorageUploaderBypass()
+                   )
+                   && request.resource.size < 15 * 1024 * 1024;
+    }
+
     // Story HLS segments - public read for CDN
     match /stories/{uid}/{storyId}/hls/{allPaths=**} {
       allow read;

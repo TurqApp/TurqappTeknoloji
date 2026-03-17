@@ -133,6 +133,7 @@ extension JobDetailsReviewsPart on JobDetails {
     );
   }
 
+  // ignore: unused_element
   Widget _buildReviewsSection(JobDetailsController controller) {
     return Obx(() {
       final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';

@@ -14,6 +14,7 @@ class CareerProfileController extends GetxController {
   var fullName = ''.obs;
   var about = ''.obs;
   var meslek = ''.obs;
+  var photoUrl = ''.obs;
   RxList<CVLanguegeModel> languages = <CVLanguegeModel>[].obs;
   RxList<CVExperinceModel> experiences = <CVExperinceModel>[].obs;
   RxList<CvSchoolModel> schools = <CvSchoolModel>[].obs;
@@ -37,6 +38,7 @@ class CareerProfileController extends GetxController {
         fullName.value =
             '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim();
         about.value = data['about'] ?? '';
+        photoUrl.value = (data['photoUrl'] ?? '').toString().trim();
         isFindingJob.value = data['findingJob'] ?? false;
 
         schools.value = (data['okullar'] as List<dynamic>? ?? [])

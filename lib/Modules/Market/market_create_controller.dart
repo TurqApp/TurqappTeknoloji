@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -594,6 +595,13 @@ class MarketCreateController extends GetxController {
     final urls = existingImageUrls.toList(growable: true);
     for (var i = 0; i < selectedImages.length; i++) {
       final file = selectedImages[i];
+      final nsfw = await OptimizedNSFWService.checkImage(file);
+      if (nsfw.errorMessage != null) {
+        throw Exception('Görsel güvenlik kontrolü tamamlanamadı');
+      }
+      if (nsfw.isNSFW) {
+        throw Exception('Uygunsuz görsel tespit edildi');
+      }
       final imageIndex = existingImageUrls.length + i;
       final path = imageIndex == 0
           ? 'marketStore/$uid/$itemId/cover'

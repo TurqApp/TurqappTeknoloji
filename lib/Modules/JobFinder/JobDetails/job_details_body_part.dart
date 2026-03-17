@@ -1,485 +1,402 @@
 part of 'job_details.dart';
 
 extension JobDetailsBodyPart on JobDetails {
+  String _displayTurkishText(String value) {
+    var text = value.trim();
+    if (text.isEmpty) return text;
+    const replacements = <String, String>{
+      'Yari': 'Yarı',
+      'Zamanli': 'Zamanlı',
+      'Calisma': 'Çalışma',
+      'Sirket': 'Şirket',
+      'Goruntulenme': 'Görüntülenme',
+      'Basvuru': 'Başvuru',
+      'Ilan': 'İlan',
+      'Ogrenim': 'Öğrenim',
+      'Ogretim': 'Öğretim',
+      'Pozisyon Sayisi': 'Pozisyon Sayısı',
+    };
+    replacements.forEach((source, target) {
+      text = text.replaceAll(source, target);
+    });
+    return text;
+  }
+
+  String _displayTurkishList(List<String> values) =>
+      values.map(_displayTurkishText).join(', ');
+
   Widget buildContent(BuildContext context) {
     final controller =
         Get.put(JobDetailsController(model: model), tag: model.docID);
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: BackButtons(text: "İş Detayı")),
-                EducationFeedShareIconButton(
-                  onTap: () => shareService.shareJob(controller.model.value),
-                  size: 30,
-                  iconSize: 18,
-                ),
-                Obx(() {
-                  return AppHeaderActionButton(
-                    onTap: () {
-                      controller.toggleSave(controller.model.value.docID);
-                    },
-                    child: Icon(
-                      controller.saved.value
-                          ? CupertinoIcons.bookmark_fill
-                          : CupertinoIcons.bookmark,
-                      size: 18,
-                      color:
-                          controller.saved.value ? Colors.orange : Colors.black87,
-                    ),
-                  );
-                }),
-                pullDownMenu(),
-                10.pw,
-              ],
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          'İş Detayı',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: EducationFeedShareIconButton(
+              onTap: () => shareService.shareJob(controller.model.value),
+              size: AppIconSurface.kSize,
+              iconSize: AppIconSurface.kIconSize,
             ),
-            Obx(() {
-              return Expanded(
-                child: ListView(
+          ),
+          Obx(() {
+            return Padding(
+              padding: const EdgeInsets.only(right: 2),
+              child: AppHeaderActionButton(
+                onTap: () => controller.toggleSave(controller.model.value.docID),
+                child: Icon(
+                  controller.saved.value ? AppIcons.saved : AppIcons.save,
+                  size: AppIconSurface.kIconSize,
+                  color: controller.saved.value ? Colors.orange : Colors.black87,
+                ),
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: pullDownMenu(),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Obx(() {
+          final current = controller.model.value;
+          final title =
+              current.ilanBasligi.isNotEmpty ? current.ilanBasligi : current.meslek;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            children: [
+              _buildHeroImage(current.logo),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${current.city}, ${current.town}  •  ${current.brand}',
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Açıklama',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 8),
+              ClickableTextContent(
+                text: current.isTanimi.trim().isEmpty
+                    ? 'Bu ilan için açıklama eklenmemiş.'
+                    : current.isTanimi,
+                startWith7line: true,
+                fontSize: 14,
+                fontColor: Colors.black87,
+                mentionColor: Colors.blue,
+                hashtagColor: Colors.blue,
+                urlColor: Colors.blue,
+                interactiveColor: Colors.blue,
+                onHashtagTap: (tag) {
+                  if (tag.trim().isEmpty) return;
+                  Get.to(() => TagPosts(tag: tag.trim()));
+                },
+                onUrlTap: (url) async {
+                  final uniqueKey =
+                      DateTime.now().millisecondsSinceEpoch.toString();
+                  await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
+                },
+                onMentionTap: (mention) => _openMentionProfile(mention),
+              ),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'İş Tanımı',
+                children: [
+                  _infoRow('Ücret', _salaryText(current)),
+                  _infoRow(
+                    'Başvuru Sayısı',
+                    current.applicationCount.toString(),
+                  ),
+                  _infoRow(
+                    'Çalışma',
+                    _displayTurkishList(current.calismaTuru),
+                  ),
+                  if (current.calismaGunleri.isNotEmpty)
+                    _infoRow(
+                      'Çalışma Günleri',
+                      _displayTurkishList(current.calismaGunleri),
+                    ),
+                  if (current.calismaSaatiBaslangic.isNotEmpty ||
+                      current.calismaSaatiBitis.isNotEmpty)
+                    _infoRow(
+                      'Çalışma Saatleri',
+                      [
+                        current.calismaSaatiBaslangic,
+                        current.calismaSaatiBitis,
+                      ].where((e) => e.trim().isNotEmpty).join(' - '),
+                    ),
+                  if (current.pozisyonSayisi > 0)
+                    _infoRow(
+                      'Alınacak Personel Sayısı',
+                      '${current.pozisyonSayisi}',
+                    ),
+                  if (current.yanHaklar.isNotEmpty)
+                    _infoRow(
+                      'Ek İmkanlar',
+                      _displayTurkishList(current.yanHaklar),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'İlan Bilgileri',
+                children: [
+                  _infoRow('Şirket', current.brand),
+                  _infoRow('Şehir', '${current.city}, ${current.town}'),
+                  _infoRow('Görüntülenme', current.viewCount.toString()),
+                  _infoRow(
+                    'Durum',
+                    current.ended ? 'Pasif' : 'Aktif',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Konum',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildLocationPreview(context),
+              if (current.adres.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  current.adres,
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 13,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: const Color(0xFFF6F7FB),
+                ),
+                child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: 15, right: 15, bottom: 15),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    GestureDetector(
+                      onTap: current.userID ==
+                              (FirebaseAuth.instance.currentUser?.uid ?? '')
+                          ? null
+                          : () => Get.to(() => SocialProfile(userID: current.userID)),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(8)),
-                                child: SizedBox(
-                                    width: 65,
-                                    height: 65,
-                                    child: CachedNetworkImage(
-                                      imageUrl: controller.model.value.logo,
-                                      fit: BoxFit.cover,
-                                    )),
-                              ),
-                              SizedBox(
-                                width: 12,
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          CachedUserAvatar(
+                            userId: current.userID,
+                            imageUrl: controller.avatarUrl.value,
+                            radius: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Text(
-                                      controller.model.value.meslek,
-                                      style: TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 15,
-                                          fontFamily: "MontserratBold"),
-                                    ),
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                controller.model.value.brand,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    color: Colors.blueAccent,
-                                                    fontSize: 15,
-                                                    fontFamily:
-                                                        "MontserratMedium"),
-                                              ),
-                                              Text(
-                                                "${controller.model.value.kacKm.toStringAsFixed(2)} km • ${controller.model.value.city}, ${controller.model.value.town}",
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 15,
-                                                  fontFamily: "Montserrat",
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                    Flexible(
+                                      child: Text(
+                                        controller.fullname.value.isNotEmpty
+                                            ? controller.fullname.value
+                                            : current.brand,
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 16,
+                                          fontFamily: 'MontserratBold',
                                         ),
-                                      ],
-                                    )
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    RozetContent(
+                                      size: 14,
+                                      userID: current.userID,
+                                      leftSpacing: 1,
+                                    ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          // İlan Başlığı (varsa)
-                          if (controller.model.value.ilanBasligi.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                                if (controller.nickname.value.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
                                   Text(
-                                    "İlan Başlığı",
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratBold"),
-                                  ),
-                                  Text(
-                                    controller.model.value.ilanBasligi,
-                                    style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 15,
-                                        fontFamily: "Montserrat"),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          // Deneyim Seviyesi + Pozisyon Sayısı + Başvuru Sayısı
-                          if (controller
-                                  .model.value.deneyimSeviyesi.isNotEmpty ||
-                              controller.model.value.pozisyonSayisi > 1 ||
-                              controller.model.value.applicationCount > 0 ||
-                              controller.model.value.viewCount > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: [
-                                  if (controller
-                                      .model.value.deneyimSeviyesi.isNotEmpty)
-                                    _infoChip(
-                                      CupertinoIcons.briefcase,
-                                      controller.model.value.deneyimSeviyesi,
-                                    ),
-                                  if (controller.model.value.pozisyonSayisi > 1)
-                                    _infoChip(
-                                      CupertinoIcons.person_2,
-                                      "${controller.model.value.pozisyonSayisi} kişi",
-                                    ),
-                                  if (controller.model.value.applicationCount >
-                                      0)
-                                    _infoChip(
-                                      CupertinoIcons.doc_text,
-                                      "${controller.model.value.applicationCount} başvuru",
-                                    ),
-                                  if (controller.model.value.viewCount > 0)
-                                    _infoChip(
-                                      CupertinoIcons.eye,
-                                      "${controller.model.value.viewCount} görüntülenme",
-                                    ),
-                                ],
-                              ),
-                            ),
-                          Row(
-                            children: [
-                              Text(
-                                "İş Tanımı",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          ClickableTextContent(
-                            text: controller.model.value.isTanimi,
-                            startWith7line: true,
-                            fontSize: 13,
-                            fontColor: Colors.black,
-                            mentionColor: Colors.blue,
-                            hashtagColor: Colors.blue,
-                            urlColor: Colors.blue,
-                            interactiveColor: Colors.blue,
-                            onHashtagTap: (tag) {
-                              if (tag.trim().isEmpty) return;
-                              Get.to(() => TagPosts(tag: tag.trim()));
-                            },
-                            onUrlTap: (url) async {
-                              final uniqueKey = DateTime.now()
-                                  .millisecondsSinceEpoch
-                                  .toString();
-                              await RedirectionLink()
-                                  .goToLink(url, uniqueKey: uniqueKey);
-                            },
-                            onMentionTap: (mention) =>
-                                _openMentionProfile(mention),
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "Yan Haklar",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children:
-                                controller.model.value.yanHaklar.map((hak) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.withAlpha(20),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  hak,
-                                  style: TextStyle(
-                                      color: Colors.black,
+                                    '@${controller.nickname.value}',
+                                    style: const TextStyle(
+                                      color: Colors.black54,
                                       fontSize: 13,
-                                      fontFamily: "MontserratMedium"),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "Çalışma Zamanı",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          Text(
-                            controller.model.value.calismaTuru.join(", "),
-                            style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "Montserrat"),
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "Maaş Bilgisi",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          Text(
-                            controller.model.value.maas1.toInt() != 0
-                                ? "${NumberFormat.decimalPattern('tr_TR').format(controller.model.value.maas1)}₺ - ${NumberFormat.decimalPattern('tr_TR').format(controller.model.value.maas2)}₺"
-                                : "Belirtilmedi",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "Montserrat",
+                                      fontFamily: 'MontserratMedium',
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          _buildLocationPreview(context),
-                          if (controller.model.value.adres.isNotEmpty) ...[
-                            SizedBox(height: 8),
-                            Text(
-                              controller.model.value.adres,
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 13,
-                                fontFamily: "MontserratMedium",
-                              ),
+                          if (current.userID !=
+                              (FirebaseAuth.instance.currentUser?.uid ?? ''))
+                            const Icon(
+                              CupertinoIcons.chevron_right,
+                              color: Colors.black38,
+                              size: 18,
                             ),
-                          ],
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "İşveren",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          ClickableTextContent(
-                            text: controller.model.value.about,
-                            startWith7line: true,
-                            fontSize: 13,
-                            fontColor: Colors.black,
-                            mentionColor: Colors.blue,
-                            hashtagColor: Colors.blue,
-                            urlColor: Colors.blue,
-                            interactiveColor: Colors.blue,
-                            onHashtagTap: (tag) {
-                              if (tag.trim().isEmpty) return;
-                              Get.to(() => TagPosts(tag: tag.trim()));
-                            },
-                            onUrlTap: (url) async {
-                              final uniqueKey = DateTime.now()
-                                  .millisecondsSinceEpoch
-                                  .toString();
-                              await RedirectionLink()
-                                  .goToLink(url, uniqueKey: uniqueKey);
-                            },
-                            onMentionTap: (mention) =>
-                                _openMentionProfile(mention),
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "İlan Tarihi",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold"),
-                              )
-                            ],
-                          ),
-                          Text(
-                            timeAgoMetin(controller.model.value.timeStamp),
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "Montserrat",
-                            ),
-                          ),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          AdmobKare(),
-                          SizedBox(
-                            height: 12,
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              if (model.userID !=
-                                  (FirebaseAuth.instance.currentUser?.uid ??
-                                      '')) {
-                                Get.to(
-                                    () => SocialProfile(userID: model.userID));
-                              }
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(12)),
-                                  border: Border.all(color: Colors.blueAccent)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    ClipOval(
-                                      child: SizedBox(
-                                        width: 50,
-                                        height: 50,
-                                        child: controller.avatarUrl.value
-                                                .trim()
-                                                .isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: controller
-                                                    .avatarUrl.value
-                                                    .trim(),
-                                                fit: BoxFit.cover,
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        const DefaultAvatar(
-                                                  radius: 25,
-                                                ),
-                                              )
-                                            : const DefaultAvatar(
-                                                radius: 25,
-                                              ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 12,
-                                    ),
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                controller.nickname.value,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 15,
-                                                    fontFamily:
-                                                        "MontserratMedium"),
-                                              ),
-                                            ),
-                                            SizedBox(width: 4),
-                                            RozetContent(
-                                              size: 14,
-                                              userID:
-                                                  controller.model.value.userID,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      width: 12,
-                                    ),
-                                    Icon(
-                                      CupertinoIcons.chevron_right,
-                                      color: Colors.grey,
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
-                    _buildBottomActionSection(controller),
-                    16.ph,
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      child: _buildReviewsSection(controller),
+                    const SizedBox(height: 12),
+                    Divider(
+                      height: 1,
+                      color: Colors.black.withValues(alpha: 0.06),
                     ),
-                    16.ph,
-                    Padding(
-                      padding: const EdgeInsets.only(left: 15),
-                      child: _buildSimilarSection(controller),
-                    ),
-                    20.ph,
                   ],
                 ),
-              );
-            })
-          ],
-        ),
+              ),
+              const SizedBox(height: 18),
+              _buildBottomActionSection(controller),
+              const SizedBox(height: 18),
+              _buildSimilarSection(controller),
+              const SizedBox(height: 12),
+              const AdmobKare(),
+            ],
+          );
+        }),
       ),
     );
+  }
+
+  Widget _buildHeroImage(String imageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: AspectRatio(
+        aspectRatio: 1.18,
+        child: imageUrl.trim().isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => _imageFallback(),
+              )
+            : _imageFallback(),
+      ),
+    );
+  }
+
+  Widget _imageFallback() {
+    return Container(
+      color: const Color(0xFFF3F5F7),
+      alignment: Alignment.center,
+      child: const Icon(
+        CupertinoIcons.photo,
+        color: Colors.black38,
+        size: 36,
+      ),
+    );
+  }
+
+  Widget _infoCard({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 128,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _salaryText(JobModel job) {
+    if (job.maas1 <= 0 && job.maas2 <= 0) return 'Belirtilmedi';
+    if (job.maas1 > 0 && job.maas2 > 0 && job.maas2 != job.maas1) {
+      return '${NumberFormat.decimalPattern('tr_TR').format(job.maas1)} TL - ${NumberFormat.decimalPattern('tr_TR').format(job.maas2)} TL';
+    }
+    final salary = job.maas2 > 0 ? job.maas2 : job.maas1;
+    return '${NumberFormat.decimalPattern('tr_TR').format(salary)} TL';
   }
 }

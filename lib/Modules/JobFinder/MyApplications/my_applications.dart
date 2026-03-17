@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'my_applications_controller.dart';
 
@@ -12,105 +13,164 @@ class MyApplications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return const Center(child: CupertinoActivityIndicator());
-      }
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          'Başvurularım',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
 
-      if (controller.applications.isEmpty) {
-        return EmptyRow(text: "Henüz başvuru yapmadınız");
-      }
-
-      return ListView.builder(
-        padding: const EdgeInsets.only(top: 10),
-        itemCount: controller.applications.length,
-        itemBuilder: (context, index) {
-          final app = controller.applications[index];
-          return _applicationCard(app, context);
-        },
-      );
-    });
+        return RefreshIndicator(
+          onRefresh: controller.loadApplications,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
+            children: [
+              if (controller.applications.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 60),
+                  child: EmptyRow(text: "Henüz başvuru yapmadınız"),
+                )
+              else
+                ...controller.applications.map(
+                  (app) => _applicationCard(app, context),
+                ),
+            ],
+          ),
+        );
+      }),
+    );
   }
 
   Widget _applicationCard(JobApplicationModel app, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withAlpha(40)),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: app.companyLogo.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: app.companyLogo,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        color: Colors.grey.withAlpha(30),
-                        child: const Icon(CupertinoIcons.building_2_fill,
-                            color: Colors.grey, size: 24),
-                      ),
+    final status = app.status;
+    final canCancel = status == 'pending';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x14000000)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 72,
+                  height: 72,
+                  child: app.companyLogo.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: app.companyLogo,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => _fallbackLogo(),
+                        )
+                      : _fallbackLogo(),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    app.jobTitle.isNotEmpty ? app.jobTitle : "İş İlanı",
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      app.jobTitle.isNotEmpty ? app.jobTitle : 'İş İlanı',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontFamily: 'MontserratBold',
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    app.companyName,
-                    style: const TextStyle(
-                      color: Colors.blueAccent,
-                      fontSize: 14,
-                      fontFamily: "MontserratMedium",
+                    const SizedBox(height: 4),
+                    Text(
+                      app.companyName.isNotEmpty ? app.companyName : 'Firma',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                        fontFamily: 'MontserratMedium',
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _statusChip(app.status),
-                      const Spacer(),
-                      Text(
-                        _formatDate(app.timeStamp),
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                          fontFamily: "Montserrat",
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _statusChip(status),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _formatDate(
+                              app.statusUpdatedAt > 0
+                                  ? app.statusUpdatedAt
+                                  : app.timeStamp,
+                            ),
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              canCancel
+                  ? AppHeaderActionButton(
+                      onTap: () => _showCancelDialog(app.jobDocID, context),
+                      child: const Icon(
+                        CupertinoIcons.xmark,
+                        color: Color(0xFFB91C1C),
+                        size: 18,
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (app.status == 'pending')
-              IconButton(
-                onPressed: () => _showCancelDialog(app.jobDocID, context),
-                icon: const Icon(CupertinoIcons.xmark_circle,
-                    color: Colors.red, size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-          ],
-        ),
+                    )
+                  : AppHeaderActionButton(
+                      child: Icon(
+                        _statusIcon(status),
+                        color: _statusColor(status),
+                        size: 18,
+                      ),
+                    ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fallbackLogo() {
+    return Container(
+      color: Colors.grey.withAlpha(30),
+      child: const Icon(
+        CupertinoIcons.building_2_fill,
+        color: Colors.grey,
+        size: 24,
       ),
     );
   }
@@ -151,6 +211,32 @@ class MyApplications extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'reviewing':
+        return Colors.blue;
+      case 'accepted':
+        return Colors.green;
+      case 'rejected':
+        return const Color(0xFFB91C1C);
+      default:
+        return Colors.orange;
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'accepted':
+        return CupertinoIcons.check_mark_circled_solid;
+      case 'rejected':
+        return CupertinoIcons.xmark_circle_fill;
+      case 'reviewing':
+        return CupertinoIcons.clock_fill;
+      default:
+        return CupertinoIcons.xmark;
+    }
   }
 
   String _formatDate(int timestamp) {

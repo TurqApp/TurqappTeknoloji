@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
-import 'package:turqappv2/Core/job_collection_helper.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
@@ -17,9 +16,7 @@ import '../../Themes/app_assets.dart';
 
 List<Map<String, dynamic>> _decodeJobCityDistrictList(String response) {
   final List<dynamic> data = json.decode(response) as List<dynamic>;
-  return data
-      .map((item) => Map<String, dynamic>.from(item as Map))
-      .toList();
+  return data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
 }
 
 class JobFinderController extends GetxController {
@@ -83,17 +80,16 @@ class JobFinderController extends GetxController {
 
   Future<void> refreshJob(String docID) async {
     try {
-      final updatedJob =
-          await _jobRepository.fetchById(docID, preferCache: false, forceRefresh: true);
+      final updatedJob = await _jobRepository.fetchById(docID,
+          preferCache: false, forceRefresh: true);
       if (updatedJob != null) {
         final index = list.indexWhere((e) => e.docID == docID);
         if (index != -1) {
-          list[index] = updatedJob;
+          list[index] = _attachDistance(updatedJob);
           list.refresh();
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _searchListener() {
@@ -110,15 +106,14 @@ class JobFinderController extends GetxController {
     final requestId = ++_searchRequestId;
     isLoading.value = true;
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.job,
         query: query,
         limit: 40,
       );
       if (requestId != _searchRequestId || search.text.trim() != query) return;
 
-      final results = await _fetchJobsByDocIds(docIds);
+      final results = _jobsFromTypesenseHits(result.hits);
       if (requestId != _searchRequestId || search.text.trim() != query) return;
       aramaSonucu.assignAll(results);
     } catch (_) {
@@ -135,35 +130,17 @@ class JobFinderController extends GetxController {
   Future<void> getStartData() async {
     isLoading.value = true;
     try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-
-      final fetchedJobs = await _jobRepository.fetchLatestJobs(limit: 150);
-
-      final jobs = <JobModel>[];
-      final expiredJobIds = <String>[];
-
-      for (final job in fetchedJobs) {
-        if (job.timeStamp < thirtyDaysAgo && !job.ended) {
-          expiredJobIds.add(job.docID);
-          continue;
-        }
-
-        if (!job.ended) {
-          jobs.add(job);
-        }
-      }
-
-      jobs.shuffle();
-      list.assignAll(jobs);
-      allJobs.assignAll(jobs);
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.job,
+        query: '*',
+        limit: 150,
+      );
+      final fetchedJobs = _jobsFromTypesenseHits(result.hits);
+      list.assignAll(fetchedJobs);
+      allJobs.assignAll(fetchedJobs);
       isLoading.value = false;
 
-      if (expiredJobIds.isNotEmpty) {
-        unawaited(_markJobsEndedSilently(expiredJobIds));
-      }
-
-      unawaited(_hydrateLocationAndResort(jobs));
+      unawaited(_hydrateLocationAndResort(fetchedJobs));
     } catch (_) {
     } finally {
       if (list.isEmpty) {
@@ -210,33 +187,7 @@ class JobFinderController extends GetxController {
       updatedJobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
       list.assignAll(updatedJobs);
       allJobs.assignAll(updatedJobs);
-    } catch (_) {
-    }
-  }
-
-  Future<void> _markJobsEndedSilently(List<String> docIds) async {
-    try {
-      final batch = FirebaseFirestore.instance.batch();
-      for (final docId in docIds) {
-        batch.update(
-          FirebaseFirestore.instance.collection(JobCollection.name).doc(docId),
-          {"ended": true},
-        );
-      }
-      await batch.commit();
-    } catch (_) {
-    }
-  }
-
-  Future<List<JobModel>> _fetchJobsByDocIds(List<String> docIds) async {
-    final orderedIds = docIds.where((id) => id.trim().isNotEmpty).toList();
-    if (orderedIds.isEmpty) return const [];
-    final fetched = await _jobRepository.fetchByIds(orderedIds);
-    final byId = <String, JobModel>{
-      for (final job in fetched.where((job) => !job.ended))
-        job.docID: _attachDistance(job),
-    };
-    return orderedIds.where(byId.containsKey).map((id) => byId[id]!).toList();
+    } catch (_) {}
   }
 
   JobModel _attachDistance(JobModel job) {
@@ -290,7 +241,7 @@ class JobFinderController extends GetxController {
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  "Sıralama Ölçütü",
+                  "Sıralama",
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 18,
@@ -298,23 +249,18 @@ class JobFinderController extends GetxController {
                   ),
                 ),
                 const SizedBox(height: 12),
-                buildRow(0, "Önerilen Sıralama", () {
+                buildRow(0, "En Yeni", () {
                   short.value = 0;
-                  list.shuffle();
+                  applySorting(list);
                   Navigator.of(sheetContext).pop();
                 }),
-                buildRow(1, "Maaş'a Göre (Önce En Yüksek)", () {
+                buildRow(1, "Bana En Yakın", () {
                   short.value = 1;
                   applySorting(list);
                   Navigator.of(sheetContext).pop();
                 }),
-                buildRow(2, "Maaş'a Göre (Önce En Düşük)", () {
+                buildRow(2, "En Çok Görüntülenen", () {
                   short.value = 2;
-                  applySorting(list);
-                  Navigator.of(sheetContext).pop();
-                }),
-                buildRow(3, "Bana En Yakın", () {
-                  short.value = 3;
                   applySorting(list);
                   Navigator.of(sheetContext).pop();
                 }),
@@ -328,7 +274,6 @@ class JobFinderController extends GetxController {
 
   Future<void> filtreTapped() async {
     RxString selectedType = "".obs;
-    RxString selectedDeneyim = "".obs;
 
     final types = [
       "Tam Zamanlı",
@@ -337,7 +282,6 @@ class JobFinderController extends GetxController {
       "Uzaktan",
       "Hibrit"
     ];
-    final deneyimSeviyeleri = ["Deneyimsiz", "Junior", "Mid-Level", "Senior"];
 
     final context = Get.context;
     if (context == null) return;
@@ -375,7 +319,7 @@ class JobFinderController extends GetxController {
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    "Filtreleme Ölçütü",
+                    "Filtreler",
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -396,20 +340,6 @@ class JobFinderController extends GetxController {
                               selectedType.value == type ? "" : type;
                         },
                       )),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Deneyim Seviyesi",
-                    style: TextStyle(fontFamily: "MontserratMedium"),
-                  ),
-                  const SizedBox(height: 8),
-                  ...deneyimSeviyeleri.map((seviye) => buildFilterRow(
-                        seviye,
-                        selectedDeneyim.value == seviye,
-                        () {
-                          selectedDeneyim.value =
-                              selectedDeneyim.value == seviye ? "" : seviye;
-                        },
-                      )),
                   const SizedBox(height: 20),
                   GestureDetector(
                     onTap: () {
@@ -424,9 +354,7 @@ class JobFinderController extends GetxController {
                                 .map((e) => e.toLowerCase().trim())
                                 .contains(
                                     selectedType.value.toLowerCase().trim());
-                        final matchDeneyim = selectedDeneyim.value.isEmpty ||
-                            job.deneyimSeviyesi == selectedDeneyim.value;
-                        return matchCity && matchType && matchDeneyim;
+                        return matchCity && matchType;
                       }).toList();
 
                       applySorting(filtered);
@@ -481,18 +409,29 @@ class JobFinderController extends GetxController {
 
   void applySorting(List<JobModel> jobs) {
     switch (short.value) {
-      case 1: // Önce En Yüksek
-        jobs.sort((a, b) => b.maas1.compareTo(a.maas1));
-        break;
-      case 2: // Önce En Düşük
-        jobs.sort((a, b) => a.maas1.compareTo(b.maas1));
-        break;
-      case 3:
+      case 1:
         jobs.sort((a, b) => a.kacKm.compareTo(b.kacKm));
         break;
+      case 2:
+        jobs.sort((a, b) => b.viewCount.compareTo(a.viewCount));
+        break;
       default:
-        jobs.shuffle();
+        jobs.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     }
+  }
+
+  List<JobModel> _jobsFromTypesenseHits(List<Map<String, dynamic>> hits) {
+    final jobs = <JobModel>[];
+    final seen = <String>{};
+    for (final hit in hits) {
+      final job = _attachDistance(JobModel.fromTypesenseHit(hit));
+      if (job.docID.isEmpty || seen.contains(job.docID) || job.ended) {
+        continue;
+      }
+      seen.add(job.docID);
+      jobs.add(job);
+    }
+    return jobs;
   }
 
   Widget buildFilterRow(String text, bool isSelected, VoidCallback onSelected) {
@@ -584,8 +523,10 @@ class JobFinderController extends GetxController {
       final data = await compute(_decodeJobCityDistrictList, response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
       sehirler.insert(0, "Tüm Türkiye");
     } catch (_) {
     } finally {
@@ -594,17 +535,33 @@ class JobFinderController extends GetxController {
   }
 
   Future<void> showIlSec() async {
-    final sehirlerlist = sehirler;
+    final sehirlerlist = List<String>.from(sehirler);
     sehirlerlist.remove(sehir.value);
     sehirlerlist.insert(0, sehir.value);
     if (sehir.value != kullaniciSehiri.value) {
       sehirlerlist.insert(1, kullaniciSehiri.value);
     }
+    final uniqueCities = sehirlerlist.toSet().toList();
+    final pinned = <String>[];
+    for (final city in uniqueCities) {
+      if (city == sehir.value || city == kullaniciSehiri.value) {
+        pinned.add(city);
+      }
+    }
+    final others = uniqueCities
+        .where((city) => !pinned.contains(city) && city != "Tüm Türkiye")
+        .toList();
+    sortTurkishStrings(others);
+    final visibleCities = <String>[
+      if (uniqueCities.contains("Tüm Türkiye")) "Tüm Türkiye",
+      ...pinned.where((city) => city.isNotEmpty && city != "Tüm Türkiye"),
+      ...others,
+    ];
     Get.bottomSheet(
       SizedBox(
         height: Get.height / 2,
         child: ListBottomSheet(
-          list: sehirlerlist.toSet().toList(),
+          list: visibleCities,
           title: "Şehir Seç",
           startSelection: sehir.value,
           onBackData: (v) {

@@ -115,31 +115,6 @@ extension JobDetailsMetaPart on JobDetails {
     );
   }
 
-  Widget _infoChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.grey.withAlpha(20),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.grey.shade700),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 13,
-              fontFamily: "MontserratMedium",
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget pullDownMenu() {
     return PullDownButton(
       itemBuilder: (context) => [

@@ -89,18 +89,6 @@ class SettingsView extends StatelessWidget {
                             () {
                           Get.to(() => BecomeVerifiedAccount());
                         }),
-                      buildRow("Hesap Gizliliği", CupertinoIcons.lock,
-                          () async {
-                        final currentPrivacy =
-                            userService.currentUser?.isPrivate ?? false;
-                        final newValue = !currentPrivacy;
-                        try {
-                          await userService
-                              .updateFields({"isPrivate": newValue});
-                        } catch (e) {
-                          debugPrint("Gizlilik güncellenemedi: $e");
-                        }
-                      }),
                       buildRow(
                         "Engellenenler",
                         CupertinoIcons.exclamationmark_circle,
@@ -118,7 +106,7 @@ class SettingsView extends StatelessWidget {
                           Get.to(() => AccountCenterView());
                         },
                       ),
-                      buildRow("Özgeçmiş (Cv)", CupertinoIcons.paperclip, () {
+                      buildRow("Kariyer Profili", CupertinoIcons.paperclip, () {
                         Get.to(() => Cv());
                       }),
                       buildSectionTitle("İçerik"),

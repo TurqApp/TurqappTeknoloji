@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -44,8 +43,6 @@ class JobCreator extends StatelessWidget {
           () => ListView(
             padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
             children: [
-              _sectionTitle('Görseller'),
-              const SizedBox(height: 8),
               _buildLogoPicker(),
               const SizedBox(height: 18),
               _sectionTitle('Temel Bilgiler'),
@@ -81,81 +78,6 @@ class JobCreator extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0x22000000)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      controller.adres.value.isEmpty
-                          ? CupertinoIcons.location
-                          : CupertinoIcons.location_fill,
-                      color: Colors.black87,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        controller.adres.value.isEmpty
-                            ? 'Konum alınıyor...'
-                            : controller.adres.value,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontSize: 14,
-                          fontFamily: 'MontserratMedium',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (controller.lat.value != 0 && controller.long.value != 0) ...[
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: SizedBox(
-                    height: 220,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AbsorbPointer(
-                          child: GoogleMap(
-                            onMapCreated: controller.onMapCreated,
-                            initialCameraPosition: CameraPosition(
-                              target:
-                                  LatLng(controller.lat.value, controller.long.value),
-                              zoom: 15,
-                            ),
-                            zoomControlsEnabled: false,
-                            myLocationButtonEnabled: false,
-                            scrollGesturesEnabled: false,
-                            rotateGesturesEnabled: false,
-                            tiltGesturesEnabled: false,
-                            zoomGesturesEnabled: false,
-                            mapToolbarEnabled: false,
-                          ),
-                        ),
-                        const Icon(
-                          CupertinoIcons.location_solid,
-                          color: Colors.red,
-                          size: 38,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
               const SizedBox(height: 18),
               _sectionTitle('İş Tanımı'),
               const SizedBox(height: 8),
@@ -172,6 +94,41 @@ class JobCreator extends StatelessWidget {
                     ? 'Çalışma Türü'
                     : controller.selectedCalismaTuruList.join(', '),
                 onTap: controller.selectCalismaTuru,
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: 'Çalışma Günleri',
+                onTap: controller.selectCalismaGunleri,
+              ),
+              const SizedBox(height: 8),
+              _fieldLabel('Çalışma Saatleri'),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller.calismaSaatiBaslangic,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        _TimeTextInputFormatter(),
+                      ],
+                      decoration: _inputDecoration('Başlangıç'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: controller.calismaSaatiBitis,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        _TimeTextInputFormatter(),
+                      ],
+                      decoration: _inputDecoration('Bitiş'),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               _selectionField(
@@ -192,26 +149,38 @@ class JobCreator extends StatelessWidget {
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedYanHaklar.isEmpty
-                    ? 'Yan Haklar'
+                    ? 'Ek İmkanlar'
                     : controller.selectedYanHaklar.join(', '),
                 onTap: () => controller.selectYanHaklar(context),
               ),
               const SizedBox(height: 8),
-              _selectionField(
-                label: controller.deneyimSeviyesi.value.isEmpty
-                    ? 'Deneyim Seviyesi'
-                    : controller.deneyimSeviyesi.value,
-                onTap: controller.selectDeneyimSeviyesi,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.pozisyonSayisi,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(3),
-                  FilteringTextInputFormatter.digitsOnly,
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Alınacak Personel Sayısı',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 96,
+                    child: TextField(
+                      controller: controller.pozisyonSayisi,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(3),
+                      ],
+                      textAlign: TextAlign.center,
+                      decoration: _inputDecoration('1'),
+                    ),
+                  ),
                 ],
-                decoration: _inputDecoration('Pozisyon Sayısı'),
               ),
               const SizedBox(height: 8),
               GestureDetector(
@@ -261,25 +230,27 @@ class JobCreator extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: controller.maas1,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: _inputDecoration('Min Ücret'),
-                      ),
+                    child: TextField(
+                      controller: controller.maas1,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        _ThousandsTextInputFormatter(),
+                      ],
+                      decoration: _inputDecoration('Min Ücret'),
+                    ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: TextField(
-                        controller: controller.maas2,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: _inputDecoration('Max Ücret'),
-                      ),
+                    child: TextField(
+                      controller: controller.maas2,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        _ThousandsTextInputFormatter(),
+                      ],
+                      decoration: _inputDecoration('Max Ücret'),
+                    ),
                     ),
                   ],
                 ),
@@ -348,7 +319,7 @@ class JobCreator extends StatelessWidget {
       return;
     }
     if (controller.selectedYanHaklar.isEmpty) {
-      AppSnackbar('Eksik alan', 'En az bir yan hak eklemek zorundasın');
+      AppSnackbar('Eksik alan', 'En az bir ek imkan seçmek zorundasın');
       return;
     }
     if (controller.maasOpen.value && controller.maas1.text.trim().isEmpty) {
@@ -360,15 +331,9 @@ class JobCreator extends StatelessWidget {
       return;
     }
     if (controller.maasOpen.value &&
-        (int.tryParse(controller.maas2.text) ?? 0) <
-            (int.tryParse(controller.maas1.text) ?? 0)) {
+        controller.parseMoneyInput(controller.maas2.text) <
+            controller.parseMoneyInput(controller.maas1.text)) {
       AppSnackbar('Hatalı Aralık', 'Maksimum maaş, minimum maaştan düşük olamaz');
-      return;
-    }
-    if (controller.pozisyonSayisi.text.isNotEmpty &&
-        ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) < 1 ||
-            (int.tryParse(controller.pozisyonSayisi.text) ?? 0) > 100)) {
-      AppSnackbar('Hatalı Değer', 'Pozisyon sayısı 1 ile 100 arasında olmalıdır');
       return;
     }
     await controller.setData();
@@ -519,6 +484,17 @@ class JobCreator extends StatelessWidget {
     );
   }
 
+  Widget _fieldLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 14,
+        fontFamily: 'MontserratSemiBold',
+      ),
+    );
+  }
+
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -542,6 +518,83 @@ class JobCreator extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0x33000000)),
       ),
+    );
+  }
+}
+
+class _TimeTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final clipped = digits.length > 4 ? digits.substring(0, 4) : digits;
+
+    if (clipped.length >= 2) {
+      final hour = int.tryParse(clipped.substring(0, 2)) ?? -1;
+      if (hour < 0 || hour > 23) {
+        return oldValue;
+      }
+    }
+
+    if (clipped.length >= 3) {
+      final minuteTens = int.tryParse(clipped.substring(2, 3)) ?? -1;
+      if (minuteTens < 0 || minuteTens > 5) {
+        return oldValue;
+      }
+    }
+
+    if (clipped.length == 4) {
+      final minute = int.tryParse(clipped.substring(2, 4)) ?? -1;
+      if (minute < 0 || minute > 59) {
+        return oldValue;
+      }
+    }
+
+    String formatted;
+    if (clipped.length <= 2) {
+      formatted = clipped;
+    } else {
+      formatted = '${clipped.substring(0, 2)}:${clipped.substring(2)}';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+class _ThousandsTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final reversed = digits.split('').reversed.join();
+    final chunks = <String>[];
+    for (var i = 0; i < reversed.length; i += 3) {
+      final end = (i + 3 < reversed.length) ? i + 3 : reversed.length;
+      chunks.add(reversed.substring(i, end));
+    }
+    final formatted = chunks
+        .map((chunk) => chunk.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.');
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

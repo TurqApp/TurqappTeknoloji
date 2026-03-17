@@ -19,6 +19,7 @@ import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links.da
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
+import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 
 import '../BiographyMaker/biography_maker.dart';
 
@@ -469,6 +470,64 @@ class _EditProfileState extends State<EditProfile> {
                       Padding(
                         padding: EdgeInsets.only(bottom: 12),
                         child: GestureDetector(
+                          onTap: () async {
+                            final currentPrivacy =
+                                currentUserService.currentUserRx.value?.isPrivate ??
+                                    false;
+                            await currentUserService
+                                .updateFields({"isPrivate": !currentPrivacy});
+                          },
+                          child: Container(
+                            height: 50,
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              borderRadius:
+                                  const BorderRadius.all(Radius.circular(12)),
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          CupertinoIcons.lock,
+                                          color: Colors.black,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          "Hesap Gizliliği",
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 15,
+                                            fontFamily: "MontserratMedium",
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Obx(
+                                    () => TurqAppToggle(
+                                      isOn: currentUserService
+                                              .currentUserRx.value?.isPrivate ??
+                                          false,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: GestureDetector(
                           onTap: () {
                             Get.to(() => SocialMediaLinks());
                           },
@@ -759,7 +818,7 @@ class _EditProfileState extends State<EditProfile> {
                                         ),
                                         SizedBox(width: 12),
                                         Text(
-                                          "Özgeçmiş (CV)",
+                                          "Kariyer Profili",
                                           style: TextStyle(
                                             color: Colors.black,
                                             fontSize: 15,
