@@ -49,6 +49,7 @@ const NOISY_DETAIL_KEYS = new Set([
     "endedAt",
     "lat",
     "long",
+    "dogruCevap",
 ]);
 const EDUCATION_ENTITIES = [
     "scholarship",
@@ -56,6 +57,7 @@ const EDUCATION_ENTITIES = [
     "answer_key",
     "tutoring",
     "job",
+    "workout",
 ];
 const EDUCATION_COLLECTIONS = {
     scholarship: "education_scholarships_search",
@@ -433,6 +435,21 @@ function requiredFields(entity) {
         { name: "applicationCount", type: "int32", optional: true },
         { name: "endedAt", type: "int64", optional: true },
         { name: "about", type: "string", optional: true },
+        { name: "categoryKey", type: "string", optional: true },
+        { name: "anaBaslik", type: "string", optional: true },
+        { name: "ders", type: "string", optional: true },
+        { name: "sinavTuru", type: "string", optional: true },
+        { name: "soruNo", type: "string", optional: true },
+        { name: "yil", type: "string", optional: true },
+        { name: "seq", type: "int32", optional: true },
+        { name: "correctCount", type: "int32", optional: true },
+        { name: "wrongCount", type: "int32", optional: true },
+        { name: "soru", type: "string", optional: true },
+        { name: "dogruCevap", type: "string", optional: true },
+        { name: "kacCevap", type: "int32", optional: true },
+        { name: "diger1", type: "string", optional: true },
+        { name: "diger2", type: "bool", optional: true },
+        { name: "diger3", type: "float", optional: true },
     ];
     if (entity === "job") {
         return fields.filter((field) => !JOB_TYPESENSE_REDUCED_FIELDS.has(field.name));
@@ -750,22 +767,54 @@ function buildJobDoc(docId, data) {
     return rest;
 }
 function buildWorkoutDoc(docId, data) {
-    return baseDoc("workout", docId, data, {
-        title: asString(data.title) || asString(data.baslik) || asString(data.soru) || asString(data.name),
-        subtitle: asString(data.ders) || asString(data.konu) || asString(data.category),
-        description: asString(data.aciklama) || asString(data.description) || asString(data.soru),
+    const anaBaslik = asString(data.anaBaslik);
+    const sinavTuru = asString(data.sinavTuru);
+    const ders = asString(data.ders);
+    const soruNo = asString(data.soruNo);
+    const yil = asString(data.yil);
+    const title = asString(data.title) ||
+        asString(data.baslik) ||
+        composeDescription(anaBaslik, sinavTuru, ders).split(" | ").join(" - ");
+    const subtitle = composeDescription(ders, sinavTuru, soruNo && yil ? `Soru ${soruNo} • ${yil}` : `Soru ${soruNo}`);
+    const description = asString(data.aciklama) ||
+        composeDescription(anaBaslik, sinavTuru, ders, soruNo.length === 0 ? "" : `Soru ${soruNo}`, yil);
+    const base = baseDoc("workout", docId, data, {
+        title,
+        subtitle,
+        description,
         ownerId: asString(data.userID) || asString(data.ownerId),
         timeStamp: asEpochMillis(data.timeStamp) || asEpochMillis(data.createdDate),
-        active: asBool(data.deleted) ? false : true,
+        active: data.active ?? (asBool(data.iptal) ? false : !asBool(data.deleted)),
         tags: dedupe([
-            asString(data.ders),
+            anaBaslik,
+            sinavTuru,
+            ders,
+            yil,
             asString(data.konu),
             asString(data.sinif),
-            asString(data.zorluk),
             ...asStringArray(data.tags),
         ]),
-        cover: asString(data.cover) || asString(data.img),
+        cover: asString(data.soru) || asString(data.cover) || asString(data.img),
     });
+    return {
+        ...base,
+        categoryKey: asString(data.categoryKey),
+        anaBaslik,
+        ders,
+        sinavTuru,
+        soruNo,
+        yil,
+        seq: asInt(data.seq),
+        correctCount: asInt(data.correctCount),
+        wrongCount: asInt(data.wrongCount),
+        viewCount: asInt(data.viewCount),
+        soru: asString(data.soru),
+        dogruCevap: asString(data.dogruCevap),
+        kacCevap: asInt(data.kacCevap),
+        diger1: asString(data.diger1),
+        diger2: asBool(data.diger2),
+        diger3: asFloat(data.diger3),
+    };
 }
 function buildPastQuestionDoc(docId, data) {
     return baseDoc("past_question", docId, data, {
@@ -1010,16 +1059,33 @@ function toHitOutput(hitRaw, collection) {
         whatsapp: doc.whatsapp === true,
         averageRating: Number(doc.averageRating || 0),
         reviewCount: Number(doc.reviewCount || 0),
+        categoryKey: String(doc.categoryKey || ""),
+        anaBaslik: String(doc.anaBaslik || ""),
+        ders: String(doc.ders || ""),
+        sinavTuru: String(doc.sinavTuru || ""),
+        soruNo: String(doc.soruNo || ""),
+        yil: String(doc.yil || ""),
+        seq: Number(doc.seq || 0),
+        correctCount: Number(doc.correctCount || 0),
+        wrongCount: Number(doc.wrongCount || 0),
+        soru: String(doc.soru || ""),
+        dogruCevap: String(doc.dogruCevap || ""),
+        kacCevap: Number(doc.kacCevap || 0),
+        diger1: String(doc.diger1 || ""),
+        diger2: doc.diger2 === true,
+        diger3: Number(doc.diger3 || 0),
         score: Number(hit.text_match || 0),
     };
 }
-async function searchFromCollection(entity, qRaw, limit, page) {
+async function searchFromCollection(entity, qRaw, limit, page, filterByRaw = "", sortByRaw = "") {
     const baseUrl = getTypesenseBaseUrl();
     const q = qRaw.trim().length === 0 ? "*" : qRaw.trim();
     const collection = getCollectionName(entity);
     await ensureEntityCollection(entity);
     const queryBy = (() => {
         switch (entity) {
+            case "workout":
+                return "title,subtitle,description,tags,detailsText,anaBaslik,sinavTuru,ders,soruNo,yil";
             case "tutoring":
                 return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,cinsiyet,dersYeri";
             case "job":
@@ -1028,6 +1094,8 @@ async function searchFromCollection(entity, qRaw, limit, page) {
                 return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName";
         }
     })();
+    const filterBy = filterByRaw.trim();
+    const sortBy = sortByRaw.trim();
     const response = await axios_1.default.get(`${baseUrl}/collections/${collection}/documents/search`, {
         headers: headers(),
         timeout: 12000,
@@ -1036,8 +1104,8 @@ async function searchFromCollection(entity, qRaw, limit, page) {
             query_by: queryBy,
             per_page: limit,
             page,
-            sort_by: "timeStamp:desc",
-            filter_by: "active:=true",
+            sort_by: sortBy || "timeStamp:desc",
+            filter_by: filterBy || "active:=true",
             num_typos: 2,
             exhaustive_search: true,
         },
@@ -1052,10 +1120,10 @@ async function searchFromCollection(entity, qRaw, limit, page) {
         searchTimeMs: Number(data.search_time_ms || 0),
     };
 }
-async function searchEducationFromTypesense(qRaw, limit, page, entity) {
+async function searchEducationFromTypesense(qRaw, limit, page, entity, filterBy = "", sortBy = "") {
     const q = qRaw.trim().length === 0 ? "*" : qRaw.trim();
     if (entity) {
-        const one = await searchFromCollection(entity, qRaw, limit, page);
+        const one = await searchFromCollection(entity, qRaw, limit, page, filterBy, sortBy);
         return {
             q,
             page,
@@ -1067,7 +1135,7 @@ async function searchEducationFromTypesense(qRaw, limit, page, entity) {
         };
     }
     const perCollectionLimit = Math.max(limit, 20);
-    const results = await Promise.all(EDUCATION_ENTITIES.map((e) => searchFromCollection(e, qRaw, perCollectionLimit, page)));
+    const results = await Promise.all(EDUCATION_ENTITIES.map((e) => searchFromCollection(e, qRaw, perCollectionLimit, page, filterBy, sortBy)));
     const merged = results.flatMap((x) => x.hits);
     merged.sort((a, b) => {
         if (b.score !== a.score)
@@ -1213,7 +1281,12 @@ exports.f21_syncWorkoutsToTypesense = (0, firestore_1.onDocumentWritten)({
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (event) => {
-    return;
+    ensureAdmin();
+    if (!typesenseReady())
+        return;
+    const docId = String(event.params.docId || "");
+    const afterData = event.data?.after?.data();
+    await syncEducationDoc("workout", docId, afterData);
 });
 exports.f21_syncPastQuestionsToTypesense = (0, firestore_1.onDocumentWritten)({
     document: "questions/{docId}",
@@ -1266,10 +1339,12 @@ exports.f21_searchEducationCallable = (0, https_1.onCall)({
     const q = String(request.data?.q || "");
     const limit = Math.max(1, Math.min(MAX_LIMIT, Number(request.data?.limit || 20)));
     const page = Math.max(1, Number(request.data?.page || 1));
+    const filterBy = String(request.data?.filterBy || "").trim();
+    const sortBy = String(request.data?.sortBy || "").trim();
     const entityRaw = request.data?.entity;
     const entity = isEducationEntity(entityRaw) ? entityRaw : undefined;
     try {
-        return await searchEducationFromTypesense(q, limit, page, entity);
+        return await searchEducationFromTypesense(q, limit, page, entity, filterBy, sortBy);
     }
     catch (err) {
         const axiosErr = err;

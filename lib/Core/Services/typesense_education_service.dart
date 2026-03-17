@@ -40,20 +40,45 @@ class TypesenseEducationSearchService {
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'us-central1');
 
+  static String quoteFilterValue(String value) {
+    final normalized = value.trim().replaceAll('`', r'\`');
+    return '`$normalized`';
+  }
+
+  static String filterIn(String field, List<String> values) {
+    final normalized = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .map(quoteFilterValue)
+        .toList(growable: false);
+    return '$field:=[${normalized.join(',')}]';
+  }
+
   Future<EducationTypesenseSearchResult> searchHits({
     required EducationTypesenseEntity entity,
     required String query,
     int limit = 30,
     int page = 1,
+    String? filterBy,
+    String? sortBy,
   }) async {
     final normalized = query.trim();
     final callable = _functions.httpsCallable('f21_searchEducationCallable');
-    final response = await callable.call(<String, dynamic>{
+    final payload = <String, dynamic>{
       'q': normalized.isEmpty ? '*' : normalized,
       'entity': entity.apiLabel,
       'limit': limit,
       'page': page,
-    });
+    };
+    final filter = filterBy?.trim() ?? '';
+    if (filter.isNotEmpty) {
+      payload['filterBy'] = filter;
+    }
+    final sort = sortBy?.trim() ?? '';
+    if (sort.isNotEmpty) {
+      payload['sortBy'] = sort;
+    }
+    final response = await callable.call(payload);
     final data = Map<String, dynamic>.from(response.data as Map? ?? {});
     final hits = ((data['hits'] as List<dynamic>?) ?? const <dynamic>[])
         .whereType<Map>()
@@ -72,6 +97,8 @@ class TypesenseEducationSearchService {
     required String query,
     int limit = 30,
     int page = 1,
+    String? filterBy,
+    String? sortBy,
   }) async {
     final normalized = query.trim();
     if (normalized.isEmpty) return [];
@@ -80,6 +107,8 @@ class TypesenseEducationSearchService {
       query: normalized,
       limit: limit,
       page: page,
+      filterBy: filterBy,
+      sortBy: sortBy,
     );
     final ids = <String>[];
     for (final hitMap in result.hits) {
