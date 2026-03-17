@@ -14,6 +14,7 @@ class SavedJobsController extends GetxController {
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;
   static const int _whereInChunkSize = 10;
+  Position? _lastResolvedPosition;
 
   @override
   void onInit() {
@@ -64,6 +65,7 @@ class SavedJobsController extends GetxController {
   Future<void> getStartData({
     bool silent = false,
     bool forceRefresh = false,
+    bool allowLocationPrompt = false,
   }) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
@@ -76,7 +78,12 @@ class SavedJobsController extends GetxController {
       uid,
       forceRefresh: forceRefresh,
     );
-    await _loadSavedJobs(uid, savedRecords, silent: silent);
+    await _loadSavedJobs(
+      uid,
+      savedRecords,
+      silent: silent,
+      allowLocationPrompt: allowLocationPrompt,
+    );
   }
 
   Future<void> _loadSavedJobs(
@@ -84,6 +91,7 @@ class SavedJobsController extends GetxController {
     List<SavedJobRecord> savedRecords, {
     bool silent = false,
     bool cacheOnlyJobs = false,
+    bool allowLocationPrompt = false,
   }) async {
     final shouldShowLoader = !silent && list.isEmpty;
     if (shouldShowLoader) {
@@ -151,30 +159,14 @@ class SavedJobsController extends GetxController {
           .map((id) => jobsById[id]!)
           .toList();
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-
-      if (!serviceEnabled ||
-          permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      final position = await _resolveUserPosition(
+        allowPermissionPrompt: allowLocationPrompt,
+      );
+      if (position == null) {
         jobs.shuffle();
         list.value = jobs;
         return;
       }
-
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          list.value = jobs;
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings:
-            const LocationSettings(accuracy: LocationAccuracy.high),
-      );
       double userLat = position.latitude;
       double userLong = position.longitude;
 
@@ -199,6 +191,50 @@ class SavedJobsController extends GetxController {
       if (shouldShowLoader || list.isEmpty) {
         isLoading.value = false;
       }
+    }
+  }
+
+  Future<Position?> _resolveUserPosition({
+    required bool allowPermissionPrompt,
+  }) async {
+    try {
+      final lastResolved = _lastResolvedPosition;
+      if (lastResolved != null) {
+        return lastResolved;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return null;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        if (!allowPermissionPrompt) {
+          return await Geolocator.getLastKnownPosition();
+        }
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return await Geolocator.getLastKnownPosition();
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        _lastResolvedPosition = lastKnown;
+        return lastKnown;
+      }
+
+      final current = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      _lastResolvedPosition = current;
+      return current;
+    } catch (_) {
+      return null;
     }
   }
 }

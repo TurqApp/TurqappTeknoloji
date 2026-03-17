@@ -9,6 +9,7 @@ import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Core/Utils/avatar_url.dart';
 import '../../../Services/current_user_service.dart';
 import '../../../Services/user_analytics_service.dart';
+import '../StoryMaker/story_model.dart';
 import 'story_user_model.dart';
 
 class StoryRowController extends GetxController {
@@ -20,6 +21,7 @@ class StoryRowController extends GetxController {
     }
     return Get.put(UserProfileCacheService(), permanent: true);
   }
+
   final int initialLimit = 30;
   final int fullLimit = 100;
   bool _backgroundScheduled = false;
@@ -95,18 +97,31 @@ class StoryRowController extends GetxController {
       if (myUid != null) {
         final data = await _userCache.getProfile(
           myUid,
-          preferCache: false,
+          preferCache: true,
           cacheOnly: !ContentPolicy.isConnected,
         );
         if (data != null) {
+          final existingIndex =
+              users.indexWhere((item) => item.userID == myUid);
+          final List<StoryModel> existingStories = existingIndex == -1
+              ? const <StoryModel>[]
+              : users[existingIndex].stories;
           final myUser = StoryUserModel(
             nickname: _resolveStoryNickname(data),
             avatarUrl: _resolveAvatar(data),
             fullName: "${data['firstName'] ?? ""} ${data['lastName'] ?? ""}",
             userID: myUid,
-            stories: [], // Boş hikayelerle başla
+            stories: existingStories,
           );
-          users.add(myUser);
+          if (existingIndex == -1) {
+            users.insert(0, myUser);
+          } else {
+            users[existingIndex] = myUser;
+            if (existingIndex != 0) {
+              users.removeAt(existingIndex);
+              users.insert(0, myUser);
+            }
+          }
           unawaited(_warmVisibleAvatarFiles(users, take: 6));
         }
       }
