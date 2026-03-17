@@ -6,11 +6,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Models/job_model.dart';
 
 class SavedJobsController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<JobModel> list = <JobModel>[].obs;
   RxBool isLoading = false.obs;
   static const int _whereInChunkSize = 10;
@@ -53,7 +55,12 @@ class SavedJobsController extends GetxController {
           cacheOnlyJobs: true,
         );
         if (list.isNotEmpty) {
-          await getStartData(silent: true, forceRefresh: true);
+          if (SilentRefreshGate.shouldRefresh(
+            'jobs:saved:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+            unawaited(getStartData(silent: true, forceRefresh: true));
+          }
           return;
         }
       }
@@ -84,6 +91,7 @@ class SavedJobsController extends GetxController {
       silent: silent,
       allowLocationPrompt: allowLocationPrompt,
     );
+    SilentRefreshGate.markRefreshed('jobs:saved:$uid');
   }
 
   Future<void> _loadSavedJobs(
