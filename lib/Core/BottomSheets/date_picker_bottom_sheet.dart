@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DatePickerBottomSheet extends StatelessWidget {
@@ -32,23 +33,7 @@ class DatePickerBottomSheet extends StatelessWidget {
         color: Colors.white,
         child: Column(
           children: [
-            Container(
-              width: 50,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.all(Radius.circular(50)),
-              ),
-            ),
-            8.ph,
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontFamily: "MontserratMedium",
-              ),
-            ),
+            AppSheetHeader(title: title),
             Expanded(
               child: Align(
                 alignment: Alignment.center,

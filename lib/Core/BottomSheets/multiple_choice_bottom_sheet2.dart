@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 
 class MultiSelectBottomSheet2 extends StatelessWidget {
@@ -58,23 +59,10 @@ class MultiSelectBottomSheet2 extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 50,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey,
-              borderRadius: BorderRadius.all(Radius.circular(50)),
-            ),
+          AppSheetHeader(
+            title: title,
+            padding: const EdgeInsets.only(bottom: 12),
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: TextStyles.textFieldTitle.copyWith(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: Colors.grey.withAlpha(50),

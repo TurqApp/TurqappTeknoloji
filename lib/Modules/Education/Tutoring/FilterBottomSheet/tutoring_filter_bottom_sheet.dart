@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -24,18 +25,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
         constraints: BoxConstraints(maxHeight: Get.height * 0.9),
         child: Column(
           children: [
-            Center(
-              child: Container(
-                height: 4,
-                width: 50,
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            8.ph,
-            Center(child: Text("Filtreler", style: TextStyles.bold20Black)),
+            const AppSheetHeader(title: "Filtreler"),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(

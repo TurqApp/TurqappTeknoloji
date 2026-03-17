@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Models/notification_model.dart';
@@ -468,40 +469,19 @@ class InAppNotifications extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(99),
-                ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 12, 12, 0),
+                child: AppSheetHeader(title: "Bildirimler"),
               ),
-              const SizedBox(height: 8),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        "Bildirimler",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: "MontserratBold",
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      "${g.count} adet",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  "${g.count} adet",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                    fontFamily: "MontserratMedium",
+                  ),
                 ),
               ),
               const Divider(height: 1),

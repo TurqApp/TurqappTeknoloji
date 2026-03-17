@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/full_screen_image_viewer.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments_controller.dart';
@@ -45,27 +46,13 @@ class AntremanComments extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Padding(
-              padding: EdgeInsets.only(top: 12),
-              child: Container(
-                height: 4,
-                width: 50,
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(title: "Yorumlar"),
             ),
-            SizedBox(height: 12),
-            Text(
-              "Yorumlar",
-              style: TextStyles.textFieldTitle.copyWith(fontSize: 20),
-            ),
-            SizedBox(height: 10),
             Expanded(
               child: Obx(() {
-                if (controller.isLoading.value &&
-                    controller.comments.isEmpty) {
+                if (controller.isLoading.value && controller.comments.isEmpty) {
                   return Center(child: CupertinoActivityIndicator());
                 }
                 if (controller.comments.isEmpty) {

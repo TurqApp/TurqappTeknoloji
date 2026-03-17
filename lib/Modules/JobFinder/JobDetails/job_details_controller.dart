@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
@@ -361,21 +363,14 @@ class JobDetailsController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Haritalarda Aç',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontFamily: 'MontserratBold',
-                  ),
+              const AppSheetHeader(title: 'Haritalarda Aç'),
+              AppSheetActionTile(
+                leading: Image.asset(
+                  'assets/icons/googlemaps.webp',
+                  width: 30,
+                  height: 30,
                 ),
-              ),
-              const SizedBox(height: 12),
-              _mapTile(
-                icon: 'assets/icons/googlemaps.webp',
-                text: 'Google Haritalar\'da Aç',
+                title: 'Google Haritalar\'da Aç',
                 onTap: () async {
                   final url = Uri.parse(
                       'https://www.google.com/maps/search/?api=1&query=$lat,$long');
@@ -386,9 +381,13 @@ class JobDetailsController extends GetxController {
                 },
               ),
               if (Platform.isIOS)
-                _mapTile(
-                  icon: 'assets/icons/applemaps.webp',
-                  text: 'Apple Haritalar\'da Aç',
+                AppSheetActionTile(
+                  leading: Image.asset(
+                    'assets/icons/applemaps.webp',
+                    width: 30,
+                    height: 30,
+                  ),
+                  title: 'Apple Haritalar\'da Aç',
                   onTap: () async {
                     final url =
                         Uri.parse('http://maps.apple.com/?q=$lat,$long');
@@ -399,9 +398,13 @@ class JobDetailsController extends GetxController {
                     Get.back();
                   },
                 ),
-              _mapTile(
-                icon: 'assets/icons/yandexmaps.webp',
-                text: 'Yandex Haritalar\'da Aç',
+              AppSheetActionTile(
+                leading: Image.asset(
+                  'assets/icons/yandexmaps.webp',
+                  width: 30,
+                  height: 30,
+                ),
+                title: 'Yandex Haritalar\'da Aç',
                 onTap: () async {
                   final appUrl = Uri.parse(
                       'yandexmaps://maps.yandex.ru/?ll=$long,$lat&z=10');
@@ -425,30 +428,6 @@ class JobDetailsController extends GetxController {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-    );
-  }
-
-  Widget _mapTile({
-    required String icon,
-    required String text,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: Image.asset(icon),
-            ),
-            const SizedBox(width: 12),
-            Text(text, style: const TextStyle(fontFamily: 'MontserratBold')),
-          ],
-        ),
-      ),
     );
   }
 

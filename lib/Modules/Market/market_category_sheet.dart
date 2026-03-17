@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
@@ -80,25 +81,7 @@ class _MarketCategorySheetState extends State<MarketCategorySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withAlpha(120),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            const Text(
-              'Kategoriler',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontFamily: 'MontserratBold',
-              ),
-            ),
+            const AppSheetHeader(title: 'Kategoriler'),
             const SizedBox(height: 12),
             _selectorTile(
               label: _selectedTopLabel ?? 'Ana kategori',

@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
@@ -15,6 +18,8 @@ import '../../Themes/app_assets.dart';
 
 class JobFinderController extends GetxController {
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_job_listing_selection';
 
   final JobRepository _jobRepository = JobRepository.ensure();
   final CityDirectoryService _cityDirectoryService =
@@ -52,9 +57,40 @@ class JobFinderController extends GetxController {
   double? _userLat;
   double? _userLong;
 
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      listingSelection.value = stored == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     loadSehirler();
     unawaited(_bootstrapStartData());
     search.addListener(_searchListener);
@@ -74,6 +110,11 @@ class JobFinderController extends GetxController {
 
   void onInnerPageChanged(int index) {
     innerTabIndex.value = index;
+  }
+
+  void toggleListingSelection() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
   }
 
   Future<void> refreshJob(String docID) async {
@@ -264,26 +305,7 @@ class JobFinderController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  "Sıralama",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: "MontserratBold",
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const AppSheetHeader(title: "Sıralama"),
                 buildRow(0, "En Yeni", () {
                   short.value = 0;
                   applySorting(list);
@@ -342,26 +364,7 @@ class JobFinderController extends GetxController {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    "Filtreler",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  const AppSheetHeader(title: "Filtreler"),
                   const Text(
                     "Çalışma Türü",
                     style: TextStyle(fontFamily: "MontserratMedium"),

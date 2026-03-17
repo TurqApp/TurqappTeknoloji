@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
@@ -66,8 +67,8 @@ class OpticalFormEntryController extends GetxController {
   }
 
   Future<void> getUserData(String userID) async {
-    final data = await _userRepository.getUserRaw(userID) ??
-        const <String, dynamic>{};
+    final data =
+        await _userRepository.getUserRaw(userID) ?? const <String, dynamic>{};
     final firstName = (data["firstName"] ?? "").toString();
     final lastName = (data["lastName"] ?? "").toString();
     final avatarUrl = (data["avatarUrl"] ??
@@ -153,61 +154,9 @@ class OpticalFormEntryController extends GetxController {
   }
 
   void showAlertDialog(String title, String desc) {
-    Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                desc,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () => Get.back(),
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: const Text(
-                    "Tamam",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    infoAlert(
+      title: title,
+      message: desc,
     );
   }
 }

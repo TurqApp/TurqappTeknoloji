@@ -1,6 +1,8 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_action_tile.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> showMapsSheetWithAdres(String adres) async {
@@ -18,23 +20,10 @@ Future<void> showMapsSheetWithAdres(String adres) async {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  "Haritalarda Aç",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: "MontserratBold",
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
+            const AppSheetHeader(title: "Haritalarda Aç"),
 
             // GOOGLE MAPS
-            GestureDetector(
+            AppSheetActionTile(
               onTap: () async {
                 final url = Uri.parse(
                     "https://www.google.com/maps/search/?api=1&query=$encodedAdres");
@@ -43,32 +32,17 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 }
                 Get.back();
               },
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 30,
-                      height: 30,
-                      child: Image.asset("assets/icons/googlemaps.webp"),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      "Google Haritalar'da Aç",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                  ],
-                ),
+              leading: SizedBox(
+                width: 30,
+                height: 30,
+                child: Image.asset("assets/icons/googlemaps.webp"),
               ),
+              title: "Google Haritalar'da Aç",
             ),
 
             // APPLE MAPS (sadece iOS'ta)
             if (Platform.isIOS)
-              GestureDetector(
+              AppSheetActionTile(
                 onTap: () async {
                   final url =
                       Uri.parse("http://maps.apple.com/?q=$encodedAdres");
@@ -77,31 +51,16 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                   }
                   Get.back();
                 },
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 30,
-                        height: 30,
-                        child: Image.asset("assets/icons/applemaps.webp"),
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        "Apple Haritalar'da Aç",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
-                      ),
-                    ],
-                  ),
+                leading: SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: Image.asset("assets/icons/applemaps.webp"),
                 ),
+                title: "Apple Haritalar'da Aç",
               ),
 
             // YANDEX MAPS
-            GestureDetector(
+            AppSheetActionTile(
               onTap: () async {
                 final yandexAppUrl = Uri.parse(
                     "yandexmaps://maps.yandex.ru/?text=$encodedAdres");
@@ -116,31 +75,16 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 }
                 Get.back();
               },
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      child: Image.asset("assets/icons/yandexmaps.webp"),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      "Yandex Haritalar'da Aç",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                  ],
+              leading: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
                 ),
+                child: Image.asset("assets/icons/yandexmaps.webp"),
               ),
+              title: "Yandex Haritalar'da Aç",
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryContentProfiles/story_content_profiles.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart';
 import '../../../../Core/empty_row.dart';
@@ -16,33 +17,9 @@ class StorySeens extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Text(
-                    "Görüntüleme (${controller.totalSeen})",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold"),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  )
-                ],
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(
+                title: "Görüntüleme (${controller.totalSeen})",
               ),
             ),
             Expanded(

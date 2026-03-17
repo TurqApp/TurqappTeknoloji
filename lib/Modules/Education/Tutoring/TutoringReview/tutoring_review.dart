@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail_controller.dart';
 
@@ -22,14 +23,7 @@ void showTutoringReviewBottomSheet({
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Değerlendirme Yap",
-            style: TextStyle(
-              fontFamily: "MontserratBold",
-              fontSize: 18,
-              color: Colors.black,
-            ),
-          ),
+          const AppSheetHeader(title: "Değerlendirme Yap"),
           const SizedBox(height: 16),
           // Star rating
           Center(

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/StoryCommentUser/story_comment_user.dart';
@@ -28,36 +29,12 @@ class StoryComments extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Divider(
-                    color: Colors.grey.withAlpha(50),
-                  ),
-                ),
-                SizedBox(
-                  width: 12,
-                ),
-                Obx(() {
-                  return Text(
-                    "Yorumlar (${controller.totalComment.value})",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold"),
-                  );
-                }),
-                SizedBox(
-                  width: 12,
-                ),
-                Expanded(
-                  child: Divider(
-                    color: Colors.grey.withAlpha(50),
-                  ),
-                )
-              ],
+          Obx(
+            () => Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(
+                title: "Yorumlar (${controller.totalComment.value})",
+              ),
             ),
           ),
           Obx(() {

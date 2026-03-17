@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
 
@@ -83,25 +84,7 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(120),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const Text(
-                'Filtreler',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: 'MontserratBold',
-                ),
-              ),
+              const AppSheetHeader(title: 'Filtreler'),
               const SizedBox(height: 16),
               const Text(
                 'Şehir',
@@ -139,7 +122,9 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
                       children: [
                         Expanded(
                           child: Text(
-                            selectedCity.isEmpty ? 'Tüm Şehirler' : selectedCity,
+                            selectedCity.isEmpty
+                                ? 'Tüm Şehirler'
+                                : selectedCity,
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 14,

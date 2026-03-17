@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
 class AppBottomSheet extends StatelessWidget {
   final List<dynamic> list;
@@ -53,29 +54,7 @@ class AppBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 50,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey,
-              borderRadius: BorderRadius.all(Radius.circular(50)),
-            ),
-          ),
-          SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratMedium",
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
+          AppSheetHeader(title: title),
           Wrap(
             children: [
               SizedBox(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 class ListBottomSheet extends StatefulWidget {
@@ -124,20 +125,7 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Text(
-                widget.title,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+          AppSheetHeader(title: widget.title),
           ValueListenableBuilder<bool>(
             valueListenable: focusNotifier,
             builder: (context, hasFocus, child) {
@@ -179,8 +167,7 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
                               color: Colors.pinkAccent,
                             ),
                     ),
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 0),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                   ),
                   style: const TextStyle(
                     color: Colors.black,
@@ -267,8 +254,8 @@ class _ListBottomSheetState extends State<ListBottomSheet> {
                                           alignment: Alignment.center,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: controller.startSelection
-                                                        .value ==
+                                            color: controller
+                                                        .startSelection.value ==
                                                     item
                                                 ? Colors.black
                                                 : Colors.transparent,

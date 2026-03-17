@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -93,26 +94,7 @@ class MarketContactService {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withAlpha(100),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const Text(
-                  'Telefon',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 18,
-                    fontFamily: 'MontserratBold',
-                  ),
-                ),
+                const AppSheetHeader(title: 'Telefon'),
                 const SizedBox(height: 14),
                 Container(
                   height: 50,

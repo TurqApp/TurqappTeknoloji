@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 
 import '../../../../Core/empty_row.dart';
 import '../StoryContentProfiles/story_content_profiles.dart';
@@ -17,33 +18,9 @@ class StoryLikes extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Text(
-                    "Beğeniler (${controller.totalLike})",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold"),
-                  ),
-                  SizedBox(
-                    width: 12,
-                  ),
-                  Expanded(
-                    child: Divider(
-                      color: Colors.grey.withAlpha(50),
-                    ),
-                  )
-                ],
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              child: AppSheetHeader(
+                title: "Beğeniler (${controller.totalLike})",
               ),
             ),
             Expanded(
