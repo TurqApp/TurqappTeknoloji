@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -21,6 +22,7 @@ part 'cv_controller_persistence_part.dart';
 
 class CvController extends GetxController {
   final CvRepository _cvRepository = CvRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var selection = 0.obs;
   TextEditingController firstName = TextEditingController(text: "");
   TextEditingController lastName = TextEditingController(text: "");
@@ -157,7 +159,12 @@ class CvController extends GetxController {
     if (cached != null) {
       _applyCvData(cached);
       ensureDefaultPhoto();
-      unawaited(loadDataFromFirestore(forceRefresh: true));
+      if (SilentRefreshGate.shouldRefresh(
+        'profile:cv:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(loadDataFromFirestore(forceRefresh: true));
+      }
       return;
     }
     await loadDataFromFirestore();

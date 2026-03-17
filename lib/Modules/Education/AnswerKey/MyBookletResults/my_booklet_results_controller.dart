@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
@@ -10,6 +11,7 @@ import 'package:turqappv2/Models/Education/optical_form_model.dart';
 class MyBookletResultsController extends GetxController {
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletResultModel>[].obs;
   final optikSonuclari = <OpticalFormModel>[].obs;
   final selection = 0.obs;
@@ -52,7 +54,12 @@ class MyBookletResultsController extends GetxController {
         cachedOptikler.sort((a, b) => b.baslangic.compareTo(a.baslangic));
         optikSonuclari.assignAll(cachedOptikler);
         isLoading.value = false;
-        await refreshData(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'answer_key:results:$uid',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(refreshData(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -70,8 +77,7 @@ class MyBookletResultsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       _assignBookletResults(snapshot);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// collectionGroup query ile N+1 problemi çözüldü.
@@ -89,14 +95,14 @@ class MyBookletResultsController extends GetxController {
 
       tempList.sort((a, b) => b.baslangic.compareTo(a.baslangic));
       optikSonuclari.assignAll(tempList);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> refreshData({
     bool silent = false,
     bool forceRefresh = false,
   }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final shouldShowLoader = !silent && list.isEmpty && optikSonuclari.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;
@@ -105,6 +111,9 @@ class MyBookletResultsController extends GetxController {
       fetchBookletResults(forceRefresh: forceRefresh),
       fetchOptikSonuclari(forceRefresh: forceRefresh),
     ]);
+    if (uid.isNotEmpty) {
+      SilentRefreshGate.markRefreshed('answer_key:results:$uid');
+    }
     if (shouldShowLoader || (list.isEmpty && optikSonuclari.isEmpty)) {
       isLoading.value = false;
     }

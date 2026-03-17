@@ -8,12 +8,14 @@ import 'package:turqappv2/Models/social_media_model.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'add_social_media_bottom_sheet.dart';
 
 class SocialMediaController extends GetxController {
   final SocialMediaLinksRepository _linksRepository =
       SocialMediaLinksRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   RxList<SocialMediaModel> list = <SocialMediaModel>[].obs;
 
   var selected = "".obs;
@@ -96,7 +98,12 @@ class SocialMediaController extends GetxController {
     if (cached.isNotEmpty) {
       list.value = cached;
       isLoading.value = false;
-      unawaited(getData(silent: true, forceRefresh: true));
+      if (SilentRefreshGate.shouldRefresh(
+        'profile:social_media:$currentUid',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(getData(silent: true, forceRefresh: true));
+      }
       return;
     }
     await getData();
@@ -115,6 +122,7 @@ class SocialMediaController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      SilentRefreshGate.markRefreshed('profile:social_media:$currentUid');
     } finally {
       isLoading.value = false;
     }

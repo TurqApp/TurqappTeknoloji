@@ -5,11 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class MyPracticeExamsController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
 
   final RxList<SinavModel> exams = <SinavModel>[].obs;
   final RxBool isLoading = true.obs;
@@ -33,7 +35,12 @@ class MyPracticeExamsController extends GetxController {
       if (cached.isNotEmpty) {
         exams.assignAll(cached);
         isLoading.value = false;
-        await fetchExams(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'practice_exams:owner:$uid',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(fetchExams(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -63,6 +70,7 @@ class MyPracticeExamsController extends GetxController {
         forceRefresh: forceRefresh,
       );
       exams.assignAll(items);
+      SilentRefreshGate.markRefreshed('practice_exams:owner:$uid');
     } catch (e) {
       log('MyPracticeExamsController.fetchExams error: $e');
       AppSnackbar('Hata', 'Sınavlar yüklenemedi.');

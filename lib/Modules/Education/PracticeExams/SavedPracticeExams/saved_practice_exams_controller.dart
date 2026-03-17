@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
@@ -11,6 +12,7 @@ class SavedPracticeExamsController extends GetxController {
       PracticeExamRepository.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final RxList<String> savedExamIds = <String>[].obs;
   final RxList<SinavModel> savedExams = <SinavModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -41,7 +43,12 @@ class SavedPracticeExamsController extends GetxController {
       if (exams.isNotEmpty) {
         savedExams.assignAll(exams);
         isLoading.value = false;
-        await loadSavedExams(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'practice_exams:saved:$uid',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(loadSavedExams(silent: true, forceRefresh: true));
+        }
         return;
       }
     }
@@ -79,6 +86,7 @@ class SavedPracticeExamsController extends GetxController {
         preferCache: !forceRefresh,
       );
       savedExams.assignAll(exams);
+      SilentRefreshGate.markRefreshed('practice_exams:saved:$uid');
     } finally {
       isLoading.value = false;
     }

@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class SinavSonuclarimController extends GetxController {
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   var list = <SinavModel>[].obs;
   var ustBar = true.obs;
   var isLoading = true.obs;
@@ -47,7 +49,12 @@ class SinavSonuclarimController extends GetxController {
     if (cached.isNotEmpty) {
       list.assignAll(cached);
       isLoading.value = false;
-      await findAndGetSinavlar(silent: true, forceRefresh: true);
+      if (SilentRefreshGate.shouldRefresh(
+        'practice_exams:results:$currentUserID',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(findAndGetSinavlar(silent: true, forceRefresh: true));
+      }
       return;
     }
     await findAndGetSinavlar();
@@ -68,6 +75,7 @@ class SinavSonuclarimController extends GetxController {
         forceRefresh: forceRefresh,
       );
       list.assignAll(exams);
+      SilentRefreshGate.markRefreshed('practice_exams:results:$currentUserID');
     } catch (e) {
       log("SinavSonuclarimController error: $e");
       AppSnackbar("Hata", "Sınav sonuçları yüklenemedi.");

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class CategoryBasedAnswerKeyController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String sinavTuru;
   final list = <BookletModel>[].obs;
   final filteredList = <BookletModel>[].obs;
@@ -38,7 +40,12 @@ class CategoryBasedAnswerKeyController extends GetxController {
         list.assignAll(cached);
         filteredList.assignAll(cached);
         isLoading.value = false;
-        await getData(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'answer_key:type:$sinavTuru',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(getData(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -62,6 +69,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
       );
       list.assignAll(items);
       filteredList.assignAll(list);
+      SilentRefreshGate.markRefreshed('answer_key:type:$sinavTuru');
     } catch (_) {
     } finally {
       if (shouldShowLoader || list.isEmpty) {

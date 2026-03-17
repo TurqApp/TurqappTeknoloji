@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Repositories/optical_form_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
 
@@ -11,6 +12,7 @@ class OpticsAndBooksPublishedController extends GetxController {
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   final OpticalFormRepository _opticalFormRepository =
       OpticalFormRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;
   final optikler = <OpticalFormModel>[].obs;
   final selection = 0.obs;
@@ -59,7 +61,12 @@ class OpticsAndBooksPublishedController extends GetxController {
         list.assignAll(cachedBooks);
         optikler.assignAll(cachedOptikler);
         isLoading.value = false;
-        await loadData(silent: true, forceRefresh: true);
+        if (SilentRefreshGate.shouldRefresh(
+          'answer_key:published:$uid',
+          minInterval: _silentRefreshInterval,
+        )) {
+          unawaited(loadData(silent: true, forceRefresh: true));
+        }
         return;
       }
     } catch (_) {}
@@ -70,6 +77,7 @@ class OpticsAndBooksPublishedController extends GetxController {
     bool silent = false,
     bool forceRefresh = false,
   }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final shouldShowLoader = !silent && list.isEmpty && optikler.isEmpty;
     if (shouldShowLoader) {
       isLoading.value = true;
@@ -78,6 +86,9 @@ class OpticsAndBooksPublishedController extends GetxController {
       getData(forceRefresh: forceRefresh),
       getOptikler(forceRefresh: forceRefresh),
     ]);
+    if (uid.isNotEmpty) {
+      SilentRefreshGate.markRefreshed('answer_key:published:$uid');
+    }
     if (shouldShowLoader || (list.isEmpty && optikler.isEmpty)) {
       isLoading.value = false;
     }

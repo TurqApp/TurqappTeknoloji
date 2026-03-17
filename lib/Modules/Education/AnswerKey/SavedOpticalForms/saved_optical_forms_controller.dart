@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class SavedOpticalFormsController extends GetxController {
   final BookletRepository _bookletRepository = BookletRepository.ensure();
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final list = <BookletModel>[].obs;
   final isLoading = false.obs;
   final UserSubcollectionRepository _userSubcollectionRepository =
@@ -43,7 +45,12 @@ class SavedOpticalFormsController extends GetxController {
         if (books.isNotEmpty) {
           list.assignAll(books);
           isLoading.value = false;
-          await getData(silent: true, forceRefresh: true);
+          if (SilentRefreshGate.shouldRefresh(
+            'answer_key:saved_books:$uid',
+            minInterval: _silentRefreshInterval,
+          )) {
+            unawaited(getData(silent: true, forceRefresh: true));
+          }
           return;
         }
       }
@@ -75,6 +82,7 @@ class SavedOpticalFormsController extends GetxController {
         preferCache: true,
       );
       list.assignAll(books);
+      SilentRefreshGate.markRefreshed('answer_key:saved_books:$uid');
     } catch (_) {
     } finally {
       if (shouldShowLoader || list.isEmpty) {

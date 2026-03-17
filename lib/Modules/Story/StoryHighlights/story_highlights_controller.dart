@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Repositories/story_highlights_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'story_highlight_model.dart';
 
 class StoryHighlightsController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
   final String userId;
   StoryHighlightsController({required this.userId});
   final StoryHighlightsRepository _repository =
@@ -31,7 +33,12 @@ class StoryHighlightsController extends GetxController {
     if (cached.isNotEmpty) {
       highlights.assignAll(cached);
       isLoading.value = false;
-      unawaited(loadHighlights(silent: true, forceRefresh: true));
+      if (SilentRefreshGate.shouldRefresh(
+        'story:highlights:$userId',
+        minInterval: _silentRefreshInterval,
+      )) {
+        unawaited(loadHighlights(silent: true, forceRefresh: true));
+      }
       unawaited(_hydrateMissingCoverUrls());
       return;
     }
@@ -51,6 +58,7 @@ class StoryHighlightsController extends GetxController {
         preferCache: !forceRefresh,
         forceRefresh: forceRefresh,
       );
+      SilentRefreshGate.markRefreshed('story:highlights:$userId');
       await _hydrateMissingCoverUrls();
     } catch (_) {
     } finally {
