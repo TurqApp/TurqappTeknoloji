@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -23,9 +22,9 @@ class TutoringController extends GetxController {
   var users = <String, Map<String, dynamic>>{}.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
-  DocumentSnapshot? _lastDocument;
   Timer? _searchDebounce;
   int _searchToken = 0;
+  int _currentPage = 1;
 
   static const int _pageSize = 30;
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
@@ -72,14 +71,22 @@ class TutoringController extends GetxController {
   Future<void> listenToTutoringData() async {
     isLoading.value = true;
     hasMore.value = true;
-    _lastDocument = null;
+    _currentPage = 1;
     try {
-      final page = await _tutoringRepository.fetchPage(limit: _pageSize);
-      _lastDocument = page.lastDocument;
-      hasMore.value = page.hasMore;
-      final userIds = page.items.map((t) => t.userID).toSet();
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
+        limit: _pageSize,
+        page: _currentPage,
+      );
+      final items = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      hasMore.value = (_currentPage * _pageSize) < result.found;
+      final userIds = items.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       await _batchFetchUsers(userIds);
-      tutoringList.value = _applyPersonalization(page.items);
+      tutoringList.value = _applyPersonalization(items);
     } catch (_) {
       tutoringList.value = [];
     } finally {
@@ -88,23 +95,30 @@ class TutoringController extends GetxController {
   }
 
   Future<void> loadMore() async {
-    if (_lastDocument == null || isLoadingMore.value || !hasMore.value) return;
+    if (isLoadingMore.value || !hasMore.value) return;
 
     isLoadingMore.value = true;
     try {
-      final page = await _tutoringRepository.fetchPage(
-        startAfter: _lastDocument,
+      final nextPage = _currentPage + 1;
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
         limit: _pageSize,
+        page: nextPage,
       );
-      final newItems = page.items;
-      _lastDocument = page.lastDocument;
-      hasMore.value = page.hasMore;
+      final newItems = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      hasMore.value = (nextPage * _pageSize) < result.found;
+      _currentPage = nextPage;
 
       // Batch fetch users for new items
-      final userIds = newItems.map((t) => t.userID).toSet();
+      final userIds = newItems.map((t) => t.userID).where((id) => id.isNotEmpty).toSet();
       await _batchFetchUsers(userIds);
-
-      tutoringList.addAll(newItems);
+      final existingIds = tutoringList.map((item) => item.docID).toSet();
+      final merged = newItems.where((item) => !existingIds.contains(item.docID));
+      tutoringList.addAll(merged);
     } catch (_) {
     } finally {
       isLoadingMore.value = false;
@@ -131,16 +145,19 @@ class TutoringController extends GetxController {
   Future<void> _searchFromTypesense(String query, int token) async {
     final normalized = query.trim();
     try {
-      final docIds =
-          await TypesenseEducationSearchService.instance.searchDocIds(
+      final result = await TypesenseEducationSearchService.instance.searchHits(
         entity: EducationTypesenseEntity.tutoring,
         query: normalized,
         limit: 40,
+        page: 1,
       );
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
-
-      final results = await _fetchByDocIds(docIds);
+      final results = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      await _batchFetchUsers(results.map((t) => t.userID).where((id) => id.isNotEmpty).toSet());
       if (token != _searchToken || searchQuery.value.trim() != normalized)
         return;
       searchResults.assignAll(_applyPersonalization(results));
@@ -153,12 +170,6 @@ class TutoringController extends GetxController {
         isSearchLoading.value = false;
       }
     }
-  }
-
-  Future<List<TutoringModel>> _fetchByDocIds(List<String> docIds) async {
-    final results = await _tutoringRepository.fetchByIds(docIds);
-    await _batchFetchUsers(results.map((t) => t.userID).toSet());
-    return results;
   }
 
   /// Kişiselleştirilmiş sıralama puanı.
@@ -266,6 +277,10 @@ extension TutoringModelExtension on TutoringModel {
     double? long,
     bool? verified,
     List<String>? verificationDocs,
+    String? avatarUrl,
+    String? displayName,
+    String? nickname,
+    String? rozet,
   }) {
     return TutoringModel(
       docID: docID ?? this.docID,
@@ -296,6 +311,10 @@ extension TutoringModelExtension on TutoringModel {
       long: long ?? this.long,
       verified: verified ?? this.verified,
       verificationDocs: verificationDocs ?? this.verificationDocs,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      displayName: displayName ?? this.displayName,
+      nickname: nickname ?? this.nickname,
+      rozet: rozet ?? this.rozet,
     );
   }
 }

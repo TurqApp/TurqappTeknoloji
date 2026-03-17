@@ -4,10 +4,11 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
-import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_bottom_sheet.dart';
@@ -23,6 +24,7 @@ import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutori
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutoringApplications/my_tutoring_applications.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_assets.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -132,23 +134,24 @@ class TutoringView extends StatelessWidget {
                     .toList();
               }
 
-              // Sıralama ölçütü
-              if (filterController.selectedLessonPlace.value!.contains(
-                'En Yeniler',
-              )) {
+              // Sıralama
+              if (filterController.selectedSort.value == 'En Yeni') {
+                filteredList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+              } else if (filterController.selectedSort.value ==
+                  'En Çok Görüntülenen') {
                 filteredList.sort(
-                  (a, b) => b.timeStamp.compareTo(a.timeStamp),
-                ); // Yeniden eskiye
-              } else if (filterController.selectedLessonPlace.value!
-                  .contains('Fiyat: Düşükten Yükseğe')) {
-                filteredList.sort(
-                  (a, b) => a.fiyat.compareTo(b.fiyat),
-                ); // Azdan çoğa
-              } else if (filterController.selectedLessonPlace.value!
-                  .contains('Fiyat: Yüksekten Düşüğe')) {
-                filteredList.sort(
-                  (a, b) => b.fiyat.compareTo(a.fiyat),
-                ); // Çoktan aza
+                  (a, b) => (b.viewCount ?? 0).compareTo(a.viewCount ?? 0),
+                );
+              } else if (filterController.selectedSort.value ==
+                  'Bana En Yakın') {
+                final userCity =
+                    (CurrentUserService.instance.currentUser?.city ?? '').trim();
+                filteredList.sort((a, b) {
+                  final aScore = a.sehir == userCity ? 1 : 0;
+                  final bScore = b.sehir == userCity ? 1 : 0;
+                  if (aScore != bScore) return bScore.compareTo(aScore);
+                  return b.timeStamp.compareTo(a.timeStamp);
+                });
               }
             }
 
@@ -162,54 +165,40 @@ class TutoringView extends StatelessWidget {
                     AppAssets.tutoring3,
                   ],
                 ),
-                16.ph,
-                TutoringCategoryWidget(categories: kategoriler),
                 if (!embedded) ...[
                   16.ph,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 50,
-                          margin: EdgeInsets.symmetric(horizontal: 15),
-                          child: CupertinoTextField(
-                            focusNode: tutoringController.focusNode,
-                            cursorColor: Colors.black,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TurqSearchBar(
+                            controller: TextEditingController(
+                              text: tutoringController.searchQuery.value,
                             ),
-                            placeholder: "Ara",
+                            hintText: "Ne tür ders arıyorsun ?",
+                            onTap: () => Get.to(() => const TutoringSearch()),
+                          ),
+                        ),
+                        8.pw,
+                        Obx(
+                          () => AppHeaderActionButton(
                             onTap: () {
-                              Get.to(() => TutoringSearch());
+                              viewModeController.toggleView();
                             },
-                            prefix: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Icon(
-                                AppIcons.search,
-                                color: Colors.pink,
-                              ),
+                            child: Icon(
+                              viewModeController.isGridView.value
+                                  ? AppIcons.squareGrid2
+                                  : AppIcons.list,
+                              color: Colors.black,
+                              size: 20,
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-                16.ph,
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Sana Özel", style: TextStyles.bold18Black),
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
+                        8.pw,
+                        Obx(
+                          () => AppHeaderActionButton(
+                            onTap: () {
                               closeKeyboard(context);
                               Get.bottomSheet(
                                 TutoringFilterBottomSheet(
@@ -226,29 +215,51 @@ class TutoringView extends StatelessWidget {
                                 applyFilterTrigger.value = true;
                               });
                             },
-                            icon: Icon(Icons.filter_alt_outlined),
-                            color: applyFilterTrigger.value
-                                ? Colors.pink
-                                : Colors.black,
-                          ),
-                          Obx(
-                            () => GestureDetector(
-                              onTap: () {
-                                viewModeController.toggleView();
-                              },
-                              child: Icon(
-                                viewModeController.isGridView.value
-                                    ? AppIcons.squareGrid2
-                                    : AppIcons.list,
-                              ),
+                            child: Icon(
+                              CupertinoIcons.arrow_up_arrow_down,
+                              color: applyFilterTrigger.value
+                                  ? Colors.black
+                                  : Colors.black,
+                              size: 20,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        8.pw,
+                        Obx(
+                          () => AppHeaderActionButton(
+                            onTap: () {
+                              closeKeyboard(context);
+                              Get.bottomSheet(
+                                TutoringFilterBottomSheet(
+                                  controller: tutoringController,
+                                ),
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(20),
+                                  ),
+                                ),
+                                isScrollControlled: true,
+                              ).then((_) {
+                                applyFilterTrigger.value = true;
+                              });
+                            },
+                            child: Icon(
+                              Icons.filter_alt_outlined,
+                              color: applyFilterTrigger.value
+                                  ? Colors.black
+                                  : Colors.black,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                8.ph,
+                ],
+                16.ph,
+                TutoringCategoryWidget(categories: kategoriler),
+                16.ph,
                 Obx(() {
                   if (tutoringController.isLoading.value) {
                     return Center(child: CupertinoActivityIndicator());
@@ -256,14 +267,18 @@ class TutoringView extends StatelessWidget {
                   if (tutoringController.isSearchLoading.value) {
                     return Center(child: CupertinoActivityIndicator());
                   }
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15),
-                    child: TutoringWidgetBuilder(
-                      tutoringList: filteredList,
-                      users: tutoringController.users,
-                      isGridView: viewModeController.isGridView.value,
-                    ),
+                  final content = TutoringWidgetBuilder(
+                    tutoringList: filteredList,
+                    users: tutoringController.users,
+                    isGridView: viewModeController.isGridView.value,
                   );
+                  if (viewModeController.isGridView.value) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: content,
+                    );
+                  }
+                  return content;
                 }),
                 Obx(() {
                   if (tutoringController.isLoadingMore.value) {
@@ -296,10 +311,31 @@ class TutoringView extends StatelessWidget {
               context: context,
               menuItems: [
                 PullDownMenuItem(
+                  title: 'Ara',
+                  icon: CupertinoIcons.search,
+                  onTap: () {
+                    Get.to(() => const TutoringSearch());
+                  },
+                ),
+                PullDownMenuItem(
                   title: 'Başvurularım',
                   icon: CupertinoIcons.doc_text,
                   onTap: () {
                     Get.to(() => MyTutoringApplications());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'İlan Ver',
+                  icon: CupertinoIcons.add_circled,
+                  onTap: () {
+                    Get.to(CreateTutoringView());
+                  },
+                ),
+                PullDownMenuItem(
+                  title: 'İlanlarım',
+                  icon: CupertinoIcons.list_bullet,
+                  onTap: () {
+                    Get.to(MyTutorings());
                   },
                 ),
                 PullDownMenuItem(
@@ -314,20 +350,6 @@ class TutoringView extends StatelessWidget {
                   icon: AppIcons.locationSolid,
                   onTap: () {
                     Get.to(() => LocationBasedTutoring());
-                  },
-                ),
-                PullDownMenuItem(
-                  title: 'Özel Ders İlanlarım',
-                  icon: CupertinoIcons.list_bullet,
-                  onTap: () {
-                    Get.to(MyTutorings());
-                  },
-                ),
-                PullDownMenuItem(
-                  title: 'Oluştur',
-                  icon: CupertinoIcons.add_circled,
-                  onTap: () {
-                    Get.to(CreateTutoringView());
                   },
                 ),
                 PullDownMenuItem(
@@ -388,12 +410,6 @@ class TutoringView extends StatelessWidget {
                         text: "Özel Ders",
                       ),
                     ],
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      Get.to(() => TutoringSearch());
-                    },
-                    icon: Icon(AppIcons.search),
                   ),
                 ],
               ),

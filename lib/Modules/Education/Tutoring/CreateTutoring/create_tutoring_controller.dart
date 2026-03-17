@@ -5,14 +5,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class CreateTutoringController extends GetxController {
@@ -61,9 +64,6 @@ class CreateTutoringController extends GetxController {
   double? _lat;
   double? _long;
 
-  /// Doğrulama belgeleri (diploma/sertifika dosya yolları)
-  var verificationDocs = <String>[].obs;
-
   /// Şehir/ilçe değiştiğinde geocode ile lat/long hesapla.
   Future<void> _geocodeLocation() async {
     try {
@@ -79,34 +79,6 @@ class CreateTutoringController extends GetxController {
       _lat = null;
       _long = null;
     }
-  }
-
-  void addVerificationDoc(String filePath) {
-    verificationDocs.add(filePath);
-  }
-
-  Future<List<String>> _uploadVerificationDocs() async {
-    if (verificationDocs.isEmpty) return [];
-    final urls = <String>[];
-    final storage = firebase_storage.FirebaseStorage.instance;
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    for (final docPath in verificationDocs) {
-      if (docPath.startsWith('http')) {
-        urls.add(docPath);
-        continue;
-      }
-      try {
-        final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-          storage: storage,
-          file: File(docPath),
-          storagePathWithoutExt:
-              'users/$userId/verification_${DateTime.now().millisecondsSinceEpoch}',
-        );
-        urls.add(downloadUrl);
-      } catch (_) {
-      }
-    }
-    return urls;
   }
 
   void toggleTimeSlot(String day, String slot) {
@@ -172,24 +144,18 @@ class CreateTutoringController extends GetxController {
   }
 
   void showIlSec() {
-    Get.bottomSheet(
-      ListBottomSheet(
-        list: sehirler,
-        title: "Şehir Seç",
-        startSelection: city.value,
-        onBackData: (v) {
-          city.value = v;
-          cityController.text = v;
-          town = "";
-          districtController.text = "";
-          _geocodeLocation();
-        },
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
+    ListBottomSheet.show(
+      context: Get.context!,
+      items: sehirler,
+      title: "Şehir Seç",
+      selectedItem: city.value,
+      onSelect: (v) {
+        city.value = v.toString();
+        cityController.text = v.toString();
+        town = "";
+        districtController.text = "";
+        _geocodeLocation();
+      },
     );
   }
 
@@ -198,23 +164,18 @@ class CreateTutoringController extends GetxController {
         .where((doc) => doc.il == city.value && city.value.isNotEmpty)
         .map((doc) => doc.ilce)
         .toList();
+    sortTurkishStrings(ilceListesi);
 
-    Get.bottomSheet(
-      ListBottomSheet(
-        list: ilceListesi,
-        title: "İlçe Seç",
-        startSelection: town,
-        onBackData: (v) {
-          town = v;
-          districtController.text = v;
-          _geocodeLocation();
-        },
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
+    ListBottomSheet.show(
+      context: Get.context!,
+      items: ilceListesi,
+      title: "İlçe Seç",
+      selectedItem: town,
+      onSelect: (v) {
+        town = v.toString();
+        districtController.text = v.toString();
+        _geocodeLocation();
+      },
     );
   }
 
@@ -226,10 +187,124 @@ class CreateTutoringController extends GetxController {
       final List<dynamic> data = jsonDecode(response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (_) {
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
+      await autoFillLocationIfNeeded(allowPermissionPrompt: !Platform.isIOS);
+    } catch (_) {}
+  }
+
+  Future<void> autoFillLocationIfNeeded({
+    bool allowPermissionPrompt = true,
+  }) async {
+    try {
+      if (city.value.isNotEmpty && town.isNotEmpty) {
+        return;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        if (!allowPermissionPrompt) {
+          return;
+        }
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          return;
+        }
+      }
+
+      Position? position = await Geolocator.getLastKnownPosition();
+      position ??= await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isEmpty) {
+        return;
+      }
+
+      final place = placemarks.first;
+      final cityCandidates = <String>[
+        (place.administrativeArea ?? '').trim(),
+        (place.locality ?? '').trim(),
+      ];
+      final districtCandidates = <String>[
+        (place.subAdministrativeArea ?? '').trim(),
+        (place.subLocality ?? '').trim(),
+        (place.locality ?? '').trim(),
+      ];
+
+      final matchedCity = _matchCity(cityCandidates);
+      if (matchedCity != null) {
+        city.value = matchedCity;
+        cityController.text = matchedCity;
+        final matchedDistrict = _matchDistrict(matchedCity, districtCandidates);
+        if (matchedDistrict != null) {
+          town = matchedDistrict;
+          districtController.text = matchedDistrict;
+        }
+      }
+
+      _lat = position.latitude;
+      _long = position.longitude;
+    } catch (_) {}
+  }
+
+  String? _matchCity(List<String> candidates) {
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      final exact = sehirler.firstWhereOrNull((item) => item == candidate);
+      if (exact != null) return exact;
+      final normalizedCandidate = _normalizeLocation(candidate);
+      final fuzzy = sehirler.firstWhereOrNull(
+        (item) => _normalizeLocation(item) == normalizedCandidate,
+      );
+      if (fuzzy != null) return fuzzy;
     }
+    return null;
+  }
+
+  String? _matchDistrict(String matchedCity, List<String> candidates) {
+    final districts = sehirlerVeIlcelerData
+        .where((item) => item.il == matchedCity)
+        .map((item) => item.ilce)
+        .toSet()
+        .toList();
+    for (final candidate in candidates) {
+      if (candidate.isEmpty) continue;
+      final exact =
+          districts.firstWhereOrNull((item) => item == candidate);
+      if (exact != null) return exact;
+      final normalizedCandidate = _normalizeLocation(candidate);
+      final fuzzy = districts.firstWhereOrNull(
+        (item) => _normalizeLocation(item) == normalizedCandidate,
+      );
+      if (fuzzy != null) return fuzzy;
+    }
+    return null;
+  }
+
+  String _normalizeLocation(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('ı', 'i')
+        .replaceAll('i̇', 'i')
+        .replaceAll('ş', 's')
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .trim();
   }
 
   Future<List<String>> uploadImages() async {
@@ -293,6 +368,21 @@ class CreateTutoringController extends GetxController {
     return imageUrls;
   }
 
+  Map<String, String> _profileFields() {
+    final current = CurrentUserService.instance.currentUser;
+    final nickname =
+        (current?.nickname ?? CurrentUserService.instance.nickname).trim();
+    final fullName =
+        (current?.fullName ?? CurrentUserService.instance.fullName).trim();
+    final displayName = fullName.isNotEmpty ? fullName : nickname;
+    return {
+      'nickname': nickname,
+      'displayName': displayName,
+      'avatarUrl': CurrentUserService.instance.avatarUrl.trim(),
+      'rozet': (current?.rozet ?? '').trim(),
+    };
+  }
+
   void saveTutoring() async {
     if (titleController.text.isEmpty ||
         descriptionController.text.isEmpty ||
@@ -308,7 +398,7 @@ class CreateTutoringController extends GetxController {
     isLoading.value = true;
     try {
       final imageUrls = await uploadImages();
-      final verDocUrls = await _uploadVerificationDocs();
+      final profile = _profileFields();
       final tutoring = TutoringModel(
         docID: '',
         aciklama: descriptionController.text,
@@ -332,12 +422,14 @@ class CreateTutoringController extends GetxController {
             : null,
         lat: _lat,
         long: _long,
-        verificationDocs: verDocUrls.isNotEmpty ? verDocUrls : null,
+        avatarUrl: profile['avatarUrl'] ?? '',
+        displayName: profile['displayName'] ?? '',
+        nickname: profile['nickname'] ?? '',
+        rozet: profile['rozet'] ?? '',
       );
 
-      await FirebaseFirestore.instance
-          .collection('educators')
-          .add(tutoring.toJson());
+      final docRef = FirebaseFirestore.instance.collection('educators').doc();
+      await docRef.set(tutoring.toJson());
       Get.back();
       AppSnackbar("Başarılı", "Özel ders ilanı paylaşıldı!");
       clearForm();
@@ -364,6 +456,7 @@ class CreateTutoringController extends GetxController {
     try {
       final initialData = Get.arguments as TutoringModel?;
       final updateData = <String, dynamic>{};
+      final profile = _profileFields();
 
       // Only add fields to updateData if they have changed
       if (titleController.text != initialData?.baslik) {
@@ -395,6 +488,18 @@ class CreateTutoringController extends GetxController {
       }
       if (isPhoneOpen.value != initialData?.telefon) {
         updateData['telefon'] = isPhoneOpen.value;
+      }
+      if ((profile['avatarUrl'] ?? '') != initialData?.avatarUrl) {
+        updateData['avatarUrl'] = profile['avatarUrl'];
+      }
+      if ((profile['displayName'] ?? '') != initialData?.displayName) {
+        updateData['displayName'] = profile['displayName'];
+      }
+      if ((profile['nickname'] ?? '') != initialData?.nickname) {
+        updateData['nickname'] = profile['nickname'];
+      }
+      if ((profile['rozet'] ?? '') != initialData?.rozet) {
+        updateData['rozet'] = profile['rozet'];
       }
 
       // Availability
@@ -451,7 +556,6 @@ class CreateTutoringController extends GetxController {
     isPhoneOpen.value = false;
     selectedBranch.value = '';
     availability.clear();
-    verificationDocs.clear();
     _lat = null;
     _long = null;
   }

@@ -1,12 +1,10 @@
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/cv_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 
 class TutoringApplicationReviewController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
-  final CvRepository _cvRepository = CvRepository.ensure();
   final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   final String tutoringDocID;
   TutoringApplicationReviewController({required this.tutoringDocID});
@@ -14,9 +12,6 @@ class TutoringApplicationReviewController extends GetxController {
   RxList<TutoringApplicationModel> applicants =
       <TutoringApplicationModel>[].obs;
   var isLoading = false.obs;
-
-  final RxMap<String, Map<String, dynamic>> cvCache =
-      <String, Map<String, dynamic>>{}.obs;
 
   @override
   void onInit() {
@@ -35,25 +30,6 @@ class TutoringApplicationReviewController extends GetxController {
     } finally {
       isLoading.value = false;
     }
-  }
-
-  static const int _maxCacheSize = 50;
-
-  Future<Map<String, dynamic>?> getApplicantCV(String userID) async {
-    if (cvCache.containsKey(userID)) return cvCache[userID];
-    try {
-      final data = await _cvRepository.getCv(userID, preferCache: true);
-      if (data != null) {
-        if (cvCache.length >= _maxCacheSize) {
-          final oldestKey = cvCache.keys.first;
-          cvCache.remove(oldestKey);
-        }
-        cvCache[userID] = data;
-        return data;
-      }
-    } catch (_) {
-    }
-    return null;
   }
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {

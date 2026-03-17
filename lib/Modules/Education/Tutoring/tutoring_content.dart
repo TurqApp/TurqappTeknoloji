@@ -24,8 +24,7 @@ class TutoringContent extends StatelessWidget {
         child: Column(
           children: [
             BackButtons(text: categoryName),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
+            Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
                   return Center(child: CupertinoActivityIndicator());
@@ -43,11 +42,22 @@ class TutoringContent extends StatelessWidget {
                   );
                 }
 
-                return TutoringWidgetBuilder(
-                  tutoringList: filteredTutoringList,
-                  users: controller.users,
-                  isGridView: viewModeController.isGridView.value,
+                final content = SingleChildScrollView(
+                  child: TutoringWidgetBuilder(
+                    tutoringList: filteredTutoringList,
+                    users: controller.users,
+                    isGridView: viewModeController.isGridView.value,
+                  ),
                 );
+
+                if (viewModeController.isGridView.value) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: content,
+                  );
+                }
+
+                return content;
               }),
             ),
           ],

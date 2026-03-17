@@ -61,9 +61,9 @@ class TutoringDetailController extends GetxController {
 
   Future<void> fetchUserData(String userID) async {
     try {
-      final summary = await _userRepository.getUser(userID);
-      if (summary != null) {
-        users[userID] = summary.toMap();
+      final raw = await _userRepository.getUserRaw(userID);
+      if (raw != null) {
+        users[userID] = raw;
       }
     } catch (_) {
     }
@@ -72,7 +72,10 @@ class TutoringDetailController extends GetxController {
   Future<void> fetchTutoringDetail(String docID) async {
     isLoading.value = true;
     try {
-      final document = await _tutoringRepository.fetchById(docID);
+      final document = await _tutoringRepository.fetchById(
+        docID,
+        allowExpired: true,
+      );
       if (document != null) {
         tutoring.value = document;
       }

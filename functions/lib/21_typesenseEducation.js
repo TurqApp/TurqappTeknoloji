@@ -33,6 +33,22 @@ const NOISY_DETAIL_KEYS = new Set([
     "device",
     "deviceID",
     "deviceVersion",
+    "authorAvatarUrl",
+    "authorDisplayName",
+    "authorNickname",
+    "avatarUrl",
+    "displayName",
+    "nickname",
+    "logo",
+    "cover",
+    "updatedAt",
+    "timeStamp",
+    "userID",
+    "viewCount",
+    "applicationCount",
+    "endedAt",
+    "lat",
+    "long",
 ]);
 const EDUCATION_ENTITIES = [
     "scholarship",
@@ -50,6 +66,71 @@ const EDUCATION_COLLECTIONS = {
     workout: "education_workouts_search",
     past_question: "education_past_questions_search",
 };
+const JOB_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
+    "detailsJson",
+    "logo",
+]);
+const SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
+    "detailsJson",
+    "logo",
+    "img",
+]);
+const TUTORING_TYPESENSE_REDUCED_FIELDS = new Set([
+    "authorNickname",
+    "authorDisplayName",
+    "authorAvatarUrl",
+    "shortDescription",
+    "img2",
+    "baslangicTarihi",
+    "bitisTarihi",
+    "basvuruKosullari",
+    "basvuruURL",
+    "basvuruYapilacakYer",
+    "bursVeren",
+    "egitimKitlesi",
+    "geriOdemeli",
+    "hedefKitle",
+    "mukerrerDurumu",
+    "ogrenciSayisi",
+    "tutar",
+    "website",
+    "lisansTuru",
+    "template",
+    "ulke",
+    "altEgitimKitlesi",
+    "aylar",
+    "belgeler",
+    "sehirler",
+    "ilceler",
+    "universiteler",
+    "liseOrtaOkulIlceler",
+    "liseOrtaOkulSehirler",
+    "likeCount",
+    "bookmarkCount",
+    "detailsJson",
+    "brand",
+    "yanHaklar",
+    "calismaGunleri",
+    "calismaSaatiBaslangic",
+    "calismaSaatiBitis",
+    "calismaTuru",
+    "isTanimi",
+    "adres",
+    "maas1",
+    "maas2",
+    "meslek",
+    "ilanBasligi",
+    "deneyimSeviyesi",
+    "basvuruSayisi",
+    "pozisyonSayisi",
+    "about",
+]);
 function ensureAdmin() {
     if ((0, app_1.getApps)().length === 0)
         (0, app_1.initializeApp)();
@@ -146,6 +227,16 @@ function asInt(x) {
         const n = Number(x);
         if (Number.isFinite(n))
             return Math.floor(n);
+    }
+    return 0;
+}
+function asFloat(x) {
+    if (typeof x === "number" && Number.isFinite(x))
+        return x;
+    if (typeof x === "string") {
+        const n = Number(x);
+        if (Number.isFinite(n))
+            return n;
     }
     return 0;
 }
@@ -271,8 +362,8 @@ function getCollectionName(entity) {
     return EDUCATION_COLLECTIONS[entity];
 }
 const ensureCollectionPromises = {};
-function requiredFields() {
-    return [
+function requiredFields(entity) {
+    const fields = [
         { name: "docId", type: "string", optional: true },
         { name: "entity", type: "string" },
         { name: "title", type: "string", optional: true },
@@ -286,15 +377,13 @@ function requiredFields() {
         { name: "country", type: "string", optional: true },
         { name: "tags", type: "string[]", optional: true },
         { name: "cover", type: "string", optional: true },
-        { name: "authorNickname", type: "string", optional: true },
-        { name: "authorDisplayName", type: "string", optional: true },
-        { name: "authorAvatarUrl", type: "string", optional: true },
+        { name: "nickname", type: "string", optional: true },
+        { name: "displayName", type: "string", optional: true },
+        { name: "avatarUrl", type: "string", optional: true },
         { name: "rozet", type: "string", optional: true },
         { name: "shortDescription", type: "string", optional: true },
         { name: "aciklama", type: "string", optional: true },
-        { name: "img", type: "string", optional: true },
         { name: "img2", type: "string", optional: true },
-        { name: "logo", type: "string", optional: true },
         { name: "baslangicTarihi", type: "string", optional: true },
         { name: "bitisTarihi", type: "string", optional: true },
         { name: "basvuruKosullari", type: "string", optional: true },
@@ -322,8 +411,39 @@ function requiredFields() {
         { name: "likeCount", type: "int32", optional: true },
         { name: "bookmarkCount", type: "int32", optional: true },
         { name: "detailsText", type: "string", optional: true },
-        { name: "detailsJson", type: "string", optional: true },
+        { name: "brand", type: "string", optional: true },
+        { name: "yanHaklar", type: "string[]", optional: true },
+        { name: "calismaGunleri", type: "string[]", optional: true },
+        { name: "calismaSaatiBaslangic", type: "string", optional: true },
+        { name: "calismaSaatiBitis", type: "string", optional: true },
+        { name: "calismaTuru", type: "string[]", optional: true },
+        { name: "ended", type: "bool", optional: true },
+        { name: "isTanimi", type: "string", optional: true },
+        { name: "lat", type: "float", optional: true },
+        { name: "long", type: "float", optional: true },
+        { name: "adres", type: "string", optional: true },
+        { name: "maas1", type: "int64", optional: true },
+        { name: "maas2", type: "int64", optional: true },
+        { name: "meslek", type: "string", optional: true },
+        { name: "ilanBasligi", type: "string", optional: true },
+        { name: "deneyimSeviyesi", type: "string", optional: true },
+        { name: "basvuruSayisi", type: "int32", optional: true },
+        { name: "pozisyonSayisi", type: "int32", optional: true },
+        { name: "viewCount", type: "int32", optional: true },
+        { name: "applicationCount", type: "int32", optional: true },
+        { name: "endedAt", type: "int64", optional: true },
+        { name: "about", type: "string", optional: true },
     ];
+    if (entity === "job") {
+        return fields.filter((field) => !JOB_TYPESENSE_REDUCED_FIELDS.has(field.name));
+    }
+    if (entity === "scholarship") {
+        return fields.filter((field) => !SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS.has(field.name));
+    }
+    if (entity === "tutoring") {
+        return fields.filter((field) => !TUTORING_TYPESENSE_REDUCED_FIELDS.has(field.name));
+    }
+    return fields;
 }
 async function ensureEntityCollection(entity) {
     if (ensureCollectionPromises[entity])
@@ -341,7 +461,7 @@ async function ensureEntityCollection(entity) {
             const fields = Array.isArray(existing.data?.fields)
                 ? existing.data.fields
                 : [];
-            const missing = requiredFields().filter((rf) => !fields.some((f) => f?.name === rf.name));
+            const missing = requiredFields(entity).filter((rf) => !fields.some((f) => f?.name === rf.name));
             if (missing.length) {
                 await axios_1.default.patch(`${baseUrl}/collections/${collection}`, { fields: missing }, { headers: headers(), timeout: 8000 });
             }
@@ -354,7 +474,7 @@ async function ensureEntityCollection(entity) {
         }
         await axios_1.default.post(`${baseUrl}/collections`, {
             name: collection,
-            fields: requiredFields(),
+            fields: requiredFields(entity),
             default_sorting_field: "timeStamp",
         }, { headers: headers(), timeout: 8000 });
     })().catch((err) => {
@@ -411,6 +531,55 @@ function baseDoc(entity, docId, data, partial) {
         detailsJson: safeStringify(pruned),
     };
 }
+async function fetchAuthorSummary(userId) {
+    const normalizedUserId = asString(userId);
+    if (!normalizedUserId) {
+        return {
+            nickname: "",
+            displayName: "",
+            avatarUrl: "",
+            rozet: "",
+        };
+    }
+    try {
+        const snap = await (0, firestore_2.getFirestore)().collection("users").doc(normalizedUserId).get();
+        if (!snap.exists) {
+            return {
+                nickname: "",
+                displayName: "",
+                avatarUrl: "",
+                rozet: "",
+            };
+        }
+        const data = (snap.data() || {});
+        const nickname = asString(data.nickname) || asString(data.username);
+        const displayName = asString(data.displayName) ||
+            asString(data.fullName) ||
+            [asString(data.firstName), asString(data.lastName)]
+                .filter(Boolean)
+                .join(" ")
+                .trim() ||
+            nickname;
+        return {
+            nickname,
+            displayName,
+            avatarUrl: asString(data.avatarUrl) ||
+                asString(data.photoUrl) ||
+                asString(data.profileImage) ||
+                asString(data.imageUrl),
+            rozet: asString(data.rozet),
+        };
+    }
+    catch (err) {
+        console.error("typesense_education_author_summary_fetch_failed", normalizedUserId, err);
+        return {
+            nickname: "",
+            displayName: "",
+            avatarUrl: "",
+            rozet: "",
+        };
+    }
+}
 function buildScholarshipDoc(docId, data) {
     const description = composeDescription(asString(data.shortDescription), asString(data.aciklama), asString(data.basvuruKosullari), asString(data.basvuruYapilacakYer), asString(data.basvuruURL), asString(data.website), asString(data.baslangicTarihi), asString(data.bitisTarihi));
     const base = baseDoc("scholarship", docId, data, {
@@ -434,19 +603,23 @@ function buildScholarshipDoc(docId, data) {
         ]),
         cover: asString(data.img) || asString(data.logo),
     });
+    const nickname = asString(data.nickname) || asString(data.authorNickname);
+    const displayName = asString(data.displayName) ||
+        asString(data.authorDisplayName) ||
+        nickname;
+    const avatarUrl = asString(data.avatarUrl) || asString(data.authorAvatarUrl);
     const begeniler = asStringArray(data.begeniler);
     const kaydedenler = asStringArray(data.kaydedenler);
+    const { detailsJson: _detailsJson, ...rest } = base;
     return {
-        ...base,
-        authorNickname: asString(data.authorNickname),
-        authorDisplayName: asString(data.authorDisplayName),
-        authorAvatarUrl: asString(data.authorAvatarUrl),
+        ...rest,
+        nickname,
+        displayName,
+        avatarUrl,
         rozet: asString(data.rozet),
         shortDescription: asString(data.shortDescription),
         aciklama: asString(data.aciklama),
-        img: asString(data.img),
         img2: asString(data.img2),
-        logo: asString(data.logo),
         baslangicTarihi: asString(data.baslangicTarihi),
         bitisTarihi: asString(data.bitisTarihi),
         basvuruKosullari: asString(data.basvuruKosullari),
@@ -514,7 +687,7 @@ function buildAnswerKeyDoc(docId, data) {
 function buildTutoringDoc(docId, data) {
     const imgs = asStringArray(data.imgs);
     const description = composeDescription(asString(data.aciklama), asString(data.detay), asString(data.ekAciklama), asString(data.ucret), ...asStringArray(data.dersYeri));
-    return baseDoc("tutoring", docId, data, {
+    const base = baseDoc("tutoring", docId, data, {
         title: asString(data.baslik),
         subtitle: asString(data.brans),
         description,
@@ -531,12 +704,30 @@ function buildTutoringDoc(docId, data) {
         ]),
         cover: imgs[0] || "",
     });
+    const { detailsJson: _detailsJson, ...rest } = base;
+    return {
+        ...rest,
+        aciklama: asString(data.aciklama),
+        dersYeri: asStringArray(data.dersYeri),
+        cinsiyet: asString(data.cinsiyet),
+        fiyat: asInt(data.fiyat),
+        telefon: asBool(data.telefon),
+        whatsapp: asBool(data.whatsapp),
+        averageRating: asFloat(data.averageRating),
+        reviewCount: asInt(data.reviewCount),
+        ended: asBool(data.ended),
+        endedAt: asInt(data.endedAt),
+        viewCount: asInt(data.viewCount),
+        applicationCount: asInt(data.applicationCount),
+        lat: asFloat(data.lat),
+        long: asFloat(data.long),
+    };
 }
 function buildJobDoc(docId, data) {
     const imgs = asStringArray(data.imgs);
     const title = asString(data.ilanBasligi) || asString(data.meslek) || asString(data.brand);
     const description = composeDescription(asString(data.isTanimi), asString(data.ilanDetayi), asString(data.aciklama), asString(data.arananNitelikler), ...asStringArray(data.yanHaklar), ...asStringArray(data.calismaTuru));
-    return baseDoc("job", docId, data, {
+    const base = baseDoc("job", docId, data, {
         title,
         subtitle: asString(data.brand),
         description,
@@ -548,12 +739,15 @@ function buildJobDoc(docId, data) {
         tags: dedupe([
             asString(data.meslek),
             asString(data.deneyimSeviyesi),
+            ...asStringArray(data.calismaGunleri),
             ...asStringArray(data.calismaTuru),
             ...asStringArray(data.yanHaklar),
             ...asStringArray(data.tags),
         ]),
         cover: asString(data.logo) || imgs[0] || "",
     });
+    const { detailsJson: _detailsJson, ...rest } = base;
+    return rest;
 }
 function buildWorkoutDoc(docId, data) {
     return baseDoc("workout", docId, data, {
@@ -609,6 +803,111 @@ function buildSearchDoc(entity, docId, data) {
             return buildPastQuestionDoc(docId, data);
     }
 }
+async function buildSearchDocForIndexing(entity, docId, data) {
+    const doc = buildSearchDoc(entity, docId, data);
+    if (entity === "scholarship") {
+        const summary = await fetchAuthorSummary(doc.ownerId || "");
+        const nickname = doc.nickname ||
+            asString(data.nickname) ||
+            asString(data.authorNickname) ||
+            summary.nickname;
+        const displayName = doc.displayName ||
+            asString(data.displayName) ||
+            asString(data.authorDisplayName) ||
+            summary.displayName ||
+            nickname;
+        const avatarUrl = doc.avatarUrl ||
+            asString(data.avatarUrl) ||
+            asString(data.authorAvatarUrl) ||
+            summary.avatarUrl;
+        const rozet = doc.rozet ||
+            asString(data.rozet) ||
+            summary.rozet;
+        return {
+            ...doc,
+            nickname,
+            displayName,
+            avatarUrl,
+            rozet,
+        };
+    }
+    if (entity === "tutoring") {
+        const summary = await fetchAuthorSummary(doc.ownerId || "");
+        const nickname = doc.nickname ||
+            asString(data.nickname) ||
+            summary.nickname;
+        const displayName = doc.displayName ||
+            asString(data.displayName) ||
+            summary.displayName ||
+            nickname;
+        const avatarUrl = asString(data.avatarUrl) ||
+            doc.avatarUrl ||
+            summary.avatarUrl;
+        const rozet = doc.rozet || asString(data.rozet) || summary.rozet;
+        return {
+            ...doc,
+            nickname,
+            displayName,
+            avatarUrl,
+            rozet,
+            aciklama: asString(data.aciklama),
+            dersYeri: asStringArray(data.dersYeri),
+            cinsiyet: asString(data.cinsiyet),
+            fiyat: asInt(data.fiyat),
+            telefon: asBool(data.telefon),
+            whatsapp: asBool(data.whatsapp),
+            averageRating: asFloat(data.averageRating),
+            reviewCount: asInt(data.reviewCount),
+            ended: asBool(data.ended),
+            endedAt: asInt(data.endedAt),
+            viewCount: asInt(data.viewCount),
+            applicationCount: asInt(data.applicationCount),
+            lat: asFloat(data.lat),
+            long: asFloat(data.long),
+        };
+    }
+    if (entity !== "job")
+        return doc;
+    const summary = await fetchAuthorSummary(doc.ownerId || "");
+    const nickname = doc.nickname || asString(data.nickname) || summary.nickname;
+    const displayName = doc.displayName ||
+        asString(data.displayName) ||
+        summary.displayName ||
+        nickname;
+    const avatarUrl = asString(data.avatarUrl) ||
+        doc.avatarUrl ||
+        summary.avatarUrl;
+    const rozet = doc.rozet || asString(data.rozet) || summary.rozet;
+    return {
+        ...doc,
+        nickname,
+        displayName,
+        avatarUrl,
+        rozet,
+        brand: asString(data.brand),
+        yanHaklar: asStringArray(data.yanHaklar),
+        calismaGunleri: asStringArray(data.calismaGunleri),
+        calismaSaatiBaslangic: asString(data.calismaSaatiBaslangic),
+        calismaSaatiBitis: asString(data.calismaSaatiBitis),
+        calismaTuru: asStringArray(data.calismaTuru),
+        ended: asBool(data.ended),
+        isTanimi: asString(data.isTanimi),
+        lat: Number(data.lat || 0),
+        long: Number(data.long || 0),
+        adres: asString(data.adres),
+        maas1: asInt(data.maas1),
+        maas2: asInt(data.maas2),
+        meslek: asString(data.meslek),
+        ilanBasligi: asString(data.ilanBasligi),
+        deneyimSeviyesi: asString(data.deneyimSeviyesi),
+        basvuruSayisi: asInt(data.basvuruSayisi),
+        pozisyonSayisi: asInt(data.pozisyonSayisi) || 1,
+        viewCount: asInt(data.viewCount),
+        applicationCount: asInt(data.applicationCount),
+        endedAt: asInt(data.endedAt),
+        about: asString(data.about),
+    };
+}
 function shouldIndex(doc) {
     const hasCoreText = doc.title.trim().length > 0 ||
         (doc.description || "").trim().length > 0 ||
@@ -620,7 +919,7 @@ async function syncEducationDoc(entity, rawDocId, afterData) {
         await deleteDoc(entity, rawDocId);
         return;
     }
-    const doc = buildSearchDoc(entity, rawDocId, afterData);
+    const doc = await buildSearchDocForIndexing(entity, rawDocId, afterData);
     if (!shouldIndex(doc)) {
         await deleteDoc(entity, rawDocId);
         return;
@@ -645,16 +944,16 @@ function toHitOutput(hitRaw, collection) {
         town: String(doc.town || ""),
         country: String(doc.country || ""),
         cover: String(doc.cover || ""),
+        nickname: String(doc.nickname || ""),
+        displayName: String(doc.displayName || ""),
+        avatarUrl: String(doc.avatarUrl || ""),
         tags,
-        authorNickname: String(doc.authorNickname || ""),
-        authorDisplayName: String(doc.authorDisplayName || ""),
-        authorAvatarUrl: String(doc.authorAvatarUrl || ""),
         rozet: String(doc.rozet || ""),
         shortDescription: String(doc.shortDescription || ""),
         aciklama: String(doc.aciklama || ""),
-        img: String(doc.img || ""),
+        img: String(doc.cover || ""),
         img2: String(doc.img2 || ""),
-        logo: String(doc.logo || ""),
+        logo: "",
         baslangicTarihi: String(doc.baslangicTarihi || ""),
         bitisTarihi: String(doc.bitisTarihi || ""),
         basvuruKosullari: String(doc.basvuruKosullari || ""),
@@ -682,7 +981,35 @@ function toHitOutput(hitRaw, collection) {
         likeCount: Number(doc.likeCount || 0),
         bookmarkCount: Number(doc.bookmarkCount || 0),
         detailsText: String(doc.detailsText || ""),
-        detailsJson: String(doc.detailsJson || ""),
+        brand: String(doc.brand || ""),
+        yanHaklar: Array.isArray(doc.yanHaklar) ? doc.yanHaklar.map((x) => String(x || "")) : [],
+        calismaGunleri: Array.isArray(doc.calismaGunleri) ? doc.calismaGunleri.map((x) => String(x || "")) : [],
+        calismaSaatiBaslangic: String(doc.calismaSaatiBaslangic || ""),
+        calismaSaatiBitis: String(doc.calismaSaatiBitis || ""),
+        calismaTuru: Array.isArray(doc.calismaTuru) ? doc.calismaTuru.map((x) => String(x || "")) : [],
+        ended: doc.ended === true,
+        isTanimi: String(doc.isTanimi || ""),
+        lat: Number(doc.lat || 0),
+        long: Number(doc.long || 0),
+        adres: String(doc.adres || ""),
+        maas1: Number(doc.maas1 || 0),
+        maas2: Number(doc.maas2 || 0),
+        meslek: String(doc.meslek || ""),
+        ilanBasligi: String(doc.ilanBasligi || ""),
+        deneyimSeviyesi: String(doc.deneyimSeviyesi || ""),
+        basvuruSayisi: Number(doc.basvuruSayisi || 0),
+        pozisyonSayisi: Number(doc.pozisyonSayisi || 0),
+        viewCount: Number(doc.viewCount || 0),
+        applicationCount: Number(doc.applicationCount || 0),
+        endedAt: Number(doc.endedAt || 0),
+        about: String(doc.about || ""),
+        dersYeri: Array.isArray(doc.dersYeri) ? doc.dersYeri.map((x) => String(x || "")) : [],
+        cinsiyet: String(doc.cinsiyet || ""),
+        fiyat: Number(doc.fiyat || 0),
+        telefon: doc.telefon === true,
+        whatsapp: doc.whatsapp === true,
+        averageRating: Number(doc.averageRating || 0),
+        reviewCount: Number(doc.reviewCount || 0),
         score: Number(hit.text_match || 0),
     };
 }
@@ -691,17 +1018,26 @@ async function searchFromCollection(entity, qRaw, limit, page) {
     const q = qRaw.trim().length === 0 ? "*" : qRaw.trim();
     const collection = getCollectionName(entity);
     await ensureEntityCollection(entity);
+    const queryBy = (() => {
+        switch (entity) {
+            case "tutoring":
+                return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,cinsiyet,dersYeri";
+            case "job":
+                return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,meslek,ilanBasligi,brand";
+            default:
+                return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName";
+        }
+    })();
     const response = await axios_1.default.get(`${baseUrl}/collections/${collection}/documents/search`, {
         headers: headers(),
         timeout: 12000,
         params: {
             q,
-            query_by: "title,subtitle,description,tags,city,town,country,detailsText",
+            query_by: queryBy,
             per_page: limit,
             page,
             sort_by: "timeStamp:desc",
             filter_by: "active:=true",
-            prefix: "true,true,true,true,true,true,true,true",
             num_typos: 2,
             exhaustive_search: true,
         },
@@ -971,7 +1307,7 @@ exports.f21_reindexEducationToTypesenseCallable = (0, https_1.onCall)({
             scanned += 1;
             const rawDocId = docSnap.id;
             const data = docSnap.data();
-            const doc = buildSearchDoc(entity, rawDocId, data);
+            const doc = await buildSearchDocForIndexing(entity, rawDocId, data);
             if (!shouldIndex(doc)) {
                 if (!dryRun) {
                     await deleteDoc(entity, rawDocId);

@@ -16,6 +16,7 @@ class TutoringRepository extends GetxService {
   static const String _prefsPrefix = 'tutoring_repository_v1';
   final Map<String, _TimedValue<dynamic>> _memory = <String, _TimedValue<dynamic>>{};
   SharedPreferences? _prefs;
+  static const int _thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
 
   static TutoringRepository ensure() {
     if (Get.isRegistered<TutoringRepository>()) {
@@ -44,7 +45,7 @@ class TutoringRepository extends GetxService {
     final snap = await query.get(const GetOptions(source: Source.serverAndCache));
     final items = snap.docs
         .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
-        .where((t) => t.ended != true)
+        .where((t) => !_isExpired(t))
         .toList(growable: false);
     return TutoringPage(
       items: items,
@@ -67,7 +68,7 @@ class TutoringRepository extends GetxService {
           .get(const GetOptions(source: Source.serverAndCache));
       for (final doc in snapshot.docs) {
         final model = TutoringModel.fromJson(doc.data(), doc.id);
-        if (model.ended == true) continue;
+        if (_isExpired(model)) continue;
         byId[doc.id] = model;
         await _storeMap('doc:${doc.id}', doc.data());
       }
@@ -79,19 +80,22 @@ class TutoringRepository extends GetxService {
     String docId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool allowExpired = false,
   }) async {
     final key = 'doc:$docId';
     if (!forceRefresh && preferCache) {
       final cached = await _getCachedMap(key);
       if (cached != null) {
-        return TutoringModel.fromJson(cached, docId);
+        final model = TutoringModel.fromJson(cached, docId);
+        return !allowExpired && _isExpired(model) ? null : model;
       }
     }
     final doc = await _firestore.collection('educators').doc(docId).get();
     if (!doc.exists || doc.data() == null) return null;
     final data = Map<String, dynamic>.from(doc.data()!);
     await _storeMap(key, data);
-    return TutoringModel.fromJson(data, doc.id);
+    final model = TutoringModel.fromJson(data, doc.id);
+    return !allowExpired && _isExpired(model) ? null : model;
   }
 
   Future<List<TutoringModel>> fetchByOwner(
@@ -107,6 +111,12 @@ class TutoringRepository extends GetxService {
         .map((doc) => TutoringModel.fromJson(doc.data(), doc.id))
         .toList(growable: false);
     return items;
+  }
+
+  bool _isExpired(TutoringModel model) {
+    if (model.ended == true) return true;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return now - model.timeStamp > _thirtyDaysInMillis;
   }
 
   Future<List<TutoringModel>> fetchByCity(

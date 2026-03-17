@@ -27,6 +27,10 @@ class TutoringModel {
   final double? long;
   final bool? verified;
   final List<String>? verificationDocs;
+  final String avatarUrl;
+  final String displayName;
+  final String nickname;
+  final String rozet;
 
   TutoringModel({
     required this.docID,
@@ -57,6 +61,10 @@ class TutoringModel {
     this.long,
     this.verified,
     this.verificationDocs,
+    this.avatarUrl = '',
+    this.displayName = '',
+    this.nickname = '',
+    this.rozet = '',
   });
 
   factory TutoringModel.fromJson(Map<String, dynamic> json, String documentId) {
@@ -100,6 +108,70 @@ class TutoringModel {
       verified: json['verified'] as bool?,
       verificationDocs:
           (json['verificationDocs'] as List<dynamic>?)?.cast<String>(),
+      avatarUrl: json['avatarUrl'] as String? ?? '',
+      displayName: json['displayName'] as String? ?? '',
+      nickname: json['nickname'] as String? ?? '',
+      rozet: json['rozet'] as String? ?? '',
+    );
+  }
+
+  factory TutoringModel.fromTypesenseHit(Map<String, dynamic> hit) {
+    List<String> asStringList(dynamic value) {
+      if (value is List) {
+        return value.map((e) => '$e').where((e) => e.trim().isNotEmpty).toList();
+      }
+      return const <String>[];
+    }
+
+    num asNum(dynamic value) {
+      if (value is num) return value;
+      return num.tryParse('$value') ?? 0;
+    }
+
+    double? asDoubleOrNull(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      return double.tryParse('$value');
+    }
+
+    String pick(dynamic primary, dynamic fallback) {
+      final first = (primary ?? '').toString().trim();
+      if (first.isNotEmpty) return first;
+      return (fallback ?? '').toString().trim();
+    }
+
+    return TutoringModel(
+      docID: (hit['docId'] ?? hit['id'] ?? '').toString(),
+      aciklama: (hit['aciklama'] ?? hit['description'] ?? '').toString(),
+      baslik: (hit['title'] ?? '').toString(),
+      brans: (hit['subtitle'] ?? hit['brans'] ?? '').toString(),
+      cinsiyet: (hit['cinsiyet'] ?? '').toString(),
+      dersYeri: asStringList(hit['dersYeri']),
+      end: 0,
+      favorites: const <String>[],
+      fiyat: asNum(hit['fiyat']),
+      imgs: pick(hit['cover'], hit['img']).isNotEmpty
+          ? <String>[pick(hit['cover'], hit['img'])]
+          : null,
+      ilce: (hit['town'] ?? '').toString(),
+      onayVerildi: hit['active'] == true,
+      sehir: (hit['city'] ?? '').toString(),
+      telefon: hit['telefon'] == true,
+      timeStamp: asNum(hit['timeStamp']),
+      userID: (hit['ownerId'] ?? '').toString(),
+      whatsapp: hit['whatsapp'] == true,
+      ended: hit['ended'] == true || hit['active'] == false,
+      endedAt: asNum(hit['endedAt']),
+      viewCount: asNum(hit['viewCount']),
+      applicationCount: asNum(hit['applicationCount']),
+      averageRating: asNum(hit['averageRating']),
+      reviewCount: asNum(hit['reviewCount']),
+      lat: asDoubleOrNull(hit['lat']),
+      long: asDoubleOrNull(hit['long']),
+      avatarUrl: (hit['avatarUrl'] ?? '').toString(),
+      displayName: (hit['displayName'] ?? '').toString(),
+      nickname: (hit['nickname'] ?? '').toString(),
+      rozet: (hit['rozet'] ?? '').toString(),
     );
   }
 
@@ -132,6 +204,10 @@ class TutoringModel {
       if (long != null) 'long': long,
       if (verified != null) 'verified': verified,
       if (verificationDocs != null) 'verificationDocs': verificationDocs,
+      if (avatarUrl.isNotEmpty) 'avatarUrl': avatarUrl,
+      if (displayName.isNotEmpty) 'displayName': displayName,
+      if (nickname.isNotEmpty) 'nickname': nickname,
+      if (rozet.isNotEmpty) 'rozet': rozet,
     };
   }
 }

@@ -1,6 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
@@ -21,31 +21,55 @@ class SavedTutorings extends StatelessWidget {
         Get.find<TutoringController>();
 
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          'Kaydedilenler',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Kaydedilenler"),
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Obx(() {
-                  final filteredList = tutoringController.tutoringList
-                      .where(
-                        (tutoring) => savedController.savedTutoringIds
-                            .contains(tutoring.docID),
-                      )
-                      .toList();
-                  return TutoringWidgetBuilder(
-                    tutoringList: filteredList,
-                    users: tutoringController.users,
-                    isGridView: viewModeController.isGridView.value,
-                    infoMessage: Infomessage(
-                      infoMessage: "Kaydedilenler",
-                    ),
+              child: Obx(() {
+                final filteredList = tutoringController.tutoringList
+                    .where(
+                      (tutoring) =>
+                          savedController.savedTutoringIds.contains(
+                        tutoring.docID,
+                      ),
+                    )
+                    .toList();
+                final content = TutoringWidgetBuilder(
+                  tutoringList: filteredList,
+                  users: tutoringController.users,
+                  isGridView: viewModeController.isGridView.value,
+                  infoMessage: Infomessage(
+                    infoMessage: "Kaydedilen ilan yok.",
+                  ),
+                );
+                if (viewModeController.isGridView.value) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: content,
                   );
-                }),
-              ),
+                }
+                return content;
+              }),
             ),
           ],
         ),

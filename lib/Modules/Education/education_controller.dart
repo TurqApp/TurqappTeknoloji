@@ -86,7 +86,11 @@ class EducationController extends GetxController {
         _adminPasajVisibility.clear();
         for (var i = 0; i < titles.length; i++) {
           final title = titles[i];
-          final raw = data[title];
+          final raw = data[title] ?? switch (title) {
+            "Mabil Pazar" => data["Market"],
+            "İş Veren" => data["İş Bul"],
+            _ => null,
+          };
           final isVisible = raw is bool ? raw : true;
           _adminPasajVisibility[title] = isVisible;
         }
@@ -104,14 +108,8 @@ class EducationController extends GetxController {
   }
 
   void _recomputeVisibleTabs() {
-    final storedOrder = settingsController.pasajOrder.toList(growable: false);
-    final orderedTitles = <String>[
-      ...storedOrder.where(titles.contains),
-      ...titles.where((title) => !storedOrder.contains(title)),
-    ];
-
     final nextVisible = <int>[];
-    for (final title in orderedTitles) {
+    for (final title in titles) {
       final adminVisible = _adminPasajVisibility[title] ?? true;
       final localVisible = settingsController.pasajVisibility[title] ?? true;
       if (adminVisible && localVisible) {
@@ -284,13 +282,13 @@ class EducationController extends GetxController {
           Get.find<ScholarshipsController>().setSearchQuery(query);
         }
         break;
-      case "İş Bul":
+      case "İş Veren":
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.text = query;
         }
         break;
-      case "Market":
+      case "Mabil Pazar":
         if (Get.isRegistered<MarketController>()) {
           Get.find<MarketController>().setSearchQuery(query);
         }
@@ -331,13 +329,13 @@ class EducationController extends GetxController {
           Get.find<ScholarshipsController>().setSearchQuery('');
         }
         break;
-      case "İş Bul":
+      case "İş Veren":
         if (Get.isRegistered<JobFinderController>()) {
           final jc = Get.find<JobFinderController>();
           jc.search.clear();
         }
         break;
-      case "Market":
+      case "Mabil Pazar":
         if (Get.isRegistered<MarketController>()) {
           Get.find<MarketController>().setSearchQuery('');
         }

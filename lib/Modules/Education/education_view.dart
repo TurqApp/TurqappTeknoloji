@@ -39,17 +39,22 @@ import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.d
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_view.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_bottom_sheet.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/FilterBottomSheet/tutoring_filter_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/LocationBasedTutoring/location_based_tutoring.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/MyTutoringApplications/my_tutoring_applications.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
 import 'package:turqappv2/Modules/Market/market_create_view.dart';
 import 'package:turqappv2/Modules/Market/market_filter_sheet.dart';
 import 'package:turqappv2/Modules/Market/market_search_view.dart';
 import 'package:turqappv2/Modules/Market/market_view.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder.dart';
+import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/JobCreator/job_creator.dart';
 import 'package:turqappv2/Modules/JobFinder/CareerProfile/career_profile.dart';
 import 'package:turqappv2/Modules/JobFinder/MyApplications/my_applications.dart';
@@ -70,7 +75,9 @@ class EducationView extends StatelessWidget {
   }
 
   MarketController? _activeMarketController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Market") return null;
+    if (_titleForIndex(controller.selectedTab.value) != "Mabil Pazar") {
+      return null;
+    }
     if (!Get.isRegistered<MarketController>()) {
       Get.put(MarketController());
     }
@@ -79,6 +86,42 @@ class EducationView extends StatelessWidget {
 
   bool _showInlineMarketActions() {
     return _activeMarketController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
+  JobFinderController? _activeJobFinderController() {
+    if (_titleForIndex(controller.selectedTab.value) != "İş Veren") return null;
+    if (!Get.isRegistered<JobFinderController>()) {
+      Get.put(JobFinderController());
+    }
+    return Get.find<JobFinderController>();
+  }
+
+  bool _showInlineJobActions() {
+    return _activeJobFinderController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
+  TutoringController? _activeTutoringController() {
+    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders") return null;
+    if (!Get.isRegistered<TutoringController>()) {
+      Get.put(TutoringController());
+    }
+    return Get.find<TutoringController>();
+  }
+
+  TutoringFilterController? _activeTutoringFilterController() {
+    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders") return null;
+    if (!Get.isRegistered<TutoringFilterController>()) {
+      Get.put(TutoringFilterController());
+    }
+    return Get.find<TutoringFilterController>();
+  }
+
+  bool _showInlineTutoringActions() {
+    return _activeTutoringController() != null &&
         !controller.isKeyboardOpen.value &&
         !controller.isSearchMode.value;
   }
@@ -109,6 +152,20 @@ class EducationView extends StatelessWidget {
           color: active ? Colors.pink : Colors.black,
         ),
       ),
+    );
+  }
+
+  Future<void> _openTutoringFilterSheet(
+    BuildContext context,
+    TutoringController tutoringController,
+  ) async {
+    await Get.bottomSheet(
+      TutoringFilterBottomSheet(controller: tutoringController),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
     );
   }
 
@@ -219,7 +276,7 @@ class EducationView extends StatelessWidget {
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollController
             : null;
-      case "Market":
+      case "Mabil Pazar":
         return Get.isRegistered<MarketController>()
             ? Get.find<MarketController>().scrollController
             : null;
@@ -246,7 +303,7 @@ class EducationView extends StatelessWidget {
         return Get.isRegistered<TutoringController>()
             ? Get.find<TutoringController>().scrollOffset.value <= 350
             : true;
-      case "Market":
+      case "Mabil Pazar":
         return Get.isRegistered<MarketController>()
             ? Get.find<MarketController>().scrollOffset.value <= 350
             : true;
@@ -337,7 +394,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => ThenSolve()),
           ),
         ];
-      case "Market":
+      case "Mabil Pazar":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -366,7 +423,7 @@ class EducationView extends StatelessWidget {
           ),
           PullDownMenuItem(
             title: 'Beğendiklerim',
-            icon: CupertinoIcons.bookmark,
+            icon: CupertinoIcons.hand_thumbsup,
             onTap: () {
               if (Get.isRegistered<MarketController>()) {
                 Get.find<MarketController>().openRoundMenu('saved');
@@ -388,7 +445,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(
               () => const SliderAdminView(
                 sliderId: 'market',
-                title: 'Market',
+                title: 'Mabil Pazar',
               ),
             ),
           ),
@@ -513,9 +570,19 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => const TutoringSearch()),
           ),
           PullDownMenuItem(
-            title: 'Bölgemdeki İlanlar',
-            icon: CupertinoIcons.location_solid,
-            onTap: () => Get.to(() => LocationBasedTutoring()),
+            title: 'Başvurularım',
+            icon: CupertinoIcons.doc_text_search,
+            onTap: () => Get.to(() => MyTutoringApplications()),
+          ),
+          PullDownMenuItem(
+            title: 'İlan Ver',
+            icon: CupertinoIcons.add_circled,
+            onTap: () => Get.to(CreateTutoringView()),
+          ),
+          PullDownMenuItem(
+            title: 'İlanlarım',
+            icon: CupertinoIcons.list_bullet,
+            onTap: () => Get.to(MyTutorings()),
           ),
           PullDownMenuItem(
             title: 'Kaydedilenler',
@@ -523,14 +590,9 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(() => SavedTutorings()),
           ),
           PullDownMenuItem(
-            title: 'Oluştur',
-            icon: CupertinoIcons.add_circled,
-            onTap: () => Get.to(CreateTutoringView()),
-          ),
-          PullDownMenuItem(
-            title: 'Özel Ders İlanlarım',
-            icon: CupertinoIcons.list_bullet,
-            onTap: () => Get.to(MyTutorings()),
+            title: 'Bölgemdeki İlanlar',
+            icon: CupertinoIcons.location_solid,
+            onTap: () => Get.to(() => LocationBasedTutoring()),
           ),
           PullDownMenuItem(
             title: 'Slider Yönetimi',
@@ -543,7 +605,7 @@ class EducationView extends StatelessWidget {
             ),
           ),
         ];
-      case "İş Bul":
+      case "İş Veren":
         return [
           PullDownMenuItem(
             title: 'Ara',
@@ -595,7 +657,7 @@ class EducationView extends StatelessWidget {
             onTap: () => Get.to(
               () => const SliderAdminView(
                 sliderId: 'is_bul',
-                title: 'İş Bul',
+                title: 'İş Veren',
               ),
             ),
           ),
@@ -621,6 +683,16 @@ class EducationView extends StatelessWidget {
                     final marketController = _activeMarketController();
                     final showMarketActions =
                         marketController != null && _showInlineMarketActions();
+                    final jobController = _activeJobFinderController();
+                    final showJobActions =
+                        jobController != null && _showInlineJobActions();
+                    final tutoringController = _activeTutoringController();
+                    final tutoringFilterController =
+                        _activeTutoringFilterController();
+                    final showTutoringActions =
+                        tutoringController != null &&
+                        tutoringFilterController != null &&
+                        _showInlineTutoringActions();
                     return Row(
                       children: [
                         Expanded(
@@ -629,6 +701,11 @@ class EducationView extends StatelessWidget {
                             focusNode: controller.searchFocus,
                             hintText: "Ara",
                             onTap: () {
+                              if (_titleForIndex(controller.selectedTab.value) ==
+                                  "Mabil Pazar") {
+                                Get.to(() => const MarketSearchView());
+                                return;
+                              }
                               controller.isSearchMode.value = true;
                             },
                             onChanged: (v) {
@@ -640,8 +717,8 @@ class EducationView extends StatelessWidget {
                           const SizedBox(width: 8),
                           _marketTopActionButton(
                             icon: marketController.listingSelection.value == 1
-                                ? Icons.grid_view_rounded
-                                : Icons.view_agenda_outlined,
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
                             onTap: marketController.toggleListingSelection,
                           ),
                           const SizedBox(width: 6),
@@ -667,6 +744,81 @@ class EducationView extends StatelessWidget {
                                 controller: marketController,
                               ),
                             ),
+                          ),
+                        ],
+                        if (showJobActions) ...[
+                          const SizedBox(width: 8),
+                          _marketTopActionButton(
+                            icon: jobController.listingSelection.value == 1
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
+                            onTap: () {
+                              jobController.listingSelection.value =
+                                  jobController.listingSelection.value == 0
+                                  ? 1
+                                  : 0;
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.swap_vert_rounded,
+                            active: jobController.short.value != 0,
+                            onTap: jobController.siralaTapped,
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.filter_alt_outlined,
+                            active: jobController.filtre.value,
+                            onTap: jobController.filtreTapped,
+                          ),
+                        ],
+                        if (showTutoringActions) ...[
+                          const SizedBox(width: 8),
+                          _marketTopActionButton(
+                            icon: Get.find<ViewModeController>().isGridView.value
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
+                            onTap: () {
+                              Get.find<ViewModeController>().toggleView();
+                            },
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.swap_vert_rounded,
+                            active: tutoringFilterController
+                                .selectedLessonPlace.value!
+                                .any(
+                                  (value) => value == 'En Yeniler' ||
+                                      value == 'Fiyat: Düşükten Yükseğe' ||
+                                      value == 'Fiyat: Yüksekten Düşüğe',
+                                ),
+                            onTap: () =>
+                                _openTutoringFilterSheet(context, tutoringController),
+                          ),
+                          const SizedBox(width: 6),
+                          _marketTopActionButton(
+                            icon: Icons.filter_alt_outlined,
+                            active:
+                                (tutoringFilterController.selectedBranch.value
+                                            ?.isNotEmpty ??
+                                        false) ||
+                                    (tutoringFilterController
+                                            .selectedCity.value?.isNotEmpty ??
+                                        false) ||
+                                    (tutoringFilterController
+                                            .selectedDistrict.value?.isNotEmpty ??
+                                        false) ||
+                                    (tutoringFilterController.selectedGender.value
+                                            ?.isNotEmpty ??
+                                        false) ||
+                                    tutoringFilterController
+                                        .selectedLessonPlace.value!.isNotEmpty ||
+                                    tutoringFilterController.maxPrice.value !=
+                                        null ||
+                                    tutoringFilterController.minPrice.value !=
+                                        null,
+                            onTap: () =>
+                                _openTutoringFilterSheet(context, tutoringController),
                           ),
                         ],
                         if (controller.isKeyboardOpen.value)
@@ -783,10 +935,15 @@ class EducationView extends StatelessWidget {
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "Market":
+                            case "Mabil Pazar":
+                              final marketController =
+                                  Get.isRegistered<MarketController>()
+                                  ? Get.find<MarketController>()
+                                  : Get.put(MarketController());
                               return MarketView(
                                 embedded: true,
                                 showEmbeddedControls: false,
+                                controller: marketController,
                               );
                             case "Soru Bankası":
                               return AntremanView2(
@@ -813,7 +970,7 @@ class EducationView extends StatelessWidget {
                                 embedded: true,
                                 showEmbeddedControls: false,
                               );
-                            case "İş Bul":
+                            case "İş Veren":
                               return JobFinder(
                                 embedded: true,
                                 showEmbeddedControls: false,
@@ -860,7 +1017,7 @@ class EducationView extends StatelessWidget {
                           "Burslar" => ActionButtonPermissionScope.scholarships,
                           "Online Sınav" =>
                             ActionButtonPermissionScope.practiceExams,
-                          "İş Bul" => ActionButtonPermissionScope.jobFinder,
+                          "İş Veren" => ActionButtonPermissionScope.jobFinder,
                           _ => ActionButtonPermissionScope.none,
                         },
                       ),

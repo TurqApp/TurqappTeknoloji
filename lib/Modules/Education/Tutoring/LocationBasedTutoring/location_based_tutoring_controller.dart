@@ -1,13 +1,12 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class LocationBasedTutoringController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
   var isLoading = true.obs;
   var tutoringList = <TutoringModel>[].obs;
   var users = <String, Map<String, dynamic>>{}.obs;
@@ -49,11 +48,18 @@ class LocationBasedTutoringController extends GetxController {
         position.longitude,
       );
 
-      final tempList = await _tutoringRepository.fetchByCity(
-        currentCity,
-        limit: 100,
-        preferCache: true,
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
+        limit: 250,
+        page: 1,
       );
+      final tempList = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .where((item) =>
+              item.sehir.trim().toLowerCase() == currentCity.trim().toLowerCase())
+          .toList(growable: true);
 
       // Batch fetch users instead of N+1
       final userIds = tempList.map((t) => t.userID).toSet();

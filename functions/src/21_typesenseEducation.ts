@@ -32,6 +32,22 @@ const NOISY_DETAIL_KEYS = new Set([
   "device",
   "deviceID",
   "deviceVersion",
+  "authorAvatarUrl",
+  "authorDisplayName",
+  "authorNickname",
+  "avatarUrl",
+  "displayName",
+  "nickname",
+  "logo",
+  "cover",
+  "updatedAt",
+  "timeStamp",
+  "userID",
+  "viewCount",
+  "applicationCount",
+  "endedAt",
+  "lat",
+  "long",
 ]);
 
 type EducationEntity =
@@ -61,6 +77,74 @@ const EDUCATION_COLLECTIONS: Record<EducationEntity, string> = {
   past_question: "education_past_questions_search",
 };
 
+const JOB_TYPESENSE_REDUCED_FIELDS = new Set([
+  "authorNickname",
+  "authorDisplayName",
+  "authorAvatarUrl",
+  "detailsJson",
+  "logo",
+]);
+
+const SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS = new Set([
+  "authorNickname",
+  "authorDisplayName",
+  "authorAvatarUrl",
+  "detailsJson",
+  "logo",
+  "img",
+]);
+
+const TUTORING_TYPESENSE_REDUCED_FIELDS = new Set([
+  "authorNickname",
+  "authorDisplayName",
+  "authorAvatarUrl",
+  "shortDescription",
+  "img2",
+  "baslangicTarihi",
+  "bitisTarihi",
+  "basvuruKosullari",
+  "basvuruURL",
+  "basvuruYapilacakYer",
+  "bursVeren",
+  "egitimKitlesi",
+  "geriOdemeli",
+  "hedefKitle",
+  "mukerrerDurumu",
+  "ogrenciSayisi",
+  "tutar",
+  "website",
+  "lisansTuru",
+  "template",
+  "ulke",
+  "altEgitimKitlesi",
+  "aylar",
+  "belgeler",
+  "sehirler",
+  "ilceler",
+  "universiteler",
+  "liseOrtaOkulIlceler",
+  "liseOrtaOkulSehirler",
+  "likeCount",
+  "bookmarkCount",
+  "detailsJson",
+  "brand",
+  "yanHaklar",
+  "calismaGunleri",
+  "calismaSaatiBaslangic",
+  "calismaSaatiBitis",
+  "calismaTuru",
+  "isTanimi",
+  "adres",
+  "maas1",
+  "maas2",
+  "meslek",
+  "ilanBasligi",
+  "deneyimSeviyesi",
+  "basvuruSayisi",
+  "pozisyonSayisi",
+  "about",
+]);
+
 type EducationSearchDoc = {
   id: string;
   docId: string;
@@ -76,15 +160,13 @@ type EducationSearchDoc = {
   country?: string;
   tags?: string[];
   cover?: string;
-  authorNickname?: string;
-  authorDisplayName?: string;
-  authorAvatarUrl?: string;
+  nickname?: string;
+  displayName?: string;
+  avatarUrl?: string;
   rozet?: string;
   shortDescription?: string;
   aciklama?: string;
-  img?: string;
   img2?: string;
-  logo?: string;
   baslangicTarihi?: string;
   bitisTarihi?: string;
   basvuruKosullari?: string;
@@ -113,6 +195,35 @@ type EducationSearchDoc = {
   bookmarkCount?: number;
   detailsText?: string;
   detailsJson?: string;
+  brand?: string;
+  yanHaklar?: string[];
+  calismaGunleri?: string[];
+  calismaSaatiBaslangic?: string;
+  calismaSaatiBitis?: string;
+  calismaTuru?: string[];
+  ended?: boolean;
+  isTanimi?: string;
+  lat?: number;
+  long?: number;
+  adres?: string;
+  maas1?: number;
+  maas2?: number;
+  meslek?: string;
+  ilanBasligi?: string;
+  deneyimSeviyesi?: string;
+  basvuruSayisi?: number;
+  pozisyonSayisi?: number;
+  viewCount?: number;
+  applicationCount?: number;
+  endedAt?: number;
+  about?: string;
+  dersYeri?: string[];
+  cinsiyet?: string;
+  fiyat?: number;
+  telefon?: boolean;
+  whatsapp?: boolean;
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 type SearchEducationInput = {
@@ -157,10 +268,10 @@ type TypesenseSearchHitOutput = {
   town: string;
   country: string;
   cover: string;
+  nickname: string;
+  displayName: string;
+  avatarUrl: string;
   tags: string[];
-  authorNickname: string;
-  authorDisplayName: string;
-  authorAvatarUrl: string;
   rozet: string;
   shortDescription: string;
   aciklama: string;
@@ -194,7 +305,35 @@ type TypesenseSearchHitOutput = {
   likeCount: number;
   bookmarkCount: number;
   detailsText: string;
-  detailsJson: string;
+  brand: string;
+  yanHaklar: string[];
+  calismaGunleri: string[];
+  calismaSaatiBaslangic: string;
+  calismaSaatiBitis: string;
+  calismaTuru: string[];
+  ended: boolean;
+  isTanimi: string;
+  lat: number;
+  long: number;
+  adres: string;
+  maas1: number;
+  maas2: number;
+  meslek: string;
+  ilanBasligi: string;
+  deneyimSeviyesi: string;
+  basvuruSayisi: number;
+  pozisyonSayisi: number;
+  viewCount: number;
+  applicationCount: number;
+  endedAt: number;
+  about: string;
+  dersYeri: string[];
+  cinsiyet: string;
+  fiyat: number;
+  telefon: boolean;
+  whatsapp: boolean;
+  averageRating: number;
+  reviewCount: number;
   score: number;
 };
 
@@ -303,6 +442,15 @@ function asInt(x: unknown): number {
   if (typeof x === "string") {
     const n = Number(x);
     if (Number.isFinite(n)) return Math.floor(n);
+  }
+  return 0;
+}
+
+function asFloat(x: unknown): number {
+  if (typeof x === "number" && Number.isFinite(x)) return x;
+  if (typeof x === "string") {
+    const n = Number(x);
+    if (Number.isFinite(n)) return n;
   }
   return 0;
 }
@@ -431,8 +579,8 @@ function getCollectionName(entity: EducationEntity): string {
 
 const ensureCollectionPromises: Partial<Record<EducationEntity, Promise<void>>> = {};
 
-function requiredFields() {
-  return [
+function requiredFields(entity?: EducationEntity) {
+  const fields = [
     { name: "docId", type: "string", optional: true },
     { name: "entity", type: "string" },
     { name: "title", type: "string", optional: true },
@@ -446,15 +594,13 @@ function requiredFields() {
     { name: "country", type: "string", optional: true },
     { name: "tags", type: "string[]", optional: true },
     { name: "cover", type: "string", optional: true },
-    { name: "authorNickname", type: "string", optional: true },
-    { name: "authorDisplayName", type: "string", optional: true },
-    { name: "authorAvatarUrl", type: "string", optional: true },
+    { name: "nickname", type: "string", optional: true },
+    { name: "displayName", type: "string", optional: true },
+    { name: "avatarUrl", type: "string", optional: true },
     { name: "rozet", type: "string", optional: true },
     { name: "shortDescription", type: "string", optional: true },
     { name: "aciklama", type: "string", optional: true },
-    { name: "img", type: "string", optional: true },
     { name: "img2", type: "string", optional: true },
-    { name: "logo", type: "string", optional: true },
     { name: "baslangicTarihi", type: "string", optional: true },
     { name: "bitisTarihi", type: "string", optional: true },
     { name: "basvuruKosullari", type: "string", optional: true },
@@ -482,8 +628,39 @@ function requiredFields() {
     { name: "likeCount", type: "int32", optional: true },
     { name: "bookmarkCount", type: "int32", optional: true },
     { name: "detailsText", type: "string", optional: true },
-    { name: "detailsJson", type: "string", optional: true },
+    { name: "brand", type: "string", optional: true },
+    { name: "yanHaklar", type: "string[]", optional: true },
+    { name: "calismaGunleri", type: "string[]", optional: true },
+    { name: "calismaSaatiBaslangic", type: "string", optional: true },
+    { name: "calismaSaatiBitis", type: "string", optional: true },
+    { name: "calismaTuru", type: "string[]", optional: true },
+    { name: "ended", type: "bool", optional: true },
+    { name: "isTanimi", type: "string", optional: true },
+    { name: "lat", type: "float", optional: true },
+    { name: "long", type: "float", optional: true },
+    { name: "adres", type: "string", optional: true },
+    { name: "maas1", type: "int64", optional: true },
+    { name: "maas2", type: "int64", optional: true },
+    { name: "meslek", type: "string", optional: true },
+    { name: "ilanBasligi", type: "string", optional: true },
+    { name: "deneyimSeviyesi", type: "string", optional: true },
+    { name: "basvuruSayisi", type: "int32", optional: true },
+    { name: "pozisyonSayisi", type: "int32", optional: true },
+    { name: "viewCount", type: "int32", optional: true },
+    { name: "applicationCount", type: "int32", optional: true },
+    { name: "endedAt", type: "int64", optional: true },
+    { name: "about", type: "string", optional: true },
   ];
+  if (entity === "job") {
+    return fields.filter((field) => !JOB_TYPESENSE_REDUCED_FIELDS.has(field.name));
+  }
+  if (entity === "scholarship") {
+    return fields.filter((field) => !SCHOLARSHIP_TYPESENSE_REDUCED_FIELDS.has(field.name));
+  }
+  if (entity === "tutoring") {
+    return fields.filter((field) => !TUTORING_TYPESENSE_REDUCED_FIELDS.has(field.name));
+  }
+  return fields;
 }
 
 async function ensureEntityCollection(entity: EducationEntity) {
@@ -502,7 +679,7 @@ async function ensureEntityCollection(entity: EducationEntity) {
       const fields: Array<{ name?: string }> = Array.isArray(existing.data?.fields)
         ? (existing.data.fields as Array<{ name?: string }>)
         : [];
-      const missing = requiredFields().filter((rf) => !fields.some((f) => f?.name === rf.name));
+      const missing = requiredFields(entity).filter((rf) => !fields.some((f) => f?.name === rf.name));
       if (missing.length) {
         await axios.patch(
           `${baseUrl}/collections/${collection}`,
@@ -520,7 +697,7 @@ async function ensureEntityCollection(entity: EducationEntity) {
       `${baseUrl}/collections`,
       {
         name: collection,
-        fields: requiredFields(),
+        fields: requiredFields(entity),
         default_sorting_field: "timeStamp",
       },
       { headers: headers(), timeout: 8000 }
@@ -605,6 +782,66 @@ function baseDoc(
   };
 }
 
+type AuthorSummary = {
+  nickname: string;
+  displayName: string;
+  avatarUrl: string;
+  rozet: string;
+};
+
+async function fetchAuthorSummary(userId: string): Promise<AuthorSummary> {
+  const normalizedUserId = asString(userId);
+  if (!normalizedUserId) {
+    return {
+      nickname: "",
+      displayName: "",
+      avatarUrl: "",
+      rozet: "",
+    };
+  }
+
+  try {
+    const snap = await getFirestore().collection("users").doc(normalizedUserId).get();
+    if (!snap.exists) {
+      return {
+        nickname: "",
+        displayName: "",
+        avatarUrl: "",
+        rozet: "",
+      };
+    }
+    const data = (snap.data() || {}) as Record<string, unknown>;
+    const nickname = asString((data as any).nickname) || asString((data as any).username);
+    const displayName =
+      asString((data as any).displayName) ||
+      asString((data as any).fullName) ||
+      [asString((data as any).firstName), asString((data as any).lastName)]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      nickname;
+
+    return {
+      nickname,
+      displayName,
+      avatarUrl:
+        asString((data as any).avatarUrl) ||
+        asString((data as any).photoUrl) ||
+        asString((data as any).profileImage) ||
+        asString((data as any).imageUrl),
+      rozet: asString((data as any).rozet),
+    };
+  } catch (err) {
+    console.error("typesense_education_author_summary_fetch_failed", normalizedUserId, err);
+    return {
+      nickname: "",
+      displayName: "",
+      avatarUrl: "",
+      rozet: "",
+    };
+  }
+}
+
 function buildScholarshipDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
   const description = composeDescription(
     asString(data.shortDescription),
@@ -637,19 +874,24 @@ function buildScholarshipDoc(docId: string, data: Record<string, unknown>): Educ
     ]),
     cover: asString(data.img) || asString(data.logo),
   });
+  const nickname = asString(data.nickname) || asString(data.authorNickname);
+  const displayName =
+    asString(data.displayName) ||
+    asString(data.authorDisplayName) ||
+    nickname;
+  const avatarUrl = asString(data.avatarUrl) || asString(data.authorAvatarUrl);
   const begeniler = asStringArray(data.begeniler);
   const kaydedenler = asStringArray(data.kaydedenler);
+  const { detailsJson: _detailsJson, ...rest } = base;
   return {
-    ...base,
-    authorNickname: asString(data.authorNickname),
-    authorDisplayName: asString(data.authorDisplayName),
-    authorAvatarUrl: asString(data.authorAvatarUrl),
+    ...rest,
+    nickname,
+    displayName,
+    avatarUrl,
     rozet: asString(data.rozet),
     shortDescription: asString(data.shortDescription),
     aciklama: asString(data.aciklama),
-    img: asString(data.img),
     img2: asString(data.img2),
-    logo: asString(data.logo),
     baslangicTarihi: asString(data.baslangicTarihi),
     bitisTarihi: asString(data.bitisTarihi),
     basvuruKosullari: asString(data.basvuruKosullari),
@@ -726,7 +968,7 @@ function buildTutoringDoc(docId: string, data: Record<string, unknown>): Educati
     asString(data.ucret),
     ...asStringArray(data.dersYeri)
   );
-  return baseDoc("tutoring", docId, data, {
+  const base = baseDoc("tutoring", docId, data, {
     title: asString(data.baslik),
     subtitle: asString(data.brans),
     description,
@@ -743,6 +985,24 @@ function buildTutoringDoc(docId: string, data: Record<string, unknown>): Educati
     ]),
     cover: imgs[0] || "",
   });
+  const { detailsJson: _detailsJson, ...rest } = base;
+  return {
+    ...rest,
+    aciklama: asString(data.aciklama),
+    dersYeri: asStringArray(data.dersYeri),
+    cinsiyet: asString(data.cinsiyet),
+    fiyat: asInt(data.fiyat),
+    telefon: asBool(data.telefon),
+    whatsapp: asBool(data.whatsapp),
+    averageRating: asFloat(data.averageRating),
+    reviewCount: asInt(data.reviewCount),
+    ended: asBool(data.ended),
+    endedAt: asInt(data.endedAt),
+    viewCount: asInt(data.viewCount),
+    applicationCount: asInt(data.applicationCount),
+    lat: asFloat(data.lat),
+    long: asFloat(data.long),
+  };
 }
 
 function buildJobDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
@@ -756,7 +1016,7 @@ function buildJobDoc(docId: string, data: Record<string, unknown>): EducationSea
     ...asStringArray(data.yanHaklar),
     ...asStringArray(data.calismaTuru)
   );
-  return baseDoc("job", docId, data, {
+  const base = baseDoc("job", docId, data, {
     title,
     subtitle: asString(data.brand),
     description,
@@ -768,12 +1028,15 @@ function buildJobDoc(docId: string, data: Record<string, unknown>): EducationSea
     tags: dedupe([
       asString(data.meslek),
       asString(data.deneyimSeviyesi),
+      ...asStringArray(data.calismaGunleri),
       ...asStringArray(data.calismaTuru),
       ...asStringArray(data.yanHaklar),
       ...asStringArray(data.tags),
     ]),
     cover: asString(data.logo) || imgs[0] || "",
   });
+  const { detailsJson: _detailsJson, ...rest } = base;
+  return rest;
 }
 
 function buildWorkoutDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
@@ -833,6 +1096,128 @@ function buildSearchDoc(entity: EducationEntity, docId: string, data: Record<str
   }
 }
 
+async function buildSearchDocForIndexing(
+  entity: EducationEntity,
+  docId: string,
+  data: Record<string, unknown>
+): Promise<EducationSearchDoc> {
+  const doc = buildSearchDoc(entity, docId, data);
+  if (entity === "scholarship") {
+    const summary = await fetchAuthorSummary(doc.ownerId || "");
+    const nickname =
+      doc.nickname ||
+      asString((data as any).nickname) ||
+      asString((data as any).authorNickname) ||
+      summary.nickname;
+    const displayName =
+      doc.displayName ||
+      asString((data as any).displayName) ||
+      asString((data as any).authorDisplayName) ||
+      summary.displayName ||
+      nickname;
+    const avatarUrl =
+      doc.avatarUrl ||
+      asString((data as any).avatarUrl) ||
+      asString((data as any).authorAvatarUrl) ||
+      summary.avatarUrl;
+    const rozet =
+      doc.rozet ||
+      asString((data as any).rozet) ||
+      summary.rozet;
+    return {
+      ...doc,
+      nickname,
+      displayName,
+      avatarUrl,
+      rozet,
+    };
+  }
+
+  if (entity === "tutoring") {
+    const summary = await fetchAuthorSummary(doc.ownerId || "");
+    const nickname =
+      doc.nickname ||
+      asString((data as any).nickname) ||
+      summary.nickname;
+    const displayName =
+      doc.displayName ||
+      asString((data as any).displayName) ||
+      summary.displayName ||
+      nickname;
+    const avatarUrl =
+      asString((data as any).avatarUrl) ||
+      doc.avatarUrl ||
+      summary.avatarUrl;
+    const rozet = doc.rozet || asString((data as any).rozet) || summary.rozet;
+    return {
+      ...doc,
+      nickname,
+      displayName,
+      avatarUrl,
+      rozet,
+      aciklama: asString((data as any).aciklama),
+      dersYeri: asStringArray((data as any).dersYeri),
+      cinsiyet: asString((data as any).cinsiyet),
+      fiyat: asInt((data as any).fiyat),
+      telefon: asBool((data as any).telefon),
+      whatsapp: asBool((data as any).whatsapp),
+      averageRating: asFloat((data as any).averageRating),
+      reviewCount: asInt((data as any).reviewCount),
+      ended: asBool((data as any).ended),
+      endedAt: asInt((data as any).endedAt),
+      viewCount: asInt((data as any).viewCount),
+      applicationCount: asInt((data as any).applicationCount),
+      lat: asFloat((data as any).lat),
+      long: asFloat((data as any).long),
+    };
+  }
+
+  if (entity !== "job") return doc;
+
+  const summary = await fetchAuthorSummary(doc.ownerId || "");
+  const nickname = doc.nickname || asString((data as any).nickname) || summary.nickname;
+  const displayName =
+    doc.displayName ||
+    asString((data as any).displayName) ||
+    summary.displayName ||
+    nickname;
+  const avatarUrl =
+    asString((data as any).avatarUrl) ||
+    doc.avatarUrl ||
+    summary.avatarUrl;
+  const rozet = doc.rozet || asString((data as any).rozet) || summary.rozet;
+
+  return {
+    ...doc,
+    nickname,
+    displayName,
+    avatarUrl,
+    rozet,
+    brand: asString((data as any).brand),
+    yanHaklar: asStringArray((data as any).yanHaklar),
+    calismaGunleri: asStringArray((data as any).calismaGunleri),
+    calismaSaatiBaslangic: asString((data as any).calismaSaatiBaslangic),
+    calismaSaatiBitis: asString((data as any).calismaSaatiBitis),
+    calismaTuru: asStringArray((data as any).calismaTuru),
+    ended: asBool((data as any).ended),
+    isTanimi: asString((data as any).isTanimi),
+    lat: Number((data as any).lat || 0),
+    long: Number((data as any).long || 0),
+    adres: asString((data as any).adres),
+    maas1: asInt((data as any).maas1),
+    maas2: asInt((data as any).maas2),
+    meslek: asString((data as any).meslek),
+    ilanBasligi: asString((data as any).ilanBasligi),
+    deneyimSeviyesi: asString((data as any).deneyimSeviyesi),
+    basvuruSayisi: asInt((data as any).basvuruSayisi),
+    pozisyonSayisi: asInt((data as any).pozisyonSayisi) || 1,
+    viewCount: asInt((data as any).viewCount),
+    applicationCount: asInt((data as any).applicationCount),
+    endedAt: asInt((data as any).endedAt),
+    about: asString((data as any).about),
+  };
+}
+
 function shouldIndex(doc: EducationSearchDoc): boolean {
   const hasCoreText = doc.title.trim().length > 0 ||
     (doc.description || "").trim().length > 0 ||
@@ -850,7 +1235,7 @@ async function syncEducationDoc(
     return;
   }
 
-  const doc = buildSearchDoc(entity, rawDocId, afterData);
+  const doc = await buildSearchDocForIndexing(entity, rawDocId, afterData);
   if (!shouldIndex(doc)) {
     await deleteDoc(entity, rawDocId);
     return;
@@ -876,16 +1261,16 @@ function toHitOutput(hitRaw: unknown, collection: string): TypesenseSearchHitOut
     town: String(doc.town || ""),
     country: String(doc.country || ""),
     cover: String(doc.cover || ""),
+    nickname: String(doc.nickname || ""),
+    displayName: String(doc.displayName || ""),
+    avatarUrl: String(doc.avatarUrl || ""),
     tags,
-    authorNickname: String(doc.authorNickname || ""),
-    authorDisplayName: String(doc.authorDisplayName || ""),
-    authorAvatarUrl: String(doc.authorAvatarUrl || ""),
     rozet: String(doc.rozet || ""),
     shortDescription: String(doc.shortDescription || ""),
     aciklama: String(doc.aciklama || ""),
-    img: String(doc.img || ""),
+    img: String(doc.cover || ""),
     img2: String(doc.img2 || ""),
-    logo: String(doc.logo || ""),
+    logo: "",
     baslangicTarihi: String(doc.baslangicTarihi || ""),
     bitisTarihi: String(doc.bitisTarihi || ""),
     basvuruKosullari: String(doc.basvuruKosullari || ""),
@@ -913,7 +1298,35 @@ function toHitOutput(hitRaw: unknown, collection: string): TypesenseSearchHitOut
     likeCount: Number(doc.likeCount || 0),
     bookmarkCount: Number(doc.bookmarkCount || 0),
     detailsText: String(doc.detailsText || ""),
-    detailsJson: String(doc.detailsJson || ""),
+    brand: String(doc.brand || ""),
+    yanHaklar: Array.isArray(doc.yanHaklar) ? doc.yanHaklar.map((x) => String(x || "")) : [],
+    calismaGunleri: Array.isArray(doc.calismaGunleri) ? doc.calismaGunleri.map((x) => String(x || "")) : [],
+    calismaSaatiBaslangic: String(doc.calismaSaatiBaslangic || ""),
+    calismaSaatiBitis: String(doc.calismaSaatiBitis || ""),
+    calismaTuru: Array.isArray(doc.calismaTuru) ? doc.calismaTuru.map((x) => String(x || "")) : [],
+    ended: doc.ended === true,
+    isTanimi: String(doc.isTanimi || ""),
+    lat: Number(doc.lat || 0),
+    long: Number(doc.long || 0),
+    adres: String(doc.adres || ""),
+    maas1: Number(doc.maas1 || 0),
+    maas2: Number(doc.maas2 || 0),
+    meslek: String(doc.meslek || ""),
+    ilanBasligi: String(doc.ilanBasligi || ""),
+    deneyimSeviyesi: String(doc.deneyimSeviyesi || ""),
+    basvuruSayisi: Number(doc.basvuruSayisi || 0),
+    pozisyonSayisi: Number(doc.pozisyonSayisi || 0),
+    viewCount: Number(doc.viewCount || 0),
+    applicationCount: Number(doc.applicationCount || 0),
+    endedAt: Number(doc.endedAt || 0),
+    about: String(doc.about || ""),
+    dersYeri: Array.isArray(doc.dersYeri) ? doc.dersYeri.map((x) => String(x || "")) : [],
+    cinsiyet: String(doc.cinsiyet || ""),
+    fiyat: Number(doc.fiyat || 0),
+    telefon: doc.telefon === true,
+    whatsapp: doc.whatsapp === true,
+    averageRating: Number(doc.averageRating || 0),
+    reviewCount: Number(doc.reviewCount || 0),
     score: Number(hit.text_match || 0),
   };
 }
@@ -929,17 +1342,27 @@ async function searchFromCollection(
   const collection = getCollectionName(entity);
   await ensureEntityCollection(entity);
 
+  const queryBy = (() => {
+    switch (entity) {
+      case "tutoring":
+        return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,cinsiyet,dersYeri";
+      case "job":
+        return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName,meslek,ilanBasligi,brand";
+      default:
+        return "title,subtitle,description,aciklama,tags,city,town,country,detailsText,nickname,displayName";
+    }
+  })();
+
   const response = await axios.get(`${baseUrl}/collections/${collection}/documents/search`, {
     headers: headers(),
     timeout: 12000,
     params: {
       q,
-      query_by: "title,subtitle,description,tags,city,town,country,detailsText",
+      query_by: queryBy,
       per_page: limit,
       page,
       sort_by: "timeStamp:desc",
       filter_by: "active:=true",
-      prefix: "true,true,true,true,true,true,true,true",
       num_typos: 2,
       exhaustive_search: true,
     },
@@ -1257,7 +1680,7 @@ export const f21_reindexEducationToTypesenseCallable = onCall(
         scanned += 1;
         const rawDocId = docSnap.id;
         const data = docSnap.data() as Record<string, unknown>;
-        const doc = buildSearchDoc(entity, rawDocId, data);
+        const doc = await buildSearchDocForIndexing(entity, rawDocId, data);
 
         if (!shouldIndex(doc)) {
           if (!dryRun) {

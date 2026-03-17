@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringFilterController extends GetxController {
   final TutoringController tutoringController = Get.find<TutoringController>();
@@ -15,6 +17,7 @@ class TutoringFilterController extends GetxController {
   var selectedDistrict = Rx<String?>(null);
   var selectedGender = Rx<String?>(null);
   var selectedLessonPlace = Rx<List<String>?>([]);
+  var selectedSort = Rx<String?>(null);
   var maxPrice = Rx<double?>(null);
   var minPrice = Rx<double?>(null);
   final sehirler = <String>[].obs;
@@ -29,23 +32,17 @@ class TutoringFilterController extends GetxController {
   }
 
   void showIlSec() {
-    Get.bottomSheet(
-      ListBottomSheet(
-        list: sehirler,
-        title: "Şehir Seç",
-        startSelection: city.value,
-        onBackData: (v) {
-          city.value = v;
-          selectedCity.value = v;
-          town.value = "";
-          selectedDistrict.value = null;
-        },
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
+    ListBottomSheet.show(
+      context: Get.context!,
+      items: sehirler,
+      title: "Şehir Seç",
+      selectedItem: city.value,
+      onSelect: (v) {
+        city.value = v.toString();
+        selectedCity.value = v.toString();
+        town.value = "";
+        selectedDistrict.value = null;
+      },
     );
   }
 
@@ -54,22 +51,17 @@ class TutoringFilterController extends GetxController {
         .where((doc) => doc.il == city.value && city.value.isNotEmpty)
         .map((doc) => doc.ilce)
         .toList();
+    sortTurkishStrings(ilceListesi);
 
-    Get.bottomSheet(
-      ListBottomSheet(
-        list: ilceListesi,
-        title: "İlçe Seç",
-        startSelection: town.value,
-        onBackData: (v) {
-          town.value = v;
-          selectedDistrict.value = v;
-        },
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
+    ListBottomSheet.show(
+      context: Get.context!,
+      items: ilceListesi,
+      title: "İlçe Seç",
+      selectedItem: town.value,
+      onSelect: (v) {
+        town.value = v.toString();
+        selectedDistrict.value = v.toString();
+      },
     );
   }
 
@@ -81,8 +73,10 @@ class TutoringFilterController extends GetxController {
       final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
     } catch (_) {
       sehirler.value = []; // Hata durumunda boş liste ile devam et
     } finally {
@@ -146,34 +140,37 @@ class TutoringFilterController extends GetxController {
           .toList();
     }
 
-    // Sıralama ölçütü
-    if (selectedLessonPlace.value != null &&
-        selectedLessonPlace.value!.isNotEmpty) {
-      final sortCriteria = selectedLessonPlace.value!.firstWhere(
-        (criteria) => [
-          'En Yeniler',
-          'Fiyat: Düşükten Yükseğe',
-          'Fiyat: Yüksekten Düşüğe',
-        ].contains(criteria),
-        orElse: () => '',
-      );
-      if (sortCriteria.isNotEmpty) {
-        filteredList.sort((a, b) {
-          if (sortCriteria == 'En Yeniler') {
-            return b.timeStamp.compareTo(a.timeStamp);
-          } else if (sortCriteria == 'Fiyat: Düşükten Yükseğe') {
-            return a.fiyat.compareTo(b.fiyat);
-          } else if (sortCriteria == 'Fiyat: Yüksekten Düşüğe') {
-            return b.fiyat.compareTo(a.fiyat);
-          }
-          return 0;
-        });
-      }
-    }
+    _applySort(filteredList);
 
     // Filtrelenmiş listeyi güncelle
     tutoringController.tutoringList.value = filteredList;
     Get.back(); // Bottom sheet'i kapat
+  }
+
+  void _applySort(List<TutoringModel> list) {
+    final sort = selectedSort.value ?? '';
+    if (sort == 'En Yeni') {
+      list.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+      return;
+    }
+    if (sort == 'En Çok Görüntülenen') {
+      list.sort(
+        (a, b) => (b.viewCount ?? 0).compareTo(a.viewCount ?? 0),
+      );
+      return;
+    }
+    if (sort == 'Bana En Yakın') {
+      final userCity =
+          (CurrentUserService.instance.currentUser?.city ?? '').trim();
+      list.sort((a, b) {
+        final aScore = a.sehir == userCity ? 1 : 0;
+        final bScore = b.sehir == userCity ? 1 : 0;
+        if (aScore != bScore) {
+          return bScore.compareTo(aScore);
+        }
+        return b.timeStamp.compareTo(a.timeStamp);
+      });
+    }
   }
 
   void clearFilters() {
@@ -182,6 +179,7 @@ class TutoringFilterController extends GetxController {
     selectedDistrict.value = null;
     selectedGender.value = null;
     selectedLessonPlace.value = [];
+    selectedSort.value = null;
     maxPrice.value = null;
     minPrice.value = null;
     city.value = "";

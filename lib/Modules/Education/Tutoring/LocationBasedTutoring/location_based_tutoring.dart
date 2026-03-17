@@ -50,29 +50,33 @@ class LocationBasedTutoring extends StatelessWidget {
               ],
             ),
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return Center(child: CupertinoActivityIndicator());
-                  } else if (controller.tutoringList.isEmpty) {
-                    return Center(
-                      child: Text("Bu bölgede ders ilanı bulunmuyor."),
-                    );
-                  } else {
-                    return SingleChildScrollView(
-                      child: TutoringWidgetBuilder(
-                        tutoringList: controller.tutoringList,
-                        users: controller.users,
-                        isGridView: viewModeController.isGridView.value,
-                        infoMessage: Infomessage(
-                          infoMessage: "Bu bölgede ders ilanı bulunmuyor.",
-                        ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return Center(child: CupertinoActivityIndicator());
+                } else if (controller.tutoringList.isEmpty) {
+                  return Center(
+                    child: Text("Bu bölgede ders ilanı bulunmuyor."),
+                  );
+                } else {
+                  final content = SingleChildScrollView(
+                    child: TutoringWidgetBuilder(
+                      tutoringList: controller.tutoringList,
+                      users: controller.users,
+                      isGridView: viewModeController.isGridView.value,
+                      infoMessage: Infomessage(
+                        infoMessage: "Bu bölgede ders ilanı bulunmuyor.",
                       ),
+                    ),
+                  );
+                  if (viewModeController.isGridView.value) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: content,
                     );
                   }
-                }),
-              ),
+                  return content;
+                }
+              }),
             ),
           ],
         ),

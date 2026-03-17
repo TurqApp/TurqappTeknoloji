@@ -1,18 +1,18 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 
 class TutoringSearchController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
-  final TutoringRepository _tutoringRepository = TutoringRepository.ensure();
+  final TextEditingController searchController = TextEditingController();
   var isLoading = true.obs;
   var searchQuery = ''.obs;
   var searchResults = <TutoringModel>[].obs;
   var users = <String, Map<String, dynamic>>{}.obs;
 
-  /// Full list cached for client-side filtering
-  List<TutoringModel> _allTutorings = [];
+  List<TutoringModel> _initialTutorings = [];
 
   @override
   void onInit() {
@@ -22,9 +22,15 @@ class TutoringSearchController extends GetxController {
       if (query.isNotEmpty) {
         performSearch(query);
       } else {
-        searchResults.value = _allTutorings;
+        searchResults.value = _initialTutorings;
       }
     }, time: Duration(milliseconds: 500));
+  }
+
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
   }
 
   Future<void> _batchFetchUsers(Set<String> userIds) async {
@@ -41,27 +47,50 @@ class TutoringSearchController extends GetxController {
   Future<void> fetchInitialData() async {
     isLoading.value = true;
     try {
-      final page = await _tutoringRepository.fetchPage(limit: 200);
-      _allTutorings = page.items;
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: '*',
+        limit: 60,
+        page: 1,
+      );
+      _initialTutorings = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
 
-      final userIds = _allTutorings.map((t) => t.userID).toSet();
+      final userIds = _initialTutorings.map((t) => t.userID).toSet();
       await _batchFetchUsers(userIds);
 
-      searchResults.value = _allTutorings;
+      searchResults.value = _initialTutorings;
     } catch (_) {
     } finally {
       isLoading.value = false;
     }
   }
 
-  void performSearch(String query) {
-    final q = query.toLowerCase();
-    searchResults.value = _allTutorings
-        .where((tutoring) =>
-            tutoring.aciklama.toLowerCase().contains(q) ||
-            tutoring.baslik.toLowerCase().contains(q) ||
-            tutoring.brans.toLowerCase().contains(q))
-        .toList();
+  Future<void> performSearch(String query) async {
+    final normalized = query.trim();
+    if (normalized.isEmpty) {
+      searchResults.value = _initialTutorings;
+      return;
+    }
+
+    try {
+      final result = await TypesenseEducationSearchService.instance.searchHits(
+        entity: EducationTypesenseEntity.tutoring,
+        query: normalized,
+        limit: 60,
+        page: 1,
+      );
+      final items = result.hits
+          .map(TutoringModel.fromTypesenseHit)
+          .where((item) => item.docID.isNotEmpty)
+          .toList(growable: false);
+      await _batchFetchUsers(items.map((t) => t.userID).toSet());
+      searchResults.value = items;
+    } catch (_) {
+      searchResults.value = const <TutoringModel>[];
+    }
   }
 
   void updateSearchQuery(String query) {

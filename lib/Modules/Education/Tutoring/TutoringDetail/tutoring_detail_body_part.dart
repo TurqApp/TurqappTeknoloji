@@ -15,18 +15,6 @@ extension TutoringDetailBodyPart on TutoringDetail {
             : Get.put(TutoringController());
     final String? currentUserId = getCurrentUserId();
 
-    Future<void> openMentionProfile(String mention) async {
-      final normalizedMention = mention.trim().replaceFirst('@', '');
-      if (normalizedMention.isEmpty) return;
-      final targetUid =
-          await UsernameLookupRepository.ensure().findUidForHandle(mention) ??
-              '';
-
-      if (targetUid.isNotEmpty && targetUid != currentUserId) {
-        await Get.to(() => SocialProfile(userID: targetUid));
-      }
-    }
-
     Future<void> deleteTutoring(String docId) async {
       try {
         await FirebaseFirestore.instance
@@ -34,799 +22,626 @@ extension TutoringDetailBodyPart on TutoringDetail {
             .doc(docId)
             .delete();
         Get.back();
-        AppSnackbar("Başarılı", "İlan silindi!");
+        AppSnackbar('Başarılı', 'İlan silindi!');
       } catch (_) {
-        AppSnackbar("Hata", "İlan silinirken bir hata oluştu.");
+        AppSnackbar('Hata', 'İlan silinirken bir hata oluştu.');
       }
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: const Text(
+          'Özel Ders',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: EducationFeedShareIconButton(
+              onTap: () =>
+                  shareService.shareTutoring(controller.tutoring.value),
+              size: AppIconSurface.kSize,
+              iconSize: AppIconSurface.kIconSize,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: Obx(() {
+              final isSaved = savedController.savedTutoringIds.contains(
+                controller.tutoring.value.docID,
+              );
+              return AppHeaderActionButton(
+                onTap: () async {
+                  if (currentUserId == null) return;
+                  final success = await tutoringController.toggleFavorite(
+                    controller.tutoring.value.docID,
+                    currentUserId,
+                    isSaved,
+                  );
+                  if (!success) return;
+                  if (isSaved) {
+                    savedController.removeSavedTutoring(
+                      controller.tutoring.value.docID,
+                    );
+                  } else {
+                    savedController.addSavedTutoring(
+                      controller.tutoring.value.docID,
+                    );
+                  }
+                },
+                child: Icon(
+                  isSaved
+                      ? CupertinoIcons.bookmark_fill
+                      : CupertinoIcons.bookmark,
+                  size: AppIconSurface.kIconSize,
+                  color: isSaved ? Colors.orange : Colors.black87,
+                ),
+              );
+            }),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: pullDownMenu(controller),
+          ),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         bottom: false,
         child: Obx(() {
           if (controller.isLoading.value) {
-            return Center(child: CupertinoActivityIndicator());
-          } else {
-            return Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(child: BackButtons(text: "Özel Ders")),
-                    EducationFeedShareIconButton(
-                      onTap: () =>
-                          shareService.shareTutoring(controller.tutoring.value),
-                      size: 30,
-                      iconSize: 18,
-                    ),
-                    6.pw,
-                    Obx(() {
-                      final isSaved = savedController.savedTutoringIds.contains(
-                        controller.tutoring.value.docID,
-                      );
-                      return AppHeaderActionButton(
-                        onTap: () async {
-                          if (currentUserId != null) {
-                            final success =
-                                await tutoringController.toggleFavorite(
-                              controller.tutoring.value.docID,
-                              currentUserId,
-                              isSaved,
-                            );
-                            if (!success) return;
-                            if (isSaved) {
-                              savedController.removeSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            } else {
-                              savedController.addSavedTutoring(
-                                controller.tutoring.value.docID,
-                              );
-                            }
-                          }
-                        },
-                        child: Icon(
-                          isSaved
-                              ? CupertinoIcons.bookmark_fill
-                              : CupertinoIcons.bookmark,
-                          size: 18,
-                          color: isSaved ? Colors.orange : Colors.black87,
-                        ),
-                      );
-                    }),
-                    6.pw,
-                    pullDownMenu(controller),
-                    10.pw,
-                  ],
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (controller.tutoring.value.imgs != null &&
-                            controller.tutoring.value.imgs!.isNotEmpty)
-                          Column(
-                            children: [
-                              SizedBox(
-                                width: Get.width,
-                                child: CarouselSlider(
-                                  options: CarouselOptions(
-                                    enlargeCenterPage: false,
-                                    autoPlay: false,
-                                    enableInfiniteScroll: false,
-                                    viewportFraction: 1.0,
-                                    aspectRatio: 1.0,
-                                    onPageChanged: (index, reason) {
-                                      controller.carouselCurrentIndex.value =
-                                          index;
-                                    },
-                                  ),
-                                  items: controller.tutoring.value.imgs!.map((
-                                    imgUrl,
-                                  ) {
-                                    return Builder(
-                                      builder: (BuildContext context) {
-                                        return SizedBox(
-                                          width: Get.width,
-                                          child: AspectRatio(
-                                            aspectRatio: 1.0,
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.zero,
-                                              child: CachedNetworkImage(
-                                                imageUrl: imgUrl,
-                                                placeholder: (context, url) =>
-                                                    CupertinoActivityIndicator(),
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        Icon(
-                                                  CupertinoIcons.photo,
-                                                ),
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                              Container(
-                                margin: EdgeInsets.only(top: 8.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: List.generate(
-                                    controller.tutoring.value.imgs!.length,
-                                    (index) {
-                                      return Container(
-                                        width: 8.0,
-                                        height: 8.0,
-                                        margin: EdgeInsets.symmetric(
-                                          horizontal: 4.0,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: controller.carouselCurrentIndex
-                                                      .value ==
-                                                  index
-                                              ? Colors.black
-                                              : Colors.grey,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        Padding(
-                          padding: EdgeInsets.all(15),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title + ended badge
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      controller.tutoring.value.baslik,
-                                      style: TextStyles.bold16Black,
-                                    ),
-                                  ),
-                                  if (controller.tutoring.value.ended == true)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.shade100,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        "Yayında Değil",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.red,
-                                          fontFamily: 'MontserratBold',
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              appDivider(),
-                              // Teacher name + rating
-                              Row(
-                                children: [
-                                  Text(
-                                    (controller.users[controller.tutoring.value
-                                                .userID]?['nickname'] ??
-                                            controller.users[controller.tutoring
-                                                .value.userID]?['username'] ??
-                                            controller.users[controller
-                                                .tutoring
-                                                .value
-                                                .userID]?['displayName'] ??
-                                            '')
-                                        .toString(),
-                                    style: TextStyles.bold16Black,
-                                  ),
-                                  4.pw,
-                                  RozetContent(
-                                    size: 14,
-                                    userID: controller.tutoring.value.userID
-                                        .toString(),
-                                  ),
-                                  if (controller.tutoring.value.verified ==
-                                      true) ...[
-                                    4.pw,
-                                    Icon(Icons.verified,
-                                        size: 16, color: Colors.blue),
-                                  ],
-                                  Spacer(),
-                                  if (controller.tutoring.value.averageRating !=
-                                      null)
-                                    Row(
-                                      children: [
-                                        Icon(Icons.star,
-                                            size: 16, color: Colors.amber),
-                                        2.pw,
-                                        Text(
-                                          "${controller.tutoring.value.averageRating}",
-                                          style: TextStyles.bold16Black,
-                                        ),
-                                        if (controller
-                                                .tutoring.value.reviewCount !=
-                                            null)
-                                          Text(
-                                            " (${controller.tutoring.value.reviewCount})",
-                                            style: TextStyles.tutoringLocation,
-                                          ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                              appDivider(),
-                              Text(
-                                controller.tutoring.value.brans,
-                                style: TextStyles.tutoringBranch,
-                              ),
-                              appDivider(),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        CupertinoIcons.location_solid,
-                                        size: 14,
-                                        color: Colors.red,
-                                      ),
-                                      2.pw,
-                                      Text(
-                                        "${controller.tutoring.value.sehir}/${controller.tutoring.value.ilce}",
-                                        style: TextStyles.tutoringLocation,
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    "${controller.tutoring.value.fiyat} ₺",
-                                    style: TextStyles.bold16Black,
-                                  ),
-                                ],
-                              ),
-                              // View count for owner
-                              if (currentUserId != null &&
-                                  currentUserId ==
-                                      controller.tutoring.value.userID &&
-                                  controller.tutoring.value.viewCount != null)
-                                Padding(
-                                  padding: EdgeInsets.only(top: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(CupertinoIcons.eye,
-                                          size: 14, color: Colors.grey),
-                                      4.pw,
-                                      Text(
-                                        "${controller.tutoring.value.viewCount} görüntülenme",
-                                        style: TextStyles.tutoringLocation,
-                                      ),
-                                      if (controller.tutoring.value
-                                              .applicationCount !=
-                                          null) ...[
-                                        12.pw,
-                                        Icon(CupertinoIcons.doc_text,
-                                            size: 14, color: Colors.grey),
-                                        4.pw,
-                                        Text(
-                                          "${controller.tutoring.value.applicationCount} başvuru",
-                                          style: TextStyles.tutoringLocation,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              appDivider(),
-                              // Availability grid
-                              if (controller.tutoring.value.availability !=
-                                      null &&
-                                  controller.tutoring.value.availability!
-                                      .isNotEmpty) ...[
-                                Text("Müsaitlik",
-                                    style: TextStyles.bold16Black),
-                                8.ph,
-                                ...controller
-                                    .tutoring.value.availability!.entries
-                                    .map((entry) => Padding(
-                                          padding: EdgeInsets.only(bottom: 4),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              SizedBox(
-                                                width: 90,
-                                                child: Text(
-                                                  entry.key,
-                                                  style: TextStyles.bold15Black,
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Wrap(
-                                                  spacing: 6,
-                                                  runSpacing: 4,
-                                                  children: entry.value
-                                                      .map((time) => Container(
-                                                            padding: EdgeInsets
-                                                                .symmetric(
-                                                                    horizontal:
-                                                                        8,
-                                                                    vertical:
-                                                                        4),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Colors.grey
-                                                                  .shade200,
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                            ),
-                                                            child: Text(
-                                                              time,
-                                                              style: TextStyle(
-                                                                  fontSize: 12),
-                                                            ),
-                                                          ))
-                                                      .toList(),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )),
-                                appDivider(),
-                              ],
-                              ClickableTextContent(
-                                text: controller.tutoring.value.aciklama,
-                                startWith7line: true,
-                                fontSize: 15,
-                                fontColor: Colors.black,
-                                mentionColor: Colors.blue,
-                                hashtagColor: Colors.blue,
-                                urlColor: Colors.blue,
-                                interactiveColor: Colors.blue,
-                                onHashtagTap: (tag) {
-                                  if (tag.trim().isEmpty) return;
-                                  Get.to(() => TagPosts(tag: tag.trim()));
-                                },
-                                onUrlTap: (url) async {
-                                  final uniqueKey = DateTime.now()
-                                      .millisecondsSinceEpoch
-                                      .toString();
-                                  await RedirectionLink()
-                                      .goToLink(url, uniqueKey: uniqueKey);
-                                },
-                                onMentionTap: openMentionProfile,
-                              ),
-                              16.ph,
-                              // Teacher card
-                              GestureDetector(
-                                onTap: () {
-                                  if (currentUserId !=
-                                      controller.tutoring.value.userID) {
-                                    Get.to(() => SocialProfile(
-                                        userID:
-                                            controller.tutoring.value.userID));
-                                  }
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.all(15),
-                                  decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: Colors.black, width: 1)),
-                                  child: Row(
-                                    children: [
-                                      ClipOval(
-                                        child: SizedBox(
-                                          width: 35,
-                                          height: 35,
-                                          child: CachedNetworkImage(
-                                            imageUrl: (controller.users[
-                                                            controller.tutoring
-                                                                .value.userID]
-                                                        ?["avatarUrl"] ??
-                                                    controller.users[controller
-                                                            .tutoring
-                                                            .value
-                                                            .userID]
-                                                        ?["avatarUrl"] ??
-                                                    '')
-                                                .toString(),
-                                            fit: BoxFit.cover,
-                                            placeholder: (context, url) =>
-                                                Center(
-                                              child: SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child:
-                                                    CupertinoActivityIndicator(),
-                                              ),
-                                            ),
-                                            errorWidget:
-                                                (context, url, error) => Center(
-                                              child: Icon(
-                                                Icons.error,
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      8.pw,
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Text(
-                                                (controller.users[controller
-                                                                .tutoring
-                                                                .value
-                                                                .userID]
-                                                            ?['nickname'] ??
-                                                        controller.users[controller
-                                                                .tutoring
-                                                                .value
-                                                                .userID]
-                                                            ?['username'] ??
-                                                        controller.users[
-                                                                controller
-                                                                    .tutoring
-                                                                    .value
-                                                                    .userID]
-                                                            ?['displayName'] ??
-                                                        '')
-                                                    .toString(),
-                                                style: TextStyles.bold16Black,
-                                              ),
-                                              4.pw,
-                                              RozetContent(
-                                                size: 14,
-                                                userID: controller
-                                                    .tutoring.value.userID
-                                                    .toString(),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              16.ph,
-                              // ── Owner buttons ──
-                              if (currentUserId != null &&
-                                  currentUserId ==
-                                      controller.tutoring.value.userID)
-                                Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () {
-                                              Get.to(
-                                                () => CreateTutoringView(),
-                                                arguments:
-                                                    controller.tutoring.value,
-                                              );
-                                            },
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                color: Colors.black,
-                                              ),
-                                              child: Text(
-                                                "İlanı Düzenle",
-                                                style: TextStyles.bold16White,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        8.pw,
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () {
-                                              Get.to(() =>
-                                                  TutoringApplicationReview(
-                                                    tutoringDocID: controller
-                                                        .tutoring.value.docID,
-                                                    tutoringTitle: controller
-                                                        .tutoring.value.baslik,
-                                                  ));
-                                            },
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                color: const Color(0xFF2F2F2F),
-                                              ),
-                                              child: Text(
-                                                "Başvurular",
-                                                style: TextStyles.bold16White,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    8.ph,
-                                    // Unpublish button
-                                    if (controller.tutoring.value.ended != true)
-                                      InkWell(
-                                        onTap: () {
-                                          noYesAlert(
-                                            title: "Yayından Kaldır",
-                                            message:
-                                                "Bu ilanı yayından kaldırmak istediğinizden emin misiniz?",
-                                            onYesPressed: () async {
-                                              await controller
-                                                  .unpublishTutoring();
-                                              Get.back();
-                                              AppSnackbar("Başarılı",
-                                                  "İlan yayından kaldırıldı.");
-                                            },
-                                          );
-                                        },
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: Colors.orange,
-                                          ),
-                                          child: Text(
-                                            "Yayından Kaldır",
-                                            style: TextStyles.bold16White,
-                                          ),
-                                        ),
-                                      ),
-                                    8.ph,
-                                    InkWell(
-                                      onTap: () {
-                                        noYesAlert(
-                                          title: "İlanı Sil",
-                                          message:
-                                              "Bu özel ders ilanınızı silmek istediğinizden emin misiniz?",
-                                          onYesPressed: () {
-                                            deleteTutoring(
-                                              controller.tutoring.value.docID,
-                                            );
-                                          },
-                                        );
-                                      },
-                                      child: Container(
-                                        alignment: Alignment.center,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          color: Colors.red,
-                                        ),
-                                        child: Text(
-                                          "İlanı Sil",
-                                          style: TextStyles.bold16White,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              // ── Visitor buttons ──
-                              if (currentUserId != null &&
-                                  currentUserId !=
-                                      controller.tutoring.value.userID)
-                                Column(
-                                  children: [
-                                    // Apply button
-                                    Obx(() => InkWell(
-                                          onTap: () {
-                                            controller.toggleBasvuru(controller
-                                                .tutoring.value.docID);
-                                          },
-                                          child: Container(
-                                            alignment: Alignment.center,
-                                            height: 50,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              color: controller.basvuruldu.value
-                                                  ? Colors.orange
-                                                  : Colors.green,
-                                            ),
-                                            child: Text(
-                                              controller.basvuruldu.value
-                                                  ? "Başvuruldu"
-                                                  : "Başvur",
-                                              style: TextStyles.bold16White,
-                                            ),
-                                          ),
-                                        )),
-                                    8.ph,
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: InkWell(
-                                            onTap: () {
-                                              final sohbet =
-                                                  chatListingController.list
-                                                      .firstWhereOrNull(
-                                                (val) =>
-                                                    val.userID ==
-                                                    controller
-                                                        .tutoring.value.userID,
-                                              );
-
-                                              if (sohbet != null) {
-                                                Get.to(
-                                                  () => ChatView(
-                                                    chatID: sohbet.chatID,
-                                                    userID: controller
-                                                        .tutoring.value.userID,
-                                                    isNewChat: false,
-                                                  ),
-                                                );
-                                              } else {
-                                                final chatId =
-                                                    buildConversationId(
-                                                  currentUserId,
-                                                  controller
-                                                      .tutoring.value.userID,
-                                                );
-                                                Get.to(
-                                                  () => ChatView(
-                                                    chatID: chatId,
-                                                    userID: controller
-                                                        .tutoring.value.userID,
-                                                    isNewChat: true,
-                                                  ),
-                                                );
-                                                chatListingController.getList();
-                                              }
-                                            },
-                                            child: Container(
-                                              alignment: Alignment.center,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                color: Colors.black,
-                                              ),
-                                              child: Text(
-                                                "Mesaj Gönder",
-                                                style: TextStyles.bold16White,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        if (controller.tutoring.value.telefon ==
-                                            true)
-                                          8.pw,
-                                        if (controller.tutoring.value.telefon ==
-                                            true)
-                                          Expanded(
-                                            child: InkWell(
-                                              onTap: () async {
-                                                final phoneNumber =
-                                                    controller.users[controller
-                                                                .tutoring
-                                                                .value
-                                                                .userID]
-                                                            ?['phoneNumber']
-                                                        as String?;
-                                                if (phoneNumber != null) {
-                                                  await launchUrl(
-                                                    Uri.parse(
-                                                        'tel:$phoneNumber'),
-                                                  );
-                                                }
-                                              },
-                                              child: Container(
-                                                alignment: Alignment.center,
-                                                height: 50,
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  color: Colors.green,
-                                                ),
-                                                child: Text(
-                                                  "Ara",
-                                                  style: TextStyles.bold16White,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    // WhatsApp button
-                                    if (controller.tutoring.value.whatsapp ==
-                                        true) ...[
-                                      8.ph,
-                                      InkWell(
-                                        onTap: () async {
-                                          final phoneNumber = controller.users[
-                                                  controller
-                                                      .tutoring.value.userID]
-                                              ?['phoneNumber'] as String?;
-                                          if (phoneNumber != null) {
-                                            final cleaned =
-                                                phoneNumber.replaceAll(
-                                                    RegExp(r'[^0-9]'), '');
-                                            await launchUrl(
-                                              Uri.parse(
-                                                  'https://wa.me/$cleaned'),
-                                              mode: LaunchMode
-                                                  .externalApplication,
-                                            );
-                                          }
-                                        },
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            color: const Color(0xFF25D366),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.chat,
-                                                  color: Colors.white,
-                                                  size: 20),
-                                              8.pw,
-                                              Text(
-                                                "WhatsApp",
-                                                style: TextStyles.bold16White,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              // ── Reviews Section ──
-                              16.ph,
-                              _buildReviewsSection(controller, currentUserId),
-                              // ── Similar listings ──
-                              16.ph,
-                              _buildSimilarSection(controller),
-                              30.ph,
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
+            return const Center(child: CupertinoActivityIndicator());
           }
+
+          final current = controller.tutoring.value;
+          final user = controller.users[current.userID] ?? const <String, dynamic>{};
+          final teacherName = (user['nickname'] ??
+                  user['username'] ??
+                  user['displayName'] ??
+                  '')
+              .toString()
+              .trim();
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            children: [
+              _heroImage(current),
+              const SizedBox(height: 14),
+              Text(
+                current.baslik,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${current.sehir}, ${current.ilce}  •  ${teacherName.isEmpty ? current.brans : teacherName}',
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Açıklama',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                current.aciklama.trim().isEmpty
+                    ? 'Bu ilan için açıklama eklenmemiş.'
+                    : current.aciklama,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                  fontFamily: 'Montserrat',
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'Ders Bilgileri',
+                children: [
+                  _infoRow('Branş', current.brans),
+                  if (current.dersYeri.isNotEmpty)
+                    _infoRow('Ders Yeri', current.dersYeri.join(', ')),
+                  _infoRow('Ücret', _formatPrice(current.fiyat)),
+                  _infoRow(
+                    'İletişim',
+                    current.telefon == true ? 'Telefon + Mesaj' : 'Sadece Mesaj',
+                  ),
+                  if (current.cinsiyet.trim().isNotEmpty)
+                    _infoRow('Cinsiyet Tercihi', current.cinsiyet),
+                  if (_availabilityText(current).isNotEmpty)
+                    _infoRow('Müsaitlik', _availabilityText(current)),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _infoCard(
+                title: 'İlan Bilgileri',
+                children: [
+                  _infoRow(
+                    'Eğitmen',
+                    teacherName.isEmpty ? 'Belirtilmedi' : teacherName,
+                  ),
+                  _infoRow('Şehir', '${current.sehir}, ${current.ilce}'),
+                  _infoRow('Görüntülenme', '${current.viewCount ?? 0}'),
+                  _infoRow(
+                    'Durum',
+                    current.ended == true ? 'Pasif' : 'Aktif',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Konum',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 16,
+                  fontFamily: 'MontserratBold',
+                ),
+              ),
+              const SizedBox(height: 10),
+              _locationCard(current),
+              const SizedBox(height: 18),
+              _teacherCard(current, user, currentUserId),
+              const SizedBox(height: 18),
+              _actionSection(
+                controller: controller,
+                currentUserId: currentUserId,
+                onDelete: deleteTutoring,
+              ),
+              const SizedBox(height: 18),
+              _buildSimilarSection(controller),
+            ],
+          );
         }),
+      ),
+    );
+  }
+
+  Widget _heroImage(TutoringModel model) {
+    final imageUrl =
+        model.imgs != null && model.imgs!.isNotEmpty ? model.imgs!.first : '';
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: AspectRatio(
+        aspectRatio: 1.18,
+        child: imageUrl.trim().isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => _imageFallback(),
+              )
+            : _imageFallback(),
+      ),
+    );
+  }
+
+  Widget _imageFallback() {
+    return Container(
+      color: const Color(0xFFF3F5F7),
+      alignment: Alignment.center,
+      child: const Icon(
+        CupertinoIcons.photo,
+        color: Colors.black38,
+        size: 36,
+      ),
+    );
+  }
+
+  String _formatPrice(num value) {
+    final digits = value.toInt().toString();
+    final reversed = digits.split('').reversed.join();
+    final chunks = <String>[];
+    for (var i = 0; i < reversed.length; i += 3) {
+      final end = (i + 3 < reversed.length) ? i + 3 : reversed.length;
+      chunks.add(reversed.substring(i, end));
+    }
+    final formatted = chunks
+        .map((chunk) => chunk.split('').reversed.join())
+        .toList()
+        .reversed
+        .join('.');
+    return '$formatted TL';
+  }
+
+  String _availabilityText(TutoringModel model) {
+    final availability = model.availability;
+    if (availability == null || availability.isEmpty) return '';
+    return availability.entries
+        .map((entry) => '${entry.key}: ${entry.value.join(', ')}')
+        .join(' • ');
+  }
+
+  Widget _infoCard({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 16,
+              fontFamily: 'MontserratBold',
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 128,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _locationCard(TutoringModel model) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(CupertinoIcons.location_solid, color: Colors.red, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '${model.sehir}, ${model.ilce}',
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontFamily: 'MontserratMedium',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _teacherCard(
+    TutoringModel model,
+    Map<String, dynamic> user,
+    String? currentUserId,
+  ) {
+    final avatarUrl = (user['avatarUrl'] ?? '').toString().trim();
+    final nickname = (user['nickname'] ??
+            user['username'] ??
+            user['displayName'] ??
+            '')
+        .toString()
+        .trim();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFF6F7FB),
+      ),
+      child: GestureDetector(
+        onTap: model.userID == currentUserId
+            ? null
+            : () => Get.to(() => SocialProfile(userID: model.userID)),
+        child: Row(
+          children: [
+            ClipOval(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: avatarUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _imageFallback(),
+                      )
+                    : _imageFallback(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          nickname.isEmpty ? model.brans : nickname,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 16,
+                            fontFamily: 'MontserratBold',
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      RozetContent(size: 14, userID: model.userID),
+                    ],
+                  ),
+                  if (nickname.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '@$nickname',
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 13,
+                        fontFamily: 'MontserratMedium',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (model.userID != currentUserId)
+              const Icon(
+                CupertinoIcons.chevron_right,
+                color: Colors.black38,
+                size: 18,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionSection({
+    required TutoringDetailController controller,
+    required String? currentUserId,
+    required Future<void> Function(String docId) onDelete,
+  }) {
+    final current = controller.tutoring.value;
+    final isOwner = currentUserId == current.userID;
+
+    if (isOwner) {
+      return Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => Get.to(() => const CreateTutoringView(), arguments: current),
+              child: _solidAction('Düzenle'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => Get.to(() => ChatListing()),
+              child: _outlinedAction('Mesajlar'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                noYesAlert(
+                  title: 'İlanı Kaldır',
+                  message:
+                      'Bu özel ders ilanını yayından kaldırmak istediğinizden emin misiniz?',
+                  yesText: 'Kaldır',
+                  cancelText: 'Vazgeç',
+                  onYesPressed: () async {
+                    await controller.unpublishTutoring();
+                    AppSnackbar('Başarılı', 'İlan yayından kaldırıldı.');
+                  },
+                );
+              },
+              child: _dangerAction('Kaldır'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _openTutorChat(
+              currentUserId: currentUserId,
+              model: current,
+              chatListingController: chatListingController,
+            ),
+            child: _solidAction('Mesaj'),
+          ),
+        ),
+        if (current.telefon == true) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _callTutor(
+                model: current,
+                ownerRaw: controller.users[current.userID] ??
+                    const <String, dynamic>{},
+              ),
+              child: _outlinedAction('Ara'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _openTutorChat({
+    required String? currentUserId,
+    required TutoringModel model,
+    required ChatListingController chatListingController,
+  }) async {
+    if (currentUserId == null || currentUserId.trim().isEmpty) {
+      AppSnackbar('Giriş Gerekli', 'Mesaj göndermek için giriş yapmalısın.');
+      return;
+    }
+    if (currentUserId == model.userID) {
+      AppSnackbar('Bilgi', 'Kendi ilanına mesaj gönderemezsin.');
+      return;
+    }
+    final existing = chatListingController.list.firstWhereOrNull(
+      (val) => val.userID == model.userID,
+    );
+    if (existing != null) {
+      await Get.to(
+        () => ChatView(
+          chatID: existing.chatID,
+          userID: model.userID,
+          isNewChat: false,
+          openKeyboard: true,
+        ),
+      );
+      return;
+    }
+    final chatId = buildConversationId(currentUserId, model.userID);
+    await Get.to(
+      () => ChatView(
+        chatID: chatId,
+        userID: model.userID,
+        isNewChat: true,
+        openKeyboard: true,
+      ),
+    );
+    await chatListingController.getList(forceServer: true);
+  }
+
+  Future<void> _callTutor({
+    required TutoringModel model,
+    required Map<String, dynamic> ownerRaw,
+  }) async {
+    if (model.telefon != true) {
+      AppSnackbar('Bilgi', 'Bu ilanda arama izni kapalı.');
+      return;
+    }
+    final rawPhone = (ownerRaw['phoneNumber'] ?? '').toString().trim();
+    if (rawPhone.isEmpty) {
+      AppSnackbar('Bilgi Yok', 'Eğitmenin telefon bilgisi bulunamadı.');
+      return;
+    }
+    final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    String dialValue = rawPhone;
+    if (digits.startsWith('90') && digits.length == 12) {
+      dialValue = '+$digits';
+    } else if (digits.startsWith('0') && digits.length == 11) {
+      dialValue = '+9$digits';
+    } else if (digits.length == 10 && digits.startsWith('5')) {
+      dialValue = '+90$digits';
+    }
+    final opened = await launchUrl(Uri.parse('tel:$dialValue'));
+    if (!opened) {
+      AppSnackbar('Hata', 'Telefon uygulaması açılamadı.');
+    }
+  }
+
+  Widget _solidAction(String text) {
+    return Container(
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+          fontFamily: 'MontserratBold',
+        ),
+      ),
+    );
+  }
+
+  Widget _outlinedAction(String text) {
+    return Container(
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 15,
+          fontFamily: 'MontserratBold',
+        ),
+      ),
+    );
+  }
+
+  Widget _dangerAction(String text) {
+    return Container(
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE45858)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFFE45858),
+          fontSize: 15,
+          fontFamily: 'MontserratBold',
+        ),
       ),
     );
   }

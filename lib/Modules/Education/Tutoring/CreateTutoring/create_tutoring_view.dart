@@ -1,19 +1,19 @@
 import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
-import 'package:turqappv2/Core/text_styles.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/CreateTutoring/create_tutoring_controller.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
+
+import 'create_tutoring_controller.dart';
 
 class CreateTutoringView extends StatelessWidget {
   const CreateTutoringView({super.key});
@@ -25,8 +25,11 @@ class CreateTutoringView extends StatelessWidget {
     );
     final TutoringModel? initialData = Get.arguments as TutoringModel?;
 
-    // Başlangıç verilerini doldur
-    if (initialData != null) {
+    if (initialData != null &&
+        controller.titleController.text.isEmpty &&
+        controller.descriptionController.text.isEmpty &&
+        controller.branchController.text.isEmpty &&
+        controller.images.isEmpty) {
       controller.titleController.text = initialData.baslik;
       controller.descriptionController.text = initialData.aciklama;
       controller.branchController.text = initialData.brans;
@@ -34,708 +37,516 @@ class CreateTutoringView extends StatelessWidget {
       controller.cityController.text = initialData.sehir;
       controller.districtController.text = initialData.ilce;
       controller.selectedLessonPlace.value =
-          initialData.dersYeri.isNotEmpty ? initialData.dersYeri[0] : '';
+          initialData.dersYeri.isNotEmpty ? initialData.dersYeri.first : '';
       controller.selectedGender.value = initialData.cinsiyet;
       controller.city.value = initialData.sehir;
       controller.town = initialData.ilce;
       controller.isPhoneOpen.value = initialData.telefon;
       controller.selectedBranch.value = initialData.brans;
       if (initialData.imgs != null && initialData.imgs!.isNotEmpty) {
-        controller.images.assignAll(
-          initialData.imgs!,
-        ); // URL'leri direkt atıyoruz
+        controller.images.assignAll(initialData.imgs!);
       }
       if (initialData.availability != null) {
         controller.availability.assignAll(initialData.availability!);
       }
     }
 
-    Widget buildTextField(
-      String label,
-      TextEditingController controller, {
-      String? hint,
-      int maxLines = 1,
-      TextInputType? keyboardType,
-    }) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyles.textFieldTitle),
-          8.ph,
-          TextFormField(
-            controller: controller,
-            maxLines: maxLines,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hint ?? label,
-              filled: true,
-              fillColor: Colors.grey.shade200,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 16,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: Text(
+          initialData == null ? 'İlan Ekle' : 'İlan Düzenle',
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
           ),
-        ],
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Obx(
+          () => ListView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            children: [
+              _buildImagePicker(context, controller, initialData),
+              const SizedBox(height: 18),
+              _sectionTitle('Temel Bilgiler'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.titleController,
+                inputFormatters: [LengthLimitingTextInputFormatter(100)],
+                decoration: _inputDecoration('İlan Başlığı'),
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.selectedBranch.value.isEmpty
+                    ? 'Branş'
+                    : controller.selectedBranch.value,
+                onTap: () => _showBranchSelector(context, controller),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.priceController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
+                ],
+                decoration: _inputDecoration('Ücret'),
+              ),
+              const SizedBox(height: 18),
+              _sectionTitle('Konum'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _selectionField(
+                      label: controller.city.value.isEmpty
+                          ? 'Şehir'
+                          : controller.city.value,
+                      onTap: controller.showIlSec,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _selectionField(
+                      label: controller.town.isEmpty
+                          ? 'İlçe'
+                          : controller.town,
+                      onTap: controller.city.value.isEmpty
+                          ? null
+                          : controller.showIlcelerSec,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _sectionTitle('Ders Tanımı'),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.selectedLessonPlace.value.isEmpty
+                    ? 'Ders Yeri'
+                    : controller.selectedLessonPlace.value,
+                onTap: () => _showListSelector(
+                  context: context,
+                  title: 'Ders Yeri',
+                  items: const [
+                    'Öğrencinin Evi',
+                    'Öğretmenin Evi',
+                    'Öğrencinin veya Öğretmenin Evi',
+                    'Uzaktan Eğitim',
+                    'Ders Verme Alanı',
+                  ],
+                  selected: controller.selectedLessonPlace.value,
+                  onSelect: (value) => controller.selectedLessonPlace.value = value,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.selectedGender.value.isEmpty
+                    ? 'Cinsiyet Tercihi'
+                    : controller.selectedGender.value,
+                onTap: () => _showListSelector(
+                  context: context,
+                  title: 'Cinsiyet Tercihi',
+                  items: const ['Erkek', 'Kadın', 'Farketmez'],
+                  selected: controller.selectedGender.value,
+                  onSelect: (value) => controller.selectedGender.value = value,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.descriptionController,
+                minLines: 4,
+                maxLines: 8,
+                inputFormatters: [LengthLimitingTextInputFormatter(2000)],
+                decoration: _inputDecoration('Açıklama'),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 58,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0x22000000)),
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Arama İzni',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 15,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => controller.togglePhoneOpen(
+                        !controller.isPhoneOpen.value,
+                      ),
+                      child: TurqAppToggle(isOn: controller.isPhoneOpen.value),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              _sectionTitle('Müsaitlik Takvimi'),
+              const SizedBox(height: 8),
+              _buildAvailabilityCard(controller),
+              const SizedBox(height: 22),
+              SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: controller.isLoading.value
+                      ? null
+                      : () {
+                          if (initialData != null) {
+                            controller.updateTutoring(initialData.docID);
+                          } else {
+                            controller.saveTutoring();
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: controller.isLoading.value
+                      ? const CupertinoActivityIndicator(color: Colors.white)
+                      : Text(
+                          initialData == null ? 'Yayınla' : 'Güncelle',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontFamily: 'MontserratBold',
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(
+    BuildContext context,
+    CreateTutoringController controller, {
+    required ImageSource source,
+  }) async {
+    File? file;
+    if (source == ImageSource.gallery) {
+      file = await AppImagePickerService.pickSingleImage(context);
+    } else {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
       );
+      if (picked != null) file = File(picked.path);
+    }
+    if (file == null) return;
+
+    final result = await OptimizedNSFWService.checkImage(file);
+    if (result.errorMessage != null) {
+      AppSnackbar('Hata', 'Görsel kontrolü başarısız oldu.');
+      return;
+    }
+    if (result.isNSFW) {
+      AppSnackbar('Hata', 'Uygunsuz görsel tespit edildi.');
+      return;
     }
 
-    Widget buildLocationSelector(CreateTutoringController controller) {
-      return Obx(
-        () => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Hizmet Verilen Yer", style: TextStyles.textFieldTitle),
-            8.ph,
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: controller.showIlSec,
-                    child: Container(
-                      height: 50,
-                      alignment: Alignment.centerLeft,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(12),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              controller.city.value.isEmpty
-                                  ? "Şehir Seç"
-                                  : controller.city.value,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
-                            ),
-                            const Icon(CupertinoIcons.chevron_down, size: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (controller.city.value.isNotEmpty) const SizedBox(width: 12),
-                if (controller.city.value.isNotEmpty)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: controller.showIlcelerSec,
-                      child: Container(
-                        height: 50,
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          borderRadius: const BorderRadius.all(
-                            Radius.circular(12),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                controller.town.isEmpty
-                                    ? "İlçe Seç"
-                                    : controller.town,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                              ),
-                              const Icon(CupertinoIcons.chevron_down, size: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+    controller.images
+      ..clear()
+      ..add(file.path);
+  }
+
+  Widget _buildImagePicker(
+    BuildContext context,
+    CreateTutoringController controller,
+    TutoringModel? initialData,
+  ) {
+    final String? imagePath = controller.images.isNotEmpty
+        ? controller.images.first
+        : null;
+
+    Widget preview;
+    if (imagePath != null) {
+      preview = ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 112,
+          height: 112,
+          child: imagePath.startsWith('http')
+              ? CachedNetworkImage(imageUrl: imagePath, fit: BoxFit.cover)
+              : Image.file(File(imagePath), fit: BoxFit.cover),
+        ),
+      );
+    } else if (initialData?.imgs?.isNotEmpty ?? false) {
+      preview = ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 112,
+          height: 112,
+          child: CachedNetworkImage(
+            imageUrl: initialData!.imgs!.first,
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    } else {
+      preview = Container(
+        width: 112,
+        height: 112,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7FB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: const Icon(
+          CupertinoIcons.person_2_fill,
+          color: Colors.black38,
+          size: 38,
         ),
       );
     }
 
-    Widget buildSelectionField(
-      String label,
-      RxString selectedValue,
-      List<String> options, {
-      String hint = "Seçin",
-    }) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyles.textFieldTitle),
-          8.ph,
-          GestureDetector(
-            onTap: () {
-              AppBottomSheet.show(
-                context: context,
-                items: options,
-                title: label,
-                onSelect: (value) => selectedValue.value = value,
-                selectedItem: selectedValue.value,
-              );
-            },
-            child: Container(
-              height: 50,
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Obx(
-                    () => Text(
-                      selectedValue.value.isEmpty ? hint : selectedValue.value,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
-                  Icon(CupertinoIcons.chevron_down, size: 20),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    Widget buildCategorySelection(CreateTutoringController controller) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Branş", style: TextStyles.textFieldTitle),
-          8.ph,
-          GestureDetector(
-            onTap: () {
-              Get.bottomSheet(
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(25),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        height: 4,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.grey,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      12.ph,
-                      Text("Branş Seç", style: TextStyles.bold18Black),
-                      16.ph,
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: kategoriler.length,
-                        itemBuilder: (context, index) {
-                          final category = kategoriler[index];
-                          return GestureDetector(
-                            onTap: () {
-                              controller.selectedBranch.value = category.name;
-                              Get.back();
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: category.color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: category.color.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    category.icon,
-                                    color: category.color,
-                                    size: 30,
-                                  ),
-                                  4.ph,
-                                  Text(
-                                    category.name,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: category.color,
-                                      fontSize: 12,
-                                      fontFamily: "MontserratMedium",
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        preview,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            children: [
+              _imageActionButton(
+                label: 'Galeriden Seç',
+                primary: true,
+                onTap: () => _pickImage(
+                  context,
+                  controller,
+                  source: ImageSource.gallery,
                 ),
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-              );
-            },
-            child: Container(
-              height: 50,
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Obx(
-                      () => Text(
-                        controller.selectedBranch.value.isEmpty
-                            ? "Branş Seç"
-                            : controller.selectedBranch.value,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  Icon(CupertinoIcons.chevron_down, size: 20),
-                ],
+              const SizedBox(height: 8),
+              _imageActionButton(
+                label: 'Kameradan Çek',
+                onTap: () => _pickImage(
+                  context,
+                  controller,
+                  source: ImageSource.camera,
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+  Widget _imageActionButton({
+    required String label,
+    required VoidCallback onTap,
+    bool primary = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: primary ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: primary ? Colors.black : const Color(0x22000000),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: primary ? Colors.white : Colors.black,
+            fontSize: 14,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionField({
+    required String label,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: Row(
           children: [
-            BackButtons(
-              text: initialData != null ? "İlanı Düzenle" : "Özel Ders Oluştur",
-            ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Form(
-                  key: controller.formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Görsel Ekle", style: TextStyles.textFieldTitle),
-                      8.ph,
-                      GestureDetector(
-                        onTap: () async {
-                          final pickedFiles =
-                              await AppImagePickerService.pickImages(
-                            context,
-                            maxAssets: 10,
-                          );
-                          if (pickedFiles.isNotEmpty) {
-                            controller.images.clear(); // Eski resimleri temizle
-                            for (var imageFile in pickedFiles) {
-                              final r = await OptimizedNSFWService.checkImage(
-                                imageFile,
-                              );
-                              if (r.isNSFW) {
-                                AppSnackbar(
-                                  "Yükleme Başarısız!",
-                                  "Bu içerik şu anda işlenemiyor. Lütfen başka bir içerik deneyin.",
-                                  backgroundColor:
-                                      Colors.red.withValues(alpha: 0.7),
-                                );
-                              } else {
-                                controller.addImage(imageFile.path);
-                              }
-                            }
-                          }
-                        },
-                        child: Container(
-                          width: Get.width,
-                          height: Get.width,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Obx(
-                            () => controller.images.isEmpty
-                                ? Center(
-                                    child: Icon(
-                                      Icons.add_a_photo,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    ),
-                                  )
-                                : Stack(
-                                    alignment: Alignment.bottomCenter,
-                                    children: [
-                                      PageView.builder(
-                                        itemCount: controller.images.length,
-                                        onPageChanged: (index) {
-                                          controller.carouselCurrentIndex
-                                              .value = index;
-                                        },
-                                        itemBuilder: (context, index) =>
-                                            ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          child: controller.images[index]
-                                                  .startsWith('http')
-                                              ? CachedNetworkImage(
-                                                  imageUrl:
-                                                      controller.images[index],
-                                                  placeholder: (context, url) =>
-                                                      CupertinoActivityIndicator(),
-                                                  errorWidget: (
-                                                    context,
-                                                    url,
-                                                    error,
-                                                  ) =>
-                                                      Icon(
-                                                    CupertinoIcons.photo,
-                                                  ),
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : Image.file(
-                                                  File(
-                                                    controller.images[index],
-                                                  ),
-                                                  height: Get.width,
-                                                  width: Get.width,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                        ),
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: controller.images
-                                            .asMap()
-                                            .entries
-                                            .map((
-                                          entry,
-                                        ) {
-                                          return Container(
-                                            width: 8,
-                                            height: 8,
-                                            margin: EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.grey.withValues(
-                                                alpha: controller
-                                                            .carouselCurrentIndex
-                                                            .value ==
-                                                        entry.key
-                                                    ? 0.9
-                                                    : 0.4,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                      16.ph,
-                      buildTextField("Başlık", controller.titleController),
-                      16.ph,
-                      buildTextField(
-                        "Açıklama",
-                        controller.descriptionController,
-                        maxLines: 3,
-                      ),
-                      16.ph,
-                      Row(
-                        children: [
-                          Expanded(child: buildCategorySelection(controller)),
-                          8.pw,
-                          Expanded(
-                            child: buildTextField(
-                              "Fiyat (₺)",
-                              controller.priceController,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ),
-                        ],
-                      ),
-                      16.ph,
-                      buildSelectionField(
-                        "Ders Yeri",
-                        controller.selectedLessonPlace,
-                        [
-                          'Öğrencinin Evi',
-                          'Öğretmenin Evi',
-                          'Öğrencinin veya Öğretmenin Evi',
-                          "Uzaktan Eğitim",
-                          "Ders Verme Alanı",
-                        ],
-                      ),
-                      16.ph,
-                      buildLocationSelector(controller),
-                      16.ph,
-                      buildSelectionField(
-                        "Cinsiyet Tercihi",
-                        controller.selectedGender,
-                        ['Erkek', 'Kadın', 'Farketmez'],
-                      ),
-                      16.ph,
-                      Container(
-                        height: 50,
-                        padding: EdgeInsets.symmetric(horizontal: 15),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Obx(
-                              () => Text(
-                                "Arama İzni ${controller.isPhoneOpen.value ? "Açık" : "Kapalı"}",
-                                style: TextStyles.textFieldTitle,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () => controller.togglePhoneOpen(
-                                !controller.isPhoneOpen.value,
-                              ),
-                              child: Obx(
-                                () => TurqAppToggle(
-                                  isOn: controller.isPhoneOpen.value,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      16.ph,
-                      // Doğrulama Belgeleri
-                      Text("Doğrulama Belgeleri (Opsiyonel)",
-                          style: TextStyles.textFieldTitle),
-                      4.ph,
-                      Text(
-                        "Diploma veya sertifika yükleyerek doğrulanmış öğretmen rozeti alabilirsiniz.",
-                        style: TextStyle(
-                          fontFamily: "MontserratMedium",
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      8.ph,
-                      Obx(() => Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              ...controller.verificationDocs.map((doc) => Chip(
-                                    label: Text(
-                                      doc.startsWith('http')
-                                          ? "Belge ${controller.verificationDocs.indexOf(doc) + 1}"
-                                          : doc.split('/').last,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    deleteIcon:
-                                        const Icon(Icons.close, size: 16),
-                                    onDeleted: () =>
-                                        controller.verificationDocs.remove(doc),
-                                  )),
-                              GestureDetector(
-                                onTap: () async {
-                                  final pickedFiles =
-                                      await AppImagePickerService.pickImages(
-                                    context,
-                                    maxAssets: 3,
-                                  );
-                                  for (var file in pickedFiles) {
-                                    controller.addVerificationDoc(file.path);
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: Colors.grey.shade300),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.upload_file,
-                                          size: 18,
-                                          color: Colors.grey.shade600),
-                                      const SizedBox(width: 4),
-                                      Text("Belge Ekle",
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey.shade600)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )),
-                      16.ph,
-                      // Müsaitlik Takvimi
-                      Text("Müsaitlik Takvimi",
-                          style: TextStyles.textFieldTitle),
-                      8.ph,
-                      Obx(() {
-                        return Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children:
-                                CreateTutoringController.weekDays.map((day) {
-                              final selectedSlots =
-                                  controller.availability[day] ?? [];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      day,
-                                      style: const TextStyle(
-                                        fontFamily: "MontserratBold",
-                                        fontSize: 13,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 6,
-                                      runSpacing: 6,
-                                      children: CreateTutoringController
-                                          .timeSlots
-                                          .map((slot) {
-                                        final isSelected =
-                                            selectedSlots.contains(slot);
-                                        return GestureDetector(
-                                          onTap: () => controller
-                                              .toggleTimeSlot(day, slot),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 6),
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? Colors.black
-                                                  : Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                color: isSelected
-                                                    ? Colors.black
-                                                    : Colors.grey.shade300,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              slot,
-                                              style: TextStyle(
-                                                fontFamily: "MontserratMedium",
-                                                fontSize: 11,
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : Colors.black87,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        );
-                      }),
-                      32.ph,
-                      Obx(
-                        () => GestureDetector(
-                          onTap: controller.isLoading.value
-                              ? null
-                              : () {
-                                  if (initialData != null) {
-                                    controller.updateTutoring(
-                                      initialData.docID,
-                                    );
-                                  } else {
-                                    controller.saveTutoring();
-                                  }
-                                },
-                          child: Container(
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: controller.isLoading.value
-                                  ? Colors.grey
-                                  : Colors.black,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: controller.isLoading.value
-                                ? CupertinoActivityIndicator(
-                                    color: Colors.white,
-                                  )
-                                : Text(
-                                    initialData != null ? "Güncelle" : "Paylaş",
-                                    style: TextStyles.bold16White,
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: onTap == null ? Colors.black38 : Colors.black87,
+                  fontSize: 15,
+                  fontFamily: 'MontserratMedium',
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const Icon(CupertinoIcons.chevron_down, size: 20),
           ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x22000000)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 18,
+        fontFamily: 'MontserratBold',
+      ),
+    );
+  }
+
+  void _showListSelector({
+    required BuildContext context,
+    required String title,
+    required List<String> items,
+    required String selected,
+    required ValueChanged<String> onSelect,
+  }) {
+    AppBottomSheet.show(
+      context: context,
+      title: title,
+      items: items,
+      selectedItem: selected,
+      onSelect: (value) => onSelect(value.toString()),
+    );
+  }
+
+  void _showBranchSelector(
+    BuildContext context,
+    CreateTutoringController controller,
+  ) {
+    AppBottomSheet.show(
+      context: context,
+      title: 'Branş',
+      items: controller.branchIconMap.keys.toList(),
+      selectedItem: controller.selectedBranch.value,
+      onSelect: (value) {
+        controller.selectedBranch.value = value;
+        controller.branchController.text = value;
+      },
+    );
+  }
+
+  Widget _buildAvailabilityCard(CreateTutoringController controller) {
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7FB),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: CreateTutoringController.weekDays.map((day) {
+            final selectedSlots = controller.availability[day] ?? <String>[];
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: day == CreateTutoringController.weekDays.last ? 0 : 10,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    day,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: CreateTutoringController.timeSlots.map((slot) {
+                      final isSelected = selectedSlots.contains(slot);
+                      return GestureDetector(
+                        onTap: () => controller.toggleTimeSlot(day, slot),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.black : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.black
+                                  : const Color(0x22000000),
+                            ),
+                          ),
+                          child: Text(
+                            slot,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontSize: 11,
+                              fontFamily: 'MontserratMedium',
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/info_message.dart';
@@ -52,13 +51,31 @@ class MyTutorings extends StatelessWidget {
             Get.find<PageLineBarController>(tag: "MyTutorings");
 
         return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            leading: IconButton(
+              onPressed: Get.back,
+              icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+            ),
+            title: const Text(
+              'İlanlarım',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
+          ),
           body: SafeArea(
+            top: false,
             bottom: false,
             child: Column(
               children: [
-                BackButtons(text: "Özel Derslerim"),
                 PageLineBar(
-                  barList: ["Aktif", "Süresi Doldu"],
+                  barList: ["Yayında", "Süresi Doldu"],
                   pageName: "MyTutorings",
                   pageController: controller.pageController,
                 ),
@@ -79,18 +96,28 @@ class MyTutorings extends StatelessWidget {
                                   style: TextStyles.textFieldTitle,
                                 ),
                               )
-                            : Container(
-                                padding: EdgeInsets.symmetric(horizontal: 15),
-                                child: TutoringWidgetBuilder(
-                                  tutoringList: controller.activeTutorings,
-                                  users: controller.users,
-                                  isGridView:
-                                      viewModeController.isGridView.value,
-                                  infoMessage: Infomessage(
-                                    infoMessage:
-                                        "Aktif özel ders ilanı bulunmuyor.",
-                                  ),
-                                ),
+                            : Builder(
+                                builder: (context) {
+                                  final content = TutoringWidgetBuilder(
+                                    tutoringList: controller.activeTutorings,
+                                    users: controller.users,
+                                    isGridView:
+                                        viewModeController.isGridView.value,
+                                    infoMessage: Infomessage(
+                                      infoMessage:
+                                          "Aktif özel ders ilanı bulunmuyor.",
+                                    ),
+                                  );
+                                  if (viewModeController.isGridView.value) {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 15,
+                                      ),
+                                      child: content,
+                                    );
+                                  }
+                                  return content;
+                                },
                               ),
                       ),
                       Obx(
@@ -101,17 +128,15 @@ class MyTutorings extends StatelessWidget {
                                   style: TextStyles.textFieldTitle,
                                 ),
                               )
-                            : Container(
-                                padding: EdgeInsets.symmetric(horizontal: 15),
-                                child: SingleChildScrollView(
-                                  child: TutoringWidgetBuilder(
-                                    tutoringList: controller.expiredTutorings,
-                                    users: controller.users,
-                                    isGridView: false,
-                                    infoMessage: Infomessage(
-                                      infoMessage:
-                                          "Süresi dolmuş özel ders ilanı bulunmuyor.",
-                                    ),
+                            : SingleChildScrollView(
+                                child: TutoringWidgetBuilder(
+                                  tutoringList: controller.expiredTutorings,
+                                  users: controller.users,
+                                  isGridView: false,
+                                  allowReactivate: true,
+                                  infoMessage: Infomessage(
+                                    infoMessage:
+                                        "Süresi dolmuş özel ders ilanı bulunmuyor.",
                                   ),
                                 ),
                               ),

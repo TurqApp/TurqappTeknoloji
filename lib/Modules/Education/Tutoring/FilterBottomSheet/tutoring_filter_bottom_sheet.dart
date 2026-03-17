@@ -34,7 +34,7 @@ class TutoringFilterBottomSheet extends StatelessWidget {
               ),
             ),
             8.ph,
-            Center(child: Text("Filtrele", style: TextStyles.bold20Black)),
+            Center(child: Text("Filtreler", style: TextStyles.bold20Black)),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
@@ -119,32 +119,22 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                         return Obx(
                           () => GestureDetector(
                             onTap: () {
-                              if (filterController.selectedLessonPlace.value!
-                                  .contains(value)) {
-                                filterController.selectedLessonPlace.value!
-                                    .remove(
-                                  value,
-                                );
-                              } else {
-                                filterController.selectedLessonPlace.value!.add(
-                                  value,
-                                );
-                              }
-                              filterController.selectedLessonPlace.refresh();
+                              filterController.selectedGender.value =
+                                  filterController.selectedGender.value == value
+                                      ? null
+                                      : value;
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
-                                  filterController.selectedLessonPlace.value!
-                                          .contains(value)
+                                  filterController.selectedGender.value == value
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 18,
-                                  color: filterController
-                                          .selectedLessonPlace.value!
-                                          .contains(value)
+                                  color: filterController.selectedGender.value ==
+                                          value
                                       ? Colors.green
                                       : Colors.grey,
                                 ),
@@ -157,46 +147,36 @@ class TutoringFilterBottomSheet extends StatelessWidget {
                       }).toList(),
                     ),
                     Divider(),
-                    Text("Sıralama Ölçütü", style: TextStyles.bold18Black),
+                    Text("Sıralama", style: TextStyles.bold18Black),
                     8.ph,
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
                       children: <String>[
-                        'En Yeniler',
-                        'Fiyat: Düşükten Yükseğe',
-                        'Fiyat: Yüksekten Düşüğe',
+                        'En Yeni',
+                        'Bana En Yakın',
+                        'En Çok Görüntülenen',
                       ].map((String value) {
                         return Obx(
                           () => GestureDetector(
                             onTap: () {
-                              if (filterController.selectedLessonPlace.value!
-                                  .contains(value)) {
-                                filterController.selectedLessonPlace.value!
-                                    .remove(
-                                  value,
-                                );
-                              } else {
-                                filterController.selectedLessonPlace.value!.add(
-                                  value,
-                                );
-                              }
-                              filterController.selectedLessonPlace.refresh();
+                              filterController.selectedSort.value =
+                                  filterController.selectedSort.value == value
+                                      ? null
+                                      : value;
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 Icon(
-                                  filterController.selectedLessonPlace.value!
-                                          .contains(value)
+                                  filterController.selectedSort.value == value
                                       ? Icons.check_circle
                                       : Icons.radio_button_unchecked,
                                   size: 18,
-                                  color: filterController
-                                          .selectedLessonPlace.value!
-                                          .contains(value)
+                                  color: filterController.selectedSort.value ==
+                                          value
                                       ? Colors.green
                                       : Colors.grey,
                                 ),

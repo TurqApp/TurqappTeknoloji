@@ -1,12 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/view_mode_controller.dart';
-import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class TutoringSearch extends StatelessWidget {
@@ -21,46 +20,50 @@ class TutoringSearch extends StatelessWidget {
         Get.find<ViewModeController>();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Özel Ders Ara"),
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 15),
-              height: 50,
-              child: CupertinoTextField(
-                cursorColor: Colors.black,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey.shade200,
-                ),
-                placeholder: "Ara",
-                onChanged: controller.updateSearchQuery,
-                prefix: Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(AppIcons.search, color: Colors.black45),
-                ),
-                autofocus: true,
-                textInputAction: TextInputAction.search,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 10, 15, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: Get.back,
+                    icon: const Icon(
+                      CupertinoIcons.arrow_left,
+                      color: Colors.black,
+                    ),
+                  ),
+                  Expanded(
+                    child: TurqSearchBar(
+                      controller: controller.searchController,
+                      hintText: "Ara",
+                      onChanged: controller.updateSearchQuery,
+                    ),
+                  ),
+                ],
               ),
             ),
             12.ph,
             Expanded(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Obx(() {
                   if (controller.isLoading.value) {
-                    return Center(child: CupertinoActivityIndicator());
+                    return const Center(child: CupertinoActivityIndicator());
                   } else if (controller.searchResults.isEmpty) {
-                    return Center(child: Text("Eşleşen özel ders bulunmuyor."));
+                    return const Center(
+                      child: Text("Aramana uygun ilan bulunamadı"),
+                    );
                   } else {
                     return SingleChildScrollView(
                       child: TutoringWidgetBuilder(
                         tutoringList: controller.searchResults,
                         users: controller.users,
                         isGridView: viewModeController.isGridView.value,
-                        infoMessage: Infomessage(
+                        infoMessage: const Infomessage(
                           infoMessage: "Eşleşen özel ders bulunmuyor!",
                         ),
                       ),

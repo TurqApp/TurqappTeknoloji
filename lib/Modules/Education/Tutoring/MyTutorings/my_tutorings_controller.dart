@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -37,11 +39,13 @@ class MyTutoringsController extends GetxController {
   Future<void> fetchMyTutorings(String currentUserId) async {
     try {
       final tutorings = await _tutoringRepository.fetchByOwner(currentUserId);
-      myTutorings.assignAll(tutorings);
+      await _archiveExpiredTutorings(tutorings);
+      final refreshed = await _tutoringRepository.fetchByOwner(currentUserId);
+      myTutorings.assignAll(refreshed);
 
       updateTutoringsStatus();
 
-      final userIds = tutorings.map((t) => t.userID).toSet();
+      final userIds = refreshed.map((t) => t.userID).toSet();
       if (userIds.isNotEmpty) {
         await fetchUsers(userIds);
       }
@@ -64,6 +68,46 @@ class MyTutoringsController extends GetxController {
         activeTutorings.add(tutoring);
       }
     }
+  }
+
+  Future<void> _archiveExpiredTutorings(List<TutoringModel> tutorings) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    final batch = FirebaseFirestore.instance.batch();
+    var changed = false;
+
+    for (final tutoring in tutorings) {
+      if (tutoring.ended == true) continue;
+      if (tutoring.timeStamp < thirtyDaysAgo) {
+        batch.update(
+          FirebaseFirestore.instance.collection('educators').doc(tutoring.docID),
+          {'ended': true, 'endedAt': now},
+        );
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> reactivateEndedTutoring(TutoringModel tutoring) async {
+    final uid = getCurrentUserId();
+    if (uid == null || tutoring.userID != uid || tutoring.ended != true) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await FirebaseFirestore.instance
+        .collection('educators')
+        .doc(tutoring.docID)
+        .update({
+      'ended': false,
+      'endedAt': 0,
+      'timeStamp': now,
+    });
+
+    await fetchMyTutorings(uid);
+    AppSnackbar("İlan Yenilendi", "İlan tekrar yayına alındı.");
   }
 
   Future<void> fetchUsers(Set<String> userIds) async {
