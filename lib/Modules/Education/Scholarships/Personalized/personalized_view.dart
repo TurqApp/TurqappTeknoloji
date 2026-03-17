@@ -94,7 +94,7 @@ class PersonalizedView extends StatelessWidget {
           options: CarouselOptions(
             autoPlay: true,
             enlargeCenterPage: false,
-            autoPlayInterval: Duration(seconds: 10),
+            autoPlayInterval: Duration(seconds: 2),
             viewportFraction: 1,
             aspectRatio: 4 / 3,
             onPageChanged: (index, reason) {

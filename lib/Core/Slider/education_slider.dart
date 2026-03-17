@@ -135,7 +135,7 @@ class _EducationSliderState extends State<EducationSlider> {
         autoPlay: true,
         height: MediaQuery.of(context).size.width / 2.7,
         enlargeCenterPage: false,
-        autoPlayInterval: const Duration(seconds: 10),
+        autoPlayInterval: const Duration(seconds: 2),
         viewportFraction: 0.9,
       ),
     );

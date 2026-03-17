@@ -20,7 +20,7 @@ class PreviousQuestions extends StatelessWidget {
         height: MediaQuery.of(context).size.width / 2.5,
         enlargeCenterPage: true,
         autoPlay: true,
-        autoPlayInterval: Duration(seconds: 3),
+        autoPlayInterval: Duration(seconds: 2),
         enableInfiniteScroll: true,
         scrollDirection: Axis.horizontal,
       ),
