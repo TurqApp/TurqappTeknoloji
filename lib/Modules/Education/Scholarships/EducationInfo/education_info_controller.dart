@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
-import 'package:turqappv2/Core/Utils/turkish_sort.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/high_school_model.dart';
@@ -29,6 +29,8 @@ List<Map<String, dynamic>> _decodeJsonObjectList(String response) {
 class EducationInfoController extends GetxController
     with GetTickerProviderStateMixin {
   final UserRepository _userRepository = UserRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   RxString selectedEducationLevel = ''.obs;
   RxString content = ''.obs;
   RxBool isLoading = false.obs;
@@ -131,16 +133,9 @@ class EducationInfoController extends GetxController
 
   Future<void> loadCityDistrictData() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final data = await compute(_decodeJsonObjectList, response);
       cityDistrictData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          cityDistrictData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      cities.value = sortedCities;
+          await _cityDirectoryService.getCitiesAndDistricts();
+      cities.value = await _cityDirectoryService.getSortedCities();
     } catch (e) {
       AppSnackbar("Hata", "İl-ilçe verileri yüklenemedi.");
     }

@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/scholarship_firestore_path.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
@@ -25,6 +26,8 @@ import 'package:path_provider/path_provider.dart';
 
 class CreateScholarshipController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   var isLoading = false.obs;
   var isEditing = false.obs;
   var scholarshipId = ''.obs;
@@ -300,26 +303,18 @@ class CreateScholarshipController extends GetxController {
 
   Future<void> loadCityDistrictData() async {
     try {
-      final String response = await DefaultAssetBundle.of(
-        Get.context!,
-      ).loadString('assets/data/CityDistrict.json');
-      final List<dynamic> data = jsonDecode(response);
       final Map<String, List<String>> tempMap = {};
-      final Set<String> tempIller = {};
+      final cityDistricts = await _cityDirectoryService.getCitiesAndDistricts();
 
-      for (var item in data) {
-        final String il = item['il'];
-        final String ilce = item['ilce'];
-        tempIller.add(il);
+      for (final item in cityDistricts) {
+        final il = item.il;
+        final ilce = item.ilce;
         if (!tempMap.containsKey(il)) {
           tempMap[il] = [];
         }
         tempMap[il]!.add(ilce);
       }
-
-      final sortedCities = tempIller.toList();
-      sortTurkishStrings(sortedCities);
-      iller.assignAll(sortedCities);
+      iller.assignAll(await _cityDirectoryService.getSortedCities());
       ilIlceMap.assignAll(tempMap);
     } catch (e) {
       AppSnackbar('Hata', 'İl-ilçe verisi yüklenemedi.');

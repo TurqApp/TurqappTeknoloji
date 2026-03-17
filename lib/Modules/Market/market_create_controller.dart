@@ -1,15 +1,14 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
@@ -73,6 +72,8 @@ class MarketCreateController extends GetxController {
 
   final MarketSchemaService _schemaService = MarketSchemaService.ensure();
   final MarketRepository _repository = MarketRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final MarketItemModel? initialItem;
 
   final TextEditingController titleController = TextEditingController();
@@ -529,15 +530,9 @@ class MarketCreateController extends GetxController {
 
   Future<void> _loadCityDistricts() async {
     try {
-      final response =
-          await rootBundle.loadString('assets/data/CityDistrict.json');
-      final data = (json.decode(response) as List<dynamic>)
-          .map((item) => CitiesModel.fromJson(Map<String, dynamic>.from(item)))
-          .toList(growable: false);
+      final data = await _cityDirectoryService.getCitiesAndDistricts();
       cityDistricts.assignAll(data);
-      final cityList = data.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(cityList);
-      cities.assignAll(cityList);
+      cities.assignAll(await _cityDirectoryService.getSortedCities());
     } catch (_) {
       cities.clear();
       cityDistricts.clear();
