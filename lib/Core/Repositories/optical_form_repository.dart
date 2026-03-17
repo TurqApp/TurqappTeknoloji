@@ -32,6 +32,7 @@ class OpticalFormRepository extends GetxService {
     String docId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final key = 'doc:$docId';
     if (!forceRefresh && preferCache) {
@@ -40,6 +41,7 @@ class OpticalFormRepository extends GetxService {
         return OpticalFormModel.fromMap(cached, docId);
       }
     }
+    if (cacheOnly) return null;
     final doc = await _firestore.collection('optikForm').doc(docId).get();
     if (!doc.exists) return null;
     final data = Map<String, dynamic>.from(doc.data() ?? const {});
@@ -51,6 +53,7 @@ class OpticalFormRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final key = 'owner:$userId';
     if (!forceRefresh && preferCache) {
@@ -61,6 +64,8 @@ class OpticalFormRepository extends GetxService {
             .toList(growable: false);
       }
     }
+
+    if (cacheOnly) return const <OpticalFormModel>[];
 
     final snap = await _firestore
         .collection('optikForm')
@@ -90,6 +95,7 @@ class OpticalFormRepository extends GetxService {
   Future<List<OpticalFormModel>> fetchByIds(
     List<String> docIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final ids = docIds.where((e) => e.trim().isNotEmpty).toList(growable: false);
     if (ids.isEmpty) return const <OpticalFormModel>[];
@@ -100,11 +106,16 @@ class OpticalFormRepository extends GetxService {
       final chunk = ids.sublist(i, end);
       for (final id in chunk) {
         if (preferCache) {
-          final cached = await fetchById(id, preferCache: true);
+          final cached = await fetchById(
+            id,
+            preferCache: true,
+            cacheOnly: cacheOnly,
+          );
           if (cached != null) byId[id] = cached;
         }
       }
       final missing = chunk.where((id) => !byId.containsKey(id)).toList();
+      if (cacheOnly && missing.isNotEmpty) continue;
       if (missing.isEmpty) continue;
       final snap = await _firestore
           .collection('optikForm')
@@ -123,6 +134,7 @@ class OpticalFormRepository extends GetxService {
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final key = 'answered:$userId';
     if (!forceRefresh && preferCache) {
@@ -134,6 +146,8 @@ class OpticalFormRepository extends GetxService {
       }
     }
 
+    if (cacheOnly) return const <OpticalFormModel>[];
+
     final answersSnap = await _firestore
         .collectionGroup('Yanitlar')
         .where(FieldPath.documentId, isEqualTo: userId)
@@ -144,7 +158,11 @@ class OpticalFormRepository extends GetxService {
             doc.reference.parent.parent!.parent.id == 'optikForm')
           doc.reference.parent.parent!.id,
     }.toList(growable: false);
-    final items = await fetchByIds(formIds, preferCache: true);
+    final items = await fetchByIds(
+      formIds,
+      preferCache: true,
+      cacheOnly: cacheOnly,
+    );
     await _storePrimitive(
       key,
       items

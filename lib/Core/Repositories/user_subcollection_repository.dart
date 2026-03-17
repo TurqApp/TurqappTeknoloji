@@ -53,6 +53,7 @@ class UserSubcollectionRepository extends GetxService {
     bool descending = true,
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty || subcollection.isEmpty) return const <UserSubcollectionEntry>[];
     final key = _cacheKey(uid, subcollection);
@@ -69,6 +70,8 @@ class UserSubcollectionRepository extends GetxService {
         return disk;
       }
     }
+
+    if (cacheOnly) return const <UserSubcollectionEntry>[];
 
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('users')
@@ -125,6 +128,7 @@ class UserSubcollectionRepository extends GetxService {
     required String docId,
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty || subcollection.isEmpty || docId.isEmpty) return null;
     if (!forceRefresh && preferCache) {
@@ -133,11 +137,14 @@ class UserSubcollectionRepository extends GetxService {
         subcollection: subcollection,
         preferCache: true,
         forceRefresh: false,
+        cacheOnly: cacheOnly,
       );
       for (final entry in cached) {
         if (entry.id == docId) return entry;
       }
     }
+
+    if (cacheOnly) return null;
 
     final doc = await FirebaseFirestore.instance
         .collection('users')

@@ -74,7 +74,15 @@ class MyBookletResults extends StatelessWidget {
               ],
             ),
             Obx(
-              () => controller.list.isNotEmpty &&
+              () => controller.isLoading.value &&
+                      controller.list.isEmpty &&
+                      controller.optikSonuclari.isEmpty
+                  ? const Expanded(
+                      child: Center(
+                        child: CircularProgressIndicator(color: Colors.black),
+                      ),
+                    )
+                  : controller.list.isNotEmpty &&
                       controller.selection.value == 0
                   ? Expanded(
                       child: Container(

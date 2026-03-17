@@ -31,18 +31,21 @@ class BookletRepository extends GetxService {
   Future<List<BookletModel>> fetchAll({
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) =>
       _fetch(
         cacheKey: 'all',
         queryBuilder: () => _firestore.collection('books'),
         preferCache: preferCache,
         forceRefresh: forceRefresh,
+        cacheOnly: cacheOnly,
       );
 
   Future<List<BookletModel>> fetchByExamType(
     String sinavTuru, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) =>
       _fetch(
         cacheKey: 'type:${sinavTuru.trim().toLowerCase()}',
@@ -51,12 +54,14 @@ class BookletRepository extends GetxService {
             .where('sinavTuru', isEqualTo: sinavTuru),
         preferCache: preferCache,
         forceRefresh: forceRefresh,
+        cacheOnly: cacheOnly,
       );
 
   Future<List<BookletModel>> fetchByOwner(
     String userId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) =>
       _fetch(
         cacheKey: 'owner:${userId.trim().toLowerCase()}',
@@ -64,11 +69,13 @@ class BookletRepository extends GetxService {
             _firestore.collection('books').where('userID', isEqualTo: userId),
         preferCache: preferCache,
         forceRefresh: forceRefresh,
+        cacheOnly: cacheOnly,
       );
 
   Future<BookletPage> fetchPage({
     DocumentSnapshot? startAfter,
     int limit = 30,
+    bool cacheOnly = false,
   }) async {
     Query<Map<String, dynamic>> query = _firestore
         .collection('books')
@@ -77,8 +84,9 @@ class BookletRepository extends GetxService {
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);
     }
-    final snap =
-        await query.get(const GetOptions(source: Source.serverAndCache));
+    final snap = await query.get(
+      GetOptions(source: cacheOnly ? Source.cache : Source.serverAndCache),
+    );
     final items = snap.docs
         .map((doc) => BookletModel.fromMap(doc.data(), doc.id))
         .toList(growable: false);
@@ -92,6 +100,7 @@ class BookletRepository extends GetxService {
   Future<List<BookletModel>> fetchByIds(
     List<String> docIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final ids =
         docIds.where((e) => e.trim().isNotEmpty).toList(growable: false);
@@ -110,6 +119,7 @@ class BookletRepository extends GetxService {
         }
       }
       final missing = chunk.where((id) => !byId.containsKey(id)).toList();
+      if (cacheOnly && missing.isNotEmpty) continue;
       if (missing.isEmpty) continue;
       final snap = await _firestore
           .collection('books')
@@ -128,6 +138,7 @@ class BookletRepository extends GetxService {
     String docId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final key = 'doc:$docId';
     if (!forceRefresh && preferCache) {
@@ -142,6 +153,8 @@ class BookletRepository extends GetxService {
         return disk.first;
       }
     }
+
+    if (cacheOnly) return null;
 
     final doc = await _firestore.collection('books').doc(docId).get();
     if (!doc.exists) return null;
@@ -215,6 +228,7 @@ class BookletRepository extends GetxService {
     required Query<Map<String, dynamic>> Function() queryBuilder,
     required bool preferCache,
     required bool forceRefresh,
+    required bool cacheOnly,
   }) async {
     if (!forceRefresh && preferCache) {
       final memory = _getFromMemory(cacheKey);
@@ -228,6 +242,8 @@ class BookletRepository extends GetxService {
         return disk;
       }
     }
+
+    if (cacheOnly) return const <BookletModel>[];
 
     final snap = await queryBuilder().get();
     final items = snap.docs

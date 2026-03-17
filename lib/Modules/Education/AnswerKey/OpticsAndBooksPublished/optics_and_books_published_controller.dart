@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
@@ -19,7 +21,7 @@ class OpticsAndBooksPublishedController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadData();
+    unawaited(_bootstrapData());
   }
 
   void setSelection(int value) {
@@ -31,28 +33,71 @@ class OpticsAndBooksPublishedController extends GetxController {
     if (isLoading.value) return;
     if (now - _lastOpenRefreshAt < 800) return;
     _lastOpenRefreshAt = now;
-    loadData();
+    loadData(forceRefresh: true);
   }
 
-  Future<void> loadData() async {
-    isLoading.value = true;
-    await Future.wait([getData(), getOptikler()]);
-    isLoading.value = false;
+  Future<void> _bootstrapData() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      isLoading.value = false;
+      return;
+    }
+    try {
+      final cachedBooks = await _bookletRepository.fetchByOwner(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      final cachedOptikler = await _opticalFormRepository.fetchByOwner(
+        uid,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (cachedBooks.isNotEmpty || cachedOptikler.isNotEmpty) {
+        cachedBooks.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+        cachedOptikler.sort((a, b) => b.docID.compareTo(a.docID));
+        list.assignAll(cachedBooks);
+        optikler.assignAll(cachedOptikler);
+        isLoading.value = false;
+        await loadData(silent: true, forceRefresh: true);
+        return;
+      }
+    } catch (_) {}
+    await loadData();
   }
 
-  Future<void> getData() async {
+  Future<void> loadData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty && optikler.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+    await Future.wait([
+      getData(forceRefresh: forceRefresh),
+      getOptikler(forceRefresh: forceRefresh),
+    ]);
+    if (shouldShowLoader || (list.isEmpty && optikler.isEmpty)) {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> getData({bool forceRefresh = false}) async {
     final tempList = await _bookletRepository.fetchByOwner(
       FirebaseAuth.instance.currentUser!.uid,
       preferCache: true,
+      forceRefresh: forceRefresh,
     );
     tempList.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     list.assignAll(tempList);
   }
 
-  Future<void> getOptikler() async {
+  Future<void> getOptikler({bool forceRefresh = false}) async {
     final tempList = await _opticalFormRepository.fetchByOwner(
       FirebaseAuth.instance.currentUser!.uid,
       preferCache: true,
+      forceRefresh: forceRefresh,
     );
     tempList.sort((a, b) => b.docID.compareTo(a.docID));
     optikler.assignAll(tempList);

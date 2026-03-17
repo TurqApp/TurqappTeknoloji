@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
@@ -16,7 +18,7 @@ class CategoryBasedAnswerKeyController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
   @override
@@ -25,20 +27,46 @@ class CategoryBasedAnswerKeyController extends GetxController {
     super.onClose();
   }
 
-  Future<void> getData() async {
-    isLoading.value = true; // Start loading
-    list.clear();
-    filteredList.clear();
+  Future<void> _bootstrapData() async {
+    try {
+      final cached = await _bookletRepository.fetchByExamType(
+        sinavTuru,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (cached.isNotEmpty) {
+        list.assignAll(cached);
+        filteredList.assignAll(cached);
+        isLoading.value = false;
+        await getData(silent: true, forceRefresh: true);
+        return;
+      }
+    } catch (_) {}
+
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       final items = await _bookletRepository.fetchByExamType(
         sinavTuru,
         preferCache: true,
+        forceRefresh: forceRefresh,
       );
       list.assignAll(items);
       filteredList.assignAll(list);
     } catch (_) {
     } finally {
-      isLoading.value = false; // End loading
+      if (shouldShowLoader || list.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 
