@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import '../../main.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -233,6 +234,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
     // 2) Yeni sayfayı ata
     currentPage = page;
+    showControls = false;
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
       try {
@@ -661,197 +663,173 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
       children: [
         // Video widget (scroll engellememesi için GestureDetector kaldırıldı)
         videoWidget,
-        // Tap kontrolü için şeffaf overlay (translucent = scroll'a izin verir)
-        GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onDoubleTap: () {
-            // Çift dokunma: ses aç/kapa
-            setState(() {
-              volume = !volume;
-              final ctrl = _videoControllers[currentPage];
-              if (ctrl != null) {
-                ctrl.setVolume(volume ? 1 : 0);
-              }
-            });
-            if (idx == currentPage) {
-              _updateTelemetryHintsForCurrentPage(isAudible: volume);
-            }
-          },
-          onTap: () async {
-            final model = shorts[idx];
-            if (model.floodCount > 1 && model.flood == false) {
-              try {
-                if (vp.value.isInitialized) {
-                  await vp.pause();
-                }
-              } catch (_) {}
-              await Get.to(() => FloodListing(mainModel: model));
-              if (!mounted) return;
-              if (idx == currentPage) {
-                try {
-                  vp.setVolume(volume ? 1 : 0);
-                  VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
-                } catch (_) {}
-              }
-            }
-          },
-          child: Container(color: Colors.transparent),
-        ),
         // İnce progress bar
-        if (idx == currentPage)
+        if (showControls && idx == currentPage)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: _SingleShortProgressBar(adapter: vp),
           ),
-        if (showControls)
-          ShortsContent(
-            model: shorts[idx],
-            volumeOff: (volume) {
-              if (!volume) {
-                vp.pause();
-                if (idx == currentPage) {
-                  _updateTelemetryHintsForCurrentPage(
-                    isAudible: this.volume,
-                    hasStableFocus: false,
-                  );
-                }
-                return;
-              }
-              if (idx == currentPage && idx < shorts.length) {
+        ShortsContent(
+          model: shorts[idx],
+          isActive: idx == currentPage,
+          showOverlayControls: showControls,
+          onToggleOverlay: () {
+            if (!mounted) return;
+            setState(() {
+              showControls = !showControls;
+            });
+          },
+          onDoubleTapLike: () async {
+            if (idx < 0 || idx >= shorts.length) return;
+            await PostRepository.ensure().toggleLike(shorts[idx]);
+          },
+          volumeOff: (volume) {
+            if (!volume) {
+              vp.pause();
+              if (idx == currentPage) {
                 _updateTelemetryHintsForCurrentPage(
                   isAudible: this.volume,
-                  hasStableFocus: true,
+                  hasStableFocus: false,
                 );
-                VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
               }
-            },
-            videoPlayerController: vp,
-          ),
-        SafeArea(
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(CupertinoIcons.arrow_left,
-                        color: Colors.white),
-                    onPressed: () async {
-                      // Pop'tan önce tüm video seslerini durdur
-                      try {
-                        VideoStateManager.instance.exitExclusiveMode();
-                      } catch (_) {}
-                      await _pauseAllControllers();
-                      // Geri dönerken pozisyonu ilet
-                      final idx0 = widget.startModel != null
-                          ? shorts.indexWhere(
-                              (p) => p.docID == widget.startModel!.docID)
-                          : currentPage;
-                      final ctrl = idx0 >= 0 ? _videoControllers[idx0] : null;
-                      final docID = widget.startModel?.docID ??
-                          (shorts.isNotEmpty
-                              ? shorts[currentPage].docID
-                              : null);
-                      final pos = (ctrl != null && ctrl.value.isInitialized)
-                          ? ctrl.value.position
-                          : Duration.zero;
-                      Navigator.of(context).pop({
-                        'docID': docID,
-                        'positionMs': pos.inMilliseconds,
-                      });
-                    },
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: Icon(volume
-                            ? CupertinoIcons.volume_up
-                            : CupertinoIcons.volume_off),
-                        color: Colors.white,
-                        iconSize: 22,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints.tightFor(
-                            width: 36, height: 36),
-                        onPressed: () => setState(() {
-                          volume = !volume;
-                          final ctrl = _videoControllers[currentPage];
-                          if (ctrl != null) {
-                            ctrl.setVolume(volume ? 1 : 0);
-                            if (_externallyOwned.contains(currentPage) &&
-                                widget.injectedController != null) {
-                              widget.injectedController!
-                                  .setVolume(volume ? 1 : 0);
-                            }
-                          }
-                          _updateTelemetryHintsForCurrentPage(
-                            isAudible: volume,
-                          );
-                        }),
-                      ),
-                      if (shorts[idx].floodCount > 1)
+              return;
+            }
+            if (idx == currentPage && idx < shorts.length) {
+              _updateTelemetryHintsForCurrentPage(
+                isAudible: this.volume,
+                hasStableFocus: true,
+              );
+              VideoStateManager.instance.playOnlyThis(shorts[idx].docID);
+            }
+          },
+          videoPlayerController: vp,
+        ),
+        if (showControls)
+          SafeArea(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.arrow_left,
+                          color: Colors.white),
+                      onPressed: () async {
+                        // Pop'tan önce tüm video seslerini durdur
+                        try {
+                          VideoStateManager.instance.exitExclusiveMode();
+                        } catch (_) {}
+                        await _pauseAllControllers();
+                        // Geri dönerken pozisyonu ilet
+                        final idx0 = widget.startModel != null
+                            ? shorts.indexWhere(
+                                (p) => p.docID == widget.startModel!.docID)
+                            : currentPage;
+                        final ctrl = idx0 >= 0 ? _videoControllers[idx0] : null;
+                        final docID = widget.startModel?.docID ??
+                            (shorts.isNotEmpty
+                                ? shorts[currentPage].docID
+                                : null);
+                        final pos = (ctrl != null && ctrl.value.isInitialized)
+                            ? ctrl.value.position
+                            : Duration.zero;
+                        Navigator.of(context).pop({
+                          'docID': docID,
+                          'positionMs': pos.inMilliseconds,
+                        });
+                      },
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
                         IconButton(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            minimumSize: const Size(36, 36),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: Colors.black.withAlpha(50),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(12)),
-                            ),
-                          ),
-                          onPressed: () async {
-                            try {
-                              if (vp.value.isInitialized) {
-                                await vp.pause();
+                          icon: Icon(volume
+                              ? CupertinoIcons.volume_up
+                              : CupertinoIcons.volume_off),
+                          color: Colors.white,
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                              width: 36, height: 36),
+                          onPressed: () => setState(() {
+                            volume = !volume;
+                            final ctrl = _videoControllers[currentPage];
+                            if (ctrl != null) {
+                              ctrl.setVolume(volume ? 1 : 0);
+                              if (_externallyOwned.contains(currentPage) &&
+                                  widget.injectedController != null) {
+                                widget.injectedController!
+                                    .setVolume(volume ? 1 : 0);
                               }
-                            } catch (_) {}
-                            await Get.to(
-                                () => FloodListing(mainModel: shorts[idx]));
-                            if (!mounted) return;
-                            if (idx == currentPage) {
-                              try {
-                                vp.setVolume(volume ? 1 : 0);
-                                _updateTelemetryHintsForCurrentPage(
-                                  isAudible: volume,
-                                  hasStableFocus: false,
-                                );
-                                VideoStateManager.instance
-                                    .playOnlyThis(shorts[idx].docID);
-                              } catch (_) {}
                             }
-                          },
-                          icon: ShaderMask(
-                            shaderCallback: (bounds) => const LinearGradient(
-                              colors: [Colors.white, Colors.blue],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ).createShader(Rect.fromLTWH(
-                                0, 0, bounds.width, bounds.height)),
-                            blendMode: BlendMode.srcIn,
-                            child: Text(
-                              "${shorts[idx].floodCount} FLOOD",
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontFamily: "MontserratBold",
-                                color: Colors.white,
+                            _updateTelemetryHintsForCurrentPage(
+                              isAudible: volume,
+                            );
+                          }),
+                        ),
+                        if (shorts[idx].floodCount > 1)
+                          IconButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              minimumSize: const Size(36, 36),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              backgroundColor: Colors.black.withAlpha(50),
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(12)),
+                              ),
+                            ),
+                            onPressed: () async {
+                              try {
+                                if (vp.value.isInitialized) {
+                                  await vp.pause();
+                                }
+                              } catch (_) {}
+                              await Get.to(
+                                  () => FloodListing(mainModel: shorts[idx]));
+                              if (!mounted) return;
+                              if (idx == currentPage) {
+                                try {
+                                  vp.setVolume(volume ? 1 : 0);
+                                  _updateTelemetryHintsForCurrentPage(
+                                    isAudible: volume,
+                                    hasStableFocus: false,
+                                  );
+                                  VideoStateManager.instance
+                                      .playOnlyThis(shorts[idx].docID);
+                                } catch (_) {}
+                              }
+                            },
+                            icon: ShaderMask(
+                              shaderCallback: (bounds) => const LinearGradient(
+                                colors: [Colors.white, Colors.blue],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ).createShader(Rect.fromLTWH(
+                                  0, 0, bounds.width, bounds.height)),
+                              blendMode: BlendMode.srcIn,
+                              child: Text(
+                                "${shorts[idx].floodCount} FLOOD",
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontFamily: "MontserratBold",
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  )
-                ],
-              ),
-            ],
+                      ],
+                    )
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

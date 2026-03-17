@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,6 +53,10 @@ class ShortsContent extends StatefulWidget {
   final HLSVideoAdapter videoPlayerController;
   final Function(bool) volumeOff;
   final void Function(String updatedDocId)? onEdited;
+  final bool isActive;
+  final bool showOverlayControls;
+  final VoidCallback? onToggleOverlay;
+  final Future<void> Function()? onDoubleTapLike;
 
   const ShortsContent({
     super.key,
@@ -58,6 +64,10 @@ class ShortsContent extends StatefulWidget {
     required this.videoPlayerController,
     required this.volumeOff,
     this.onEdited, // <-- yeni parametre
+    required this.isActive,
+    this.showOverlayControls = true,
+    this.onToggleOverlay,
+    this.onDoubleTapLike,
   });
 
   @override
@@ -71,6 +81,11 @@ class _ShortsContentState extends State<ShortsContent> {
   HLSVideoAdapter get videoPlayerController => widget.videoPlayerController;
   Function(bool) get volumeOff => widget.volumeOff;
   void Function(String updatedDocId)? get onEdited => widget.onEdited;
+
+  void resumeIfActive() {
+    if (!widget.isActive) return;
+    videoPlayerController.play();
+  }
 
   @override
   void initState() {
@@ -114,15 +129,25 @@ class _ShortsContentState extends State<ShortsContent> {
     }
 
     return Obx(() {
+      final showOverlay =
+          widget.onToggleOverlay == null ? controller.fullscreen.value : widget.showOverlayControls;
       return Stack(
         alignment: Alignment.center,
         children: [
           GestureDetector(
             onTap: () {
-              controller.fullscreen.value = !controller.fullscreen.value;
+              if (widget.onToggleOverlay != null) {
+                widget.onToggleOverlay!();
+              } else {
+                controller.fullscreen.value = !controller.fullscreen.value;
+              }
             },
             onDoubleTap: () {
-              controller.toggleLike();
+              if (widget.onDoubleTapLike != null) {
+                widget.onDoubleTapLike!();
+              } else {
+                controller.toggleLike();
+              }
               HapticFeedback.mediumImpact();
             },
             onLongPressStart: (v) {
@@ -133,21 +158,21 @@ class _ShortsContentState extends State<ShortsContent> {
             },
             onLongPressEnd: (v) {
               if (videoPlayerController.value.isInitialized) {
-                videoPlayerController.play();
+                resumeIfActive();
               }
             },
             onHorizontalDragEnd: (details) async {
               if (details.velocity.pixelsPerSecond.dx < 0) {
                 videoPlayerController.pause();
                 await Get.to(() => SocialProfile(userID: model.userID));
-                videoPlayerController.play();
+                resumeIfActive();
               }
             },
             child: Container(
               color: Colors.transparent,
             ),
           ),
-          if (controller.fullscreen.value) userInfoBar(context),
+          if (showOverlay) userInfoBar(context),
           if (controller.gizlendi.value) gonderiGizlendi(context),
           if (controller.arsivlendi.value) gonderiArsivlendi(context),
           Obx(() => controller.silindi.value

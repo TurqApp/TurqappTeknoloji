@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_servic
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
+import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -127,6 +128,7 @@ class _ShortViewState extends State<ShortView> {
   int currentPage = 0;
   bool volume = true;
   bool isManuallyPaused = false;
+  bool _showOverlayControls = true;
   bool _didInitialAttach = false;
   bool _isTransitioning = false;
   bool _isRefreshing = false;
@@ -227,7 +229,10 @@ class _ShortViewState extends State<ShortView> {
           .endSession(_cachedShorts[currentPage].docID);
     }
 
-    currentPage = page;
+    setState(() {
+      currentPage = page;
+      _showOverlayControls = false;
+    });
     isManuallyPaused = false;
     _isTransitioning = false;
     _telemetryFirstFrame = false;
@@ -762,28 +767,14 @@ class _ShortViewState extends State<ShortView> {
                         )
                       : const SizedBox.shrink();
 
-                  return RepaintBoundary(
+                return RepaintBoundary(
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
                         _buildThumbOverlay(thumb, modelAr),
                         // Video layer
                         if (shouldRenderPlayer)
-                          GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onDoubleTap: () {
-                              setState(() => volume = !volume);
-                              vp.setVolume(volume ? 1 : 0);
-                              if (idx == currentPage) {
-                                VideoTelemetryService.instance
-                                    .updateRuntimeHints(
-                                  list[idx].docID,
-                                  isAudible: volume,
-                                );
-                              }
-                            },
-                            child: videoWidget,
-                          ),
+                          videoWidget,
                         if (shouldRenderPlayer)
                           AnimatedBuilder(
                             animation: vp,
@@ -812,6 +803,16 @@ class _ShortViewState extends State<ShortView> {
                           ShortsContent(
                             model: list[idx],
                             isActive: shouldRenderPlayer,
+                            showOverlayControls: _showOverlayControls,
+                            onToggleOverlay: () {
+                              if (!mounted) return;
+                              setState(() {
+                                _showOverlayControls = !_showOverlayControls;
+                              });
+                            },
+                            onDoubleTapLike: () async {
+                              await PostRepository.ensure().toggleLike(list[idx]);
+                            },
                             volumeOff: (v) {
                               if (v) {
                                 vp.play();
@@ -837,48 +838,49 @@ class _ShortViewState extends State<ShortView> {
                             },
                           ),
                         // İnce progress bar — altta
-                        if (idx == currentPage)
+                        if (_showOverlayControls && idx == currentPage)
                           Positioned(
                             left: 0,
                             right: 0,
                             bottom: 0,
                             child: _ShortProgressBar(adapter: vp),
                           ),
-                        SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildCircleButton(
-                                      icon: CupertinoIcons.arrow_left,
-                                      onTap: () => Get.back(),
-                                    ),
-                                    _buildCircleButton(
-                                      icon: volume
-                                          ? CupertinoIcons.volume_up
-                                          : CupertinoIcons.volume_off,
-                                      onTap: () {
-                                        setState(() => volume = !volume);
-                                        vp.setVolume(volume ? 1 : 0);
-                                        if (idx == currentPage) {
-                                          VideoTelemetryService.instance
-                                              .updateRuntimeHints(
-                                            list[idx].docID,
-                                            isAudible: volume,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
+                        if (_showOverlayControls)
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildCircleButton(
+                                        icon: CupertinoIcons.arrow_left,
+                                        onTap: () => Get.back(),
+                                      ),
+                                      _buildCircleButton(
+                                        icon: volume
+                                            ? CupertinoIcons.volume_up
+                                            : CupertinoIcons.volume_off,
+                                        onTap: () {
+                                          setState(() => volume = !volume);
+                                          vp.setVolume(volume ? 1 : 0);
+                                          if (idx == currentPage) {
+                                            VideoTelemetryService.instance
+                                                .updateRuntimeHints(
+                                              list[idx].docID,
+                                              isAudible: volume,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   );
