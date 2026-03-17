@@ -47,7 +47,7 @@ class ApplicationReview extends StatelessWidget {
         top: false,
         bottom: false,
         child: Obx(() {
-          if (controller.isLoading.value) {
+          if (controller.isLoading.value && controller.applicants.isEmpty) {
             return const Center(child: CupertinoActivityIndicator());
           }
           if (controller.applicants.isEmpty) {
@@ -141,7 +141,7 @@ class ApplicationReview extends StatelessWidget {
                                   color: Colors.grey.withAlpha(30),
                                   child: const Icon(CupertinoIcons.person_fill,
                                       color: Colors.grey, size: 20),
-                          ),
+                                ),
                         ),
                       ),
                     ),
@@ -236,7 +236,8 @@ class ApplicationReview extends StatelessWidget {
                             height: 40,
                             child: OutlinedButton(
                               onPressed: () {
-                                controller.updateStatus(app.userID, 'reviewing');
+                                controller.updateStatus(
+                                    app.userID, 'reviewing');
                               },
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(

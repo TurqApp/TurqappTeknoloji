@@ -247,6 +247,7 @@ class JobRepository extends GetxService {
     String jobDocId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'applications:$jobDocId';
     if (!forceRefresh && preferCache) {
@@ -272,6 +273,8 @@ class JobRepository extends GetxService {
             .toList(growable: false);
       }
     }
+
+    if (cacheOnly) return const <JobApplicationModel>[];
 
     final snapshot = await _firestore
         .collection(JobCollection.name)

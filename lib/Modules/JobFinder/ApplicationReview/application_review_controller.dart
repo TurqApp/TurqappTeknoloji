@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -22,13 +24,37 @@ class ApplicationReviewController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadApplicants();
+    unawaited(_bootstrapApplicants());
   }
 
-  Future<void> loadApplicants() async {
-    isLoading.value = true;
+  Future<void> _bootstrapApplicants() async {
+    final cached = await _jobRepository.fetchApplications(
+      jobDocID,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      applicants.assignAll(cached);
+      isLoading.value = false;
+      unawaited(loadApplicants(silent: true, forceRefresh: true));
+      return;
+    }
+    await loadApplicants();
+  }
+
+  Future<void> loadApplicants({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
     try {
-      applicants.value = await _jobRepository.fetchApplications(jobDocID);
+      applicants.value = await _jobRepository.fetchApplications(
+        jobDocID,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -50,16 +76,14 @@ class ApplicationReviewController extends GetxController {
         cvCache[userID] = data;
         return data;
       }
-    } catch (_) {
-    }
+    } catch (_) {}
     return null;
   }
 
   Future<Map<String, dynamic>?> getApplicantProfile(String userID) async {
     try {
       return await _userRepository.getUserRaw(userID);
-    } catch (_) {
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -98,7 +122,7 @@ class ApplicationReviewController extends GetxController {
         applicants.refresh();
       }
       AppSnackbar('Başarılı', 'Başvuru durumu güncellendi.');
-      await loadApplicants();
+      await loadApplicants(silent: true, forceRefresh: true);
     } catch (_) {
       AppSnackbar('Hata', 'Başvuru durumu güncellenemedi.');
     }

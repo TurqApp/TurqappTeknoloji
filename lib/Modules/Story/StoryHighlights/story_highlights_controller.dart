@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
@@ -17,16 +19,37 @@ class StoryHighlightsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadHighlights();
+    unawaited(_bootstrapHighlights());
   }
 
-  Future<void> loadHighlights() async {
+  Future<void> _bootstrapHighlights() async {
+    final cached = await _repository.getHighlights(
+      userId,
+      preferCache: true,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      highlights.assignAll(cached);
+      isLoading.value = false;
+      unawaited(loadHighlights(silent: true, forceRefresh: true));
+      unawaited(_hydrateMissingCoverUrls());
+      return;
+    }
+    await loadHighlights();
+  }
+
+  Future<void> loadHighlights({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
     try {
-      isLoading.value = true;
+      if (!silent) {
+        isLoading.value = true;
+      }
       highlights.value = await _repository.getHighlights(
         userId,
-        preferCache: true,
-        forceRefresh: false,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
       await _hydrateMissingCoverUrls();
     } catch (_) {
@@ -93,8 +116,7 @@ class StoryHighlightsController extends GetxController {
           List<StoryHighlightModel>.from(highlights),
         );
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> deleteHighlight(String highlightId) async {
@@ -112,8 +134,7 @@ class StoryHighlightsController extends GetxController {
         uid,
         List<StoryHighlightModel>.from(highlights),
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> updateHighlight(
@@ -139,8 +160,7 @@ class StoryHighlightsController extends GetxController {
           List<StoryHighlightModel>.from(highlights),
         );
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _hydrateMissingCoverUrls() async {

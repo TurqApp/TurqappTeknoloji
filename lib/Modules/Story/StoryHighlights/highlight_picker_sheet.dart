@@ -133,6 +133,16 @@ class _HighlightPickerSheetState extends State<HighlightPickerSheet> {
                 ),
                 const SizedBox(height: 16),
                 Obx(() {
+                  if (controller.isLoading.value &&
+                      controller.highlights.isEmpty &&
+                      !_isCreatingNew) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CupertinoActivityIndicator(),
+                      ),
+                    );
+                  }
                   if (controller.highlights.isEmpty && !_isCreatingNew) {
                     return _buildEmptyCreateState(controller);
                   }

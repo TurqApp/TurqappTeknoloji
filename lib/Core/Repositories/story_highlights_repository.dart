@@ -41,21 +41,24 @@ class StoryHighlightsRepository extends GetxService {
     String uid, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty) return const <StoryHighlightModel>[];
 
     if (!forceRefresh) {
       final memory = _getFromMemory(uid, allowStale: false);
       if (preferCache && memory != null) return memory;
-      final disk = await _getFromPrefs(uid, allowStale: false);
+      final disk = await _getFromPrefsEntry(uid, allowStale: false);
       if (preferCache && disk != null) {
         _memory[uid] = _CachedStoryHighlights(
-          items: disk,
-          cachedAt: DateTime.now(),
+          items: disk.items.map(_clone).toList(growable: false),
+          cachedAt: disk.cachedAt,
         );
-        return disk;
+        return disk.items.map(_clone).toList(growable: false);
       }
     }
+
+    if (cacheOnly) return const <StoryHighlightModel>[];
 
     final snap = await FirebaseFirestore.instance
         .collection('users')
@@ -68,7 +71,8 @@ class StoryHighlightsRepository extends GetxService {
     return list;
   }
 
-  Future<void> setHighlights(String uid, List<StoryHighlightModel> items) async {
+  Future<void> setHighlights(
+      String uid, List<StoryHighlightModel> items) async {
     if (uid.isEmpty) return;
     final cloned = items.map(_clone).toList(growable: false);
     final cachedAt = DateTime.now();
@@ -186,7 +190,7 @@ class StoryHighlightsRepository extends GetxService {
     return entry.items.map(_clone).toList(growable: false);
   }
 
-  Future<List<StoryHighlightModel>?> _getFromPrefs(
+  Future<_CachedStoryHighlights?> _getFromPrefsEntry(
     String uid, {
     required bool allowStale,
   }) async {
@@ -202,23 +206,26 @@ class StoryHighlightsRepository extends GetxService {
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       final fresh = DateTime.now().difference(cachedAt) <= _ttl;
       if (!fresh && !allowStale) return null;
-      return list
-          .map(
-            (e) => StoryHighlightModel(
-              id: (e['id'] ?? '').toString(),
-              userId: (e['userId'] ?? '').toString(),
-              title: (e['title'] ?? '').toString(),
-              coverUrl: (e['coverUrl'] ?? '').toString(),
-              storyIds:
-                  (e['storyIds'] as List?)?.cast<String>() ?? const <String>[],
-              createdAt: DateTime.fromMillisecondsSinceEpoch(
-                (e['createdDate'] as num?)?.toInt() ??
-                    DateTime.now().millisecondsSinceEpoch,
+      return _CachedStoryHighlights(
+        cachedAt: cachedAt,
+        items: list
+            .map(
+              (e) => StoryHighlightModel(
+                id: (e['id'] ?? '').toString(),
+                userId: (e['userId'] ?? '').toString(),
+                title: (e['title'] ?? '').toString(),
+                coverUrl: (e['coverUrl'] ?? '').toString(),
+                storyIds: (e['storyIds'] as List?)?.cast<String>() ??
+                    const <String>[],
+                createdAt: DateTime.fromMillisecondsSinceEpoch(
+                  (e['createdDate'] as num?)?.toInt() ??
+                      DateTime.now().millisecondsSinceEpoch,
+                ),
+                order: (e['order'] as num?)?.toInt() ?? 0,
               ),
-              order: (e['order'] as num?)?.toInt() ?? 0,
-            ),
-          )
-          .toList(growable: false);
+            )
+            .toList(growable: false),
+      );
     } catch (_) {
       return null;
     }
