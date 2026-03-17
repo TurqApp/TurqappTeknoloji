@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -21,6 +22,7 @@ class SocialMediaController extends GetxController {
   var imageFile = Rxn<File>();
   var enableSave = false.obs;
   var isUploading = false.obs;
+  var isLoading = false.obs;
   String get currentUid => FirebaseAuth.instance.currentUser!.uid;
 
   List<String> sosyal = [
@@ -68,7 +70,7 @@ class SocialMediaController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
     selected.listen((_) => updateEnableSave());
     textController.addListener(updateEnableSave);
     urlController.addListener(updateEnableSave);
@@ -85,13 +87,37 @@ class SocialMediaController extends GetxController {
         (selected.value.isNotEmpty || imageFile.value != null);
   }
 
-  Future<void> getData() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    list.value = await _linksRepository.getLinks(
-      uid,
+  Future<void> _bootstrapData() async {
+    final cached = await _linksRepository.getLinks(
+      currentUid,
       preferCache: true,
-      forceRefresh: false,
+      cacheOnly: true,
     );
+    if (cached.isNotEmpty) {
+      list.value = cached;
+      isLoading.value = false;
+      unawaited(getData(silent: true, forceRefresh: true));
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      list.value = await _linksRepository.getLinks(
+        currentUid,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void resetFields() {
@@ -110,7 +136,7 @@ class SocialMediaController extends GetxController {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
     ).then((_) {
-      getData();
+      unawaited(getData(silent: true, forceRefresh: true));
     });
   }
 

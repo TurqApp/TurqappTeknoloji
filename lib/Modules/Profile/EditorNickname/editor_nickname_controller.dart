@@ -40,7 +40,8 @@ class EditorNicknameController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchAndSetUserData();
+    _seedFromCurrentUser();
+    unawaited(fetchAndSetUserData());
     // Metin değişimini dinle ve debounce ile kontrol et
     nicknameController.addListener(_onTextChanged);
   }
@@ -51,6 +52,15 @@ class EditorNicknameController extends GetxController {
     nicknameController.removeListener(_onTextChanged);
     nicknameController.dispose();
     super.onClose();
+  }
+
+  void _seedFromCurrentUser() {
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (currentUser == null) return;
+    final nickname = currentUser.nickname.trim();
+    if (nickname.isEmpty) return;
+    nicknameController.text = nickname;
+    _originalNickname = nickname;
   }
 
   Future<void> fetchAndSetUserData() async {

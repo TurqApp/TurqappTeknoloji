@@ -25,6 +25,18 @@ class BlockedUsers extends StatelessWidget {
                   child: Column(
                     children: [
                       Obx(() {
+                        if (controller.isLoading.value &&
+                            controller.blockedUserDetails.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                              ),
+                            ),
+                          );
+                        }
+
                         if (controller.blockedUserDetails.isEmpty) {
                           return EmptyRow(text: "Hiç kimseyi engellemedin");
                         }

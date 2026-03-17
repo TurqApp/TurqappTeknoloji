@@ -41,6 +41,7 @@ class SocialMediaLinksRepository extends GetxService {
     String uid, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     if (uid.isEmpty) return const <SocialMediaModel>[];
 
@@ -49,15 +50,17 @@ class SocialMediaLinksRepository extends GetxService {
       if (preferCache && memory != null) {
         return memory;
       }
-      final disk = await _getFromPrefs(uid, allowStale: false);
+      final disk = await _getFromPrefsEntry(uid, allowStale: false);
       if (preferCache && disk != null) {
         _memory[uid] = _CachedSocialMediaLinks(
-          items: disk,
-          cachedAt: DateTime.now(),
+          items: _cloneItems(disk.items),
+          cachedAt: disk.cachedAt,
         );
-        return disk;
+        return _cloneItems(disk.items);
       }
     }
+
+    if (cacheOnly) return const <SocialMediaModel>[];
 
     final snap = await FirebaseFirestore.instance
         .collection('users')
@@ -186,20 +189,10 @@ class SocialMediaLinksRepository extends GetxService {
     if (entry == null) return null;
     final fresh = DateTime.now().difference(entry.cachedAt) <= _ttl;
     if (!fresh && !allowStale) return null;
-    return entry.items
-        .map(
-          (e) => SocialMediaModel(
-            docID: e.docID,
-            title: e.title,
-            url: e.url,
-            sira: e.sira,
-            logo: e.logo,
-          ),
-        )
-        .toList(growable: false);
+    return _cloneItems(entry.items);
   }
 
-  Future<List<SocialMediaModel>?> _getFromPrefs(
+  Future<_CachedSocialMediaLinks?> _getFromPrefsEntry(
     String uid, {
     required bool allowStale,
   }) async {
@@ -215,20 +208,35 @@ class SocialMediaLinksRepository extends GetxService {
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       final fresh = DateTime.now().difference(cachedAt) <= _ttl;
       if (!fresh && !allowStale) return null;
-      return list
-          .map(
-            (e) => SocialMediaModel(
-              docID: (e['docID'] ?? '').toString(),
-              title: (e['title'] ?? '').toString(),
-              url: (e['url'] ?? '').toString(),
-              sira: (e['sira'] as num?) ?? 0,
-              logo: (e['logo'] ?? '').toString(),
-            ),
-          )
-          .toList(growable: false);
+      return _CachedSocialMediaLinks(
+        cachedAt: cachedAt,
+        items: list
+            .map(
+              (e) => SocialMediaModel(
+                docID: (e['docID'] ?? '').toString(),
+                title: (e['title'] ?? '').toString(),
+                url: (e['url'] ?? '').toString(),
+                sira: (e['sira'] as num?) ?? 0,
+                logo: (e['logo'] ?? '').toString(),
+              ),
+            )
+            .toList(growable: false),
+      );
     } catch (_) {
       return null;
     }
+  }
+
+  List<SocialMediaModel> _cloneItems(List<SocialMediaModel> items) {
+    return items
+        .map((e) => SocialMediaModel(
+              docID: e.docID,
+              title: e.title,
+              url: e.url,
+              sira: e.sira,
+              logo: e.logo,
+            ))
+        .toList(growable: false);
   }
 
   String _prefsKey(String uid) => '$_prefsPrefix:$uid';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,6 +11,7 @@ import '../../../Models/ogrenci_model.dart';
 class BlockedUsersController extends GetxController {
   RxList<String> blockedUsers = <String>[].obs;
   RxList<OgrenciModel> blockedUserDetails = <OgrenciModel>[].obs;
+  RxBool isLoading = true.obs;
   final UserRepository _userRepository = UserRepository.ensure();
   final UserSubcollectionRepository _subcollectionRepository =
       UserSubcollectionRepository.ensure();
@@ -16,34 +19,103 @@ class BlockedUsersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchBlockedUserIDsAndDetails();
+    unawaited(_bootstrapBlockedUsers());
   }
 
-  Future<void> fetchBlockedUserIDsAndDetails() async {
+  Future<void> _bootstrapBlockedUsers() async {
+    final hasLocal = await _hydrateBlockedUsersFromCache();
+    if (hasLocal) {
+      isLoading.value = false;
+      unawaited(fetchBlockedUserIDsAndDetails(
+        silent: true,
+        forceRefresh: true,
+      ));
+      return;
+    }
+    await fetchBlockedUserIDsAndDetails();
+  }
+
+  Future<bool> _hydrateBlockedUsersFromCache() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     final entries = await _subcollectionRepository.getEntries(
       uid,
       subcollection: 'blockedUsers',
       preferCache: true,
+      cacheOnly: true,
     );
     if (entries.isNotEmpty) {
       blockedUsers.value = entries.map((d) => d.id).toList();
-      await fetchBlockedUserDetails();
-      return;
+      await fetchBlockedUserDetails(cacheOnly: true);
+      return blockedUserDetails.isNotEmpty;
     }
 
-    // Legacy fallback
-    final data = await _userRepository.getUserRaw(uid);
+    final data = await _userRepository.getUserRaw(uid, cacheOnly: true);
     if (data != null && data.containsKey("blockedUsers")) {
       blockedUsers.value = List<String>.from(data["blockedUsers"] ?? const []);
-      await fetchBlockedUserDetails();
+      await fetchBlockedUserDetails(cacheOnly: true);
+      return blockedUsers.isNotEmpty;
+    }
+    return false;
+  }
+
+  Future<void> fetchBlockedUserIDsAndDetails({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final entries = await _subcollectionRepository.getEntries(
+        uid,
+        subcollection: 'blockedUsers',
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
+      );
+      if (entries.isNotEmpty) {
+        blockedUsers.value = entries.map((d) => d.id).toList();
+        await fetchBlockedUserDetails(
+          cacheOnly: false,
+          preferCache: !forceRefresh,
+        );
+        return;
+      }
+
+      // Legacy fallback
+      final data = await _userRepository.getUserRaw(
+        uid,
+        preferCache: !forceRefresh,
+        forceServer: forceRefresh,
+      );
+      if (data != null && data.containsKey("blockedUsers")) {
+        blockedUsers.value =
+            List<String>.from(data["blockedUsers"] ?? const <String>[]);
+        await fetchBlockedUserDetails(
+          cacheOnly: false,
+          preferCache: !forceRefresh,
+        );
+        return;
+      }
+      blockedUsers.clear();
+      blockedUserDetails.clear();
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  Future<void> fetchBlockedUserDetails() async {
+  Future<void> fetchBlockedUserDetails({
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) async {
     blockedUserDetails.clear();
+    if (blockedUsers.isEmpty) return;
 
-    final profiles = await _userRepository.getUsersRaw(blockedUsers.toList());
+    final profiles = await _userRepository.getUsersRaw(
+      blockedUsers.toList(),
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
     for (final userID in blockedUsers) {
       final data = profiles[userID];
       if (data != null) {

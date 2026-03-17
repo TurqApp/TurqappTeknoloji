@@ -20,25 +20,22 @@ class SocialMediaLinks extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            BackButtons(text: "Bağlantılar (${controller.list.length})"),
+            Obx(() => BackButtons(
+                  text: "Bağlantılar (${controller.list.length})",
+                )),
             const SizedBox(height: 15),
             Expanded(
               child: RefreshIndicator(
                 backgroundColor: Colors.black,
                 color: Colors.white,
                 onRefresh: () async {
-                  controller.list.clear();
-                  await controller.getData();
+                  await controller.getData(
+                    silent: true,
+                    forceRefresh: true,
+                  );
                 },
                 child: Obx(() => ReorderableBuilder(
-                      onReorder: (ReorderedListFunction reorderFn) async {
-                        final oldList = controller.list.toList();
-                        final newList =
-                            reorderFn(oldList).cast<SocialMediaModel>();
-
-                        controller.list.value = newList;
-                        await controller.updateAllSira();
-                      },
+                      // Loading'de boş grid yerine spinner göster.
                       children: controller.list.asMap().entries.map(
                         (entry) {
                           final index = entry.key;
@@ -124,7 +121,23 @@ class SocialMediaLinks extends StatelessWidget {
                           );
                         },
                       ).toList(),
+                      onReorder: (ReorderedListFunction reorderFn) async {
+                        final oldList = controller.list.toList();
+                        final newList =
+                            reorderFn(oldList).cast<SocialMediaModel>();
+
+                        controller.list.value = newList;
+                        await controller.updateAllSira();
+                      },
                       builder: (children) {
+                        if (controller.isLoading.value &&
+                            controller.list.isEmpty) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                            ),
+                          );
+                        }
                         return GridView(
                           padding: EdgeInsets.zero,
                           gridDelegate:
@@ -159,7 +172,7 @@ class SocialMediaLinks extends StatelessWidget {
       yesButtonColor: CupertinoColors.destructiveRed,
       onYesPressed: () async {
         await controller.deleteLink(model.docID);
-        await controller.getData();
+        await controller.getData(silent: true);
       },
     );
   }

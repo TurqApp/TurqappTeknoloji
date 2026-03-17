@@ -23,7 +23,8 @@ class EditorEmailController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchAndSetUserData();
+    _seedFromCurrentSources();
+    unawaited(fetchAndSetUserData());
   }
 
   @override
@@ -32,6 +33,20 @@ class EditorEmailController extends GetxController {
     emailController.dispose();
     codeController.dispose();
     super.onClose();
+  }
+
+  void _seedFromCurrentSources() {
+    final authUser = FirebaseAuth.instance.currentUser;
+    final currentUser = CurrentUserService.instance.currentUser;
+    final seededEmail = currentUser?.email.trim().isNotEmpty == true
+        ? currentUser!.email.trim()
+        : (authUser?.email ?? '').trim();
+    if (seededEmail.isNotEmpty) {
+      emailController.text = seededEmail;
+    }
+    isEmailConfirmed.value = (currentUser?.email.isNotEmpty == true &&
+            CurrentUserService.instance.emailVerifiedRx.value) ||
+        authUser?.emailVerified == true;
   }
 
   Future<void> fetchAndSetUserData() async {
