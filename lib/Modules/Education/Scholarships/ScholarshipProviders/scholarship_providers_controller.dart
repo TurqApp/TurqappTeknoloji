@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
@@ -13,65 +15,91 @@ class ScholarshipProvidersController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchProviders();
+    unawaited(_bootstrapProviders());
   }
 
-  Future<void> fetchProviders() async {
+  Future<void> _bootstrapProviders() async {
+    final cached = await _loadProviders(cacheOnly: true);
+    if (cached.isNotEmpty) {
+      providers.assignAll(cached);
+      isLoading.value = false;
+      await fetchProviders(silent: true, forceRefresh: true);
+      return;
+    }
+    await fetchProviders();
+  }
+
+  Future<void> fetchProviders({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
     try {
-      isLoading.value = true;
-
-      // Sadece son 200 burstan unique provider'ları çek
-      final scholarships = await _scholarshipRepository.fetchLatestRaw(limit: 200);
-
-      final seenUserIDs = <String>{};
-      for (final bursDoc in scholarships) {
-        final userID = bursDoc['userID'] as String?;
-        if (userID != null && userID.isNotEmpty) {
-          seenUserIDs.add(userID);
-        }
+      if (!silent || providers.isEmpty) {
+        isLoading.value = true;
       }
-
-      if (seenUserIDs.isEmpty) {
-        providers.clear();
-        return;
-      }
-
-      // Batch user fetch (max 30 per whereIn)
-      final providerList = <Map<String, dynamic>>[];
-      final userIdsList = seenUserIDs.toList();
-      for (var i = 0; i < userIdsList.length; i += 30) {
-        final end =
-            (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
-        final batchIds = userIdsList.sublist(i, end);
-        final users = await _userRepository.getUsers(batchIds);
-        for (final entry in users.entries) {
-          final userDocId = entry.key;
-          final user = entry.value.toMap();
-          final profileImage = (user['avatarUrl'] ??
-                  user['avatarUrl'] ??
-                  user['avatarUrl'] ??
-                  '')
-              .toString();
-          final profileName = (user['displayName'] ??
-                  user['username'] ??
-                  user['nickname'] ??
-                  'Bilinmeyen')
-              .toString();
-          providerList.add({
-            'userID': userDocId,
-            'avatarUrl': profileImage,
-            'nickname': profileName,
-            'displayName': profileName,
-            'rozet': user['rozet'] as String? ?? '',
-          });
-        }
-      }
-
+      final providerList = await _loadProviders(
+        cacheOnly: false,
+        forceRefresh: forceRefresh,
+      );
       providers.assignAll(providerList);
     } catch (e) {
       AppSnackbar('Hata', 'Burs verenler yüklenemedi.');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadProviders({
+    bool cacheOnly = false,
+    bool forceRefresh = false,
+  }) async {
+    final scholarships = await _scholarshipRepository.fetchLatestRaw(
+      limit: 200,
+      preferCache: !forceRefresh,
+      forceRefresh: forceRefresh,
+      cacheOnly: cacheOnly,
+    );
+
+    final seenUserIDs = <String>{};
+    for (final bursDoc in scholarships) {
+      final userID = bursDoc['userID'] as String?;
+      if (userID != null && userID.isNotEmpty) {
+        seenUserIDs.add(userID);
+      }
+    }
+
+    if (seenUserIDs.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final providerList = <Map<String, dynamic>>[];
+    final userIdsList = seenUserIDs.toList();
+    for (var i = 0; i < userIdsList.length; i += 30) {
+      final end =
+          (i + 30) > userIdsList.length ? userIdsList.length : (i + 30);
+      final batchIds = userIdsList.sublist(i, end);
+      final users = await _userRepository.getUsers(
+        batchIds,
+        cacheOnly: cacheOnly,
+      );
+      for (final entry in users.entries) {
+        final userDocId = entry.key;
+        final user = entry.value.toMap();
+        final profileImage = (user['avatarUrl'] ?? '').toString();
+        final profileName = (user['displayName'] ??
+                user['username'] ??
+                user['nickname'] ??
+                'Bilinmeyen')
+            .toString();
+        providerList.add({
+          'userID': userDocId,
+          'avatarUrl': profileImage,
+          'nickname': profileName,
+          'displayName': profileName,
+          'rozet': user['rozet'] as String? ?? '',
+        });
+      }
+    }
+    return providerList;
   }
 }

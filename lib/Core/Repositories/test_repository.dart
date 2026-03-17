@@ -33,12 +33,15 @@ class TestRepository extends GetxService {
     String testId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'answers:$testId';
     if (!forceRefresh && preferCache) {
       final cached = await _getRawList(cacheKey);
       if (cached != null) return cached;
     }
+
+    if (cacheOnly) return const <Map<String, dynamic>>[];
 
     final snap = await _firestore
         .collection('Testler')
@@ -59,6 +62,7 @@ class TestRepository extends GetxService {
     String testId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'questions:$testId';
     if (!forceRefresh && preferCache) {
@@ -70,6 +74,8 @@ class TestRepository extends GetxService {
             .toList(growable: false);
       }
     }
+
+    if (cacheOnly) return const <TestReadinessModel>[];
 
     final snap = await _firestore
         .collection('Testler')

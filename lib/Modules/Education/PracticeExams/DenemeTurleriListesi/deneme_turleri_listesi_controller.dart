@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
@@ -17,15 +19,36 @@ class DenemeTurleriListesiController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final cached = await _practiceExamRepository.fetchByExamType(
+      sinavTuru,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      list.assignAll(cached);
+      isLoading.value = false;
+      isInitialized.value = true;
+      await getData(silent: true, forceRefresh: true);
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent || list.isEmpty) {
+      isLoading.value = true;
+    }
     try {
       final items = await _practiceExamRepository.fetchByExamType(
         sinavTuru,
-        preferCache: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
       list.assignAll(items);
     } catch (error) {

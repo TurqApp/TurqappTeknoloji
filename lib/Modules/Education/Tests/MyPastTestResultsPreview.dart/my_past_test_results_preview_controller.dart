@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
@@ -21,32 +23,64 @@ class MyPastTestResultsPreviewController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getData();
+    unawaited(_bootstrapData());
   }
 
-  Future<void> getData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapData() async {
+    final cachedAnswers = await _testRepository.fetchAnswers(
+      model.docID,
+      cacheOnly: true,
+    );
+    final cachedQuestions = await _testRepository.fetchQuestions(
+      model.docID,
+      cacheOnly: true,
+    );
+    if (cachedAnswers.isNotEmpty || cachedQuestions.isNotEmpty) {
+      _applyAnswers(cachedAnswers);
+      soruList.assignAll(cachedQuestions);
+      updateStats();
+      isLoading.value = false;
+      await getData(silent: true, forceRefresh: true);
+      return;
+    }
+    await getData();
+  }
+
+  Future<void> getData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+    }
     try {
       final yanitSnapshot = await _testRepository.fetchAnswers(
         model.docID,
-        preferCache: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
-      for (final doc in yanitSnapshot) {
-        yanitlar.assignAll(List<String>.from(doc['cevaplar'] ?? const []));
-        timeStamp.value = ((doc["timeStamp"] ?? 0) as num).toInt();
-      }
+      _applyAnswers(yanitSnapshot);
 
       final soruSnapshot = await _testRepository.fetchQuestions(
         model.docID,
-        preferCache: true,
+        preferCache: !forceRefresh,
+        forceRefresh: forceRefresh,
       );
-      soruList.clear();
       soruList.assignAll(soruSnapshot);
 
       updateStats();
     } catch (_) {
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  void _applyAnswers(List<Map<String, dynamic>> snapshot) {
+    yanitlar.clear();
+    timeStamp.value = 0;
+    for (final doc in snapshot) {
+      yanitlar.assignAll(List<String>.from(doc['cevaplar'] ?? const []));
+      timeStamp.value = ((doc["timeStamp"] ?? 0) as num).toInt();
     }
   }
 

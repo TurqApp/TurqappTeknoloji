@@ -37,6 +37,7 @@ class PracticeExamRepository extends GetxService {
     String sinavTuru, {
     bool preferCache = true,
     bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cacheKey = 'type:${sinavTuru.trim().toLowerCase()}';
     if (!forceRefresh && preferCache) {
@@ -51,6 +52,8 @@ class PracticeExamRepository extends GetxService {
         return disk;
       }
     }
+
+    if (cacheOnly) return const <SinavModel>[];
 
     final snap = await _firestore
         .collection('practiceExams')

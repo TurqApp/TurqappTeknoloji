@@ -160,18 +160,39 @@ class ScholarshipRepository extends GetxService {
 
   Future<List<Map<String, dynamic>>> fetchLatestRaw({
     int limit = 200,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
+    final cacheKey = 'query:latest:$limit';
+    if (!forceRefresh && preferCache) {
+      final memory = _readQueryMemory(cacheKey);
+      if (memory != null) return memory;
+      final disk = await _readQueryPrefs(cacheKey);
+      if (disk != null) {
+        _queryMemory[cacheKey] = _TimedScholarshipList(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk;
+      }
+    }
+
+    if (cacheOnly) return const <Map<String, dynamic>>[];
+
     final snapshot = await ScholarshipFirestorePath.collection()
         .orderBy('timeStamp', descending: true)
         .limit(limit)
         .get();
 
-    return snapshot.docs
+    final items = snapshot.docs
         .map((doc) => <String, dynamic>{
               ...Map<String, dynamic>.from(doc.data()),
               'docId': doc.id,
             })
         .toList(growable: false);
+    await _storeQueryDocs(cacheKey, items);
+    return items;
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> fetchLatestPage({
@@ -235,21 +256,43 @@ class ScholarshipRepository extends GetxService {
   Future<List<Map<String, dynamic>>> fetchAppliedByUserRaw(
     String uid, {
     int limit = 50,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cleanUid = uid.trim();
     if (cleanUid.isEmpty) return const <Map<String, dynamic>>[];
+    final cacheKey = 'query:applied:$cleanUid:$limit';
+
+    if (!forceRefresh && preferCache) {
+      final memory = _readQueryMemory(cacheKey);
+      if (memory != null) return memory;
+      final disk = await _readQueryPrefs(cacheKey);
+      if (disk != null) {
+        _queryMemory[cacheKey] = _TimedScholarshipList(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk;
+      }
+    }
+
+    if (cacheOnly) return const <Map<String, dynamic>>[];
+
     final snapshot = await ScholarshipFirestorePath.collection()
         .where('basvurular', arrayContains: cleanUid)
         .orderBy('timeStamp', descending: true)
         .limit(limit)
         .get();
 
-    return snapshot.docs
+    final items = snapshot.docs
         .map((doc) => <String, dynamic>{
               ...Map<String, dynamic>.from(doc.data()),
               'docId': doc.id,
             })
         .toList(growable: false);
+    await _storeQueryDocs(cacheKey, items);
+    return items;
   }
 
   Future<List<Map<String, dynamic>>> fetchByArrayMembershipRaw(

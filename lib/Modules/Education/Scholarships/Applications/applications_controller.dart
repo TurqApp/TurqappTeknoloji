@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -16,84 +18,111 @@ class ApplicationsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchApplications();
+    unawaited(_bootstrapApplications());
   }
 
-  Future<void> fetchApplications() async {
+  Future<void> _bootstrapApplications() async {
+    final cached = await _loadApplications(cacheOnly: true);
+    if (cached.isNotEmpty) {
+      applications.assignAll(cached);
+      isLoading.value = false;
+      await fetchApplications(silent: true, forceRefresh: true);
+      return;
+    }
+    await fetchApplications();
+  }
+
+  Future<void> fetchApplications({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
     try {
-      isLoading.value = true;
-      final userID = FirebaseAuth.instance.currentUser?.uid;
-      if (userID == null) {
-        AppSnackbar('Hata', 'Kullanıcı oturumu açık değil.');
-        isLoading.value = false;
-        return;
+      if (!silent || applications.isEmpty) {
+        isLoading.value = true;
       }
-
-      final bursList =
-          await _scholarshipRepository.fetchAppliedByUserRaw(userID, limit: 50);
-
-      // Batch user fetch instead of N+1
-      final ownerIds = bursList
-          .map((d) => d['userID'] as String? ?? '')
-          .where((id) => id.isNotEmpty)
-          .toSet()
-          .toList();
-      final userDocsById = ownerIds.isEmpty
-          ? <String, Map<String, dynamic>>{}
-          : await _userRepository.getUsersRaw(ownerIds);
-
-      final applicationList = <Map<String, dynamic>>[];
-
-      for (final data in bursList) {
-        final bursOwnerID = data['userID'] as String? ?? '';
-        final ownerData = userDocsById[bursOwnerID];
-        final nickname = (ownerData?['displayName'] ??
-                ownerData?['username'] ??
-                ownerData?['nickname'] ??
-                'Bilinmiyor')
-            .toString();
-        final avatarUrl = (ownerData?['avatarUrl'] ??
-                ownerData?['avatarUrl'] ??
-                ownerData?['avatarUrl'] ??
-                ownerData?['avatarUrl'] ??
-                '')
-            .toString();
-
-        applicationList.add({
-          'bursID': (data['docId'] ?? '').toString(),
-          'title': data['baslik'] as String? ?? 'Burs Başlığı',
-          'img': data['img'] as String? ?? '',
-          'desc': data['aciklama'] as String? ?? 'Açıklama yok',
-          'basvuruKosullari':
-              data['basvuruKosullari'] as String? ?? 'Belirtilmemiş',
-          'belgeler': data['belgeler'] as List<dynamic>? ?? [],
-          'aylar': data['aylar'] as List<dynamic>? ?? [],
-          'baslangicTarihi': data['baslangicTarihi'] as String? ?? '',
-          'bitisTarihi': data['bitisTarihi'] as String? ?? '',
-          'egitimKitlesi': data['egitimKitlesi'] as String? ?? '',
-          'altEgitimKitlesi': data['altEgitimKitlesi'] as List<dynamic>? ?? [],
-          'universiteler': data['universiteler'] as List<dynamic>? ?? [],
-          'mukerrerDurumu': data['mukerrerDurumu'] as String? ?? '',
-          'geriOdemeli': data['geriOdemeli'] as String? ?? '',
-          'basvuruURL': data['basvuruURL'] as String? ?? '',
-          'basvuruYapilacakYer': data['basvuruYapilacakYer'] as String? ?? '',
-          'timeStamp': data['timeStamp'] as num? ?? 0,
-          'tutar': data['tutar'] as String? ?? '',
-          'ogrenciSayisi': data['ogrenciSayisi'] as String? ?? '',
-          'sehirler': data['sehirler'] as List<dynamic>? ?? [],
-          'hedefKitle': data['hedefKitle'] as String? ?? '',
-          'nickname': nickname,
-          'userID': bursOwnerID,
-          'avatarUrl': avatarUrl,
-        });
-      }
-
+      final applicationList = await _loadApplications(
+        cacheOnly: false,
+        forceRefresh: forceRefresh,
+      );
       applications.assignAll(applicationList);
     } catch (e) {
       AppSnackbar('Hata', 'Başvurular yüklenemedi.');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadApplications({
+    bool cacheOnly = false,
+    bool forceRefresh = false,
+  }) async {
+    final userID = FirebaseAuth.instance.currentUser?.uid;
+    if (userID == null) {
+      throw StateError('Kullanıcı oturumu açık değil.');
+    }
+
+    final bursList = await _scholarshipRepository.fetchAppliedByUserRaw(
+      userID,
+      limit: 50,
+      preferCache: !forceRefresh,
+      forceRefresh: forceRefresh,
+      cacheOnly: cacheOnly,
+    );
+
+    final ownerIds = bursList
+        .map((d) => d['userID'] as String? ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    final userDocsById = ownerIds.isEmpty
+        ? <String, Map<String, dynamic>>{}
+        : await _userRepository.getUsersRaw(
+            ownerIds,
+            cacheOnly: cacheOnly,
+          );
+
+    final applicationList = <Map<String, dynamic>>[];
+
+    for (final data in bursList) {
+      final bursOwnerID = data['userID'] as String? ?? '';
+      final ownerData = userDocsById[bursOwnerID];
+      final nickname = (ownerData?['displayName'] ??
+              ownerData?['username'] ??
+              ownerData?['nickname'] ??
+              'Bilinmiyor')
+          .toString();
+      final avatarUrl = (ownerData?['avatarUrl'] ?? '').toString();
+
+      applicationList.add({
+        'bursID': (data['docId'] ?? '').toString(),
+        'title': data['baslik'] as String? ?? 'Burs Başlığı',
+        'img': data['img'] as String? ?? '',
+        'desc': data['aciklama'] as String? ?? 'Açıklama yok',
+        'basvuruKosullari':
+            data['basvuruKosullari'] as String? ?? 'Belirtilmemiş',
+        'belgeler': data['belgeler'] as List<dynamic>? ?? [],
+        'aylar': data['aylar'] as List<dynamic>? ?? [],
+        'baslangicTarihi': data['baslangicTarihi'] as String? ?? '',
+        'bitisTarihi': data['bitisTarihi'] as String? ?? '',
+        'egitimKitlesi': data['egitimKitlesi'] as String? ?? '',
+        'altEgitimKitlesi': data['altEgitimKitlesi'] as List<dynamic>? ?? [],
+        'universiteler': data['universiteler'] as List<dynamic>? ?? [],
+        'mukerrerDurumu': data['mukerrerDurumu'] as String? ?? '',
+        'geriOdemeli': data['geriOdemeli'] as String? ?? '',
+        'basvuruURL': data['basvuruURL'] as String? ?? '',
+        'basvuruYapilacakYer': data['basvuruYapilacakYer'] as String? ?? '',
+        'timeStamp': data['timeStamp'] as num? ?? 0,
+        'tutar': data['tutar'] as String? ?? '',
+        'ogrenciSayisi': data['ogrenciSayisi'] as String? ?? '',
+        'sehirler': data['sehirler'] as List<dynamic>? ?? [],
+        'hedefKitle': data['hedefKitle'] as String? ?? '',
+        'nickname': nickname,
+        'userID': bursOwnerID,
+        'avatarUrl': avatarUrl,
+      });
+    }
+
+    return applicationList;
   }
 
   Future<void> withdrawApplication(String bursID) async {
