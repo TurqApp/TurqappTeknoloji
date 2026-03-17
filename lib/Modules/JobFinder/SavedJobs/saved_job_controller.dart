@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +15,12 @@ class SavedJobsController extends GetxController {
   RxBool isLoading = false.obs;
   static const int _whereInChunkSize = 10;
 
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_bootstrapSavedJobs());
+  }
+
   List<List<T>> _chunkList<T>(List<T> input, int size) {
     if (input.isEmpty) return <List<T>>[];
     final chunks = <List<T>>[];
@@ -23,19 +31,70 @@ class SavedJobsController extends GetxController {
     return chunks;
   }
 
-  Future<void> getStartData() async {
-    isLoading.value = true;
+  Future<void> _bootstrapSavedJobs() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
 
     try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      final cachedSavedRecords = await JobSavedStore.getSavedJobs(
+        uid,
+        cacheOnly: true,
+      );
+      if (cachedSavedRecords.isNotEmpty) {
+        await _loadSavedJobs(
+          uid,
+          cachedSavedRecords,
+          silent: true,
+          cacheOnlyJobs: true,
+        );
+        if (list.isNotEmpty) {
+          await getStartData(silent: true, forceRefresh: true);
+          return;
+        }
+      }
+    } catch (_) {}
 
-      final savedRecords = await JobSavedStore.getSavedJobs(uid);
+    await getStartData();
+  }
+
+  Future<void> getStartData({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      list.clear();
+      isLoading.value = false;
+      return;
+    }
+
+    final savedRecords = await JobSavedStore.getSavedJobs(
+      uid,
+      forceRefresh: forceRefresh,
+    );
+    await _loadSavedJobs(uid, savedRecords, silent: silent);
+  }
+
+  Future<void> _loadSavedJobs(
+    String uid,
+    List<SavedJobRecord> savedRecords, {
+    bool silent = false,
+    bool cacheOnlyJobs = false,
+  }) async {
+    final shouldShowLoader = !silent && list.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
+
+    try {
       final savedIds = savedRecords.map((e) => e.jobId).toList();
 
       if (savedIds.isEmpty) {
         list.clear();
-        isLoading.value = false;
         return;
       }
 
@@ -47,9 +106,13 @@ class SavedJobsController extends GetxController {
       final idsToMarkEnded = <String>[];
 
       for (final chunk in _chunkList(savedIds, _whereInChunkSize)) {
-        final fetched = await _jobRepository.fetchByIds(chunk);
+        final fetched = await _jobRepository.fetchByIds(
+          chunk,
+          cacheOnly: cacheOnlyJobs,
+        );
         final foundIds = fetched.map((job) => job.docID).toSet();
         for (final missingId in chunk.where((id) => !foundIds.contains(id))) {
+          if (cacheOnlyJobs) continue;
           staleSavedIds.add(missingId);
         }
 
@@ -65,12 +128,12 @@ class SavedJobsController extends GetxController {
       }
 
       // DB yan etkilerini batch ile uygula (tek tek write yerine).
-      if (staleSavedIds.isNotEmpty) {
+      if (!cacheOnlyJobs && staleSavedIds.isNotEmpty) {
         for (final chunk in _chunkList(staleSavedIds, 450)) {
           await JobSavedStore.removeSavedJobs(uid, chunk);
         }
       }
-      if (idsToMarkEnded.isNotEmpty) {
+      if (!cacheOnlyJobs && idsToMarkEnded.isNotEmpty) {
         for (final chunk in _chunkList(idsToMarkEnded, 450)) {
           final batch = FirebaseFirestore.instance.batch();
           for (final docId in chunk) {
@@ -133,7 +196,9 @@ class SavedJobsController extends GetxController {
       list.value = updatedJobs;
     } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || list.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 }

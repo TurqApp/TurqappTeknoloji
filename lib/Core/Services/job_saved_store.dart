@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SavedJobRecord {
   final String jobId;
@@ -14,6 +17,8 @@ class JobSavedStore {
   JobSavedStore._();
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String _prefsPrefix = 'job_saved_store_v1:';
+  static SharedPreferences? _prefs;
 
   static CollectionReference<Map<String, dynamic>> _userSavedJobs(String uid) {
     return _firestore.collection('users').doc(uid).collection('savedJobs');
@@ -78,6 +83,7 @@ class JobSavedStore {
     batch.set(_savedJobDoc(uid, jobId), _payload(uid, jobId, timeStamp));
     batch.delete(_legacySavedJobDoc(uid, jobId));
     await batch.commit();
+    await _invalidateCache(uid);
   }
 
   static Future<void> unsave(String uid, String jobId) async {
@@ -85,18 +91,32 @@ class JobSavedStore {
     batch.delete(_savedJobDoc(uid, jobId));
     batch.delete(_legacySavedJobDoc(uid, jobId));
     await batch.commit();
+    await _invalidateCache(uid);
   }
 
-  static Future<List<SavedJobRecord>> getSavedJobs(String uid) async {
+  static Future<List<SavedJobRecord>> getSavedJobs(
+    String uid, {
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
+  }) async {
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty) return const <SavedJobRecord>[];
+    if (!forceRefresh && preferCache) {
+      final cached = await _readCache(normalizedUid);
+      if (cached != null) return cached;
+    }
+    if (cacheOnly) return const <SavedJobRecord>[];
+
     QuerySnapshot<Map<String, dynamic>> currentSnap;
     QuerySnapshot<Map<String, dynamic>> legacySnap;
     try {
-      currentSnap = await _userSavedJobs(uid)
+      currentSnap = await _userSavedJobs(normalizedUid)
           .orderBy('timeStamp', descending: true)
           .get();
       legacySnap = await _firestore
           .collection('SavedIsBul')
-          .where('userID', isEqualTo: uid)
+          .where('userID', isEqualTo: normalizedUid)
           .get();
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
@@ -128,7 +148,10 @@ class JobSavedStore {
         if (existing == null || timeStamp > existing.timeStamp) {
           byJobId[jobId] = SavedJobRecord(jobId: jobId, timeStamp: timeStamp);
         }
-        batch.set(_savedJobDoc(uid, jobId), _payload(uid, jobId, timeStamp));
+        batch.set(
+          _savedJobDoc(normalizedUid, jobId),
+          _payload(normalizedUid, jobId, timeStamp),
+        );
         batch.delete(doc.reference);
       }
       await batch.commit();
@@ -136,6 +159,7 @@ class JobSavedStore {
 
     final items = byJobId.values.toList()
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    await _storeCache(normalizedUid, items);
     return items;
   }
 
@@ -147,6 +171,7 @@ class JobSavedStore {
       batch.delete(_legacySavedJobDoc(uid, jobId));
     }
     await batch.commit();
+    await _invalidateCache(uid);
   }
 
   static Future<void> _migrateLegacyDoc(
@@ -158,5 +183,58 @@ class JobSavedStore {
     batch.set(_savedJobDoc(uid, jobId), _payload(uid, jobId, timeStamp));
     batch.delete(_legacySavedJobDoc(uid, jobId));
     await batch.commit();
+    await _invalidateCache(uid);
+  }
+
+  static Future<List<SavedJobRecord>?> _readCache(String uid) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final raw = _prefs?.getString('$_prefsPrefix$uid');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      if (savedAt <= 0) return null;
+      final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
+      if (DateTime.now().difference(cachedAt) > const Duration(hours: 12)) {
+        return null;
+      }
+      final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map(
+            (item) => SavedJobRecord(
+              jobId: (item['jobId'] ?? '').toString(),
+              timeStamp: (item['timeStamp'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .where((item) => item.jobId.isNotEmpty)
+          .toList(growable: false);
+      return items;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> _storeCache(
+    String uid,
+    List<SavedJobRecord> items,
+  ) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.setString(
+      '$_prefsPrefix$uid',
+      jsonEncode({
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'items': items
+            .map((item) => {
+                  'jobId': item.jobId,
+                  'timeStamp': item.timeStamp,
+                })
+            .toList(growable: false),
+      }),
+    );
+  }
+
+  static Future<void> _invalidateCache(String uid) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.remove('$_prefsPrefix${uid.trim()}');
   }
 }

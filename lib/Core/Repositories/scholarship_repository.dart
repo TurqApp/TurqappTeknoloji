@@ -13,6 +13,8 @@ class ScholarshipRepository extends GetxService {
   static const String _countKey = 'scholarship_total_count_v1';
 
   final Map<String, _TimedScholarship> _memory = <String, _TimedScholarship>{};
+  final Map<String, _TimedScholarshipList> _queryMemory =
+      <String, _TimedScholarshipList>{};
   final Map<String, _TimedScholarshipApply> _applyMemory =
       <String, _TimedScholarshipApply>{};
   SharedPreferences? _prefs;
@@ -117,9 +119,28 @@ class ScholarshipRepository extends GetxService {
   Future<List<Map<String, dynamic>>> fetchMyScholarshipsRaw(
     String uid, {
     int limit = 50,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cleanUid = uid.trim();
     if (cleanUid.isEmpty) return const <Map<String, dynamic>>[];
+    final cacheKey = 'query:owner:$cleanUid:$limit';
+
+    if (!forceRefresh && preferCache) {
+      final memory = _readQueryMemory(cacheKey);
+      if (memory != null) return memory;
+      final disk = await _readQueryPrefs(cacheKey);
+      if (disk != null) {
+        _queryMemory[cacheKey] = _TimedScholarshipList(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk;
+      }
+    }
+
+    if (cacheOnly) return const <Map<String, dynamic>>[];
 
     final snapshot = await ScholarshipFirestorePath.collection()
         .where('userID', isEqualTo: cleanUid)
@@ -127,12 +148,14 @@ class ScholarshipRepository extends GetxService {
         .limit(limit)
         .get();
 
-    return snapshot.docs
+    final items = snapshot.docs
         .map((doc) => <String, dynamic>{
               ...Map<String, dynamic>.from(doc.data()),
               'docId': doc.id,
             })
         .toList(growable: false);
+    await _storeQueryDocs(cacheKey, items);
+    return items;
   }
 
   Future<List<Map<String, dynamic>>> fetchLatestRaw({
@@ -233,24 +256,46 @@ class ScholarshipRepository extends GetxService {
     String field,
     String uid, {
     int limit = 50,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final cleanUid = uid.trim();
     final cleanField = field.trim();
     if (cleanUid.isEmpty || cleanField.isEmpty) {
       return const <Map<String, dynamic>>[];
     }
+    final cacheKey = 'query:membership:$cleanField:$cleanUid:$limit';
+
+    if (!forceRefresh && preferCache) {
+      final memory = _readQueryMemory(cacheKey);
+      if (memory != null) return memory;
+      final disk = await _readQueryPrefs(cacheKey);
+      if (disk != null) {
+        _queryMemory[cacheKey] = _TimedScholarshipList(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk;
+      }
+    }
+
+    if (cacheOnly) return const <Map<String, dynamic>>[];
+
     final snapshot = await ScholarshipFirestorePath.collection()
         .where(cleanField, arrayContains: cleanUid)
         .orderBy('timeStamp', descending: true)
         .limit(limit)
         .get();
 
-    return snapshot.docs
+    final items = snapshot.docs
         .map((doc) => <String, dynamic>{
               ...Map<String, dynamic>.from(doc.data()),
               'docId': doc.id,
             })
         .toList(growable: false);
+    await _storeQueryDocs(cacheKey, items);
+    return items;
   }
 
   Future<bool> hasUserApplied(
@@ -386,7 +431,71 @@ class ScholarshipRepository extends GetxService {
       final updated = Map<String, dynamic>.from(existingRaw)..[field] = next;
       await _store(cleanId, updated);
     }
+    await _invalidateQueryPrefix('query:membership:$field:$cleanUserId:');
     return !contains;
+  }
+
+  List<Map<String, dynamic>>? _readQueryMemory(String key) {
+    final cached = _queryMemory[key];
+    if (cached == null) return null;
+    if (DateTime.now().difference(cached.cachedAt) > _ttl) {
+      _queryMemory.remove(key);
+      return null;
+    }
+    return cached.items;
+  }
+
+  Future<List<Map<String, dynamic>>?> _readQueryPrefs(String key) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final raw = _prefs?.getString('$_prefsPrefix:$key');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      final savedAt = (decoded['savedAt'] as num?)?.toInt() ?? 0;
+      if (savedAt <= 0) return null;
+      final cachedAt = DateTime.fromMillisecondsSinceEpoch(savedAt);
+      if (DateTime.now().difference(cachedAt) > _ttl) return null;
+      final items = (decoded['items'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(growable: false);
+      return items;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _storeQueryDocs(
+    String key,
+    List<Map<String, dynamic>> items,
+  ) async {
+    _queryMemory[key] = _TimedScholarshipList(
+      items: items,
+      cachedAt: DateTime.now(),
+    );
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.setString(
+      '$_prefsPrefix:$key',
+      jsonEncode({
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        'items': items,
+      }),
+    );
+  }
+
+  Future<void> _invalidateQueryPrefix(String prefix) async {
+    _queryMemory.removeWhere((key, _) => key.startsWith(prefix));
+    _prefs ??= await SharedPreferences.getInstance();
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final keys = prefs.getKeys().where((key) {
+      if (!key.startsWith('$_prefsPrefix:')) return false;
+      final scoped = key.substring('$_prefsPrefix:'.length);
+      return scoped.startsWith(prefix);
+    }).toList(growable: false);
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
   }
 
   bool? _readApplyMemory(String key) {
@@ -471,6 +580,16 @@ class _TimedScholarship {
   });
 
   final Map<String, dynamic> data;
+  final DateTime cachedAt;
+}
+
+class _TimedScholarshipList {
+  const _TimedScholarshipList({
+    required this.items,
+    required this.cachedAt,
+  });
+
+  final List<Map<String, dynamic>> items;
   final DateTime cachedAt;
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
@@ -19,36 +21,95 @@ class SavedItemsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchSavedItems();
+    unawaited(_bootstrapSavedItems());
   }
 
-  Future<void> fetchSavedItems() async {
+  Future<void> _bootstrapSavedItems() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       AppSnackbar('Hata', 'Lütfen oturum açın.');
       return;
     }
-    isLoading.value = true;
+
+    try {
+      final results = await Future.wait<List<Map<String, dynamic>>>([
+        _fetchScholarships(
+          user.uid,
+          isLiked: true,
+          cacheOnly: true,
+          assignResult: false,
+        ),
+        _fetchScholarships(
+          user.uid,
+          isBookmarked: true,
+          cacheOnly: true,
+          assignResult: false,
+        ),
+      ]);
+      final liked = results[0];
+      final bookmarked = results[1];
+      if (liked.isNotEmpty || bookmarked.isNotEmpty) {
+        likedScholarships.assignAll(liked);
+        bookmarkedScholarships.assignAll(bookmarked);
+        isLoading.value = false;
+        await fetchSavedItems(silent: true, forceRefresh: true);
+        return;
+      }
+    } catch (_) {}
+
+    await fetchSavedItems();
+  }
+
+  Future<void> fetchSavedItems({
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      AppSnackbar('Hata', 'Lütfen oturum açın.');
+      return;
+    }
+    final shouldShowLoader =
+        !silent && likedScholarships.isEmpty && bookmarkedScholarships.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       await Future.wait([
-        _fetchScholarships(user.uid, isLiked: true),
-        _fetchScholarships(user.uid, isBookmarked: true),
+        _fetchScholarships(
+          user.uid,
+          isLiked: true,
+          forceRefresh: forceRefresh,
+        ),
+        _fetchScholarships(
+          user.uid,
+          isBookmarked: true,
+          forceRefresh: forceRefresh,
+        ),
       ]);
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader ||
+          (likedScholarships.isEmpty && bookmarkedScholarships.isEmpty)) {
+        isLoading.value = false;
+      }
     }
   }
 
-  Future<void> _fetchScholarships(
+  Future<List<Map<String, dynamic>>> _fetchScholarships(
     String userId, {
     bool isLiked = false,
     bool isBookmarked = false,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
+    bool assignResult = true,
   }) async {
     try {
       final docs = await _scholarshipRepository.fetchByArrayMembershipRaw(
         isLiked ? 'begeniler' : 'kaydedenler',
         userId,
         limit: 50,
+        forceRefresh: forceRefresh,
+        cacheOnly: cacheOnly,
       );
 
       final scholarships = <Map<String, dynamic>>[];
@@ -64,6 +125,7 @@ class SavedItemsController extends GetxController {
       final users = await _userRepository.getUsersRaw(
         userIds.toList(growable: false),
         preferCache: true,
+        cacheOnly: cacheOnly,
       );
       for (final entry in users.entries) {
         final user = entry.value;
@@ -103,13 +165,17 @@ class SavedItemsController extends GetxController {
         }
       }
 
-      if (isLiked) {
-        likedScholarships.value = scholarships;
-      } else {
-        bookmarkedScholarships.value = scholarships;
+      if (assignResult) {
+        if (isLiked) {
+          likedScholarships.value = scholarships;
+        } else {
+          bookmarkedScholarships.value = scholarships;
+        }
       }
+      return scholarships;
     } catch (e) {
       AppSnackbar('Hata', 'Veriler yüklenemedi.');
+      return const <Map<String, dynamic>>[];
     }
   }
 
@@ -126,8 +192,7 @@ class SavedItemsController extends GetxController {
         docId,
         userId: userId,
       );
-      // Pull-based: listeyi yeniden çek
-      await _fetchScholarships(userId, isLiked: true);
+      await _fetchScholarships(userId, isLiked: true, forceRefresh: true);
     } catch (e) {
       AppSnackbar('Hata', 'Beğeni işlemi başarısız.');
     }
@@ -146,8 +211,11 @@ class SavedItemsController extends GetxController {
         docId,
         userId: userId,
       );
-      // Pull-based: listeyi yeniden çek
-      await _fetchScholarships(userId, isBookmarked: true);
+      await _fetchScholarships(
+        userId,
+        isBookmarked: true,
+        forceRefresh: true,
+      );
     } catch (e) {
       AppSnackbar('Hata', 'Kaydetme işlemi başarısız.');
     }

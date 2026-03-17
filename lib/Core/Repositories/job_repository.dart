@@ -87,6 +87,7 @@ class JobRepository extends GetxService {
   Future<List<JobModel>> fetchByIds(
     List<String> docIds, {
     bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     final ids = docIds.where((e) => e.trim().isNotEmpty).toSet().toList();
     if (ids.isEmpty) return const <JobModel>[];
@@ -114,6 +115,13 @@ class JobRepository extends GetxService {
       }
     } else {
       missing.addAll(ids);
+    }
+
+    if (cacheOnly) {
+      return ids
+          .map((id) => resolved[id])
+          .whereType<JobModel>()
+          .toList(growable: false);
     }
 
     for (final chunk in _chunkIds(missing, 10)) {

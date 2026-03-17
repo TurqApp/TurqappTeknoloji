@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,10 +17,10 @@ class MyPracticeExamsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchExams();
+    unawaited(_bootstrapExams());
   }
 
-  Future<void> fetchExams({bool forceRefresh = false}) async {
+  Future<void> _bootstrapExams() async {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     if (uid.isEmpty) {
       exams.clear();
@@ -27,7 +28,34 @@ class MyPracticeExamsController extends GetxController {
       return;
     }
 
-    isLoading.value = true;
+    try {
+      final cached = await _practiceExamRepository.fetchByOwner(uid);
+      if (cached.isNotEmpty) {
+        exams.assignAll(cached);
+        isLoading.value = false;
+        await fetchExams(silent: true, forceRefresh: true);
+        return;
+      }
+    } catch (_) {}
+
+    await fetchExams();
+  }
+
+  Future<void> fetchExams({
+    bool forceRefresh = false,
+    bool silent = false,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      exams.clear();
+      isLoading.value = false;
+      return;
+    }
+
+    final shouldShowLoader = !silent && exams.isEmpty;
+    if (shouldShowLoader) {
+      isLoading.value = true;
+    }
     try {
       final items = await _practiceExamRepository.fetchByOwner(
         uid,
@@ -39,7 +67,9 @@ class MyPracticeExamsController extends GetxController {
       log('MyPracticeExamsController.fetchExams error: $e');
       AppSnackbar('Hata', 'Sınavlar yüklenemedi.');
     } finally {
-      isLoading.value = false;
+      if (shouldShowLoader || exams.isEmpty) {
+        isLoading.value = false;
+      }
     }
   }
 }

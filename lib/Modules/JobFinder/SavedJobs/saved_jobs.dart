@@ -11,7 +11,6 @@ class SavedJobs extends StatelessWidget {
   final controller = Get.put(SavedJobsController());
   @override
   Widget build(BuildContext context) {
-    controller.getStartData();
     return Scaffold(
       body: SafeArea(
         bottom: false,
