@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -10,6 +9,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 
 class TutoringFilterController extends GetxController {
   final TutoringController tutoringController = Get.find<TutoringController>();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final isLoading = true.obs;
 
   var selectedBranch = Rx<String?>(null);
@@ -67,16 +68,9 @@ class TutoringFilterController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response = await DefaultAssetBundle.of(
-        Get.context!,
-      ).loadString('assets/data/CityDistrict.json');
-      final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      sehirler.value = sortedCities;
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities();
     } catch (_) {
       sehirler.value = []; // Hata durumunda boş liste ile devam et
     } finally {

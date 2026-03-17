@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:path/path.dart' as path;
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -19,6 +19,8 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class CreateTutoringController extends GetxController {
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   var carouselCurrentIndex = 0.obs;
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -181,16 +183,9 @@ class CreateTutoringController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response = await DefaultAssetBundle.of(
-        Get.context!,
-      ).loadString('assets/data/CityDistrict.json');
-      final List<dynamic> data = jsonDecode(response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      sehirler.value = sortedCities;
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities();
       await autoFillLocationIfNeeded(allowPermissionPrompt: !Platform.isIOS);
     } catch (_) {}
   }
@@ -282,8 +277,7 @@ class CreateTutoringController extends GetxController {
         .toList();
     for (final candidate in candidates) {
       if (candidate.isEmpty) continue;
-      final exact =
-          districts.firstWhereOrNull((item) => item == candidate);
+      final exact = districts.firstWhereOrNull((item) => item == candidate);
       if (exact != null) return exact;
       final normalizedCandidate = _normalizeLocation(candidate);
       final fuzzy = districts.firstWhereOrNull(

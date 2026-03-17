@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crop_your_image/crop_your_image.dart';
@@ -11,6 +10,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
@@ -27,6 +27,8 @@ import '../../../Models/cities_model.dart';
 import '../../../Models/job_model.dart';
 
 class JobCreatorController extends GetxController {
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   var selection = 0.obs;
   final isSubmitting = false.obs;
   TextEditingController brand = TextEditingController();
@@ -121,8 +123,10 @@ class JobCreatorController extends GetxController {
       brand.text = existingJob!.brand;
       about.text = existingJob!.about;
       isTanimi.text = existingJob!.isTanimi;
-      maas1.text = existingJob!.maas1 > 0 ? _formatMoneyInput(existingJob!.maas1) : '';
-      maas2.text = existingJob!.maas2 > 0 ? _formatMoneyInput(existingJob!.maas2) : '';
+      maas1.text =
+          existingJob!.maas1 > 0 ? _formatMoneyInput(existingJob!.maas1) : '';
+      maas2.text =
+          existingJob!.maas2 > 0 ? _formatMoneyInput(existingJob!.maas2) : '';
       calismaSaatiBaslangic.text = existingJob!.calismaSaatiBaslangic;
       calismaSaatiBitis.text = existingJob!.calismaSaatiBitis;
       meslek.value = existingJob!.meslek;
@@ -151,7 +155,8 @@ class JobCreatorController extends GetxController {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         Future.delayed(
           const Duration(milliseconds: 250),
-          () => autoFillLocationIfNeeded(allowPermissionPrompt: !Platform.isIOS),
+          () =>
+              autoFillLocationIfNeeded(allowPermissionPrompt: !Platform.isIOS),
         );
       });
     }
@@ -323,7 +328,7 @@ class JobCreatorController extends GetxController {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-                    "Ek İmkanlar",
+              "Ek İmkanlar",
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 18,
@@ -431,8 +436,8 @@ class JobCreatorController extends GetxController {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: TextButton(
                       style: ButtonStyle(
-                        padding:
-                            WidgetStateProperty.all<EdgeInsets>(EdgeInsets.zero),
+                        padding: WidgetStateProperty.all<EdgeInsets>(
+                            EdgeInsets.zero),
                         minimumSize: WidgetStateProperty.all<Size>(Size.zero),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         overlayColor:
@@ -511,16 +516,9 @@ class JobCreatorController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      sehirler.value = sortedCities;
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities();
     } catch (_) {}
   }
 
@@ -550,7 +548,8 @@ class JobCreatorController extends GetxController {
         .where((val) => val.il == sehir.value)
         .map((e) => e.ilce)
         .toSet()
-        .toList();
+        .toList()
+        .cast<String>();
     sortTurkishStrings(districts);
     Get.bottomSheet(
       SizedBox(
@@ -661,7 +660,8 @@ class JobCreatorController extends GetxController {
         .where((item) => item.il == city)
         .map((item) => item.ilce)
         .toSet()
-        .toList();
+        .toList()
+        .cast<String>();
     for (final candidate in candidates) {
       if (candidate.isEmpty) continue;
       final exact =

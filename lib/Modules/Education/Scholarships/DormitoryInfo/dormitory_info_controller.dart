@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
-import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/cities_model.dart';
 import 'package:turqappv2/Models/Education/dormitory_model.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
@@ -14,6 +14,8 @@ import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 
 class DormitoryInfoController extends GetxController {
   final UserRepository _userRepository = UserRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final isLoading = true.obs;
   final sehir = "Şehir Seç".obs;
   final ilce = "İlçe Seç".obs;
@@ -51,16 +53,9 @@ class DormitoryInfoController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response = await rootBundle.loadString(
-        'assets/data/CityDistrict.json',
-      );
-      final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      sehirler.value = sortedCities;
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities();
     } catch (_) {}
   }
 

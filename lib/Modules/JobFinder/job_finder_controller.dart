@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
+import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Models/job_model.dart';
@@ -14,13 +12,10 @@ import '../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../Models/cities_model.dart';
 import '../../Themes/app_assets.dart';
 
-List<Map<String, dynamic>> _decodeJobCityDistrictList(String response) {
-  final List<dynamic> data = json.decode(response) as List<dynamic>;
-  return data.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-}
-
 class JobFinderController extends GetxController {
   final JobRepository _jobRepository = JobRepository.ensure();
+  final CityDirectoryService _cityDirectoryService =
+      CityDirectoryService.ensure();
   final List<String> imgList = [
     AppAssets.practice1,
     AppAssets.practice2,
@@ -549,16 +544,11 @@ class JobFinderController extends GetxController {
 
   Future<void> loadSehirler() async {
     try {
-      final String response =
-          await rootBundle.loadString('assets/data/CityDistrict.json');
-      final data = await compute(_decodeJobCityDistrictList, response);
       sehirlerVeIlcelerData.value =
-          data.map((json) => CitiesModel.fromJson(json)).toList();
-      final sortedCities =
-          sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-      sortTurkishStrings(sortedCities);
-      sehirler.value = sortedCities;
-      sehirler.insert(0, "Tüm Türkiye");
+          await _cityDirectoryService.getCitiesAndDistricts();
+      sehirler.value = await _cityDirectoryService.getSortedCities(
+        includeAllTurkey: true,
+      );
     } catch (_) {
     } finally {
       isLoading.value = false;
