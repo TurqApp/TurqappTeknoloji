@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams.dart';
@@ -213,24 +215,40 @@ class DenemeSinavlari extends StatelessWidget {
                     ),
                   ),
                 ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                    childAspectRatio: 0.52,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    return DenemeGrid(
-                      model: items[index],
-                      getData: controller.getData,
-                    );
-                  },
+              Obx(
+                () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: controller.listingSelection.value == 0
+                      ? Column(
+                          children: PasajListingAdLayout.buildListChildren(
+                            items: items,
+                            itemBuilder: (item, index) => DenemeGrid(
+                              model: item,
+                              getData: controller.getData,
+                              isListLayout: true,
+                            ),
+                            adBuilder: (slot) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: AdmobKare(
+                                key: ValueKey('practice-exam-list-ad-$slot'),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                            items: items,
+                            horizontalSpacing: 4,
+                            rowSpacing: 4,
+                            itemBuilder: (item, index) => DenemeGrid(
+                              model: item,
+                              getData: controller.getData,
+                            ),
+                            adBuilder: (slot) => AdmobKare(
+                              key: ValueKey('practice-exam-grid-ad-$slot'),
+                            ),
+                          ),
+                        ),
                 ),
               ),
               Obx(() =>

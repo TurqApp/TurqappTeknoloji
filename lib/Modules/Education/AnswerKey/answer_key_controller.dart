@@ -1,18 +1,23 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/booklet_repository.dart';
 import 'package:turqappv2/Core/Services/typesense_education_service.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 
 class AnswerKeyController extends GetxController {
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_answer_key_listing_selection';
   final BookletRepository _bookletRepository = BookletRepository.ensure();
   var isLoading = false.obs;
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
+  final RxInt listingSelection = 0.obs;
   var bookList = <BookletModel>[].obs;
   var searchResults = <BookletModel>[].obs;
   final RxString searchQuery = ''.obs;
@@ -23,13 +28,49 @@ class AnswerKeyController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      listingSelection.value =
+          (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     scrollController.addListener(_onScroll);
     unawaited(_bootstrapInitialData());
+  }
+
+  void toggleListingSelection() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
   }
 
   Future<void> _bootstrapInitialData() async {

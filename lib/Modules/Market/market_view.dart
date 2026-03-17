@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/market_contact_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_controller.dart';
@@ -163,30 +165,39 @@ class MarketView extends StatelessWidget {
                 child: _buildEmptyState(),
               )
             else if (controller.listingSelection.value == 0)
-              SliverPadding(
+              SliverToBoxAdapter(
                 key: const ValueKey<String>('market-listing-list'),
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                sliver: SliverList.builder(
-                  itemCount: controller.visibleItems.length,
-                  itemBuilder: (context, index) =>
-                      _buildListingCard(controller.visibleItems[index]),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
+                    children: PasajListingAdLayout.buildListChildren(
+                      items: controller.visibleItems,
+                      itemBuilder: (item, index) => _buildListingCard(item),
+                      adBuilder: (slot) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: AdmobKare(
+                          key: ValueKey('market-list-ad-$slot'),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               )
             else
-              SliverPadding(
+              SliverToBoxAdapter(
                 key: const ValueKey<String>('market-listing-grid'),
-                padding: const EdgeInsets.fromLTRB(15, 0, 15, 16),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) =>
-                        _buildGridCard(controller.visibleItems[index]),
-                    childCount: controller.visibleItems.length,
-                  ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                    childAspectRatio: 0.48,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(15, 0, 15, 16),
+                  child: Column(
+                    children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                      items: controller.visibleItems,
+                      horizontalSpacing: 4,
+                      rowSpacing: 4,
+                      itemBuilder: (item, index) => _buildGridCard(item),
+                      adBuilder: (slot) => AdmobKare(
+                        key: ValueKey('market-grid-ad-$slot'),
+                      ),
+                    ),
                   ),
                 ),
               ),

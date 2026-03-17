@@ -90,7 +90,7 @@ class MyPracticeExams extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return DenemeGrid(
                           model: controller.exams[index],
-                          getData: () {},
+                          getData: () async {},
                         );
                       },
                     ),

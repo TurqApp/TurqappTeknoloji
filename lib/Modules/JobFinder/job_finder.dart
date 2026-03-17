@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
@@ -178,11 +180,6 @@ class JobFinder extends StatelessWidget {
                       (e) => e.city.toString().contains(controller.sehir.value))
                   .toList());
 
-      final screenWidth = MediaQuery.of(context).size.width;
-      final itemWidth = screenWidth * 0.5;
-      final itemHeight = itemWidth / 0.56;
-      final aspectRatio = itemWidth / itemHeight;
-
       if (controller.listingSelection.value == 0) {
         if (dataList.isEmpty) {
           return Column(
@@ -197,15 +194,23 @@ class JobFinder extends StatelessWidget {
             ],
           );
         }
-        return ListView.builder(
-          itemCount: dataList.length + 1,
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return _kesfetHeader(isSearching: isSearching, context: context);
-            }
-            final model = dataList[index - 1];
-            return JobContent(model: model, isGrid: false);
-          },
+        return ListView(
+          children: [
+            _kesfetHeader(isSearching: isSearching, context: context),
+            ...PasajListingAdLayout.buildListChildren(
+              items: dataList,
+              itemBuilder: (item, index) => JobContent(
+                model: item,
+                isGrid: false,
+              ),
+              adBuilder: (slot) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                child: AdmobKare(
+                  key: ValueKey('job-list-ad-$slot'),
+                ),
+              ),
+            ),
+          ],
         );
       } else {
         if (dataList.isEmpty) {
@@ -228,19 +233,20 @@ class JobFinder extends StatelessWidget {
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: GridView.builder(
-                  itemCount: dataList.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: screenWidth * 0.5,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: aspectRatio,
+                child: Column(
+                  children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                    items: dataList,
+                    horizontalSpacing: 8,
+                    rowSpacing: 8,
+                    itemBuilder: (item, index) =>
+                        JobContent(model: item, isGrid: true),
+                    adBuilder: (slot) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: AdmobKare(
+                        key: ValueKey('job-grid-ad-$slot'),
+                      ),
+                    ),
                   ),
-                  itemBuilder: (context, index) {
-                    return JobContent(model: dataList[index], isGrid: true);
-                  },
                 ),
               ),
             ],
@@ -342,8 +348,7 @@ class JobFinder extends StatelessWidget {
                       fixedSize: const Size(30, 30),
                     ),
                     onPressed: () {
-                      controller.listingSelection.value =
-                          controller.listingSelection.value == 0 ? 1 : 0;
+                      controller.toggleListingSelection();
                     },
                     child: Icon(
                       controller.listingSelection.value == 0

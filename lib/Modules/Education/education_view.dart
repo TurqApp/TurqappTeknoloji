@@ -104,6 +104,38 @@ class EducationView extends StatelessWidget {
         !controller.isSearchMode.value;
   }
 
+  DenemeSinavlariController? _activePracticeExamController() {
+    if (_titleForIndex(controller.selectedTab.value) != "Online Sınav") {
+      return null;
+    }
+    if (!Get.isRegistered<DenemeSinavlariController>()) {
+      Get.put(DenemeSinavlariController());
+    }
+    return Get.find<DenemeSinavlariController>();
+  }
+
+  bool _showInlinePracticeExamActions() {
+    return _activePracticeExamController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
+  AnswerKeyController? _activeAnswerKeyController() {
+    if (_titleForIndex(controller.selectedTab.value) != "Cevap Anahtarı") {
+      return null;
+    }
+    if (!Get.isRegistered<AnswerKeyController>()) {
+      Get.put(AnswerKeyController());
+    }
+    return Get.find<AnswerKeyController>();
+  }
+
+  bool _showInlineAnswerKeyActions() {
+    return _activeAnswerKeyController() != null &&
+        !controller.isKeyboardOpen.value &&
+        !controller.isSearchMode.value;
+  }
+
   TutoringController? _activeTutoringController() {
     if (_titleForIndex(controller.selectedTab.value) != "Özel Ders") return null;
     if (!Get.isRegistered<TutoringController>()) {
@@ -686,6 +718,13 @@ class EducationView extends StatelessWidget {
                     final jobController = _activeJobFinderController();
                     final showJobActions =
                         jobController != null && _showInlineJobActions();
+                    final practiceExamController =
+                        _activePracticeExamController();
+                    final showPracticeExamActions = practiceExamController != null &&
+                        _showInlinePracticeExamActions();
+                    final answerKeyController = _activeAnswerKeyController();
+                    final showAnswerKeyActions = answerKeyController != null &&
+                        _showInlineAnswerKeyActions();
                     final tutoringController = _activeTutoringController();
                     final tutoringFilterController =
                         _activeTutoringFilterController();
@@ -753,10 +792,7 @@ class EducationView extends StatelessWidget {
                                 ? Icons.view_agenda_outlined
                                 : Icons.grid_view_rounded,
                             onTap: () {
-                              jobController.listingSelection.value =
-                                  jobController.listingSelection.value == 0
-                                  ? 1
-                                  : 0;
+                              jobController.toggleListingSelection();
                             },
                           ),
                           const SizedBox(width: 6),
@@ -770,6 +806,25 @@ class EducationView extends StatelessWidget {
                             icon: Icons.filter_alt_outlined,
                             active: jobController.filtre.value,
                             onTap: jobController.filtreTapped,
+                          ),
+                        ],
+                        if (showPracticeExamActions) ...[
+                          const SizedBox(width: 8),
+                          _marketTopActionButton(
+                            icon: practiceExamController.listingSelection.value ==
+                                    1
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
+                            onTap: practiceExamController.toggleListingSelection,
+                          ),
+                        ],
+                        if (showAnswerKeyActions) ...[
+                          const SizedBox(width: 8),
+                          _marketTopActionButton(
+                            icon: answerKeyController.listingSelection.value == 1
+                                ? Icons.view_agenda_outlined
+                                : Icons.grid_view_rounded,
+                            onTap: answerKeyController.toggleListingSelection,
                           ),
                         ],
                         if (showTutoringActions) ...[

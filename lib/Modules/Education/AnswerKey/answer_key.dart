@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyCreatingOption/answer_key_creating_option.dart';
@@ -70,30 +72,47 @@ class AnswerKey extends StatelessWidget {
                         : controller.isSearchLoading.value
                             ? const Center(child: CupertinoActivityIndicator())
                             : items.isNotEmpty
-                                ? Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 15),
-                                    child: GridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 4,
-                                        mainAxisSpacing: 4,
-                                        childAspectRatio: 0.49,
-                                      ),
-                                      itemCount: items.length,
-                                      itemBuilder: (context, index) {
-                                        final item = items[index];
-                                        return AnswerKeyContent(
-                                          key: ValueKey(item.docID),
-                                          model: item,
-                                          onUpdate: (v) =>
-                                              controller.refreshData(),
-                                        );
-                                      },
+                                ? Obx(
+                                    () => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 15),
+                                      child: controller.listingSelection.value ==
+                                              0
+                                          ? Column(
+                                              children: PasajListingAdLayout.buildListChildren(
+                                                items: items,
+                                                itemBuilder: (item, index) =>
+                                                    AnswerKeyContent(
+                                                  key: ValueKey(item.docID),
+                                                  model: item,
+                                                  onUpdate: (v) => controller
+                                                      .refreshData(),
+                                                  isListLayout: true,
+                                                ),
+                                                adBuilder: (slot) => AdmobKare(
+                                                  key: ValueKey(
+                                                      'answer-key-list-ad-$slot'),
+                                                ),
+                                              ),
+                                            )
+                                          : Column(
+                                              children: PasajListingAdLayout.buildTwoColumnGridChildren(
+                                                items: items,
+                                                horizontalSpacing: 4,
+                                                rowSpacing: 4,
+                                                itemBuilder: (item, index) =>
+                                                    AnswerKeyContent(
+                                                  key: ValueKey(item.docID),
+                                                  model: item,
+                                                  onUpdate: (v) => controller
+                                                      .refreshData(),
+                                                ),
+                                                adBuilder: (slot) => AdmobKare(
+                                                  key: ValueKey(
+                                                      'answer-key-grid-ad-$slot'),
+                                                ),
+                                              ),
+                                            ),
                                     ),
                                   )
                                 : Container(

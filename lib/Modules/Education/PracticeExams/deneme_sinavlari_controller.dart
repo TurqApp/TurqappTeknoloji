@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -12,6 +13,8 @@ import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
 
 class DenemeSinavlariController extends GetxController {
+  static const String _listingSelectionPrefKeyPrefix =
+      'pasaj_practice_exam_listing_selection';
   final UserRepository _userRepository = UserRepository.ensure();
   final PracticeExamRepository _practiceExamRepository =
       PracticeExamRepository.ensure();
@@ -24,6 +27,7 @@ class DenemeSinavlariController extends GetxController {
   var isSearchLoading = false.obs;
   var isLoadingMore = false.obs;
   var hasMore = true.obs;
+  final RxInt listingSelection = 0.obs;
   final ScrollController scrollController = ScrollController();
   double _previousOffset = 0.0;
   final RxDouble scrollOffset = 0.0.obs;
@@ -34,14 +38,50 @@ class DenemeSinavlariController extends GetxController {
   Timer? _searchDebounce;
   int _searchToken = 0;
 
+  String _listingSelectionKeyFor(String uid) =>
+      '${_listingSelectionPrefKeyPrefix}_$uid';
+
+  Future<void> _restoreListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) {
+      listingSelection.value = 0;
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      listingSelection.value =
+          (prefs.getInt(_listingSelectionKeyFor(uid)) ?? 0) == 1 ? 1 : 0;
+    } catch (_) {
+      listingSelection.value = 0;
+    }
+  }
+
+  Future<void> _persistListingSelection() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(
+        _listingSelectionKeyFor(uid),
+        listingSelection.value == 1 ? 1 : 0,
+      );
+    } catch (_) {}
+  }
+
   bool get hasActiveSearch => searchQuery.value.trim().length >= 2;
 
   @override
   void onInit() {
     super.onInit();
+    unawaited(_restoreListingSelection());
     scrolControlcu();
     getOkulBilgisi();
     unawaited(_bootstrapInitialData());
+  }
+
+  void toggleListingSelection() {
+    listingSelection.value = listingSelection.value == 0 ? 1 : 0;
+    unawaited(_persistListingSelection());
   }
 
   Future<void> _bootstrapInitialData() async {

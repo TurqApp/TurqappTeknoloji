@@ -3,11 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
+import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
@@ -90,187 +92,185 @@ class TutoringWidgetBuilder extends StatelessWidget {
     }
 
     if (isGridView) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: tutoringList.length,
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: MediaQuery.of(context).size.width * 0.5,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.56,
-        ),
-        itemBuilder: (context, index) {
-          final tutoring = tutoringList[index];
-          final lessonPlace = _lessonPlaceText(tutoring);
-          final imageUrl = _imageUrl(tutoring);
-          final teacherName = _teacherName(tutoring);
-          return GestureDetector(
-            onTap: () async {
-              if (allowReactivate &&
-                  tutoring.ended == true &&
-                  myTutoringsController != null) {
-                await myTutoringsController.reactivateEndedTutoring(tutoring);
-                return;
-              }
-              await Get.to(() => TutoringDetail(), arguments: tutoring);
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                border: Border.all(color: Colors.grey.withAlpha(50)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topRight: Radius.circular(8),
-                              topLeft: Radius.circular(8),
-                            ),
-                            child: imageUrl.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) =>
-                                        _fallbackImage(),
-                                  )
-                                : _fallbackImage(),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Obx(
-                            () => GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => _toggleSave(
-                                tutoring: tutoring,
-                                currentUserId: currentUserId,
-                                controller: tutoringController,
-                                savedController: savedController,
+      return Column(
+        children: PasajListingAdLayout.buildTwoColumnGridChildren(
+          items: tutoringList,
+          horizontalSpacing: 8,
+          rowSpacing: 8,
+          itemBuilder: (tutoring, index) {
+            final lessonPlace = _lessonPlaceText(tutoring);
+            final imageUrl = _imageUrl(tutoring);
+            final teacherName = _teacherName(tutoring);
+            return GestureDetector(
+              onTap: () async {
+                if (allowReactivate &&
+                    tutoring.ended == true &&
+                    myTutoringsController != null) {
+                  await myTutoringsController.reactivateEndedTutoring(tutoring);
+                  return;
+                }
+                await Get.to(() => TutoringDetail(), arguments: tutoring);
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(color: Colors.grey.withAlpha(50)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 1,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(8),
+                                topLeft: Radius.circular(8),
                               ),
-                              child: SizedBox(
-                                width: 36,
-                                height: 36,
-                                child: Center(
-                                  child: Icon(
-                                    savedController.savedTutoringIds
-                                            .contains(tutoring.docID)
-                                        ? AppIcons.saved
-                                        : AppIcons.save,
-                                    size: 24,
-                                    color: Colors.white,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Color(0x66000000),
-                                        blurRadius: 8,
-                                      ),
-                                    ],
+                              child: imageUrl.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) =>
+                                          _fallbackImage(),
+                                    )
+                                  : _fallbackImage(),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Obx(
+                              () => GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _toggleSave(
+                                  tutoring: tutoring,
+                                  currentUserId: currentUserId,
+                                  controller: tutoringController,
+                                  savedController: savedController,
+                                ),
+                                child: SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: Center(
+                                    child: Icon(
+                                      savedController.savedTutoringIds
+                                              .contains(tutoring.docID)
+                                          ? AppIcons.saved
+                                          : AppIcons.save,
+                                      size: 24,
+                                      color: Colors.white,
+                                      shadows: const [
+                                        Shadow(
+                                          color: Color(0x66000000),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tutoring.baslik,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontFamily: "MontserratBold",
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tutoring.baslik,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontFamily: "MontserratBold",
+                            ),
                           ),
-                        ),
-                        Text(
-                          teacherName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
+                          Text(
+                            teacherName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.blueAccent,
+                              fontSize: 12,
+                              fontFamily: "MontserratMedium",
+                            ),
                           ),
-                        ),
-                        Text(
-                          lessonPlace,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.pinkAccent,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
+                          Text(
+                            lessonPlace,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.pinkAccent,
+                              fontSize: 12,
+                              fontFamily: "MontserratMedium",
+                            ),
                           ),
-                        ),
-                        Text(
-                          "${tutoring.sehir}, ${tutoring.ilce}",
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
-                            height: 1.05,
+                          Text(
+                            "${tutoring.sehir}, ${tutoring.ilce}",
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 12,
+                              fontFamily: "MontserratMedium",
+                              height: 1.05,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          width: double.infinity,
-                          child: GestureDetector(
-                            onTap: () =>
-                                Get.to(() => TutoringDetail(), arguments: tutoring),
-                            child: Container(
-                              height: 30,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: Colors.black,
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(8)),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            width: double.infinity,
+                            child: GestureDetector(
+                              onTap: () => Get.to(
+                                () => TutoringDetail(),
+                                arguments: tutoring,
                               ),
-                              child: Text(
-                                allowReactivate && tutoring.ended == true
-                                    ? 'Yayına Al'
-                                    : 'İncele',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontFamily: 'MontserratMedium',
+                              child: Container(
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(8)),
+                                ),
+                                child: Text(
+                                  allowReactivate && tutoring.ended == true
+                                      ? 'Yayına Al'
+                                      : 'İncele',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+          adBuilder: (slot) => AdmobKare(
+            key: ValueKey('tutoring-grid-ad-$slot'),
+          ),
+        ),
       );
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: tutoringList.length,
-      itemBuilder: (context, index) {
-        final tutoring = tutoringList[index];
+    return Column(
+      children: PasajListingAdLayout.buildListChildren(
+        items: tutoringList,
+        itemBuilder: (tutoring, index) {
         final lessonPlace = _lessonPlaceText(tutoring);
         final imageUrl = _imageUrl(tutoring);
         return Padding(
@@ -462,7 +462,14 @@ class TutoringWidgetBuilder extends StatelessWidget {
             ),
           ),
         );
-      },
+        },
+        adBuilder: (slot) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+          child: AdmobKare(
+            key: ValueKey('tutoring-list-ad-$slot'),
+          ),
+        ),
+      ),
     );
   }
 

@@ -143,8 +143,8 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
       itemBuilder: (context, index) {
         // Son eleman (yükleme veya fallback reklam)
         if (index == items.length) {
-          // 4'ten az burs varsa, en sonda reklam göster
-          if (items.length < 4) {
+          // 3'ten az burs varsa, en sonda reklam göster
+          if (items.length < 3) {
             return Column(
               children: [
                 const Padding(
@@ -351,9 +351,9 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
       ),
     );
 
-    // Her 4 burs sonrası kare reklam
-    if ((index + 1) % 4 == 0) {
-      final slot = ((index + 1) ~/ 4);
+    // Her 3 burs sonrası kare reklam
+    if ((index + 1) % 3 == 0) {
+      final slot = ((index + 1) ~/ 3);
       children.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),

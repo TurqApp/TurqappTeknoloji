@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,19 +10,23 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/external.dart';
-import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SinavHazirla/sinav_hazirla.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class DenemeGrid extends StatelessWidget {
-  final SinavModel model;
-  final Function getData;
+  const DenemeGrid({
+    super.key,
+    required this.model,
+    required this.getData,
+    this.isListLayout = false,
+  });
 
-  const DenemeGrid({super.key, required this.model, required this.getData});
+  final SinavModel model;
+  final Future<void> Function() getData;
+  final bool isListLayout;
 
   Future<void> _shareExternally() async {
     await ShareActionGuard.run(() async {
@@ -59,407 +63,317 @@ class DenemeGrid extends StatelessWidget {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final DenemeGridController controller = Get.put(
-      DenemeGridController(),
-      tag: model.docID,
-    );
-    controller.initData(model);
-
-    return GestureDetector(
-      onTap: () {
-        if (model.userID == FirebaseAuth.instance.currentUser!.uid) {
-          Get.dialog(
-            AlertDialog(
-              title: Text(
-                model.sinavAdi,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 18,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
-              content: ClipRRect(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                child: CachedNetworkImage(
-                  imageUrl: model.cover,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              backgroundColor: Colors.white,
-              actions: [
-                GestureDetector(
-                  onTap: () {
-                    Get.back();
-                    Get.to(() => DenemeSinaviPreview(model: model));
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 40,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey, width: 1),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      "Görüntüle",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.purpleAccent,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
-                ),
-                4.ph,
-                GestureDetector(
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 40,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey, width: 1),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      "Sınavı Sil",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.red,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    Get.back();
-                    Future.delayed(Duration(milliseconds: 300), () {
-                      noYesAlert(
-                        title: "Sınavı Sil",
-                        message:
-                            "Bu sınavı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!",
-                        cancelText: "Vazgeç",
-                        yesText: "Sınavı Sil",
-                        onYesPressed: () {
-                          FirebaseFirestore.instance
-                              .collection("practiceExams")
-                              .doc(model.docID)
-                              .delete();
-                          getData();
-                        },
-                      );
-                    });
-                  },
-                ),
-                4.ph,
-                GestureDetector(
-                  onTap: () {
-                    Get.back();
-                    Get.to(() => SinavHazirla(sinavModel: model));
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 40,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey, width: 1),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      "Sınavı Düzenle",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.indigo,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
-                ),
-                4.ph,
-                GestureDetector(
-                  onTap: () => Get.back(),
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 40,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey, width: 1),
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      "Vazgeç",
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.black,
-                        fontFamily: "MontserratMedium",
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+  void _openCard() {
+    if (model.userID == FirebaseAuth.instance.currentUser!.uid) {
+      Get.dialog(
+        AlertDialog(
+          title: Text(
+            model.sinavAdi,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontFamily: 'MontserratBold',
             ),
-          );
-        } else {
-          Get.to(() => DenemeSinaviPreview(model: model));
-        }
-      },
+          ),
+          content: ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            child: CachedNetworkImage(
+              imageUrl: model.cover,
+              fit: BoxFit.cover,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          actions: [
+            _ownerAction(
+              label: 'Görüntüle',
+              color: Colors.purpleAccent,
+              onTap: () {
+                Get.back();
+                Get.to(() => DenemeSinaviPreview(model: model));
+              },
+            ),
+            4.ph,
+            _ownerAction(
+              label: 'Sınavı Sil',
+              color: Colors.red,
+              onTap: () {
+                Get.back();
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  noYesAlert(
+                    title: 'Sınavı Sil',
+                    message:
+                        'Bu sınavı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!',
+                    cancelText: 'Vazgeç',
+                    yesText: 'Sınavı Sil',
+                    onYesPressed: () async {
+                      await FirebaseFirestore.instance
+                          .collection('practiceExams')
+                          .doc(model.docID)
+                          .delete();
+                      await getData();
+                    },
+                  );
+                });
+              },
+            ),
+            4.ph,
+            _ownerAction(
+              label: 'Sınavı Düzenle',
+              color: Colors.indigo,
+              onTap: () {
+                Get.back();
+                Get.to(() => SinavHazirla(sinavModel: model));
+              },
+            ),
+            4.ph,
+            _ownerAction(
+              label: 'Vazgeç',
+              color: Colors.black,
+              onTap: Get.back,
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    Get.to(() => DenemeSinaviPreview(model: model));
+  }
+
+  Widget _ownerAction({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        height: 40,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            color: color,
+            fontFamily: 'MontserratMedium',
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formattedApplicationText(int count) {
+    final scaled = count * 3;
+    if (scaled / 1000000 > 1) {
+      return '${(scaled / 1000000).toStringAsFixed(2)}M Başvuru';
+    }
+    if (scaled / 1000 > 1) {
+      return '${(scaled / 1000).toStringAsFixed(1)}B Başvuru';
+    }
+    return '$scaled Başvuru';
+  }
+
+  Color _ctaColor(DenemeGridController controller) {
+    if (controller.currentTime.value <
+        controller.examTime.value - controller.fifteenMinutes) {
+      return Colors.green;
+    }
+    if (controller.currentTime.value >=
+            controller.examTime.value - controller.fifteenMinutes &&
+        controller.currentTime.value < controller.examTime.value) {
+      return Colors.purple;
+    }
+    if (controller.currentTime.value >= controller.examTime.value &&
+        controller.currentTime.value < model.bitis) {
+      return Colors.black;
+    }
+    return Colors.pink;
+  }
+
+  String _ctaLabel(DenemeGridController controller) {
+    if (controller.currentTime.value <
+        controller.examTime.value - controller.fifteenMinutes) {
+      return 'Hemen Başvur';
+    }
+    if (controller.currentTime.value >=
+            controller.examTime.value - controller.fifteenMinutes &&
+        controller.currentTime.value < controller.examTime.value) {
+      return 'Başvuru Kapandı';
+    }
+    if (controller.currentTime.value >= controller.examTime.value &&
+        controller.currentTime.value < model.bitis) {
+      return 'Sınav Başladı';
+    }
+    return 'Hemen Başla';
+  }
+
+  Widget _buildMedia({double? width, double? height, double radius = 12}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        width: width,
+        height: height,
+        color: Colors.indigo.withValues(alpha: 0.08),
+        child: model.cover.isNotEmpty
+            ? CachedNetworkImage(
+                imageUrl: model.cover,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                placeholder: (context, url) => const Center(
+                  child: CupertinoActivityIndicator(color: Colors.black),
+                ),
+                errorWidget: (context, url, error) => const Icon(
+                  Icons.quiz_outlined,
+                  color: Colors.indigo,
+                  size: 30,
+                ),
+              )
+            : const Center(
+                child: Icon(
+                  Icons.quiz_outlined,
+                  color: Colors.indigo,
+                  size: 30,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildGridCard(DenemeGridController controller) {
+    return GestureDetector(
+      onTap: _openCard,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
           border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: () {
-                if (model.userID != FirebaseAuth.instance.currentUser!.uid) {
-                  Get.to(() => SocialProfile(userID: model.userID));
-                }
-              },
-              child: SizedBox(
-                height: 40,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      Obx(
-                        () => ClipRRect(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(12),
-                          ),
-                          child: SizedBox(
-                            width: 23,
-                            height: 23,
-                            child: controller.isLoadingProfile.value
-                                ? CupertinoActivityIndicator(
-                                    color: Colors.indigo,
-                                    radius: 8,
-                                  )
-                                : controller.avatarUrl.value.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: controller.avatarUrl.value,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) =>
-                                            CupertinoActivityIndicator(
-                                          color: Colors.indigo,
-                                          radius: 8,
-                                        ),
-                                        errorWidget:
-                                            (context, url, error) => Center(
-                                          child: Icon(
-                                            Icons.person,
-                                            color: Colors.grey,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      )
-                                    : Center(
-                                        child: Icon(
-                                          Icons.person,
-                                          color: Colors.grey,
-                                          size: 20,
-                                        ),
-                                      ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 7),
-                      Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Obx(
-                                () => Text(
-                                  controller.isLoadingProfile.value
-                                      ? 'Yükleniyor...'
-                                      : controller.nickname.value.isEmpty
-                                          ? 'Kullanıcı Bulunamadı'
-                                          : controller.nickname.value,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 12,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 0),
-                            RozetContent(size: 13, userID: model.userID),
-                          ],
-                        ),
-                      ),
-                      EducationShareIconButton(
-                        onTap: _shareExternally,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             AspectRatio(
-              aspectRatio: 1,
+              aspectRatio: 0.78,
               child: Stack(
                 children: [
-                  if (model.cover.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: model.cover,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      placeholder: (context, url) => Center(
-                        child: CupertinoActivityIndicator(
-                          color: Colors.black,
-                          radius: 10,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => const SizedBox(),
-                    )
-                  else
-                    Center(
-                      child: CupertinoActivityIndicator(
-                        color: Colors.black,
-                        radius: 10,
-                      ),
+                  Positioned.fill(child: _buildMedia(radius: 12)),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: EducationShareIconButton(
+                      onTap: _shareExternally,
+                      size: 36,
+                      iconSize: 20,
                     ),
+                  ),
                 ],
               ),
             ),
             Padding(
-              padding: EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     model.sinavAdi,
                     maxLines: 1,
-                    style: TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 15,
-                      fontFamily: "MontserratBold",
+                      fontFamily: 'MontserratBold',
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        model.sinavTuru,
-                        style: TextStyle(
-                          color: Colors.indigo,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
+                      Expanded(
+                        child: Text(
+                          model.sinavTuru,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.indigo,
+                            fontSize: 12,
+                            fontFamily: 'MontserratBold',
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         formatTimestamp(model.timeStamp.toInt()),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.pinkAccent,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
+                          fontSize: 12,
+                          fontFamily: 'MontserratMedium',
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    model.sinavAciklama,
-                    overflow: TextOverflow.ellipsis,
+                    model.sinavAciklama.trim().isNotEmpty
+                        ? model.sinavAciklama.trim()
+                        : 'Online deneme sınavı',
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontFamily: "MontserratMedium",
+                      color: Colors.grey.shade700,
+                      fontSize: 12,
+                      fontFamily: 'MontserratMedium',
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Obx(
                     () => Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Icon(
-                          Icons.person_pin_circle_outlined,
-                          color: Colors.indigo,
-                          size: 20,
+                          CupertinoIcons.person_2_fill,
+                          size: 13,
+                          color: Colors.grey.shade500,
                         ),
-                        SizedBox(width: 5),
-                        Text(
-                          controller.isLoadingApplicants.value
-                              ? 'Yükleniyor...'
-                              : (controller.toplamBasvuru.value * 3) / 1000000 >
-                                      1
-                                  ? "${((controller.toplamBasvuru.value * 3) / 1000000).toStringAsFixed(2)}M Başvuru"
-                                  : (controller.toplamBasvuru.value * 3) /
-                                              1000 >
-                                          1
-                                      ? "${((controller.toplamBasvuru.value * 3) / 1000).toStringAsFixed(1)}B Başvuru"
-                                      : "${controller.toplamBasvuru.value * 3} Başvuru",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            controller.isLoadingApplicants.value
+                                ? 'Yükleniyor...'
+                                : _formattedApplicationText(
+                                    controller.toplamBasvuru.value,
+                                  ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                              fontFamily: 'MontserratMedium',
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Obx(
                     () => Container(
                       height: 30,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: controller.currentTime.value <
-                                controller.examTime.value -
-                                    controller.fifteenMinutes
-                            ? Colors.green
-                            : controller.currentTime.value >=
-                                        controller.examTime.value -
-                                            controller.fifteenMinutes &&
-                                    controller.currentTime.value <
-                                        controller.examTime.value
-                                ? Colors.purple
-                                : controller.currentTime.value >=
-                                            controller.examTime.value &&
-                                        controller.currentTime.value <
-                                            model.bitis
-                                    ? Colors.grey
-                                    : Colors.pink,
-                        borderRadius: BorderRadius.all(
+                        color: _ctaColor(controller),
+                        borderRadius: const BorderRadius.all(
                           Radius.circular(8),
                         ),
                       ),
-                      child: Builder(
-                        builder: (context) {
-                          String displayText;
-                          if (controller.currentTime.value <
-                              controller.examTime.value -
-                                  controller.fifteenMinutes) {
-                            displayText = "Hemen Başvur";
-                          } else if (controller.currentTime.value >=
-                                  controller.examTime.value -
-                                      controller.fifteenMinutes &&
-                              controller.currentTime.value <
-                                  controller.examTime.value) {
-                            displayText = "Başvuruya Kapandı.";
-                          } else if (controller.currentTime.value >=
-                                  controller.examTime.value &&
-                              controller.currentTime.value < model.bitis) {
-                            displayText = "Sınav Başladı";
-                          } else {
-                            displayText = "Hemen Başla";
-                          }
-
-                          return Text(
-                            displayText,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
-                          );
-                        },
+                      child: Text(
+                        _ctaLabel(controller),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontFamily: 'MontserratMedium',
+                        ),
                       ),
                     ),
                   ),
@@ -470,5 +384,218 @@ class DenemeGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildListCard(DenemeGridController controller) {
+    return GestureDetector(
+      onTap: _openCard,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+            color: Colors.white,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMedia(width: 108, height: 108, radius: 10),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 108,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  model.sinavAdi,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 15,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  model.sinavTuru,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.indigo,
+                                    fontSize: 12,
+                                    fontFamily: 'MontserratBold',
+                                  ),
+                                ),
+                                if (model.sinavAciklama.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    model.sinavAciklama.trim(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade700,
+                                      fontSize: 12,
+                                      height: 1.1,
+                                      fontFamily: 'MontserratMedium',
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          EducationShareIconButton(
+                            onTap: _shareExternally,
+                            size: 36,
+                            iconSize: 20,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.calendar,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              formatTimestamp(model.timeStamp.toInt()),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
+                                fontFamily: 'MontserratMedium',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      CupertinoIcons.doc_text,
+                                      size: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        model.sinavTuru,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontSize: 12,
+                                          fontFamily: 'MontserratMedium',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Obx(
+                                  () => Row(
+                                    children: [
+                                      Icon(
+                                        CupertinoIcons.person_2_fill,
+                                        size: 14,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          controller.isLoadingApplicants.value
+                                              ? 'Yükleniyor...'
+                                              : _formattedApplicationText(
+                                                  controller
+                                                      .toplamBasvuru.value,
+                                                ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontSize: 12,
+                                            fontFamily: 'MontserratMedium',
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            width: 128,
+                            child: Obx(
+                              () => Container(
+                                height: 26,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: _ctaColor(controller),
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(8),
+                                  ),
+                                ),
+                                child: Text(
+                                  _ctaLabel(controller),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontFamily: 'MontserratMedium',
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final DenemeGridController controller = Get.put(
+      DenemeGridController(),
+      tag: model.docID,
+    );
+    controller.initData(model);
+
+    return isListLayout
+        ? _buildListCard(controller)
+        : _buildGridCard(controller);
   }
 }
