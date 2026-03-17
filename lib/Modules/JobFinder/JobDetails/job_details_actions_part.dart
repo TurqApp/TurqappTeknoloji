@@ -11,94 +11,98 @@ extension JobDetailsActionsPart on JobDetails {
             if (controller.model.value.userID ==
                 (FirebaseAuth.instance.currentUser?.uid ?? ''))
               Expanded(
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: controller.goToEdit,
-                            child: Container(
-                              height: 50,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                "İlanı Düzenle",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: controller.goToEdit,
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text(
+                            "Düzenle",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: controller.goToApplicationReview,
-                            child: Container(
-                              height: 50,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2F2F2F),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                "Başvurular",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        noYesAlert(
-                          title: "İlanı Yayından Kaldır",
-                          message:
-                              "Bu ilanı yayından kaldırmak istediğinizden emin misiniz?",
-                          yesText: "Kaldır",
-                          cancelText: "Vazgeç",
-                          onYesPressed: () async {
-                            try {
-                              await controller.unpublishAd();
-                              AppSnackbar(
-                                "Başarılı",
-                                "İlan yayından kaldırıldı.",
-                              );
-                            } catch (e) {
-                              AppSnackbar(
-                                "Hata",
-                                "İlan kaldırılamadı: $e",
-                                backgroundColor: Colors.red.withAlpha(40),
-                              );
-                            }
-                          },
-                        );
-                      },
-                      child: Container(
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "İlanı Yayından Kaldır",
-                          style: TextStyle(
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: controller.goToApplicationReview,
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
                             color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.black12,
+                            ),
+                          ),
+                          child: const Text(
+                            "Başvurular",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          noYesAlert(
+                            title: "İlanı Yayından Kaldır",
+                            message:
+                                "Bu ilanı yayından kaldırmak istediğinizden emin misiniz?",
+                            yesText: "Kaldır",
+                            cancelText: "Vazgeç",
+                            onYesPressed: () async {
+                              try {
+                                await controller.unpublishAd();
+                                AppSnackbar(
+                                  "Başarılı",
+                                  "İlan yayından kaldırıldı.",
+                                );
+                              } catch (e) {
+                                AppSnackbar(
+                                  "Hata",
+                                  "İlan kaldırılamadı: $e",
+                                  backgroundColor: Colors.red.withAlpha(40),
+                                );
+                              }
+                            },
+                          );
+                        },
+                        child: Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFE45858),
+                            ),
+                          ),
+                          child: const Text(
+                            "Kaldır",
+                            style: TextStyle(
+                              color: Color(0xFFE45858),
+                              fontSize: 15,
+                              fontFamily: "MontserratBold",
+                            ),
                           ),
                         ),
                       ),

@@ -13,10 +13,12 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
+import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/job_categories.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:uuid/uuid.dart';
 import '../../../Core/BottomSheets/list_bottom_sheet.dart';
 import '../../../Models/cities_model.dart';
@@ -126,6 +128,10 @@ class JobCreatorController extends GetxController {
 
     loadSehirler();
 
+    if (existingJob == null || (lat.value == 0 && long.value == 0)) {
+      Future.microtask(getKonumVeAdres);
+    }
+
     everAll([lat, long], (_) {
       moveCameraToPosition();
     });
@@ -224,7 +230,7 @@ class JobCreatorController extends GetxController {
               Row(
                 children: [
                   Text(
-                    "Çalışma Türü Seç",
+                    "Çalışma Türü",
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
@@ -475,13 +481,16 @@ class JobCreatorController extends GetxController {
 
   Future<void> showMeslekSelector() async {
     Get.bottomSheet(
-      ListBottomSheet(
-        list: allJobs,
-        title: "Meslek Seç",
-        startSelection: meslek.value,
-        onBackData: (v) {
-          meslek.value = v;
-        },
+      SizedBox(
+        height: Get.height / 2,
+        child: ListBottomSheet(
+          list: allJobs,
+          title: "Meslek",
+          startSelection: meslek.value,
+          onBackData: (v) {
+            meslek.value = v;
+          },
+        ),
       ),
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -499,10 +508,11 @@ class JobCreatorController extends GetxController {
       final List<dynamic> data = json.decode(response);
       sehirlerVeIlcelerData.value =
           data.map((json) => CitiesModel.fromJson(json)).toList();
-      sehirler.value =
+      final sortedCities =
           sehirlerVeIlcelerData.map((item) => item.il).toSet().toList();
-    } catch (_) {
-    }
+      sortTurkishStrings(sortedCities);
+      sehirler.value = sortedCities;
+    } catch (_) {}
   }
 
   Future<void> showSehirSelect() async {
@@ -527,15 +537,17 @@ class JobCreatorController extends GetxController {
   }
 
   Future<void> showIlceSelect() async {
+    final districts = sehirlerVeIlcelerData
+        .where((val) => val.il == sehir.value)
+        .map((e) => e.ilce)
+        .toSet()
+        .toList();
+    sortTurkishStrings(districts);
     Get.bottomSheet(
       SizedBox(
         height: Get.height / 2,
         child: ListBottomSheet(
-          list: sehirlerVeIlcelerData
-              .where((val) => val.il == sehir.value)
-              .map((e) => e.ilce)
-              .toSet()
-              .toList(),
+          list: districts,
           title: "İlçe Seç",
           startSelection: ilce.value,
           onBackData: (v) {
@@ -582,7 +594,7 @@ class JobCreatorController extends GetxController {
         ilce.value = place.subAdministrativeArea ?? "";
         lat.value = position.latitude.toDouble();
         long.value = position.longitude.toDouble();
-        mapController!.animateCamera(
+        mapController?.animateCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(
               target: LatLng(lat.value, long.value),
@@ -604,8 +616,7 @@ class JobCreatorController extends GetxController {
           ].where((e) => e != null && e.isNotEmpty).join(', ');
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> uploadCroppedImageToFirebase(String docID) async {
@@ -626,8 +637,7 @@ class JobCreatorController extends GetxController {
           .collection("isBul")
           .doc(docID)
           .set({"logo": downloadUrl}, SetOptions(merge: true));
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> setData() async {
@@ -635,13 +645,24 @@ class JobCreatorController extends GetxController {
         existingJob?.docID ?? Uuid().v4(); // düzenleme veya yeni kayıt
     final loader = Get.find<GlobalLoaderController>(tag: loaderTag);
     loader.isOn.value = true;
+    final current = CurrentUserService.instance.currentUser;
+    final nickname = (current?.nickname ?? '').trim();
+    final fullName = [
+      current?.firstName ?? '',
+      current?.lastName ?? '',
+    ].where((part) => part.trim().isNotEmpty).join(' ').trim();
+    final displayName = fullName.isEmpty ? nickname : fullName;
+    final avatarUrl = (current?.avatarUrl ?? '').trim();
+    final rozet = (current?.rozet ?? '').trim();
 
     final jobData = <String, dynamic>{
       "about": about.text,
       "adres": adres.value,
+      "avatarUrl": avatarUrl,
       "brand": brand.text,
       "calismaTuru": selectedCalismaTuruList.toList(),
       "city": sehir.value,
+      "displayName": displayName,
       "town": ilce.value,
       "ended": false,
       "isTanimi": isTanimi.text,
@@ -651,7 +672,12 @@ class JobCreatorController extends GetxController {
       "maas1": maasOpen.value ? int.tryParse(maas1.text) ?? 0 : 0,
       "maas2": maasOpen.value ? int.tryParse(maas2.text) ?? 0 : 0,
       "meslek": meslek.value,
+      "nickname": nickname,
+      "authorAvatarUrl": avatarUrl,
+      "authorDisplayName": displayName,
+      "authorNickname": nickname,
       "userID": FirebaseAuth.instance.currentUser?.uid ?? '',
+      "rozet": rozet,
       "yanHaklar": selectedYanHaklar.toList(),
       "ilanBasligi": ilanBasligi.text,
       "deneyimSeviyesi": deneyimSeviyesi.value,

@@ -1,191 +1,546 @@
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
-import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
-import '../../../Core/LocationFinderView/location_finder_view.dart';
-import '../../../Models/job_model.dart';
+import 'package:turqappv2/Models/job_model.dart';
+
 import 'job_creator_controller.dart';
 
-part 'job_creator_steps_part.dart';
-
 class JobCreator extends StatelessWidget {
-  final JobModel? existingJob;
   JobCreator({super.key, this.existingJob});
 
+  final JobModel? existingJob;
   late final controller =
       Get.put(JobCreatorController(existingJob: existingJob));
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(CupertinoIcons.arrow_left, color: Colors.black),
+        ),
+        title: Text(
+          existingJob == null ? 'İlan Ekle' : 'İlan Düzenle',
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
       body: SafeArea(
-        bottom: false,
-        child: Obx(() {
-          return Column(
+        top: false,
+        child: Obx(
+          () => ListView(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
             children: [
-              header(context),
-              if (controller.selection.value == 0)
-                step1()
-              else if (controller.selection.value == 1)
-                step2()
-              else if (controller.selection.value == 2)
-                step3(context)
+              _sectionTitle('Görseller'),
+              const SizedBox(height: 8),
+              _buildLogoPicker(),
+              const SizedBox(height: 18),
+              _sectionTitle('Temel Bilgiler'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.brand,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(150),
+                ],
+                decoration: _inputDecoration('Firma Adı'),
+              ),
+              const SizedBox(height: 18),
+              _sectionTitle('Konum'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _selectionField(
+                      label: controller.sehir.value.isEmpty
+                          ? 'Şehir'
+                          : controller.sehir.value,
+                      onTap: controller.showSehirSelect,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _selectionField(
+                      label: controller.ilce.value.isEmpty
+                          ? 'İlçe'
+                          : controller.ilce.value,
+                      onTap: controller.showIlceSelect,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0x22000000)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      controller.adres.value.isEmpty
+                          ? CupertinoIcons.location
+                          : CupertinoIcons.location_fill,
+                      color: Colors.black87,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        controller.adres.value.isEmpty
+                            ? 'Konum alınıyor...'
+                            : controller.adres.value,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontFamily: 'MontserratMedium',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (controller.lat.value != 0 && controller.long.value != 0) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    height: 220,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AbsorbPointer(
+                          child: GoogleMap(
+                            onMapCreated: controller.onMapCreated,
+                            initialCameraPosition: CameraPosition(
+                              target:
+                                  LatLng(controller.lat.value, controller.long.value),
+                              zoom: 15,
+                            ),
+                            zoomControlsEnabled: false,
+                            myLocationButtonEnabled: false,
+                            scrollGesturesEnabled: false,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
+                            zoomGesturesEnabled: false,
+                            mapToolbarEnabled: false,
+                          ),
+                        ),
+                        const Icon(
+                          CupertinoIcons.location_solid,
+                          color: Colors.red,
+                          size: 38,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              _sectionTitle('İş Tanımı'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.ilanBasligi,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(100),
+                ],
+                decoration: _inputDecoration('İlan Başlığı'),
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.selectedCalismaTuruList.isEmpty
+                    ? 'Çalışma Türü'
+                    : controller.selectedCalismaTuruList.join(', '),
+                onTap: controller.selectCalismaTuru,
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label:
+                    controller.meslek.value.isEmpty ? 'Meslek' : controller.meslek.value,
+                onTap: controller.showMeslekSelector,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.isTanimi,
+                minLines: 4,
+                maxLines: 8,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(2000),
+                ],
+                decoration: _inputDecoration('İş Tanımı'),
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.selectedYanHaklar.isEmpty
+                    ? 'Yan Haklar'
+                    : controller.selectedYanHaklar.join(', '),
+                onTap: () => controller.selectYanHaklar(context),
+              ),
+              const SizedBox(height: 8),
+              _selectionField(
+                label: controller.deneyimSeviyesi.value.isEmpty
+                    ? 'Deneyim Seviyesi'
+                    : controller.deneyimSeviyesi.value,
+                onTap: controller.selectDeneyimSeviyesi,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller.pozisyonSayisi,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(3),
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                decoration: _inputDecoration('Pozisyon Sayısı'),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => controller.maasOpen.value = !controller.maasOpen.value,
+                child: Container(
+                  height: 58,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0x22000000)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Maaş Aralığı',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 15,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.black),
+                          color: controller.maasOpen.value
+                              ? Colors.black
+                              : Colors.transparent,
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.checkmark,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (controller.maasOpen.value) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller.maas1,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: _inputDecoration('Min Ücret'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: controller.maas2,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: _inputDecoration('Max Ücret'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 22),
+              SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    existingJob == null ? 'Yayınla' : 'Güncelle',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'MontserratBold',
+                    ),
+                  ),
+                ),
+              ),
             ],
-          );
-        }),
+          ),
+        ),
       ),
     );
   }
 
-  Widget header(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(left: 15, right: 15, top: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (controller.selection.value == 0) {
-                Get.back();
-              } else {
-                controller.selection.value--;
-              }
-            },
-            child: Row(
-              children: [
-                Icon(
-                  CupertinoIcons.arrow_left,
-                  color: Colors.black,
-                ),
-                SizedBox(
-                  width: 12,
-                ),
-                Text(
-                  controller.selection.value == 0
-                      ? "Firma Bilgileri"
-                      : controller.selection.value == 1
-                          ? "Adres Bilgileri"
-                          : controller.selection.value == 2
-                              ? "İş Tanımı"
-                              : "",
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 20,
-                      fontFamily: "MontserratBold"),
-                )
-              ],
-            ),
+  Future<void> _submit() async {
+    if (controller.croppedImage.value == null &&
+        (existingJob?.logo.isEmpty ?? true)) {
+      AppSnackbar('Eksik alan', 'Firma logosu seçmeden devam edemezsiniz');
+      return;
+    }
+    if (controller.brand.text.trim().isEmpty) {
+      AppSnackbar('Eksik alan', 'Firma ismini girmeden devam edemezsiniz');
+      return;
+    }
+    if (controller.sehir.value.isEmpty || controller.ilce.value.isEmpty) {
+      AppSnackbar('Eksik alan', 'Şehir ve ilçe seçmeden devam edemezsiniz');
+      return;
+    }
+    if (controller.adres.value.isEmpty && controller.lat.value == 0) {
+      AppSnackbar(
+        'Eksik alan',
+        'Mevcut konumunuzu kullanarak firma adresinizi belirtiniz',
+      );
+      return;
+    }
+    if (controller.selectedCalismaTuruList.isEmpty) {
+      AppSnackbar('Eksik alan', 'Çalışma türü seçmeden devam edemezsiniz');
+      return;
+    }
+    if (controller.meslek.value.isEmpty) {
+      AppSnackbar('Eksik alan', 'Meslek seçmeden devam edemezsiniz');
+      return;
+    }
+    if (controller.isTanimi.text.trim().isEmpty) {
+      AppSnackbar('Eksik alan', 'İş tanımını açıklamak zorundasınız');
+      return;
+    }
+    if (controller.selectedYanHaklar.isEmpty) {
+      AppSnackbar('Eksik alan', 'En az bir yan hak eklemek zorundasın');
+      return;
+    }
+    if (controller.maasOpen.value && controller.maas1.text.trim().isEmpty) {
+      AppSnackbar('Eksik alan', 'Minimum maaş alanını doldurmalısınız');
+      return;
+    }
+    if (controller.maasOpen.value && controller.maas2.text.trim().isEmpty) {
+      AppSnackbar('Eksik alan', 'Maksimum maaş alanını doldurmalısınız');
+      return;
+    }
+    if (controller.maasOpen.value &&
+        (int.tryParse(controller.maas2.text) ?? 0) <
+            (int.tryParse(controller.maas1.text) ?? 0)) {
+      AppSnackbar('Hatalı Aralık', 'Maksimum maaş, minimum maaştan düşük olamaz');
+      return;
+    }
+    if (controller.pozisyonSayisi.text.isNotEmpty &&
+        ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) < 1 ||
+            (int.tryParse(controller.pozisyonSayisi.text) ?? 0) > 100)) {
+      AppSnackbar('Hatalı Değer', 'Pozisyon sayısı 1 ile 100 arasında olmalıdır');
+      return;
+    }
+    await controller.setData();
+  }
+
+  Widget _buildLogoPicker() {
+    Widget preview;
+    final bytes = controller.croppedImage.value;
+    if (bytes != null) {
+      preview = ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 112,
+          height: 112,
+          child: Image.memory(bytes, fit: BoxFit.cover),
+        ),
+      );
+    } else if ((existingJob?.logo.isNotEmpty ?? false)) {
+      preview = ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 112,
+          height: 112,
+          child: CachedNetworkImage(
+            imageUrl: existingJob!.logo,
+            fit: BoxFit.cover,
           ),
-          Obx(() {
-            return TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      );
+    } else {
+      preview = Container(
+        width: 112,
+        height: 112,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7FB),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: const Icon(
+          CupertinoIcons.building_2_fill,
+          color: Colors.black38,
+          size: 40,
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        preview,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            children: [
+              _imageActionButton(
+                label: 'Galeriden Seç',
+                primary: true,
+                onTap: () => controller.pickImage(source: ImageSource.gallery),
               ),
-              onPressed: () {
-                if (controller.selection.value == 0) {
-                  if (controller.croppedImage.value == null) {
-                    AppSnackbar("Eksik alan",
-                        "Firma logosu seçmeden devam edemezsiniz");
-                  } else if (controller.brand.text == "") {
-                    AppSnackbar("Eksik alan",
-                        "Firma ismini girmeden devam edemezsiniz");
-                  } else if (controller.about.text == "") {
-                    AppSnackbar("Eksik alan",
-                        "Firma hakkında açıklama yapmadan devam edemezsiniz");
-                  } else {
-                    controller.selection.value++;
-                  }
-                }
-                if (controller.selection.value == 1) {
-                  if (controller.sehir.value == "") {
-                    AppSnackbar("Eksik alan",
-                        "Şehir seçimi yapmadan devam edemezsiniz");
-                  } else if (controller.ilce.value == "") {
-                    AppSnackbar(
-                        "Eksik alan", "İlçe seçimi yapmadan devam edemezsiniz");
-                  } else if (controller.adres.value == "" &&
-                      controller.lat.value == 0) {
-                    AppSnackbar("Eksik alan",
-                        "Mevcut konumunuzu kullanarak firma adresinizi belirtiniz");
-                  } else {
-                    controller.selection.value++;
-                  }
-                }
-                if (controller.selection.value == 2) {
-                  if (controller.selectedCalismaTuruList.isEmpty) {
-                    AppSnackbar("Eksik alan",
-                        "Çalışma türü seçmeden devam edemezsiniz");
-                  } else if (controller.meslek.value == "") {
-                    AppSnackbar(
-                        "Eksik alan", "Meslek seçmeden devam edemezsiniz");
-                  } else if (controller.isTanimi.text == "") {
-                    AppSnackbar(
-                        "Eksik alan", "İş tanımını açıklamak zorundasınız");
-                  } else if (controller.selectedYanHaklar.isEmpty) {
-                    AppSnackbar(
-                        "Eksik alan", "En az bir yan hak eklemek zorundasın");
-                  } else if (controller.maasOpen.value == true &&
-                      controller.maas1.text == "") {
-                    AppSnackbar("Eksik alan",
-                        "Maaş belirtmek istediğiniz için bir maaş aralığı girmek zorundasınız");
-                  } else if (controller.maasOpen.value == true &&
-                      controller.maas2.text == "") {
-                    AppSnackbar("Eksik alan",
-                        "Maaş belirtmek istediğiniz için bir maaş aralığı girmek zorundasınız");
-                  } else if (controller.maasOpen.value == true &&
-                      controller.maas1.text.isNotEmpty &&
-                      controller.maas2.text.isNotEmpty &&
-                      (int.tryParse(controller.maas2.text) ?? 0) <
-                          (int.tryParse(controller.maas1.text) ?? 0)) {
-                    AppSnackbar("Hatalı Aralık",
-                        "Maksimum maaş, minimum maaştan düşük olamaz");
-                  } else if (controller.pozisyonSayisi.text.isNotEmpty &&
-                      ((int.tryParse(controller.pozisyonSayisi.text) ?? 0) <
-                              1 ||
-                          (int.tryParse(controller.pozisyonSayisi.text) ?? 0) >
-                              100)) {
-                    AppSnackbar("Hatalı Değer",
-                        "Pozisyon sayısı 1 ile 100 arasında olmalıdır");
-                  } else {
-                    controller.setData();
-                  }
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    Text(
-                      controller.selection.value != 2 ? "Devam" : "Yayınla!",
-                      style: TextStyle(
-                        color: Colors.blueAccent,
-                        fontSize: 15,
-                        fontFamily: "MontserratBold",
-                      ),
-                    ),
-                    if (controller.selection.value != 2)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 3),
-                        child: Icon(
-                          CupertinoIcons.chevron_right,
-                          color: Colors.blueAccent,
-                        ),
-                      )
-                  ],
+              const SizedBox(height: 8),
+              _imageActionButton(
+                label: 'Kameradan Çek',
+                onTap: () => controller.pickImage(source: ImageSource.camera),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _imageActionButton({
+    required String label,
+    required VoidCallback onTap,
+    bool primary = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: primary ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: primary ? null : Border.all(color: const Color(0x22000000)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: primary ? Colors.white : Colors.black,
+            fontSize: 13,
+            fontFamily: 'MontserratBold',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectionField({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 58,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22000000)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 15,
+                  fontFamily: 'MontserratMedium',
                 ),
               ),
-            );
-          }),
-        ],
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              CupertinoIcons.chevron_down,
+              size: 18,
+              color: Colors.black54,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 22,
+        fontFamily: 'MontserratBold',
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: Colors.grey,
+        fontSize: 15,
+        fontFamily: 'MontserratMedium',
+      ),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x22000000)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x22000000)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x33000000)),
       ),
     );
   }
