@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/ContentPolicy/content_policy.dart';
 import '../../../Core/Services/user_profile_cache_service.dart';
@@ -13,6 +14,8 @@ import '../StoryMaker/story_model.dart';
 import 'story_user_model.dart';
 
 class StoryRowController extends GetxController {
+  static const Duration _silentRefreshInterval = Duration(minutes: 5);
+
   RxList<StoryUserModel> users = <StoryUserModel>[].obs;
   final userService = CurrentUserService.instance;
   UserProfileCacheService get _userCache {
@@ -82,12 +85,22 @@ class StoryRowController extends GetxController {
   void onInit() {
     super.onInit();
     _ensureMyUserPlaceholder();
-    unawaited(_loadStoriesFromMiniCache());
-    // Ensure profile changes (nickname/avatar) are reflected quickly.
-    unawaited(loadStories(silentLoad: true, cacheFirst: true));
+    unawaited(_bootstrapStoryRow());
     // Main.dart'ta zaten hikayeler yüklendiği için burada sadece listener'ları bağla
     // Arka planda tam listeyi genişlet (düşük öncelik)
     _scheduleBackgroundFullLoad();
+  }
+
+  Future<void> _bootstrapStoryRow() async {
+    await _loadStoriesFromMiniCache();
+    final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (users.isEmpty ||
+        SilentRefreshGate.shouldRefresh(
+          'story:row:$myUid',
+          minInterval: _silentRefreshInterval,
+        )) {
+      unawaited(loadStories(silentLoad: true, cacheFirst: true));
+    }
   }
 
   // Kendi kullanıcıyı hemen ekle (boş hikayelerle bile olsa görünür olsun)
@@ -273,6 +286,7 @@ class StoryRowController extends GetxController {
         unawaited(
           _storyRepository.saveStoryRowCache(users, ownerUid: myUid),
         );
+        SilentRefreshGate.markRefreshed('story:row:$myUid');
       }
     } catch (e) {
       debugPrint("LoadStories error: $e");
