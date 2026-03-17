@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/job_collection_helper.dart';
 import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 
 class MyApplicationsController extends GetxController {
@@ -15,7 +16,6 @@ class MyApplicationsController extends GetxController {
   RxList<JobApplicationModel> applications = <JobApplicationModel>[].obs;
   var isLoading = false.obs;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  static final Map<String, DateTime> _lastRefreshAtByUid = <String, DateTime>{};
 
   @override
   void onInit() {
@@ -42,7 +42,10 @@ class MyApplicationsController extends GetxController {
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList(growable: false);
       isLoading.value = false;
-      if (_shouldRefresh(uid)) {
+      if (SilentRefreshGate.shouldRefresh(
+        'jobs:my_applications:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
         unawaited(loadApplications(silent: true, forceRefresh: true));
       }
       return;
@@ -72,7 +75,7 @@ class MyApplicationsController extends GetxController {
       applications.value = items
           .map((doc) => JobApplicationModel.fromMap(doc.data, doc.id))
           .toList(growable: false);
-      _markRefreshed(uid);
+      SilentRefreshGate.markRefreshed('jobs:my_applications:$uid');
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -123,15 +126,5 @@ class MyApplicationsController extends GetxController {
             .toList(growable: false),
       );
     } catch (_) {}
-  }
-
-  bool _shouldRefresh(String uid) {
-    final last = _lastRefreshAtByUid[uid];
-    if (last == null) return true;
-    return DateTime.now().difference(last) >= _silentRefreshInterval;
-  }
-
-  void _markRefreshed(String uid) {
-    _lastRefreshAtByUid[uid] = DateTime.now();
   }
 }

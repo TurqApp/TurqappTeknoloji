@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/cv_repository.dart';
+import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/CVModels/school_model.dart';
 
 class CareerProfileController extends GetxController {
@@ -12,7 +13,6 @@ class CareerProfileController extends GetxController {
   var isFindingJob = false.obs;
   var isLoading = false.obs;
   static const Duration _silentRefreshInterval = Duration(minutes: 5);
-  static final Map<String, DateTime> _lastRefreshAtByUid = <String, DateTime>{};
 
   // CV summary fields
   var fullName = ''.obs;
@@ -44,7 +44,10 @@ class CareerProfileController extends GetxController {
     if (cached != null) {
       _applyCv(cached);
       isLoading.value = false;
-      if (_shouldRefresh(uid)) {
+      if (SilentRefreshGate.shouldRefresh(
+        'jobs:career_profile:$uid',
+        minInterval: _silentRefreshInterval,
+      )) {
         unawaited(loadCvData(silent: true, forceRefresh: true));
       }
       return;
@@ -70,7 +73,7 @@ class CareerProfileController extends GetxController {
 
       if (data != null) {
         _applyCv(data);
-        _markRefreshed(uid);
+        SilentRefreshGate.markRefreshed('jobs:career_profile:$uid');
       } else {
         cvVar.value = false;
         fullName.value = '';
@@ -132,15 +135,5 @@ class CareerProfileController extends GetxController {
     } catch (_) {
       isFindingJob.value = !isFindingJob.value;
     }
-  }
-
-  bool _shouldRefresh(String uid) {
-    final last = _lastRefreshAtByUid[uid];
-    if (last == null) return true;
-    return DateTime.now().difference(last) >= _silentRefreshInterval;
-  }
-
-  void _markRefreshed(String uid) {
-    _lastRefreshAtByUid[uid] = DateTime.now();
   }
 }
