@@ -16,7 +16,7 @@ Future<void> showMapsSheetWithAdres(String adres) async {
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24), topRight: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -33,8 +33,8 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 Get.back();
               },
               leading: SizedBox(
-                width: 30,
-                height: 30,
+                width: 36,
+                height: 36,
                 child: Image.asset("assets/icons/googlemaps.webp"),
               ),
               title: "Google Haritalar'da Aç",
@@ -52,8 +52,8 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                   Get.back();
                 },
                 leading: SizedBox(
-                  width: 30,
-                  height: 30,
+                  width: 36,
+                  height: 36,
                   child: Image.asset("assets/icons/applemaps.webp"),
                 ),
                 title: "Apple Haritalar'da Aç",
@@ -76,8 +76,8 @@ Future<void> showMapsSheetWithAdres(String adres) async {
                 Get.back();
               },
               leading: Container(
-                width: 30,
-                height: 30,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: const BorderRadius.all(Radius.circular(12)),

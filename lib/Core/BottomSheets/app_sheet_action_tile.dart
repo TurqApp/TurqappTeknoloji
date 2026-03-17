@@ -6,6 +6,7 @@ class AppSheetActionTile extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
   final EdgeInsetsGeometry padding;
+  final double minHeight;
 
   const AppSheetActionTile({
     super.key,
@@ -13,7 +14,8 @@ class AppSheetActionTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.trailing,
-    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    this.minHeight = 52,
   });
 
   @override
@@ -21,26 +23,30 @@ class AppSheetActionTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
-      child: Padding(
-        padding: padding,
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontFamily: "MontserratMedium",
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Padding(
+          padding: padding,
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontFamily: "MontserratMedium",
+                    height: 1.2,
+                  ),
                 ),
               ),
-            ),
-            if (trailing != null) trailing!,
-          ],
+              if (trailing != null) trailing!,
+            ],
+          ),
         ),
       ),
     );

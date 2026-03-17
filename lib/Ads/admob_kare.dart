@@ -24,7 +24,14 @@ class _AdmobKareState extends State<AdmobKare> {
   bool _isAdLoaded = false;
   bool _isDisposed = false;
   bool _loadFailed = false;
+  int _retryCount = 0;
+  Timer? _retryTimer;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
+  static const int _maxRetryCount = 2;
+
+  static void _log(String message) {
+    debugPrint('[AdmobKare] $message');
+  }
 
   static String _resolveAdUnitId() {
     final bool isTestMode = kDebugMode;
@@ -60,6 +67,8 @@ class _AdmobKareState extends State<AdmobKare> {
       listener: BannerAdListener(
         onAdLoaded: (Ad loadedAd) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          _log(
+              'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (_readyPool.length < 8) {
             _readyPool.add(loadedAd as BannerAd);
           } else {
@@ -68,6 +77,8 @@ class _AdmobKareState extends State<AdmobKare> {
         },
         onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          _log(
+              'warmup failed: code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           failedAd.dispose();
         },
       ),
@@ -103,22 +114,36 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _loadBanner() {
-    // 🎯 Otomatik mod seçimi: Debug modda test reklamları, production'da gerçek reklamlar
     final String adUnitId = _resolveAdUnitId();
+    _log(
+        'requesting banner unit=$adUnitId platform=${Platform.operatingSystem} debug=$kDebugMode');
 
-    if (kDebugMode) {
-      print("🧪 AdmobKare: Test mode - Loading test ad: $adUnitId");
+    _retryTimer?.cancel();
+    final previousAd = _bannerAd;
+    _bannerAd = null;
+    if (previousAd != null) {
+      unawaited(Future<void>.delayed(_disposeDelay, () {
+        try {
+          previousAd.dispose();
+        } catch (_) {}
+      }));
+    }
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _isAdLoaded = false;
+        _loadFailed = false;
+      });
     }
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
-      size: AdSize.mediumRectangle, // 300x250
+      size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (Ad ad) {
-          if (kDebugMode) {
-            print('✅ AdmobKare: Ad loaded successfully');
-          }
+          _retryCount = 0;
+          _log(
+              'loaded banner source=${ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
@@ -128,8 +153,27 @@ class _AdmobKareState extends State<AdmobKare> {
           unawaited(warmupPool());
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          if (kDebugMode) {
-            print('❌ AdmobKare: Ad failed to load - ${error.message}');
+          _log(
+              'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
+          ad.dispose();
+          _bannerAd = null;
+          if (_isDisposed) return;
+          if (_retryCount < _maxRetryCount) {
+            _retryCount += 1;
+            final retryDelay = Duration(milliseconds: 800 * _retryCount);
+            _log(
+                'retrying banner in ${retryDelay.inMilliseconds}ms attempt=$_retryCount unit=$adUnitId platform=${Platform.operatingSystem}');
+            if (mounted) {
+              setState(() {
+                _loadFailed = false;
+                _isAdLoaded = false;
+              });
+            }
+            _retryTimer = Timer(retryDelay, () {
+              if (_isDisposed) return;
+              _loadBanner();
+            });
+            return;
           }
           if (mounted && !_isDisposed) {
             setState(() {
@@ -137,23 +181,18 @@ class _AdmobKareState extends State<AdmobKare> {
               _isAdLoaded = false;
             });
           }
-          ad.dispose();
-          _bannerAd = null;
         },
         onAdOpened: (Ad ad) {
-          if (kDebugMode) {
-            print('🔓 AdmobKare: Ad opened (user clicked)');
-          }
+          _log(
+              'opened banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
         onAdClosed: (Ad ad) {
-          if (kDebugMode) {
-            print('🔒 AdmobKare: Ad closed');
-          }
+          _log(
+              'closed banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
         onAdImpression: (Ad ad) {
-          if (kDebugMode) {
-            print('👁️ AdmobKare: Ad impression recorded');
-          }
+          _log(
+              'impression banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
       ),
     )..load();
@@ -162,6 +201,7 @@ class _AdmobKareState extends State<AdmobKare> {
   @override
   void dispose() {
     _isDisposed = true;
+    _retryTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;

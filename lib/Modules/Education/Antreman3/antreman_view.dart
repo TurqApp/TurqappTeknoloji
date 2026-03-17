@@ -3,13 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
-import 'package:turqappv2/Core/Repositories/antreman_repository.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -23,15 +20,6 @@ class AntremanView2 extends StatelessWidget {
   final bool embedded;
   final bool showEmbeddedControls;
   final AntremanController controller = Get.put(AntremanController());
-  final AntremanRepository _antremanRepository = AntremanRepository.ensure();
-
-  int _fallbackAntPoint() {
-    final current = CurrentUserService.instance.currentUser;
-    if (current?.userID == controller.userID) {
-      return current?.antPoint ?? 100;
-    }
-    return 100;
-  }
 
   BoxDecoration _sectionCardDecoration({
     required Color color,
@@ -615,13 +603,6 @@ class AntremanView2 extends StatelessWidget {
         context: context,
         menuItems: [
           PullDownMenuItem(
-            title: 'Puan Tablosu',
-            icon: AppIcons.question,
-            onTap: () {
-              Get.to(() => AntremanScore());
-            },
-          ),
-          PullDownMenuItem(
             title: 'Sonra Çöz',
             icon: CupertinoIcons.repeat,
             onTap: () {
@@ -657,37 +638,7 @@ class AntremanView2 extends StatelessWidget {
             ],
           ),
         ),
-        GestureDetector(
-          onTap: () {
-            Get.to(() => AntremanScore());
-          },
-          child: Row(
-            children: [
-              StreamBuilder<int?>(
-                stream: _antremanRepository.scoreStream(
-                  controller.userID,
-                ),
-                builder: (context, snapshot) {
-                  final antPoint = snapshot.hasError ||
-                          !snapshot.hasData ||
-                          snapshot.data == null
-                      ? _fallbackAntPoint()
-                      : snapshot.data!;
-                  return Text(
-                    antPoint.toString(),
-                    style: TextStyles.bold20Black,
-                  );
-                },
-              ),
-              Image.asset(
-                "assets/icons/trophy.webp",
-                height: 25,
-                color: Colors.black,
-              ),
-            ],
-          ),
-        ),
-        15.pw
+        15.pw,
       ],
     );
   }
@@ -720,13 +671,6 @@ class AntremanView2 extends StatelessWidget {
       floatingActionButton: ActionButton(
         context: context,
         menuItems: [
-          PullDownMenuItem(
-            title: 'Puan Tablosu',
-            icon: AppIcons.question,
-            onTap: () {
-              Get.to(() => AntremanScore());
-            },
-          ),
           PullDownMenuItem(
             title: 'Sonra Çöz',
             icon: CupertinoIcons.repeat,

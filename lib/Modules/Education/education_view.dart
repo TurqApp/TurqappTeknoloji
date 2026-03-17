@@ -14,7 +14,6 @@ import 'package:turqappv2/Modules/Education/AnswerKey/OpticsAndBooksPublished/op
 import 'package:turqappv2/Modules/Education/AnswerKey/SavedOpticalForms/saved_optical_forms.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SearchAnswerKey/search_answer_key.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/answer_key_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/AntremanScore/antreman_score.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
@@ -137,7 +136,8 @@ class EducationView extends StatelessWidget {
   }
 
   TutoringController? _activeTutoringController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders") return null;
+    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
+      return null;
     if (!Get.isRegistered<TutoringController>()) {
       Get.put(TutoringController());
     }
@@ -145,7 +145,8 @@ class EducationView extends StatelessWidget {
   }
 
   TutoringFilterController? _activeTutoringFilterController() {
-    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders") return null;
+    if (_titleForIndex(controller.selectedTab.value) != "Özel Ders")
+      return null;
     if (!Get.isRegistered<TutoringFilterController>()) {
       Get.put(TutoringFilterController());
     }
@@ -414,11 +415,6 @@ class EducationView extends StatelessWidget {
                   : Get.put(AntremanController());
               antController.openMainCategoryPicker(context, force: true);
             },
-          ),
-          PullDownMenuItem(
-            title: 'Puan Tablosu',
-            icon: CupertinoIcons.chart_bar_fill,
-            onTap: () => Get.to(() => AntremanScore()),
           ),
           PullDownMenuItem(
             title: 'Sonra Çöz',
@@ -720,16 +716,16 @@ class EducationView extends StatelessWidget {
                         jobController != null && _showInlineJobActions();
                     final practiceExamController =
                         _activePracticeExamController();
-                    final showPracticeExamActions = practiceExamController != null &&
-                        _showInlinePracticeExamActions();
+                    final showPracticeExamActions =
+                        practiceExamController != null &&
+                            _showInlinePracticeExamActions();
                     final answerKeyController = _activeAnswerKeyController();
                     final showAnswerKeyActions = answerKeyController != null &&
                         _showInlineAnswerKeyActions();
                     final tutoringController = _activeTutoringController();
                     final tutoringFilterController =
                         _activeTutoringFilterController();
-                    final showTutoringActions =
-                        tutoringController != null &&
+                    final showTutoringActions = tutoringController != null &&
                         tutoringFilterController != null &&
                         _showInlineTutoringActions();
                     return Row(
@@ -740,7 +736,8 @@ class EducationView extends StatelessWidget {
                             focusNode: controller.searchFocus,
                             hintText: "Ara",
                             onTap: () {
-                              if (_titleForIndex(controller.selectedTab.value) ==
+                              if (_titleForIndex(
+                                      controller.selectedTab.value) ==
                                   "Mabil Pazar") {
                                 Get.to(() => const MarketSearchView());
                                 return;
@@ -811,28 +808,32 @@ class EducationView extends StatelessWidget {
                         if (showPracticeExamActions) ...[
                           const SizedBox(width: 8),
                           _marketTopActionButton(
-                            icon: practiceExamController.listingSelection.value ==
-                                    1
-                                ? Icons.view_agenda_outlined
-                                : Icons.grid_view_rounded,
-                            onTap: practiceExamController.toggleListingSelection,
+                            icon:
+                                practiceExamController.listingSelection.value ==
+                                        1
+                                    ? Icons.view_agenda_outlined
+                                    : Icons.grid_view_rounded,
+                            onTap:
+                                practiceExamController.toggleListingSelection,
                           ),
                         ],
                         if (showAnswerKeyActions) ...[
                           const SizedBox(width: 8),
                           _marketTopActionButton(
-                            icon: answerKeyController.listingSelection.value == 1
-                                ? Icons.view_agenda_outlined
-                                : Icons.grid_view_rounded,
+                            icon:
+                                answerKeyController.listingSelection.value == 1
+                                    ? Icons.view_agenda_outlined
+                                    : Icons.grid_view_rounded,
                             onTap: answerKeyController.toggleListingSelection,
                           ),
                         ],
                         if (showTutoringActions) ...[
                           const SizedBox(width: 8),
                           _marketTopActionButton(
-                            icon: Get.find<ViewModeController>().isGridView.value
-                                ? Icons.view_agenda_outlined
-                                : Icons.grid_view_rounded,
+                            icon:
+                                Get.find<ViewModeController>().isGridView.value
+                                    ? Icons.view_agenda_outlined
+                                    : Icons.grid_view_rounded,
                             onTap: () {
                               Get.find<ViewModeController>().toggleView();
                             },
@@ -843,37 +844,36 @@ class EducationView extends StatelessWidget {
                             active: tutoringFilterController
                                 .selectedLessonPlace.value!
                                 .any(
-                                  (value) => value == 'En Yeniler' ||
-                                      value == 'Fiyat: Düşükten Yükseğe' ||
-                                      value == 'Fiyat: Yüksekten Düşüğe',
-                                ),
-                            onTap: () =>
-                                _openTutoringFilterSheet(context, tutoringController),
+                              (value) =>
+                                  value == 'En Yeniler' ||
+                                  value == 'Fiyat: Düşükten Yükseğe' ||
+                                  value == 'Fiyat: Yüksekten Düşüğe',
+                            ),
+                            onTap: () => _openTutoringFilterSheet(
+                                context, tutoringController),
                           ),
                           const SizedBox(width: 6),
                           _marketTopActionButton(
                             icon: Icons.filter_alt_outlined,
                             active:
-                                (tutoringFilterController.selectedBranch.value
-                                            ?.isNotEmpty ??
-                                        false) ||
+                                (tutoringFilterController.selectedBranch.value?.isNotEmpty ?? false) ||
                                     (tutoringFilterController
                                             .selectedCity.value?.isNotEmpty ??
                                         false) ||
                                     (tutoringFilterController
                                             .selectedDistrict.value?.isNotEmpty ??
                                         false) ||
-                                    (tutoringFilterController.selectedGender.value
-                                            ?.isNotEmpty ??
+                                    (tutoringFilterController
+                                            .selectedGender.value?.isNotEmpty ??
                                         false) ||
-                                    tutoringFilterController
-                                        .selectedLessonPlace.value!.isNotEmpty ||
+                                    tutoringFilterController.selectedLessonPlace
+                                        .value!.isNotEmpty ||
                                     tutoringFilterController.maxPrice.value !=
                                         null ||
                                     tutoringFilterController.minPrice.value !=
                                         null,
-                            onTap: () =>
-                                _openTutoringFilterSheet(context, tutoringController),
+                            onTap: () => _openTutoringFilterSheet(
+                                context, tutoringController),
                           ),
                         ],
                         if (controller.isKeyboardOpen.value)
@@ -993,8 +993,8 @@ class EducationView extends StatelessWidget {
                             case "Mabil Pazar":
                               final marketController =
                                   Get.isRegistered<MarketController>()
-                                  ? Get.find<MarketController>()
-                                  : Get.put(MarketController());
+                                      ? Get.find<MarketController>()
+                                      : Get.put(MarketController());
                               return MarketView(
                                 embedded: true,
                                 showEmbeddedControls: false,
