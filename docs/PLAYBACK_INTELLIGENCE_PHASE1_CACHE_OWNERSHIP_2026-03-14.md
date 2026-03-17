@@ -89,3 +89,92 @@ Bu fazda sadece:
 - KPI gorunurlugu
 - budget split
 netlestirilir.
+
+## 5. Rollout Status
+
+### Tamamlananlar
+- `CurrentUserService -> UserRepository -> UserProfileCacheService` sahiplik zinciri uygulamada aktif.
+- `ProfileRepository` profile post bucket owner olarak aktif.
+- `TypesenseMarketSearchService` artik `memory + disk + TTL` cache owner.
+- `TypesenseEducationSearchService` artik `memory + disk + TTL` cache owner.
+- `TypesensePostService` artik post card metadata icin `memory + disk + TTL` cache owner.
+- `AgendaShuffleCacheService` feed shuffle buffer owner olarak aktif.
+- `StoryRepository` story row + deleted stories invalidation owner olarak aktif.
+
+### Kismi Tamamlananlar
+- `Feed/Agenda` veri omurgasi repository-first; controller tarafinda kalan `userPrivacy/deactivated` map'leri owner-level persistence degil, UI-oturum memoization seviyesinde.
+- `TopTags`, `StoryMusic`, `Booklet`, `Scholarship`, `Tutoring` gibi owner repository/service'ler ayri ayri dogru yonde; ortak metric raporlamasi her owner'da ayni seviyede degil.
+
+### Henuz Tamamlanmayanlar
+- Ek bir zorunlu mimari tasima yok.
+- Kalan isler operasyonel izleme ve ilerideki owner'lara ayni standardi kopyalamaktan ibaret.
+
+## 6. Sonraki Is Sirasi
+
+1. Yeni owner eklendiginde bu dokumandaki tablo ve metric standardina uydur.
+2. UI-oturum memoization'larini veri cache'i gibi buyutmeme kuralini koru.
+
+## 7. Invalidation Tablosu
+
+### Current User Summary
+- Tetikleyici: profil duzenleme, avatar degisimi, nickname degisimi, hesap gizliligi degisimi
+- Temizlenecek owner: `CurrentUserService`
+- Ardil is: `UserRepository.seedCurrentUser(...)` ile profile summary cache'ini besle
+
+### User Profile Summary
+- Tetikleyici: herhangi bir kullanici profil alaninin degismesi
+- Temizlenecek owner: `UserProfileCacheService`
+- Ardil is: ilgili ekranlarda sonraki okumayi `preferCache=true` ile yeniden yap
+
+### Profile Posts Buckets
+- Tetikleyici: post create, post delete, arsiv durumu degisikligi
+- Temizlenecek owner: `ProfileRepository`
+- Ardil is: ilgili profil sekmesinde ilk okuma bucket cache'ten, refresh server'dan gelir
+
+### Typesense Market Search
+- Tetikleyici: ilan create, edit, delete, ended/published degisikligi
+- Temizlenecek owner: `TypesenseMarketSearchService`
+- Ardil is: detail refresh `forceRefresh=true`, liste sayfasi normal `preferCache=true`
+
+### Typesense Education Search
+- Tetikleyici: burs, is veren, ozel ders, soru bankasi, cikmis soru seti metadata degisikligi
+- Temizlenecek owner: `TypesenseEducationSearchService`
+- Ardil is: liste ve arama ekrani tekrar acildiginda cache-first, manuel yenilemede force refresh
+
+### Typesense Post Cards
+- Tetikleyici: post update, reshare sync, moderation/deleted/archived degisikligi
+- Temizlenecek owner: `TypesensePostService`
+- Ardil is: `PostRepository.fetchPostCardsByIds(...)` sonraki okumada yeni hit'i yazar
+
+### Agenda Shuffle Buffer
+- Tetikleyici: feed refresh, yeni feed penceresi, shuffle pipeline reset
+- Temizlenecek owner: `AgendaShuffleCacheService`
+- Ardil is: agenda ilk boya pool/cache-first ile tekrar dolar
+
+### Story Row ve Deleted Stories
+- Tetikleyici: soft delete, restore, repost, expire cleanup
+- Temizlenecek owner: `StoryRepository.invalidateStoryCachesForUser(...)`
+- Ardil is: story row ve deleted stories sonraki okumada repository owner'dan yeniden kurulur
+
+## 8. Metric Standardi
+
+Her owner icin asgari gorunurluk dili ayni olmalidir:
+- `memory_hit`
+- `disk_hit`
+- `network_miss`
+- `force_refresh`
+- `cache_only_hit`
+- `stale_drop`
+
+Yorum kurali:
+- `memory_hit`: owner bellekte taze veri buldu
+- `disk_hit`: owner kalici cache'ten taze veri buldu
+- `network_miss`: cache karsilamadi ve ag cagrisi gerekti
+- `force_refresh`: kullanici veya servis stale duzeltme icin cache'i atladi
+- `cache_only_hit`: ag kapali korumaci okumada cache veri verdi
+- `stale_drop`: stale veri bulundu ama TTL disi oldugu icin servis etmedi
+
+Raporlama kurali:
+- Owner seviyesinde adlandirilir
+- Controller seviyesinde ikinci bir cache metriği uretilmez
+- UI-oturum memoization sayaclari owner metric'i gibi yorumlanmaz

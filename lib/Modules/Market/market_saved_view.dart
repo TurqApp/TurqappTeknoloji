@@ -2,8 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
+import 'package:turqappv2/Core/Services/typesense_market_service.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';
@@ -18,7 +18,8 @@ class MarketSavedView extends StatefulWidget {
 }
 
 class _MarketSavedViewState extends State<MarketSavedView> {
-  final MarketRepository _repository = MarketRepository.ensure();
+  final TypesenseMarketSearchService _typesense =
+      TypesenseMarketSearchService.instance;
   late final String uid;
   late Future<List<MarketItemModel>> _savedFuture;
   final Set<String> _busyIds = <String>{};
@@ -33,8 +34,14 @@ class _MarketSavedViewState extends State<MarketSavedView> {
   }
 
   void _reload({bool force = false}) {
-    _savedFuture = _repository.fetchSaved(
-      uid,
+    _savedFuture = _loadSavedItems(force: force);
+  }
+
+  Future<List<MarketItemModel>> _loadSavedItems({bool force = false}) async {
+    final ids = await MarketSavedStore.getSavedItemIds(uid);
+    if (ids.isEmpty) return const <MarketItemModel>[];
+    return _typesense.fetchByDocIds(
+      ids.toList(growable: false),
       preferCache: !force,
       forceRefresh: force,
     );

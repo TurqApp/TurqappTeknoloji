@@ -433,6 +433,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
                 query: '*',
                 limit: 30,
                 categoryKey: item.categoryKey,
+                preferCache: true,
               ),
               builder: (context, snapshot) {
                 final related = (snapshot.data ?? const <MarketItemModel>[])
@@ -1591,7 +1592,11 @@ class _MarketDetailViewState extends State<MarketDetailView> {
       _isRefreshing = true;
     }
     try {
-      final latest = await _typesense.fetchByDocId(item.id);
+      final latest = await _typesense.fetchByDocId(
+        item.id,
+        preferCache: true,
+        forceRefresh: true,
+      );
       if (latest != null && mounted) {
         final preserved = _preserveProtectedFields(
           latest,

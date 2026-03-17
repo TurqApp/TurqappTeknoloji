@@ -344,6 +344,17 @@ class StoryRepository extends GetxService {
     } catch (_) {}
   }
 
+  Future<void> invalidateStoryCachesForUser(
+    String uid, {
+    bool clearDeletedStories = true,
+  }) async {
+    if (uid.trim().isEmpty) return;
+    await clearStoryRowCacheForCurrentUser(uid);
+    if (clearDeletedStories) {
+      await clearDeletedStoriesCache(uid);
+    }
+  }
+
   Future<Map<String, StoryModel>> fetchStoriesByIds(
     List<String> storyIds,
   ) async {
@@ -436,7 +447,7 @@ class StoryRepository extends GetxService {
         } catch (_) {}
       }
       if (didMutate) {
-        await clearDeletedStoriesCache(uid);
+        await invalidateStoryCachesForUser(uid);
       }
     } catch (_) {}
   }
@@ -455,7 +466,7 @@ class StoryRepository extends GetxService {
       'deleteReason': reason,
     });
     if (uid.isNotEmpty) {
-      await clearDeletedStoriesCache(uid);
+      await invalidateStoryCachesForUser(uid);
     }
     return musicId;
   }
@@ -470,7 +481,7 @@ class StoryRepository extends GetxService {
     });
     final uid = (raw['userId'] ?? '').toString().trim();
     if (uid.isNotEmpty) {
-      await clearDeletedStoriesCache(uid);
+      await invalidateStoryCachesForUser(uid);
     }
   }
 
@@ -541,6 +552,8 @@ class StoryRepository extends GetxService {
         );
       }
     }
+
+    await invalidateStoryCachesForUser(uid);
 
     return storyId;
   }

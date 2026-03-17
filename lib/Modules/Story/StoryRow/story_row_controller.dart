@@ -140,7 +140,10 @@ class StoryRowController extends GetxController {
     _backgroundScheduled = false;
     if (ownerUid.isEmpty) return;
     try {
-      await _storyRepository.clearStoryRowCacheForCurrentUser(ownerUid);
+      await _storyRepository.invalidateStoryCachesForUser(
+        ownerUid,
+        clearDeletedStories: false,
+      );
     } catch (e) {
       debugPrint('Story mini cache clear error: $e');
     }

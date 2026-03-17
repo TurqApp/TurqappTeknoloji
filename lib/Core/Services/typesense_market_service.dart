@@ -1,15 +1,31 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+
+class _CachedMarketSearchResult {
+  const _CachedMarketSearchResult({
+    required this.items,
+    required this.cachedAt,
+  });
+
+  final List<MarketItemModel> items;
+  final DateTime cachedAt;
+}
 
 class TypesenseMarketSearchService {
   TypesenseMarketSearchService._();
 
   static final TypesenseMarketSearchService instance =
       TypesenseMarketSearchService._();
+  static const Duration _ttl = Duration(minutes: 15);
+  static const String _prefsPrefix = 'typesense_market_search_v1';
 
   final FirebaseFunctions _functions =
       FirebaseFunctions.instanceFor(region: 'us-central1');
+  final Map<String, _CachedMarketSearchResult> _memory =
+      <String, _CachedMarketSearchResult>{};
+  SharedPreferences? _prefs;
 
   Future<List<MarketItemModel>> searchItems({
     required String query,
@@ -20,8 +36,37 @@ class TypesenseMarketSearchService {
     String? categoryKey,
     String? city,
     String? district,
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
   }) async {
     final normalized = query.trim().isEmpty ? '*' : query.trim();
+    final cacheKey = _searchCacheKey(
+      query: normalized,
+      limit: limit,
+      page: page,
+      docId: docId,
+      userId: userId,
+      categoryKey: categoryKey,
+      city: city,
+      district: district,
+    );
+
+    if (!forceRefresh && preferCache) {
+      final memory = _getFromMemory(cacheKey);
+      if (memory != null) return memory;
+      final disk = await _getFromPrefs(cacheKey);
+      if (disk != null) {
+        _memory[cacheKey] = _CachedMarketSearchResult(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        _seedDocCaches(disk);
+        return disk;
+      }
+    }
+
+    if (cacheOnly) return const <MarketItemModel>[];
 
     final callable = _functions.httpsCallable('f25_searchMarketCallable');
     final response = await callable.call(<String, dynamic>{
@@ -97,17 +142,187 @@ class TypesenseMarketSearchService {
       );
     }
 
+    await _store(cacheKey, items);
+    _seedDocCaches(items);
     return items;
   }
 
-  Future<MarketItemModel?> fetchByDocId(String docId) async {
+  Future<MarketItemModel?> fetchByDocId(
+    String docId, {
+    bool preferCache = true,
+    bool forceRefresh = false,
+    bool cacheOnly = false,
+  }) async {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return null;
+    final cacheKey = 'doc:$normalizedDocId';
+    if (!forceRefresh && preferCache) {
+      final memory = _getFromMemory(cacheKey);
+      if (memory != null && memory.isNotEmpty) return memory.first;
+      final disk = await _getFromPrefs(cacheKey);
+      if (disk != null && disk.isNotEmpty) {
+        _memory[cacheKey] = _CachedMarketSearchResult(
+          items: disk,
+          cachedAt: DateTime.now(),
+        );
+        return disk.first;
+      }
+    }
+
+    if (cacheOnly) return null;
+
     final items = await searchItems(
       query: '*',
       limit: 1,
       page: 1,
-      docId: docId,
+      docId: normalizedDocId,
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+      cacheOnly: cacheOnly,
     );
     if (items.isEmpty) return null;
     return items.first;
   }
+
+  Future<List<MarketItemModel>> fetchByDocIds(
+    List<String> docIds, {
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    final ids = docIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    if (ids.isEmpty) return const <MarketItemModel>[];
+
+    final resolved = <String, MarketItemModel>{};
+    final missing = <String>[];
+
+    if (!forceRefresh && preferCache) {
+      for (final id in ids) {
+        final memory = _getFromMemory('doc:$id');
+        if (memory != null && memory.isNotEmpty) {
+          resolved[id] = memory.first;
+          continue;
+        }
+        missing.add(id);
+      }
+    } else {
+      missing.addAll(ids);
+    }
+
+    for (final id in missing) {
+      final item = await fetchByDocId(
+        id,
+        preferCache: preferCache,
+        forceRefresh: forceRefresh,
+      );
+      if (item != null) {
+        resolved[id] = item;
+      }
+    }
+
+    return ids
+        .map((id) => resolved[id])
+        .whereType<MarketItemModel>()
+        .toList(growable: false);
+  }
+
+  Future<List<MarketItemModel>> fetchByUserId(
+    String userId, {
+    int limit = 60,
+    bool preferCache = true,
+    bool forceRefresh = false,
+  }) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return const <MarketItemModel>[];
+    return searchItems(
+      query: '*',
+      limit: limit,
+      userId: normalized,
+      preferCache: preferCache,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  List<MarketItemModel>? _getFromMemory(String key) {
+    final entry = _memory[key];
+    if (entry == null) return null;
+    if (DateTime.now().difference(entry.cachedAt) > _ttl) {
+      _memory.remove(key);
+      return null;
+    }
+    return List<MarketItemModel>.from(entry.items);
+  }
+
+  Future<List<MarketItemModel>?> _getFromPrefs(String key) async {
+    _prefs ??= await SharedPreferences.getInstance();
+    final raw = _prefs?.getString(_prefsKey(key));
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = json.decode(raw) as Map<String, dynamic>;
+      final ts = (decoded['t'] as num?)?.toInt() ?? 0;
+      final payload = (decoded['d'] as List<dynamic>?) ?? const <dynamic>[];
+      if (ts <= 0) return null;
+      final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
+      if (DateTime.now().difference(cachedAt) > _ttl) return null;
+      return payload
+          .whereType<Map>()
+          .map((raw) => MarketItemModel.fromJson(Map<String, dynamic>.from(raw)))
+          .toList(growable: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _store(String key, List<MarketItemModel> items) async {
+    final cachedAt = DateTime.now();
+    final cloned = List<MarketItemModel>.from(items);
+    _memory[key] = _CachedMarketSearchResult(
+      items: cloned,
+      cachedAt: cachedAt,
+    );
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs?.setString(
+      _prefsKey(key),
+      jsonEncode(<String, dynamic>{
+        't': cachedAt.millisecondsSinceEpoch,
+        'd': cloned.map((item) => item.toJson()).toList(growable: false),
+      }),
+    );
+  }
+
+  void _seedDocCaches(List<MarketItemModel> items) {
+    final now = DateTime.now();
+    for (final item in items) {
+      _memory['doc:${item.id}'] = _CachedMarketSearchResult(
+        items: <MarketItemModel>[item],
+        cachedAt: now,
+      );
+    }
+  }
+
+  String _searchCacheKey({
+    required String query,
+    required int limit,
+    required int page,
+    String? docId,
+    String? userId,
+    String? categoryKey,
+    String? city,
+    String? district,
+  }) {
+    return <String>[
+      'q=${query.trim()}',
+      'limit=$limit',
+      'page=$page',
+      'docId=${(docId ?? '').trim()}',
+      'userId=${(userId ?? '').trim()}',
+      'categoryKey=${(categoryKey ?? '').trim()}',
+      'city=${(city ?? '').trim()}',
+      'district=${(district ?? '').trim()}',
+    ].join('|');
+  }
+
+  String _prefsKey(String key) => '$_prefsPrefix:$key';
 }

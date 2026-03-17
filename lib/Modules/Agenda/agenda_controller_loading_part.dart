@@ -19,8 +19,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       _usePrimaryFeedPaging = true;
       hasMore.value = true;
       agendaList.clear();
-      _shuffledPosts.clear(); // Shuffle cache'ini temizle
-      _shuffledIndex = 0;
+      _shuffleCache.clear();
       // Eski yeniden paylaşım meta verilerini sıfırla
       publicReshareEvents.clear();
       feedReshareEntries.clear();
@@ -49,21 +48,14 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     // Eğer shuffle edilmiş postlar varsa onlardan devam et
-    if (_shuffledPosts.isNotEmpty && _shuffledIndex < _shuffledPosts.length) {
+    if (_shuffleCache.hasBufferedItems) {
       if (!hasMore.value || isLoading.value) return;
       isLoading.value = true;
 
       try {
-        final remainingCount = _shuffledPosts.length - _shuffledIndex;
-        final takeCount =
-            remainingCount > fetchLimit ? fetchLimit : remainingCount;
-
-        final nextBatch =
-            _shuffledPosts.sublist(_shuffledIndex, _shuffledIndex + takeCount);
+        final nextBatch = _shuffleCache.takeNext(fetchLimit);
         _addUniqueToAgenda(nextBatch);
-        _shuffledIndex += takeCount;
-
-        if (_shuffledIndex >= _shuffledPosts.length) {
+        if (!_shuffleCache.hasMore) {
           hasMore.value = false;
         }
       } finally {
@@ -725,9 +717,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = null;
       hasMore.value = true;
       agendaList.clear();
-      _shuffledPosts.clear();
-      _shuffledIndex = 0;
-      _lastCacheTime = null;
+      _shuffleCache.clear();
 
       publicReshareEvents.clear();
       feedReshareEntries.clear();
@@ -750,15 +740,13 @@ extension AgendaControllerLoadingPart on AgendaController {
   Future<void> fetchRandomizedAgendaData() async {
     try {
       // Cache kontrolü - eğer cache geçerliyse ve karışık postlar varsa hızlı yükle
-      if (_isCacheValid() && _shuffledPosts.isNotEmpty) {
+      if (_shuffleCache.isFresh && _shuffleCache.hasBufferedItems) {
         print("Cache'den hızlı yükleme yapılıyor...");
-        _shuffledPosts.shuffle(Random()); // Yeniden karıştır
-        _shuffledIndex = 0;
+        _shuffleCache.reshuffle();
 
-        final initialItems = _shuffledPosts.take(fetchLimit).toList();
+        final initialItems = _shuffleCache.takeNext(fetchLimit);
         _addUniqueToAgenda(initialItems);
-        _shuffledIndex = fetchLimit;
-        hasMore.value = _shuffledPosts.length > fetchLimit;
+        hasMore.value = _shuffleCache.hasMore;
 
         // 🎯 INSTAGRAM STYLE: Cache'den yüklendiğinde ilk videoyu centered yap
         if (agendaList.isNotEmpty) {
@@ -784,14 +772,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  // Cache geçerli mi kontrol et
-  bool _isCacheValid() {
-    if (_lastCacheTime == null) return false;
-    final now = DateTime.now();
-    final diff = now.difference(_lastCacheTime!).inMinutes;
-    return diff < _cacheValidMinutes;
-  }
-
   // İlk küçük batch'i hızlıca getir
   Future<void> _fetchInitialShuffledBatch() async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -799,13 +779,13 @@ extension AgendaControllerLoadingPart on AgendaController {
     final page = await _postRepository.fetchAgendaWindowPage(
       cutoffMs: cutoffMs,
       nowMs: nowMs,
-      limit: _initialShuffleSize,
+      limit: _shuffleCache.initialFetchSize,
     );
 
     final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: _initialShuffleSize,
+      limit: _shuffleCache.initialFetchSize,
     );
 
     final items = <PostsModel>[
@@ -827,14 +807,11 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     // Karıştır ve göster
     visibleItems.shuffle(Random());
-    _shuffledPosts = visibleItems;
-    _shuffledIndex = 0;
-    _lastCacheTime = DateTime.now();
+    _shuffleCache.replace(visibleItems);
 
-    final initialItems = _shuffledPosts.take(fetchLimit).toList();
+    final initialItems = _shuffleCache.takeNext(fetchLimit);
     _addUniqueToAgenda(initialItems);
-    _shuffledIndex = fetchLimit;
-    hasMore.value = _shuffledPosts.length > fetchLimit;
+    hasMore.value = _shuffleCache.hasMore;
 
     // 🎯 INSTAGRAM STYLE: İlk batch yüklendiğinde ilk videoyu centered yap
     if (agendaList.isNotEmpty) {
@@ -858,13 +835,13 @@ extension AgendaControllerLoadingPart on AgendaController {
       final page = await _postRepository.fetchAgendaWindowPage(
         cutoffMs: cutoffMs,
         nowMs: nowMs,
-        limit: _backgroundShuffleFetchSize,
+        limit: _shuffleCache.backgroundFetchSize,
       );
 
       final publicIzBirakPosts = await _fetchVisiblePublicIzBirakPosts(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
-        limit: _backgroundShuffleFetchSize,
+        limit: _shuffleCache.backgroundFetchSize,
       );
 
       final items = <PostsModel>[
@@ -883,19 +860,11 @@ extension AgendaControllerLoadingPart on AgendaController {
       final visibleItems = uniqueMap.values.toList();
 
       // Mevcut gösterilenleri koru, kalanları güncelle
-      final currentVisible = agendaList.take(_shuffledIndex).toList();
       visibleItems.shuffle(Random());
-
-      // Yeni listeyi hazırla (mevcut gösterilenler + yeni karışık liste)
-      _shuffledPosts = [
-        ...currentVisible,
-        ...visibleItems.where(
-            (item) => !currentVisible.any((shown) => shown.docID == item.docID))
-      ];
-
-      hasMore.value = _shuffledPosts.length > _shuffledIndex;
+      _shuffleCache.mergeBackground(visibleItems);
+      hasMore.value = _shuffleCache.hasMore;
       print(
-          "Arka plan yüklemesi tamamlandı: ${_shuffledPosts.length} gönderi hazır");
+          "Arka plan yüklemesi tamamlandı: ${_shuffleCache.takeCurrentVisible().length} görünür, buffer hazır");
     } catch (e) {
       print("Background fetch error: $e");
     }

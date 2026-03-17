@@ -104,7 +104,7 @@ class MarketController extends GetxController {
             );
       categories.assignAll(loadedCategories);
       roundMenuItems.assignAll(_schemaService.roundMenuItems());
-      await _loadListingFromTypesense();
+      await _loadListingFromTypesense(forceRefresh: forceRefresh);
       await _loadAllCityOptions();
       await _loadSavedItems();
       await _loadRoundMenuBadges(forceRefresh: forceRefresh);
@@ -553,11 +553,14 @@ class MarketController extends GetxController {
     await prefs.setStringList(_recentSearchesKey, next);
   }
 
-  Future<void> _loadListingFromTypesense() async {
+  Future<void> _loadListingFromTypesense({
+    bool forceRefresh = false,
+  }) async {
     try {
       final fetched = await TypesenseMarketSearchService.instance.searchItems(
         query: '*',
         limit: 120,
+        forceRefresh: forceRefresh,
       );
       final activeFetched = fetched
           .where((item) => item.status == 'active')

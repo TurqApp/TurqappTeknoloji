@@ -14,6 +14,7 @@ import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
+import '../../Core/Services/agenda_shuffle_cache_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
@@ -121,12 +122,8 @@ class AgendaController extends GetxController {
 
   List<String> hiddenPosts = [];
   double lastOffset = 0.0;
-  List<PostsModel> _shuffledPosts = []; // Refresh sonrası karışık postlar
-  int _shuffledIndex = 0; // Karışık postlardaki mevcut index
-  DateTime? _lastCacheTime; // Son cache zamanı
-  final int _cacheValidMinutes = 5; // Cache geçerlilik süresi (dakika)
-  final int _initialShuffleSize = 60; // İlk karışık yükleme miktarı
-  final int _backgroundShuffleFetchSize = 300; // Arka plan tarama üst sınırı
+  AgendaShuffleCacheService get _shuffleCache =>
+      AgendaShuffleCacheService.ensure();
   bool _ensureInitialLoadInFlight = false;
   DateTime? _lastEnsureInitialLoadAt;
   // null => no time window limit
