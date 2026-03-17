@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -110,6 +111,11 @@ class _LikedPostsState extends State<LikedPosts> {
 
   Widget posts() {
     final list = controller.all;
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
       return EmptyRow(text: "Sonuç bulunamadı");
     }
@@ -120,7 +126,7 @@ class _LikedPostsState extends State<LikedPosts> {
               ? RefreshIndicator(
                   backgroundColor: Colors.black,
                   color: Colors.white,
-                  onRefresh: () async {},
+                  onRefresh: controller.refresh,
                   child: NotificationListener<ScrollNotification>(
                       onNotification: (notification) {
                         WidgetsBinding.instance.addPostFrameCallback(
@@ -182,6 +188,11 @@ class _LikedPostsState extends State<LikedPosts> {
 
   Widget photos() {
     final list = controller.all.where((val) => val.img.isNotEmpty).toList();
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
       return EmptyRow(text: "Sonuç bulunamadı");
     }
@@ -217,6 +228,11 @@ class _LikedPostsState extends State<LikedPosts> {
 
   Widget videos() {
     final list = controller.all.where((val) => val.hasPlayableVideo).toList();
+    if (controller.isLoading.value && list.isEmpty) {
+      return const Center(
+        child: CupertinoActivityIndicator(color: Colors.grey),
+      );
+    }
     if (list.isEmpty) {
       return EmptyRow(text: "Sonuç bulunamadı");
     }

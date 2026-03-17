@@ -47,32 +47,58 @@ class SavedPostsController extends GetxController {
   void _bindSaved(String userId) {
     _savedPostsSub = _linkService.listenSavedPosts(userId).listen((refs) {
       _latestRefs = refs;
-      _hydrateSavedPosts(userId, refs);
+      unawaited(_bootstrapSavedPosts(userId, refs));
     });
   }
 
+  Future<void> _bootstrapSavedPosts(
+    String userId,
+    List<UserPostReference> refs,
+  ) async {
+    if (refs.isEmpty) {
+      _clearLists();
+      isLoading.value = false;
+      return;
+    }
+
+    final cached = await _linkService.fetchSavedPosts(
+      userId,
+      refs,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      _applySavedPosts(cached);
+      isLoading.value = false;
+      unawaited(_hydrateSavedPosts(
+        userId,
+        refs,
+        silent: true,
+        forceRefresh: true,
+      ));
+      return;
+    }
+
+    await _hydrateSavedPosts(userId, refs);
+  }
+
   Future<void> _hydrateSavedPosts(
-      String userId, List<UserPostReference> refs) async {
-    isLoading.value = true;
-    _clearLists();
+    String userId,
+    List<UserPostReference> refs, {
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+      _clearLists();
+    }
 
     try {
-      final posts = await _linkService.fetchSavedPosts(userId, refs);
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      for (final post in posts) {
-        if (post.deletedPost == true) continue;
-        if (post.timeStamp > now) {
-          continue; // Gelecekte paylaşılacak gönderiler gizlenir
-        }
-
-        if (post.hasPlayableVideo) {
-          savedVideos.add(post);
-        } else if (post.img.isNotEmpty) {
-          savedPhotos.add(post);
-        }
-        savedAgendas.add(post);
-      }
+      final posts = await _linkService.fetchSavedPosts(
+        userId,
+        refs,
+        preferCache: !forceRefresh,
+      );
+      _applySavedPosts(posts);
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -90,6 +116,31 @@ class SavedPostsController extends GetxController {
     savedPhotos.clear();
     savedVideos.clear();
     savedAgendas.clear();
+  }
+
+  void _applySavedPosts(List<PostsModel> posts) {
+    final nextPhotos = <PostsModel>[];
+    final nextVideos = <PostsModel>[];
+    final nextAgendas = <PostsModel>[];
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    for (final post in posts) {
+      if (post.deletedPost == true) continue;
+      if (post.timeStamp > now) {
+        continue;
+      }
+
+      if (post.hasPlayableVideo) {
+        nextVideos.add(post);
+      } else if (post.img.isNotEmpty) {
+        nextPhotos.add(post);
+      }
+      nextAgendas.add(post);
+    }
+
+    savedPhotos.assignAll(nextPhotos);
+    savedVideos.assignAll(nextVideos);
+    savedAgendas.assignAll(nextAgendas);
   }
 
   void goToPage(int index) {

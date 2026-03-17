@@ -82,6 +82,8 @@ class UserPostLinkService {
     String collection,
     List<UserPostReference> refs, {
     bool removeMissing = true,
+    bool preferCache = true,
+    bool cacheOnly = false,
   }) async {
     if (refs.isEmpty) return const [];
 
@@ -101,7 +103,11 @@ class UserPostLinkService {
         i + 10 > limitedRefs.length ? limitedRefs.length : i + 10,
       );
       final ids = chunk.map((e) => e.postId).toSet().toList();
-      final query = await _postRepository.fetchPostCardsByIds(ids);
+      final query = await _postRepository.fetchPostCardsByIds(
+        ids,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
 
       final foundIds = <String>{};
       for (final entry in query.entries) {
@@ -116,7 +122,7 @@ class UserPostLinkService {
       }
     }
 
-    if (removeMissing && missingIds.isNotEmpty) {
+    if (!cacheOnly && removeMissing && missingIds.isNotEmpty) {
       await _removeMissingRefs(userId, collection, missingIds.toSet());
     }
 
@@ -160,18 +166,58 @@ class UserPostLinkService {
   }
 
   Future<List<PostsModel>> fetchLikedPosts(
-          String userId, List<UserPostReference> refs) =>
-      fetchPostsByRefs(userId, 'liked_posts', refs);
+    String userId,
+    List<UserPostReference> refs, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      fetchPostsByRefs(
+        userId,
+        'liked_posts',
+        refs,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
 
   Future<List<PostsModel>> fetchSavedPosts(
-          String userId, List<UserPostReference> refs) =>
-      fetchPostsByRefs(userId, 'saved_posts', refs);
+    String userId,
+    List<UserPostReference> refs, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      fetchPostsByRefs(
+        userId,
+        'saved_posts',
+        refs,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
 
   Future<List<PostsModel>> fetchResharedPosts(
-          String userId, List<UserPostReference> refs) =>
-      fetchPostsByRefs(userId, 'reshared_posts', refs);
+    String userId,
+    List<UserPostReference> refs, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      fetchPostsByRefs(
+        userId,
+        'reshared_posts',
+        refs,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
 
   Future<List<PostsModel>> fetchSharedAsPosts(
-          String userId, List<UserPostReference> refs) =>
-      fetchPostsByRefs(userId, 'shared_as_posts', refs);
+    String userId,
+    List<UserPostReference> refs, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      fetchPostsByRefs(
+        userId,
+        'shared_as_posts',
+        refs,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
 }

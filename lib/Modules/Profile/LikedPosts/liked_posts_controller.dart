@@ -44,18 +44,55 @@ class LikedPostControllers extends GetxController {
   void _bindLiked(String userId) {
     _likedSub = _linkService.listenLikedPosts(userId).listen((refs) {
       _latestRefs = refs;
-      _hydrate(userId, refs);
+      unawaited(_bootstrap(userId, refs));
     });
   }
 
-  Future<void> _hydrate(String userId, List<UserPostReference> refs) async {
-    isLoading.value = true;
-    all.clear();
+  Future<void> _bootstrap(String userId, List<UserPostReference> refs) async {
+    if (refs.isEmpty) {
+      all.clear();
+      isLoading.value = false;
+      return;
+    }
+
+    final cached = await _linkService.fetchLikedPosts(
+      userId,
+      refs,
+      cacheOnly: true,
+    );
+    if (cached.isNotEmpty) {
+      _applyPosts(cached);
+      isLoading.value = false;
+      unawaited(_hydrate(
+        userId,
+        refs,
+        silent: true,
+        forceRefresh: true,
+      ));
+      return;
+    }
+
+    await _hydrate(userId, refs);
+  }
+
+  Future<void> _hydrate(
+    String userId,
+    List<UserPostReference> refs, {
+    bool silent = false,
+    bool forceRefresh = false,
+  }) async {
+    if (!silent) {
+      isLoading.value = true;
+      all.clear();
+    }
 
     try {
-      final posts = await _linkService.fetchLikedPosts(userId, refs);
-      final visiblePosts = posts.where((p) => p.deletedPost != true).toList();
-      all.assignAll(visiblePosts);
+      final posts = await _linkService.fetchLikedPosts(
+        userId,
+        refs,
+        preferCache: !forceRefresh,
+      );
+      _applyPosts(posts);
     } catch (_) {
     } finally {
       isLoading.value = false;
@@ -80,6 +117,11 @@ class LikedPostControllers extends GetxController {
   GlobalKey getPostKey(int index) {
     return _postKeys.putIfAbsent(
         index, () => GlobalObjectKey('liked_post_$index'));
+  }
+
+  void _applyPosts(List<PostsModel> posts) {
+    final visiblePosts = posts.where((p) => p.deletedPost != true).toList();
+    all.assignAll(visiblePosts);
   }
 
   @override

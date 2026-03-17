@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class EditorPhoneNumberController extends GetxController {
   final phoneController = TextEditingController();
@@ -23,7 +24,8 @@ class EditorPhoneNumberController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadInitialPhone();
+    _seedFromCurrentUser();
+    unawaited(_loadInitialPhone());
 
     phoneController.addListener(() {
       phoneValue.value = phoneController.text;
@@ -32,6 +34,15 @@ class EditorPhoneNumberController extends GetxController {
     codeController.addListener(() {
       codeValue.value = codeController.text;
     });
+  }
+
+  void _seedFromCurrentUser() {
+    final currentUser = CurrentUserService.instance.currentUser;
+    if (currentUser == null) return;
+    final phone = currentUser.phoneNumber.trim();
+    if (phone.isEmpty) return;
+    phoneController.text = phone;
+    phoneValue.value = phone;
   }
 
   Future<void> _loadInitialPhone() async {
@@ -61,6 +72,11 @@ class EditorPhoneNumberController extends GetxController {
 
     final authEmail = (current.email ?? "").trim().toLowerCase();
     if (authEmail.isNotEmpty) return authEmail;
+
+    final currentUserEmail =
+        CurrentUserService.instance.currentUser?.email.trim().toLowerCase() ??
+            "";
+    if (currentUserEmail.isNotEmpty) return currentUserEmail;
 
     final data = await _userRepository.getUserRaw(current.uid);
     return (((data ?? const {})["email"]) ?? "")

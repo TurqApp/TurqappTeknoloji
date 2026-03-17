@@ -12,17 +12,18 @@ class ArchiveController extends GetxController {
   final scrollController = ScrollController();
 
   final RxList<PostsModel> list = <PostsModel>[].obs;
+  final RxBool isLoading = true.obs;
   final Map<int, GlobalKey> _agendaKeys = {};
   int? lastCenteredIndex;
   final centeredIndex = 0.obs;
   StreamSubscription<User?>? _authSub;
+  String? _currentUserId;
 
   @override
   void onInit() {
     super.onInit();
     scrollController.addListener(_onScroll);
     _bindAuth();
-    _bindArchive();
   }
 
   @override
@@ -86,30 +87,41 @@ class ArchiveController extends GetxController {
 
   void _bindAuth() {
     _authSub = FirebaseAuth.instance.userChanges().listen((user) {
-      list.clear();
-      unawaited(fetchData(initial: true));
+      final nextUserId = user?.uid;
+      if (_currentUserId != nextUserId) {
+        _currentUserId = nextUserId;
+        list.clear();
+      }
+      if (nextUserId == null) {
+        isLoading.value = false;
+        return;
+      }
+      unawaited(_bootstrapArchive(nextUserId));
     });
   }
 
-  Future<void> _bindArchive() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+  Future<void> _bootstrapArchive(String uid) async {
     final cached = await _profileRepository.readCachedArchive(uid);
     if (cached.isNotEmpty) {
       list.assignAll(cached);
+      isLoading.value = false;
+      unawaited(fetchData(silent: true));
       return;
     }
-    final posts = await _profileRepository.fetchArchive(uid);
-    list.assignAll(posts);
+    await fetchData();
   }
 
-  Future<void> fetchData({bool initial = false}) async {
+  Future<void> fetchData({bool silent = false}) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    if (!initial) {
-      list.clear();
+    if (!silent) {
+      isLoading.value = true;
     }
-    final posts = await _profileRepository.fetchArchive(uid);
-    list.assignAll(posts);
+    try {
+      final posts = await _profileRepository.fetchArchive(uid);
+      list.assignAll(posts);
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

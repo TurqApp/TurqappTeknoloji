@@ -99,7 +99,8 @@ class _SavedPostsState extends State<SavedPosts> {
                     SizedBox.expand(
                       child: Container(
                           color: Colors.white,
-                          child: controller.isLoading.value
+                          child: controller.isLoading.value &&
+                                  controller.savedAgendas.isEmpty
                               ? const CupertinoActivityIndicator(
                                   color: Colors.grey,
                                 )
